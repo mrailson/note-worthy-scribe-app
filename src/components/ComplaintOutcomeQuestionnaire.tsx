@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { SpeechToText } from '@/components/SpeechToText';
-import { CheckCircle2, AlertCircle, Loader2, CheckCircle, ClipboardCheck } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, CheckCircle, ClipboardCheck, Sparkles } from 'lucide-react';
 
 interface QuestionnaireData {
   investigation_complete: boolean;
@@ -74,6 +74,60 @@ export const ComplaintOutcomeQuestionnaire = ({
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
+
+  // Generate contextually relevant demo replies based on complaint data
+  const getDemoReplies = () => {
+    const category = complaintData.category?.toLowerCase() || '';
+    const title = complaintData.complaint_description?.toLowerCase() || complaintData.reference_number || '';
+    
+    // Contextual demo content based on complaint category
+    if (category.includes('appointment') || title.includes('appointment') || title.includes('cancel')) {
+      return {
+        key_findings: "Investigation confirmed notification system failures led to missed communications. All four cancellations verified. Patient impact acknowledged.",
+        actions_taken: "SMS system upgraded. Staff trained on patient notification protocols. Practice manager personally contacted patient to apologise.",
+        improvements_made: "Implemented double-notification system (SMS + call). Added 48-hour advance notice policy. Monthly system audits introduced.",
+        additional_context: "Patient offered priority rebooking and direct line to practice manager. Compensation discussed for lost earnings. Process improvements shared with CCG."
+      };
+    } else if (category.includes('clinical') || category.includes('treatment')) {
+      return {
+        key_findings: "Clinical review completed. All care decisions properly documented. Treatment aligned with NICE guidelines. Communication gaps identified.",
+        actions_taken: "Case discussed with clinical governance team. Additional monitoring protocols implemented. Patient offered follow-up consultation.",
+        improvements_made: "Enhanced clinical record templates. Staff training on patient communication. Senior clinician review of complex cases.",
+        additional_context: "Patient safety incident report filed. Learning shared at practice clinical meeting. Apology letter sent with full explanation."
+      };
+    } else if (category.includes('staff') || category.includes('behaviour')) {
+      return {
+        key_findings: "Staff member interviewed. Incident details verified. Training needs identified. Patient concerns validated and acknowledged.",
+        actions_taken: "Formal meeting with staff member. Refresher training on professional conduct. Apology issued. Senior oversight increased.",
+        improvements_made: "Enhanced customer service training programme. Introduction of peer observation. Regular staff feedback sessions.",
+        additional_context: "Practice committed to respectful patient interactions. Staff wellbeing support offered. Patient invited to discuss concerns further."
+      };
+    } else if (category.includes('communication') || category.includes('information')) {
+      return {
+        key_findings: "Communication breakdown confirmed. Information not shared as expected. System failures identified. Patient right to information upheld.",
+        actions_taken: "Communication protocols reviewed. Staff briefed on information sharing requirements. Personal apology issued to patient.",
+        improvements_made: "New communication checklist introduced. Patient information leaflets updated. Regular communication audits.",
+        additional_context: "Practice committed to transparent communication. Patient offered dedicated contact person. Feedback mechanisms strengthened."
+      };
+    } else {
+      // Generic fallback
+      return {
+        key_findings: "Full investigation conducted. All parties consulted. Key issues identified and validated. Patient concerns taken seriously throughout.",
+        actions_taken: "Immediate corrective actions implemented. Staff briefed on findings. Apology issued to patient with explanation of steps taken.",
+        improvements_made: "Process improvements identified and actioned. Staff training updated. Quality assurance measures enhanced.",
+        additional_context: "Practice committed to continuous improvement. Patient feedback valued. Further contact welcomed if concerns remain."
+      };
+    }
+  };
+
+  const loadDemoReply = (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
+    const demoReplies = getDemoReplies();
+    setData({ ...data, [field]: demoReplies[field] });
+    toast({
+      title: 'Demo Reply Loaded',
+      description: 'Contextual demo content loaded for demonstration purposes',
+    });
+  };
 
   useEffect(() => {
     if (open) {
@@ -578,12 +632,24 @@ export const ComplaintOutcomeQuestionnaire = ({
                 rows={3}
                 className="mb-2"
               />
-              <SpeechToText
-                onTranscription={(text) =>
-                  setData({ ...data, key_findings: (data.key_findings + ' ' + text).slice(0, 150) })
-                }
-                className="w-full"
-              />
+              <div className="flex gap-2">
+                <SpeechToText
+                  onTranscription={(text) =>
+                    setData({ ...data, key_findings: (data.key_findings + ' ' + text).slice(0, 150) })
+                  }
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadDemoReply('key_findings')}
+                  className="flex items-center gap-1"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Load Demo
+                </Button>
+              </div>
             </div>
 
             <div>
@@ -602,12 +668,24 @@ export const ComplaintOutcomeQuestionnaire = ({
                 rows={2}
                 className="mb-2"
               />
-              <SpeechToText
-                onTranscription={(text) =>
-                  setData({ ...data, actions_taken: (data.actions_taken + ' ' + text).slice(0, 150) })
-                }
-                className="w-full"
-              />
+              <div className="flex gap-2">
+                <SpeechToText
+                  onTranscription={(text) =>
+                    setData({ ...data, actions_taken: (data.actions_taken + ' ' + text).slice(0, 150) })
+                  }
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadDemoReply('actions_taken')}
+                  className="flex items-center gap-1"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Load Demo
+                </Button>
+              </div>
             </div>
 
             <div>
@@ -626,12 +704,24 @@ export const ComplaintOutcomeQuestionnaire = ({
                 rows={2}
                 className="mb-2"
               />
-              <SpeechToText
-                onTranscription={(text) =>
-                  setData({ ...data, improvements_made: (data.improvements_made + ' ' + text).slice(0, 150) })
-                }
-                className="w-full"
-              />
+              <div className="flex gap-2">
+                <SpeechToText
+                  onTranscription={(text) =>
+                    setData({ ...data, improvements_made: (data.improvements_made + ' ' + text).slice(0, 150) })
+                  }
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadDemoReply('improvements_made')}
+                  className="flex items-center gap-1"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Load Demo
+                </Button>
+              </div>
             </div>
           </div>
         )}
@@ -693,12 +783,24 @@ export const ComplaintOutcomeQuestionnaire = ({
                 rows={3}
                 className="mb-2"
               />
-              <SpeechToText
-                onTranscription={(text) =>
-                  setData({ ...data, additional_context: (data.additional_context + ' ' + text).slice(0, 200) })
-                }
-                className="w-full"
-              />
+              <div className="flex gap-2">
+                <SpeechToText
+                  onTranscription={(text) =>
+                    setData({ ...data, additional_context: (data.additional_context + ' ' + text).slice(0, 200) })
+                  }
+                  className="flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => loadDemoReply('additional_context')}
+                  className="flex items-center gap-1"
+                >
+                  <Sparkles className="h-3 w-3" />
+                  Load Demo
+                </Button>
+              </div>
             </div>
 
             <div className="bg-blue-50 p-3 rounded text-sm text-blue-900">
