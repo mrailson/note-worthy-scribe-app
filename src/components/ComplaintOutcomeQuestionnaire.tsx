@@ -164,6 +164,14 @@ export const ComplaintOutcomeQuestionnaire = ({
         improvements_made: "Same-day mental health slots now available. 24-hour callback guarantee for crisis calls. Weekly check-ins for at-risk patients.",
         additional_context: "Patient now has dedicated care coordinator. Practice mental health lead assigned. Direct crisis contact number provided."
       };
+    } else if (refNumber === 'COMP250015') {
+      // Alleged victimisation - Barbara Anne Stevens
+      return {
+        key_findings: "No evidence of staff misconduct found. All interactions reviewed. Prescription delays due to clinical safety checks. Access restrictions due to abusive behaviour.",
+        actions_taken: "Full investigation conducted. Staff supported with training on managing challenging situations. Clear boundaries communicated in writing.",
+        improvements_made: "Enhanced incident logging system. Staff training on de-escalation. Clear acceptable behaviour policy communicated to all patients.",
+        additional_context: "Multiple attempts made to engage constructively. Patient offered mediation. Legal advice sought regarding ongoing harassment of staff."
+      };
     }
     
     // No demo response available - return empty strings for non-demo complaints
