@@ -62,6 +62,7 @@ interface User {
   email: string;
   full_name: string;
   last_login: string | null;
+  show_consultation_examples?: boolean | null;
   practice_assignments: Array<{
     practice_id: string;
     practice_name: string;
@@ -339,7 +340,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
           // Get ALL user_roles for this user and take the first one for display
           const { data: roleData, error: roleError } = await supabase
             .from('user_roles')
-            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access')
+            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, show_consultation_examples')
             .eq('user_id', user.user_id)
             .limit(1)
             .single();
@@ -375,7 +376,8 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
             mic_test_service_access: roleData?.mic_test_service_access ?? false,
             api_testing_service_access: roleData?.api_testing_service_access ?? false,
             translation_service_access: roleData?.translation_service_access ?? false,
-            fridge_monitoring_access: roleData?.fridge_monitoring_access ?? false
+            fridge_monitoring_access: roleData?.fridge_monitoring_access ?? false,
+            show_consultation_examples: roleData?.show_consultation_examples ?? null
           };
           
           console.log(`Final user data for ${user.user_id}:`, userWithModules);
@@ -1896,6 +1898,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                         <TableHead>Email</TableHead>
                         <TableHead>Last Login</TableHead>
                         <TableHead>Practice Assignments</TableHead>
+                        <TableHead className="text-center">GP Consultations</TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -1942,6 +1945,71 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                                     +{user.practice_assignments.length - 2} more
                                   </Badge>
                                 )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex justify-center">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={async () => {
+                                    // Cycle through: null -> true -> false -> null
+                                    let newValue: boolean | null;
+                                    if (user.show_consultation_examples === null || user.show_consultation_examples === undefined) {
+                                      newValue = true;
+                                    } else if (user.show_consultation_examples === true) {
+                                      newValue = false;
+                                    } else {
+                                      newValue = null;
+                                    }
+                                    
+                                    try {
+                                      const { error } = await supabase
+                                        .from('user_roles')
+                                        .update({ show_consultation_examples: newValue })
+                                        .eq('user_id', user.user_id);
+                                      
+                                      if (error) throw error;
+                                      
+                                      // Update local state
+                                      setUsers(users.map(u => 
+                                        u.user_id === user.user_id 
+                                          ? { ...u, show_consultation_examples: newValue }
+                                          : u
+                                      ));
+                                      
+                                      const statusText = newValue === null ? 'System Default' : newValue ? 'Always Show' : 'Always Hide';
+                                      toast.success(`GP consultation features: ${statusText}`);
+                                    } catch (error) {
+                                      console.error('Error updating consultation visibility:', error);
+                                      toast.error('Failed to update setting');
+                                    }
+                                  }}
+                                  title={
+                                    user.show_consultation_examples === null || user.show_consultation_examples === undefined
+                                      ? 'System Default - Click to Always Show'
+                                      : user.show_consultation_examples === true
+                                      ? 'Always Show - Click to Always Hide'
+                                      : 'Always Hide - Click to use System Default'
+                                  }
+                                >
+                                  {user.show_consultation_examples === null || user.show_consultation_examples === undefined ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/40" />
+                                      <span className="text-xs text-muted-foreground">Default</span>
+                                    </div>
+                                  ) : user.show_consultation_examples === true ? (
+                                    <div className="flex items-center gap-1.5">
+                                      <CheckCircle className="h-5 w-5 text-green-600" />
+                                      <span className="text-xs text-green-600">Show</span>
+                                    </div>
+                                  ) : (
+                                    <div className="flex items-center gap-1.5">
+                                      <AlertCircle className="h-5 w-5 text-red-600" />
+                                      <span className="text-xs text-red-600">Hide</span>
+                                    </div>
+                                  )}
+                                </Button>
                               </div>
                             </TableCell>
                             <TableCell>

@@ -107,7 +107,11 @@ export const ConsultationVisibilitySettings = () => {
             </li>
             <li className="flex items-start gap-2">
               <span>•</span>
-              <span>User-specific overrides can be configured in the User Management section</span>
+              <span>Consultation demos in the Import Meeting Dialog</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span>•</span>
+              <span><strong>User overrides:</strong> Set individual user exceptions in the User Management section (Users tab → GP Consultations column)</span>
             </li>
           </ul>
         </div>
