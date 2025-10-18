@@ -161,9 +161,27 @@ const ComplaintDetails = () => {
   const [showOutcomeAIEdit, setShowOutcomeAIEdit] = useState(false);
   const [aiEditInstructions, setAiEditInstructions] = useState("");
   const [isRegeneratingWithAI, setIsRegeneratingWithAI] = useState(false);
+  const [investigationFindingsExist, setInvestigationFindingsExist] = useState(false);
 
 
   // Define all functions before useEffect
+  const fetchInvestigationFindings = async () => {
+    if (!user || !complaintId) return;
+    try {
+      const { data, error } = await supabase
+        .from('complaint_investigation_findings')
+        .select('id')
+        .eq('complaint_id', complaintId)
+        .maybeSingle();
+
+      if (error) throw error;
+      setInvestigationFindingsExist(!!data);
+    } catch (error) {
+      console.error('Error checking investigation findings:', error);
+      setInvestigationFindingsExist(false);
+    }
+  };
+
   const fetchComplaintDetails = async () => {
     if (!user || !complaintId) return;
     try {
@@ -508,6 +526,7 @@ const ComplaintDetails = () => {
       fetchAuditLogs();
       fetchComplaintDocuments();
       fetchStaffResponses(); // Add this to load staff responses
+      fetchInvestigationFindings(); // Check if investigation findings exist
       logComplaintView(); // Log the view
     }
   }, [user, complaintId]);
@@ -2847,13 +2866,13 @@ I am committed to ensuring that all patients receive the care and service they d
               )}
 
               {/* Direct link to outcome letter creation */}
-              {acknowledgementLetter && !existingOutcome && (
+              {acknowledgementLetter && investigationFindingsExist && !existingOutcome && (
                 <Card className="border-blue-200 bg-blue-50">
                   <CardContent className="pt-6">
                     <div className="flex items-center justify-between">
                       <div>
                         <h3 className="font-semibold text-blue-900">Ready to Create Outcome Letter?</h3>
-                        <p className="text-sm text-blue-700 mt-1">Skip directly to creating the final complaint outcome letter for the patient</p>
+                        <p className="text-sm text-blue-700 mt-1">Investigation complete. Create the final complaint outcome letter for the patient.</p>
                       </div>
                       <Button
                         onClick={() => setShowQuestionnaireModal(true)}
@@ -2862,6 +2881,23 @@ I am committed to ensuring that all patients receive the care and service they d
                         <FileText className="h-4 w-4 mr-2" />
                         Create Outcome Letter
                       </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              
+              {/* Helper message when investigation findings are missing */}
+              {acknowledgementLetter && !investigationFindingsExist && !existingOutcome && (
+                <Card className="border-amber-200 bg-amber-50">
+                  <CardContent className="pt-6">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="h-5 w-5 text-amber-600 mt-0.5" />
+                      <div>
+                        <h3 className="font-semibold text-amber-900">Investigation Findings Required</h3>
+                        <p className="text-sm text-amber-700 mt-1">
+                          Please document your investigation findings before creating the outcome letter. This ensures the AI can suggest an appropriate outcome based on the investigation.
+                        </p>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
