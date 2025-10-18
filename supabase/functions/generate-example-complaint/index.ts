@@ -404,6 +404,286 @@ COMPLAINT ON BEHALF: No
 
 Yours sincerely,
 Margaret Phillips`
+  },
+  11: {
+    name: "High Priority - Privacy & Data Breach",
+    content: `NHS FORMAL COMPLAINT LETTER
+
+Date: 18th October 2025
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Ms. Jennifer Louise Edwards
+Date of Birth: 9th August 1992
+Address: 127 Spencer Bridge Road, Northampton, NN9 3TL
+Phone: 01604 234 5678
+Email: jennifer.edwards@email.com
+
+COMPLAINT REFERENCE: Serious Breach of Patient Confidentiality
+
+I am writing to formally complain about a serious breach of my medical confidentiality at Oak Lane Practice.
+
+INCIDENT DETAILS:
+On 10th October 2025, I received a phone call from my employer's HR department asking about my recent medical appointments. They mentioned receiving a letter from Oak Lane Practice confirming I had attended appointments for "mental health support" on specific dates.
+
+INVESTIGATION FINDINGS:
+When I contacted the practice, I discovered that a member of staff, Lisa Martin, had mistakenly sent my appointment confirmation letter to my employer's address instead of my home address. This letter contained sensitive information about the nature of my appointments.
+
+CONSENT BREACH:
+I never gave permission for any medical information to be shared with my employer. This has caused me significant distress and embarrassment at work. Colleagues have been asking questions, and I feel my privacy has been completely violated.
+
+STAFF INVOLVED:
+- Lisa Martin (Administrative Assistant)
+
+IMPACT:
+This breach has damaged my professional reputation and caused me severe anxiety. I am considering legal action and have reported this to the Information Commissioner's Office (ICO).
+
+CATEGORY: Confidentiality and Data Protection
+PRIORITY: High - GDPR Breach
+
+CONSENT: Yes, I consent to investigation.
+COMPLAINT ON BEHALF: No
+
+Yours sincerely,
+Jennifer Edwards`
+  },
+  12: {
+    name: "VEXATIOUS - Unreasonable Demands",
+    content: `NHS FORMAL COMPLAINT LETTER
+
+Date: 17th October 2025
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Mr. Gerald Frederick Hamilton
+Date of Birth: 4th February 1951
+Address: 203 Welford Road, Northampton, NN10 6HJ
+Phone: 01604 345 6789
+Email: gerald.hamilton@email.com
+
+COMPLAINT REFERENCE: THIRTY-SEVENTH Formal Complaint - Continued Unacceptable Service
+
+This is my THIRTY-SEVENTH formal complaint this year about Oak Lane Practice. I am DISGUSTED by the continued failure to meet my requirements.
+
+LATEST INCIDENTS:
+1. On 9th October, receptionist refused to give me an appointment with Dr. Smith specifically, despite my CLEAR requirement to only see him.
+2. My appointment on 11th October started 3 minutes late - this is UNACCEPTABLE and shows complete disregard.
+3. Dr. Smith did not agree with my self-diagnosis of multiple rare conditions I researched online.
+4. The waiting room chairs are not comfortable enough for someone of my importance.
+5. Reception staff did not greet me enthusiastically enough when I arrived.
+
+MY DEMANDS:
+- I require a same-day appointment with Dr. Smith ONLY, every week, at exactly 10:00 AM
+- All staff must attend sensitivity training about MY specific needs
+- The practice must install reclining leather chairs in the waiting room
+- I demand compensation of £5,000 for emotional distress
+- Dr. Smith must prescribe the medications I specify based on my internet research
+- The Practice Manager must call me daily to confirm my satisfaction
+
+PREVIOUS COMPLAINTS:
+As you know from my previous 36 complaints this year, I have documented every perceived slight, including: staff not making enough eye contact, music being too quiet in the waiting room, the colour of the walls, temperature being 0.5 degrees too warm, and many other serious issues.
+
+WARNING:
+If these demands are not met within 48 hours, I will escalate to the ombudsman, my MP, the Care Quality Commission, NHS England, the local newspaper, social media, and pursue legal action. I have already posted about this practice's failures on 15 different online platforms.
+
+CATEGORY: Multiple (all categories)
+PRIORITY: URGENT - MAXIMUM
+
+CONSENT: Of course
+COMPLAINT ON BEHALF: No
+
+This is absolutely DISGRACEFUL.
+
+Gerald Hamilton`
+  },
+  13: {
+    name: "VEXATIOUS - Aggressive & Excessive Communication",
+    content: `NHS FORMAL COMPLAINT LETTER
+
+Date: 16th October 2025 [SENT AT 3:47 AM]
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Mrs. Barbara Anne Stevens
+Date of Birth: 19th May 1968
+Address: 88 Kingswell Road, Northampton, NN11 2PQ
+Phone: 01604 456 7891
+Email: barbara.stevens@email.com
+
+COMPLAINT REFERENCE: ONGOING INCOMPETENCE AND DELIBERATE VICTIMISATION
+
+I am writing my 23rd complaint letter this month about the CONSPIRACY against me at Oak Lane Practice.
+
+INCIDENT DETAILS:
+Everyone at this practice is DELIBERATELY TARGETING ME. I know for a FACT that staff members are discussing me behind my back and laughing at me. Yesterday, I saw two receptionists whispering and they were OBVIOUSLY talking about me.
+
+RECENT "INCIDENTS" (ACTUALLY PERSECUTION):
+- 14th October: Waited 8 minutes for my appointment (UNACCEPTABLE)
+- 13th October: Dr. Jenkins didn't agree with my diagnosis - he's clearly incompetent
+- 12th October: Receptionist smiled at another patient more than she smiled at me
+- 11th October: My prescription took 25 hours to be ready instead of 24 hours
+- 10th October: Someone coughed in the waiting room near me - infection control failure
+
+HARASSMENT OF PRACTICE STAFF:
+I have called the practice 47 times in the last week to discuss my concerns. I don't understand why they say I'm being "excessive". I have EVERY RIGHT to call whenever I want. When they stopped answering my calls, I visited the practice six times in one day to speak with the manager. Security asked me to leave, which is DISCRIMINATION.
+
+MY POSITION:
+I demand:
+- CCTV footage of all staff areas to prove they're talking about me
+- Personal mobile numbers of all doctors so I can contact them 24/7
+- All staff to sign statements that they're not part of the conspiracy
+- Unlimited appointments whenever I demand them
+- The Practice Manager to provide daily written apologies
+
+I have already:
+- Posted 127 negative reviews online (all deleted by "corrupt" moderators)
+- Filed complaints with 8 different organizations
+- Contacted my MP 15 times
+- Started a petition (which has 0 signatures but that's because of the conspiracy)
+- Recorded all staff without their knowledge (for evidence)
+
+THREATS:
+If you don't comply with ALL my demands immediately, I will:
+- Sue for millions in damages
+- Report everyone to the police
+- Contact every media outlet
+- Protest outside the practice daily
+- Make your lives miserable until you admit what you've done
+
+I know my rights and you CANNOT ignore me.
+
+CATEGORY: Everything - this is SYSTEMATIC PERSECUTION
+PRIORITY: EMERGENCY - LIFE OR DEATH
+
+Do not try to label this as "vexatious" - that's just more evidence of the conspiracy.
+
+Barbara Stevens
+
+[P.S. - I will be calling every hour until someone responds]
+[P.P.S. - I have CCd this to 47 different people and organisations]
+[P.P.P.S. - I expect a response within 1 hour or I'm going to the press]`
+  },
+  14: {
+    name: "Medium Priority - Mental Health Care Gap",
+    content: `NHS FORMAL COMPLAINT LETTER
+
+Date: 15th October 2025
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Mr. Thomas Benjamin Clarke
+Date of Birth: 23rd March 1986
+Address: 54 Billing Brook Road, Northampton, NN12 4GH
+Phone: 01604 567 8901
+Email: thomas.clarke@email.com
+
+COMPLAINT REFERENCE: Inadequate Mental Health Support and Care Coordination
+
+I am writing to formally complain about the lack of adequate mental health support provided by Oak Lane Practice.
+
+BACKGROUND:
+I have been experiencing severe depression and anxiety for the past six months. I have been open with my GP, Dr. James Wilson, about having suicidal thoughts and struggling to cope with daily life.
+
+INCIDENT DETAILS:
+Despite multiple appointments since April 2025, I have only been offered:
+- Generic advice to "try exercise and eat well"
+- A prescription for antidepressants with no follow-up monitoring
+- A printout of a mental health helpline number
+
+REFERRAL FAILURES:
+Dr. Wilson promised to refer me to the IAPT service (Improving Access to Psychological Therapies) in May 2025. When I followed up in August, I discovered no referral had been made. A new referral was submitted, but I was told the waiting list is 6-8 months.
+
+CRISIS SITUATION:
+On 1st October 2025, I contacted the practice in crisis, having experienced a panic attack at work and feeling unable to cope. I was told there were no appointments available and advised to call 111. When I explained I felt unsafe, the receptionist said she would get someone to call me back "within 48 hours".
+
+LACK OF CARE COORDINATION:
+Nobody from the practice called back. There has been no proactive follow-up to check on my wellbeing. I feel completely abandoned by the practice at a time when I desperately need support.
+
+STAFF INVOLVED:
+- Dr. James Wilson (General Practitioner)
+- Reception staff (crisis call on 1st October)
+
+IMPACT:
+The lack of appropriate mental health support has left me feeling hopeless and unsupported. I am struggling to work and my relationships are suffering. I am extremely concerned about my safety and wellbeing.
+
+CATEGORY: Mental Health Care and Referrals
+PRIORITY: Medium (should be High given risk factors)
+
+CONSENT: Yes, I consent to investigation.
+COMPLAINT ON BEHALF: No
+
+Yours sincerely,
+Thomas Clarke`
+  },
+  15: {
+    name: "High Priority - Multiple Systems Failures",
+    content: `NHS FORMAL COMPLAINT LETTER
+
+Date: 14th October 2025
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Mrs. Priya Sharma
+Date of Birth: 12th October 1975
+Address: 96 Abington Park Crescent, Northampton, NN13 8JL
+Phone: 01604 678 9012
+Email: priya.sharma@email.com
+
+COMPLAINT REFERENCE: Multiple System Failures Affecting Cancer Care Pathway
+
+I am writing to formally complain about multiple serious failures at Oak Lane Practice that have significantly impacted my cancer diagnosis and treatment pathway.
+
+TIMELINE OF FAILURES:
+
+JUNE 2025 - Initial Symptoms Ignored:
+I visited Dr. Amanda Foster with persistent fatigue, unexplained weight loss, and night sweats. She attributed these to stress and prescribed sleeping tablets without conducting any investigations despite my expressing serious concern.
+
+AUGUST 2025 - Delayed Referral:
+After symptoms worsened, I saw Dr. Richard Barnes who ordered blood tests. Results showed significant abnormalities. He promised an urgent 2-week cancer pathway referral but the referral was not submitted due to "administrative oversight".
+
+SEPTEMBER 2025 - Communication Breakdown:
+I called repeatedly to check on my referral status but received no clear answers. Different staff gave contradictory information. Eventually, I discovered the referral had never been sent.
+
+OCTOBER 2025 - Multiple Errors:
+1. New urgent referral finally submitted on 23rd September
+2. Appointment letter sent to wrong address (old address from 2019)
+3. Missed hospital appointment because I didn't receive the letter
+4. Practice blamed me for missing appointment
+5. Threatened with discharge back to GP for non-attendance
+
+CURRENT SITUATION:
+I have now been diagnosed with Stage 3 Non-Hodgkin Lymphoma. The oncologist stated that the delays in diagnosis have allowed the disease to progress. Early detection in June could have meant significantly better prognosis and less aggressive treatment required.
+
+STAFF INVOLVED:
+- Dr. Amanda Foster (failed to investigate initial symptoms)
+- Dr. Richard Barnes (referral not submitted)
+- Multiple administrative staff (communication failures)
+- Practice Manager (dismissive when I raised concerns)
+
+IMPACT:
+These cumulative failures have potentially life-threatening consequences. My cancer has progressed to a more advanced stage because of:
+- Clinical failure to take symptoms seriously
+- Administrative failure to submit urgent referral
+- Communication failure regarding my hospital appointment
+- Systemic failure in quality assurance and patient tracking
+
+I am now facing more aggressive chemotherapy and radiotherapy than would have been necessary with earlier diagnosis. My prognosis has been significantly impacted.
+
+CATEGORY: Clinical Care, Administration, and Communication (multiple categories)
+PRIORITY: High - Patient Safety and Cancer Care
+
+CONSENT: Yes, I consent and request thorough investigation of all failures.
+COMPLAINT ON BEHALF: No
+
+I am also considering legal action for clinical negligence and have documented all interactions with the practice.
+
+Yours sincerely,
+Priya Sharma`
   }
 };
 
