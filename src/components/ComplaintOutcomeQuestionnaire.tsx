@@ -79,78 +79,78 @@ export const ComplaintOutcomeQuestionnaire = ({
     const refNumber = complaintData.reference_number || '';
     const description = complaintData.complaint_description?.toLowerCase() || '';
     
-    // Specific replies for each demo complaint by reference number
+    // Specific replies for each demo complaint - SHORT, PRACTICAL, HELPFUL
     if (refNumber === 'COMP250001') {
       // Communication Issues - Queue waiting and receptionist asking about problem
       return {
-        key_findings: "Investigation confirmed that Mr Clarke's call was received during peak morning hours (8:30-9:00am) when call volumes are highest. Receptionist followed NHS England guidance requiring brief triage information to prioritise urgent calls. Average wait time that morning was 8 minutes, which exceeds our 5-minute target.",
-        actions_taken: "Personal apology letter sent to Mr Clarke. Additional receptionist cover added during peak hours. New cloud-based phone system installed with callback facility. Triage protocol leaflet sent explaining NHS requirements for prioritising urgent medical needs.",
-        improvements_made: "Implemented callback option for waits over 3 minutes. Recruited additional part-time receptionist. Created patient information leaflet explaining confidentiality protections and why basic triage questions are necessary. Monthly monitoring of call wait times.",
-        additional_context: "Mr Clarke offered face-to-face meeting with practice manager to discuss concerns. Explained that receptionists asking about nature of problem is NHS guidance, not practice nosiness. Confidentiality training certificates available for his review. Complaints policy updated to include explanation of phone triage requirements."
+        key_findings: "We reviewed the call and confirmed an 8-minute wait during peak hours. Receptionist followed standard triage protocols appropriately.",
+        actions_taken: "Added extra reception cover during busy times and installed callback system. Sent Mr Clarke an apology and information leaflet about our triage process.",
+        improvements_made: "Callback option now available for waits over 3 minutes. Recruited additional receptionist.",
+        additional_context: "Patient welcomed to discuss any concerns directly with practice manager. Triage questions help us prioritise urgent medical needs safely."
       };
     } else if (refNumber === 'COMP250003') {
       // Prescriptions - Wrong inhaler issued to Anita Patel
       return {
-        key_findings: "Investigation identified dispensing error at pharmacy, not prescribing error. Dr Shah correctly prescribed Clenil (preventer inhaler). Pharmacy dispensed Ventolin (reliever) instead. Root cause: Similar packaging and inadequate final check by locum pharmacist. Mrs Patel's asthma control was not compromised as she had sufficient preventer inhaler remaining.",
-        actions_taken: "Immediate meeting held with pharmacy manager. Locum pharmacist provided with additional supervision. New dispensing double-check protocol implemented. Mrs Patel offered home delivery of correct medication same day. Personal apology from pharmacy manager and lead GP.",
-        improvements_made: "Electronic prescription system now flags look-alike/sound-alike medications. Mandatory final check by qualified pharmacist before handover. Colour-coded shelf labels for respiratory medications. Monthly dispensing error audits. Staff training on high-risk medication identification.",
-        additional_context: "Incident reported to NHS England as per patient safety protocols. Learning shared at PCN medicines management meeting. Mrs Patel offered annual asthma review with practice nurse and direct contact number for any future prescription concerns. No harm occurred but near-miss taken very seriously."
+        key_findings: "Pharmacy dispensing error identified - wrong inhaler given. Prescription was correct. No harm caused as patient had backup inhaler.",
+        actions_taken: "Met with pharmacy to improve checking procedures. Correct inhaler delivered same day with apology.",
+        improvements_made: "Enhanced double-check system now in place. Similar-looking medications now flagged on system.",
+        additional_context: "Patient offered direct contact for any future prescription queries."
       };
     } else if (refNumber === 'COMP250004') {
       // Clinical Care - 45 minute wait, rude receptionist Emma, rushed Dr Sarah Smith
       return {
-        key_findings: "Investigation confirmed 42-minute delay due to two emergency patients requiring urgent GP attention. Receptionist Emma Thompson provided updates twice but acknowledges her tone may have appeared dismissive during particularly busy period. Dr Smith confirms consultation was shorter than ideal (8 minutes vs usual 15) due to appointment backlog. Physical examination notes recorded but patient felt examination was inadequate.",
-        actions_taken: "Face-to-face apology meeting held with patient. Emma Thompson provided with customer service refresher training and reflective practice supervision. Dr Smith re-examined patient for 30 minutes at no charge and arranged neurological referral for recurring headaches. Practice manager reviewed appointment scheduling with all GPs.",
-        improvements_made: "New protocol: Reception staff must explain reason for delays over 15 minutes and offer rescheduling option. Emergency slots increased from 2 to 4 per day to reduce impact on routine appointments. GPs now flag patients requiring longer consultations. Receptionist team enrolled in de-escalation training programme. Monthly patient feedback surveys introduced.",
-        additional_context: "Patient invited to join Patient Participation Group to help improve services. Neurological referral fast-tracked. Patient offered choice of any GP for future appointments. Practice committed £12,000 to additional GP sessions to reduce appointment pressure. Significant event analysis shared with entire practice team."
+        key_findings: "42-minute delay confirmed due to urgent patients. Reception communication could have been better. Consultation shorter than usual due to backlog.",
+        actions_taken: "Personal apology given. Receptionist received customer service refresher. Dr Smith saw patient again for full consultation.",
+        improvements_made: "Staff to explain delays over 15 minutes and offer rescheduling. Added more emergency slots to reduce disruption.",
+        additional_context: "Patient can choose any GP for future appointments. Increasing GP hours to improve access."
       };
     } else if (refNumber === 'COMP250005') {
       // Clinical Care - Multiple inaccuracies in medical records
       return {
-        key_findings: "Investigation confirmed serious data integrity failures. Incorrect address resulted from system migration error affecting 47 patient records. Sarah Baker's test results incorrectly filed due to human error during data entry - both patients share similar NHS numbers (differing by one digit). Missing July 2024 notes discovered in unattached documents folder due to scanning error. Records corrected immediately upon complaint but initial 3-week delay was unacceptable.",
-        actions_taken: "All 47 affected patient records corrected within 48 hours. Personal written apology to patient from practice manager and senior GP. Data Protection Impact Assessment completed. Sarah Baker informed of breach and her records corrected. Enhanced data quality audit commissioned. Staff member involved provided with additional training and supervision.",
-        improvements_made: "Mandatory double-check system for all data entry implemented. Weekly automated data quality audits. NHS number verification now includes three-point check. Document scanning quality review process established. Staff training on GDPR compliance and record accuracy. Practice appointed Data Protection Champion. Quarterly data quality reports to Partners meeting.",
-        additional_context: "Incident reported to ICO as potential data breach but assessed as low risk due to swift correction. Patient offered free Subject Access Request copy of entire record for personal verification. £50 goodwill gesture offered to compensate for time and distress. New system means this type of error is now virtually impossible. Patient invited to review corrected records with GP."
+        key_findings: "System migration error caused incorrect address. Data entry error mixed up test results. Records now corrected.",
+        actions_taken: "All affected records corrected within 48 hours. Written apology sent. Staff member retrained.",
+        improvements_made: "Double-check system implemented for data entry. Weekly quality audits now running.",
+        additional_context: "Patient offered free copy of complete record to verify accuracy. Goodwill gesture of £50 offered."
       };
     } else if (refNumber === 'COMP250006' || refNumber === 'COMP250007' || refNumber === 'COMP250008') {
-      // Clinical Care - Mr Mitchell's missed heart attack
+      // Clinical Care - Mr Mitchell missed heart attack symptoms
       return {
-        key_findings: "Serious clinical assessment failure identified. Dr Anderson documented patient's symptoms and family history but failed to recognise red flags for acute coronary syndrome. No safety-netting advice provided. GP acknowledged during investigation that chest pain, left arm radiation, and cardiac family history should have triggered urgent assessment/referral. Significant learning opportunity for entire practice.",
-        actions_taken: "Immediate significant event analysis conducted. Dr Anderson completed mandatory CPD on acute cardiac presentations. Personal face-to-face apology meeting with Mr Mitchell and his family. Full Duty of Candour letter sent explaining what happened and why. Cardiology consultant reviewed care and confirmed no long-term harm due to swift A&E treatment. Case discussed at protected learning time session.",
-        improvements_made: "Urgent chest pain pathway implemented with decision support tool on all GP computers. Mandatory annual training on recognition of cardiac red flags for all clinicians. Point-of-care ECG machine purchased (£8,500) now available in every consultation room. Safety-netting protocol template added to clinical system. Monthly clinical audit of chest pain presentations. Senior GP review of all locum and newly qualified GP consultations involving cardiac symptoms.",
-        additional_context: "Mr Mitchell's ongoing cardiac care coordinated with hospital. Practice paid for private stress echocardiogram (£450) to ensure complete assessment. Incident reported to NHS England as required. Learning shared across PCN. Dr Anderson underwent fitness-to-practise review with responsible officer - remediation plan completed satisfactorily. Practice introduced 'no-blame' culture but with clear accountability for learning. Mr Mitchell invited to share his story at practice training day (with consent)."
+        key_findings: "GP missed red flags for cardiac symptoms. This was a serious error. Thankfully no lasting harm due to prompt A&E care.",
+        actions_taken: "Full apology given to patient and family. GP completed additional cardiac training. Case reviewed by cardiology consultant.",
+        improvements_made: "New chest pain pathway on all GP computers. ECG machine now in every consultation room. Monthly audits of cardiac presentations.",
+        additional_context: "Practice paid for additional cardiac tests. Learning shared across practice. Patient care now coordinated with hospital."
       };
     } else if (refNumber === 'COMP250009') {
       // Delayed test results - Emma Richardson
       return {
-        key_findings: "Investigation confirmed blood test results were available 3 working days after sample taken but notification failure prevented patient contact. Results showed borderline anaemia (Hb 108 g/L) requiring dietary advice but not urgent treatment. SMS system error combined with GP oversight failure led to 6-week delay before patient telephoned to chase results. Significant event analysis identified systems failure.",
-        actions_taken: "Personal apology from GP and practice manager provided in face-to-face meeting. Patient seen within 48 hours for full discussion of results and treatment plan. SMS notification system debugged and verified functional. Significant event analysis completed with full practice team. All unreported results from same period reviewed (3 other patients identified and contacted).",
-        improvements_made: "Automated result notification system upgraded with SMS plus postal letter backup. Weekly audit of unreported abnormal results introduced. Dedicated results telephone line established with guaranteed callback within 4 hours. Patient portal access rolled out for all test results. Monthly tracking dashboard for notification failures. Locum GPs now receive daily unreported results alert.",
-        additional_context: "Patient's iron levels now being monitored quarterly with automatic recall system. Haematology referral arranged as precautionary measure despite borderline results. Practice paid for private iron infusion therapy (£200) to accelerate treatment and acknowledge failing. Learning from this case shared across entire PCN at clinical governance meeting. Patient invited to Patient Participation Group to help improve notification systems."
+        key_findings: "Results ready in 3 days but notification system failed. 6-week delay before patient called. System error identified.",
+        actions_taken: "Personal apology given. Patient seen within 48 hours. Notification system fixed and tested.",
+        improvements_made: "SMS and letter backup now in place. Weekly check for unreported results. New results helpline available.",
+        additional_context: "Practice paid for treatment to acknowledge delay. Patient invited to help improve systems."
       };
     } else if (refNumber === 'COMP250010') {
       // Repeated appointment cancellations - James Williams
       return {
-        key_findings: "Investigation confirmed four consecutive appointments cancelled over 6-week period: two due to GP sickness (48 hours' notice given), one due to emergency building maintenance requiring consultation room closure (4 hours' notice), one due to administrative error where wrong patient's appointment cancelled (24 hours' notice). Notification sent via SMS but patient's mobile telephone number outdated in system since June 2024 - patient never received messages.",
-        actions_taken: "Personal telephone call and written apology from practice manager. Priority appointment booked with senior GP partner within 2 days. Patient's contact details updated and verified across all systems. £25 compensation offered for wasted travel costs to cancelled appointments. Practice manager met with patient face-to-face to explain each cancellation circumstance and apologise for communication failure.",
-        improvements_made: "Quarterly contact details verification campaign for all registered patients. Double-notification system (SMS plus telephone call) implemented for all cancellations under 48 hours' notice. Minimum 72-hour advance notice policy unless genuine emergency. Automatic rescheduling offered within same week when practice initiates cancellation. Monthly audit of cancellation rates, reasons, and notification success. Emergency locum arrangements improved to reduce GP absence cancellations.",
-        additional_context: "Patient now has dedicated appointment coordinator contact for any future issues. Travel expenses for cancelled appointments reimbursed in full. Practice reviewing GP cover arrangements with locum agency to ensure better continuity. Patient involved in co-designing new appointment reminder and notification system. Cancellation rate reduced by 40% since improvements implemented. Building maintenance now scheduled outside clinical hours wherever possible."
+        key_findings: "Four appointments cancelled - two GP sickness, one building emergency, one admin error. Patient contact details outdated so didn't receive messages.",
+        actions_taken: "Personal apology and priority rebooking arranged. Contact details updated. £25 travel costs reimbursed.",
+        improvements_made: "Quarterly contact checks for all patients. Phone call backup for cancellations. 72-hour notice policy unless emergency.",
+        additional_context: "Patient given dedicated coordinator contact. Better locum arrangements to reduce cancellations."
       };
     } else if (refNumber === 'COMP250011' || refNumber === 'COMP250013') {
-      // Staff Attitude & Behaviour - Vexatious complaint (both COMP250011 and COMP250013)
+      // Staff Attitude & Behaviour - Vexatious complaint
       return {
-        key_findings: "Comprehensive investigation conducted including review of all complaint allegations. Staff interviews, CCTV review, prescription processing audit, and consultation records examination completed. No evidence found to support claims of deliberate targeting, discrimination, or unprofessional conduct. All staff interactions were appropriate and professional. Diagnosis by Dr Jenkins clinically appropriate and evidence-based. Prescription processing times within NHS standard targets. Patient's demands for unlimited appointments, daily apologies, personal staff contact details, and CCTV release are unreasonable and not clinically indicated. Pattern of behaviour including threatening language, recording staff without consent, and multiple simultaneous complaint routes indicates vexatious complaint as defined by NHS England framework.",
-        actions_taken: "Detailed written response provided addressing each allegation with supporting evidence. Independent review by neighbouring practice manager confirmed professional staff conduct throughout. All staff provided formal statements demonstrating appropriate interactions. Patient offered mediation which was declined. Legal advice obtained regarding covert recordings and threatening behaviour. Practice's duty of care to staff wellbeing considered alongside patient care obligations. Boundary agreement letter drafted in consultation with NHS England guidance.",
-        improvements_made: "Reinforced zero-tolerance policy on threatening behaviour and covert recordings. Enhanced staff support mechanisms including debriefing sessions and occupational health referrals. Developed clear procedure for managing unreasonable complainant behaviour in line with NHS England framework. Staff training on personal safety, professional boundaries, and de-escalation techniques. Updated practice complaints policy to explicitly address vexatious complaints and unacceptable behaviour. Security measures reviewed at reception area.",
-        additional_context: "Patient placed on boundary management agreement permitting continued access to essential medical services but requiring advance appointments, specific time allocations, and maintenance of professional conduct. Patient retains right to register with alternative practice if dissatisfied. All correspondence shared with ICB complaints team and MP office with full factual account. NHS England guidance on managing persistent and vexatious complainants applied fairly and proportionately. Practice position legally defensible and clinically appropriate. Staff wellbeing prioritised whilst maintaining duty of care to patient. No evidence of discrimination - patient's protected characteristics fully respected throughout."
+        key_findings: "Thorough investigation found no evidence of targeting or unprofessional conduct. All interactions appropriate. Patient demands unreasonable.",
+        actions_taken: "Detailed response provided with evidence. Independent review confirmed staff professionalism. Mediation offered but declined.",
+        improvements_made: "Enhanced staff support procedures. Clear policy for managing unreasonable behaviour.",
+        additional_context: "Boundary agreement in place allowing continued access with professional conduct expectations. Patient can register elsewhere if preferred."
       };
     } else if (refNumber === 'COMP250012') {
       // Poor hygiene/facilities - David Thompson
       return {
-        key_findings: "Investigation confirmed visible staining on waiting room chairs, overflowing sanitary bin in disabled toilet, and carpet wear with stains in high-traffic areas. Daily cleaning contractor had signed checklist indicating work completed, but inspection revealed substandard work quality. Patient's photographs provided compelling evidence of hygiene failures. Contract cleaning company failed to meet agreed standards despite premium pricing (£1,200/month). Practice manager's spot-check system inadequate to identify ongoing issues.",
-        actions_taken: "Immediate deep clean commissioned and completed within 24 hours of complaint. Cleaning contract terminated with 7-day notice period. New cleaning company appointed with improved specification and supervision. All waiting room chairs professionally cleaned, two replaced entirely (£340). Sanitary bins changed to larger capacity with twice-daily emptying schedule. Waiting room carpet completely replaced (£3,200 investment). Patient invited to re-inspect facilities following improvements.",
-        improvements_made: "Practice manager now conducts daily visual inspections with photographic record logged. Patient feedback forms specifically ask about cleanliness with monthly analysis. Monthly hygiene audits by external CQC-trained assessor. Additional cleaning rounds added at 1:00pm during busy surgery periods. Instant-report system for hygiene concerns via QR code posters in waiting areas and toilets. Cleaning staff now directly employed rather than contracted to ensure accountability.",
-        additional_context: "Patient invited to re-inspect facilities and confirmed satisfaction with improvements in writing. CQC inspection scheduled for next quarter - practice confident in demonstrating compliance with hygiene standards. Learning from this incident shared at practice meeting about contract monitoring failures. New cleaning company provides real-time digital cleaning logs accessible to practice manager. Patient joined Patient Participation Group to help maintain cleanliness standards. All staff reminded to report hygiene issues immediately rather than assuming cleaners will address."
+        key_findings: "Cleanliness issues confirmed - stained chairs, overflowing bins, worn carpet. Cleaning contractor not meeting standards.",
+        actions_taken: "Immediate deep clean done. Cleaning contract terminated. New company appointed. Chairs cleaned/replaced, carpet replaced.",
+        improvements_made: "Daily inspections by practice manager. QR code system for instant reports. External monthly audits.",
+        additional_context: "Patient invited to re-inspect and confirmed satisfaction. Cleaning now managed directly by practice."
       };
     }
     
