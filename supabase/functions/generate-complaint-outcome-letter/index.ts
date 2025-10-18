@@ -356,7 +356,7 @@ CRITICAL: Never include personal email addresses or direct contact details in th
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userPrompt }
         ],
-        max_completion_tokens: 2000,
+        max_tokens: 2000,
       }),
     });
 
