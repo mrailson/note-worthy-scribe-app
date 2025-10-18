@@ -153,7 +153,7 @@ const ComplaintDetails = () => {
   const [workflowSettings, setWorkflowSettings] = useState<any>(null);
   const [editingStaffIndex, setEditingStaffIndex] = useState<number | null>(null);
   const [editingEmailValue, setEditingEmailValue] = useState<string>('');
-  const [isWorkflowOpen, setIsWorkflowOpen] = useState(true);
+  const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
   const emailUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
   const [questionnaireHistory, setQuestionnaireHistory] = useState<any[]>([]);
