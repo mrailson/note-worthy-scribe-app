@@ -481,6 +481,17 @@ export const ComplaintOutcomeQuestionnaire = ({
 
   const handleSubmit = async () => {
     console.log('=== Starting outcome letter generation ===');
+    
+    // Validate outcome type is selected
+    if (!data.outcome_type) {
+      toast({
+        title: 'Outcome Required',
+        description: 'Please select an outcome decision (upheld, partially upheld, or not upheld).',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
     setIsSubmitting(true);
 
     try {
