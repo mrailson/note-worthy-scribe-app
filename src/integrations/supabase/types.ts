@@ -4162,6 +4162,59 @@ export type Database = {
         }
         Relationships: []
       }
+      practice_manager_feedback: {
+        Row: {
+          comments: string | null
+          complaints_system_usefulness: number
+          created_at: string
+          id: string
+          ip_address: unknown | null
+          meeting_manager_usefulness: number
+          practice_id: string | null
+          practice_name: string | null
+          respondent_email: string | null
+          respondent_name: string | null
+          would_use_complaints_system: number
+          would_use_meeting_manager: number
+        }
+        Insert: {
+          comments?: string | null
+          complaints_system_usefulness: number
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          meeting_manager_usefulness: number
+          practice_id?: string | null
+          practice_name?: string | null
+          respondent_email?: string | null
+          respondent_name?: string | null
+          would_use_complaints_system: number
+          would_use_meeting_manager: number
+        }
+        Update: {
+          comments?: string | null
+          complaints_system_usefulness?: number
+          created_at?: string
+          id?: string
+          ip_address?: unknown | null
+          meeting_manager_usefulness?: number
+          practice_id?: string | null
+          practice_name?: string | null
+          respondent_email?: string | null
+          respondent_name?: string | null
+          would_use_complaints_system?: number
+          would_use_meeting_manager?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_manager_feedback_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       practice_neighbourhood_assignments: {
         Row: {
           created_at: string | null

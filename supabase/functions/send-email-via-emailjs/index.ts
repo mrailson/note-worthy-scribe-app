@@ -81,6 +81,8 @@ const handler = async (req: Request): Promise<Response> => {
       ? "template_00jzuhg"  // Welcome email template
       : emailData.template_type === 'ai_generated_content'
       ? "template_n236grs"  // Generic content template (reusing the meeting template)
+      : emailData.template_type === 'feedback'
+      ? "template_feedback"  // Practice manager feedback template
       : Deno.env.get("EMAILJS_TEMPLATE_ID"); // Default meeting template
     const publicKey = Deno.env.get("EMAILJS_PUBLIC_KEY");
     const privateKey = Deno.env.get("EMAILJS_PRIVATE_KEY");
