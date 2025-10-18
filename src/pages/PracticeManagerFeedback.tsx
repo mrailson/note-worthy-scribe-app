@@ -33,7 +33,6 @@ const formSchema = z.object({
   complaintsUsefulness: z.number().min(0).max(5),
   meetingsUsefulness: z.number().min(0).max(5),
   comments: z.string().max(1000).optional(),
-  respondentName: z.string().optional(),
   respondentEmail: z.string().email().optional().or(z.literal("")),
 });
 
@@ -83,7 +82,6 @@ export default function PracticeManagerFeedback() {
       complaintsUsefulness: 2,
       meetingsUsefulness: 2,
       comments: "",
-      respondentName: "",
       respondentEmail: "",
     },
   });
@@ -123,7 +121,7 @@ export default function PracticeManagerFeedback() {
         would_use_meeting_manager: null,
         meeting_manager_usefulness: data.meetingsUsefulness,
         comments: data.comments || null,
-        respondent_name: data.respondentName || null,
+        respondent_name: null,
         respondent_email: data.respondentEmail || null,
       };
 
@@ -163,7 +161,6 @@ Additional Comments:
 ${data.comments || "No additional comments provided"}
 
 Respondent Details:
-• Name: ${data.respondentName || "Anonymous"}
 • Email: ${data.respondentEmail || "Not provided"}
 
 Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short' })}`;
@@ -388,20 +385,6 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
                       <p className="text-xs text-muted-foreground">
                         {field.value?.length || 0}/1000 characters
                       </p>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="respondentName"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Your Name (Optional)</FormLabel>
-                      <FormControl>
-                        <Input placeholder="Enter your name..." {...field} />
-                      </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
