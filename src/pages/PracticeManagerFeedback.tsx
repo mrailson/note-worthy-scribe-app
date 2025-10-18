@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/form";
 import { toast } from "sonner";
 import { Loader2, CheckCircle2 } from "lucide-react";
+import notewellLogo from "@/assets/notewell-logo.png";
 
 const formSchema = z.object({
   practiceId: z.string().min(1, "Please select a practice"),
@@ -192,18 +193,18 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
 
   if (isSuccess) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-b from-background to-secondary/20 p-4">
-        <div className="max-w-md w-full bg-card rounded-lg shadow-lg p-8 text-center space-y-6">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/10 via-background to-primary/5 p-4">
+        <div className="max-w-md w-full bg-card rounded-xl shadow-xl border border-primary/20 p-8 text-center space-y-6">
           <CheckCircle2 className="w-16 h-16 mx-auto text-primary" />
           <h1 className="text-2xl font-bold">Thank You!</h1>
           <p className="text-muted-foreground">
             Your feedback has been successfully submitted. We appreciate you taking the time to help us improve our services.
           </p>
           <div className="flex flex-col gap-3">
-            <Button onClick={() => navigate("/feedback/results")} variant="outline" className="w-full">
+            <Button onClick={() => navigate("/feedback/results")} variant="outline" className="w-full border-primary/30 hover:bg-primary/10">
               View All Results
             </Button>
-            <Button onClick={() => setIsSuccess(false)} className="w-full">
+            <Button onClick={() => setIsSuccess(false)} className="w-full bg-primary hover:bg-primary-hover">
               Submit Another Response
             </Button>
           </div>
@@ -213,14 +214,14 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 py-8 px-4">
+    <div className="min-h-screen bg-gradient-to-br from-primary/10 via-background to-primary/5 py-8 px-4">
       <div className="max-w-2xl mx-auto">
-        <div className="bg-card rounded-lg shadow-lg p-6 space-y-6">
+        <div className="bg-card rounded-xl shadow-xl border border-primary/20 p-6 space-y-6">
           <div className="space-y-3 text-center">
             <div className="flex justify-center mb-4">
-              <div className="text-4xl font-bold text-primary">Notewell AI</div>
+              <img src={notewellLogo} alt="Notewell AI" className="h-16 w-auto" />
             </div>
-            <h1 className="text-2xl font-bold">Practice Manager Feedback</h1>
+            <h1 className="text-2xl font-bold text-foreground">Practice Manager Feedback</h1>
             <p className="text-sm text-muted-foreground">
               We'd love to hear your thoughts on our systems. This takes approximately 2 minutes.
             </p>
@@ -229,8 +230,11 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               {/* Practice Selection */}
-              <div className="space-y-3 p-4 bg-secondary/20 rounded-lg border border-border">
-                <h2 className="text-lg font-semibold">Your Practice</h2>
+              <div className="space-y-3 p-5 bg-gradient-to-br from-primary/5 to-background rounded-xl border-2 border-primary/20 shadow-sm">
+                <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
+                  <span className="text-xl">📍</span>
+                  Your Practice
+                </h2>
                 <FormField
                   control={form.control}
                   name="practiceId"
@@ -281,8 +285,11 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
               </div>
 
               {/* Complaints System */}
-              <div className="space-y-4 p-5 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border-2 border-primary/20 shadow-sm">
-                <h2 className="text-lg font-semibold text-primary">Complaints Management System</h2>
+              <div className="space-y-4 p-5 bg-gradient-to-br from-primary/8 to-primary/5 rounded-xl border-2 border-primary/30 shadow-md hover:shadow-lg transition-shadow">
+                <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
+                  <span className="text-xl">📋</span>
+                  Complaints Management System
+                </h2>
 
                 <FormField
                   control={form.control}
@@ -324,8 +331,11 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
               </div>
 
               {/* Meeting Manager */}
-              <div className="space-y-4 p-5 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border-2 border-primary/20 shadow-sm">
-                <h2 className="text-lg font-semibold text-primary">Meeting Manager System</h2>
+              <div className="space-y-4 p-5 bg-gradient-to-br from-primary/8 to-primary/5 rounded-xl border-2 border-primary/30 shadow-md hover:shadow-lg transition-shadow">
+                <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
+                  <span className="text-xl">📅</span>
+                  Meeting Manager System
+                </h2>
 
                 <FormField
                   control={form.control}
@@ -367,8 +377,11 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
               </div>
 
               {/* Additional Feedback */}
-              <div className="space-y-3 p-4 bg-secondary/20 rounded-lg border border-border">
-                <h2 className="text-lg font-semibold">Additional Feedback (Optional)</h2>
+              <div className="space-y-3 p-5 bg-gradient-to-br from-primary/5 to-background rounded-xl border-2 border-primary/20 shadow-sm">
+                <h2 className="text-lg font-semibold text-primary flex items-center gap-2">
+                  <span className="text-xl">💬</span>
+                  Additional Feedback (Optional)
+                </h2>
 
                 <FormField
                   control={form.control}
@@ -410,7 +423,7 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
+              <Button type="submit" className="w-full bg-primary hover:bg-primary-hover text-primary-foreground font-semibold shadow-md hover:shadow-lg transition-all" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
