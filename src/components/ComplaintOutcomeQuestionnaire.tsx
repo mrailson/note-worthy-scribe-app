@@ -152,6 +152,14 @@ export const ComplaintOutcomeQuestionnaire = ({
         improvements_made: "Daily inspections by practice manager. QR code system for instant reports. External monthly audits.",
         additional_context: "Patient invited to re-inspect and confirmed satisfaction. Cleaning now managed directly by practice."
       };
+    } else if (refNumber === 'COMP250014') {
+      // Mental health care - Mr Thomas Clarke
+      return {
+        key_findings: "Mental health support inadequate. IAPT referral delayed 3 months. Crisis callback not made. This fell below expected standards.",
+        actions_taken: "Sincere apology given. Urgent mental health assessment arranged. IAPT referral escalated. GP trained in crisis management.",
+        improvements_made: "Same-day mental health slots now available. 24-hour callback guarantee for crisis calls. Weekly check-ins for at-risk patients.",
+        additional_context: "Patient now has dedicated care coordinator. Practice mental health lead assigned. Direct crisis contact number provided."
+      };
     }
     
     // No demo response available - return empty strings for non-demo complaints
