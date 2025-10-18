@@ -213,22 +213,24 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 py-12 px-4">
-      <div className="max-w-3xl mx-auto">
-        <div className="bg-card rounded-lg shadow-lg p-8 space-y-8">
-          <div className="space-y-4 text-center">
-            <h1 className="text-3xl font-bold">Practice Manager Feedback</h1>
-            <p className="text-muted-foreground">
-              We'd love to hear your thoughts on our complaints management system and meeting manager.
-              This should take approximately 2 minutes.
+    <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20 py-8 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-card rounded-lg shadow-lg p-6 space-y-6">
+          <div className="space-y-3 text-center">
+            <div className="flex justify-center mb-4">
+              <div className="text-4xl font-bold text-primary">Notewell AI</div>
+            </div>
+            <h1 className="text-2xl font-bold">Practice Manager Feedback</h1>
+            <p className="text-sm text-muted-foreground">
+              We'd love to hear your thoughts on our systems. This takes approximately 2 minutes.
             </p>
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
               {/* Practice Selection */}
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Your Practice</h2>
+              <div className="space-y-3 p-4 bg-secondary/20 rounded-lg border border-border">
+                <h2 className="text-lg font-semibold">Your Practice</h2>
                 <FormField
                   control={form.control}
                   name="practiceId"
@@ -279,33 +281,33 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
               </div>
 
               {/* Complaints System */}
-              <div className="space-y-6 p-6 bg-secondary/30 rounded-lg">
-                <h2 className="text-xl font-semibold">Complaints Management System</h2>
+              <div className="space-y-4 p-5 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border-2 border-primary/20 shadow-sm">
+                <h2 className="text-lg font-semibold text-primary">Complaints Management System</h2>
 
                 <FormField
                   control={form.control}
                   name="complaintsUsefulness"
                   render={({ field }) => (
-                    <FormItem className="space-y-4">
+                    <FormItem className="space-y-3">
                       <FormLabel>How useful would it be?</FormLabel>
                       <FormControl>
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           <Slider
                             min={0}
                             max={5}
                             step={1}
                             value={[field.value]}
                             onValueChange={(vals) => field.onChange(vals[0])}
-                            className="my-4"
+                            className="my-2"
                           />
                           <div className="text-center">
                             <span
-                              className="text-lg font-semibold transition-colors"
+                              className="text-base font-semibold transition-colors"
                               style={{ color: getUsefulnessColor(field.value) }}
                             >
                               {usefulnessLabel(field.value)}
                             </span>
-                            <span className="ml-2 text-muted-foreground">
+                            <span className="ml-2 text-sm text-muted-foreground">
                               ({field.value}/5)
                             </span>
                           </div>
@@ -322,33 +324,33 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
               </div>
 
               {/* Meeting Manager */}
-              <div className="space-y-6 p-6 bg-secondary/30 rounded-lg">
-                <h2 className="text-xl font-semibold">Meeting Manager System</h2>
+              <div className="space-y-4 p-5 bg-gradient-to-br from-primary/5 to-primary/10 rounded-lg border-2 border-primary/20 shadow-sm">
+                <h2 className="text-lg font-semibold text-primary">Meeting Manager System</h2>
 
                 <FormField
                   control={form.control}
                   name="meetingsUsefulness"
                   render={({ field }) => (
-                    <FormItem className="space-y-4">
+                    <FormItem className="space-y-3">
                       <FormLabel>How useful would it be?</FormLabel>
                       <FormControl>
-                        <div className="space-y-4">
+                        <div className="space-y-3">
                           <Slider
                             min={0}
                             max={5}
                             step={1}
                             value={[field.value]}
                             onValueChange={(vals) => field.onChange(vals[0])}
-                            className="my-4"
+                            className="my-2"
                           />
                           <div className="text-center">
                             <span
-                              className="text-lg font-semibold transition-colors"
+                              className="text-base font-semibold transition-colors"
                               style={{ color: getUsefulnessColor(field.value) }}
                             >
                               {usefulnessLabel(field.value)}
                             </span>
-                            <span className="ml-2 text-muted-foreground">
+                            <span className="ml-2 text-sm text-muted-foreground">
                               ({field.value}/5)
                             </span>
                           </div>
@@ -365,8 +367,8 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
               </div>
 
               {/* Additional Feedback */}
-              <div className="space-y-4">
-                <h2 className="text-xl font-semibold">Additional Feedback (Optional)</h2>
+              <div className="space-y-3 p-4 bg-secondary/20 rounded-lg border border-border">
+                <h2 className="text-lg font-semibold">Additional Feedback (Optional)</h2>
 
                 <FormField
                   control={form.control}
@@ -377,7 +379,7 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
                       <FormControl>
                         <Textarea
                           placeholder="Please share any additional thoughts..."
-                          className="min-h-[120px]"
+                          className="min-h-[100px]"
                           maxLength={1000}
                           {...field}
                         />
@@ -408,7 +410,7 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
                 />
               </div>
 
-              <Button type="submit" className="w-full" size="lg" disabled={isSubmitting}>
+              <Button type="submit" className="w-full" disabled={isSubmitting}>
                 {isSubmitting ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
