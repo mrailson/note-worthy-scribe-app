@@ -332,23 +332,19 @@ export const ComplaintOutcomeQuestionnaire = ({
       };
       console.log('Final data prepared:', finalData);
 
-      // Save questionnaire to database
-      console.log('Step 2: Saving questionnaire to database...');
-      const { data: savedQuestionnaire, error: saveError } = await supabase
-        .from('complaint_outcome_questionnaires')
-        .insert([{
-          complaint_id: complaintId,
-          created_by: user.id,
-          questionnaire_data: finalData as any,
-        }])
-        .select()
-        .single();
+      // Save questionnaire to database using RPC function
+      console.log('Step 2: Saving questionnaire to database via RPC...');
+      const { data: questionnaireId, error: saveError } = await supabase
+        .rpc('create_complaint_outcome_questionnaire', {
+          p_complaint_id: complaintId,
+          p_questionnaire_data: finalData as any,
+        });
 
       if (saveError) {
-        console.error('Error saving questionnaire:', saveError);
+        console.error('Error saving questionnaire via RPC:', saveError);
         throw saveError;
       }
-      console.log('Questionnaire saved successfully:', savedQuestionnaire.id);
+      console.log('Questionnaire saved successfully (RPC id):', questionnaireId);
 
       // Generate outcome letter using edge function
       console.log('Step 3: Calling edge function to generate letter...');

@@ -5981,6 +5981,10 @@ export type Database = {
         Args: { meeting_id: string }
         Returns: Json
       }
+      create_complaint_outcome_questionnaire: {
+        Args: { p_complaint_id: string; p_questionnaire_data: Json }
+        Returns: string
+      }
       create_default_attendee_templates: {
         Args: { p_practice_id: string; p_user_id: string }
         Returns: undefined
