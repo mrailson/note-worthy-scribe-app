@@ -232,7 +232,7 @@ const ComplaintDetails = () => {
             .single();
           
           const questionnaireContent = typeof questionnaireData.questionnaire_data === 'object' 
-            ? questionnaireData.questionnaire_data 
+            ? questionnaireData.questionnaire_data as Record<string, any>
             : {};
           
           setOutcomeQuestionnaireData({
@@ -240,6 +240,11 @@ const ComplaintDetails = () => {
             created_by_name: profileData?.full_name || 'Unknown User',
             created_at: questionnaireData.created_at
           });
+          
+          // Load AI analysis if it exists in the questionnaire data
+          if (questionnaireContent.ai_analysis && typeof questionnaireContent.ai_analysis === 'string') {
+            setAiAnalysis(questionnaireContent.ai_analysis);
+          }
         }
         
         // If there's outcome data but no investigation method set yet, 

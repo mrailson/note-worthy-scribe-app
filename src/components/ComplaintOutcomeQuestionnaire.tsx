@@ -461,7 +461,8 @@ export const ComplaintOutcomeQuestionnaire = ({
       // Auto-set vexatious flag based on tone
       const finalData = {
         ...data,
-        is_vexatious: data.tone === 'strong' || data.tone === 'firm'
+        is_vexatious: data.tone === 'strong' || data.tone === 'firm',
+        ai_analysis: aiAnalysisText // Save AI analysis for future reference
       };
       console.log('Final data prepared:', finalData);
 
