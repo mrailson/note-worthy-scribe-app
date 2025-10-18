@@ -5981,6 +5981,15 @@ export type Database = {
         Args: { meeting_id: string }
         Returns: Json
       }
+      create_complaint_outcome: {
+        Args: {
+          p_complaint_id: string
+          p_outcome_letter: string
+          p_outcome_summary: string
+          p_outcome_type: string
+        }
+        Returns: string
+      }
       create_complaint_outcome_questionnaire: {
         Args: { p_complaint_id: string; p_questionnaire_data: Json }
         Returns: string

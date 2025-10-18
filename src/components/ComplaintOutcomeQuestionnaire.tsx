@@ -390,43 +390,38 @@ export const ComplaintOutcomeQuestionnaire = ({
       
       console.log('Outcome letter generated successfully, length:', letterData.outcomeLetter?.length);
 
-      // Save the generated outcome letter
-      console.log('Step 4: Saving outcome letter to database...');
+      // Save the generated outcome letter using RPC function
+      console.log('Step 4: Saving outcome letter to database via RPC...');
       console.log('Outcome data to save:', {
         complaint_id: complaintId,
         outcome_type: finalData.outcome_type,
         outcome_summary: finalData.key_findings,
         letter_length: letterData.outcomeLetter?.length,
-        decided_by: user.id,
       });
       
-      const { data: savedOutcome, error: outcomeError } = await supabase
-        .from('complaint_outcomes')
-        .insert({
-          complaint_id: complaintId,
-          outcome_type: finalData.outcome_type,
-          outcome_summary: finalData.key_findings,
-          outcome_letter: letterData.outcomeLetter,
-          decided_by: user.id,
-        })
-        .select()
-        .single();
+      const { data: outcomeId, error: outcomeError } = await supabase
+        .rpc('create_complaint_outcome', {
+          p_complaint_id: complaintId,
+          p_outcome_type: finalData.outcome_type,
+          p_outcome_summary: finalData.key_findings,
+          p_outcome_letter: letterData.outcomeLetter,
+        });
 
       if (outcomeError) {
-        console.error('!!! ERROR SAVING OUTCOME LETTER !!!');
+        console.error('!!! RPC ERROR SAVING OUTCOME LETTER !!!');
         console.error('Error code:', outcomeError.code);
         console.error('Error message:', outcomeError.message);
         console.error('Error details:', outcomeError.details);
         console.error('Error hint:', outcomeError.hint);
-        alert(`Failed to save outcome letter: ${outcomeError.message}. Check console for details.`);
+        alert(`Failed to save outcome letter via RPC: ${outcomeError.message}. Check console for details.`);
         throw outcomeError;
       }
       
-      if (!savedOutcome) {
-        console.error('!!! NO OUTCOME RETURNED FROM INSERT !!!');
-        alert('Outcome letter may not have been saved properly');
+      if (!outcomeId) {
+        console.error('!!! RPC returned no outcome ID !!!');
+        alert('Outcome letter may not have been saved properly - no ID returned');
       } else {
-        console.log('✓ Outcome letter saved successfully to database, ID:', savedOutcome.id);
+        console.log('✓ Outcome letter saved successfully via RPC, ID:', outcomeId);
       }
 
       // Update complaint status to closed
