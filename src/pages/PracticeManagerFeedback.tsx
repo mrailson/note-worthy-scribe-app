@@ -42,6 +42,14 @@ const formSchema = z.object({
   meetingsUsefulness: z.number().min(0).max(5),
   comments: z.string().max(1000).optional(),
   respondentEmail: z.string().email().optional().or(z.literal("")),
+}).refine((data) => {
+  if (data.practiceId === "other" && !data.practiceName) {
+    return false;
+  }
+  return true;
+}, {
+  message: "Practice name is required when selecting 'Other'",
+  path: ["practiceName"],
 });
 
 type FormData = z.infer<typeof formSchema>;
@@ -141,7 +149,7 @@ export default function PracticeManagerFeedback() {
 
       if (insertError) {
         console.error("Insert error:", insertError);
-        toast.error("Failed to submit feedback. Please try again.");
+        toast.error(`Failed to submit feedback: ${insertError.message}`);
         return;
       }
 
