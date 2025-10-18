@@ -34,7 +34,6 @@ serve(async (req) => {
       .from('complaints')
       .select(`
         *,
-        practice_details(practice_name),
         complaint_notes(note, is_internal, created_at),
         complaint_involved_parties(staff_name, staff_role, response_text, response_submitted_at)
       `)
