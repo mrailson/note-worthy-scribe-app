@@ -232,7 +232,7 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
             </div>
             <h1 className="text-2xl font-bold text-foreground">Practice Manager Feedback</h1>
             <p className="text-sm text-muted-foreground">
-              We'd love to hear your thoughts on our systems. This takes approximately 2 minutes.
+              We'd love to hear your thoughts on the two services demonstrated by Amanda
             </p>
           </div>
 
