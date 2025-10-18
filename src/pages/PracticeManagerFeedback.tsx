@@ -134,9 +134,9 @@ export default function PracticeManagerFeedback() {
       const feedbackData = {
         practice_id: data.practiceId === "other" ? null : data.practiceId,
         practice_name: data.practiceId === "other" ? data.practiceName : null,
-        would_use_complaints_system: null,
+        would_use_complaints_system: data.complaintsUsefulness <= 1 ? 0 : data.complaintsUsefulness <= 3 ? 1 : 2,
         complaints_system_usefulness: data.complaintsUsefulness,
-        would_use_meeting_manager: null,
+        would_use_meeting_manager: data.meetingsUsefulness <= 1 ? 0 : data.meetingsUsefulness <= 3 ? 1 : 2,
         meeting_manager_usefulness: data.meetingsUsefulness,
         comments: data.comments || null,
         respondent_name: null,
