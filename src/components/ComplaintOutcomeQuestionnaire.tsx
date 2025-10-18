@@ -120,56 +120,47 @@ export const ComplaintOutcomeQuestionnaire = ({
         improvements_made: "Urgent chest pain pathway implemented with decision support tool on all GP computers. Mandatory annual training on recognition of cardiac red flags for all clinicians. Point-of-care ECG machine purchased (£8,500) now available in every consultation room. Safety-netting protocol template added to clinical system. Monthly clinical audit of chest pain presentations. Senior GP review of all locum and newly qualified GP consultations involving cardiac symptoms.",
         additional_context: "Mr Mitchell's ongoing cardiac care coordinated with hospital. Practice paid for private stress echocardiogram (£450) to ensure complete assessment. Incident reported to NHS England as required. Learning shared across PCN. Dr Anderson underwent fitness-to-practise review with responsible officer - remediation plan completed satisfactorily. Practice introduced 'no-blame' culture but with clear accountability for learning. Mr Mitchell invited to share his story at practice training day (with consent)."
       };
-    } else if (refNumber === 'COMP250011') {
-      // Staff Attitude & Behaviour - Vexatious complaint about targeting/victimisation
+    } else if (refNumber === 'COMP250009') {
+      // Delayed test results - Emma Richardson
       return {
-        key_findings: "Extensive investigation involving all 17 named staff members, CCTV review (where available), and examination of 24 months of consultation records. No evidence found to support allegations of targeting, victimisation, or deliberate discrimination. All staff interactions were professional and appropriate. Dr Jenkins' diagnosis supported by clinical evidence and second GP opinion. Prescription processing times within standard 48-hour target. Patient's demands for CCTV footage, daily apologies, and unlimited appointments are unreasonable and not clinically indicated. Pattern of behaviour indicates vexatious and unreasonable complaint.",
-        actions_taken: "Formal written response provided addressing each allegation with evidence. CCTV footage reviewed by independent practice manager from neighbouring practice who confirmed staff professionalism. Written statements obtained from all staff members - no evidence of unprofessional conduct. Patient offered mediation meeting which was declined. Legal advice obtained regarding recording staff without consent. Practice's duty of care to staff considered alongside duty to patient.",
-        improvements_made: "Zero-tolerance policy on threatening behaviour reinforced with all staff. Support provided to reception team who felt intimidated by patient's behaviour. Clear guidance developed on managing vexatious complaints in line with NHS England framework. Staff training on personal safety and boundaries. Enhanced security measures at reception desk. Practice complaints policy updated to include section on unreasonable complainant behaviour.",
-        additional_context: "Patient placed on boundary agreement following multiple aggressive incidents and recordings of staff without consent. Agreement permits continued access to essential medical care but requires advance booking, specific appointment allocation, and professional conduct expectations. Patient advised of right to register elsewhere if dissatisfied. ICB complaints team consulted and confirmed practice response appropriate. MP correspondence responded to with full facts. Legal advice confirms practice's position is defensible. NHS England guidance on managing persistent complainants applied fairly and proportionately."
+        key_findings: "Investigation confirmed blood test results were available 3 working days after sample taken but notification failure prevented patient contact. Results showed borderline anaemia (Hb 108 g/L) requiring dietary advice but not urgent treatment. SMS system error combined with GP oversight failure led to 6-week delay before patient telephoned to chase results. Significant event analysis identified systems failure.",
+        actions_taken: "Personal apology from GP and practice manager provided in face-to-face meeting. Patient seen within 48 hours for full discussion of results and treatment plan. SMS notification system debugged and verified functional. Significant event analysis completed with full practice team. All unreported results from same period reviewed (3 other patients identified and contacted).",
+        improvements_made: "Automated result notification system upgraded with SMS plus postal letter backup. Weekly audit of unreported abnormal results introduced. Dedicated results telephone line established with guaranteed callback within 4 hours. Patient portal access rolled out for all test results. Monthly tracking dashboard for notification failures. Locum GPs now receive daily unreported results alert.",
+        additional_context: "Patient's iron levels now being monitored quarterly with automatic recall system. Haematology referral arranged as precautionary measure despite borderline results. Practice paid for private iron infusion therapy (£200) to accelerate treatment and acknowledge failing. Learning from this case shared across entire PCN at clinical governance meeting. Patient invited to Patient Participation Group to help improve notification systems."
+      };
+    } else if (refNumber === 'COMP250010') {
+      // Repeated appointment cancellations - James Williams
+      return {
+        key_findings: "Investigation confirmed four consecutive appointments cancelled over 6-week period: two due to GP sickness (48 hours' notice given), one due to emergency building maintenance requiring consultation room closure (4 hours' notice), one due to administrative error where wrong patient's appointment cancelled (24 hours' notice). Notification sent via SMS but patient's mobile telephone number outdated in system since June 2024 - patient never received messages.",
+        actions_taken: "Personal telephone call and written apology from practice manager. Priority appointment booked with senior GP partner within 2 days. Patient's contact details updated and verified across all systems. £25 compensation offered for wasted travel costs to cancelled appointments. Practice manager met with patient face-to-face to explain each cancellation circumstance and apologise for communication failure.",
+        improvements_made: "Quarterly contact details verification campaign for all registered patients. Double-notification system (SMS plus telephone call) implemented for all cancellations under 48 hours' notice. Minimum 72-hour advance notice policy unless genuine emergency. Automatic rescheduling offered within same week when practice initiates cancellation. Monthly audit of cancellation rates, reasons, and notification success. Emergency locum arrangements improved to reduce GP absence cancellations.",
+        additional_context: "Patient now has dedicated appointment coordinator contact for any future issues. Travel expenses for cancelled appointments reimbursed in full. Practice reviewing GP cover arrangements with locum agency to ensure better continuity. Patient involved in co-designing new appointment reminder and notification system. Cancellation rate reduced by 40% since improvements implemented. Building maintenance now scheduled outside clinical hours wherever possible."
+      };
+    } else if (refNumber === 'COMP250011' || refNumber === 'COMP250013') {
+      // Staff Attitude & Behaviour - Vexatious complaint (both COMP250011 and COMP250013)
+      return {
+        key_findings: "Comprehensive investigation conducted including review of all complaint allegations. Staff interviews, CCTV review, prescription processing audit, and consultation records examination completed. No evidence found to support claims of deliberate targeting, discrimination, or unprofessional conduct. All staff interactions were appropriate and professional. Diagnosis by Dr Jenkins clinically appropriate and evidence-based. Prescription processing times within NHS standard targets. Patient's demands for unlimited appointments, daily apologies, personal staff contact details, and CCTV release are unreasonable and not clinically indicated. Pattern of behaviour including threatening language, recording staff without consent, and multiple simultaneous complaint routes indicates vexatious complaint as defined by NHS England framework.",
+        actions_taken: "Detailed written response provided addressing each allegation with supporting evidence. Independent review by neighbouring practice manager confirmed professional staff conduct throughout. All staff provided formal statements demonstrating appropriate interactions. Patient offered mediation which was declined. Legal advice obtained regarding covert recordings and threatening behaviour. Practice's duty of care to staff wellbeing considered alongside patient care obligations. Boundary agreement letter drafted in consultation with NHS England guidance.",
+        improvements_made: "Reinforced zero-tolerance policy on threatening behaviour and covert recordings. Enhanced staff support mechanisms including debriefing sessions and occupational health referrals. Developed clear procedure for managing unreasonable complainant behaviour in line with NHS England framework. Staff training on personal safety, professional boundaries, and de-escalation techniques. Updated practice complaints policy to explicitly address vexatious complaints and unacceptable behaviour. Security measures reviewed at reception area.",
+        additional_context: "Patient placed on boundary management agreement permitting continued access to essential medical services but requiring advance appointments, specific time allocations, and maintenance of professional conduct. Patient retains right to register with alternative practice if dissatisfied. All correspondence shared with ICB complaints team and MP office with full factual account. NHS England guidance on managing persistent and vexatious complainants applied fairly and proportionately. Practice position legally defensible and clinically appropriate. Staff wellbeing prioritised whilst maintaining duty of care to patient. No evidence of discrimination - patient's protected characteristics fully respected throughout."
+      };
+    } else if (refNumber === 'COMP250012') {
+      // Poor hygiene/facilities - David Thompson
+      return {
+        key_findings: "Investigation confirmed visible staining on waiting room chairs, overflowing sanitary bin in disabled toilet, and carpet wear with stains in high-traffic areas. Daily cleaning contractor had signed checklist indicating work completed, but inspection revealed substandard work quality. Patient's photographs provided compelling evidence of hygiene failures. Contract cleaning company failed to meet agreed standards despite premium pricing (£1,200/month). Practice manager's spot-check system inadequate to identify ongoing issues.",
+        actions_taken: "Immediate deep clean commissioned and completed within 24 hours of complaint. Cleaning contract terminated with 7-day notice period. New cleaning company appointed with improved specification and supervision. All waiting room chairs professionally cleaned, two replaced entirely (£340). Sanitary bins changed to larger capacity with twice-daily emptying schedule. Waiting room carpet completely replaced (£3,200 investment). Patient invited to re-inspect facilities following improvements.",
+        improvements_made: "Practice manager now conducts daily visual inspections with photographic record logged. Patient feedback forms specifically ask about cleanliness with monthly analysis. Monthly hygiene audits by external CQC-trained assessor. Additional cleaning rounds added at 1:00pm during busy surgery periods. Instant-report system for hygiene concerns via QR code posters in waiting areas and toilets. Cleaning staff now directly employed rather than contracted to ensure accountability.",
+        additional_context: "Patient invited to re-inspect facilities and confirmed satisfaction with improvements in writing. CQC inspection scheduled for next quarter - practice confident in demonstrating compliance with hygiene standards. Learning from this incident shared at practice meeting about contract monitoring failures. New cleaning company provides real-time digital cleaning logs accessible to practice manager. Patient joined Patient Participation Group to help maintain cleanliness standards. All staff reminded to report hygiene issues immediately rather than assuming cleaners will address."
       };
     }
     
-    // Fallback to category-based replies for non-demo complaints
-    const category = complaintData.category?.toLowerCase() || '';
-    
-    if (category.includes('appointment') || description.includes('appointment') || description.includes('cancel')) {
-      return {
-        key_findings: "Investigation confirmed notification system failures led to missed communications. All four cancellations verified. Patient impact acknowledged.",
-        actions_taken: "SMS system upgraded. Staff trained on patient notification protocols. Practice manager personally contacted patient to apologise.",
-        improvements_made: "Implemented double-notification system (SMS + call). Added 48-hour advance notice policy. Monthly system audits introduced.",
-        additional_context: "Patient offered priority rebooking and direct line to practice manager. Compensation discussed for lost earnings. Process improvements shared with CCG."
-      };
-    } else if (category.includes('clinical') || category.includes('treatment')) {
-      return {
-        key_findings: "Clinical review completed. All care decisions properly documented. Treatment aligned with NICE guidelines. Communication gaps identified.",
-        actions_taken: "Case discussed with clinical governance team. Additional monitoring protocols implemented. Patient offered follow-up consultation.",
-        improvements_made: "Enhanced clinical record templates. Staff training on patient communication. Senior clinician review of complex cases.",
-        additional_context: "Patient safety incident report filed. Learning shared at practice clinical meeting. Apology letter sent with full explanation."
-      };
-    } else if (category.includes('staff') || category.includes('behaviour')) {
-      return {
-        key_findings: "Staff member interviewed. Incident details verified. Training needs identified. Patient concerns validated and acknowledged.",
-        actions_taken: "Formal meeting with staff member. Refresher training on professional conduct. Apology issued. Senior oversight increased.",
-        improvements_made: "Enhanced customer service training programme. Introduction of peer observation. Regular staff feedback sessions.",
-        additional_context: "Practice committed to respectful patient interactions. Staff wellbeing support offered. Patient invited to discuss concerns further."
-      };
-    } else if (category.includes('communication') || category.includes('information')) {
-      return {
-        key_findings: "Communication breakdown confirmed. Information not shared as expected. System failures identified. Patient right to information upheld.",
-        actions_taken: "Communication protocols reviewed. Staff briefed on information sharing requirements. Personal apology issued to patient.",
-        improvements_made: "New communication checklist introduced. Patient information leaflets updated. Regular communication audits.",
-        additional_context: "Practice committed to transparent communication. Patient offered dedicated contact person. Feedback mechanisms strengthened."
-      };
-    } else {
-      // Generic fallback
-      return {
-        key_findings: "Full investigation conducted. All parties consulted. Key issues identified and validated. Patient concerns taken seriously throughout.",
-        actions_taken: "Immediate corrective actions implemented. Staff briefed on findings. Apology issued to patient with explanation of steps taken.",
-        improvements_made: "Process improvements identified and actioned. Staff training updated. Quality assurance measures enhanced.",
-        additional_context: "Practice committed to continuous improvement. Patient feedback valued. Further contact welcomed if concerns remain."
-      };
-    }
+    // No demo response available - return empty strings for non-demo complaints
+    return {
+      key_findings: "",
+      actions_taken: "",
+      improvements_made: "",
+      additional_context: ""
+    };
   };
 
   const loadDemoReply = (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
