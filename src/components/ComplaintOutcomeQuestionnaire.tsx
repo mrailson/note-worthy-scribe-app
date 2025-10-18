@@ -671,6 +671,22 @@ export const ComplaintOutcomeQuestionnaire = ({
                       </Label>
                     </div>
                   </div>
+
+                  <div>
+                    <Label className="text-sm font-semibold mb-2 block">
+                      Outcome Type *
+                    </Label>
+                    <Select value={data.outcome_type} onValueChange={(value: any) => setData({ ...data, outcome_type: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select outcome..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="upheld">Complaint Upheld</SelectItem>
+                        <SelectItem value="partially_upheld">Complaint Partially Upheld</SelectItem>
+                        <SelectItem value="not_upheld">Complaint Not Upheld</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
                 </TabsContent>
 
                 <TabsContent value="compliance" className="space-y-4 mt-4">
@@ -771,170 +787,32 @@ export const ComplaintOutcomeQuestionnaire = ({
                                 </p>
                               )}
                             </div>
+                            {check.is_compliant && (
+                              <CheckCircle className="h-4 w-4 text-green-600 mt-1" />
+                            )}
                           </div>
                         ))
                       )}
                     </div>
+
+                    <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm">
+                      <p className="text-amber-900">
+                        <strong>Note:</strong> This compliance review is optional and provided as a helpful quality assurance tool. 
+                        Items marked with auto-confirmation have been verified based on complaint data.
+                      </p>
+                    </div>
+                    
+                    {!data.investigation_complete && (
+                      <div className="p-3 bg-blue-50 border border-blue-300 rounded text-sm">
+                        <p className="text-blue-900">
+                          <strong>Reminder:</strong> Before proceeding to the next step, please switch to the "Investigation Validation" tab 
+                          and complete the required fields (investigation checkbox and outcome type).
+                        </p>
+                      </div>
+                    )}
                   </div>
                 </TabsContent>
               </Tabs>
-            </div>
-          )}
-
-          {/* Step 2: Investigation Details */}
-          {step === 2 && (
-            <div className="space-y-6">
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-semibold">
-                    Key Findings *
-                  </Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadDemoReply('key_findings')}
-                    className="text-xs"
-                  >
-                    Load Example
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Summarise the investigation findings (minimum 20 characters)
-                </p>
-                <div className="relative">
-                  <Textarea
-                    value={data.key_findings}
-                    onChange={(e) => setData({ ...data, key_findings: e.target.value })}
-                    rows={4}
-                    placeholder="E.g., Our investigation found that..."
-                    className="min-h-[100px]"
-                  />
-                  <div className="absolute bottom-2 right-2">
-                    <SpeechToText
-                      onTranscription={(text) => setData({ ...data, key_findings: data.key_findings + ' ' + text })}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-semibold">Actions Taken</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadDemoReply('actions_taken')}
-                    className="text-xs"
-                  >
-                    Load Example
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Describe immediate actions taken in response
-                </p>
-                <div className="relative">
-                  <Textarea
-                    value={data.actions_taken}
-                    onChange={(e) => setData({ ...data, actions_taken: e.target.value })}
-                    rows={4}
-                    placeholder="E.g., We immediately..."
-                    className="min-h-[100px]"
-                  />
-                  <div className="absolute bottom-2 right-2">
-                    <SpeechToText
-                      onTranscription={(text) => setData({ ...data, actions_taken: data.actions_taken + ' ' + text })}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-semibold">Improvements Made</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadDemoReply('improvements_made')}
-                    className="text-xs"
-                  >
-                    Load Example
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Detail improvements and preventative measures
-                </p>
-                <div className="relative">
-                  <Textarea
-                    value={data.improvements_made}
-                    onChange={(e) => setData({ ...data, improvements_made: e.target.value })}
-                    rows={4}
-                    placeholder="E.g., To prevent this from happening again, we have..."
-                    className="min-h-[100px]"
-                  />
-                  <div className="absolute bottom-2 right-2">
-                    <SpeechToText
-                      onTranscription={(text) => setData({ ...data, improvements_made: data.improvements_made + ' ' + text })}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Step 3: Letter Preferences */}
-          {step === 3 && (
-            <div className="space-y-6">
-              <div>
-                <Label className="text-sm font-semibold mb-2 block">Letter Tone</Label>
-                <Select value={data.tone} onValueChange={(value: any) => setData({ ...data, tone: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select tone..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="professional">Professional - Formal and business-like</SelectItem>
-                    <SelectItem value="empathetic">Empathetic - Understanding and compassionate</SelectItem>
-                    <SelectItem value="apologetic">Apologetic - Acknowledging fault with sincerity</SelectItem>
-                    <SelectItem value="factual">Factual - Objective and evidence-based</SelectItem>
-                    <SelectItem value="strong">Strong - Clear boundaries (vexatious complaints)</SelectItem>
-                    <SelectItem value="firm">Firm - Assertive and definitive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <Label className="text-sm font-semibold">Additional Context (Optional)</Label>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => loadDemoReply('additional_context')}
-                    className="text-xs"
-                  >
-                    Load Example
-                  </Button>
-                </div>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Any additional information for the letter
-                </p>
-                <div className="relative">
-                  <Textarea
-                    value={data.additional_context}
-                    onChange={(e) => setData({ ...data, additional_context: e.target.value })}
-                    rows={3}
-                    placeholder="E.g., Patient welcome to contact us if..."
-                    className="min-h-[80px]"
-                  />
-                  <div className="absolute bottom-2 right-2">
-                    <SpeechToText
-                      onTranscription={(text) => setData({ ...data, additional_context: data.additional_context + ' ' + text })}
-                      size="sm"
-                    />
-                  </div>
-                </div>
-              </div>
             </div>
           )}
 
