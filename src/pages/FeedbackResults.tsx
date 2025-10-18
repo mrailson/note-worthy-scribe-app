@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
+
 import { Button } from "@/components/ui/button";
 import { RefreshCw, TrendingUp, MessageSquare, BarChart3 } from "lucide-react";
 import { format } from "date-fns";
@@ -26,42 +26,20 @@ const FeedbackResults = () => {
     if (!feedbackData || feedbackData.length === 0) {
       return {
         totalSubmissions: 0,
-        complaintsAvgUse: 0,
         complaintsAvgUsefulness: 0,
-        meetingsAvgUse: 0,
         meetingsAvgUsefulness: 0,
-        complaintsUseDistribution: { yes: 0, maybe: 0, no: 0 },
-        meetingsUseDistribution: { yes: 0, maybe: 0, no: 0 },
       };
     }
 
     const totalSubmissions = feedbackData.length;
     
-    const complaintsUseSum = feedbackData.reduce((sum, item) => sum + item.would_use_complaints_system, 0);
     const complaintsUsefulnessSum = feedbackData.reduce((sum, item) => sum + item.complaints_system_usefulness, 0);
-    const meetingsUseSum = feedbackData.reduce((sum, item) => sum + item.would_use_meeting_manager, 0);
     const meetingsUsefulnessSum = feedbackData.reduce((sum, item) => sum + item.meeting_manager_usefulness, 0);
-
-    const complaintsUseDistribution = {
-      yes: feedbackData.filter(item => item.would_use_complaints_system >= 7).length,
-      maybe: feedbackData.filter(item => item.would_use_complaints_system >= 4 && item.would_use_complaints_system < 7).length,
-      no: feedbackData.filter(item => item.would_use_complaints_system < 4).length,
-    };
-
-    const meetingsUseDistribution = {
-      yes: feedbackData.filter(item => item.would_use_meeting_manager >= 7).length,
-      maybe: feedbackData.filter(item => item.would_use_meeting_manager >= 4 && item.would_use_meeting_manager < 7).length,
-      no: feedbackData.filter(item => item.would_use_meeting_manager < 4).length,
-    };
 
     return {
       totalSubmissions,
-      complaintsAvgUse: complaintsUseSum / totalSubmissions,
       complaintsAvgUsefulness: complaintsUsefulnessSum / totalSubmissions,
-      meetingsAvgUse: meetingsUseSum / totalSubmissions,
       meetingsAvgUsefulness: meetingsUsefulnessSum / totalSubmissions,
-      complaintsUseDistribution,
-      meetingsUseDistribution,
     };
   };
 
@@ -134,31 +112,9 @@ const FeedbackResults = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Complaints Manager System</CardTitle>
-                <CardDescription>Interest and usefulness ratings</CardDescription>
+                <CardDescription>Usefulness ratings</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium">Would Use This System</span>
-                    <span className={`text-sm font-bold ${getScoreColor(stats.complaintsAvgUse)}`}>
-                      {stats.complaintsAvgUse.toFixed(1)}/10
-                    </span>
-                  </div>
-                  <Progress value={(stats.complaintsAvgUse / 10) * 100} className="h-3" />
-                  
-                  <div className="flex gap-2 mt-3">
-                    <Badge variant="default" className="bg-green-600">
-                      Yes: {stats.complaintsUseDistribution.yes}
-                    </Badge>
-                    <Badge variant="secondary" className="bg-amber-600">
-                      Maybe: {stats.complaintsUseDistribution.maybe}
-                    </Badge>
-                    <Badge variant="outline" className="border-red-600 text-red-600">
-                      No: {stats.complaintsUseDistribution.no}
-                    </Badge>
-                  </div>
-                </div>
-
+              <CardContent>
                 <div>
                   <div className="flex justify-between mb-2">
                     <span className="text-sm font-medium">Usefulness Rating</span>
@@ -175,31 +131,9 @@ const FeedbackResults = () => {
             <Card>
               <CardHeader>
                 <CardTitle>Meeting Notes Manager System</CardTitle>
-                <CardDescription>Interest and usefulness ratings</CardDescription>
+                <CardDescription>Usefulness ratings</CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <div className="flex justify-between mb-2">
-                    <span className="text-sm font-medium">Would Use This System</span>
-                    <span className={`text-sm font-bold ${getScoreColor(stats.meetingsAvgUse)}`}>
-                      {stats.meetingsAvgUse.toFixed(1)}/10
-                    </span>
-                  </div>
-                  <Progress value={(stats.meetingsAvgUse / 10) * 100} className="h-3" />
-                  
-                  <div className="flex gap-2 mt-3">
-                    <Badge variant="default" className="bg-green-600">
-                      Yes: {stats.meetingsUseDistribution.yes}
-                    </Badge>
-                    <Badge variant="secondary" className="bg-amber-600">
-                      Maybe: {stats.meetingsUseDistribution.maybe}
-                    </Badge>
-                    <Badge variant="outline" className="border-red-600 text-red-600">
-                      No: {stats.meetingsUseDistribution.no}
-                    </Badge>
-                  </div>
-                </div>
-
+              <CardContent>
                 <div>
                   <div className="flex justify-between mb-2">
                     <span className="text-sm font-medium">Usefulness Rating</span>
