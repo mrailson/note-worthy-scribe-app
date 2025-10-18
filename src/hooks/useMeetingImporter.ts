@@ -96,7 +96,7 @@ export const useMeetingImporter = () => {
       setCurrentStep('Saving transcript...');
       setProgress(50);
 
-      // Step 2: Store transcript in meeting_transcripts table
+      // Step 2: Store transcript in both meeting_transcripts table and meetings.live_transcript_text
       const { error: transcriptError } = await supabase
         .from('meeting_transcripts')
         .insert({
@@ -105,6 +105,14 @@ export const useMeetingImporter = () => {
         });
 
       if (transcriptError) throw transcriptError;
+
+      // Also save to live_transcript_text for immediate display
+      const { error: updateError } = await supabase
+        .from('meetings')
+        .update({ live_transcript_text: data.transcript })
+        .eq('id', meeting.id);
+
+      if (updateError) console.warn('Failed to update live_transcript_text:', updateError);
 
       setCurrentStep('Queuing note generation...');
       setProgress(70);
