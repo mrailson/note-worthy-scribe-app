@@ -1,7 +1,8 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { 
@@ -13,18 +14,28 @@ import {
   Heart,
   Activity,
   Baby,
-  Pill
+  Pill,
+  Info,
+  ArrowLeft
 } from "lucide-react";
 import { consultationExamples, ConsultationExample } from "@/data/consultationExamples";
 import { toast } from "sonner";
+import { useAuth } from "@/contexts/AuthContext";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface ExamplesPanelProps {
   onLoadExample: (example: ConsultationExample) => void;
 }
 
 export const ExamplesPanel = ({ onLoadExample }: ExamplesPanelProps) => {
+  const { canViewConsultationExamples, isSystemAdmin } = useAuth();
   const [selectedExample, setSelectedExample] = useState<ConsultationExample | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+
+  // Filter examples based on visibility settings
+  const visibleExamples = canViewConsultationExamples 
+    ? consultationExamples 
+    : consultationExamples.filter(ex => ex.type !== 'consultation');
 
   const getTypeIcon = (type: string) => {
     switch (type) {
@@ -189,6 +200,23 @@ export const ExamplesPanel = ({ onLoadExample }: ExamplesPanelProps) => {
 
   return (
     <div className="space-y-6">
+      {!canViewConsultationExamples && consultationExamples.some(ex => ex.type !== 'consultation') && (
+        <Alert className="mb-4">
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            GP consultation examples are currently not available. Contact your administrator for access.
+          </AlertDescription>
+        </Alert>
+      )}
+      {isSystemAdmin && !canViewConsultationExamples && (
+        <Alert className="mb-4 border-blue-500 bg-blue-50">
+          <Info className="h-4 w-4 text-blue-600" />
+          <AlertDescription className="text-blue-900">
+            ⚠️ Admin View: You're seeing all examples. Regular users with this setting disabled will not see consultation examples.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       <div className="text-center">
         <h2 className="text-2xl font-bold text-primary mb-2">Consultation Examples</h2>
         <p className="text-muted-foreground">
@@ -197,7 +225,7 @@ export const ExamplesPanel = ({ onLoadExample }: ExamplesPanelProps) => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        {consultationExamples.map((example) => (
+        {visibleExamples.map((example) => (
           <Card 
             key={example.id} 
             className="cursor-pointer hover:shadow-md transition-shadow"

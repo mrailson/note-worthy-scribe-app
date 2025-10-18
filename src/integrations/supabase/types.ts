@@ -5268,6 +5268,36 @@ export type Database = {
         }
         Relationships: []
       }
+      system_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          setting_key: string
+          setting_value: Json
+          updated_at: string | null
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key: string
+          setting_value: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          setting_key?: string
+          setting_value?: Json
+          updated_at?: string | null
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       template_attendees: {
         Row: {
           attendee_id: string
@@ -5690,6 +5720,7 @@ export type Database = {
           replywell_access: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           shared_drive_access: boolean | null
+          show_consultation_examples: boolean | null
           translation_service_access: boolean | null
           user_id: string
         }
@@ -5712,6 +5743,7 @@ export type Database = {
           replywell_access?: boolean | null
           role: Database["public"]["Enums"]["app_role"]
           shared_drive_access?: boolean | null
+          show_consultation_examples?: boolean | null
           translation_service_access?: boolean | null
           user_id: string
         }
@@ -5734,6 +5766,7 @@ export type Database = {
           replywell_access?: boolean | null
           role?: Database["public"]["Enums"]["app_role"]
           shared_drive_access?: boolean | null
+          show_consultation_examples?: boolean | null
           translation_service_access?: boolean | null
           user_id?: string
         }
@@ -5907,6 +5940,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      can_view_consultation_examples: {
+        Args: { _user_id?: string }
+        Returns: boolean
       }
       check_transcript_integrity: {
         Args: { p_meeting_id: string }

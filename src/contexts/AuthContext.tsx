@@ -10,12 +10,14 @@ interface AuthContextType {
   loading: boolean;
   userModules: string[];
   isSystemAdmin: boolean;
+  canViewConsultationExamples: boolean;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: any }>;
   updatePassword: (newPassword: string) => Promise<{ error: any }>;
   hasModuleAccess: (module: string) => boolean;
   refreshUserModules: () => Promise<void>;
+  checkConsultationExamplesVisibility: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -34,6 +36,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [loading, setLoading] = useState(true);
   const [userModules, setUserModules] = useState<string[]>([]);
   const [isSystemAdmin, setIsSystemAdmin] = useState(false);
+  const [canViewConsultationExamples, setCanViewConsultationExamples] = useState(true);
   
   const navigate = useNavigate();
   const location = useLocation();
@@ -125,6 +128,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     }
   };
 
+  // Function to check consultation examples visibility
+  const checkConsultationExamplesVisibility = async () => {
+    if (!user) {
+      setCanViewConsultationExamples(true);
+      return;
+    }
+    
+    try {
+      const { data, error } = await supabase.rpc('can_view_consultation_examples', {
+        _user_id: user.id
+      });
+      
+      if (error) {
+        console.error('Error checking consultation examples visibility:', error);
+        setCanViewConsultationExamples(true); // Default to true on error
+      } else {
+        setCanViewConsultationExamples(data ?? true);
+      }
+    } catch (error) {
+      console.error('Error in checkConsultationExamplesVisibility:', error);
+      setCanViewConsultationExamples(true);
+    }
+  };
+
   // Function to check if user has access to a specific module
   const hasModuleAccess = (module: string) => {
     // Special handling for practice manager access
@@ -149,10 +176,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           setTimeout(() => {
             fetchUserModules(session.user.id);
             checkSystemAdmin(session.user.id);
+            checkConsultationExamplesVisibility();
           }, 0);
         } else {
           setUserModules([]);
           setIsSystemAdmin(false);
+          setCanViewConsultationExamples(true);
         }
       }
     );
@@ -167,6 +196,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setTimeout(() => {
           fetchUserModules(session.user.id);
           checkSystemAdmin(session.user.id);
+          checkConsultationExamplesVisibility();
         }, 0);
       }
     });
@@ -180,10 +210,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       // Immediate refresh
       fetchUserModules(user.id);
       checkSystemAdmin(user.id);
+      checkConsultationExamplesVisibility();
       
       const interval = setInterval(() => {
         fetchUserModules(user.id);
         checkSystemAdmin(user.id);
+        checkConsultationExamplesVisibility();
       }, 2000); // Reduced to 2 seconds for faster updates
       
       return () => clearInterval(interval);
@@ -303,6 +335,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(null);
       setUserModules([]);
       setIsSystemAdmin(false);
+      setCanViewConsultationExamples(true);
       
       // Only show logout toast on desktop
       if (!isMobile) {
@@ -331,6 +364,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(null);
       setUserModules([]);
       setIsSystemAdmin(false);
+      setCanViewConsultationExamples(true);
       navigate('/', { replace: true });
     }
   };
@@ -374,12 +408,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     loading,
     userModules,
     isSystemAdmin,
+    canViewConsultationExamples,
     signIn,
     signOut,
     resetPassword,
     updatePassword,
     hasModuleAccess,
     refreshUserModules: () => user?.id ? fetchUserModules(user.id) : Promise.resolve(),
+    checkConsultationExamplesVisibility,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

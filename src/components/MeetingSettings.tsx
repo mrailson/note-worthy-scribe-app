@@ -39,7 +39,7 @@ interface MeetingSettingsProps {
 }
 
 export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscriptImported, initialSettings }: MeetingSettingsProps) => {
-  const { user } = useAuth();
+  const { user, canViewConsultationExamples } = useAuth();
   const [isOpen, setIsOpen] = useState(true);
   const [isImportingTranscript, setIsImportingTranscript] = useState(false);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
@@ -349,6 +349,16 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
     onSettingsChange(newSettings);
   };
 
+  // Auto-switch meeting type if user loses access to patient-consultation
+  useEffect(() => {
+    if (!canViewConsultationExamples && settings.meetingType === 'patient-consultation') {
+      const newSettings = { ...settings, meetingType: 'general' };
+      setSettings(newSettings);
+      onSettingsChange(newSettings);
+      toast.info('Patient meeting type is no longer available. Switched to General Meeting.');
+    }
+  }, [canViewConsultationExamples]);
+
   return (
     <Card className="shadow-medium">
       <Collapsible open={isOpen} onOpenChange={setIsOpen}>
@@ -384,7 +394,9 @@ export const MeetingSettings = ({ onSettingsChange, onAudioImported, onTranscrip
                   <SelectItem value="lmc">LMC</SelectItem>
                   <SelectItem value="locality">Locality</SelectItem>
                   <SelectItem value="neighbourhood-meeting">Neighbourhood Meeting</SelectItem>
-                  <SelectItem value="patient-consultation">Patient Meeting (Complaint Handling or other Administration Reason)</SelectItem>
+                  {canViewConsultationExamples && (
+                    <SelectItem value="patient-consultation">Patient Meeting (Complaint Handling or other Administration Reason)</SelectItem>
+                  )}
                   <SelectItem value="pcn-meeting">PCN Meeting</SelectItem>
                   <SelectItem value="team-meeting">Team Meeting</SelectItem>
                   <SelectItem value="training">Training Session</SelectItem>
