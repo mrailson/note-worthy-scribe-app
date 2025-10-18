@@ -23,7 +23,7 @@ serve(async (req) => {
       throw new Error('Complaint ID is required');
     }
 
-    // Initialise Supabase client
+    // Initialize Supabase client
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
@@ -53,7 +53,7 @@ serve(async (req) => {
 - Good Medical Practice standards
 - Patient rights and expectations
 
-Analyse the complaint and provide:
+Analyze the complaint and provide:
 1. RECOMMENDED OUTCOME: rejected, upheld, or partially_upheld
 2. DETAILED REASONING: Clear, evidence-based justification
 3. KEY FACTORS: List specific elements that influenced the decision
@@ -75,7 +75,7 @@ Be objective, thorough, and focus on patient safety and quality of care.`;
       ?.map(note => note.note)
       ?.join('\n\n') || 'No internal notes';
 
-    const userPrompt = `Analyse this NHS complaint and recommend an outcome:
+    const userPrompt = `Analyze this NHS complaint and recommend an outcome:
 
 COMPLAINT DETAILS:
 Reference: ${complaint.reference_number}
@@ -134,7 +134,7 @@ Please provide a comprehensive analysis with recommended outcome and clear reaso
     console.error('Error in analyze-complaint-outcome function:', error);
     return new Response(JSON.stringify({ 
       error: error.message,
-      details: 'Failed to analyse complaint outcome' 
+      details: 'Failed to analyze complaint outcome' 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
