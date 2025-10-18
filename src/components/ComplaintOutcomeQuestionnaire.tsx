@@ -55,7 +55,6 @@ export const ComplaintOutcomeQuestionnaire = ({
   complaintData,
   onSuccess,
 }: ComplaintOutcomeQuestionnaireProps) => {
-  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [data, setData] = useState<QuestionnaireData>({
@@ -123,10 +122,6 @@ export const ComplaintOutcomeQuestionnaire = ({
   const loadDemoReply = (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
     const demoReplies = getDemoReplies();
     setData({ ...data, [field]: demoReplies[field] });
-    toast({
-      title: 'Demo Reply Loaded',
-      description: 'Contextual demo content loaded for demonstration purposes',
-    });
   };
 
   useEffect(() => {
@@ -219,18 +214,8 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       // Refresh compliance summary
       fetchComplianceChecks();
-      
-      toast({
-        title: 'Updated',
-        description: 'Compliance check updated',
-      });
     } catch (error) {
       console.error('Error updating compliance check:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to update compliance check',
-        variant: 'destructive',
-      });
     }
   };
 
@@ -244,10 +229,6 @@ export const ComplaintOutcomeQuestionnaire = ({
       const nonCompliantChecks = complianceChecks.filter(check => !check.is_compliant);
 
       if (nonCompliantChecks.length === 0) {
-        toast({
-          title: 'All Complete',
-          description: 'All items are already completed',
-        });
         return;
       }
 
@@ -273,48 +254,23 @@ export const ComplaintOutcomeQuestionnaire = ({
       );
 
       fetchComplianceChecks();
-      
-      toast({
-        title: 'Success',
-        description: `Marked ${nonCompliantChecks.length} items as completed`,
-      });
     } catch (error) {
       console.error('Error marking all items as compliant:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to mark all items as completed',
-        variant: 'destructive',
-      });
     }
   };
 
   const handleNext = () => {
     if (step === 1) {
       if (!data.investigation_complete) {
-        toast({
-          title: 'Investigation Required',
-          description: 'Please confirm that the investigation has been completed and all parties have been consulted.',
-          variant: 'destructive',
-        });
         return;
       }
       if (!data.outcome_type) {
-        toast({
-          title: 'Outcome Required',
-          description: 'Please select the outcome type.',
-          variant: 'destructive',
-        });
         return;
       }
     }
 
     if (step === 2) {
       if (!data.key_findings || data.key_findings.length < 20) {
-        toast({
-          title: 'Key Findings Required',
-          description: 'Please provide a brief summary of key findings (at least 20 characters).',
-          variant: 'destructive',
-        });
         return;
       }
     }
@@ -393,20 +349,10 @@ export const ComplaintOutcomeQuestionnaire = ({
         // Don't fail the main process, outcome letter was still saved
       }
 
-      toast({
-        title: 'Success',
-        description: 'Outcome letter generated and complaint closed successfully!',
-      });
-
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
       console.error('Error generating outcome letter:', error);
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to generate outcome letter',
-        variant: 'destructive',
-      });
     } finally {
       setIsSubmitting(false);
     }
