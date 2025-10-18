@@ -149,28 +149,53 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       if (checksError) throw checksError;
 
-      // Auto-confirm eligible items
-      const updatedChecks = checks?.map(check => {
-        // Auto-confirm: Complaint logged in practice register (always true if complaint exists)
-        if (check.compliance_item.includes('logged in practice register')) {
-          return { ...check, is_compliant: true };
-        }
-        
-        // Auto-confirm: Acknowledgement sent within 3 working days
-        if (check.compliance_item.includes('Acknowledgement sent within 3 working days') && 
-            complaintData.acknowledged_at && complaintData.created_at) {
-          const created = new Date(complaintData.created_at);
-          const acknowledged = new Date(complaintData.acknowledged_at);
-          const diffInDays = Math.floor((acknowledged.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-          if (diffInDays <= 3) {
-            return { ...check, is_compliant: true };
+      // Auto-confirm eligible items in the database
+      const user = await supabase.auth.getUser();
+      if (user.data.user && checks) {
+        for (const check of checks) {
+          let shouldAutoConfirm = false;
+          
+          // Auto-confirm: Complaint logged in practice register
+          if (check.compliance_item.includes('logged in practice register') && !check.is_compliant) {
+            shouldAutoConfirm = true;
+          }
+          
+          // Auto-confirm: Acknowledgement sent within 3 working days
+          if (check.compliance_item.includes('Acknowledgement sent within 3 working days') && 
+              !check.is_compliant &&
+              complaintData.acknowledged_at && complaintData.created_at) {
+            const created = new Date(complaintData.created_at);
+            const acknowledged = new Date(complaintData.acknowledged_at);
+            const diffInDays = Math.floor((acknowledged.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+            if (diffInDays <= 3) {
+              shouldAutoConfirm = true;
+            }
+          }
+          
+          // Update in database if should be auto-confirmed
+          if (shouldAutoConfirm) {
+            await supabase
+              .from('complaint_compliance_checks')
+              .update({ 
+                is_compliant: true, 
+                checked_at: new Date().toISOString(),
+                checked_by: user.data.user.id,
+                notes: 'Auto-confirmed based on complaint data'
+              })
+              .eq('id', check.id);
           }
         }
-        
-        return check;
-      }) || [];
+      }
 
-      setComplianceChecks(updatedChecks);
+      // Fetch updated checks
+      const { data: updatedChecks, error: updatedError } = await supabase
+        .from('complaint_compliance_checks')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: true });
+
+      if (updatedError) throw updatedError;
+      setComplianceChecks(updatedChecks || []);
 
       // Get compliance summary
       const { data: summary, error: summaryError } = await supabase
@@ -261,10 +286,19 @@ export const ComplaintOutcomeQuestionnaire = ({
 
   const handleNext = () => {
     if (step === 1) {
+      // Check required fields but show visual feedback
       if (!data.investigation_complete) {
+        // Highlight the investigation validation tab if they're on compliance tab
+        if (activeValidationTab === 'compliance') {
+          setActiveValidationTab('investigation');
+        }
         return;
       }
       if (!data.outcome_type) {
+        // Switch to investigation tab to show the missing outcome field
+        if (activeValidationTab === 'compliance') {
+          setActiveValidationTab('investigation');
+        }
         return;
       }
     }
@@ -528,6 +562,15 @@ export const ComplaintOutcomeQuestionnaire = ({
                       Items marked with auto-confirmation have been verified based on complaint data.
                     </p>
                   </div>
+                  
+                  {!data.investigation_complete && (
+                    <div className="p-3 bg-blue-50 border border-blue-300 rounded text-sm">
+                      <p className="text-blue-900">
+                        <strong>Reminder:</strong> Before proceeding to the next step, please switch to the "Investigation Validation" tab 
+                        and complete the required fields (investigation checkbox and outcome type).
+                      </p>
+                    </div>
+                  )}
                 </div>
               </TabsContent>
             </Tabs>
