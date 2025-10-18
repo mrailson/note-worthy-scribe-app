@@ -15,7 +15,7 @@ import { CheckCircle2, AlertCircle, Loader2, CheckCircle, ClipboardCheck, Sparkl
 
 interface QuestionnaireData {
   investigation_complete: boolean;
-  outcome_type: 'upheld' | 'partially_upheld' | 'not_upheld' | '';
+  outcome_type?: 'upheld' | 'partially_upheld' | 'not_upheld';
   tone: 'professional' | 'empathetic' | 'apologetic' | 'factual' | 'strong' | 'firm';
   key_findings: string;
   actions_taken: string;
@@ -63,7 +63,7 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [aiAnalysisText, setAiAnalysisText] = useState<string>('');
   const [data, setData] = useState<QuestionnaireData>({
     investigation_complete: false,
-    outcome_type: '',
+    outcome_type: undefined,
     tone: 'professional',
     key_findings: '',
     actions_taken: '',
@@ -567,6 +567,11 @@ export const ComplaintOutcomeQuestionnaire = ({
       
       console.log('Outcome letter generated successfully, length:', letterData.outcomeLetter?.length);
 
+      // Ensure outcome type is valid before saving
+      if (!finalData.outcome_type || !['upheld', 'partially_upheld', 'not_upheld'].includes(finalData.outcome_type)) {
+        throw new Error('Invalid outcome type selected');
+      }
+
       // Save the generated outcome letter using RPC function
       console.log('Step 4: Saving outcome letter to database via RPC...');
       console.log('Outcome data to save:', {
@@ -579,7 +584,7 @@ export const ComplaintOutcomeQuestionnaire = ({
       const { data: outcomeId, error: outcomeError } = await supabase
         .rpc('create_complaint_outcome', {
           p_complaint_id: complaintId,
-          p_outcome_type: finalData.outcome_type,
+          p_outcome_type: finalData.outcome_type as 'upheld' | 'partially_upheld' | 'not_upheld',
           p_outcome_summary: finalData.key_findings,
           p_outcome_letter: letterData.outcomeLetter,
         });
