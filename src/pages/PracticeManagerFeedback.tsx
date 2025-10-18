@@ -256,6 +256,7 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
                             <Button
                               variant="outline"
                               role="combobox"
+                              aria-expanded={open}
                               className={cn(
                                 "w-full justify-between",
                                 !field.value && "text-muted-foreground"
@@ -270,8 +271,8 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
                             </Button>
                           </FormControl>
                         </PopoverTrigger>
-                        <PopoverContent className="w-full p-0" align="start">
-                          <Command>
+                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                          <Command shouldFilter={false}>
                             <CommandInput
                               placeholder="Search practice name or K code..."
                               value={searchQuery}
