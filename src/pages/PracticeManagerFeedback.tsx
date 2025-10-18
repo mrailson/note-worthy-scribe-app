@@ -151,7 +151,7 @@ export default function PracticeManagerFeedback() {
       // Send email notification via EmailJS
       const { error: emailError } = await supabase.functions.invoke("send-email-via-emailjs", {
         body: {
-          to_email: "your-email@example.com", // Replace with your notification email
+          to_email: "Malcolm.railson@nhs.net",
           subject: `New Feedback: ${practiceName}`,
           template_type: "feedback",
           practice_name: practiceName,
