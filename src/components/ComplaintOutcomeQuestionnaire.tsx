@@ -334,6 +334,9 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       // Save questionnaire to database using RPC function
       console.log('Step 2: Saving questionnaire to database via RPC...');
+      console.log('Questionnaire data:', finalData);
+      console.log('Complaint ID:', complaintId);
+      
       const { data: questionnaireId, error: saveError } = await supabase
         .rpc('create_complaint_outcome_questionnaire', {
           p_complaint_id: complaintId,
@@ -341,10 +344,19 @@ export const ComplaintOutcomeQuestionnaire = ({
         });
 
       if (saveError) {
-        console.error('Error saving questionnaire via RPC:', saveError);
+        console.error('!!! RPC ERROR saving questionnaire !!!');
+        console.error('Error details:', saveError);
+        alert(`Failed to save questionnaire: ${saveError.message}`);
         throw saveError;
       }
-      console.log('Questionnaire saved successfully (RPC id):', questionnaireId);
+      
+      if (!questionnaireId) {
+        console.error('!!! RPC returned no questionnaire ID !!!');
+        alert('Failed to save questionnaire: No ID returned');
+        throw new Error('No questionnaire ID returned from RPC');
+      }
+      
+      console.log('✓ Questionnaire saved successfully (RPC returned id):', questionnaireId);
 
       // Generate outcome letter using edge function
       console.log('Step 3: Calling edge function to generate letter...');
@@ -380,7 +392,15 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       // Save the generated outcome letter
       console.log('Step 4: Saving outcome letter to database...');
-      const { error: outcomeError } = await supabase
+      console.log('Outcome data to save:', {
+        complaint_id: complaintId,
+        outcome_type: finalData.outcome_type,
+        outcome_summary: finalData.key_findings,
+        letter_length: letterData.outcomeLetter?.length,
+        decided_by: user.id,
+      });
+      
+      const { data: savedOutcome, error: outcomeError } = await supabase
         .from('complaint_outcomes')
         .insert({
           complaint_id: complaintId,
@@ -388,13 +408,26 @@ export const ComplaintOutcomeQuestionnaire = ({
           outcome_summary: finalData.key_findings,
           outcome_letter: letterData.outcomeLetter,
           decided_by: user.id,
-        });
+        })
+        .select()
+        .single();
 
       if (outcomeError) {
-        console.error('Error saving outcome letter:', outcomeError);
+        console.error('!!! ERROR SAVING OUTCOME LETTER !!!');
+        console.error('Error code:', outcomeError.code);
+        console.error('Error message:', outcomeError.message);
+        console.error('Error details:', outcomeError.details);
+        console.error('Error hint:', outcomeError.hint);
+        alert(`Failed to save outcome letter: ${outcomeError.message}. Check console for details.`);
         throw outcomeError;
       }
-      console.log('Outcome letter saved to database');
+      
+      if (!savedOutcome) {
+        console.error('!!! NO OUTCOME RETURNED FROM INSERT !!!');
+        alert('Outcome letter may not have been saved properly');
+      } else {
+        console.log('✓ Outcome letter saved successfully to database, ID:', savedOutcome.id);
+      }
 
       // Update complaint status to closed
       console.log('Step 5: Updating complaint status to closed...');
