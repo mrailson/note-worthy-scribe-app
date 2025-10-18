@@ -572,11 +572,14 @@ export const ComplaintOutcomeQuestionnaire = ({
         throw new Error('Invalid outcome type selected');
       }
 
+      // Map UI value to DB-allowed values
+      const dbOutcomeType = finalData.outcome_type === 'not_upheld' ? 'rejected' : finalData.outcome_type;
+
       // Save the generated outcome letter using RPC function
       console.log('Step 4: Saving outcome letter to database via RPC...');
       console.log('Outcome data to save:', {
         complaint_id: complaintId,
-        outcome_type: finalData.outcome_type,
+        outcome_type: dbOutcomeType,
         outcome_summary: finalData.key_findings,
         letter_length: letterData.outcomeLetter?.length,
       });
@@ -584,7 +587,7 @@ export const ComplaintOutcomeQuestionnaire = ({
       const { data: outcomeId, error: outcomeError } = await supabase
         .rpc('create_complaint_outcome', {
           p_complaint_id: complaintId,
-          p_outcome_type: finalData.outcome_type as 'upheld' | 'partially_upheld' | 'not_upheld',
+          p_outcome_type: dbOutcomeType,
           p_outcome_summary: finalData.key_findings,
           p_outcome_letter: letterData.outcomeLetter,
         });
