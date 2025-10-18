@@ -1151,46 +1151,18 @@ const ComplaintsSystem = () => {
     try {
       const complaintId = complaintToDelete.id;
       
-      // Delete all related records first to avoid foreign key constraint errors
-      // Delete in order of dependencies
-      
-      // 1. Delete audit logs
-      await supabase.from('complaint_audit_detailed').delete().eq('complaint_id', complaintId);
-      await supabase.from('complaint_audit_log').delete().eq('complaint_id', complaintId);
-      await supabase.from('complaint_compliance_audit').delete().eq('complaint_id', complaintId);
-      
-      // 2. Delete questionnaires
-      await supabase.from('complaint_outcome_questionnaires').delete().eq('complaint_id', complaintId);
-      
-      // 3. Delete outcomes and acknowledgements
-      await supabase.from('complaint_outcomes').delete().eq('complaint_id', complaintId);
-      await supabase.from('complaint_acknowledgements').delete().eq('complaint_id', complaintId);
-      await supabase.from('complaint_responses').delete().eq('complaint_id', complaintId);
-      
-      // 4. Delete investigation records
-      await supabase.from('complaint_investigation_transcripts').delete().eq('complaint_id', complaintId);
-      await supabase.from('complaint_investigation_evidence').delete().eq('complaint_id', complaintId);
-      await supabase.from('complaint_investigation_findings').delete().eq('complaint_id', complaintId);
-      await supabase.from('complaint_investigation_decisions').delete().eq('complaint_id', complaintId);
-      
-      // 5. Delete staff responses and involved parties
-      await supabase.from('staff_responses').delete().eq('complaint_id', complaintId);
-      await supabase.from('complaint_involved_parties').delete().eq('complaint_id', complaintId);
-      
-      // 6. Delete documents and notes
-      await supabase.from('complaint_documents').delete().eq('complaint_id', complaintId);
-      await supabase.from('complaint_notes').delete().eq('complaint_id', complaintId);
-      
-      // 7. Delete compliance checks
-      await supabase.from('complaint_compliance_checks').delete().eq('complaint_id', complaintId);
-      
-      // 8. Finally, delete the complaint itself
-      const { error } = await supabase
-        .from('complaints')
-        .delete()
-        .eq('id', complaintId);
+      // Use secure database function to cascade delete complaint and all related records
+      const { data, error } = await supabase.rpc('delete_complaint_cascade', {
+        p_complaint_id: complaintId
+      });
 
       if (error) throw error;
+      
+      // Check if the function returned a success response
+      const result = data as { success?: boolean; error?: string } | null;
+      if (!result?.success) {
+        throw new Error(result?.error || 'Failed to delete complaint');
+      }
 
       // Remove from local state
       setComplaints(prev => prev.filter(c => c.id !== complaintId));

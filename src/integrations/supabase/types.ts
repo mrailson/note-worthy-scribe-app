@@ -6059,6 +6059,10 @@ export type Database = {
         Args: { seconds: number }
         Returns: undefined
       }
+      delete_complaint_cascade: {
+        Args: { p_complaint_id: string }
+        Returns: Json
+      }
       detect_meeting_data_crossover: {
         Args: Record<PropertyKey, never>
         Returns: {
