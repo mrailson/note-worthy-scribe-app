@@ -55,8 +55,12 @@ export const ComplaintOutcomeQuestionnaire = ({
   complaintData,
   onSuccess,
 }: ComplaintOutcomeQuestionnaireProps) => {
+  const { toast } = useToast();
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [aiSuggestedOutcome, setAiSuggestedOutcome] = useState<string>('');
+  const [aiAnalysisText, setAiAnalysisText] = useState<string>('');
   const [data, setData] = useState<QuestionnaireData>({
     investigation_complete: false,
     outcome_type: '',
@@ -71,7 +75,7 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [complianceSummary, setComplianceSummary] = useState<any>(null);
   const [activeValidationTab, setActiveValidationTab] = useState('investigation');
 
-  const totalSteps = 3;
+  const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
   // Generate contextually relevant demo replies specific to each demo complaint
@@ -336,6 +340,54 @@ export const ComplaintOutcomeQuestionnaire = ({
     }
   };
 
+  // AI Analysis function
+  const analyzeComplaintOutcome = async () => {
+    setIsAnalyzing(true);
+    setAiSuggestedOutcome('');
+    setAiAnalysisText('');
+
+    try {
+      const { data: analysisData, error } = await supabase.functions.invoke(
+        'analyze-complaint-outcome',
+        {
+          body: { complaintId }
+        }
+      );
+
+      if (error) throw error;
+
+      if (analysisData?.analysis) {
+        setAiAnalysisText(analysisData.analysis);
+        
+        // Extract suggested outcome from analysis
+        const analysisLower = analysisData.analysis.toLowerCase();
+        if (analysisLower.includes('rejected') || analysisLower.includes('not upheld') || analysisLower.includes('not_upheld')) {
+          setAiSuggestedOutcome('not_upheld');
+        } else if (analysisLower.includes('partially upheld') || analysisLower.includes('partially_upheld')) {
+          setAiSuggestedOutcome('partially_upheld');
+        } else if (analysisLower.includes('upheld')) {
+          setAiSuggestedOutcome('upheld');
+        }
+      }
+    } catch (error: any) {
+      console.error('AI analysis error:', error);
+      toast({
+        title: 'AI Analysis Failed',
+        description: 'Could not generate AI analysis. You can still select an outcome manually.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  // Trigger AI analysis when reaching Step 4
+  useEffect(() => {
+    if (step === 4 && open && !aiAnalysisText && !isAnalyzing) {
+      analyzeComplaintOutcome();
+    }
+  }, [step, open]);
+
   const handleNext = () => {
     if (step === 1) {
       // Check required fields but show visual feedback
@@ -346,17 +398,22 @@ export const ComplaintOutcomeQuestionnaire = ({
         }
         return;
       }
-      if (!data.outcome_type) {
-        // Switch to investigation tab to show the missing outcome field
-        if (activeValidationTab === 'compliance') {
-          setActiveValidationTab('investigation');
-        }
-        return;
-      }
     }
 
     if (step === 2) {
       if (!data.key_findings || data.key_findings.length < 20) {
+        return;
+      }
+    }
+
+    if (step === 4) {
+      // Ensure outcome is selected before proceeding
+      if (!data.outcome_type) {
+        toast({
+          title: 'Outcome Required',
+          description: 'Please select an outcome decision before proceeding.',
+          variant: 'destructive',
+        });
         return;
       }
     }
@@ -549,20 +606,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   </div>
                 </div>
 
-                <div>
-                  <Label className="text-sm font-semibold mb-2 block">
-                    Outcome Type *
-                  </Label>
-                  <Select value={data.outcome_type} onValueChange={(value: any) => setData({ ...data, outcome_type: value })}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select outcome..." />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="upheld">Complaint Upheld</SelectItem>
-                      <SelectItem value="partially_upheld">Complaint Partially Upheld</SelectItem>
-                      <SelectItem value="not_upheld">Complaint Not Upheld</SelectItem>
-                    </SelectContent>
-                  </Select>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm">
+                  <p className="text-blue-900">
+                    <strong>Note:</strong> The outcome will be determined at the end after AI analysis of all investigation details.
+                  </p>
                 </div>
               </TabsContent>
 
@@ -837,17 +884,10 @@ export const ComplaintOutcomeQuestionnaire = ({
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex items-center gap-2 mb-3">
                 <CheckCircle2 className="h-5 w-5 text-green-600" />
-                <h3 className="font-semibold text-green-900">Review Your Answers</h3>
+                <h3 className="font-semibold text-green-900">Review Your Investigation Details</h3>
               </div>
               
               <div className="space-y-2 text-sm">
-                <div>
-                  <span className="font-medium">Outcome:</span> {data.outcome_type.replace('_', ' ').toUpperCase()}
-                </div>
-                <div>
-                  <span className="font-medium">Tone:</span> {data.tone.charAt(0).toUpperCase() + data.tone.slice(1)}
-                  {(data.tone === 'strong' || data.tone === 'firm') && ' (Vexatious)'}
-                </div>
                 <div>
                   <span className="font-medium">Investigation:</span> ✓ Complete
                 </div>
@@ -856,6 +896,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                     <span className="font-medium">CQC Compliance:</span> {complianceSummary.compliant_items}/{complianceSummary.total_items} items ({complianceSummary.compliance_percentage}%)
                   </div>
                 )}
+                <div>
+                  <span className="font-medium">Tone:</span> {data.tone.charAt(0).toUpperCase() + data.tone.slice(1)}
+                  {(data.tone === 'strong' || data.tone === 'firm') && ' (Vexatious)'}
+                </div>
                 <div>
                   <span className="font-medium">Key Findings:</span> {data.key_findings}
                 </div>
@@ -909,6 +953,82 @@ export const ComplaintOutcomeQuestionnaire = ({
             </div>
 
             <div className="bg-blue-50 p-3 rounded text-sm text-blue-900">
+              <p className="font-medium mb-1">Next step:</p>
+              <p className="text-xs">AI will analyse all investigation details and suggest an outcome decision</p>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: AI Outcome Analysis */}
+        {step === 4 && (
+          <div className="space-y-6">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+              <div className="flex items-center gap-2 mb-3">
+                <Sparkles className="h-5 w-5 text-blue-600" />
+                <h3 className="font-semibold text-blue-900">AI Outcome Analysis</h3>
+              </div>
+
+              {isAnalyzing ? (
+                <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                  <p className="text-sm text-blue-700">Analysing complaint details, staff responses, and investigation findings...</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {aiSuggestedOutcome && (
+                    <div className="bg-white p-3 rounded border border-blue-200">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Sparkles className="h-4 w-4 text-blue-600" />
+                        <span className="font-medium text-sm">AI-Suggested Outcome</span>
+                      </div>
+                      <Badge 
+                        variant={
+                          aiSuggestedOutcome === 'upheld' ? 'destructive' : 
+                          aiSuggestedOutcome === 'partially_upheld' ? 'default' : 
+                          'secondary'
+                        }
+                        className="text-xs"
+                      >
+                        {aiSuggestedOutcome === 'upheld' ? 'Upheld' : 
+                         aiSuggestedOutcome === 'partially_upheld' ? 'Partially Upheld' : 
+                         'Not Upheld'}
+                      </Badge>
+                    </div>
+                  )}
+
+                  {aiAnalysisText && (
+                    <div className="bg-white p-4 rounded border border-blue-200 max-h-[300px] overflow-y-auto">
+                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{aiAnalysisText}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">
+                Select Outcome Decision *
+              </Label>
+              <p className="text-xs text-slate-600 mb-2">
+                You can accept the AI suggestion or choose a different outcome based on your professional judgement.
+              </p>
+              <Select 
+                value={data.outcome_type} 
+                onValueChange={(value: any) => setData({ ...data, outcome_type: value })}
+                disabled={isAnalyzing}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select outcome..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="upheld">Complaint Upheld</SelectItem>
+                  <SelectItem value="partially_upheld">Complaint Partially Upheld</SelectItem>
+                  <SelectItem value="not_upheld">Complaint Not Upheld</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="bg-blue-50 p-3 rounded text-sm text-blue-900">
               <p className="font-medium mb-1">What happens next:</p>
               <ul className="list-disc list-inside space-y-1 text-xs">
                 <li>Your answers will be saved for audit purposes</li>
@@ -927,11 +1047,11 @@ export const ComplaintOutcomeQuestionnaire = ({
           </Button>
           
           {step < totalSteps ? (
-            <Button onClick={handleNext} disabled={isSubmitting}>
+            <Button onClick={handleNext} disabled={isSubmitting || (step === 4 && isAnalyzing)}>
               Next
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-green-600 hover:bg-green-700">
+            <Button onClick={handleSubmit} disabled={isSubmitting || isAnalyzing || !data.outcome_type} className="bg-green-600 hover:bg-green-700">
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
