@@ -30,9 +30,7 @@ import { Loader2, CheckCircle2 } from "lucide-react";
 const formSchema = z.object({
   practiceId: z.string().min(1, "Please select a practice"),
   practiceName: z.string().optional(),
-  complaintsUse: z.number().min(0).max(2),
   complaintsUsefulness: z.number().min(0).max(5),
-  meetingsUse: z.number().min(0).max(2),
   meetingsUsefulness: z.number().min(0).max(5),
   comments: z.string().max(1000).optional(),
   respondentName: z.string().optional(),
@@ -82,9 +80,7 @@ export default function PracticeManagerFeedback() {
     defaultValues: {
       practiceId: "",
       practiceName: "",
-      complaintsUse: 1,
       complaintsUsefulness: 2,
-      meetingsUse: 1,
       meetingsUsefulness: 2,
       comments: "",
       respondentName: "",
@@ -122,9 +118,9 @@ export default function PracticeManagerFeedback() {
       const feedbackData = {
         practice_id: data.practiceId === "other" ? null : data.practiceId,
         practice_name: data.practiceId === "other" ? data.practiceName : null,
-        would_use_complaints_system: data.complaintsUse,
+        would_use_complaints_system: null,
         complaints_system_usefulness: data.complaintsUsefulness,
-        would_use_meeting_manager: data.meetingsUse,
+        would_use_meeting_manager: null,
         meeting_manager_usefulness: data.meetingsUsefulness,
         comments: data.comments || null,
         respondent_name: data.respondentName || null,
@@ -158,11 +154,9 @@ Practice Information:
 ${practiceCode ? `• Practice Code: ${practiceCode}` : ''}
 
 Complaints Manager Interest:
-• Would use: ${sliderValueToText(data.complaintsUse)}
 • Usefulness rating: ${data.complaintsUsefulness}/5 - ${usefulnessLabel(data.complaintsUsefulness)}
 
 Meeting Notes Interest:
-• Would use: ${sliderValueToText(data.meetingsUse)}
 • Usefulness rating: ${data.meetingsUsefulness}/5 - ${usefulnessLabel(data.meetingsUsefulness)}
 
 Additional Comments:
@@ -293,39 +287,6 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
 
                 <FormField
                   control={form.control}
-                  name="complaintsUse"
-                  render={({ field }) => (
-                    <FormItem className="space-y-4">
-                      <FormLabel>Would you use the complaints management system?</FormLabel>
-                      <FormControl>
-                        <div className="space-y-4">
-                          <Slider
-                            min={0}
-                            max={2}
-                            step={1}
-                            value={[field.value]}
-                            onValueChange={(vals) => field.onChange(vals[0])}
-                            className="my-4"
-                          />
-                          <div className="text-center">
-                            <span className="text-lg font-semibold text-primary">
-                              {sliderValueToText(field.value)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>No</span>
-                            <span>Maybe</span>
-                            <span>Yes</span>
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
                   name="complaintsUsefulness"
                   render={({ field }) => (
                     <FormItem className="space-y-4">
@@ -366,39 +327,6 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
               {/* Meeting Manager */}
               <div className="space-y-6 p-6 bg-secondary/30 rounded-lg">
                 <h2 className="text-xl font-semibold">Meeting Manager System</h2>
-
-                <FormField
-                  control={form.control}
-                  name="meetingsUse"
-                  render={({ field }) => (
-                    <FormItem className="space-y-4">
-                      <FormLabel>Would you use the meeting manager system?</FormLabel>
-                      <FormControl>
-                        <div className="space-y-4">
-                          <Slider
-                            min={0}
-                            max={2}
-                            step={1}
-                            value={[field.value]}
-                            onValueChange={(vals) => field.onChange(vals[0])}
-                            className="my-4"
-                          />
-                          <div className="text-center">
-                            <span className="text-lg font-semibold text-primary">
-                              {sliderValueToText(field.value)}
-                            </span>
-                          </div>
-                          <div className="flex justify-between text-xs text-muted-foreground">
-                            <span>No</span>
-                            <span>Maybe</span>
-                            <span>Yes</span>
-                          </div>
-                        </div>
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
 
                 <FormField
                   control={form.control}
