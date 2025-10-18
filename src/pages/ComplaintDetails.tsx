@@ -45,7 +45,8 @@ import {
   Search,
   RefreshCw,
   ChevronDown,
-  BookOpen
+  BookOpen,
+  Sparkles
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -119,6 +120,7 @@ const ComplaintDetails = () => {
   const [existingOutcome, setExistingOutcome] = useState<any>(null);
   const [outcomeLetter, setOutcomeLetter] = useState("");
   const [showOutcomeLetter, setShowOutcomeLetter] = useState(false);
+  const [showAiAnalysisModal, setShowAiAnalysisModal] = useState(false);
   const [editingOutcome, setEditingOutcome] = useState(false);
   const [acknowledgementLetter, setAcknowledgementLetter] = useState("");
   const [acknowledgementDate, setAcknowledgementDate] = useState<string | null>(null);
@@ -2106,6 +2108,17 @@ I am committed to ensuring that all patients receive the care and service they d
                           )}
                         </div>
                         <div className="space-x-2">
+                          {aiAnalysis && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowAiAnalysisModal(true)}
+                              className="border-purple-500 text-purple-600 hover:bg-purple-50"
+                            >
+                              <Sparkles className="h-4 w-4 mr-1" />
+                              AI Report
+                            </Button>
+                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -3303,6 +3316,26 @@ I am committed to ensuring that all patients receive the care and service they d
           }}
         />
       )}
+
+      {/* AI Analysis Modal */}
+      <Dialog open={showAiAnalysisModal} onOpenChange={setShowAiAnalysisModal}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              AI Analysis Report
+            </DialogTitle>
+            <DialogDescription>
+              AI-generated analysis of complaint outcome
+            </DialogDescription>
+          </DialogHeader>
+          <div className="mt-4 p-4 bg-slate-50 rounded-lg border">
+            <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-sans">
+              {aiAnalysis.replace(/\*\*/g, '').replace(/##/g, '')}
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

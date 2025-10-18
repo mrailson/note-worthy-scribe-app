@@ -1022,7 +1022,9 @@ export const ComplaintOutcomeQuestionnaire = ({
 
                   {aiAnalysisText && (
                     <div className="bg-white p-4 rounded border border-blue-200 max-h-[300px] overflow-y-auto">
-                      <p className="text-sm text-slate-700 whitespace-pre-wrap">{aiAnalysisText}</p>
+                      <div className="text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
+                        {aiAnalysisText.replace(/\*\*/g, '').replace(/##/g, '')}
+                      </div>
                     </div>
                   )}
                 </div>

@@ -73,25 +73,32 @@ serve(async (req) => {
         .order('response_submitted_at', { ascending: true })
     ]);
 
-    const systemPrompt = `You are an expert NHS complaints analyst with deep knowledge of:
-- NHS Constitution standards
-- Parliamentary and Health Service Ombudsman guidelines
-- CQC compliance requirements
-- NHS England complaints procedure
-- Good Medical Practice standards
-- Patient rights and expectations
+    const systemPrompt = `You are an expert NHS complaints analyst. Provide a CONCISE analysis in plain text format (NO markdown, NO asterisks, NO special formatting).
 
-Analyze the complaint and provide:
-1. RECOMMENDED OUTCOME: rejected, upheld, or partially_upheld
-2. DETAILED REASONING: Clear, evidence-based justification
-3. KEY FACTORS: List specific elements that influenced the decision
-4. REGULATORY COMPLIANCE: How this aligns with NHS/CQC standards
-5. LEARNING OPPORTUNITIES: Suggestions for service improvement
-6. RISK ASSESSMENT: Potential clinical or reputational risks
+Your response must be under 400 words and structured exactly as:
 
-⚠️ CRITICAL: Base your analysis ONLY on the information provided. DO NOT invent or assume medical conditions, emergencies, clinical details, or events not explicitly mentioned in the complaint details, staff responses, or investigation notes.
+RECOMMENDED OUTCOME: [upheld/partially_upheld/not_upheld]
 
-Be objective, thorough, and focus on patient safety and quality of care.`;
+KEY FINDINGS (2-3 bullet points maximum):
+• [Finding 1]
+• [Finding 2]
+
+REASONING (3-4 sentences):
+[Brief justification based on evidence]
+
+COMPLIANCE CONSIDERATIONS (2 sentences):
+[How this aligns with NHS/CQC standards]
+
+LEARNING POINTS (2 bullet points):
+• [Point 1]
+• [Point 2]
+
+⚠️ CRITICAL RULES:
+- NO markdown formatting (no **, ##, etc.)
+- Use plain bullet points (•) only
+- Keep total response under 400 words
+- Base analysis ONLY on provided information
+- Be direct and professional`;
 
     const staffResponses = (parties || [])
       .filter(p => p.response_text)
