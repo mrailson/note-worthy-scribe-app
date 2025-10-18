@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,6 +41,16 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [processing, setProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState<ComplaintData | null>(null);
+  const previewRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to preview when data is extracted
+  useEffect(() => {
+    if (extractedData && previewRef.current) {
+      setTimeout(() => {
+        previewRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 100);
+    }
+  }, [extractedData]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -429,7 +439,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
           </Tabs>
 
           {extractedData && (
-            <Card className="mt-6">
+            <Card className="mt-6" ref={previewRef}>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500" />
