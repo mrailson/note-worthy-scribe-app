@@ -587,6 +587,22 @@ const ComplaintsSystem = () => {
       // Initialize compliance checklist for new complaint
       if (data?.id) {
         await initializeComplianceChecklist(data.id);
+        
+        // Auto-generate acknowledgement letter in the background
+        // This runs asynchronously without blocking the user experience
+        supabase.functions.invoke('generate-complaint-acknowledgement', {
+          body: { complaintId: data.id }
+        }).then(({ data: ackData, error: ackError }) => {
+          if (ackError) {
+            console.error('Background acknowledgement generation error:', ackError);
+          } else {
+            console.log('Acknowledgement letter generated automatically');
+            // Silently refresh the complaints list to show the acknowledgement status
+            fetchComplaints();
+          }
+        }).catch(err => {
+          console.error('Failed to generate acknowledgement in background:', err);
+        });
       }
     } catch (error) {
       console.error('Error submitting complaint:', error);
