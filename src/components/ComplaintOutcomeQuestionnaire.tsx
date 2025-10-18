@@ -188,6 +188,38 @@ export const ComplaintOutcomeQuestionnaire = ({
         improvements_made: "Enhanced safeguarding protocols implemented. All unexplained injuries flagged automatically. Monthly safeguarding audits. Direct safeguarding hotline for staff.",
         additional_context: "Practice safeguarding lead now reviews all concerning presentations. Staff training delivered to all clinicians. Patient now has named safeguarding contact."
       };
+    } else if (refNumber === 'COMP250017') {
+      // Aggressive Staff Behaviour - Linda Foster
+      return {
+        key_findings: "Practice Manager behaviour fell significantly below expected standards. Multiple witnesses confirmed aggressive tone and intimidating manner. Patient left in distress.",
+        actions_taken: "Formal written apology issued. Practice Manager received disciplinary action and mandatory communication skills training. Supervised for 3 months.",
+        improvements_made: "All staff retrained in professional conduct and patient dignity. New complaints handling protocol. Independent advocate now available for difficult conversations.",
+        additional_context: "Patient offered alternative contact person for future concerns. Practice committed to cultural change in patient interactions."
+      };
+    } else if (refNumber === 'COMP250018') {
+      // Telephone System Issues - William Cooper
+      return {
+        key_findings: "Telephone system capacity insufficient for patient demand. Peak time call abandonment rate 47%. System technical faults causing disconnections.",
+        actions_taken: "New telephone system with increased line capacity installed. Extended opening hours for telephone access. Online consultation option introduced.",
+        improvements_made: "Callback system for patients who cannot get through. Real-time queue monitoring. Additional reception staff during peak hours.",
+        additional_context: "Patient can book appointments online or use callback service. System capacity increased by 60%."
+      };
+    } else if (refNumber === 'COMP250019') {
+      // Prescription Safety - Olivia Matthews
+      return {
+        key_findings: "Serious drug interaction not identified. Prescribing system alert was overridden without documented reason. GP acknowledged error.",
+        actions_taken: "Full apology given. GP completed medication safety training. System now prevents override of critical interaction warnings without senior approval.",
+        improvements_made: "Enhanced prescribing system with mandatory interaction checks. Pharmacist reviews all new prescriptions. Quarterly medication safety audits.",
+        additional_context: "Near-miss incident reported to NHS patient safety system. Learning shared across practice network."
+      };
+    } else if (refNumber === 'COMP250020') {
+      // Delayed Cancer Diagnosis - Daniel Hughes
+      return {
+        key_findings: "Multiple missed opportunities to investigate red flag cancer symptoms. Three GPs failed to follow NICE guidance. Significant harm caused by diagnostic delay.",
+        actions_taken: "Sincere apology and acknowledgement of failures. All GPs completed cancer recognition training. Case reviewed by CCG. Referred to professional bodies.",
+        improvements_made: "Electronic red flag symptom checker on all consultations. Mandatory safety netting for cancer symptoms. Weekly cancer symptom reviews by senior GP.",
+        additional_context: "Practice working with oncology team on patient's care. Significant event analysis shared NHS-wide. Patient offered support with legal claim process."
+      };
     }
     
     // No demo response available - return empty strings for non-demo complaints

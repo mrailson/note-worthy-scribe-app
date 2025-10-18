@@ -682,8 +682,249 @@ COMPLAINT ON BEHALF: No
 
 I am also considering legal action for clinical negligence and have documented all interactions with the practice.
 
-Yours sincerely,
+    Yours sincerely,
 Priya Sharma`
+  },
+  16: {
+    name: "Medium Priority - Communication Breakdown",
+    content: `NHS FORMAL COMPLAINT LETTER
+
+Date: 13th October 2025
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Mr. Anthony Paul Richards
+Date of Birth: 28th August 1967
+Address: 112 Kettering Road, Northampton, NN14 7PL
+Phone: 01604 789 0123
+Email: anthony.richards@email.com
+
+COMPLAINT REFERENCE: Poor Communication Leading to Delayed Treatment
+
+I am writing to formally complain about serious communication failures at Oak Lane Practice that have significantly impacted my cancer treatment pathway.
+
+INCIDENT DETAILS:
+In July 2025, I was diagnosed with prostate cancer following a PSA test and biopsy. My urologist wrote to the practice requesting urgent blood tests and a medication review before starting hormone therapy.
+
+COMMUNICATION FAILURES:
+1. The hospital letter was received by the practice on 15th July but not actioned until I chased it up on 5th August (21 days later)
+2. When I called to book blood tests, reception staff had no record of the hospital letter
+3. The practice blamed the hospital for "not sending it properly"
+4. My GP had not read the letter despite it being marked "URGENT - CANCER PATHWAY"
+
+IMPACT ON TREATMENT:
+My hormone therapy was delayed by 4 weeks because the required blood tests weren't done. The oncologist explained this delay may affect treatment effectiveness and outcomes.
+
+STAFF INVOLVED:
+- Reception staff (failed to action hospital correspondence)
+- Dr. Peter Collins (my registered GP - failed to review urgent correspondence)
+- Practice Manager (defensive response when I complained)
+
+CATEGORY: Communication and Care Coordination
+PRIORITY: Medium
+
+CONSENT: Yes, I consent to full investigation.
+COMPLAINT ON BEHALF: No
+
+Yours sincerely,
+Anthony Richards`
+  },
+  17: {
+    name: "High Priority - Aggressive Staff Behaviour",
+    content: `NHS FORMAL COMPLAINT LETTER
+
+Date: 12th October 2025
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Mrs. Linda Marie Foster
+Date of Birth: 5th April 1982
+Address: 67 Weston Favell Centre, Northampton, NN15 4MN
+Phone: 01604 890 1234
+Email: linda.foster@email.com
+
+COMPLAINT REFERENCE: Aggressive and Intimidating Behaviour by Practice Manager
+
+I am writing to formally complain about extremely concerning behaviour by your Practice Manager, Mr. Steven Walsh, during my visit on 8th October 2025.
+
+INCIDENT DETAILS:
+I attended the practice to discuss concerns about my son's care. When I explained I was unhappy with the way his ADHD symptoms had been dismissed, Mr. Walsh became increasingly aggressive and confrontational.
+
+UNACCEPTABLE BEHAVIOUR:
+- He raised his voice and spoke over me repeatedly
+- He told me I was "being difficult and wasting everyone's time"
+- He stood very close to me in an intimidating manner
+- When I said I felt intimidated, he laughed dismissively
+- He said "if you don't like it here, you can find another practice"
+- Other patients in reception witnessed this behaviour and looked shocked
+
+IMPACT:
+I left the practice in tears, feeling humiliated and upset. I have since experienced anxiety about attending appointments. This behaviour is completely unacceptable from any healthcare professional, especially someone in a senior management position.
+
+WITNESSES:
+Multiple patients and staff members were present in reception during this incident at approximately 2:30 PM.
+
+STAFF INVOLVED:
+- Mr. Steven Walsh (Practice Manager)
+
+CATEGORY: Staff Attitude and Behaviour
+PRIORITY: High - Patient Safety and Dignity
+
+CONSENT: Yes
+COMPLAINT ON BEHALF: No
+
+Yours sincerely,
+Linda Foster`
+  },
+  18: {
+    name: "Low Priority - Telephone System Issues",
+    content: `NHS FORMAL COMPLAINT LETTER
+
+Date: 11th October 2025
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Mr. William James Cooper
+Date of Birth: 14th June 1991
+Address: 23 Riverside Way, Northampton, NN16 8QP
+Phone: 01604 901 2345
+Email: william.cooper@email.com
+
+COMPLAINT REFERENCE: Persistent Problems with Telephone Access System
+
+I am writing to complain about ongoing difficulties accessing the practice by telephone, which has become increasingly frustrating over recent months.
+
+TELEPHONE SYSTEM PROBLEMS:
+- The phone system opens at 8:00 AM but consistently shows "all lines busy" 
+- I have tried calling at exactly 8:00 AM on multiple occasions and still cannot get through
+- When I do eventually get through (usually after 30+ attempts), I'm often cut off
+- The automated system is confusing and doesn't allow me to speak to anyone directly
+- I've been disconnected multiple times while waiting in the queue
+
+SPECIFIC INCIDENTS:
+- 25th September: Made 47 call attempts before getting through at 9:15 AM
+- 2nd October: Cut off three times while in queue position 12
+- 9th October: Automated system disconnected me after 18 minutes on hold
+
+IMPACT:
+I have had to take time off work to keep trying to reach the practice. This system makes it virtually impossible to access timely medical advice, particularly for urgent concerns.
+
+CATEGORY: Access and Appointment System
+PRIORITY: Low
+
+CONSENT: Yes
+COMPLAINT ON BEHALF: No
+
+Yours sincerely,
+William Cooper`
+  },
+  19: {
+    name: "Medium Priority - Prescription Safety Concern",
+    content: `NHS FORMAL COMPLAINT LETTER
+
+Date: 10th October 2025
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Miss Olivia Grace Matthews
+Date of Birth: 16th September 1998
+Address: 41 Derngate, Northampton, NN17 2LJ
+Phone: 01604 012 3456
+Email: olivia.matthews@email.com
+
+COMPLAINT REFERENCE: Dangerous Drug Interaction Not Identified
+
+I am writing to formally complain about a serious medication safety issue at Oak Lane Practice that could have caused me significant harm.
+
+INCIDENT DETAILS:
+On 20th September 2025, I saw Dr. Laura Bennett for a chest infection. She prescribed Clarithromycin (an antibiotic). However, I am already taking Simvastatin for high cholesterol, which is clearly documented in my medical records.
+
+MEDICATION SAFETY FAILURE:
+Clarithromycin and Simvastatin have a dangerous interaction that can cause severe muscle damage (rhabdomyolysis). This is a well-known interaction that should have been flagged by:
+1. The GP prescribing system
+2. The GP's clinical knowledge
+3. The pharmacy dispensing the medication
+
+DISCOVERY OF ERROR:
+Fortunately, my mother (who is a retired nurse) noticed the interaction and advised me not to take the antibiotic. I contacted the practice immediately. The GP admitted she "hadn't checked for interactions" and prescribed an alternative antibiotic.
+
+IMPACT:
+This error could have caused me serious harm requiring hospitalization. I am deeply concerned about the practice's medication safety protocols and whether other patients may be at risk.
+
+STAFF INVOLVED:
+- Dr. Laura Bennett (prescribing GP)
+
+CATEGORY: Medication Safety
+PRIORITY: Medium - Patient Safety Issue
+
+CONSENT: Yes, I consent to thorough investigation of medication safety systems.
+COMPLAINT ON BEHALF: No
+
+Yours sincerely,
+Olivia Matthews`
+  },
+  20: {
+    name: "High Priority - Delayed Cancer Diagnosis",
+    content: `NHS FORMAL COMPLAINT LETTER
+
+Date: 9th October 2025
+
+Dear Complaints Manager,
+
+PATIENT DETAILS:
+Name: Mr. Daniel Robert Hughes
+Date of Birth: 7th January 1964
+Address: 78 Spencer Parade, Northampton, NN18 3HK
+Phone: 01604 123 4567
+Email: daniel.hughes@email.com
+
+COMPLAINT REFERENCE: Multiple Missed Opportunities for Early Cancer Diagnosis
+
+I am writing to formally complain about repeated failures to investigate my symptoms, resulting in a delayed diagnosis of bowel cancer.
+
+TIMELINE OF MISSED OPPORTUNITIES:
+
+MARCH 2025:
+Visited Dr. Sarah Mitchell reporting blood in stool, change in bowel habits, and unexplained weight loss. She diagnosed "haemorrhoids" without examination and prescribed cream.
+
+MAY 2025:
+Returned with worsening symptoms. Different GP (Dr. James Wilson) prescribed laxatives for "constipation" without reviewing my previous consultation or conducting any tests.
+
+JULY 2025:
+Third visit with severe abdominal pain and significant weight loss (2 stone in 4 months). Dr. Mitchell again dismissed concerns, suggesting "IBS and stress." No blood tests or referral offered despite my repeated requests.
+
+SEPTEMBER 2025:
+Attended A&E with severe pain. Emergency CT scan revealed large bowel tumour with liver metastases. Now diagnosed with Stage 4 colorectal cancer.
+
+CLINICAL FAILURES:
+All three presentations had clear red flag symptoms for cancer:
+- Rectal bleeding
+- Change in bowel habits
+- Unexplained weight loss
+- Persistent symptoms despite treatment
+- Age over 60
+
+NHS guidance requires urgent 2-week cancer referral for these symptoms, yet this was never offered.
+
+STAFF INVOLVED:
+- Dr. Sarah Mitchell
+- Dr. James Wilson
+
+IMPACT:
+The 6-month delay in diagnosis has allowed my cancer to progress from potentially curable to advanced stage. My prognosis has been significantly worsened. I am now facing palliative chemotherapy rather than curative treatment.
+
+CATEGORY: Clinical Care - Delayed Diagnosis
+PRIORITY: High - Patient Safety and Potential Clinical Negligence
+
+CONSENT: Yes. I am also seeking legal advice regarding clinical negligence.
+COMPLAINT ON BEHALF: No
+
+Yours sincerely,
+Daniel Hughes`
   }
 };
 

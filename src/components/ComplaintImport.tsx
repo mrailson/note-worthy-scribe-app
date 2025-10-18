@@ -234,6 +234,21 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                   <DropdownMenuItem onClick={() => downloadExample(15, "High Priority - Multiple Systems Failures")}>
                     Example 15: High Priority - Multiple Systems Failures
                   </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(16, "Medium Priority - Communication Breakdown")}>
+                    Example 16: Medium Priority - Communication Breakdown
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(17, "High Priority - Aggressive Staff Behaviour")}>
+                    Example 17: High Priority - Aggressive Staff Behaviour
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(18, "Low Priority - Telephone System Issues")}>
+                    Example 18: Low Priority - Telephone System Issues
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(19, "Medium Priority - Prescription Safety Concern")}>
+                    Example 19: Medium Priority - Prescription Safety
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => downloadExample(20, "High Priority - Delayed Cancer Diagnosis")}>
+                    Example 20: High Priority - Delayed Cancer Diagnosis
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
                 </DropdownMenu>
               )}
