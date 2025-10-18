@@ -136,54 +136,81 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     
     setIsLoadingTranscript(true);
     try {
-      // Fetch chunks directly and apply mergeLive for deduplication
-      const { data: chunks, error } = await supabase
-        .from('meeting_transcription_chunks')
-        .select('transcription_text, chunk_number')
-        .eq('meeting_id', meeting.id)
-        .order('chunk_number', { ascending: true });
+      let finalTranscript = '';
 
-      if (error) {
-        console.error('Error fetching transcript chunks:', error);
-      } else if (chunks && chunks.length > 0) {
-        // Parse segments from each chunk and use timestamp-based deduplication
-        const allSegments = chunks.flatMap(chunk => {
-          try {
-            // Try to parse as segments JSON
-            const parsed = JSON.parse(chunk.transcription_text || '[]');
-            if (Array.isArray(parsed) && parsed.length > 0) {
-              return parsed;
+      // 1) Try chunks first (if present, best fidelity with timestamps)
+      try {
+        const { data: chunks, error } = await supabase
+          .from('meeting_transcription_chunks')
+          .select('transcription_text, chunk_number')
+          .eq('meeting_id', meeting.id)
+          .order('chunk_number', { ascending: true });
+
+        if (!error && chunks && chunks.length > 0) {
+          const allSegments = chunks.flatMap(chunk => {
+            try {
+              const parsed = JSON.parse(chunk.transcription_text || '[]');
+              if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+              return chunk.transcription_text ? [{ start: 0, end: 1, text: chunk.transcription_text }] : [];
+            } catch {
+              return chunk.transcription_text ? [{ start: 0, end: 1, text: chunk.transcription_text }] : [];
             }
-            // DIAGNOSTIC: Empty array or not an array, fallback to text
-            console.log('⚠️ Chunk has no segments, using text fallback');
-            return chunk.transcription_text ? [{
-              start: 0,
-              end: 1,
-              text: chunk.transcription_text
-            }] : [];
-          } catch (e) {
-            // DIAGNOSTIC: Parse error, fallback to plain text
-            console.warn('⚠️ Failed to parse chunk segments:', e);
-            return chunk.transcription_text ? [{
-              start: 0,
-              end: 1,
-              text: chunk.transcription_text
-            }] : [];
-          }
-        });
-        
-        // Use timestamp-based merging from segmentMerge.ts
-        const { mergeByTimestamps, segmentsToPlainText } = await import('@/lib/segmentMerge');
-        const mergedSegments = mergeByTimestamps([], allSegments);
-        const finalTranscript = segmentsToPlainText(mergedSegments);
-        
-        console.log(`📊 Transcript reconstruction: ${chunks.length} chunks → ${allSegments.length} raw segments → ${mergedSegments.length} deduplicated segments`);
-        setTranscript(finalTranscript || '');
-      } else {
-        setTranscript('');
+          });
+
+          const { mergeByTimestamps, segmentsToPlainText } = await import('@/lib/segmentMerge');
+          const mergedSegments = mergeByTimestamps([], allSegments);
+          finalTranscript = segmentsToPlainText(mergedSegments) || '';
+        }
+      } catch (e) {
+        console.warn('Chunk fetch failed, will try RPC fallback');
       }
+
+      // 2) Comprehensive RPC fallback (handles meeting_transcripts and legacy chunks)
+      if (!finalTranscript) {
+        try {
+          const { data: rpcRows, error: rpcError } = await supabase.rpc('get_meeting_full_transcript', { p_meeting_id: meeting.id });
+          if (!rpcError && Array.isArray(rpcRows) && rpcRows.length > 0) {
+            finalTranscript = (rpcRows[0]?.transcript as string) || '';
+          }
+        } catch (e) {
+          console.warn('RPC get_meeting_full_transcript failed, will try direct table fallbacks');
+        }
+      }
+
+      // 3) Direct meeting_transcripts table
+      if (!finalTranscript) {
+        try {
+          const { data: rows, error } = await supabase
+            .from('meeting_transcripts')
+            .select('content')
+            .eq('meeting_id', meeting.id)
+            .order('created_at', { ascending: true });
+          if (!error && rows && rows.length > 0) {
+            finalTranscript = rows.map(r => r.content).join('\n\n');
+          }
+        } catch (e) {
+          console.warn('Fallback meeting_transcripts failed');
+        }
+      }
+
+      // 4) meetings.live_transcript_text immediate display field
+      if (!finalTranscript) {
+        try {
+          const { data: meet } = await supabase
+            .from('meetings')
+            .select('live_transcript_text')
+            .eq('id', meeting.id)
+            .single();
+          finalTranscript = meet?.live_transcript_text || '';
+        } catch (e) {
+          // ignore
+        }
+      }
+
+      setTranscript(finalTranscript);
     } catch (error) {
       console.error('Error fetching transcript:', error);
+      setTranscript('');
     } finally {
       setIsLoadingTranscript(false);
     }
