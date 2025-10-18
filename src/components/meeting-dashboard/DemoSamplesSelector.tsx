@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { FileText, Users, FileText as FileTextIcon, Play, Sparkles, ChevronLeft, ChevronRight, Stethoscope } from 'lucide-react';
 import { demoMeetings, DemoMeeting } from '@/data/demoMeetings';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface DemoSamplesSelectorProps {
   onSelectDemo: (demo: DemoMeeting) => void;
@@ -15,14 +16,23 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
   onSelectDemo,
   disabled = false
 }) => {
+  const { canViewConsultationExamples } = useAuth();
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'Meeting' | 'Consultation'>('All');
   const itemsPerPage = 4;
   
-  // Filter demos based on selected category
+  // Filter demos based on visibility settings and selected category
+  let availableDemos = demoMeetings;
+  
+  // Remove consultation demos if user doesn't have access
+  if (!canViewConsultationExamples) {
+    availableDemos = demoMeetings.filter(meeting => meeting.category !== 'Consultation');
+  }
+  
+  // Then filter by selected category
   const filteredDemos = selectedCategory === 'All' 
-    ? demoMeetings 
-    : demoMeetings.filter(meeting => meeting.category === selectedCategory);
+    ? availableDemos 
+    : availableDemos.filter(meeting => meeting.category === selectedCategory);
   
   const totalPages = Math.ceil(filteredDemos.length / itemsPerPage);
   
@@ -93,10 +103,12 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
               <Users className="h-4 w-4" />
               Meetings
             </ToggleGroupItem>
-            <ToggleGroupItem value="Consultation" aria-label="Show consultations only" className="gap-2">
-              <Stethoscope className="h-4 w-4" />
-              Consultations
-            </ToggleGroupItem>
+            {canViewConsultationExamples && (
+              <ToggleGroupItem value="Consultation" aria-label="Show consultations only" className="gap-2">
+                <Stethoscope className="h-4 w-4" />
+                Consultations
+              </ToggleGroupItem>
+            )}
           </ToggleGroup>
         </div>
         <Badge variant="secondary" className="text-xs">
