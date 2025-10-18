@@ -1108,6 +1108,364 @@ Dr Priya Sharma: Perfect. If you do develop that persistent cough, or if you fee
 Mr Robert Harrison: I will. Thank you, Doctor.
 
 Dr Priya Sharma: You're welcome. Keep up the good work with the monitoring and lifestyle changes. I'll see you in six weeks.`
+  },
+  {
+    id: 'gp-practice-hr-meeting',
+    type: 'Partnership',
+    category: 'Meeting',
+    title: 'GP Practice Manager HR Meeting',
+    description: 'Staff recruitment, performance management, and workforce planning',
+    duration: '09:00',
+    wordCount: 1420,
+    icon: '👥',
+    format: 'face-to-face',
+    attendees: [
+      { name: 'Rachel Green', title: 'Practice Manager', organization: 'Riverside Medical Centre' },
+      { name: 'Dr Helen Carter', title: 'Senior Partner', organization: 'Riverside Medical Centre' },
+      { name: 'Susan Blake', title: 'HR Advisor', organization: 'Primary Care HR Services' },
+      { name: 'Jennifer Mills', title: 'Lead Receptionist', organization: 'Riverside Medical Centre' }
+    ],
+    agenda: 'Receptionist recruitment, staff performance review process, annual leave policy update, training needs assessment',
+    transcript: `Rachel Green: Good morning, everyone. Thank you for joining today's HR meeting. We have several important items to discuss, particularly around recruitment and the upcoming appraisal season. Susan, thank you for coming along to help us with some of the HR policy questions.
+
+Susan Blake: Happy to help, Rachel. I've reviewed the agenda and brought some updated policy templates that might be useful.
+
+Dr Helen Carter: Let's start with the recruitment situation. We've been short-staffed on reception for nearly two months now, and it's putting real pressure on the team.
+
+Rachel Green: Yes, that's our priority. We advertised the two receptionist positions three weeks ago. We've had twelve applications, and I've shortlisted five candidates for interview. Jennifer, I wanted to involve you in the interview process since you'll be working closely with whoever we appoint.
+
+Jennifer Mills: I'd really appreciate that. It's important the new people fit well with the team. What sort of experience are the candidates bringing?
+
+Rachel Green: It's a mixed bag. Two have previous GP practice experience, one comes from a hospital outpatients department, and two are career changers with customer service backgrounds but no NHS experience.
+
+Dr Helen Carter: What's your view on the NHS experience requirement? Are we being too rigid there?
+
+Susan Blake: From an HR perspective, I'd say keep an open mind. Some of the best practice staff I've seen came from other sectors. They bring fresh perspectives and often have excellent customer service skills. The NHS-specific knowledge can be taught.
+
+Jennifer Mills: That's true. Our best receptionist actually came from retail management. She had brilliant people skills and picked up the clinical systems really quickly.
+
+Rachel Green: Good point. I'll make sure we're assessing the right competencies in the interview. We need people who can stay calm under pressure, handle difficult situations, and work as part of a team.
+
+Dr Helen Carter: When are you planning to interview?
+
+Rachel Green: Next week, if that works for everyone. I'm proposing Tuesday and Wednesday afternoons. Susan, would you be able to join us for at least some of the interviews?
+
+Susan Blake: I can do Tuesday afternoon. That would give you a good start, and you could continue Wednesday using the same framework.
+
+Rachel Green: Perfect. I'll send out the interview schedule and questions by Friday. Now, the second item is the performance review process. We're due to start annual appraisals next month, and I want to make sure we're doing them properly.
+
+Dr Helen Carter: I'll be honest, we've been quite inconsistent with appraisals in the past. Some staff get thorough reviews, others just get a quick chat. We need to do better.
+
+Susan Blake: That's a common issue in primary care. I'd recommend implementing a structured appraisal system. I've brought templates that include objective setting, competency assessment, and development planning.
+
+Rachel Green: That would be really helpful. How much time should we allocate for each appraisal?
+
+Susan Blake: I'd recommend at least an hour for each member of staff. It needs to be a proper conversation, not just a form-filling exercise. Staff should have time to prepare and reflect on their performance.
+
+Jennifer Mills: Can I ask who would conduct the appraisals? Would it be you, Rachel, or the partners?
+
+Rachel Green: That's a good question. I think it depends on the role. I'll appraise the administrative and reception staff. Dr Carter, I'd like you or one of the other partners to appraise the nursing team, given the clinical aspect of their work.
+
+Dr Helen Carter: Yes, that makes sense. What about the practice manager appraisal? Who should conduct yours?
+
+Rachel Green: Typically, the senior partner would appraise the practice manager. Would you be comfortable with that?
+
+Dr Helen Carter: Absolutely. Let's schedule that first, actually, so we can lead by example. When were you thinking of starting the process?
+
+Rachel Green: If we start the first week of next month, we could complete everyone's appraisal within six weeks. That means scheduling about three per week.
+
+Susan Blake: That's a realistic timeline. Just make sure you allow time between appraisals to write up notes and follow up on any actions. Don't try to do them all back-to-back.
+
+Rachel Green: Good advice. Now, the third item is the annual leave policy. We've had some issues with staff requesting leave at peak times, and it's causing coverage problems.
+
+Jennifer Mills: Yes, the summer holiday period was particularly difficult. We had three receptionists wanting time off in the same two-week period.
+
+Dr Helen Carter: We need a fair system, but we also need to ensure adequate staffing. What do other practices do?
+
+Susan Blake: Most practices operate a first-come-first-served system with some restrictions. For example, you might limit the number of staff from each team who can be off at the same time. You could also designate certain periods as high-demand times where leave is restricted.
+
+Rachel Green: That makes sense. We could say that only one receptionist can be on leave at a time during school holidays and only two during other periods.
+
+Jennifer Mills: What about carry-over leave from this year? Some staff still have several days they need to take before the end of March.
+
+Rachel Green: That's a good point. We need to encourage people to book their remaining leave soon. I'll send out a reminder email this week with a deadline for booking any outstanding holiday.
+
+Dr Helen Carter: Make sure the policy is clear and communicated well. We don't want staff to feel we're being unreasonable, but we do need to ensure the practice runs smoothly.
+
+Susan Blake: I'd recommend putting the updated policy in writing and asking all staff to acknowledge they've read and understood it. That avoids any confusion later.
+
+Rachel Green: I'll draft the updated policy and circulate it for approval before sharing it with the team. The final item is training needs. We need to identify what training our staff need over the next year.
+
+Jennifer Mills: The reception team could definitely benefit from some conflict resolution training. We're dealing with more challenging situations, and not everyone feels confident handling them.
+
+Rachel Green: That's on my list too. What about clinical systems training? We're due to upgrade our IT system next year.
+
+Dr Helen Carter: That will be essential. We need to ensure all staff are properly trained before the system goes live. Is there a cost implication?
+
+Rachel Green: The IT supplier includes some training in the contract, but we might need additional sessions. I'm getting quotes for extra training days.
+
+Susan Blake: Don't forget mandatory training like safeguarding, information governance, and fire safety. Those need to be kept up to date.
+
+Rachel Green: Good reminder. I'll audit everyone's training records and create a schedule for the mandatory updates. Is there anything else we need to cover today?
+
+Dr Helen Carter: I think we've covered the main points. Let's make sure we follow through on the actions. Rachel, can you send round a summary of what we've agreed?
+
+Rachel Green: Absolutely. I'll circulate the minutes by the end of the week with clear action points and deadlines. Thank you, everyone, for your time and input today.`
+  },
+  {
+    id: 'gp-practice-accounts-meeting',
+    type: 'Partnership',
+    category: 'Meeting',
+    title: 'GP Practice Accounts Meeting',
+    description: 'Financial review with accountant, tax planning, and partnership profit distribution',
+    duration: '11:00',
+    wordCount: 1680,
+    icon: '💼',
+    format: 'face-to-face',
+    attendees: [
+      { name: 'Dr Helen Carter', title: 'Senior Partner', organization: 'Riverside Medical Centre' },
+      { name: 'Dr Thomas Wright', title: 'Partner', organization: 'Riverside Medical Centre' },
+      { name: 'Dr Sophie Anderson', title: 'Partner', organization: 'Riverside Medical Centre' },
+      { name: 'Rachel Green', title: 'Practice Manager', organization: 'Riverside Medical Centre' },
+      { name: 'Michael Foster', title: 'Accountant', organization: 'Primary Care Accounting Ltd' }
+    ],
+    agenda: 'Year-end accounts review, profit distribution, tax planning, capital expenditure proposals, pension contributions',
+    transcript: `Dr Helen Carter: Good afternoon, everyone. Thank you, Michael, for preparing the year-end accounts. I know we're all eager to see how the practice performed financially this year.
+
+Michael Foster: Thank you for having me. I've prepared a comprehensive review of your accounts for the year ending 31st March. Overall, the practice is in a solid financial position, though there are some important points to discuss.
+
+Dr Thomas Wright: Let's start with the bottom line. What's the profit figure, and how does it compare to last year?
+
+Michael Foster: Your total practice profit for the year was £842,000, which is down 6% from last year's £896,000. The main factors affecting this were reduced QOF income, increased staffing costs, and higher premises expenses.
+
+Dr Sophie Anderson: That's concerning. A 6% reduction is significant. Can you break down what's driving those increased costs?
+
+Michael Foster: Certainly. Your staff costs increased by £58,000, primarily due to the addition of a nurse practitioner and salary increases in line with the national pay framework. Your premises costs rose by £22,000 due to the rent increase and some necessary maintenance work.
+
+Rachel Green: The maintenance work was essential. We had to replace the heating system and repair the roof. Those weren't optional expenses.
+
+Dr Helen Carter: No, they weren't. What about the income side? You mentioned reduced QOF income.
+
+Michael Foster: Yes, your QOF income was down by approximately £34,000. Your achievement was 94% compared to 98% the previous year. There was also a small reduction in your patient numbers, which affected your global sum.
+
+Dr Thomas Wright: The patient numbers are concerning. Are we losing patients, or is it just natural variation?
+
+Rachel Green: We lost about 120 patients net. Some moved out of the area, and we also had a small number transfer to the new practice that opened on the other side of town. However, we've seen patient numbers stabilise over the past three months.
+
+Dr Sophie Anderson: What does the reduced profit mean for partner drawings? We've been drawing £8,000 per month. Can we maintain that?
+
+Michael Foster: Based on the current figures and allowing for tax provisions and retained profits for working capital, I'd recommend partner drawings of approximately £7,500 per month going forward. That would maintain financial stability while ensuring you have adequate reserves.
+
+Dr Thomas Wright: That's a significant reduction. We need to look at how we can improve the income or reduce costs further.
+
+Dr Helen Carter: Let's discuss that. Michael, what opportunities do you see for improving our financial position?
+
+Michael Foster: Several areas to consider. First, improving your QOF achievement back to 98% could add £30,000 to £35,000 to your income. Second, you could look at whether you're maximising your PCN funding and DES income. Third, consider whether there are any cost efficiencies in how you're running the practice.
+
+Rachel Green: We've already reviewed most of our contracts and renegotiated where possible. The big costs are staff, premises, and clinical supplies, which are all essential.
+
+Dr Sophie Anderson: What about the salaried GP costs? We have two salaried GPs. Is that the most cost-effective model, or should we be looking at other options?
+
+Michael Foster: That's a strategic decision for the partnership. Salaried GPs provide flexibility and reduce partner risk, but they are more expensive than partner profit-share arrangements. However, recruiting partners is increasingly difficult in the current climate.
+
+Dr Helen Carter: True. We've tried to recruit partners, but younger GPs aren't interested in taking on the financial and legal responsibilities. We're stuck with the salaried model for now.
+
+Dr Thomas Wright: Let's talk about tax planning. What should we be doing to minimise our tax liability?
+
+Michael Foster: Your personal tax positions will vary depending on your other income, but there are several strategies to consider. First, make sure you're maximising your pension contributions. The annual allowance is £60,000, and pension contributions are tax-deductible.
+
+Dr Sophie Anderson: I'm only contributing £15,000 currently. Should I increase that?
+
+Michael Foster: If you can afford to, yes. Every £1,000 you contribute to your pension saves you approximately £450 in income tax and National Insurance, assuming you're a higher-rate taxpayer. It's one of the most tax-efficient things you can do.
+
+Dr Helen Carter: What about the practice pension contributions? Are we making the most of those?
+
+Michael Foster: You're currently contributing 5% employer contributions for eligible staff, which is the minimum. Some practices contribute more as part of their staff retention strategy, but it's a balance between being competitive and managing costs.
+
+Rachel Green: Staff have been asking about the pension contributions, especially with the cost-of-living increases. Other local practices are offering higher employer contributions.
+
+Dr Thomas Wright: How much would it cost to increase to 7%?
+
+Rachel Green: Based on our current eligible staff, it would be approximately £14,000 per year.
+
+Dr Sophie Anderson: That's a significant cost, but if it helps with retention, it might be worth it. Staff turnover is expensive.
+
+Dr Helen Carter: Let's put that on hold for now and revisit it in six months once we've seen whether we can improve our financial position.
+
+Michael Foster: Sensible approach. Now, I need to discuss capital expenditure. You have some equipment that's fully depreciated and may need replacing soon.
+
+Rachel Green: Yes, we need to replace two examination couches and some of the clinical equipment. I've got quotes totalling about £8,000.
+
+Dr Thomas Wright: Can we afford that given the profit reduction?
+
+Michael Foster: You have adequate reserves to cover it. Your current account balance is healthy at £67,000, which gives you a good buffer. The equipment expenditure is necessary for delivering clinical services, so I'd recommend proceeding.
+
+Dr Helen Carter: Agreed. Rachel, please go ahead with ordering the essential equipment.
+
+Michael Foster: I also need to mention corporation tax changes. The government has changed the rules around the NHS Pension Scheme employer contributions, which may affect your tax position.
+
+Dr Sophie Anderson: In what way?
+
+Michael Foster: It's technical, but essentially, some of the employer pension contributions you make may now be subject to different tax treatment. I'm still working through the details, but it could impact your personal tax bills slightly.
+
+Dr Thomas Wright: Will that increase or decrease our tax liability?
+
+Michael Foster: It varies by individual circumstances, but for most of you, it will be broadly neutral. I'll provide detailed calculations for each partner with your personal tax returns.
+
+Dr Helen Carter: What about VAT? We're not VAT-registered. Should we be considering it?
+
+Michael Foster: For GP practices, VAT is complex because most of your income is from NHS work, which is exempt from VAT. You can't reclaim VAT on most expenses, so registration wouldn't be beneficial. You'd only consider it if you had significant private income, which you don't.
+
+Rachel Green: We do have some minor income from private medicals and letters. Is that enough to worry about?
+
+Michael Foster: No, your private income is less than £10,000 per year. It's not worth the administrative burden of VAT registration for that amount.
+
+Dr Helen Carter: What about the partnership agreement? Do we need to review that in light of the financial changes?
+
+Michael Foster: It's good practice to review partnership agreements every few years. Yours was last updated four years ago. You might want to consider whether the profit-sharing ratio still reflects each partner's contribution and whether you need to update any clauses about retirement or new partner admission.
+
+Dr Sophie Anderson: I think the profit shares are still fair. We're each working similar clinical sessions and sharing management responsibilities equally.
+
+Dr Thomas Wright: Agreed. Unless anyone has concerns, I'd say leave it as it is for now.
+
+Dr Helen Carter: Fine with me. Michael, what are the key actions coming out of this meeting?
+
+Michael Foster: I'll finalise the accounts and submit them to HMRC by the deadline. I'll prepare individual tax returns for each partner, which I'll send out next month. You should all review your pension contributions and let me know if you want to increase them. Rachel, please provide me with the details of the capital expenditure once the equipment is ordered.
+
+Rachel Green: I'll do that. I'll also work on improving our QOF position to try to recover that lost income.
+
+Dr Helen Carter: Excellent. Thank you, Michael, for your thorough review. We'll reconvene in three months to review progress on the financial improvements.`
+  },
+  {
+    id: 'gp-practice-ppg-meeting',
+    type: 'Partnership',
+    category: 'Meeting',
+    title: 'GP Practice PPG Meeting',
+    description: 'Patient Participation Group meeting discussing service improvements and patient feedback',
+    duration: '10:00',
+    wordCount: 1550,
+    icon: '🤝',
+    format: 'face-to-face',
+    attendees: [
+      { name: 'Rachel Green', title: 'Practice Manager', organization: 'Riverside Medical Centre' },
+      { name: 'Dr Thomas Wright', title: 'Partner', organization: 'Riverside Medical Centre' },
+      { name: 'Margaret Collins', title: 'PPG Chair', organization: 'Riverside PPG' },
+      { name: 'David Thompson', title: 'PPG Member', organization: 'Riverside PPG' },
+      { name: 'Alison Hughes', title: 'PPG Member', organization: 'Riverside PPG' },
+      { name: 'James Patterson', title: 'PPG Member', organization: 'Riverside PPG' }
+    ],
+    agenda: 'Appointment system feedback, communication improvements, patient survey results, health education initiatives',
+    transcript: `Rachel Green: Good evening, everyone, and welcome to this quarter's Patient Participation Group meeting. Thank you all for giving up your time to help us improve our services. Dr Wright is joining us tonight to discuss some of the clinical aspects.
+
+Margaret Collins: Thank you for having us. We've got quite a full agenda tonight. Shall we start with the appointment system? That's been the hot topic in our PPG surveys.
+
+Dr Thomas Wright: Yes, I think that's probably our biggest challenge at the moment. We know patients are frustrated with access, and we're working hard to improve it.
+
+David Thompson: From my perspective, the main issue is getting through on the phone in the morning. I tried for thirty minutes yesterday and couldn't get through. By the time I did, all the appointments were gone.
+
+Rachel Green: I understand that frustration. We've actually been monitoring our phone system, and we're receiving over 250 calls between 8 and 9 am. We only have four phone lines, so it's physically impossible to answer them all immediately.
+
+Alison Hughes: Could you not increase the number of phone lines?
+
+Rachel Green: We're looking into that. The challenge is we'd also need more reception staff to answer those lines, which has cost implications. We're exploring whether we can redirect some routine calls to online services.
+
+Margaret Collins: That brings me to the online booking. Some of our PPG members struggle with the online system. Is there any way to make it more user-friendly?
+
+Dr Thomas Wright: We use the NHS App and our practice website for online booking. The NHS App is actually very straightforward once you're registered. Perhaps we need to provide more support for patients to set it up?
+
+James Patterson: I use the NHS App, and it works well. But I've noticed that only a limited number of appointments are available online. Why is that?
+
+Rachel Green: We currently release about 30% of appointments online. We have to balance online access with the needs of patients who can't use digital services. We're reviewing whether we could increase that to 40%.
+
+David Thompson: What about the on-the-day urgent appointments? They seem to disappear within minutes of the phones opening.
+
+Dr Thomas Wright: That's because we're seeing demand far exceed supply. We have twenty on-the-day appointments available each morning, but we're getting requests for fifty or sixty. It's a capacity issue rather than a booking system issue.
+
+Alison Hughes: Could you employ more GPs?
+
+Rachel Green: We'd love to, but GP recruitment is incredibly difficult nationally. We've advertised for a salaried GP three times this year with no suitable applicants. We're not alone – most practices in the area are struggling.
+
+Margaret Collins: That's concerning. Are there other types of staff who could help with appointments?
+
+Dr Thomas Wright: Yes, actually. We've recently recruited a nurse practitioner who can see patients with minor illnesses. We also have a clinical pharmacist who can help with medication queries. We're trying to work smarter with the staff we have.
+
+James Patterson: I saw the pharmacist last month about my blood pressure medication. It was excellent – she spent twenty-five minutes with me going through everything. Much more thorough than I expected.
+
+Rachel Green: That's great feedback. It's exactly why we employed a pharmacist. We want patients to see the right person for their needs, and sometimes that's not necessarily a GP.
+
+Margaret Collins: Moving on to communication. We had some feedback that patients aren't always aware of the services available. The pharmacist service James mentioned – I didn't know about that until tonight.
+
+Rachel Green: You're absolutely right. We need to improve our communications. We send information in text messages, put posters up in the waiting room, and update our website, but clearly the message isn't getting through to everyone.
+
+Alison Hughes: What about a patient newsletter? Something that comes out every few months with updates about the practice?
+
+Rachel Green: That's an interesting idea. Could the PPG help with that? You'd understand what patients want to know about.
+
+Margaret Collins: We could definitely help. Perhaps we could draft something and you could review it before it goes out?
+
+Dr Thomas Wright: I think that's a great idea. A patient newsletter written by patients for patients would be more engaging than something purely from the practice.
+
+David Thompson: I'd also like to see more information about self-care. There are lots of things people could manage at home with the right advice, which would reduce pressure on appointments.
+
+Dr Thomas Wright: Absolutely. We're trying to signpost patients to pharmacies, NHS 111, and self-care resources more effectively. Perhaps the newsletter could include a section on that?
+
+James Patterson: It could also explain when you really do need to see a GP versus when other services might be more appropriate.
+
+Rachel Green: These are excellent suggestions. Shall we set up a small working group from the PPG to develop the newsletter idea?
+
+Margaret Collins: I'm happy to lead that. Alison and James, would you join me?
+
+Alison Hughes: Yes, I'd be interested.
+
+James Patterson: Count me in.
+
+Rachel Green: Wonderful. I'll provide you with some information about our services and key messages we want to communicate. Now, I wanted to share the results from our recent patient survey. We had 340 responses, which is a good sample.
+
+David Thompson: What were the main findings?
+
+Rachel Green: Overall satisfaction was 78%, which is slightly down from last year's 82%. The main areas of dissatisfaction were appointment availability, as we've discussed, and phone access. However, satisfaction with the quality of care once patients see a clinician was 94%.
+
+Dr Thomas Wright: So people are happy with the care they receive, but frustrated with accessing it. That's not surprising, and it reflects the national picture.
+
+Margaret Collins: What about the areas where you scored well? It's important to recognise those too.
+
+Rachel Green: Good point. We scored particularly well on staff friendliness at 91%, quality of nursing care at 96%, and cleanliness of the premises at 93%. Patients also rated the prescription service highly.
+
+Alison Hughes: Those are good scores. You should publicise those positive results.
+
+Rachel Green: We will. It's important staff know that patients appreciate their efforts, especially when they're working under such pressure.
+
+David Thompson: What about the health education initiatives? That was on the agenda. What are you planning?
+
+Dr Thomas Wright: We're looking at running some patient education sessions on common conditions. We're thinking about diabetes, high blood pressure, and heart health to start with.
+
+Margaret Collins: Would these be at the practice?
+
+Rachel Green: Yes, probably evening sessions so people who work can attend. We could also look at doing some online sessions for people who prefer that.
+
+James Patterson: I think that's a brilliant idea. My wife has diabetes, and she found the information from the nurse very helpful. Having group sessions would allow patients to learn from each other too.
+
+Dr Thomas Wright: Exactly. We find patients often have similar questions, and group education can be more efficient and more beneficial than repeating the same information in individual appointments.
+
+Alison Hughes: Could the PPG help with organising these sessions?
+
+Rachel Green: That would be fantastic. We could definitely use help with promoting them and perhaps helping on the day with refreshments and registration.
+
+Margaret Collins: We'd be happy to do that. Health education is exactly the sort of thing PPGs should support.
+
+Rachel Green: Perfect. I'll work up some proposals for the first few sessions and share them with you. Is there anything else anyone wants to raise tonight?
+
+David Thompson: Just a quick one – the car park. It's getting very congested, especially mid-morning when the nurse clinics are running. Have you considered any solutions?
+
+Rachel Green: We have limited options as we lease the car park, but we're looking at whether we can mark out the spaces more efficiently. We're also encouraging patients who can walk or use public transport to do so.
+
+Margaret Collins: Perhaps that could go in the newsletter – information about public transport links and encouraging sustainable travel?
+
+Rachel Green: Good idea. Right, I think we've covered everything. Thank you all for your input tonight. The feedback and suggestions are really valuable. I'll send out the minutes next week with the action points.
+
+Dr Thomas Wright: Yes, thank you all. It's genuinely helpful to hear directly from patients about what matters to you. We don't always get it right, but we are listening and trying to improve.
+
+Margaret Collins: We know you are. Thank you for your time tonight and for being so open about the challenges you're facing.`
   }
 ];
 
