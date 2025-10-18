@@ -148,22 +148,36 @@ export default function PracticeManagerFeedback() {
         ? ""
         : selectedPractice?.practice_code || "";
 
-      // Send email notification via EmailJS
+      // Send email notification using existing ai_generated_content template
+      const feedbackMessage = `NEW PRACTICE MANAGER FEEDBACK RECEIVED
+
+Practice Information:
+• Practice Name: ${practiceName}
+${practiceCode ? `• Practice Code: ${practiceCode}` : ''}
+
+Complaints Manager Interest:
+• Would use: ${sliderValueToText(data.complaintsUse)}
+• Usefulness rating: ${data.complaintsUsefulness}/5 - ${usefulnessLabel(data.complaintsUsefulness)}
+
+Meeting Notes Interest:
+• Would use: ${sliderValueToText(data.meetingsUse)}
+• Usefulness rating: ${data.meetingsUsefulness}/5 - ${usefulnessLabel(data.meetingsUsefulness)}
+
+Additional Comments:
+${data.comments || "No additional comments provided"}
+
+Respondent Details:
+• Name: ${data.respondentName || "Anonymous"}
+• Email: ${data.respondentEmail || "Not provided"}
+
+Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 'short' })}`;
+
       const { error: emailError } = await supabase.functions.invoke("send-email-via-emailjs", {
         body: {
           to_email: "Malcolm.railson@nhs.net",
           subject: `New Feedback: ${practiceName}`,
-          template_type: "feedback",
-          practice_name: practiceName,
-          practice_code: practiceCode,
-          would_use_complaints: sliderValueToText(data.complaintsUse),
-          complaints_usefulness: `${data.complaintsUsefulness}/5 - ${usefulnessLabel(data.complaintsUsefulness)}`,
-          would_use_meetings: sliderValueToText(data.meetingsUse),
-          meetings_usefulness: `${data.meetingsUsefulness}/5 - ${usefulnessLabel(data.meetingsUsefulness)}`,
-          comments: data.comments || "No comments provided",
-          respondent_name: data.respondentName || "Anonymous",
-          respondent_email: data.respondentEmail || "Not provided",
-          submission_date: new Date().toLocaleString("en-GB"),
+          template_type: "ai_generated_content",
+          message: feedbackMessage
         },
       });
 
