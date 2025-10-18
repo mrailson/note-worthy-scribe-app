@@ -641,13 +641,13 @@ export const ComplaintOutcomeQuestionnaire = ({
                 />
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => loadDemoReply('key_findings')}
-                  className="flex items-center gap-1"
+                  className="h-8 w-8 shrink-0"
+                  title="Load demo reply"
                 >
-                  <Sparkles className="h-3 w-3" />
-                  Load Demo
+                  <Sparkles className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -677,13 +677,13 @@ export const ComplaintOutcomeQuestionnaire = ({
                 />
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => loadDemoReply('actions_taken')}
-                  className="flex items-center gap-1"
+                  className="h-8 w-8 shrink-0"
+                  title="Load demo reply"
                 >
-                  <Sparkles className="h-3 w-3" />
-                  Load Demo
+                  <Sparkles className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -713,13 +713,13 @@ export const ComplaintOutcomeQuestionnaire = ({
                 />
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => loadDemoReply('improvements_made')}
-                  className="flex items-center gap-1"
+                  className="h-8 w-8 shrink-0"
+                  title="Load demo reply"
                 >
-                  <Sparkles className="h-3 w-3" />
-                  Load Demo
+                  <Sparkles className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -792,13 +792,13 @@ export const ComplaintOutcomeQuestionnaire = ({
                 />
                 <Button
                   type="button"
-                  variant="outline"
-                  size="sm"
+                  variant="ghost"
+                  size="icon"
                   onClick={() => loadDemoReply('additional_context')}
-                  className="flex items-center gap-1"
+                  className="h-8 w-8 shrink-0"
+                  title="Load demo reply"
                 >
-                  <Sparkles className="h-3 w-3" />
-                  Load Demo
+                  <Sparkles className="h-4 w-4" />
                 </Button>
               </div>
             </div>
