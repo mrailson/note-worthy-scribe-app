@@ -1,6 +1,7 @@
 export interface DemoMeeting {
   id: string;
   type: 'LMC' | 'PCN' | 'Partnership' | 'ICB' | 'Neighbourhood' | 'Regional' | 'Trust' | 'MDT' | 'Consultation';
+  organizationType: 'GP Practice' | 'LMC' | 'ICB';
   category: 'Meeting' | 'Consultation';
   title: string;
   description: string;
@@ -17,6 +18,7 @@ export const demoMeetings: DemoMeeting[] = [
   {
     id: 'lmc-contract-meeting',
     type: 'LMC',
+    organizationType: 'LMC',
     category: 'Meeting',
     title: 'LMC Contract Negotiation Meeting',
     description: 'GP contract discussions, workload issues, and funding review',
@@ -95,6 +97,7 @@ Dr Sarah Mitchell: Let's add that to our action points. We need to ensure practi
   {
     id: 'pcn-board-meeting',
     type: 'PCN',
+    organizationType: 'GP Practice',
     category: 'Meeting',
     title: 'PCN Board Meeting - Service Review',
     description: 'ARRS roles review, DES performance, and health inequalities initiatives',
@@ -191,6 +194,7 @@ Dr Emma Thompson: Agreed. Thank you, everyone. I think we've covered the main it
   {
     id: 'partnership-meeting',
     type: 'Partnership',
+    organizationType: 'GP Practice',
     category: 'Meeting',
     title: 'GP Practice Partnership Meeting',
     description: 'Financial review, staffing updates, and CQC preparation',
@@ -296,6 +300,7 @@ Dr Helen Carter: Excellent. I think that covers the main items. Let's meet again
   {
     id: 'icb-strategy-meeting',
     type: 'ICB',
+    organizationType: 'ICB',
     category: 'Meeting',
     title: 'ICB Strategic Planning Meeting',
     description: 'System-wide planning, elective recovery, and winter pressures preparation',
@@ -321,6 +326,7 @@ Amanda Richards: Thank you, everyone. I think we've covered the key strategic ar
   {
     id: 'neighbourhood-meeting',
     type: 'Neighbourhood',
+    organizationType: 'GP Practice',
     category: 'Meeting',
     title: 'Neighbourhood Health Team Meeting',
     description: 'Community health integration, social prescribing, and population health review',
@@ -420,6 +426,7 @@ Emma Roberts: I'll arrange that for next month. Thank you, everyone. I think we'
   {
     id: 'regional-leadership',
     type: 'Regional',
+    organizationType: 'ICB',
     category: 'Meeting',
     title: 'NHS Regional Leadership Forum',
     description: 'Regional workforce strategy, capital planning, and system oversight',
@@ -524,6 +531,7 @@ Dame Susan Fletcher: Let's scope out the options. I want proposals for the next 
   {
     id: 'trust-leadership',
     type: 'Trust',
+    organizationType: 'ICB',
     category: 'Meeting',
     title: 'NHFT Board Meeting - Performance Review',
     description: 'Trust performance, CQC preparation, financial sustainability, and quality improvement',
@@ -648,6 +656,7 @@ Stephen Collins: Agreed. Thank you, everyone. We've identified some significant 
   {
     id: 'frailty-mdt',
     type: 'MDT',
+    organizationType: 'GP Practice',
     category: 'Meeting',
     title: 'Frailty Multi-Disciplinary Team Review',
     description: 'Comprehensive frailty assessment, care planning, and multi-agency coordination',
@@ -768,6 +777,7 @@ Dr Elizabeth Palmer: Excellent points. This is exactly why the MDT approach work
   {
     id: 'gp-diabetes-review',
     type: 'Consultation',
+    organizationType: 'GP Practice',
     category: 'Consultation',
     title: 'Type 2 Diabetes Annual Review',
     description: 'Annual diabetes check with medication review and lifestyle discussion',
@@ -851,6 +861,7 @@ Mr David Thompson: I will. Thank you very much.`
   {
     id: 'gp-chest-infection-telephone',
     type: 'Consultation',
+    organizationType: 'GP Practice',
     category: 'Consultation',
     title: 'Chest Infection - Telephone Consultation',
     description: 'Telephone consultation for suspected lower respiratory tract infection',
@@ -928,6 +939,7 @@ Dr Michael Chen: You're welcome. Take care, and don't hesitate to contact us if 
   {
     id: 'gp-mental-health-consultation',
     type: 'Consultation',
+    organizationType: 'GP Practice',
     category: 'Consultation',
     title: 'Depression and Anxiety Review',
     description: 'Mental health consultation for moderate depression with anxiety symptoms',
@@ -1033,6 +1045,7 @@ Dr Emma Roberts: You're very welcome. You've done the right thing coming in toda
   {
     id: 'gp-hypertension-review',
     type: 'Consultation',
+    organizationType: 'GP Practice',
     category: 'Consultation',
     title: 'Hypertension Medication Review',
     description: 'Blood pressure review with medication adjustment and lifestyle advice',
@@ -1112,6 +1125,7 @@ Dr Priya Sharma: You're welcome. Keep up the good work with the monitoring and l
   {
     id: 'gp-practice-hr-meeting',
     type: 'Partnership',
+    organizationType: 'GP Practice',
     category: 'Meeting',
     title: 'GP Practice Manager HR Meeting',
     description: 'Staff recruitment, performance management, and workforce planning',
@@ -1215,6 +1229,7 @@ Rachel Green: Absolutely. I'll circulate the minutes by the end of the week with
   {
     id: 'gp-practice-accounts-meeting',
     type: 'Partnership',
+    organizationType: 'GP Practice',
     category: 'Meeting',
     title: 'GP Practice Accounts Meeting',
     description: 'Financial review with accountant, tax planning, and partnership profit distribution',
@@ -1339,6 +1354,7 @@ Dr Helen Carter: Excellent. Thank you, Michael, for your thorough review. We'll 
   {
     id: 'gp-practice-ppg-meeting',
     type: 'Partnership',
+    organizationType: 'GP Practice',
     category: 'Meeting',
     title: 'GP Practice PPG Meeting',
     description: 'Patient Participation Group meeting discussing service improvements and patient feedback',

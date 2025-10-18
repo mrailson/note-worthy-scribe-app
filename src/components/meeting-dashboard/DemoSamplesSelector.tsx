@@ -3,7 +3,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { FileText, Users, FileText as FileTextIcon, Play, Sparkles, ChevronLeft, ChevronRight, Stethoscope } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { FileText, Users, FileText as FileTextIcon, Play, Sparkles, ChevronLeft, ChevronRight, Stethoscope, Building2, Filter } from 'lucide-react';
 import { demoMeetings, DemoMeeting } from '@/data/demoMeetings';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -19,6 +25,7 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
   const { canViewConsultationExamples } = useAuth();
   const [currentPage, setCurrentPage] = useState(0);
   const [selectedCategory, setSelectedCategory] = useState<'All' | 'Meeting' | 'Consultation'>('All');
+  const [selectedOrgType, setSelectedOrgType] = useState<'All' | 'GP Practice' | 'LMC' | 'ICB'>('All');
   const itemsPerPage = 4;
   
   // Filter demos based on visibility settings and selected category
@@ -30,9 +37,14 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
   }
   
   // Then filter by selected category
-  const filteredDemos = selectedCategory === 'All' 
-    ? availableDemos 
-    : availableDemos.filter(meeting => meeting.category === selectedCategory);
+  if (selectedCategory !== 'All') {
+    availableDemos = availableDemos.filter(meeting => meeting.category === selectedCategory);
+  }
+  
+  // Then filter by organization type
+  const filteredDemos = selectedOrgType === 'All'
+    ? availableDemos
+    : availableDemos.filter(meeting => meeting.organizationType === selectedOrgType);
   
   const totalPages = Math.ceil(filteredDemos.length / itemsPerPage);
   
@@ -40,12 +52,17 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
   const endIndex = startIndex + itemsPerPage;
   const currentMeetings = filteredDemos.slice(startIndex, endIndex);
 
-  // Reset page when category changes
+  // Reset page when category or organization type changes
   const handleCategoryChange = (value: string) => {
     if (value) {
       setSelectedCategory(value as 'All' | 'Meeting' | 'Consultation');
       setCurrentPage(0);
     }
+  };
+
+  const handleOrgTypeChange = (value: string) => {
+    setSelectedOrgType(value as 'All' | 'GP Practice' | 'LMC' | 'ICB');
+    setCurrentPage(0);
   };
 
   const getMeetingTypeColor = (type: DemoMeeting['type']) => {
@@ -85,34 +102,64 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
         </div>
       </div>
 
-      {/* Category Filter */}
+      {/* Filters */}
       <div className="flex items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg border">
-        <div className="flex items-center gap-3">
-          <span className="text-sm font-medium">Filter by:</span>
-          <ToggleGroup 
-            type="single" 
-            value={selectedCategory} 
-            onValueChange={handleCategoryChange}
-            className="gap-1"
-          >
-            <ToggleGroupItem value="All" aria-label="Show all demos" className="gap-2">
-              <Sparkles className="h-4 w-4" />
-              All
-            </ToggleGroupItem>
-            <ToggleGroupItem value="Meeting" aria-label="Show meetings only" className="gap-2">
-              <Users className="h-4 w-4" />
-              Meetings
-            </ToggleGroupItem>
-            {canViewConsultationExamples && (
-              <ToggleGroupItem value="Consultation" aria-label="Show consultations only" className="gap-2">
-                <Stethoscope className="h-4 w-4" />
-                Consultations
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Category:</span>
+            <ToggleGroup 
+              type="single" 
+              value={selectedCategory} 
+              onValueChange={handleCategoryChange}
+              className="gap-1"
+            >
+              <ToggleGroupItem value="All" aria-label="Show all demos" className="gap-2">
+                <Sparkles className="h-4 w-4" />
+                All
               </ToggleGroupItem>
-            )}
-          </ToggleGroup>
+              <ToggleGroupItem value="Meeting" aria-label="Show meetings only" className="gap-2">
+                <Users className="h-4 w-4" />
+                Meetings
+              </ToggleGroupItem>
+              {canViewConsultationExamples && (
+                <ToggleGroupItem value="Consultation" aria-label="Show consultations only" className="gap-2">
+                  <Stethoscope className="h-4 w-4" />
+                  Consultations
+                </ToggleGroupItem>
+              )}
+            </ToggleGroup>
+          </div>
+          
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium">Organisation:</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2">
+                  <Building2 className="h-4 w-4" />
+                  {selectedOrgType}
+                  <Filter className="h-3 w-3 ml-1 opacity-50" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem onClick={() => handleOrgTypeChange('All')}>
+                  All Organisations
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOrgTypeChange('GP Practice')}>
+                  GP Practice
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOrgTypeChange('LMC')}>
+                  LMC
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handleOrgTypeChange('ICB')}>
+                  ICB
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-        <Badge variant="secondary" className="text-xs">
-          {filteredDemos.length} {selectedCategory === 'All' ? 'demos' : selectedCategory.toLowerCase() + 's'}
+        
+        <Badge variant="secondary" className="text-xs shrink-0">
+          {filteredDemos.length} {filteredDemos.length === 1 ? 'demo' : 'demos'}
         </Badge>
       </div>
 
