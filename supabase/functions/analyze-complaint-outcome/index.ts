@@ -23,26 +23,55 @@ serve(async (req) => {
       throw new Error('Complaint ID is required');
     }
 
-    // Initialize Supabase client
+    // Initialize Supabase client (prefer service key, but honour caller auth for RLS if provided)
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: {
+            Authorization: req.headers.get('Authorization') ?? ''
+          }
+        }
+      }
     );
 
-    // Fetch complaint details with all related information
-    const { data: complaint, error: complaintError } = await supabase
+    // Fetch complaint base details first (avoid failing embeds)
+    const baseSelect = `id, reference_number, category, priority, complaint_title, complaint_description, incident_date, location_service, staff_mentioned, complaint_on_behalf, consent_given`;
+
+    let { data: complaint, error: complaintError } = await supabase
       .from('complaints')
-      .select(`
-        *,
-        complaint_notes(note, is_internal, created_at),
-        complaint_involved_parties(staff_name, staff_role, response_text, response_submitted_at)
-      `)
+      .select(baseSelect)
       .eq('id', complaintId)
       .single();
 
+    // Fallback: if UUID not found, try by reference number (for demos)
+    if ((complaintError || !complaint) && typeof complaintId === 'string' && complaintId.startsWith('COMP')) {
+      const res2 = await supabase
+        .from('complaints')
+        .select(baseSelect)
+        .eq('reference_number', complaintId)
+        .single();
+      complaint = res2.data as any;
+      complaintError = res2.error as any;
+    }
+
     if (complaintError || !complaint) {
+      console.error('Complaint fetch failed:', complaintError, 'for id:', complaintId);
       throw new Error('Complaint not found');
     }
+
+    // Related data fetched separately to avoid join permission issues
+    const [{ data: notes }, { data: parties }] = await Promise.all([
+      supabase.from('complaint_notes')
+        .select('note, is_internal, created_at')
+        .eq('complaint_id', complaint.id)
+        .order('created_at', { ascending: true }),
+      supabase.from('complaint_involved_parties')
+        .select('staff_name, staff_role, response_text, response_submitted_at')
+        .eq('complaint_id', complaint.id)
+        .order('response_submitted_at', { ascending: true })
+    ]);
 
     const systemPrompt = `You are an expert NHS complaints analyst with deep knowledge of:
 - NHS Constitution standards
@@ -64,15 +93,15 @@ Analyze the complaint and provide:
 
 Be objective, thorough, and focus on patient safety and quality of care.`;
 
-    const staffResponses = complaint.complaint_involved_parties
-      ?.filter(party => party.response_text)
-      ?.map(party => `${party.staff_name} (${party.staff_role}): ${party.response_text}`)
-      ?.join('\n\n') || 'No staff responses received yet';
+    const staffResponses = (parties || [])
+      .filter(p => p.response_text)
+      .map(p => `${p.staff_name} (${p.staff_role}): ${p.response_text}`)
+      .join('\n\n') || 'No staff responses received yet';
 
-    const internalNotes = complaint.complaint_notes
-      ?.filter(note => note.is_internal)
-      ?.map(note => note.note)
-      ?.join('\n\n') || 'No internal notes';
+    const internalNotes = (notes || [])
+      .filter(n => n.is_internal)
+      .map(n => n.note)
+      .join('\n\n') || 'No internal notes';
 
     const userPrompt = `Analyze this NHS complaint and recommend an outcome:
 
