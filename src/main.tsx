@@ -199,18 +199,18 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
-        <Toaster />
-        <SonnerToaster 
-          position="top-right"
-          icons={{
-            success: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-            error: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-            warning: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-            info: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
-          }}
-        />
         <AuthProvider>
           <RecordingProvider>
+            <Toaster />
+            <SonnerToaster 
+              position="top-right"
+              icons={{
+                success: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
+                error: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
+                warning: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
+                info: <img src="/favicon-option1.png" alt="" className="w-5 h-5" />,
+              }}
+            />
             <App />
           </RecordingProvider>
         </AuthProvider>
