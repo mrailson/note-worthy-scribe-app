@@ -315,20 +315,25 @@ export const ComplaintOutcomeQuestionnaire = ({
   const handleBack = () => setStep(step - 1);
 
   const handleSubmit = async () => {
+    console.log('=== Starting outcome letter generation ===');
     setIsSubmitting(true);
 
     try {
       // Get current user
+      console.log('Step 1: Getting current user...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
+      console.log('User authenticated:', user.id);
 
       // Auto-set vexatious flag based on tone
       const finalData = {
         ...data,
         is_vexatious: data.tone === 'strong' || data.tone === 'firm'
       };
+      console.log('Final data prepared:', finalData);
 
       // Save questionnaire to database
+      console.log('Step 2: Saving questionnaire to database...');
       const { data: savedQuestionnaire, error: saveError } = await supabase
         .from('complaint_outcome_questionnaires')
         .insert([{
@@ -339,9 +344,20 @@ export const ComplaintOutcomeQuestionnaire = ({
         .select()
         .single();
 
-      if (saveError) throw saveError;
+      if (saveError) {
+        console.error('Error saving questionnaire:', saveError);
+        throw saveError;
+      }
+      console.log('Questionnaire saved successfully:', savedQuestionnaire.id);
 
       // Generate outcome letter using edge function
+      console.log('Step 3: Calling edge function to generate letter...');
+      console.log('Edge function params:', {
+        complaintId,
+        outcomeType: finalData.outcome_type,
+        outcomeSummaryLength: finalData.key_findings?.length,
+      });
+      
       const { data: letterData, error: letterError } = await supabase.functions.invoke(
         'generate-complaint-outcome-letter',
         {
@@ -354,9 +370,20 @@ export const ComplaintOutcomeQuestionnaire = ({
         }
       );
 
-      if (letterError) throw letterError;
+      if (letterError) {
+        console.error('Edge function error:', letterError);
+        throw letterError;
+      }
+      
+      if (!letterData || !letterData.outcomeLetter) {
+        console.error('No outcome letter returned from edge function:', letterData);
+        throw new Error('No outcome letter generated');
+      }
+      
+      console.log('Outcome letter generated successfully, length:', letterData.outcomeLetter?.length);
 
       // Save the generated outcome letter
+      console.log('Step 4: Saving outcome letter to database...');
       const { error: outcomeError } = await supabase
         .from('complaint_outcomes')
         .insert({
@@ -367,9 +394,14 @@ export const ComplaintOutcomeQuestionnaire = ({
           decided_by: user.id,
         });
 
-      if (outcomeError) throw outcomeError;
+      if (outcomeError) {
+        console.error('Error saving outcome letter:', outcomeError);
+        throw outcomeError;
+      }
+      console.log('Outcome letter saved to database');
 
       // Update complaint status to closed
+      console.log('Step 5: Updating complaint status to closed...');
       const { error: statusError } = await supabase
         .from('complaints')
         .update({ 
@@ -381,14 +413,22 @@ export const ComplaintOutcomeQuestionnaire = ({
       if (statusError) {
         console.error('Failed to update complaint status:', statusError);
         // Don't fail the main process, outcome letter was still saved
+      } else {
+        console.log('Complaint status updated to closed');
       }
 
+      console.log('=== Outcome letter generation completed successfully ===');
       onSuccess();
       onOpenChange(false);
     } catch (error: any) {
-      console.error('Error generating outcome letter:', error);
+      console.error('!!! ERROR IN OUTCOME LETTER GENERATION !!!');
+      console.error('Error details:', error);
+      console.error('Error message:', error?.message);
+      console.error('Error stack:', error?.stack);
+      alert(`Failed to generate outcome letter: ${error?.message || 'Unknown error'}. Check console for details.`);
     } finally {
       setIsSubmitting(false);
+      console.log('=== Outcome letter generation process ended ===');
     }
   };
 
