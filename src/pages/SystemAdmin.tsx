@@ -54,6 +54,7 @@ import { HazardAnalysisReport } from '@/components/HazardAnalysisReport';
 import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboard';
 import { AdminMeetingControls } from '@/components/AdminMeetingControls';
 import { DCB0129Panel } from '@/components/admin/DCB0129Panel';
+import { ConsultationVisibilitySettings } from '@/components/admin/ConsultationVisibilitySettings';
 
 
 interface User {
@@ -1630,7 +1631,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto">
             <TabsTrigger value="overview" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -1641,15 +1642,20 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <span className="hidden sm:inline">User Management</span>
               <span className="sm:hidden">Users</span>
             </TabsTrigger>
-            <TabsTrigger value="system-config" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
-              <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">System Config</span>
-              <span className="sm:hidden">Config</span>
-            </TabsTrigger>
             <TabsTrigger value="security" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <Shield className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Security & Compliance</span>
+              <span className="hidden sm:inline">Security</span>
               <span className="sm:hidden">Security</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Settings className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Settings</span>
+              <span className="sm:hidden">Settings</span>
+            </TabsTrigger>
+            <TabsTrigger value="database" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Database className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Database</span>
+              <span className="sm:hidden">DB</span>
             </TabsTrigger>
             <TabsTrigger value="monitoring" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
@@ -3693,6 +3699,59 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </CardHeader>
               <CardContent>
                 <AudioBackupManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Settings Tab */}
+          <TabsContent value="settings" className="space-y-6">
+            <ConsultationVisibilitySettings />
+            
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Maintenance Mode
+                </CardTitle>
+                <CardDescription>
+                  Control system-wide maintenance mode and custom messaging
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-1">
+                    <Label htmlFor="maintenance-mode" className="text-base font-semibold">
+                      Maintenance Mode
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Current status: {maintenanceMode.enabled ? 'Active' : 'Inactive'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="maintenance-mode"
+                    checked={maintenanceMode.enabled}
+                    onCheckedChange={(checked) => handleMaintenanceModeUpdate(checked, customMessage)}
+                    disabled={updating}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="maintenance-message">Custom Message</Label>
+                  <Textarea
+                    id="maintenance-message"
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    placeholder="Enter custom maintenance message..."
+                    rows={3}
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleMaintenanceModeUpdate(maintenanceMode.enabled, customMessage)}
+                    disabled={updating}
+                  >
+                    Update Message
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
