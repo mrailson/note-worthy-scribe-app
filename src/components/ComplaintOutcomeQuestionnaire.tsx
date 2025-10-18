@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -6,15 +6,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Badge } from '@/components/ui/badge';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { SpeechToText } from '@/components/SpeechToText';
-import { CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, CheckCircle, ClipboardCheck } from 'lucide-react';
 
 interface QuestionnaireData {
   investigation_complete: boolean;
-  parties_consulted: boolean;
-  fair_consideration: boolean;
   outcome_type: 'upheld' | 'partially_upheld' | 'not_upheld' | '';
   tone: 'professional' | 'empathetic' | 'apologetic' | 'factual' | 'strong' | 'firm';
   key_findings: string;
@@ -22,6 +22,16 @@ interface QuestionnaireData {
   improvements_made: string;
   additional_context: string;
   is_vexatious: boolean;
+}
+
+interface ComplianceCheck {
+  id: string;
+  compliance_item: string;
+  is_compliant: boolean;
+  evidence: string | null;
+  notes: string | null;
+  checked_at: string | null;
+  checked_by: string | null;
 }
 
 interface ComplaintOutcomeQuestionnaireProps {
@@ -32,6 +42,8 @@ interface ComplaintOutcomeQuestionnaireProps {
     reference_number: string;
     complaint_description: string;
     category: string;
+    created_at?: string;
+    acknowledged_at?: string;
   };
   onSuccess: () => void;
 }
@@ -48,8 +60,6 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [data, setData] = useState<QuestionnaireData>({
     investigation_complete: false,
-    parties_consulted: false,
-    fair_consideration: false,
     outcome_type: '',
     tone: 'professional',
     key_findings: '',
@@ -58,16 +68,178 @@ export const ComplaintOutcomeQuestionnaire = ({
     additional_context: '',
     is_vexatious: false,
   });
+  const [complianceChecks, setComplianceChecks] = useState<ComplianceCheck[]>([]);
+  const [complianceSummary, setComplianceSummary] = useState<any>(null);
+  const [activeValidationTab, setActiveValidationTab] = useState('investigation');
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
 
+  useEffect(() => {
+    if (open) {
+      fetchComplianceChecks();
+    }
+  }, [open, complaintId]);
+
+  const fetchComplianceChecks = async () => {
+    try {
+      // Initialize compliance checks if they don't exist
+      const { error: initError } = await supabase
+        .rpc('initialize_complaint_compliance', { complaint_id_param: complaintId });
+
+      if (initError) {
+        console.error('Error initializing compliance:', initError);
+      }
+
+      // Fetch compliance checks
+      const { data: checks, error: checksError } = await supabase
+        .from('complaint_compliance_checks')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: true });
+
+      if (checksError) throw checksError;
+
+      // Auto-confirm eligible items
+      const updatedChecks = checks?.map(check => {
+        // Auto-confirm: Complaint logged in practice register (always true if complaint exists)
+        if (check.compliance_item.includes('logged in practice register')) {
+          return { ...check, is_compliant: true };
+        }
+        
+        // Auto-confirm: Acknowledgement sent within 3 working days
+        if (check.compliance_item.includes('Acknowledgement sent within 3 working days') && 
+            complaintData.acknowledged_at && complaintData.created_at) {
+          const created = new Date(complaintData.created_at);
+          const acknowledged = new Date(complaintData.acknowledged_at);
+          const diffInDays = Math.floor((acknowledged.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+          if (diffInDays <= 3) {
+            return { ...check, is_compliant: true };
+          }
+        }
+        
+        return check;
+      }) || [];
+
+      setComplianceChecks(updatedChecks);
+
+      // Get compliance summary
+      const { data: summary, error: summaryError } = await supabase
+        .rpc('get_complaint_compliance_summary', { complaint_id_param: complaintId });
+
+      if (summaryError) throw summaryError;
+      if (summary && summary.length > 0) {
+        setComplianceSummary(summary[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching compliance data:', error);
+    }
+  };
+
+  const updateComplianceCheck = async (checkId: string, isCompliant: boolean) => {
+    try {
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const { error } = await supabase
+        .from('complaint_compliance_checks')
+        .update({ 
+          is_compliant: isCompliant, 
+          checked_at: new Date().toISOString(),
+          checked_by: user.data.user.id 
+        })
+        .eq('id', checkId);
+
+      if (error) throw error;
+
+      // Update local state
+      setComplianceChecks(prev => 
+        prev.map(check => 
+          check.id === checkId 
+            ? { ...check, is_compliant: isCompliant, checked_at: new Date().toISOString() }
+            : check
+        )
+      );
+
+      // Refresh compliance summary
+      fetchComplianceChecks();
+      
+      toast({
+        title: 'Updated',
+        description: 'Compliance check updated',
+      });
+    } catch (error) {
+      console.error('Error updating compliance check:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to update compliance check',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const markAllCompliant = async () => {
+    try {
+      const user = await supabase.auth.getUser();
+      if (!user.data.user) {
+        throw new Error('User not authenticated');
+      }
+
+      const nonCompliantChecks = complianceChecks.filter(check => !check.is_compliant);
+
+      if (nonCompliantChecks.length === 0) {
+        toast({
+          title: 'All Complete',
+          description: 'All items are already completed',
+        });
+        return;
+      }
+
+      for (const check of nonCompliantChecks) {
+        const { error } = await supabase
+          .from('complaint_compliance_checks')
+          .update({
+            is_compliant: true,
+            checked_at: new Date().toISOString(),
+            checked_by: user.data.user.id
+          })
+          .eq('id', check.id);
+
+        if (error) throw error;
+      }
+
+      setComplianceChecks(prev => 
+        prev.map(check => ({
+          ...check,
+          is_compliant: true,
+          checked_at: new Date().toISOString()
+        }))
+      );
+
+      fetchComplianceChecks();
+      
+      toast({
+        title: 'Success',
+        description: `Marked ${nonCompliantChecks.length} items as completed`,
+      });
+    } catch (error) {
+      console.error('Error marking all items as compliant:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to mark all items as completed',
+        variant: 'destructive',
+      });
+    }
+  };
+
   const handleNext = () => {
     if (step === 1) {
-      if (!data.fair_consideration) {
+      if (!data.investigation_complete) {
         toast({
-          title: 'CQC Compliance Required',
-          description: 'You must confirm that all complaint items were investigated fairly before proceeding.',
+          title: 'Investigation Required',
+          description: 'Please confirm that the investigation has been completed and all parties have been consulted.',
           variant: 'destructive',
         });
         return;
@@ -106,13 +278,19 @@ export const ComplaintOutcomeQuestionnaire = ({
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
+      // Auto-set vexatious flag based on tone
+      const finalData = {
+        ...data,
+        is_vexatious: data.tone === 'strong' || data.tone === 'firm'
+      };
+
       // Save questionnaire to database
       const { data: savedQuestionnaire, error: saveError } = await supabase
         .from('complaint_outcome_questionnaires')
         .insert([{
           complaint_id: complaintId,
           created_by: user.id,
-          questionnaire_data: data as any,
+          questionnaire_data: finalData as any,
         }])
         .select()
         .single();
@@ -125,9 +303,9 @@ export const ComplaintOutcomeQuestionnaire = ({
         {
           body: {
             complaintId,
-            outcomeType: data.outcome_type,
-            outcomeSummary: data.key_findings,
-            questionnaireData: data,
+            outcomeType: finalData.outcome_type,
+            outcomeSummary: finalData.key_findings,
+            questionnaireData: finalData,
           },
         }
       );
@@ -139,8 +317,8 @@ export const ComplaintOutcomeQuestionnaire = ({
         .from('complaint_outcomes')
         .insert({
           complaint_id: complaintId,
-          outcome_type: data.outcome_type,
-          outcome_summary: data.key_findings,
+          outcome_type: finalData.outcome_type,
+          outcome_summary: finalData.key_findings,
           outcome_letter: letterData.outcomeLetter,
           decided_by: user.id,
         });
@@ -195,86 +373,164 @@ export const ComplaintOutcomeQuestionnaire = ({
         {/* Step 1: Investigation Validation */}
         {step === 1 && (
           <div className="space-y-6">
-            <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-              <h3 className="font-semibold text-blue-900 mb-3">Investigation Validation</h3>
-              
-              <div className="space-y-3">
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="investigation_complete"
-                    checked={data.investigation_complete}
-                    onCheckedChange={(checked) =>
-                      setData({ ...data, investigation_complete: checked as boolean })
-                    }
-                  />
-                  <Label htmlFor="investigation_complete" className="text-sm font-normal cursor-pointer">
-                    All complaint items have been thoroughly investigated
-                  </Label>
-                </div>
+            <Tabs value={activeValidationTab} onValueChange={setActiveValidationTab}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="investigation">Investigation Validation</TabsTrigger>
+                <TabsTrigger value="compliance">
+                  CQC Compliance Review{complianceSummary?.compliance_percentage === 100 ? ' (Completed)' : ''}
+                </TabsTrigger>
+              </TabsList>
 
-                <div className="flex items-start space-x-2">
-                  <Checkbox
-                    id="parties_consulted"
-                    checked={data.parties_consulted}
-                    onCheckedChange={(checked) =>
-                      setData({ ...data, parties_consulted: checked as boolean })
-                    }
-                  />
-                  <Label htmlFor="parties_consulted" className="text-sm font-normal cursor-pointer">
-                    All parties involved have been consulted
-                  </Label>
-                </div>
-
-                <div className="mt-4 p-3 bg-amber-50 border border-amber-300 rounded">
+              <TabsContent value="investigation" className="space-y-4 mt-4">
+                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
+                  <h3 className="font-semibold text-blue-900 mb-3">Confirm Investigation Complete</h3>
+                  
                   <div className="flex items-start space-x-2">
                     <Checkbox
-                      id="fair_consideration"
-                      checked={data.fair_consideration}
+                      id="investigation_complete"
+                      checked={data.investigation_complete}
                       onCheckedChange={(checked) =>
-                        setData({ ...data, fair_consideration: checked as boolean })
+                        setData({ ...data, investigation_complete: checked as boolean })
                       }
-                      className="mt-1"
                     />
-                    <div>
-                      <Label htmlFor="fair_consideration" className="text-sm font-semibold cursor-pointer text-amber-900">
-                        CQC Compliance Confirmation *
-                      </Label>
-                      <p className="text-xs text-amber-800 mt-1">
-                        Are you happy that all the patient's complaint items were investigated and properly
-                        considered in a fair way?
-                      </p>
-                    </div>
+                    <Label htmlFor="investigation_complete" className="text-sm font-normal cursor-pointer">
+                      Investigation has been completed and all parties have been consulted *
+                    </Label>
                   </div>
                 </div>
-              </div>
-            </div>
 
-            <div>
-              <Label className="text-sm font-semibold mb-2 block">
-                Outcome Type *
-              </Label>
-              <Select value={data.outcome_type} onValueChange={(value: any) => setData({ ...data, outcome_type: value })}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select outcome..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="upheld">Complaint Upheld</SelectItem>
-                  <SelectItem value="partially_upheld">Complaint Partially Upheld</SelectItem>
-                  <SelectItem value="not_upheld">Complaint Not Upheld</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
+                <div>
+                  <Label className="text-sm font-semibold mb-2 block">
+                    Outcome Type *
+                  </Label>
+                  <Select value={data.outcome_type} onValueChange={(value: any) => setData({ ...data, outcome_type: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select outcome..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="upheld">Complaint Upheld</SelectItem>
+                      <SelectItem value="partially_upheld">Complaint Partially Upheld</SelectItem>
+                      <SelectItem value="not_upheld">Complaint Not Upheld</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </TabsContent>
 
-            <div className="flex items-start space-x-2">
-              <Checkbox
-                id="is_vexatious"
-                checked={data.is_vexatious}
-                onCheckedChange={(checked) => setData({ ...data, is_vexatious: checked as boolean })}
-              />
-              <Label htmlFor="is_vexatious" className="text-sm font-normal cursor-pointer">
-                This complaint is vexatious or unreasonable
-              </Label>
-            </div>
+              <TabsContent value="compliance" className="space-y-4 mt-4">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ClipboardCheck className="h-5 w-5" />
+                      <h3 className="text-lg font-medium">CQC Compliance Review (Optional)</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {complianceSummary && (
+                        <Badge variant="outline" className="text-sm">
+                          {complianceSummary.compliant_items} / {complianceSummary.total_items} Complete
+                          ({complianceSummary.compliance_percentage}%)
+                        </Badge>
+                      )}
+                      {complianceChecks.length > 0 && complianceSummary?.compliance_percentage !== 100 && (
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={markAllCompliant}
+                          className="text-sm"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-1" />
+                          Mark All Completed
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {complianceSummary && (
+                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-medium text-blue-900">Compliance Progress</span>
+                        <span className="text-sm text-blue-800">{complianceSummary.compliance_percentage}%</span>
+                      </div>
+                      <div className="w-full bg-blue-200 rounded-full h-2">
+                        <div 
+                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                          style={{ width: `${complianceSummary.compliance_percentage}%` }}
+                        ></div>
+                      </div>
+                      {complianceSummary.outstanding_items && complianceSummary.outstanding_items.length > 0 && (
+                        <div className="mt-3">
+                          <p className="text-sm text-blue-800 font-medium">Outstanding Items:</p>
+                          <ul className="mt-1 text-sm text-blue-700">
+                            {complianceSummary.outstanding_items.slice(0, 3).map((item: string, index: number) => (
+                              <li key={index} className="truncate">• {item}</li>
+                            ))}
+                            {complianceSummary.outstanding_items.length > 3 && (
+                              <li className="text-blue-600">...and {complianceSummary.outstanding_items.length - 3} more</li>
+                            )}
+                          </ul>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                    {complianceChecks.length === 0 ? (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No compliance checks available for this complaint
+                      </div>
+                    ) : (
+                      complianceChecks.map((check) => (
+                        <div 
+                          key={check.id} 
+                          className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                            check.is_compliant 
+                              ? 'bg-green-50 border-green-200 hover:bg-green-100' 
+                              : 'hover:bg-gray-50'
+                          }`}
+                          onClick={() => updateComplianceCheck(check.id, !check.is_compliant)}
+                        >
+                          <Checkbox
+                            id={check.id}
+                            checked={check.is_compliant}
+                            onCheckedChange={(checked) => updateComplianceCheck(check.id, checked as boolean)}
+                            className="mt-1 pointer-events-none"
+                          />
+                          <div className="flex-1">
+                            <Label
+                              htmlFor={check.id}
+                              className={`text-sm cursor-pointer ${
+                                check.is_compliant 
+                                  ? 'line-through text-muted-foreground' 
+                                  : ''
+                              }`}
+                            >
+                              {check.compliance_item}
+                            </Label>
+                            {check.notes && (
+                              <p className="text-xs text-muted-foreground mt-1">{check.notes}</p>
+                            )}
+                            {check.checked_at && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Checked: {new Date(check.checked_at).toLocaleDateString()}
+                              </p>
+                            )}
+                          </div>
+                          {check.is_compliant && (
+                            <CheckCircle className="h-4 w-4 text-green-600 mt-1" />
+                          )}
+                        </div>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm">
+                    <p className="text-amber-900">
+                      <strong>Note:</strong> This compliance review is optional and provided as a helpful quality assurance tool. 
+                      Items marked with auto-confirmation have been verified based on complaint data.
+                    </p>
+                  </div>
+                </div>
+              </TabsContent>
+            </Tabs>
           </div>
         )}
 
@@ -298,10 +554,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   <SelectItem value="firm">Firm (Vexatious)</SelectItem>
                 </SelectContent>
               </Select>
-              {(data.tone === 'strong' || data.tone === 'firm') && !data.is_vexatious && (
+              {(data.tone === 'strong' || data.tone === 'firm') && (
                 <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
                   <AlertCircle className="h-3 w-3" />
-                  You selected a strong tone but didn't mark this as vexatious
+                  This tone will automatically mark the complaint as vexatious
                 </p>
               )}
             </div>
@@ -395,11 +651,16 @@ export const ComplaintOutcomeQuestionnaire = ({
                 </div>
                 <div>
                   <span className="font-medium">Tone:</span> {data.tone.charAt(0).toUpperCase() + data.tone.slice(1)}
+                  {(data.tone === 'strong' || data.tone === 'firm') && ' (Vexatious)'}
                 </div>
                 <div>
-                  <span className="font-medium">CQC Compliance:</span>{' '}
-                  {data.fair_consideration ? '✓ Confirmed' : '✗ Not confirmed'}
+                  <span className="font-medium">Investigation:</span> ✓ Complete
                 </div>
+                {complianceSummary && (
+                  <div>
+                    <span className="font-medium">CQC Compliance:</span> {complianceSummary.compliant_items}/{complianceSummary.total_items} items ({complianceSummary.compliance_percentage}%)
+                  </div>
+                )}
                 <div>
                   <span className="font-medium">Key Findings:</span> {data.key_findings}
                 </div>
