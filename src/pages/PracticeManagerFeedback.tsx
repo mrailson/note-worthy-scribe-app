@@ -10,12 +10,18 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Slider } from "@/components/ui/slider";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Form,
   FormControl,
@@ -25,8 +31,9 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2 } from "lucide-react";
+import { Loader2, CheckCircle2, Check, ChevronsUpDown } from "lucide-react";
 import notewellLogo from "@/assets/notewell-logo.png";
+import { cn } from "@/lib/utils";
 
 const formSchema = z.object({
   practiceId: z.string().min(1, "Please select a practice"),
@@ -74,6 +81,8 @@ export default function PracticeManagerFeedback() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [showOtherInput, setShowOtherInput] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const form = useForm<FormData>({
     resolver: zodResolver(formSchema),
@@ -239,29 +248,90 @@ Submitted: ${new Date().toLocaleString('en-GB', { dateStyle: 'long', timeStyle: 
                   control={form.control}
                   name="practiceId"
                   render={({ field }) => (
-                    <FormItem>
+                    <FormItem className="flex flex-col">
                       <FormLabel>Select Your Practice</FormLabel>
-                      <Select
-                        onValueChange={(value) => {
-                          field.onChange(value);
-                          setShowOtherInput(value === "other");
-                        }}
-                        value={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Choose a practice..." />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {practices.map((practice) => (
-                            <SelectItem key={practice.id} value={practice.id}>
-                              {practice.name} ({practice.practice_code})
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <Popover open={open} onOpenChange={setOpen}>
+                        <PopoverTrigger asChild>
+                          <FormControl>
+                            <Button
+                              variant="outline"
+                              role="combobox"
+                              className={cn(
+                                "w-full justify-between",
+                                !field.value && "text-muted-foreground"
+                              )}
+                            >
+                              {field.value === "other"
+                                ? "Other"
+                                : field.value
+                                ? practices.find((practice) => practice.id === field.value)?.name
+                                : "Start typing practice name or K code..."}
+                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                            </Button>
+                          </FormControl>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0" align="start">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search practice name or K code..."
+                              value={searchQuery}
+                              onValueChange={setSearchQuery}
+                            />
+                            <CommandList>
+                              <CommandEmpty>No practice found.</CommandEmpty>
+                              <CommandGroup>
+                                {practices
+                                  .filter((practice) =>
+                                    searchQuery
+                                      ? practice.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                                        practice.practice_code.toLowerCase().includes(searchQuery.toLowerCase())
+                                      : true
+                                  )
+                                  .map((practice) => (
+                                    <CommandItem
+                                      key={practice.id}
+                                      value={practice.id}
+                                      onSelect={() => {
+                                        field.onChange(practice.id);
+                                        setShowOtherInput(false);
+                                        setOpen(false);
+                                        setSearchQuery("");
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          practice.id === field.value ? "opacity-100" : "opacity-0"
+                                        )}
+                                      />
+                                      {practice.name} ({practice.practice_code})
+                                    </CommandItem>
+                                  ))}
+                                <CommandItem
+                                  value="other"
+                                  onSelect={() => {
+                                    field.onChange("other");
+                                    setShowOtherInput(true);
+                                    setOpen(false);
+                                    setSearchQuery("");
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      "other" === field.value ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  Other
+                                </CommandItem>
+                              </CommandGroup>
+                            </CommandList>
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                      <p className="text-xs text-muted-foreground">
+                        Start typing your practice name or K code to search
+                      </p>
                       <FormMessage />
                     </FormItem>
                   )}
