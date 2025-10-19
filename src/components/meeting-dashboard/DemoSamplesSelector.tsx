@@ -18,7 +18,7 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
 }) => {
   const { canViewConsultationExamples } = useAuth();
   const [currentPage, setCurrentPage] = useState(0);
-  const [selectedOrgType, setSelectedOrgType] = useState<'All' | 'GP Practice' | 'LMC' | 'ICB'>('All');
+  const [selectedOrgType, setSelectedOrgType] = useState<'All' | 'GP Practice' | 'LMC' | 'ICB'>('GP Practice');
   const itemsPerPage = 4;
   
   // Filter demos based on visibility settings
