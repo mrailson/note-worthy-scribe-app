@@ -927,20 +927,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56 bg-background">
-              <DropdownMenuItem 
-                onClick={handleCleanTranscript}
-                disabled={!transcript}
-              >
-                <Sparkles className="h-4 w-4 mr-2 text-nhs-blue" />
-                Clean Transcript
-                {stats.fillerWordCount > 0 && (
-                  <Badge variant="secondary" className="ml-auto text-xs">
-                    {stats.fillerWordCount}
-                  </Badge>
-                )}
-              </DropdownMenuItem>
-              
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={handleFormatTranscript}
                 disabled={!transcript || isFormatting}
               >
