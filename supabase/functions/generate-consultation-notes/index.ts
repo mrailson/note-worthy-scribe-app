@@ -251,8 +251,9 @@ CRITICAL ANTI-HALLUCINATION RULES:
 - NEVER add negative findings (e.g., "no tenderness", "no abnormalities") unless explicitly mentioned
 - If an examination or observation was not performed or mentioned, COMPLETELY OMIT it from the notes
 - Never fabricate patient symptoms, vital signs, test results, or clinical findings
-- NEVER add commentary about what wasn't done (e.g., "Not documented", "No examination performed")
+- NEVER add commentary about what wasn't done (phrases like "Not documented", "No examination performed", "No other examination findings documented", "No other examination documented", "Nothing else documented" are ABSOLUTELY FORBIDDEN)
 - If a SOAP section has no information from the transcript, OMIT that entire section - do not comment on its absence
+- NEVER summarise what wasn't done - if only ONE examination was performed, document ONLY that one examination without commenting on the absence of others
 
 Consultation Type: ${requestData.consultationType}
 Detected Category: ${classifier.label}
@@ -264,13 +265,13 @@ Generate SOAP notes using ONLY the information above:
 
 SHORTHAND (GP abbreviations, concise):
 S: [Only symptoms/history explicitly mentioned - use abbreviations like c/o, SOB, CP]
-O: [ONLY examination findings/observations actually performed and documented - abbreviated. If no examination performed, OMIT this section entirely]
+O: [ONLY examination findings/observations actually performed and documented - abbreviated. List ONLY what was done. NEVER add phrases like "No other examination" or "Nothing else documented". If only a urine dipstick was done, write ONLY the dipstick result - nothing more]
 A: [Only assessment/diagnosis explicitly discussed - concise]
 P: [Only management plan explicitly agreed - abbreviated]
 
 STANDARD (Full clinical detail):
 S: [Only complete subjective information from transcript]
-O: [ONLY objective findings actually documented and performed. NEVER add commentary about examinations not performed. If no examination was done, OMIT this section entirely. Only document what WAS actually done]
+O: [ONLY objective findings actually documented and performed. Document each examination finding on its own line. NEVER add summary statements about what wasn't done. NEVER write "No other examination findings documented" or similar phrases. If the transcript mentions a urine dipstick and nothing else, write ONLY the dipstick result and stop there]
 A: [Only assessment based on what was discussed]
 P: [Only plan explicitly agreed with safety-netting if mentioned]
 
@@ -305,7 +306,7 @@ Format as JSON with keys: shorthand, standard, summaryLine, patientCopy, referra
         messages: [
           {
             role: 'system',
-            content: 'You are an experienced UK GP generating clinical documentation. You MUST NEVER hallucinate or fabricate clinical information. Only document what was explicitly mentioned in the consultation transcript. Never add examination findings, symptoms, or other clinical data that were not actually documented. NEVER add commentary about what wasn\'t performed (phrases like "Not documented", "No examination performed", "Not mentioned" are FORBIDDEN). You are a silent transcriptionist - document ONLY what happened, never comment on what didn\'t happen. If a section has no content, OMIT it entirely.'
+            content: 'You are an experienced UK GP generating clinical documentation. You MUST NEVER hallucinate or fabricate clinical information. Only document what was explicitly mentioned in the consultation transcript. Never add examination findings, symptoms, or other clinical data that were not actually documented. NEVER add commentary about what wasn\'t performed (phrases like "Not documented", "No examination performed", "Not mentioned", "No other examination findings documented", "No other examination documented" are ABSOLUTELY FORBIDDEN). You are a silent transcriptionist - document ONLY what happened, never comment on what didn\'t happen. If a section has no content, OMIT it entirely. When listing examination findings, list ONLY the findings that were performed - do not add summary statements about what wasn\'t done.'
           },
           {
             role: 'user',
