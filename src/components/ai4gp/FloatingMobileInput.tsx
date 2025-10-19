@@ -183,25 +183,94 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
     }
   };
 
-  // Expanded input interface always shown
+  // Simple ChatGPT-like interface for iPhone - always show, no expand/collapse
+  if (device.isIPhone) {
+    return (
+      <div 
+        ref={containerRef}
+        className="fixed inset-x-0 bottom-0 z-[9999] bg-background border-t shadow-strong"
+        style={{
+          paddingBottom: `calc(env(safe-area-inset-bottom) + 8px)`,
+          paddingLeft: 'env(safe-area-inset-left)',
+          paddingRight: 'env(safe-area-inset-right)'
+        }}
+      >
+        <div className="p-3">
+          {uploadedFiles.length > 0 && (
+            <div className="mb-2">
+              <FileUploadArea 
+                uploadedFiles={uploadedFiles}
+                onRemoveFile={handleRemoveFile}
+              />
+            </div>
+          )}
+          
+          <div className="flex items-end gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept=".pdf,.doc,.docx,.rtf,.txt,.eml,.msg,.jpg,.jpeg,.png,.wav,.mp3,.m4a,.xls,.xlsx,.csv"
+              onChange={handleFileSelect}
+              className="hidden"
+            />
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isLoading}
+              className="h-10 w-10 p-0 flex-shrink-0"
+            >
+              <Paperclip className="w-5 h-5" />
+            </Button>
+            
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Message..."
+              className="min-h-[40px] max-h-32 resize-none text-base bg-background"
+              disabled={isLoading}
+              rows={1}
+              style={{
+                fontSize: '16px' // Prevent zoom on iPhone
+              }}
+            />
+            
+            <Button 
+              onClick={handleSend} 
+              disabled={isLoading || (!input.trim() && uploadedFiles.length === 0)}
+              size="sm"
+              className="h-10 w-10 p-0 flex-shrink-0"
+            >
+              <Send className="w-5 h-5" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Expanded input interface for non-iPhone devices
   if (!isExpanded) {
     return null;
   }
 
-  // Expanded input interface
   return (
     <div 
       ref={containerRef}
       className={cn(
         "fixed inset-x-0 bottom-0 z-[9999] bg-background border-t border-border shadow-strong",
-        "iphone-optimized mobile-scroll-container",
+        "mobile-scroll-container",
         device.hasNotch ? "iphone-notch-safe" : ""
       )}
       style={{
         paddingBottom: `calc(16px + var(--mobile-safe-area-bottom) + ${keyboardHeight}px)`,
         paddingLeft: `var(--iphone-safe-area-left)`,
         paddingRight: `var(--iphone-safe-area-right)`,
-        maxHeight: device.isIPhone ? '70dvh' : '70vh',
+        maxHeight: '70vh',
         transform: keyboardHeight > 0 ? `translateY(-${keyboardHeight}px)` : 'none',
         transition: 'transform 0.3s ease-out, padding-bottom 0.3s ease-out'
       }}
@@ -230,11 +299,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
           </div>
         </div>
 
-        <div className={cn(
-          "p-3 space-y-3 overflow-y-auto",
-          "mobile-scroll-container no-scrollbar",
-          device.isIPhone ? "max-h-[60dvh]" : "max-h-[60vh]"
-        )}>
+        <div className="p-3 space-y-3 overflow-y-auto max-h-[60vh] mobile-scroll-container no-scrollbar">
           <FileUploadArea 
             uploadedFiles={uploadedFiles}
             onRemoveFile={handleRemoveFile}
@@ -261,19 +326,9 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={handleKeyDown}
-                placeholder={device.isIPhone 
-                  ? "Ask me anything about NHS guidelines..." 
-                  : "Ask about NHS guidelines, clinical protocols, prescribing, referrals..."
-                }
-                className={cn(
-                  "min-h-[100px] max-h-32 resize-none pr-44 bg-background border-border",
-                  device.isIPhone ? "text-base iphone-input" : "text-base",
-                  "mobile-touch-target"
-                )}
+                placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals..."
+                className="min-h-[100px] max-h-32 resize-none pr-44 bg-background border-border text-base mobile-touch-target"
                 disabled={isLoading}
-                style={{
-                  fontSize: device.isIPhone ? '16px' : 'inherit' // Prevent zoom on iPhone
-                }}
               />
               
               <input

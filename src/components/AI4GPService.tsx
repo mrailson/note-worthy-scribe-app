@@ -632,15 +632,18 @@ const AI4GPService = () => {
                           </div>
                         </div>
                         
-                        <QuickActionsPanel
-                          showAllQuickActions={showAllQuickActions}
-                          setShowAllQuickActions={setShowAllQuickActions}
-                          setInput={setInput}
-                          selectedRole={selectedRole}
-                          onInsertIntoChat={setInput}
-                          onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
-                          onOpenDocumentTranslate={() => setShowDocumentTranslate(true)}
-                        />
+                        {/* Hide QuickActionsPanel on iPhone for simpler ChatGPT-like interface */}
+                        {!deviceInfo.isIPhone && (
+                          <QuickActionsPanel
+                            showAllQuickActions={showAllQuickActions}
+                            setShowAllQuickActions={setShowAllQuickActions}
+                            setInput={setInput}
+                            selectedRole={selectedRole}
+                            onInsertIntoChat={setInput}
+                            onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
+                            onOpenDocumentTranslate={() => setShowDocumentTranslate(true)}
+                          />
+                        )}
                         
                         {/* Collapsible Short Card Disclaimer - Only show for GP role and if user hasn't logged in for a week */}
                         {selectedRole === 'gp' && shouldShowDisclaimer() && (
