@@ -3088,9 +3088,6 @@ ${transcript}`;
                             <TabsTrigger value="style1" className="text-xs sm:text-sm">
                               Meeting Minutes - Standard View
                             </TabsTrigger>
-                            <TabsTrigger value="style4" className="text-xs sm:text-sm">
-                              Executive Summary
-                            </TabsTrigger>
                             <TabsTrigger value="style6" className="text-xs sm:text-sm">
                               Patient Consultation
                             </TabsTrigger>
@@ -3226,7 +3223,6 @@ ${transcript}`;
                               switch (activeNotesStyleTab) {
                                 case 'style1': return notesStyle3;
                                 case 'style2': return notes;
-                                case 'style4': return notesStyle4;
                                 case 'style6': return null; // Patient Consultation has its own UI
                                 default: return null;
                               }
@@ -3236,7 +3232,6 @@ ${transcript}`;
                                switch (activeNotesStyleTab) {
                                  case 'style1': return 'Minutes';
                                  case 'style2': return 'Minutes - Brief';
-                                case 'style4': return 'Executive Summary';
                                 case 'style6': return 'Patient Consultation';
                                 default: return 'Meeting Notes';
                                }
@@ -3246,7 +3241,6 @@ ${transcript}`;
                               switch (activeNotesStyleTab) {
                                 case 'style1': return generateNotesStyle3;
                                 case 'style2': return handleRegenerateNotes;
-                                case 'style4': return generateNotesStyle4;
                                 default: return () => {};
                               }
                             };
@@ -3255,7 +3249,6 @@ ${transcript}`;
                               switch (activeNotesStyleTab) {
                                 case 'style1': return isGeneratingStyle3;
                                 case 'style2': return isGenerating;
-                                case 'style4': return isGeneratingStyle4;
                                 default: return false;
                               }
                             };
@@ -3511,94 +3504,6 @@ ${transcript}`;
                        </TabsContent>
                       
                       
-                       <TabsContent value="style4" className="flex-1 overflow-auto pb-6">
-                         {isEditing && editingTab === "notes-style4" ? (
-                           <RichTextEditor
-                             content={editingContent}
-                             onChange={setEditingContent}
-                             placeholder="Meeting notes will appear here..."
-                             className="h-full"
-                           />
-                          ) : (
-                            <div className="space-y-4">
-                              {!notesStyle4 ? (
-                                <div className="flex flex-col items-center justify-center h-32 space-y-4">
-                                  <p className="text-muted-foreground text-center">
-                                    Generate a concise GP Partner update with key decisions and finance highlights
-                                  </p>
-                                  <Button
-                                    onClick={generateNotesStyle4}
-                                    disabled={isGeneratingStyle4 || !transcript}
-                                    className="gap-2"
-                                  >
-                                    {isGeneratingStyle4 ? (
-                                      <>
-                                        <RefreshCw className="h-4 w-4 animate-spin" />
-                                        Generating Style 4...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Sparkles className="h-4 w-4" />
-                                        Generate Minutes - Executive
-                                      </>
-                                    )}
-                                  </Button>
-                                </div>
-                                ) : (
-                                  <div className="space-y-4 relative min-h-[500px]">
-                                    {/* Animated loading overlay */}
-                                    {isGeneratingStyle4 && (
-                                      <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
-                                        <div className="flex flex-col items-center gap-4 animate-scale-in">
-                                          <div className="relative">
-                                            <RefreshCw className="h-12 w-12 text-primary animate-spin" />
-                                            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                                          </div>
-                                          <div className="text-center space-y-2">
-                                            <p className="text-lg font-semibold">Regenerating Notes</p>
-                                            <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    )}
-                                     <div 
-                                       className={`prose max-w-none exec-notes prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground transition-opacity duration-300 ${isGeneratingStyle4 ? 'opacity-50' : 'opacity-100'}`}
-                                       style={{ fontSize: `${fontSizeStyle1}px`, lineHeight: `${fontSizeStyle1 * 1.6}px` }}
-                                     >
-                                       <style>
-                                         {`
-                                           .exec-notes { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
-                                           .exec-notes * { font-size: inherit !important; line-height: inherit !important; }
-                                           .exec-notes h1 { font-size: ${fontSizeStyle1 * 1.8}px !important; }
-                                           .exec-notes h2 { font-size: ${fontSizeStyle1 * 1.5}px !important; }
-                                           .exec-notes h3 { font-size: ${fontSizeStyle1 * 1.3}px !important; }
-                                           .exec-notes h4 { font-size: ${fontSizeStyle1 * 1.1}px !important; }
-                                           .exec-notes h5 { font-size: ${fontSizeStyle1 * 1.05}px !important; }
-                                           .exec-notes h6 { font-size: ${fontSizeStyle1 * 1.0}px !important; }
-                                           .exec-notes p, .exec-notes li, .exec-notes td, .exec-notes th, .exec-notes a, .exec-notes span, .exec-notes strong, .exec-notes em, .exec-notes blockquote, .exec-notes code, .exec-notes small { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
-                                         `}
-                                       </style>
-                                       <div 
-                                         dangerouslySetInnerHTML={{ 
-                                           __html: activeNotesStyleTab === 'style4' ? (execHtml || '') : ''
-                                         }}
-                                       />
-                                     </div>
-                                   <InlineWordCorrector
-                                      content={notesStyle4}
-                                      allTabsContent={{
-                                        style3: notesStyle3,
-                                        style4: notesStyle4
-                                      }}
-                                      onApplyCorrection={handleInlineCorrection}
-                                      isActive={!isEditing && activeNotesStyleTab === 'style4'}
-                                    />
-                                  </div>
-                               )}
-                             </div>
-                           )}
-                        </TabsContent>
-                         
                          {/* Patient Consultation Content (style6) */}
                        <TabsContent value="style6" className="flex-1 overflow-hidden mt-0">
                          <div className="h-full flex flex-col">
