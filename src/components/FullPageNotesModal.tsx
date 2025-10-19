@@ -137,11 +137,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [notesStyle2, setNotesStyle2] = useState("");
   const [notesStyle3, setNotesStyle3] = useState("");
   const [notesStyle4, setNotesStyle4] = useState("");
-  const [notesStyle5, setNotesStyle5] = useState("");
   const [isGeneratingStyle2, setIsGeneratingStyle2] = useState(false);
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
   const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
-  const [isGeneratingStyle5, setIsGeneratingStyle5] = useState(false);
   
   // Standard Minutes format variations
   const [selectedFormatVariation, setSelectedFormatVariation] = useState<string>('standard');
@@ -192,7 +190,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   interface UndoState {
     style3: string;
     style4: string;
-    style5: string;
     timestamp: number;
   }
   const [undoStack, setUndoStack] = useState<UndoState[]>([]);
@@ -471,11 +468,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
        // Load executive and limerick notes from meeting_notes_multi table
        const { data: multiNotesData } = await supabase
-         .from('meeting_notes_multi')
-         .select('note_type, content')
-         .eq('meeting_id', currentMeetingId)
-         .in('note_type', ['executive', 'limerick'])
-         .order('generated_at', { ascending: false });
+          .from('meeting_notes_multi')
+          .select('note_type, content')
+          .eq('meeting_id', currentMeetingId)
+          .in('note_type', ['executive'])
+          .order('generated_at', { ascending: false });
 
        // Validate we're still on the same meeting before updating state
        if (meeting?.id !== currentMeetingId) {
@@ -492,9 +489,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           }
           if (meetingData.notes_style_4) {
             setNotesStyle4(meetingData.notes_style_4);
-          }
-          if (meetingData.notes_style_5) {
-            setNotesStyle5(meetingData.notes_style_5);
           }
         }
 
@@ -515,19 +509,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           }
         }
 
-       // Load executive and limerick notes from multi-type notes table (takes priority)
+       // Load executive notes from multi-type notes table (takes priority)
        if (multiNotesData && multiNotesData.length > 0) {
-         multiNotesData.forEach(note => {
-           if (note.note_type === 'executive' && note.content) {
-             setNotesStyle4(note.content);
-             console.log('✅ Loaded executive notes from meeting_notes_multi');
-           }
-           if (note.note_type === 'limerick' && note.content) {
-             setNotesStyle5(note.content);
-             console.log('✅ Loaded limerick notes from meeting_notes_multi');
-           }
-         });
-       }
+          multiNotesData.forEach(note => {
+            if (note.note_type === 'executive' && note.content) {
+              setNotesStyle4(note.content);
+              console.log('✅ Loaded executive notes from meeting_notes_multi');
+            }
+          });
+        }
 
        console.log('✅ Loaded existing note styles for meeting:', currentMeetingId);
      } catch (error) {
@@ -1223,7 +1213,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         case 'style2': return notes || "";
         case 'style3': return notesStyle2 || "";
         case 'style4': return notesStyle4 || "";
-        case 'style5': return notesStyle5 || "";
         default: return notes || "";
       }
     } else {
@@ -1251,10 +1240,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         case 'style4':
           setNotesStyle4(content);
           saveNoteStyleToDatabase(4, content);
-          break;
-        case 'style5':
-          setNotesStyle5(content);
-          saveNoteStyleToDatabase(5, content);
           break;
         default:
           onNotesChange(content);
@@ -1327,11 +1312,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           currentContent = notesStyle4;
           updateColumn = 'notes_style_4';
           setStateFunction = setNotesStyle4;
-          break;
-        case 'style5':
-          currentContent = notesStyle5;
-          updateColumn = 'notes_style_5';
-          setStateFunction = setNotesStyle5;
           break;
         default:
           return;
@@ -1482,7 +1462,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         notesStyle2: notesStyle2?.length || 0,
         notesStyle3: notesStyle3?.length || 0,
         notesStyle4: notesStyle4?.length || 0,
-        notesStyle5: notesStyle5?.length || 0,
         transcript: transcript?.length || 0
       });
       
@@ -1504,10 +1483,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           case 'style4': 
             currentContent = notesStyle4 || "";
             currentTabIdentifier = "notes-style4";
-            break;
-          case 'style5': 
-            currentContent = notesStyle5 || "";
-            currentTabIdentifier = "notes-style5";
             break;
           default:
             currentContent = notes || "";
@@ -1552,10 +1527,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             setNotesStyle4(editingContent);
             saveNoteStyleToDatabase(4, editingContent);
             break;
-          case 'style5':
-            setNotesStyle5(editingContent);
-            saveNoteStyleToDatabase(5, editingContent);
-            break;
           default:
             onNotesChange(editingContent);
             saveSummaryToDatabase(editingContent);
@@ -1590,7 +1561,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       switch (activeNotesStyleTab) {
         case 'style1': return notesStyle3;
         case 'style4': return notesStyle4;
-        case 'style5': return notesStyle5;
         default: return null;
       }
     };
@@ -1627,10 +1597,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           setNotesStyle4(tidiedContent);
           await saveNoteStyleToDatabase(4, tidiedContent);
           break;
-        case 'style5':
-          setNotesStyle5(tidiedContent);
-          await saveNoteStyleToDatabase(5, tidiedContent);
-          break;
       }
       
       // 6. Show success toast
@@ -1658,7 +1624,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const undoState: UndoState = {
         style3: notesStyle3,
         style4: notesStyle4,
-        style5: notesStyle5,
         timestamp: Date.now()
       };
       setUndoStack(prev => [...prev, undoState]);
@@ -1691,16 +1656,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           updatedTabs.push('Executive');
           totalReplacements += style4Matches;
         }
-        
-        // Limerick (style5)
-        const style5Matches = (notesStyle5.match(regex) || []).length;
-        if (style5Matches > 0) {
-          const newStyle5 = notesStyle5.replace(regex, correction.replacement);
-          setNotesStyle5(newStyle5);
-          await saveNoteStyleToDatabase(5, newStyle5);
-          updatedTabs.push('Limerick');
-          totalReplacements += style5Matches;
-        }
       } else {
         // Apply only to current tab
         switch (activeNotesStyleTab) {
@@ -1717,13 +1672,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             await saveNoteStyleToDatabase(4, newStyle4);
             updatedTabs.push('Executive');
             totalReplacements = (notesStyle4.match(regex) || []).length;
-            break;
-          case 'style5':
-            const newStyle5 = notesStyle5.replace(regex, correction.replacement);
-            setNotesStyle5(newStyle5);
-            await saveNoteStyleToDatabase(5, newStyle5);
-            updatedTabs.push('Limerick');
-            totalReplacements = (notesStyle5.match(regex) || []).length;
             break;
         }
       }
@@ -1781,12 +1729,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       // Restore all tabs
       setNotesStyle3(lastState.style3);
       setNotesStyle4(lastState.style4);
-      setNotesStyle5(lastState.style5);
       
       // Save to database
       await saveNoteStyleToDatabase(3, lastState.style3);
       await saveNoteStyleToDatabase(4, lastState.style4);
-      await saveNoteStyleToDatabase(5, lastState.style5);
       
       // Remove from undo stack
       setUndoStack(prev => prev.slice(0, -1));
@@ -2579,53 +2525,6 @@ ${transcript}`;
     }
   };
 
-  const generateNotesStyle5 = async () => {
-    console.log('🎭 Starting limerick generation (edge function)...');
-
-    // Reset state immediately to prevent sticking
-    setIsGeneratingStyle5(true);
-
-    if (!meeting?.id) {
-      console.error('❌ Missing meeting id');
-      setIsGeneratingStyle5(false);
-      toast.error('Missing meeting ID');
-      return;
-    }
-    try {
-      // Invoke our dedicated limerick generator (saves to meetings.notes_style_5)
-      const { data, error } = await supabase.functions.invoke('generate-limerick-notes', {
-        body: { meetingIds: [meeting.id] },
-      });
-
-      console.log('📋 Limerick edge response:', data, error);
-      if (error) throw error;
-
-      // Fetch the updated content from the meetings table
-      const { data: meetingRow, error: fetchError } = await supabase
-        .from('meetings')
-        .select('notes_style_5')
-        .eq('id', meeting.id)
-        .maybeSingle();
-
-      if (fetchError) throw fetchError;
-
-      const generatedContent = meetingRow?.notes_style_5 || '';
-      if (generatedContent) {
-        setNotesStyle5(generatedContent);
-        await saveNoteStyleToDatabase(5, generatedContent);
-        console.log('✅ Limerick notes updated from edge function');
-      } else {
-        console.warn('⚠️ Edge function completed but no limerick content found');
-      }
-    } catch (error) {
-      console.error('❌ Error generating limerick (edge):', error);
-      toast.error('Failed to generate limerick notes');
-    } finally {
-      console.log('🏁 Limerick generation finished');
-      setIsGeneratingStyle5(false);
-    }
-  };
-
   const generateSoapNotes = async () => {
     if (!meeting?.id || !user?.id) {
       toast.error('Meeting information not available');
@@ -3001,7 +2900,6 @@ ${transcript}`;
         originalContent={
           activeNotesStyleTab === 'style1' ? notesStyle3 :
           activeNotesStyleTab === 'style4' ? notesStyle4 :
-          activeNotesStyleTab === 'style5' ? notesStyle5 :
           notesStyle3
         }
         onEnhanced={handleEnhanced}
@@ -3185,10 +3083,6 @@ ${transcript}`;
                       setNotesStyle4(editingContent);
                       saveNoteStyleToDatabase(4, editingContent);
                       break;
-                    case 'style5':
-                      setNotesStyle5(editingContent);
-                      saveNoteStyleToDatabase(5, editingContent);
-                      break;
                   }
                 } else if (editingTab === "transcript") {
                   setTranscript(editingContent);
@@ -3251,9 +3145,6 @@ ${transcript}`;
                             </TabsTrigger>
                             <TabsTrigger value="style4" className="text-xs sm:text-sm">
                               Executive Summary
-                            </TabsTrigger>
-                            <TabsTrigger value="style5" className="text-xs sm:text-sm">
-                              Limerick Style
                             </TabsTrigger>
                             <TabsTrigger value="style6" className="text-xs sm:text-sm">
                               Patient Consultation
@@ -3391,7 +3282,6 @@ ${transcript}`;
                                 case 'style1': return notesStyle3;
                                 case 'style2': return notes;
                                 case 'style4': return notesStyle4;
-                                case 'style5': return notesStyle5;
                                 case 'style6': return null; // Patient Consultation has its own UI
                                 default: return null;
                               }
@@ -3402,10 +3292,9 @@ ${transcript}`;
                                  case 'style1': return 'Minutes';
                                  case 'style2': return 'Minutes - Brief';
                                 case 'style4': return 'Executive Summary';
-                                case 'style5': return 'Limerick Style';
                                 case 'style6': return 'Patient Consultation';
                                 default: return 'Meeting Notes';
-                              }
+                               }
                             };
                             
                             const getGenerateFunction = () => {
@@ -3413,7 +3302,6 @@ ${transcript}`;
                                 case 'style1': return generateNotesStyle3;
                                 case 'style2': return handleRegenerateNotes;
                                 case 'style4': return generateNotesStyle4;
-                                case 'style5': return generateNotesStyle5;
                                 default: return () => {};
                               }
                             };
@@ -3423,7 +3311,6 @@ ${transcript}`;
                                 case 'style1': return isGeneratingStyle3;
                                 case 'style2': return isGenerating;
                                 case 'style4': return isGeneratingStyle4;
-                                case 'style5': return isGeneratingStyle5;
                                 default: return false;
                               }
                             };
@@ -3636,11 +3523,10 @@ ${transcript}`;
                                          </div>
                                          <InlineWordCorrector
                                            content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
-                                           allTabsContent={{
-                                             style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
-                                             style4: notesStyle4,
-                                             style5: notesStyle5
-                                           }}
+                                            allTabsContent={{
+                                              style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
+                                              style4: notesStyle4
+                                            }}
                                            onApplyCorrection={handleInlineCorrection}
                                            isActive={!isEditing && activeNotesStyleTab === 'style1'}
                                          />
@@ -3763,95 +3649,21 @@ ${transcript}`;
                                        />
                                      </div>
                                    <InlineWordCorrector
-                                     content={notesStyle4}
-                                     allTabsContent={{
-                                       style3: notesStyle3,
-                                       style4: notesStyle4,
-                                       style5: notesStyle5
-                                     }}
-                                     onApplyCorrection={handleInlineCorrection}
-                                     isActive={!isEditing && activeNotesStyleTab === 'style4'}
-                                   />
-                                 </div>
-                              )}
-                            </div>
-                          )}
-                       </TabsContent>
-                      
-                       <TabsContent value="style5" className="flex-1 overflow-auto pb-6">
-                         {isEditing && editingTab === "notes-style5" ? (
-                           <RichTextEditor
-                             content={editingContent}
-                             onChange={setEditingContent}
-                             placeholder="Meeting notes will appear here..."
-                             className="h-full"
-                           />
-                         ) : (
-                           <div className="space-y-4">
-                             {!notesStyle5 ? (
-                               <div className="flex flex-col items-center justify-center h-32 space-y-4">
-                                 <p className="text-muted-foreground text-center">
-                                   Generate a light-hearted poetic summary with rhyming verses and professional humor
-                                 </p>
-                                 <Button
-                                   onClick={generateNotesStyle5}
-                                   disabled={isGeneratingStyle5 || !transcript}
-                                   className="gap-2"
-                                 >
-                                   {isGeneratingStyle5 ? (
-                                     <>
-                                       <RefreshCw className="h-4 w-4 animate-spin" />
-                                       Generating Style 5...
-                                     </>
-                                   ) : (
-                                     <>
-                                       <Sparkles className="h-4 w-4" />
-                                       Generate Minutes - Limerick
-                                     </>
-                                   )}
-                                 </Button>
-                               </div>
-                                 ) : (
-                                   <div className="relative min-h-[500px]">
-                                     {/* Animated loading overlay */}
-                                     {isGeneratingStyle5 && (
-                                       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
-                                         <div className="flex flex-col items-center gap-4 animate-scale-in">
-                                           <div className="relative">
-                                             <RefreshCw className="h-12 w-12 text-primary animate-spin" />
-                                             <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                                           </div>
-                                           <div className="text-center space-y-2">
-                                             <p className="text-lg font-semibold">Regenerating Notes</p>
-                                             <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
-                                           </div>
-                                         </div>
-                                       </div>
-                                     )}
-                                    <div className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle5 ? 'opacity-50' : 'opacity-100'}`}>
-                                      <div 
-                                        dangerouslySetInnerHTML={{ 
-                                          __html: renderPoeticContent(notesStyle5)
-                                        }}
-                                      />
-                                    </div>
-                                    <InlineWordCorrector
-                                      content={notesStyle5}
+                                      content={notesStyle4}
                                       allTabsContent={{
                                         style3: notesStyle3,
-                                        style4: notesStyle4,
-                                        style5: notesStyle5
+                                        style4: notesStyle4
                                       }}
                                       onApplyCorrection={handleInlineCorrection}
-                                       isActive={!isEditing && activeNotesStyleTab === 'style5'}
+                                      isActive={!isEditing && activeNotesStyleTab === 'style4'}
                                     />
                                   </div>
-                                )}
-                           </div>
-                         )}
-                       </TabsContent>
-                       
-                       {/* Patient Consultation Content (style6) */}
+                               )}
+                             </div>
+                           )}
+                        </TabsContent>
+                         
+                         {/* Patient Consultation Content (style6) */}
                        <TabsContent value="style6" className="flex-1 overflow-hidden mt-0">
                          <div className="h-full flex flex-col">
                            {!soapNotesGenerated ? (

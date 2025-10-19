@@ -12,7 +12,6 @@ interface InlineWordCorrectorProps {
   allTabsContent: {
     style3: string;
     style4: string;
-    style5: string;
   };
   onApplyCorrection: (correction: {
     original: string;
@@ -36,7 +35,7 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
   const [applyToAll, setApplyToAll] = useState(true);
   const [saveForFuture, setSaveForFuture] = useState(true);
   const [occurrenceCount, setOccurrenceCount] = useState(0);
-  const [occurrenceBreakdown, setOccurrenceBreakdown] = useState({ minutes: 0, executive: 0, limerick: 0 });
+  const [occurrenceBreakdown, setOccurrenceBreakdown] = useState({ minutes: 0, executive: 0 });
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [popupPosition, setPopupPosition] = useState<{ top: number; left: number }>({ top: 0, left: 0 });
   
@@ -160,15 +159,13 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
 
     const style3Matches = (allTabsContent.style3.match(regex) || []).length;
     const style4Matches = (allTabsContent.style4.match(regex) || []).length;
-    const style5Matches = (allTabsContent.style5.match(regex) || []).length;
 
-    const total = style3Matches + style4Matches + style5Matches;
+    const total = style3Matches + style4Matches;
 
     setOccurrenceCount(total);
     setOccurrenceBreakdown({
       minutes: style3Matches,
-      executive: style4Matches,
-      limerick: style5Matches
+      executive: style4Matches
     });
   };
 
@@ -290,7 +287,7 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
             Apply to all ({occurrenceCount} occurrence{occurrenceCount !== 1 ? 's' : ''})
             {occurrenceCount > 1 && (
               <span className="block text-muted-foreground mt-0.5">
-                Minutes: {occurrenceBreakdown.minutes}, Executive: {occurrenceBreakdown.executive}, Limerick: {occurrenceBreakdown.limerick}
+                Minutes: {occurrenceBreakdown.minutes}, Executive: {occurrenceBreakdown.executive}
               </span>
             )}
           </label>
