@@ -3202,21 +3202,35 @@ export const MeetingRecorder = ({
         liveNotesIntervalRef.current = null;
       }
       
-      // Stop all transcribers immediately
-      if (browserTranscriberRef.current) {
-        browserTranscriberRef.current.stopTranscription();
-        browserTranscriberRef.current = null;
+      // Stop all transcribers asynchronously to avoid UI freeze
+      try {
+        if (browserTranscriberRef.current) {
+          browserTranscriberRef.current.stopTranscription();
+          browserTranscriberRef.current = null;
+        }
+      } catch (e) {
+        console.error('Browser transcriber stop error', e);
       }
       
-      if (iPhoneTranscriberRef.current) {
-        iPhoneTranscriberRef.current.stopTranscription();
-        iPhoneTranscriberRef.current = null;
+      try {
+        if (iPhoneTranscriberRef.current) {
+          iPhoneTranscriberRef.current.stopTranscription();
+          iPhoneTranscriberRef.current = null;
+        }
+      } catch (e) {
+        console.error('iPhone transcriber stop error', e);
       }
       
       if (desktopTranscriberRef.current) {
-        await desktopTranscriberRef.current.stopTranscription();
+        const t = desktopTranscriberRef.current;
         desktopTranscriberRef.current = null;
+        // Run heavy stop in background (don't block UI)
+        setTimeout(() => {
+          t.stopTranscription().catch(err => console.error('Desktop transcriber stop error', err));
+        }, 0);
       }
+      
+      setStopRecordingStep('Releasing audio…');
       
       // Stop microphone stream
       if (micAudioStreamRef.current) {
@@ -3242,9 +3256,11 @@ export const MeetingRecorder = ({
         audioContextRef.current = null;
       }
       
-      // Stop overlapping chunks and stereo recording
-      await stopOverlappingChunks();
-      await stopStereoRecording();
+      // Stop overlapping chunks and stereo recording in background
+      setTimeout(() => {
+        stopOverlappingChunks().catch(e => console.error('stopOverlappingChunks error', e));
+        stopStereoRecording().catch(e => console.error('stopStereoRecording error', e));
+      }, 0);
       
       setIsRecording(false);
       isRecordingRef.current = false;
@@ -3255,14 +3271,25 @@ export const MeetingRecorder = ({
       // Clear unsaved meeting data but keep session IDs until meeting is saved
       localStorage.removeItem('unsaved_meeting');
       
-      // Reset the meeting immediately for short recordings
-      await resetMeeting();
-      setIsStoppingRecording(false);
+      // Reset the meeting immediately for short recordings (background)
+      setStopRecordingStep('Complete!');
+      setIsRecording(false);
+      isRecordingRef.current = false;
+      setConnectionStatus('Disconnected');
+      setTimeout(async () => {
+        try {
+          await resetMeeting();
+        } finally {
+          setIsStoppingRecording(false);
+        }
+      }, 0);
       
       // Show toast for short meeting
       toast.info('Meeting was too short to save (minimum 100 words required)', {
         duration: 4000,
       });
+      
+      return;
       
       return;
     }
