@@ -65,6 +65,52 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
     try {
       setIsExporting(true);
       
+      // Function to parse a line and convert markdown formatting to Word TextRuns
+      const parseLineToTextRuns = (line: string): TextRun[] => {
+        const runs: TextRun[] = [];
+        let currentIndex = 0;
+        
+        // Regex to match **bold** and *italic* patterns
+        const markdownRegex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
+        let match;
+        
+        while ((match = markdownRegex.exec(line)) !== null) {
+          // Add text before the match as normal text
+          if (match.index > currentIndex) {
+            const normalText = line.substring(currentIndex, match.index);
+            if (normalText) {
+              runs.push(new TextRun({ text: normalText, size: 22 }));
+            }
+          }
+          
+          // Add the matched text with formatting
+          if (match[2]) {
+            // Bold text (**text**)
+            runs.push(new TextRun({ text: match[2], size: 22, bold: true }));
+          } else if (match[3]) {
+            // Italic text (*text*)
+            runs.push(new TextRun({ text: match[3], size: 22, italics: true }));
+          }
+          
+          currentIndex = match.index + match[0].length;
+        }
+        
+        // Add remaining text after last match
+        if (currentIndex < line.length) {
+          const remainingText = line.substring(currentIndex);
+          if (remainingText) {
+            runs.push(new TextRun({ text: remainingText, size: 22 }));
+          }
+        }
+        
+        // If no markdown found, return the whole line as normal text
+        if (runs.length === 0) {
+          runs.push(new TextRun({ text: line, size: 22 }));
+        }
+        
+        return runs;
+      };
+      
       const doc = new Document({
         sections: [{
           properties: {},
@@ -92,7 +138,7 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
             new Paragraph({ text: "" }), // Empty line
             ...content.split('\n').map(line => 
               new Paragraph({
-                children: [new TextRun({ text: line, size: 22 })]
+                children: parseLineToTextRuns(line)
               })
             )
           ]
