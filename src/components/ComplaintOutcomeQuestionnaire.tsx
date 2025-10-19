@@ -99,8 +99,15 @@ export const ComplaintOutcomeQuestionnaire = ({
         .eq('complaint_reference', complaintReference)
         .maybeSingle();
       
-      if (dbResponse && !error) {
+      if (error) {
+        console.error('Error fetching demo response:', error);
+      }
+      
+      if (dbResponse) {
+        console.log('Demo response loaded for complaint:', complaintReference, dbResponse);
         setDemoResponse(dbResponse);
+      } else {
+        console.log('No demo response found for complaint:', complaintReference);
       }
     };
     
@@ -127,7 +134,23 @@ export const ComplaintOutcomeQuestionnaire = ({
 
   const loadDemoReply = (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
     const demoReplies = getDemoReplies();
-    setData(prevData => ({ ...prevData, [field]: demoReplies[field] }));
+    const content = demoReplies[field];
+    
+    if (!content || content.trim() === '') {
+      toast({
+        title: "No demo content available",
+        description: "There is no pre-filled content available for this field.",
+        variant: "default",
+      });
+      return;
+    }
+    
+    setData(prevData => ({ ...prevData, [field]: content }));
+    
+    toast({
+      title: "Demo reply loaded",
+      description: "Pre-filled content has been added to the field.",
+    });
   };
 
   useEffect(() => {
