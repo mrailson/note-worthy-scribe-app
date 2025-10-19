@@ -122,6 +122,7 @@ export const MeetingRecorder = ({
   const [chunkCounter, setChunkCounter] = useState(0);
   const [removedSegments, setRemovedSegments] = useState<RemovedSegment[]>([]);
   const [chunkSaveStatuses, setChunkSaveStatuses] = useState<ChunkSaveStatus[]>([]);
+  const [stopUIStatus, setStopUIStatus] = useState<string>('');
   
   // Update removed segments periodically
   useEffect(() => {
@@ -163,6 +164,32 @@ export const MeetingRecorder = ({
       stopRecording();
     },
   });
+
+  // Debug: wrap stop interactions to show UI steps
+  const onMicButtonClick = () => {
+    try {
+      if (isRecording) {
+        setStopUIStatus('Stop click detected — awaiting second click…');
+        handleDoubleClickProtection();
+      } else {
+        setStopUIStatus('Start click detected — starting recording…');
+        startRecording();
+      }
+    } catch (e) {
+      console.error('Stop/Start click error', e);
+      setStopUIStatus('Error handling mic button click');
+    }
+  };
+
+  const handleConfirmDialogOpenChangeWrapped = (open: boolean) => {
+    setStopUIStatus(open ? 'Confirmation opened' : 'Confirmation closed');
+    setShowConfirmDialog(open);
+  };
+
+  const confirmStopRecordingWrapped = () => {
+    setStopUIStatus('Confirmed — stopping…');
+    confirmStopRecording();
+  };
 
   const [showLastPhrase, setShowLastPhrase] = useState(false);
   const [lastPhrase, setLastPhrase] = useState("");
@@ -4655,13 +4682,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   <div className="max-w-sm mx-auto">
                      <button
                        type="button"
-                       onClick={() => { 
-                         if (isRecording) {
-                           handleDoubleClickProtection();
-                         } else {
-                           startRecording();
-                         }
-                       }}
+                       onClick={onMicButtonClick}
                        
                        className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 cursor-pointer ${
                          doubleClickProtection 
@@ -4701,6 +4722,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                          <p className="text-xs text-muted-foreground">
                            Your meeting audio is being captured
                          </p>
+                         {stopUIStatus && (
+                           <div className="mt-2 text-xs font-medium text-purple-600 dark:text-purple-400">
+                             {stopUIStatus}
+                           </div>
+                         )}
                          {stopRecordingStep && (
                            <div className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 animate-pulse">
                              {stopRecordingStep}
@@ -5095,8 +5121,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       {/* Stop Recording Confirmation Dialog */}
       <StopRecordingConfirmDialog
         isOpen={showConfirmDialog}
-        onOpenChange={setShowConfirmDialog}
-        onConfirm={confirmStopRecording}
+        onOpenChange={handleConfirmDialogOpenChangeWrapped}
+        onConfirm={confirmStopRecordingWrapped}
         recordingDuration={duration}
         wordCount={wordCount}
       />
