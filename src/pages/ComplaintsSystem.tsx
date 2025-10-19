@@ -1497,9 +1497,11 @@ const ComplaintsSystem = () => {
                             }
                             navigate(`/complaints/${complaint.id}`);
                           }}
+                          disabled={complaint.status === 'submitted'}
+                          title={complaint.status === 'submitted' ? 'Generating acknowledgement letter - please wait' : 'View complaint details'}
                         >
                           <Eye className="h-4 w-4 mr-1" />
-                          View Details
+                          {complaint.status === 'submitted' ? 'Generating...' : 'View Details'}
                         </Button>
                       </div>
                     </div>
@@ -1794,9 +1796,11 @@ const ComplaintsSystem = () => {
                                 }
                                 navigate(`/complaints/${complaint.id}`);
                               }}
+                              disabled={complaint.status === 'submitted'}
+                              title={complaint.status === 'submitted' ? 'Generating acknowledgement letter - please wait' : 'View complaint details'}
                             >
                               <Eye className="h-4 w-4 mr-1" />
-                              View Details
+                              {complaint.status === 'submitted' ? 'Generating...' : 'View Details'}
                             </Button>
                             
                             {lettersStatus[complaint.id]?.hasAcknowledgement ? (
