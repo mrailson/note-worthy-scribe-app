@@ -204,13 +204,8 @@ export const ComplaintOutcomeQuestionnaire = ({
   };
 
   const loadDemoReply = (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
-    // If still loading, trigger immediate fetch or wait
+    // If still loading, return without action
     if (isDemoLoading) {
-      toast({
-        title: "Loading demo content...",
-        description: "Please wait while we load the pre-filled content.",
-        variant: "default",
-      });
       return;
     }
     
@@ -218,11 +213,6 @@ export const ComplaintOutcomeQuestionnaire = ({
     const content = demoReplies[field];
     
     if (!content || content.trim() === '') {
-      toast({
-        title: "No demo content available",
-        description: "There is no pre-filled content available for this field.",
-        variant: "default",
-      });
       return;
     }
     
@@ -235,11 +225,6 @@ export const ComplaintOutcomeQuestionnaire = ({
     const sourceInfo = demoSource === 'fallback' 
       ? ' (from similar complaint in same category)' 
       : '';
-    
-    toast({
-      title: "Demo reply loaded",
-      description: `Pre-filled content has been added${sourceInfo}.`,
-    });
     
     console.log(`✨ Loaded demo content for ${field}: ${trimmedContent.length} chars${sourceInfo}`);
   };
