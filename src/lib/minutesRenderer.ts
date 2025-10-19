@@ -31,31 +31,31 @@ export function renderMinutesMarkdown(content: string): string {
       const present = attendees.filter(a => !a.toLowerCase().includes('mentioned'));
       const mentioned = attendees.filter(a => a.toLowerCase().includes('mentioned')).map(a => a.replace(/\s*\(mentioned\)/gi, ''));
       
-      if (attendees.length <= 4) {
-        // Inline format for short lists
+      if (attendees.length <= 8) {
+        // Inline format with bullet separators for short lists (≤8 attendees)
         let html = '<h3 class="text-lg font-semibold text-[#005EB8] mb-3 mt-5">Attendees</h3>';
-        html += '<div class="bg-[#F0F4F5] border-l-4 border-[#005EB8] p-4 mb-4 rounded-r">';
-        if (present.length > 0) html += `<p class="mb-2"><strong class="text-[#005EB8]">Present:</strong> ${present.join(', ')}</p>`;
-        if (mentioned.length > 0) html += `<p><strong class="text-[#768692]">Also mentioned:</strong> ${mentioned.join(', ')}</p>`;
+        html += '<div class="bg-[#F0F4F5] border-l-4 border-[#005EB8] p-3 mb-4 rounded-r">';
+        if (present.length > 0) html += `<p class="mb-2"><strong class="text-[#005EB8]">Present:</strong> ${present.join(' • ')}</p>`;
+        if (mentioned.length > 0) html += `<p><strong class="text-[#768692]">Also mentioned:</strong> ${mentioned.join(' • ')}</p>`;
         html += '</div>';
         return html;
       } else {
-        // Grid format for longer lists
+        // Compact 3-column grid format for longer lists (≥9 attendees)
         const presentGrid = present.map(a => 
-          `<div class="px-3 py-2 bg-white border border-[#E8EDEE] rounded text-[#212B32]">${a}</div>`
+          `<div class="px-2 py-1.5 bg-white border border-[#E8EDEE] rounded text-[#212B32] text-sm">${a}</div>`
         ).join('');
         const mentionedGrid = mentioned.length > 0 ? mentioned.map(a => 
-          `<div class="px-3 py-2 bg-white border border-[#E8EDEE] rounded text-[#768692] italic">${a}</div>`
+          `<div class="px-2 py-1.5 bg-white border border-[#E8EDEE] rounded text-[#768692] text-sm italic">${a}</div>`
         ).join('') : '';
         
         let html = '<h3 class="text-lg font-semibold text-[#005EB8] mb-3 mt-5">Attendees</h3>';
         if (present.length > 0) {
           html += '<p class="text-sm font-semibold text-[#005EB8] mb-2">Present:</p>';
-          html += `<div class="grid grid-cols-2 gap-2 mb-3">${presentGrid}</div>`;
+          html += `<div class="grid grid-cols-3 gap-1.5 mb-2">${presentGrid}</div>`;
         }
         if (mentioned.length > 0) {
           html += '<p class="text-sm font-semibold text-[#768692] mb-2">Also mentioned:</p>';
-          html += `<div class="grid grid-cols-2 gap-2 mb-4">${mentionedGrid}</div>`;
+          html += `<div class="grid grid-cols-3 gap-1.5 mb-2">${mentionedGrid}</div>`;
         }
         return html;
       }
