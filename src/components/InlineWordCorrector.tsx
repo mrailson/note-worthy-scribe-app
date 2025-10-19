@@ -48,8 +48,11 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
 
     const handleMouseUp = (e: MouseEvent) => {
       // Ignore selections made inside the popup
-      if (popupRef.current && popupRef.current.contains(e.target as Node)) {
-        return;
+      if (popupRef.current) {
+        const path = (e.composedPath && e.composedPath()) || [];
+        if (path.includes(popupRef.current) || popupRef.current.contains(e.target as Node)) {
+          return;
+        }
       }
 
       setTimeout(() => {
@@ -74,13 +77,14 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
 
     const handleClickOutside = (e: MouseEvent) => {
       if (!showPopup || !popupRef.current) return;
-      
+
       const target = e.target as Node;
+      const path = (e.composedPath && e.composedPath()) || [];
       // Don't close if clicking inside the popup or any of its child elements
-      if (popupRef.current.contains(target)) {
+      if (path.includes(popupRef.current) || popupRef.current.contains(target)) {
         return;
       }
-      
+
       setShowPopup(false);
       window.getSelection()?.removeAllRanges();
     };
