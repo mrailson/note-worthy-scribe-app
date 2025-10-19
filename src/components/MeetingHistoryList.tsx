@@ -1518,7 +1518,7 @@ export const MeetingHistoryList = ({
       case 'in-progress':
         return <Play className="h-4 w-4 text-blue-500" />;
       case 'scheduled':
-        return <Drama className="h-4 w-4 text-amber-500" />;
+        return <Drama className="h-4 w-4" />;
       default:
         return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
