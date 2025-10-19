@@ -737,8 +737,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                   const cellRuns = [] as any[];
                   let currentText = cellText;
 
-                  // Handle bold text in cells
-                  const boldRegex = /(\*\*|__)(.*?)\1/g;
+                  // Handle bold text in cells (exactly 2 asterisks on each side)
+                  const boldRegex = /\*\*([^*]+?)\*\*/g;
                   let lastIndex = 0;
                   let match: RegExpExecArray | null;
 
@@ -750,7 +750,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                     }
 
                     // Add bold text
-                    cellRuns.push(new TextRun({ text: match[2], bold: true, size: rowIndex === 0 ? 22 : 20 }));
+                    cellRuns.push(new TextRun({ text: match[1], bold: true, size: rowIndex === 0 ? 22 : 20 }));
                     lastIndex = match.index + match[0].length;
                   }
 
@@ -852,8 +852,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             const parts = [];
             let lastIndex = 0;
             
-            // Find all **text** patterns
-            const boldRegex = /\*{1,2}([^*]+?)\*{1,2}/g;
+            // Find all **text** patterns (exactly 2 asterisks on each side for bold)
+            const boldRegex = /\*\*([^*]+?)\*\*/g;
             let match;
             
             while ((match = boldRegex.exec(cleanedLine)) !== null) {
