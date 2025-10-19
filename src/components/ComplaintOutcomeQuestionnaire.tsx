@@ -127,7 +127,7 @@ export const ComplaintOutcomeQuestionnaire = ({
 
   const loadDemoReply = (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
     const demoReplies = getDemoReplies();
-    setData({ ...data, [field]: demoReplies[field] });
+    setData(prevData => ({ ...prevData, [field]: demoReplies[field] }));
   };
 
   useEffect(() => {
@@ -767,7 +767,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               <div className="flex gap-2">
                 <SpeechToText
                   onTranscription={(text) =>
-                    setData({ ...data, key_findings: (data.key_findings + ' ' + text).slice(0, 150) })
+                    setData(prevData => ({ ...prevData, key_findings: (prevData.key_findings + ' ' + text).slice(0, 150) }))
                   }
                   className="flex-1"
                 />
@@ -803,7 +803,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               <div className="flex gap-2">
                 <SpeechToText
                   onTranscription={(text) =>
-                    setData({ ...data, actions_taken: (data.actions_taken + ' ' + text).slice(0, 150) })
+                    setData(prevData => ({ ...prevData, actions_taken: (prevData.actions_taken + ' ' + text).slice(0, 150) }))
                   }
                   className="flex-1"
                 />
@@ -839,7 +839,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               <div className="flex gap-2">
                 <SpeechToText
                   onTranscription={(text) =>
-                    setData({ ...data, improvements_made: (data.improvements_made + ' ' + text).slice(0, 150) })
+                    setData(prevData => ({ ...prevData, improvements_made: (prevData.improvements_made + ' ' + text).slice(0, 150) }))
                   }
                   className="flex-1"
                 />
@@ -915,7 +915,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               <div className="flex gap-2">
                 <SpeechToText
                   onTranscription={(text) =>
-                    setData({ ...data, additional_context: (data.additional_context + ' ' + text).slice(0, 200) })
+                    setData(prevData => ({ ...prevData, additional_context: (prevData.additional_context + ' ' + text).slice(0, 200) }))
                   }
                   className="flex-1"
                 />
