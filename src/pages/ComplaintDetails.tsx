@@ -2951,10 +2951,6 @@ I am committed to ensuring that all patients receive the care and service they d
                       <div className="bg-blue-50 px-3 py-1 rounded-md border border-blue-200">
                         <span className="text-xs text-blue-700 font-medium">📊 Generated Reports:</span>
                       </div>
-                      <CQCReportModal 
-                        complaintId={complaintId || ''} 
-                        complaintReference={complaint?.reference_number || ''} 
-                      />
                       {complianceChecks.length > 0 && complianceSummary?.compliance_percentage !== 100 && (
                         <Button 
                           variant="outline" 
