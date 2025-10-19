@@ -117,7 +117,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   notes,
   onNotesChange
 }) => {
-  const { user } = useAuth();
+  const { user, canViewConsultationExamples } = useAuth();
   const { isRecording, isResourceOperationSafe } = useRecording();
   const isMobile = useIsMobile();
   const isIPhone = useIsIPhone();
@@ -3088,9 +3088,11 @@ ${transcript}`;
                             <TabsTrigger value="style1" className="text-xs sm:text-sm">
                               Meeting Minutes - Standard View
                             </TabsTrigger>
-                            <TabsTrigger value="style6" className="text-xs sm:text-sm">
-                              Patient Consultation
-                            </TabsTrigger>
+                            {canViewConsultationExamples && (
+                              <TabsTrigger value="style6" className="text-xs sm:text-sm">
+                                Patient Consultation
+                              </TabsTrigger>
+                            )}
                           </TabsList>
                           
                           {/* Font Size Controls - only show for Minutes */}
