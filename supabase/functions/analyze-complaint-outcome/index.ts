@@ -62,7 +62,7 @@ serve(async (req) => {
     }
 
     // Related data fetched separately to avoid join permission issues
-    const [{ data: notes }, { data: parties }] = await Promise.all([
+    const [{ data: notes }, { data: parties }, { data: questionnaire }] = await Promise.all([
       supabase.from('complaint_notes')
         .select('note, is_internal, created_at')
         .eq('complaint_id', complaint.id)
@@ -70,7 +70,13 @@ serve(async (req) => {
       supabase.from('complaint_involved_parties')
         .select('staff_name, staff_role, response_text, response_submitted_at')
         .eq('complaint_id', complaint.id)
-        .order('response_submitted_at', { ascending: true })
+        .order('response_submitted_at', { ascending: true }),
+      supabase.from('complaint_outcome_questionnaires')
+        .select('questionnaire_data')
+        .eq('complaint_id', complaint.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
     ]);
 
     const systemPrompt = `IMPORTANT: This analysis is advisory only. The final decision must be made by qualified practice staff based on thorough evidence review and professional judgement.
@@ -114,6 +120,31 @@ DISCLAIMER: This analysis is provided as guidance to support decision-making. It
       .map(n => n.note)
       .join('\n\n') || 'No internal notes';
 
+    // Extract questionnaire data from the practice's investigation
+    const questionnaireData = questionnaire?.questionnaire_data || {};
+    const practiceFindings = questionnaireData.key_findings || '';
+    const actionsTaken = questionnaireData.actions_taken || '';
+    const improvementsMade = questionnaireData.improvements_made || '';
+    const additionalContext = questionnaireData.additional_context || '';
+    
+    const practiceInvestigationSection = (practiceFindings || actionsTaken || improvementsMade || additionalContext) 
+      ? `
+PRACTICE INVESTIGATION FINDINGS (Sections 2 & 3):
+
+Key Findings:
+${practiceFindings || 'Not documented'}
+
+Actions Taken:
+${actionsTaken || 'Not documented'}
+
+Improvements Made:
+${improvementsMade || 'Not documented'}
+
+Additional Context:
+${additionalContext || 'Not documented'}
+` 
+      : '';
+
     const userPrompt = `Analyze this NHS complaint and recommend an outcome:
 
 COMPLAINT DETAILS:
@@ -125,7 +156,7 @@ Description: ${complaint.complaint_description}
 Incident Date: ${complaint.incident_date}
 Location/Service: ${complaint.location_service || 'Not specified'}
 Staff Mentioned: ${complaint.staff_mentioned?.join(', ') || 'None specifically mentioned'}
-
+${practiceInvestigationSection}
 STAFF RESPONSES:
 ${staffResponses}
 
@@ -135,6 +166,8 @@ ${internalNotes}
 PATIENT INFORMATION:
 - Complaint made on behalf of patient: ${complaint.complaint_on_behalf ? 'Yes' : 'No'}
 - Consent given: ${complaint.consent_given ? 'Yes' : 'No'}
+
+IMPORTANT: Base your analysis on BOTH the original complaint AND the practice's documented investigation findings (sections 2 & 3). Consider what actions the practice has already taken and improvements made when determining the outcome.
 
 Please provide a comprehensive analysis with recommended outcome and clear reasoning that would satisfy CQC inspection and NHS England standards.`;
 
