@@ -2025,6 +2025,29 @@ I am committed to ensuring that all patients receive the care and service they d
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Delete Complaint Section */}
+              <Card className="border-destructive/50">
+                <CardHeader>
+                  <CardTitle className="text-destructive flex items-center gap-2">
+                    <AlertTriangle className="h-5 w-5" />
+                    Danger Zone
+                  </CardTitle>
+                  <CardDescription>
+                    Permanently delete this complaint and all associated data
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Button 
+                    variant="destructive" 
+                    onClick={() => setShowDeleteDialog(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Complaint
+                  </Button>
+                </CardContent>
+              </Card>
             </TabsContent>
 
             {/* Workflow Tab */}
@@ -3086,29 +3109,6 @@ I am committed to ensuring that all patients receive the care and service they d
               )}
             </TabsContent>
           </Tabs>
-
-          {/* Delete Complaint Section */}
-          <Card className="mt-6 border-destructive/50">
-            <CardHeader>
-              <CardTitle className="text-destructive flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Danger Zone
-              </CardTitle>
-              <CardDescription>
-                Permanently delete this complaint and all associated data
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button 
-                variant="destructive" 
-                onClick={() => setShowDeleteDialog(true)}
-                className="w-full sm:w-auto"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                Delete Complaint
-              </Button>
-            </CardContent>
-          </Card>
         </div>
       </div>
 
