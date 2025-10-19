@@ -265,15 +265,21 @@ Generate SOAP notes using ONLY the information above:
 
 SHORTHAND (GP abbreviations, concise):
 S: [Only symptoms/history explicitly mentioned - use abbreviations like c/o, SOB, CP]
-O: [ONLY examination findings/observations actually performed and documented - abbreviated. List ONLY what was done. NEVER add phrases like "No other examination" or "Nothing else documented". If only a urine dipstick was done, write ONLY the dipstick result - nothing more]
+O: [ONLY examination findings/observations actually performed and documented - abbreviated. List ONLY what was done, then STOP. Example: If only urine dipstick done, write "Urine dipstick: +ve leukocytes, blood" and nothing more]
 A: [Only assessment/diagnosis explicitly discussed - concise]
 P: [Only management plan explicitly agreed - abbreviated]
 
 STANDARD (Full clinical detail):
 S: [Only complete subjective information from transcript]
-O: [ONLY objective findings actually documented and performed. Document each examination finding on its own line. NEVER add summary statements about what wasn't done. NEVER write "No other examination findings documented" or similar phrases. If the transcript mentions a urine dipstick and nothing else, write ONLY the dipstick result and stop there]
+O: [ONLY objective findings actually documented. Each finding on its own line, then STOP. Example: "Urine dipstick: positive for leukocytes and blood." - that's it, nothing about other examinations]
 A: [Only assessment based on what was discussed]
 P: [Only plan explicitly agreed with safety-netting if mentioned]
+
+CORRECT EXAMPLE - If only urine dipstick mentioned:
+O: Urine dipstick: positive for leukocytes and blood.
+
+WRONG EXAMPLE - Never do this:
+O: Urine dipstick: positive for leukocytes and blood. No other examination findings documented.
 
 Also provide:
 SUMMARY_LINE: [One-line summary based only on transcript content]
