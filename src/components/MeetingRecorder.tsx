@@ -159,6 +159,7 @@ export const MeetingRecorder = ({
     wordCount,
     onStopRecording: () => {
       console.log('🔥🔥🔥 STOP BUTTON CLICKED!');
+      setIsStoppingRecording(true);
       stopRecording();
     },
   });
