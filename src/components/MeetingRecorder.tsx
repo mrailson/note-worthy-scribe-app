@@ -163,6 +163,23 @@ export const MeetingRecorder = ({
       stopRecording();
     },
   });
+
+  // Safety: ensure the UI never gets stuck on the "Ending recording" state
+  useEffect(() => {
+    // If recording has already stopped, clear the stopping state
+    if (!isRecording && isStoppingRecording) {
+      setIsStoppingRecording(false);
+      return;
+    }
+    // Fallback timeout in case of unexpected errors during save
+    if (isStoppingRecording) {
+      const t = setTimeout(() => {
+        console.warn('⏳ Safety timeout: clearing isStoppingRecording');
+        setIsStoppingRecording(false);
+      }, 15000);
+      return () => clearTimeout(t);
+    }
+  }, [isRecording, isStoppingRecording]);
   const [showLastPhrase, setShowLastPhrase] = useState(false);
   const [lastPhrase, setLastPhrase] = useState("");
   const [startTime, setStartTime] = useState<string>("");
@@ -3914,8 +3931,14 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       backgroundProcessing();
 
     } catch (error) {
-      console.error('❌ Background processing error (meeting already saved):', error);
-      // Toast removed - meeting is already saved successfully, this is just background cleanup
+      console.error('❌ Error while saving/finishing recording:', error);
+      // Ensure UI recovers even if saving fails early
+      showToast.error('Something went wrong finishing the recording. We have safely stopped it.', { section: 'meeting_manager' });
+      try {
+        await resetMeeting();
+      } finally {
+        setIsStoppingRecording(false);
+      }
     }
   };
 
