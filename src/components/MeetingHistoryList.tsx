@@ -1531,7 +1531,7 @@ export const MeetingHistoryList = ({
                 <Drama className="h-6 w-6 text-blue-500" />
               </div>
             </TooltipTrigger>
-            <TooltipContent>
+            <TooltipContent side="right" sideOffset={5}>
               <p>Demo meeting - contains no real or confidential data</p>
             </TooltipContent>
           </Tooltip>
