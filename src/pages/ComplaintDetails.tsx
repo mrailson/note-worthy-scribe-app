@@ -2141,17 +2141,6 @@ I am committed to ensuring that all patients receive the care and service they d
                           )}
                         </div>
                         <div className="space-x-2">
-                          {aiAnalysis && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setShowAiAnalysisModal(true)}
-                              className="border-purple-500 text-purple-600 hover:bg-purple-50"
-                            >
-                              <Sparkles className="h-4 w-4 mr-1" />
-                              AI Report
-                            </Button>
-                          )}
                           <Button
                             variant="outline"
                             size="sm"
@@ -2201,6 +2190,17 @@ I am committed to ensuring that all patients receive the care and service they d
                             <RefreshCw className="h-4 w-4 mr-1" />
                             {isRegeneratingOutcome ? 'Regenerating...' : 'Regenerate Letter'}
                           </Button>
+                          {aiAnalysis && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowAiAnalysisModal(true)}
+                              className="border-purple-500 text-purple-600 hover:bg-purple-50"
+                            >
+                              <Sparkles className="h-4 w-4 mr-1" />
+                              AI Report
+                            </Button>
+                          )}
                         </div>
                       </div>
                       
