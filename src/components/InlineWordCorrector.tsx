@@ -50,7 +50,11 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
       // Ignore selections made inside the popup
       if (popupRef.current) {
         const path = (e.composedPath && e.composedPath()) || [];
-        if (path.includes(popupRef.current) || popupRef.current.contains(e.target as Node)) {
+        const target = e.target as HTMLElement;
+        const inside = (!!target && typeof target.closest === 'function' && target.closest('[data-inline-corrector="1"]')) 
+          || path.includes(popupRef.current) 
+          || popupRef.current.contains(target as Node);
+        if (inside) {
           return;
         }
       }
@@ -78,10 +82,13 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
     const handleClickOutside = (e: MouseEvent) => {
       if (!showPopup || !popupRef.current) return;
 
-      const target = e.target as Node;
+      const target = e.target as HTMLElement;
       const path = (e.composedPath && e.composedPath()) || [];
       // Don't close if clicking inside the popup or any of its child elements
-      if (path.includes(popupRef.current) || popupRef.current.contains(target)) {
+      const inside = (!!target && typeof target.closest === 'function' && target.closest('[data-inline-corrector="1"]'))
+        || (popupRef.current ? path.includes(popupRef.current) : false)
+        || (popupRef.current ? popupRef.current.contains(target as Node) : false);
+      if (inside) {
         return;
       }
 
@@ -231,6 +238,7 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
   const popupContent = (
     <div
       ref={popupRef}
+      data-inline-corrector="1"
       className="fixed z-[9999] bg-popover rounded-lg shadow-2xl border-2 border-primary p-4 animate-in fade-in duration-200"
       style={{
         top: `${popupPosition.top}px`,
