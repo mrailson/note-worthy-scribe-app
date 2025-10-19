@@ -3248,6 +3248,15 @@ ${transcript}`;
                             <TabsTrigger value="style1" className="text-xs sm:text-sm">
                               Meeting Minutes - Standard View
                             </TabsTrigger>
+                            <TabsTrigger value="style4" className="text-xs sm:text-sm">
+                              Executive Summary
+                            </TabsTrigger>
+                            <TabsTrigger value="style5" className="text-xs sm:text-sm">
+                              Limerick Style
+                            </TabsTrigger>
+                            <TabsTrigger value="style6" className="text-xs sm:text-sm">
+                              Patient Consultation
+                            </TabsTrigger>
                           </TabsList>
                           
                           {/* Font Size Controls - only show for Minutes */}
@@ -3351,28 +3360,6 @@ ${transcript}`;
                                       <Sparkles className="mr-2 h-4 w-4" />
                                       <span>Executive Brief</span>
                                     </DropdownMenuItem>
-                                    
-                                    {/* Alternative Formats Submenu */}
-                                    <DropdownMenuSub>
-                                      <DropdownMenuSubTrigger>
-                                        <Sparkles className="mr-2 h-4 w-4" />
-                                        <span>Alternative Formats</span>
-                                      </DropdownMenuSubTrigger>
-                                      <DropdownMenuSubContent className="bg-popover border shadow-md">
-                                        <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style4')}>
-                                          <Sparkles className="mr-2 h-4 w-4" />
-                                          <span>Executive Summary</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style5')}>
-                                          <FileText className="mr-2 h-4 w-4" />
-                                          <span>Limerick Style</span>
-                                        </DropdownMenuItem>
-                                        <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style6')}>
-                                          <Stethoscope className="mr-2 h-4 w-4" />
-                                          <span>Patient Consultation</span>
-                                        </DropdownMenuItem>
-                                      </DropdownMenuSubContent>
-                                    </DropdownMenuSub>
                                   </DropdownMenuGroup>
                                 </DropdownMenuContent>
                               </DropdownMenu>
