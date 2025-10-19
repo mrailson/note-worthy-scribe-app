@@ -77,16 +77,6 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-3 p-4 bg-primary/5 border border-primary/20 rounded-lg">
-        <Sparkles className="h-5 w-5 text-primary mt-0.5 shrink-0" />
-        <div>
-          <h3 className="font-medium text-sm mb-1">Demo & Training Meetings</h3>
-          <p className="text-sm text-muted-foreground">
-            Select from pre-configured NHS meetings with realistic transcripts. Perfect for demonstrations, training, and testing the system's capabilities. All data is fictional and safe to share.
-          </p>
-        </div>
-      </div>
-
       {/* Filters */}
       <div className="flex items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg border">
         <div className="flex items-center gap-4 flex-wrap">
