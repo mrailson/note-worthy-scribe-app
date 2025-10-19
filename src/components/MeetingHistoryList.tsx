@@ -2236,22 +2236,6 @@ export const MeetingHistoryList = ({
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
-                          handleProcessClick(meeting);
-                        }}
-                        disabled={processingMeetings[meeting.id]?.isProcessing}
-                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
-                      >
-                        {(() => {
-                          const IconComponent = getProcessingButtonIcon(processingMeetings[meeting.id]);
-                          const processing = processingMeetings[meeting.id];
-                          const shouldSpin = processing?.isProcessing && processing.currentStage !== 'complete';
-                          return <IconComponent className={`h-4 w-4 mr-2 ${shouldSpin ? 'animate-spin' : ''}`} />;
-                        })()}
-                        {getProcessingButtonText(processingMeetings[meeting.id])}
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onSelect={(e) => {
-                          e.preventDefault();
                           handleEmailMinutesClick(meeting);
                         }}
                       >
@@ -2284,6 +2268,22 @@ export const MeetingHistoryList = ({
                       >
                         <Paperclip className="h-4 w-4 mr-2" />
                         Upload Documents
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleProcessClick(meeting);
+                        }}
+                        disabled={processingMeetings[meeting.id]?.isProcessing}
+                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
+                      >
+                        {(() => {
+                          const IconComponent = getProcessingButtonIcon(processingMeetings[meeting.id]);
+                          const processing = processingMeetings[meeting.id];
+                          const shouldSpin = processing?.isProcessing && processing.currentStage !== 'complete';
+                          return <IconComponent className={`h-4 w-4 mr-2 ${shouldSpin ? 'animate-spin' : ''}`} />;
+                        })()}
+                        {getProcessingButtonText(processingMeetings[meeting.id])}
                       </DropdownMenuItem>
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem 
