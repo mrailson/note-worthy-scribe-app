@@ -159,27 +159,10 @@ export const MeetingRecorder = ({
     wordCount,
     onStopRecording: () => {
       console.log('🔥🔥🔥 STOP BUTTON CLICKED!');
-      setIsStoppingRecording(true);
       stopRecording();
     },
   });
 
-  // Safety: ensure the UI never gets stuck on the "Ending recording" state
-  useEffect(() => {
-    // If recording has already stopped, clear the stopping state
-    if (!isRecording && isStoppingRecording) {
-      setIsStoppingRecording(false);
-      return;
-    }
-    // Fallback timeout in case of unexpected errors during save
-    if (isStoppingRecording) {
-      const t = setTimeout(() => {
-        console.warn('⏳ Safety timeout: clearing isStoppingRecording');
-        setIsStoppingRecording(false);
-      }, 8000);
-      return () => clearTimeout(t);
-    }
-  }, [isRecording, isStoppingRecording]);
   const [showLastPhrase, setShowLastPhrase] = useState(false);
   const [lastPhrase, setLastPhrase] = useState("");
   const [startTime, setStartTime] = useState<string>("");
@@ -3174,7 +3157,6 @@ export const MeetingRecorder = ({
       console.log('📊 Skipping processing animation - meeting too short (<100 words)');
       
       // Just stop recording without the processing modal
-      setIsStoppingRecording(true);
       
       // Stop duration timer
       if (intervalRef.current) {
@@ -4752,11 +4734,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                           onClick={handleStopWithConfirmation}
                           variant="destructive"
                           size="lg"
-                           disabled={isStoppingRecording}
                           className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                         >
                           <Square className="h-5 w-5 mr-2" />
-                          {isStoppingRecording ? "Ending recording please wait…" : (isPaused ? "Meeting Paused" : "Stop Recording")}
+                          {isPaused ? "Meeting Paused" : "Stop Recording"}
                         </Button>
                        </div>
                     )}
@@ -4886,36 +4867,30 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                      <button
                        type="button"
                        onClick={() => { 
-                         if (!isStoppingRecording) {
-                           if (isRecording) {
-                             handleDoubleClickProtection();
-                           } else {
-                             startRecording();
-                           }
+                         if (isRecording) {
+                           handleDoubleClickProtection();
+                         } else {
+                           startRecording();
                          }
                        }}
-                       disabled={isStoppingRecording}
-                       className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed ${
-                         isStoppingRecording
-                           ? 'bg-orange-100 dark:bg-orange-900/30 border-2 border-orange-400 animate-pulse'
-                           : doubleClickProtection 
-                             ? 'bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 animate-pulse hover:bg-amber-200 dark:hover:bg-amber-900/50' 
-                             : isRecording 
-                               ? 'bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50' 
-                               : 'bg-primary/5 hover:bg-primary/10'
+                       
+                       className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 cursor-pointer ${
+                         doubleClickProtection 
+                           ? 'bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 animate-pulse hover:bg-amber-200 dark:hover:bg-amber-900/50' 
+                           : isRecording 
+                             ? 'bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50' 
+                             : 'bg-primary/5 hover:bg-primary/10'
                        }`}
                        aria-label={isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
                        title={isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
                      >
-                       <Mic className={`h-6 w-6 ${
-                         isStoppingRecording
-                           ? 'text-orange-600 dark:text-orange-400'
-                           : doubleClickProtection 
-                             ? 'text-amber-600 dark:text-amber-400' 
-                             : isRecording 
-                               ? 'text-red-500' 
-                               : 'text-primary/60'
-                       }`} />
+                        <Mic className={`h-6 w-6 ${
+                          doubleClickProtection 
+                            ? 'text-amber-600 dark:text-amber-400' 
+                            : isRecording 
+                              ? 'text-red-500' 
+                              : 'text-primary/60'
+                        }`} />
                      </button>
                      {!isRecording ? (
                       <>
