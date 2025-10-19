@@ -20,13 +20,15 @@ interface InlineWordCorrectorProps {
     saveForFuture: boolean;
   }) => void;
   isActive: boolean;
+  selectionRootRef?: React.RefObject<HTMLElement>;
 }
 
 export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
   content,
   allTabsContent,
   onApplyCorrection,
-  isActive
+  isActive,
+  selectionRootRef
 }) => {
   const [selectedText, setSelectedText] = useState<string>('');
   const [selectionRect, setSelectionRect] = useState<DOMRect | null>(null);
@@ -41,78 +43,109 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
   
   const popupRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const internalPointerDownRef = useRef(false);
 
-  // Handle text selection
+  // Selection handling and global outside click management
   useEffect(() => {
     if (!isActive) return;
 
-    const handleMouseUp = (e: MouseEvent) => {
-      // Ignore selections made inside the popup
-      if (popupRef.current) {
-        const path = (e.composedPath && e.composedPath()) || [];
-        const target = e.target as HTMLElement;
-        const inside = (!!target && typeof target.closest === 'function' && target.closest('[data-inline-corrector="1"]')) 
-          || path.includes(popupRef.current) 
-          || popupRef.current.contains(target as Node);
-        if (inside) {
-          return;
-        }
+    const debug = localStorage.getItem('inlineCorrectorDebug') === '1';
+    let timeoutId: any = null;
+
+    const isNodeWithin = (node: Node | null, root: HTMLElement | null): boolean => {
+      if (!node || !root) return false;
+      let cur: any = node as any;
+      while (cur) {
+        if (cur === root) return true;
+        cur = cur.parentNode || (cur.getRootNode && (cur.getRootNode() as any).host) || null;
       }
-
-      setTimeout(() => {
-        const selection = window.getSelection();
-        const text = selection?.toString().trim();
-
-        if (text && text.length >= 2 && text.length <= 100) {
-          if (selection && selection.rangeCount > 0) {
-            const range = selection.getRangeAt(0);
-            const rect = range.getBoundingClientRect();
-
-            setSelectedText(text);
-            setSelectionRect(rect);
-            setReplacement(text);
-            countOccurrences(text);
-            loadSuggestions(text);
-            setShowPopup(true);
-          }
-        }
-      }, 10);
+      return false;
     };
 
-    const handleClickOutside = (e: MouseEvent) => {
-      if (!showPopup || !popupRef.current) return;
+    const onSelectionChange = () => {
+      if (!isActive || showPopup) return;
+      if (timeoutId) clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        const sel = window.getSelection();
+        const text = sel?.toString().trim();
+        if (!sel || !text || text.length < 2 || text.length > 100 || sel.rangeCount === 0) return;
+        const anchorNode = sel.anchorNode as Node | null;
 
-      const target = e.target as HTMLElement;
+        // Ignore selection inside the popup
+        if (isNodeWithin(anchorNode, popupRef.current)) return;
+
+        // If a selection root is provided, only react to selections inside it
+        if (selectionRootRef?.current && !isNodeWithin(anchorNode, selectionRootRef.current)) return;
+
+        const range = sel.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+
+        setSelectedText(text);
+        setSelectionRect(rect);
+        setReplacement(text);
+        countOccurrences(text);
+        loadSuggestions(text);
+        setShowPopup(true);
+
+        if (debug) console.debug('[InlineCorrector] selectionchange -> open', { text, rect });
+      }, 20);
+    };
+
+    const onGlobalPointerDown = (e: PointerEvent) => {
+      if (!showPopup || !popupRef.current) return;
+      const target = e.target as HTMLElement | null;
       const path = (e.composedPath && e.composedPath()) || [];
-      // Don't close if clicking inside the popup or any of its child elements
-      const inside = (!!target && typeof target.closest === 'function' && target.closest('[data-inline-corrector="1"]'))
-        || (popupRef.current ? path.includes(popupRef.current) : false)
-        || (popupRef.current ? popupRef.current.contains(target as Node) : false);
-      if (inside) {
-        return;
-      }
+
+      const inside = (!!target && typeof (target as any).closest === 'function' && (target as any).closest('[data-inline-corrector="1"]'))
+        || path.includes(popupRef.current)
+        || popupRef.current.contains(target as any)
+        || internalPointerDownRef.current;
+
+      if (debug) console.debug('[InlineCorrector] global pointerdown', { inside, internal: internalPointerDownRef.current });
+
+      if (inside) return;
 
       setShowPopup(false);
       window.getSelection()?.removeAllRanges();
     };
 
-    const handleKeyDown = (e: KeyboardEvent) => {
+    document.addEventListener('selectionchange', onSelectionChange);
+    document.addEventListener('pointerdown', onGlobalPointerDown as any, { capture: false } as any);
+
+    const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && showPopup) {
         setShowPopup(false);
         window.getSelection()?.removeAllRanges();
       }
     };
-
-    document.addEventListener('mouseup', handleMouseUp);
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
+    document.addEventListener('keydown', onKeyDown);
 
     return () => {
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
+      document.removeEventListener('selectionchange', onSelectionChange);
+      document.removeEventListener('pointerdown', onGlobalPointerDown as any, { capture: false } as any);
+      document.removeEventListener('keydown', onKeyDown);
+      if (timeoutId) clearTimeout(timeoutId);
     };
-  }, [isActive, showPopup]);
+  }, [isActive, showPopup, selectionRootRef]);
+
+  // Capture-phase guard on the popup itself to mark internal interactions
+  useEffect(() => {
+    if (!showPopup || !popupRef.current) return;
+    const node = popupRef.current;
+
+    const onPopupPointerDownCapture = (e: PointerEvent) => {
+      internalPointerDownRef.current = true;
+      // don't prevent default to allow focusing inputs
+      requestAnimationFrame(() => {
+        internalPointerDownRef.current = false;
+      });
+    };
+
+    node.addEventListener('pointerdown', onPopupPointerDownCapture as any, { capture: true } as any);
+    return () => {
+      node.removeEventListener('pointerdown', onPopupPointerDownCapture as any, { capture: true } as any);
+    };
+  }, [showPopup]);
 
   // Calculate popup position with improved viewport containment
   useEffect(() => {
@@ -247,14 +280,6 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
         minWidth: '280px',
         maxHeight: 'calc(100vh - 32px)',
         overflowY: 'auto'
-      }}
-      onMouseDown={(e) => {
-        e.stopPropagation();
-        e.nativeEvent.stopImmediatePropagation();
-      }}
-      onClick={(e) => {
-        e.stopPropagation();
-        e.nativeEvent.stopImmediatePropagation();
       }}
       role="dialog"
       aria-label="Word correction popup"

@@ -3,7 +3,7 @@ import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialo
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { InlineWordCorrector } from "@/components/InlineWordCorrector";
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -126,6 +126,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   console.log('🔍 FullPageNotesModal render - isOpen:', isOpen, 'meeting:', meeting?.title, 'isRecording:', isRecording);
   console.log('🔍 Modal props received:', { isOpen, meetingId: meeting?.id, notesLength: notes?.length });
   
+  const minutesContainerRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
@@ -3440,6 +3441,7 @@ ${transcript}`;
                                              `}
                                            </style>
                                            <div 
+                                             ref={minutesContainerRef}
                                              dangerouslySetInnerHTML={{ 
                                                __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
                                                  selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3) :
@@ -3452,7 +3454,7 @@ ${transcript}`;
                                              }}
                                            />
                                          </div>
-                                         <InlineWordCorrector
+                                          <InlineWordCorrector
                                            content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
                                             allTabsContent={{
                                               style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
@@ -3460,6 +3462,7 @@ ${transcript}`;
                                             }}
                                            onApplyCorrection={handleInlineCorrection}
                                            isActive={!isEditing && activeNotesStyleTab === 'style1'}
+                                           selectionRootRef={minutesContainerRef}
                                          />
                                        </>
                                      )}
