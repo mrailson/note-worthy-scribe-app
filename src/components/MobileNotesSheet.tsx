@@ -685,22 +685,6 @@ ${formattedContent}
                             <Mail className="h-3 w-3" />
                           )}
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={fetchTranscriptData}
-                          disabled={isLoadingTranscript}
-                          className="h-8 px-2 text-xs"
-                        >
-                          {isLoadingTranscript ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <RotateCcw className="h-3 w-3" />
-                          )}
-                          <span className="ml-1">
-                            {isLoadingTranscript ? 'Loading...' : 'Refresh'}
-                          </span>
-                        </Button>
                       </div>
                     </div>
                     {transcript && (
