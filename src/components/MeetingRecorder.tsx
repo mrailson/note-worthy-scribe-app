@@ -4899,16 +4899,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                           Allow Microphone Access if Requested
                         </p>
                       </>
-                    ) : isStoppingRecording ? (
-                      <>
-                        <h4 className="text-base font-medium mb-1 text-orange-600 dark:text-orange-400">
-                          Ending recording please wait…
-                        </h4>
-                        <p className="text-xs text-muted-foreground">
-                          Saving your recording
-                        </p>
-                      </>
                     ) : (
+
                        <>
                          <h4 className={`text-base font-medium mb-1 ${
                            doubleClickProtection 
