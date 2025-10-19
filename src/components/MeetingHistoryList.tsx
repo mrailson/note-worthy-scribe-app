@@ -1428,7 +1428,7 @@ export const MeetingHistoryList = ({
   
   // Helper functions for processing button display
   const getProcessingButtonText = (processing: any) => {
-    if (!processing) return 'Process';
+    if (!processing) return 'Regenerate Notes';
     if (processing.currentStage === 'complete') return 'Complete!';
     
     if (processing.error || Object.values(processing.stages || {}).includes('failed')) {
