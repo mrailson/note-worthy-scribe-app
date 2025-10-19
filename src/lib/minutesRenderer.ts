@@ -31,7 +31,7 @@ export function renderMinutesMarkdown(content: string): string {
       
       // Always use inline format with better styling
       let html = '<h3 class="text-xl font-bold text-[#005EB8] mb-3 mt-6 pb-2 border-b-2 border-[#005EB8]">Attendees</h3>';
-      html += '<div class="bg-gradient-to-r from-[#F0F4F5] to-white border-l-4 border-[#005EB8] p-4 mb-6 rounded-r shadow-sm">';
+      html += '<div class="p-4 mb-6">';
       
       if (present.length > 0) {
         html += `<p class="mb-2 text-base leading-relaxed">`;
