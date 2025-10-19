@@ -405,6 +405,8 @@ export const MeetingHistoryList = ({
   
   // Add state for collapsible audio sections
   const [collapsedAudioSections, setCollapsedAudioSections] = useState<Record<string, boolean>>({});
+  // Add state for collapsible documents sections (lazy-load docs)
+  const [collapsedDocumentsSections, setCollapsedDocumentsSections] = useState<Record<string, boolean>>({});
   
   // Add state for confirmation dialog
   const [confirmProcessDialog, setConfirmProcessDialog] = useState<{
@@ -2337,16 +2339,34 @@ export const MeetingHistoryList = ({
                 className="mb-3"
               />
               
-              {/* Meeting Documents - Always show, allow uploads even when empty */}
-              <MeetingDocumentsList
-                key={`docs-${meeting.id}-${docListRefresh[meeting.id] || 0}`}
-                meetingId={meeting.id}
-                onDocumentRemoved={() => {
-                  setDocListRefresh(prev => ({ ...prev, [meeting.id]: (prev[meeting.id] || 0) + 1 }));
-                  onRefresh?.();
-                }}
-                className="mb-3"
-              />
+              {/* Meeting Documents - Lazy-loaded in a collapsible to avoid post-stop churn */}
+              <Collapsible 
+                open={collapsedDocumentsSections[meeting.id] === true}
+                onOpenChange={(open) => setCollapsedDocumentsSections(prev => ({ ...prev, [meeting.id]: open }))}
+              >
+                <div className="bg-muted/30 rounded-lg border border-muted">
+                  <CollapsibleTrigger asChild>
+                    <button className="w-full p-3 flex items-center justify-between hover:bg-muted/50 transition-colors">
+                      <div className="flex items-center gap-2">
+                        <FileDown className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">Documents</span>
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${collapsedDocumentsSections[meeting.id] === true ? 'rotate-180' : ''}`} />
+                    </button>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="px-3 pb-3">
+                    <MeetingDocumentsList
+                      key={`docs-${meeting.id}-${docListRefresh[meeting.id] || 0}`}
+                      meetingId={meeting.id}
+                      onDocumentRemoved={() => {
+                        setDocListRefresh(prev => ({ ...prev, [meeting.id]: (prev[meeting.id] || 0) + 1 }));
+                        onRefresh?.();
+                      }}
+                      className="mb-3"
+                    />
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
               
               {/* Audio Recording Playback - Show if any recording URLs exist and showRecordingPlayback is true */}
               {showRecordingPlayback && (meeting.mixed_audio_url || meeting.left_audio_url || meeting.right_audio_url) && (

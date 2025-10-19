@@ -3379,129 +3379,15 @@ export const MeetingRecorder = ({
     
     console.log('🚨 VALIDATION PASSED - proceeding to save...');
     
-    // Perform final auto-clean before saving
-    await performAutoTranscriptClean();
-    
     // Check if audio backup is needed based on word count vs duration
     const needsAudioBackup = shouldCreateAudioBackup(wordCount, duration);
     console.log(`📊 Audio backup needed: ${needsAudioBackup}`);
-    
+
     // STOP all real-time processing immediately to prevent interference
     setRealtimeTranscripts([]); // Clear any pending real-time transcripts
-    
-    // ALWAYS rebuild transcript from chunks for completeness
-    console.log('🔄 Rebuilding transcript from all saved chunks...');
-    let finalTranscript = '';
-    let lastChunkText = '';
-    const meetingId = sessionStorage.getItem('currentMeetingId') || '';
-    
-    if (meetingId && user?.id) {
-      try {
-        const { data, error } = await supabase
-          .from('meeting_transcription_chunks')
-          .select('transcription_text, chunk_number, merge_rejection_reason')
-          .eq('meeting_id', meetingId)
-          .eq('user_id', user.id)
-          .order('chunk_number');
 
-        if (!error && data && data.length > 0) {
-          console.log(`📦 Rebuilding from ${data.length} chunks...`);
-          
-          // Simple concatenation with timestamp extraction (NO deduplication during merge)
-          interface SegmentWithTimestamp {
-            start: number;
-            end: number;
-            text: string;
-            chunkNumber: number;
-          }
-          
-          const segmentsWithTimestamps: SegmentWithTimestamp[] = [];
-          
-          for (const chunk of data) {
-            try {
-              // Try to parse as JSON segments (contains timestamps)
-              const parsed = JSON.parse(chunk.transcription_text);
-              if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
-                // Store segments with timestamps and chunk reference
-                parsed.forEach((seg: any) => {
-                  segmentsWithTimestamps.push({
-                    start: seg.start || 0,
-                    end: seg.end || 0,
-                    text: seg.text || '',
-                    chunkNumber: chunk.chunk_number
-                  });
-                });
-                console.log(`✅ Added ${parsed.length} segments from chunk ${chunk.chunk_number}`);
-              } else {
-                // Plain text without timestamps - estimate based on position
-                const estimatedStart = segmentsWithTimestamps.length > 0 
-                  ? segmentsWithTimestamps[segmentsWithTimestamps.length - 1].end 
-                  : 0;
-                segmentsWithTimestamps.push({
-                  start: estimatedStart,
-                  end: estimatedStart + 10, // Estimate 10 seconds
-                  text: chunk.transcription_text,
-                  chunkNumber: chunk.chunk_number
-                });
-              }
-            } catch {
-              // Plain text fallback
-              const estimatedStart = segmentsWithTimestamps.length > 0 
-                ? segmentsWithTimestamps[segmentsWithTimestamps.length - 1].end 
-                : 0;
-              segmentsWithTimestamps.push({
-                start: estimatedStart,
-                end: estimatedStart + 10,
-                text: chunk.transcription_text,
-                chunkNumber: chunk.chunk_number
-              });
-            }
-          }
-          
-          // Simple concatenation - NO DEDUPLICATION yet
-          finalTranscript = segmentsWithTimestamps.map(seg => seg.text).join(' ');
-          
-          // Extract last chunk text for integrity check
-          if (segmentsWithTimestamps.length > 0) {
-            lastChunkText = segmentsWithTimestamps[segmentsWithTimestamps.length - 1].text;
-          }
-          
-          console.log(`✅ Simple merge: ${finalTranscript.length} chars from ${data.length} chunks (${segmentsWithTimestamps.length} segments)`);
-          
-          // Store segments for later use (timeline, etc.)
-          (window as any).__meetingSegments = segmentsWithTimestamps;
-          
-          // Perform single-pass deduplication on complete transcript
-          if (finalTranscript.length > 0) {
-            const beforeLength = finalTranscript.length;
-            const { deduplicateFullTranscript } = await import('@/utils/transcriptDeduplication');
-            finalTranscript = deduplicateFullTranscript(finalTranscript);
-            const afterLength = finalTranscript.length;
-            console.log(`🧹 Deduplication: ${beforeLength} → ${afterLength} chars (removed ${beforeLength - afterLength} duplicate chars)`);
-            
-            if (beforeLength !== afterLength) {
-              showToast.info(`Cleaned ${beforeLength - afterLength} duplicate characters from transcript`, { section: 'meeting_manager' });
-            }
-          }
-          
-          console.log(`✅ Final transcript ready: ${finalTranscript.length} chars from ${data.length} chunks`);
-        } else if (error) {
-          console.error('❌ Chunk query error:', error);
-          // Fallback to state transcript
-          finalTranscript = transcript.trim();
-          console.log('⚠️ Using state transcript as fallback');
-        }
-      } catch (dbError) {
-        console.error('❌ Rebuild failed:', dbError);
-        // Fallback to state transcript
-        finalTranscript = transcript.trim();
-        console.log('⚠️ Using state transcript as fallback');
-      }
-    } else {
-      // No meeting ID, use state transcript
-      finalTranscript = transcript.trim();
-      console.log('⚠️ No meeting ID - using state transcript');
-    }
+    // Lightweight final transcript: use current in-memory transcript only
+    let finalTranscript = (transcript || '').trim();
     
     // Inject meeting metadata silently into transcript for AI processing
     const meetingTypeLabel = meetingType === 'teams' ? 'MS Teams' : 
