@@ -48,9 +48,9 @@ serve(async (req) => {
       throw new Error('Meeting not found');
     }
 
-    // Check if variation already exists
+    // Check if variation already exists (except executive_brief which we want to regenerate with new AI)
     const existingVariations = meeting.standard_minutes_variations || {};
-    if (existingVariations[variation_type]) {
+    if (existingVariations[variation_type] && variation_type !== 'executive_brief') {
       console.log(`✅ Variation already exists, returning cached version`);
       return new Response(
         JSON.stringify({
@@ -63,6 +63,11 @@ serve(async (req) => {
           status: 200
         }
       );
+    }
+    
+    // Force regeneration for executive_brief to use new AI method
+    if (variation_type === 'executive_brief') {
+      console.log(`🔄 Force regenerating executive_brief with new AI method`);
     }
 
     const baseContent = meeting.notes_style_3;
