@@ -111,37 +111,149 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
         return runs;
       };
       
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: title,
-                  bold: true,
-                  size: 32,
+      // Function to detect if a line is a markdown table separator
+      const isTableSeparator = (line: string): boolean => {
+        return /^\|[\s\-:]+\|/.test(line.trim());
+      };
+      
+      // Function to parse markdown table into Word Table
+      const parseMarkdownTable = (lines: string[], startIndex: number): { table: any, endIndex: number } => {
+        const tableLines: string[] = [];
+        let i = startIndex;
+        
+        // Collect all table lines
+        while (i < lines.length && lines[i].trim().startsWith('|')) {
+          tableLines.push(lines[i]);
+          i++;
+        }
+        
+        // Filter out separator line
+        const dataLines = tableLines.filter(line => !isTableSeparator(line));
+        
+        if (dataLines.length === 0) {
+          return { table: null, endIndex: i };
+        }
+        
+        // Parse header and rows
+        const parseCells = (line: string): string[] => {
+          return line.split('|')
+            .map(cell => cell.trim())
+            .filter(cell => cell.length > 0)
+            .map(cell => cell.replace(/\*\*/g, '')); // Remove bold markers
+        };
+        
+        const headerCells = parseCells(dataLines[0]);
+        const bodyRows = dataLines.slice(1).map(parseCells);
+        
+        // Create Word table using already imported components
+        const table = new Table({
+          width: { size: 100, type: WidthType.PERCENTAGE },
+          rows: [
+            // Header row
+            new TableRow({
+              children: headerCells.map(cell => 
+                new TableCell({
+                  children: [new Paragraph({
+                    children: [new TextRun({ text: cell, bold: true, size: 20 })]
+                  })],
+                  shading: { fill: "D3D3D3" }
                 })
-              ],
-              heading: HeadingLevel.HEADING_1,
-              alignment: AlignmentType.CENTER,
+              )
             }),
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Date: ${getMeetingDate()}`,
-                  size: 24,
-                })
-              ],
-              alignment: AlignmentType.CENTER,
-            }),
-            new Paragraph({ text: "" }), // Empty line
-            ...content.split('\n').map(line => 
-              new Paragraph({
-                children: parseLineToTextRuns(line)
+            // Body rows
+            ...bodyRows.map(row => 
+              new TableRow({
+                children: row.map(cell => 
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: cell, size: 20 })]
+                    })]
+                  })
+                )
               })
             )
           ]
+        });
+        
+        return { table, endIndex: i };
+      };
+      
+      // Process content into paragraphs and tables
+      const lines = content.split('\n');
+      const children: any[] = [
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: title,
+              bold: true,
+              size: 32,
+            })
+          ],
+          heading: HeadingLevel.HEADING_1,
+          alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: `Date: ${getMeetingDate()}`,
+              size: 24,
+            })
+          ],
+          alignment: AlignmentType.CENTER,
+        }),
+        new Paragraph({ text: "" }), // Empty line
+      ];
+      
+      let i = 0;
+      while (i < lines.length) {
+        const line = lines[i];
+        
+        // Check if this is a markdown table
+        if (line.trim().startsWith('|')) {
+          const { table, endIndex } = parseMarkdownTable(lines, i);
+          if (table) {
+            children.push(table);
+            children.push(new Paragraph({ text: "" })); // Add spacing after table
+          }
+          i = endIndex;
+          continue;
+        }
+        
+        // Check for markdown headings
+        const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
+        if (headingMatch) {
+          const level = headingMatch[1].length;
+          const headingText = headingMatch[2];
+          
+          const headingLevels = [
+            HeadingLevel.HEADING_1,
+            HeadingLevel.HEADING_2,
+            HeadingLevel.HEADING_3,
+            HeadingLevel.HEADING_4,
+            HeadingLevel.HEADING_5,
+            HeadingLevel.HEADING_6
+          ];
+          
+          children.push(new Paragraph({
+            children: parseLineToTextRuns(headingText),
+            heading: headingLevels[level - 1],
+            spacing: { before: 240, after: 120 }
+          }));
+          i++;
+          continue;
+        }
+        
+        // Regular paragraph
+        children.push(new Paragraph({
+          children: parseLineToTextRuns(line)
+        }));
+        i++;
+      }
+      
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: children
         }]
       });
 
