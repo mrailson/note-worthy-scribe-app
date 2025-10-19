@@ -73,11 +73,13 @@ serve(async (req) => {
         .order('response_submitted_at', { ascending: true })
     ]);
 
-    const systemPrompt = `You are an expert NHS complaints analyst. Provide a CONCISE analysis in plain text format (NO markdown, NO asterisks, NO special formatting).
+    const systemPrompt = `IMPORTANT: This analysis is advisory only. The final decision must be made by qualified practice staff based on thorough evidence review and professional judgement.
+
+You are an expert NHS complaints analyst. Provide a CONCISE analysis in plain text format (NO markdown, NO asterisks, NO special formatting).
 
 Your response must be under 400 words and structured exactly as:
 
-RECOMMENDED OUTCOME: [upheld/partially_upheld/not_upheld]
+SUGGESTED OUTCOME (GUIDANCE ONLY): [upheld/partially_upheld/not_upheld]
 
 KEY FINDINGS (2-3 bullet points maximum):
 • [Finding 1]
@@ -98,7 +100,9 @@ LEARNING POINTS (2 bullet points):
 - Use plain bullet points (•) only
 - Keep total response under 400 words
 - Base analysis ONLY on provided information
-- Be direct and professional`;
+- Be direct and professional
+
+DISCLAIMER: This analysis is provided as guidance to support decision-making. It should not be relied upon as the sole basis for determining complaint outcomes. Human oversight and professional judgement are essential.`;
 
     const staffResponses = (parties || [])
       .filter(p => p.response_text)

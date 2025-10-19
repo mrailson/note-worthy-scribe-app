@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Header } from "@/components/Header";
 import { ViewFullResponseModal } from "@/components/ViewFullResponseModal";
 import { useAuth } from "@/contexts/AuthContext";
@@ -3328,12 +3329,22 @@ I am committed to ensuring that all patients receive the care and service they d
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Sparkles className="h-5 w-5 text-purple-600" />
-              AI Analysis Report
+              AI-Generated Guidance (Advisory Only)
             </DialogTitle>
             <DialogDescription>
-              AI-generated analysis of complaint outcome
+              AI-generated analysis for guidance purposes only
             </DialogDescription>
           </DialogHeader>
+          
+          {/* Disclaimer Banner */}
+          <Alert className="bg-amber-50 border-amber-300">
+            <AlertCircle className="h-5 w-5 text-amber-600" />
+            <AlertTitle className="text-amber-900 font-semibold">Advisory Guidance Only</AlertTitle>
+            <AlertDescription className="text-amber-800 text-sm leading-relaxed">
+              This AI-generated analysis is provided for guidance purposes only. It does not constitute a final decision. The practice must conduct a thorough review and make the final determination based on professional judgement and all available evidence. <strong>Human oversight is required for all AI-generated content.</strong>
+            </AlertDescription>
+          </Alert>
+          
           <div className="mt-4 p-4 bg-slate-50 rounded-lg border">
             <div className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed font-sans">
               {aiAnalysis.replace(/\*\*/g, '').replace(/##/g, '')}

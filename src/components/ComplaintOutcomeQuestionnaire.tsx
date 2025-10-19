@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { SpeechToText } from '@/components/SpeechToText';
@@ -61,6 +62,7 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [aiSuggestedOutcome, setAiSuggestedOutcome] = useState<string>('');
   const [aiAnalysisText, setAiAnalysisText] = useState<string>('');
+  const [confirmProfessionalJudgement, setConfirmProfessionalJudgement] = useState<boolean>(false);
   const [data, setData] = useState<QuestionnaireData>({
     investigation_complete: false,
     outcome_type: undefined,
@@ -468,6 +470,16 @@ export const ComplaintOutcomeQuestionnaire = ({
         toast({
           title: 'Outcome Required',
           description: 'Please select an outcome decision before proceeding.',
+          variant: 'destructive',
+        });
+        return;
+      }
+      
+      // Ensure professional judgement confirmation is checked
+      if (!confirmProfessionalJudgement) {
+        toast({
+          title: 'Confirmation Required',
+          description: 'Please confirm that you have reviewed all evidence and are making this decision based on your professional judgement.',
           variant: 'destructive',
         });
         return;
@@ -1038,6 +1050,15 @@ export const ComplaintOutcomeQuestionnaire = ({
         {/* Step 4: AI Outcome Analysis */}
         {step === 4 && (
           <div className="space-y-6">
+            {/* AI Disclaimer Banner */}
+            <Alert className="bg-amber-50 border-amber-300">
+              <AlertCircle className="h-5 w-5 text-amber-600" />
+              <AlertTitle className="text-amber-900 font-semibold">AI GUIDANCE ONLY</AlertTitle>
+              <AlertDescription className="text-amber-800 text-sm leading-relaxed">
+                The AI-generated recommendation below is provided as guidance to support your decision-making process. The final decision on whether to uphold, partially uphold, or not uphold this complaint must be made by appropriately qualified staff based on thorough review of all evidence. <strong>Human oversight and professional judgement are essential.</strong>
+              </AlertDescription>
+            </Alert>
+
             <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
               <div className="flex items-center gap-2 mb-3">
                 <Sparkles className="h-5 w-5 text-blue-600" />
@@ -1055,8 +1076,9 @@ export const ComplaintOutcomeQuestionnaire = ({
                     <div className="bg-white p-3 rounded border border-blue-200">
                       <div className="flex items-center gap-2 mb-2">
                         <Sparkles className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium text-sm">AI-Suggested Outcome</span>
+                        <span className="font-medium text-sm">AI Guidance: Suggested Outcome (For Reference Only)</span>
                       </div>
+                      <p className="text-xs text-slate-600 mb-2">This is a suggestion only - you are not required to follow this recommendation</p>
                       <Badge 
                         variant={
                           aiSuggestedOutcome === 'upheld' ? 'destructive' : 
@@ -1085,10 +1107,10 @@ export const ComplaintOutcomeQuestionnaire = ({
 
             <div>
               <Label className="text-sm font-semibold mb-2 block">
-                Select Outcome Decision *
+                Your Final Decision *
               </Label>
               <p className="text-xs text-slate-600 mb-2">
-                You can accept the AI suggestion or choose a different outcome based on your professional judgement.
+                The practice is solely responsible for deciding the final outcome. You may accept, modify, or completely disregard the AI suggestion based on your professional judgement and complete review of all evidence.
               </p>
               <Select 
                 value={data.outcome_type} 
@@ -1106,6 +1128,24 @@ export const ComplaintOutcomeQuestionnaire = ({
               </Select>
             </div>
 
+            {/* Professional Judgement Confirmation */}
+            <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
+              <div className="flex items-start gap-3">
+                <Checkbox 
+                  id="confirm-judgement"
+                  checked={confirmProfessionalJudgement}
+                  onCheckedChange={(checked) => setConfirmProfessionalJudgement(checked as boolean)}
+                  className="mt-1"
+                />
+                <label 
+                  htmlFor="confirm-judgement"
+                  className="text-sm text-slate-700 leading-relaxed cursor-pointer"
+                >
+                  <strong>Required confirmation:</strong> I confirm that I have reviewed all evidence and am making this decision based on my professional judgement, not solely on AI recommendation.
+                </label>
+              </div>
+            </div>
+
             <div className="bg-blue-50 p-3 rounded text-sm text-blue-900">
               <p className="font-medium mb-1">What happens next:</p>
               <ul className="list-disc list-inside space-y-1 text-xs">
@@ -1113,6 +1153,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                 <li>An outcome letter will be automatically generated</li>
                 <li>You can review and edit the letter before sending</li>
                 <li>The complaint status will be updated to closed</li>
+                <li>The outcome decision is entirely your responsibility and cannot be delegated to AI systems</li>
               </ul>
             </div>
           </div>
