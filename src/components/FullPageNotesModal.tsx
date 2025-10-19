@@ -3351,6 +3351,28 @@ ${transcript}`;
                                       <Sparkles className="mr-2 h-4 w-4" />
                                       <span>Executive Brief</span>
                                     </DropdownMenuItem>
+                                    
+                                    {/* Alternative Formats Submenu */}
+                                    <DropdownMenuSub>
+                                      <DropdownMenuSubTrigger>
+                                        <Sparkles className="mr-2 h-4 w-4" />
+                                        <span>Alternative Formats</span>
+                                      </DropdownMenuSubTrigger>
+                                      <DropdownMenuSubContent className="bg-popover border shadow-md">
+                                        <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style4')}>
+                                          <Sparkles className="mr-2 h-4 w-4" />
+                                          <span>Executive Summary</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style5')}>
+                                          <FileText className="mr-2 h-4 w-4" />
+                                          <span>Limerick Style</span>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style6')}>
+                                          <Stethoscope className="mr-2 h-4 w-4" />
+                                          <span>Patient Consultation</span>
+                                        </DropdownMenuItem>
+                                      </DropdownMenuSubContent>
+                                    </DropdownMenuSub>
                                   </DropdownMenuGroup>
                                 </DropdownMenuContent>
                               </DropdownMenu>
@@ -3503,32 +3525,6 @@ ${transcript}`;
                             ) : null;
                           })()}
                           
-                          {/* Alternative Formats Dropdown */}
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <Button variant="outline" size="sm" className="gap-2 text-xs sm:text-sm">
-                                <Sparkles className="h-4 w-4" />
-                                Alternative Formats
-                                <ChevronDownIcon className="h-3 w-3" />
-                              </Button>
-                            </DropdownMenuTrigger>
-                            <DropdownMenuContent align="end" className="w-56 bg-popover border shadow-md z-[200]">
-                              <DropdownMenuGroup>
-                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style4')}>
-                                  <Sparkles className="mr-2 h-4 w-4" />
-                                  <span>Executive Summary</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style5')}>
-                                  <FileText className="mr-2 h-4 w-4" />
-                                  <span>Limerick Style</span>
-                                </DropdownMenuItem>
-                                <DropdownMenuItem onClick={() => setActiveNotesStyleTab('style6')}>
-                                  <Stethoscope className="mr-2 h-4 w-4" />
-                                  <span>Patient Consultation</span>
-                                </DropdownMenuItem>
-                              </DropdownMenuGroup>
-                            </DropdownMenuContent>
-                          </DropdownMenu>
                         </div>
 
                       {/* Meeting Notes header and undo button - hide for Patient Consultation */}
