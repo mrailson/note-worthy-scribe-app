@@ -3231,11 +3231,7 @@ export const MeetingRecorder = ({
       
       // Reset the meeting immediately for short recordings
       await resetMeeting();
-      
-      // Re-enable button after 5 seconds
-      setTimeout(() => {
-        setIsStoppingRecording(false);
-      }, 5000);
+      setIsStoppingRecording(false);
       
       // Show toast for short meeting
       toast.info('Meeting was too short to save (minimum 100 words required)', {
@@ -3908,12 +3904,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           // Always reset, even if background processing fails
           console.log('🔄 Resetting recording state');
           await resetMeeting();
+          setIsStoppingRecording(false);
           console.log('✅ Recording state reset');
-          
-          // Re-enable button after 5 seconds
-          setTimeout(() => {
-            setIsStoppingRecording(false);
-          }, 5000);
         }
       };
 
