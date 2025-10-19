@@ -18,7 +18,7 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
 }) => {
   const { canViewConsultationExamples } = useAuth();
   const [currentPage, setCurrentPage] = useState(0);
-  const [selectedOrgType, setSelectedOrgType] = useState<'All' | 'GP Practice' | 'LMC' | 'Others'>('GP Practice');
+  const [selectedOrgType, setSelectedOrgType] = useState<'All' | 'GP Practice' | 'Others'>('GP Practice');
   const itemsPerPage = 4;
   
   // Filter demos based on visibility settings
@@ -55,7 +55,7 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
 
   // Reset page when organisation type changes
   const handleOrgTypeChange = (value: string) => {
-    setSelectedOrgType(value as 'All' | 'GP Practice' | 'LMC' | 'Others');
+    setSelectedOrgType(value as 'All' | 'GP Practice' | 'Others');
     setCurrentPage(0);
   };
 
@@ -104,10 +104,6 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
               <ToggleGroupItem value="GP Practice" aria-label="Show GP Practice meetings" className="gap-2">
                 <Stethoscope className="h-4 w-4" />
                 GP
-              </ToggleGroupItem>
-              <ToggleGroupItem value="LMC" aria-label="Show LMC meetings" className="gap-2">
-                <Users className="h-4 w-4" />
-                LMC
               </ToggleGroupItem>
               <ToggleGroupItem value="Others" aria-label="Show other organisation meetings" className="gap-2">
                 <Building2 className="h-4 w-4" />
