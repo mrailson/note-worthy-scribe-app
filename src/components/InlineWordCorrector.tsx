@@ -110,7 +110,7 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
     };
 
     document.addEventListener('selectionchange', onSelectionChange);
-    document.addEventListener('pointerdown', onGlobalPointerDown as any, { capture: false } as any);
+    document.addEventListener('pointerdown', onGlobalPointerDown as any, false as any);
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape' && showPopup) {
@@ -122,7 +122,7 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
 
     return () => {
       document.removeEventListener('selectionchange', onSelectionChange);
-      document.removeEventListener('pointerdown', onGlobalPointerDown as any, { capture: false } as any);
+      document.removeEventListener('pointerdown', onGlobalPointerDown as any, false as any);
       document.removeEventListener('keydown', onKeyDown);
       if (timeoutId) clearTimeout(timeoutId);
     };
@@ -281,6 +281,8 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
         maxHeight: 'calc(100vh - 32px)',
         overflowY: 'auto'
       }}
+      onMouseDown={(e) => { e.stopPropagation(); (e as any).nativeEvent?.stopImmediatePropagation?.(); }}
+      onClick={(e) => { e.stopPropagation(); (e as any).nativeEvent?.stopImmediatePropagation?.(); }}
       role="dialog"
       aria-label="Word correction popup"
     >
