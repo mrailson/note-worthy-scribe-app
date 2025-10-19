@@ -1487,6 +1487,10 @@ const ComplaintsSystem = () => {
                           size="sm"
                           variant="outline"
                           onClick={async () => {
+                            if (complaint.status === 'submitted') {
+                              console.log('Button clicked but complaint is still being processed');
+                              return;
+                            }
                             try {
                               await supabase.rpc('log_complaint_view', {
                                 p_complaint_id: complaint.id,
@@ -1498,6 +1502,7 @@ const ComplaintsSystem = () => {
                             navigate(`/complaints/${complaint.id}`);
                           }}
                           disabled={complaint.status === 'submitted'}
+                          className={complaint.status === 'submitted' ? 'opacity-50 cursor-not-allowed' : ''}
                           title={complaint.status === 'submitted' ? 'Generating acknowledgement letter - please wait' : 'View complaint details'}
                         >
                           <Eye className="h-4 w-4 mr-1" />
@@ -1786,6 +1791,10 @@ const ComplaintsSystem = () => {
                               size="sm" 
                               variant="outline"
                               onClick={async () => {
+                                if (complaint.status === 'submitted') {
+                                  console.log('Button clicked but complaint is still being processed');
+                                  return;
+                                }
                                 try {
                                   await supabase.rpc('log_complaint_view', {
                                     p_complaint_id: complaint.id,
@@ -1797,6 +1806,7 @@ const ComplaintsSystem = () => {
                                 navigate(`/complaints/${complaint.id}`);
                               }}
                               disabled={complaint.status === 'submitted'}
+                              className={complaint.status === 'submitted' ? 'opacity-50 cursor-not-allowed' : ''}
                               title={complaint.status === 'submitted' ? 'Generating acknowledgement letter - please wait' : 'View complaint details'}
                             >
                               <Eye className="h-4 w-4 mr-1" />
