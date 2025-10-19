@@ -596,20 +596,11 @@ ${formattedContent}
           </SheetHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
-            <div className="flex justify-between items-center p-3 pb-2 border-b flex-shrink-0">
-              <TabsList className="grid w-full max-w-lg grid-cols-2 h-10">
+            <div className="p-3 pb-2 border-b flex-shrink-0">
+              <TabsList className="grid w-full grid-cols-2 h-10">
                 <TabsTrigger value="standard" className="text-xs px-2 font-medium">Standard</TabsTrigger>
                 <TabsTrigger value="transcript" className="text-xs px-2 font-medium">Transcript</TabsTrigger>
               </TabsList>
-              
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={loadExistingNoteStyles}
-                disabled={loading}
-              >
-                <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-              </Button>
             </div>
 
             <div className="flex-1 overflow-hidden">
