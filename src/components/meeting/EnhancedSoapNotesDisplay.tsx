@@ -621,7 +621,7 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
       {/* Info footer */}
       <div className="flex items-center gap-2 text-xs text-muted-foreground">
         <FileText className="h-3.5 w-3.5" />
-        <span>SOAP format consultation notes generated from meeting transcript</span>
+        <span>SOAP format consultation notes generated from meeting transcript - AI can and does make mistakes so please check the notes accurately reflect the consultation</span>
       </div>
     </div>
   );
