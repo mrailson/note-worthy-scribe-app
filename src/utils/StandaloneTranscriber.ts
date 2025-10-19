@@ -25,9 +25,16 @@ export class StandaloneTranscriber {
   constructor(private options: TranscriberOptions) {}
 
   private generateSegmentId(text: string): string {
-    // Create a simple hash for deduplication
-    const firstWords = text.split(' ').slice(0, 5).join(' ');
-    return `${Date.now()}-${firstWords.slice(0, 20)}`;
+    // Use full normalized text for better uniqueness
+    const normalized = text.trim().toLowerCase().replace(/\s+/g, ' ');
+    // Create a simple hash
+    let hash = 0;
+    for (let i = 0; i < normalized.length; i++) {
+      const char = normalized.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32bit integer
+    }
+    return `${hash}-${normalized.slice(0, 30)}`;
   }
 
   private async blobToBase64(blob: Blob): Promise<string> {
@@ -205,9 +212,9 @@ export class StandaloneTranscriber {
 
     const audioBlob = new Blob(chunks, { type: 'audio/webm' });
     
-    // Skip very small chunks (less than 512 bytes for more responsive updates)
-    if (audioBlob.size < 512) {
-      console.log('Skipping small chunk:', audioBlob.size, 'bytes');
+    // Allow smaller chunks to capture short utterances like "yes", "okay"
+    if (audioBlob.size < 256) {
+      console.log('Skipping very small chunk:', audioBlob.size, 'bytes');
       return;
     }
     
