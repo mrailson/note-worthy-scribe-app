@@ -26,7 +26,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
 import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload } from "lucide-react";
@@ -5355,6 +5355,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               <Upload className="h-5 w-5 text-primary" />
               Import Meeting Content
             </DialogTitle>
+            <DialogDescription>
+              Create a meeting from existing content and automatically generate notes
+            </DialogDescription>
           </DialogHeader>
           
           <div className="py-4">

@@ -162,9 +162,6 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
           <Upload className="h-5 w-5 text-primary" />
           Import Meeting Content
         </CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Create a meeting from existing content and automatically generate notes
-        </p>
       </CardHeader>
       
       <CardContent className="space-y-4">

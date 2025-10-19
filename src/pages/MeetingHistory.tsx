@@ -2520,7 +2520,7 @@ const MeetingHistory = () => {
                 Import Meeting Content
               </DialogTitle>
               <DialogDescription>
-                Load demo meetings, import transcripts from documents, or upload audio files for automatic transcription
+                Create a meeting from existing content and automatically generate notes
               </DialogDescription>
             </DialogHeader>
             
