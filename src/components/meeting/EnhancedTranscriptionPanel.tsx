@@ -928,16 +928,6 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start" className="w-56 bg-background">
               <DropdownMenuItem
-                onClick={handleFormatTranscript}
-                disabled={!transcript || isFormatting}
-              >
-                <FileText className="h-4 w-4 mr-2 text-primary" />
-                {isFormatting ? 'Formatting...' : 'Format Paragraphs'}
-              </DropdownMenuItem>
-              
-              <DropdownMenuSeparator />
-              
-              <DropdownMenuItem 
                 onClick={() => {
                   navigator.clipboard.writeText(transcript);
                   toast.success('Transcript copied');
