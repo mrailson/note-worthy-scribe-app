@@ -18,7 +18,7 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
 }) => {
   const { canViewConsultationExamples } = useAuth();
   const [currentPage, setCurrentPage] = useState(0);
-  const [selectedOrgType, setSelectedOrgType] = useState<'All' | 'GP Practice' | 'LMC' | 'ICB'>('GP Practice');
+  const [selectedOrgType, setSelectedOrgType] = useState<'All' | 'GP Practice' | 'LMC' | 'Others'>('GP Practice');
   const itemsPerPage = 4;
   
   // Filter demos based on visibility settings
@@ -29,10 +29,14 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
     availableDemos = demoMeetings.filter(meeting => meeting.category !== 'Consultation');
   }
   
-  // Filter by organization type
+  // Filter by organisation type
   const filteredDemos = selectedOrgType === 'All'
     ? availableDemos
-    : availableDemos.filter(meeting => meeting.organizationType === selectedOrgType);
+    : availableDemos.filter(meeting => {
+        // Map "Others" filter to "ICB" organisation type
+        const filterType = selectedOrgType === 'Others' ? 'ICB' : selectedOrgType;
+        return meeting.organizationType === filterType;
+      });
   
   const totalPages = Math.ceil(filteredDemos.length / itemsPerPage);
   
@@ -40,9 +44,9 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
   const endIndex = startIndex + itemsPerPage;
   const currentMeetings = filteredDemos.slice(startIndex, endIndex);
 
-  // Reset page when organization type changes
+  // Reset page when organisation type changes
   const handleOrgTypeChange = (value: string) => {
-    setSelectedOrgType(value as 'All' | 'GP Practice' | 'LMC' | 'ICB');
+    setSelectedOrgType(value as 'All' | 'GP Practice' | 'LMC' | 'Others');
     setCurrentPage(0);
   };
 
@@ -106,9 +110,9 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
                 <Users className="h-4 w-4" />
                 LMC
               </ToggleGroupItem>
-              <ToggleGroupItem value="ICB" aria-label="Show ICB meetings" className="gap-2">
+              <ToggleGroupItem value="Others" aria-label="Show other organisation meetings" className="gap-2">
                 <Building2 className="h-4 w-4" />
-                ICB
+                Others
               </ToggleGroupItem>
             </ToggleGroup>
           </div>
