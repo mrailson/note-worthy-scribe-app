@@ -246,7 +246,7 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
 
   const renderSoapCard = (section: typeof soapSections[0], content: string, isCompact: boolean = false) => {
     const isExpanded = expandedSections.has(section.key);
-    const shouldTruncate = isCompact && !isExpanded && content.length > 200;
+    const shouldTruncate = isCompact && !isExpanded && content?.length > 200;
     const displayContent = shouldTruncate ? content.slice(0, 200) + '...' : content;
 
     return (
