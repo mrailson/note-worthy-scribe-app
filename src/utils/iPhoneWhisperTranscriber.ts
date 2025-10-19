@@ -122,6 +122,9 @@ export class iPhoneWhisperTranscriber {
         this.onError('Recording error occurred');
       };
 
+      // Wait briefly for audio stream to fully initialize (prevents missing first seconds)
+      await new Promise(resolve => setTimeout(resolve, 200));
+
       // Start recording and process in chunks every 60 seconds with overlap
       this.isRecording = true;
       this.startChunkedRecording();
@@ -186,7 +189,7 @@ export class iPhoneWhisperTranscriber {
       const elapsed = Date.now() - this.recordingStartTime;
 
       // Skip very small audio chunks, but allow smaller ones early for quick feedback
-      const minSize = elapsed < 20000 ? 5000 : elapsed < 60000 ? 12000 : 40000; // bytes
+      const minSize = elapsed < 5000 ? 3000 : elapsed < 20000 ? 5000 : elapsed < 60000 ? 12000 : 40000; // bytes
       if (audioBlob.size < minSize) {
         console.log(`📱 Skipping small audio chunk (size=${audioBlob.size}, min=${minSize})`);
         return;

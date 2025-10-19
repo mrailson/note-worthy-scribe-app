@@ -153,7 +153,7 @@ export const OPTIMAL_CHUNK_DURATION = {
 export function getOptimalChunkInterval(elapsedMs: number, isEarlyMode: boolean = false): number {
   // Early mode for first 60 seconds - reduced duplication with longer chunks
   if (isEarlyMode && elapsedMs < 60000) {
-    if (elapsedMs < 8000) return 5000; // 5s for first chunk - immediate user feedback
+    if (elapsedMs < 4000) return 3000; // 3s for first chunk - capture immediately to avoid missing speech
     return 30000; // 30s for all subsequent chunks in early mode - reduces duplication
   }
   
