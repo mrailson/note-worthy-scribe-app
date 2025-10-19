@@ -11,6 +11,8 @@ interface TranscriptViewerProps {
   cleaningEnabled: boolean;
   onToggleView: () => void;
   isTranscribing: boolean;
+  browserFallbackWordCount: number;
+  useWhisperCount: boolean;
 }
 
 export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
@@ -19,20 +21,26 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
   showCleaned,
   cleaningEnabled,
   onToggleView,
-  isTranscribing
+  isTranscribing,
+  browserFallbackWordCount,
+  useWhisperCount
 }) => {
   const [isVisible, setIsVisible] = React.useState(true);
   const displayTranscript = showCleaned && cleaningEnabled ? cleanedTranscript : transcript;
   
   // Calculate word count and character count reactively
   const stats = React.useMemo(() => {
-    if (!displayTranscript) return { words: 0, characters: 0 };
-    
-    const words = displayTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
-    const characters = displayTranscript.length;
-    
-    return { words, characters };
-  }, [displayTranscript]);
+    if (useWhisperCount) {
+      // After 30s: use actual transcript from Whisper chunks
+      if (!displayTranscript) return { words: 0, characters: 0 };
+      const words = displayTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+      const characters = displayTranscript.length;
+      return { words, characters };
+    } else {
+      // First 30s: use browser fallback count
+      return { words: browserFallbackWordCount, characters: 0 };
+    }
+  }, [displayTranscript, browserFallbackWordCount, useWhisperCount]);
 
   if (!isVisible) {
     return (
@@ -108,15 +116,24 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
       </div>
 
       {/* Word Count */}
-      {displayTranscript && (
+      {(displayTranscript || browserFallbackWordCount > 0) && (
         <div className="mt-4 pt-4 border-t border-border">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <span>
-              Words: {stats.words}
-            </span>
-            <span>
-              Characters: {stats.characters}
-            </span>
+            <div className="flex items-center gap-2">
+              <span>
+                Words: {stats.words}
+              </span>
+              {!useWhisperCount && browserFallbackWordCount > 0 && (
+                <Badge variant="outline" className="text-xs">
+                  Preview
+                </Badge>
+              )}
+            </div>
+            {useWhisperCount && (
+              <span>
+                Characters: {stats.characters}
+              </span>
+            )}
             {isTranscribing && (
               <Badge variant="secondary" className="animate-pulse">
                 Transcribing...

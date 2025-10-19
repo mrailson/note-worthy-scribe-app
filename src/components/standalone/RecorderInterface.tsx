@@ -20,6 +20,8 @@ export const RecorderInterface = () => {
     transcriptionService,
     cleaningEnabled,
     isTranscribing,
+    browserFallbackWordCount,
+    useWhisperCount,
     startRecording,
     stopRecording,
     pauseRecording,
@@ -77,6 +79,8 @@ export const RecorderInterface = () => {
         cleaningEnabled={cleaningEnabled}
         onToggleView={toggleShowCleaned}
         isTranscribing={isTranscribing}
+        browserFallbackWordCount={browserFallbackWordCount}
+        useWhisperCount={useWhisperCount}
       />
     </div>
   );

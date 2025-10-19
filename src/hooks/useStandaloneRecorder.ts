@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { StandaloneTranscriber } from '@/utils/StandaloneTranscriber';
 import { BrowserSpeechFallback } from '@/utils/BrowserSpeechFallback';
@@ -18,11 +18,20 @@ export const useStandaloneRecorder = () => {
   const [transcriptionService, setTranscriptionService] = useState<'whisper' | 'deepgram'>('whisper');
   const [cleaningEnabled, setCleaningEnabled] = useState(true);
   const [isTranscribing, setIsTranscribing] = useState(false);
+  const [browserFallbackWordCount, setBrowserFallbackWordCount] = useState(0);
+  const [useWhisperCount, setUseWhisperCount] = useState(false);
 
   const transcriberRef = useRef<StandaloneTranscriber | null>(null);
   const speechFallbackRef = useRef<BrowserSpeechFallback | null>(null);
   const timerRef = useRef<NodeJS.Timeout>();
   const volumeIntervalRef = useRef<NodeJS.Timeout>();
+
+  // Switch to Whisper count after 30 seconds
+  useEffect(() => {
+    if (duration >= 30 && !useWhisperCount) {
+      setUseWhisperCount(true);
+    }
+  }, [duration, useWhisperCount]);
 
   const startRecording = useCallback(async () => {
     try {
@@ -34,6 +43,10 @@ export const useStandaloneRecorder = () => {
             if (prev.includes(text.replace(' [processing...]', ''))) return prev;
             
             const newTranscript = prev + (prev ? ' ' : '') + text;
+            
+            // Update browser fallback word count
+            const wordCount = newTranscript.trim().split(/\s+/).filter(w => w.length > 0).length;
+            setBrowserFallbackWordCount(wordCount);
             
             // Apply NHS cleaning if enabled (only for final results)
             if (cleaningEnabled && !text.includes('[processing...]')) {
@@ -217,6 +230,8 @@ export const useStandaloneRecorder = () => {
     setTranscript('');
     setCleanedTranscript('');
     setDuration(0);
+    setBrowserFallbackWordCount(0);
+    setUseWhisperCount(false);
     
     toast({
       title: "Transcript Cleared",
@@ -236,6 +251,8 @@ export const useStandaloneRecorder = () => {
     transcriptionService,
     cleaningEnabled,
     isTranscribing,
+    browserFallbackWordCount,
+    useWhisperCount,
     startRecording,
     stopRecording,
     pauseRecording,
