@@ -2187,7 +2187,7 @@ export const MeetingHistoryList = ({
                   }}
                 >
                   <FileText style={{ display: 'inline', width: '16px', height: '16px', marginRight: '8px' }} />
-                  View Notes
+                  View Meeting Notes
                 </div>
 
                 {/* Audio Backup Button - Only show if audio backup exists */}
