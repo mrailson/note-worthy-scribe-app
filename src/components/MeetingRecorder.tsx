@@ -3739,6 +3739,25 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             console.log('🎉 Background notes generation started successfully');
           }
 
+          // Trigger meeting overview generation (silent)
+          console.log('🔍 Background: Invoking generate-meeting-overview function...');
+          setStopRecordingStep('Generating overview...');
+          
+          const overviewResult = await supabase.functions
+            .invoke('generate-meeting-overview', {
+              body: {
+                meetingId: savedMeeting.id,
+                transcript: transcript,
+                meetingTitle: savedMeeting.title
+              }
+            });
+          
+          if (overviewResult.error) {
+            console.error('❌ Background overview generation failed:', overviewResult.error);
+          } else {
+            console.log('🎉 Background overview generation started successfully');
+          }
+
           // Clean up session storage
           sessionStorage.removeItem('currentSessionId');
           sessionStorage.removeItem('currentMeetingId');
