@@ -157,14 +157,14 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Upload className="h-5 w-5 text-primary" />
+      <CardHeader className="p-4 sm:p-6">
+        <CardTitle className="flex items-center gap-2 text-base sm:text-lg">
+          <Upload className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
           Import Meeting Content
         </CardTitle>
       </CardHeader>
       
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-3 sm:space-y-4 p-4 sm:p-6">
         {isImporting && (
           <div className="border rounded-lg p-4 bg-accent/10 space-y-3">
             <div className="flex items-center gap-2">
@@ -177,18 +177,21 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
         )}
 
         <Tabs defaultValue="demo" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="demo" className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4" />
-              Demo Samples
+          <TabsList className="grid w-full grid-cols-3 h-auto">
+            <TabsTrigger value="demo" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+              <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Demo Samples</span>
+              <span className="xs:hidden">Demo</span>
             </TabsTrigger>
-            <TabsTrigger value="text" className="flex items-center gap-2">
-              <FileText className="h-4 w-4" />
-              Import Text
+            <TabsTrigger value="text" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Import Text</span>
+              <span className="xs:hidden">Text</span>
             </TabsTrigger>
-            <TabsTrigger value="audio" className="flex items-center gap-2">
-              <FileAudio className="h-4 w-4" />
-              Import Audio
+            <TabsTrigger value="audio" className="flex items-center gap-1 sm:gap-2 text-xs sm:text-sm py-2">
+              <FileAudio className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden xs:inline">Import Audio</span>
+              <span className="xs:hidden">Audio</span>
             </TabsTrigger>
           </TabsList>
 

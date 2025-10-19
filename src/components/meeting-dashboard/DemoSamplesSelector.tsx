@@ -87,81 +87,76 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
   return (
     <div className="space-y-4">
       {/* Filters */}
-      <div className="flex items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg border">
-        <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Organisation:</span>
-            <ToggleGroup 
-              type="single" 
-              value={selectedOrgType} 
-              onValueChange={(value) => value && handleOrgTypeChange(value)}
-              className="gap-1"
-            >
-              <ToggleGroupItem value="All" aria-label="Show all organisations" className="gap-2">
-                <Building2 className="h-4 w-4" />
-                All
-              </ToggleGroupItem>
-              <ToggleGroupItem value="GP Practice" aria-label="Show GP Practice meetings" className="gap-2">
-                <Stethoscope className="h-4 w-4" />
-                GP
-              </ToggleGroupItem>
-              <ToggleGroupItem value="Others" aria-label="Show other organisation meetings" className="gap-2">
-                <Building2 className="h-4 w-4" />
-                Others
-              </ToggleGroupItem>
-            </ToggleGroup>
-          </div>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 bg-muted/30 rounded-lg border">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+          <span className="text-xs sm:text-sm font-medium">Organisation:</span>
+          <ToggleGroup 
+            type="single" 
+            value={selectedOrgType} 
+            onValueChange={(value) => value && handleOrgTypeChange(value)}
+            className="gap-1 justify-start"
+          >
+            <ToggleGroupItem value="All" aria-label="Show all organisations" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 h-8">
+              <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
+              All
+            </ToggleGroupItem>
+            <ToggleGroupItem value="GP Practice" aria-label="Show GP Practice meetings" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 h-8">
+              <Stethoscope className="h-3 w-3 sm:h-4 sm:w-4" />
+              GP
+            </ToggleGroupItem>
+            <ToggleGroupItem value="Others" aria-label="Show other organisation meetings" className="gap-1 sm:gap-2 text-xs sm:text-sm px-2 sm:px-3 h-8">
+              <Building2 className="h-3 w-3 sm:h-4 sm:w-4" />
+              Others
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
         
-        <Badge variant="secondary" className="text-xs shrink-0">
+        <Badge variant="secondary" className="text-xs shrink-0 self-start sm:self-auto">
           {filteredDemos.length} {filteredDemos.length === 1 ? 'demo' : 'demos'}
         </Badge>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2">
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 sm:grid-cols-2">
         {currentMeetings.map((demo) => (
           <Card key={demo.id} className="relative overflow-hidden hover:shadow-md transition-shadow">
-            <div className="absolute top-0 right-0 w-20 h-20 bg-gradient-to-br from-primary/5 to-transparent" />
+            <div className="absolute top-0 right-0 w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-br from-primary/5 to-transparent" />
             
-            <CardHeader className="pb-3">
+            <CardHeader className="pb-2 sm:pb-3 p-3 sm:p-6">
               <div className="flex items-start justify-between gap-2 mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{demo.icon}</span>
-                  <Badge variant="outline" className={getMeetingTypeColor(demo.type)}>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                  <span className="text-xl sm:text-2xl">{demo.icon}</span>
+                  <Badge variant="outline" className={`${getMeetingTypeColor(demo.type)} text-xs`}>
                     {demo.type}
                   </Badge>
                 </div>
-                <Badge variant="secondary" className="bg-accent/50">
+                <Badge variant="secondary" className="bg-accent/50 text-xs">
                   Demo
                 </Badge>
               </div>
-              <CardTitle className="text-lg leading-tight">{demo.title}</CardTitle>
-              <CardDescription className="text-sm">
+              <CardTitle className="text-base sm:text-lg leading-tight">{demo.title}</CardTitle>
+              <CardDescription className="text-xs sm:text-sm line-clamp-2">
                 {demo.description}
               </CardDescription>
             </CardHeader>
 
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-3 gap-3 text-sm">
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <div className="relative h-3.5 w-3.5">
-                    <FileText className="h-3.5 w-3.5 text-blue-500 absolute" />
-                    <FileText className="h-3.5 w-3.5 text-green-500 absolute opacity-40" style={{ filter: 'blur(0.5px)' }} />
-                  </div>
-                  <span>{demo.duration}</span>
+            <CardContent className="space-y-3 sm:space-y-4 p-3 sm:p-6 pt-0">
+              <div className="grid grid-cols-3 gap-2 sm:gap-3 text-xs sm:text-sm">
+                <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground">
+                  <FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                  <span className="truncate">{demo.duration}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <Users className="h-3.5 w-3.5" />
-                  <span>{demo.attendees.length} attendees</span>
+                <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground">
+                  <Users className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                  <span className="truncate">{demo.attendees.length}</span>
                 </div>
-                <div className="flex items-center gap-1.5 text-muted-foreground">
-                  <FileText className="h-3.5 w-3.5" />
-                  <span>{demo.wordCount.toLocaleString()} words</span>
+                <div className="flex items-center gap-1 sm:gap-1.5 text-muted-foreground">
+                  <FileText className="h-3 w-3 sm:h-3.5 sm:w-3.5 flex-shrink-0" />
+                  <span className="truncate">{demo.wordCount.toLocaleString()}</span>
                 </div>
               </div>
 
               <div className="pt-2 border-t">
-                <p className="text-xs text-muted-foreground mb-3 line-clamp-2">
+                <p className="text-xs text-muted-foreground mb-2 sm:mb-3 line-clamp-2">
                   <strong>Topics:</strong> {demo.agenda}
                 </p>
 
@@ -169,9 +164,9 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
                   size="sm"
                   onClick={() => onSelectDemo(demo)}
                   disabled={disabled}
-                  className="w-full"
+                  className="w-full text-xs sm:text-sm h-8 sm:h-9"
                 >
-                  <Play className="h-3.5 w-3.5 mr-1.5" />
+                  <Play className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 sm:mr-1.5" />
                   Create Meeting
                 </Button>
               </div>
@@ -204,11 +199,11 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
         </div>
       )}
 
-      <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
-        <Sparkles className="h-3.5 w-3.5 mt-0.5 shrink-0" />
+      <div className="flex items-start gap-2 p-2 sm:p-3 bg-muted/50 rounded-lg text-xs text-muted-foreground">
+        <Sparkles className="h-3 w-3 sm:h-3.5 sm:w-3.5 mt-0.5 shrink-0" />
         <p>
-          Demo meetings are marked with a special badge and contain fictional data based on realistic NHS scenarios. 
-          They're ideal for client presentations, training sessions, and testing the note generation capabilities.
+          Demo meetings contain fictional data based on realistic NHS scenarios. 
+          Ideal for client presentations, training, and testing note generation.
         </p>
       </div>
     </div>
