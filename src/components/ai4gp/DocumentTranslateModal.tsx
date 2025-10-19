@@ -349,10 +349,16 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Languages className="h-5 w-5" />
+      <DialogContent 
+        className="w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto"
+        style={{
+          paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+          paddingTop: 'calc(1.5rem + env(safe-area-inset-top))',
+        }}
+      >
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Languages className="h-4 h-4 sm:h-5 sm:w-5" />
             Document Translation
           </DialogTitle>
         </DialogHeader>
@@ -577,24 +583,31 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
 
     {/* Full Translation Modal */}
     <Dialog open={showFullTranslation} onOpenChange={setShowFullTranslation}>
-      <DialogContent className="max-w-4xl w-[90vw] h-[90vh] max-h-[90vh] p-0">
-        <DialogHeader className="p-6 pb-2 border-b">
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-lg font-semibold">
+      <DialogContent 
+        className="w-[95vw] sm:max-w-4xl sm:w-[90vw] h-[90vh] max-h-[90vh] p-0"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingTop: 'env(safe-area-inset-top)',
+        }}
+      >
+        <DialogHeader className="p-3 sm:p-6 pb-2 border-b">
+          <div className="flex items-center justify-between gap-2">
+            <DialogTitle className="text-sm sm:text-lg font-semibold truncate">
               Translation ({result ? getLanguageName(targetLanguage) : ''})
             </DialogTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={improveLayoutWithAI}
                 disabled={isImprovingLayout}
                 title="Improve formatting with AI"
+                className="h-8 w-8 p-0"
               >
                 {isImprovingLayout ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <Loader2 className="h-3 w-3 sm:h-4 sm:w-4 animate-spin" />
                 ) : (
-                  <Sparkles className="h-4 w-4" />
+                  <Sparkles className="h-3 w-3 sm:h-4 sm:w-4" />
                 )}
               </Button>
               <Button
@@ -602,38 +615,43 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
                 variant="ghost"
                 onClick={handlePrint}
                 title="Print document"
+                className="h-8 w-8 p-0"
               >
-                <Printer className="h-4 w-4" />
+                <Printer className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setShowEmailDialog(true)}
                 title="Email document"
+                className="h-8 w-8 p-0"
               >
-                <Mail className="h-4 w-4" />
+                <Mail className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={handleDownloadWord}
                 title="Download as Word document"
+                className="h-8 w-8 p-0"
               >
-                <Download className="h-4 w-4" />
+                <Download className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => result && handleCopyText(aiFormattedHtml || result.translatedText)}
+                className="h-8 w-8 p-0"
               >
-                {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                {copied ? <Check className="h-3 w-3 sm:h-4 sm:w-4" /> : <Copy className="h-3 w-3 sm:h-4 sm:w-4" />}
               </Button>
               <Button
                 size="sm"
                 variant="ghost"
                 onClick={() => setShowFullTranslation(false)}
+                className="h-8 w-8 p-0"
               >
-                <X className="h-4 w-4" />
+                <X className="h-3 w-3 sm:h-4 sm:w-4" />
               </Button>
             </div>
           </div>
@@ -679,10 +697,16 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
 
     {/* Email Dialog */}
     <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
-      <DialogContent className="max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Mail className="h-5 w-5" />
+      <DialogContent 
+        className="w-[95vw] sm:max-w-md"
+        style={{
+          paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+          paddingTop: 'calc(1.5rem + env(safe-area-inset-top))',
+        }}
+      >
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Mail className="h-4 h-4 sm:h-5 sm:w-5" />
             Email Translation
           </DialogTitle>
         </DialogHeader>

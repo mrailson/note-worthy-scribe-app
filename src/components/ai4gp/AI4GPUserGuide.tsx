@@ -772,30 +772,37 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-6xl max-h-[90vh] p-0">
-        <DialogHeader className="px-6 py-4 border-b">
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            <BookOpen className="w-5 h-5 text-blue-600" />
-            AI4GP Service - User Guide
+      <DialogContent 
+        className="w-[95vw] sm:max-w-6xl max-h-[90vh] p-0"
+        style={{
+          paddingBottom: 'env(safe-area-inset-bottom)',
+          paddingTop: 'env(safe-area-inset-top)',
+        }}
+      >
+        <DialogHeader className="px-4 sm:px-6 py-3 sm:py-4 border-b">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-xl">
+            <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
+            <span className="hidden sm:inline">AI4GP Service - User Guide</span>
+            <span className="sm:hidden">User Guide</span>
           </DialogTitle>
         </DialogHeader>
         
-        <div className="flex h-[calc(90vh-100px)]">
-          {/* Sidebar Navigation */}
-          <div className="w-64 border-r bg-gray-50 p-4">
+        <div className="flex flex-col sm:flex-row h-[calc(90vh-80px)] sm:h-[calc(90vh-100px)]">
+          {/* Sidebar Navigation - Horizontal on mobile, vertical on desktop */}
+          <div className="w-full sm:w-64 border-b sm:border-b-0 sm:border-r bg-gray-50 p-2 sm:p-4 overflow-x-auto sm:overflow-x-visible">
             <ScrollArea className="h-full">
-              <div className="space-y-2">
+              <div className="flex sm:flex-col gap-2 sm:space-y-2 min-w-max sm:min-w-0">
                 {sections.map((section) => (
                   <Button
                     key={section.id}
                     variant={activeSection === section.id ? "secondary" : "ghost"}
-                    className={`w-full justify-start gap-2 text-left ${
+                    className={`shrink-0 sm:w-full justify-start gap-2 text-left text-xs sm:text-sm ${
                       activeSection === section.id ? 'bg-blue-100 text-blue-800' : ''
                     }`}
                     onClick={() => setActiveSection(section.id)}
                   >
                     {section.icon}
-                    <span className="text-sm">{section.title}</span>
+                    <span className="whitespace-nowrap sm:whitespace-normal">{section.title}</span>
                   </Button>
                 ))}
               </div>
@@ -803,17 +810,17 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
           </div>
 
           {/* Main Content */}
-          <div className="flex-1 p-6">
+          <div className="flex-1 p-3 sm:p-6 overflow-y-auto">
             <ScrollArea className="h-full">
               <div className="max-w-4xl">
-                <div className="mb-4">
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-3">
+                <div className="mb-3 sm:mb-4">
+                  <h2 className="text-lg sm:text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2 sm:gap-3">
                     {currentSection.icon}
                     {currentSection.title}
                   </h2>
                 </div>
                 
-                <div className="prose prose-sm max-w-none">
+                <div className="prose prose-sm max-w-none text-sm sm:text-base">
                   {currentSection.content}
                 </div>
               </div>

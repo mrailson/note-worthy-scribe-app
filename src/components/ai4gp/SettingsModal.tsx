@@ -247,10 +247,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Bot className="h-5 w-5 text-primary" />
+      <DialogContent 
+        className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+        style={{
+          paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+          paddingTop: 'calc(1.5rem + env(safe-area-inset-top))',
+        }}
+      >
+        <DialogHeader className="pb-2">
+          <DialogTitle className="flex items-center gap-2 text-base sm:text-lg">
+            <Bot className="h-4 h-4 sm:h-5 sm:w-5 text-primary" />
             AI4GP Settings
           </DialogTitle>
         </DialogHeader>

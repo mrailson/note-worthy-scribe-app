@@ -198,10 +198,16 @@ export const EditMeetingModal: React.FC<EditMeetingModalProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle>Edit Meeting Details</DialogTitle>
-          <DialogDescription>
+      <DialogContent 
+        className="w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto"
+        style={{
+          paddingBottom: 'calc(1.5rem + env(safe-area-inset-bottom))',
+          paddingTop: 'calc(1.5rem + env(safe-area-inset-top))',
+        }}
+      >
+        <DialogHeader className="pb-2">
+          <DialogTitle className="text-base sm:text-lg">Edit Meeting Details</DialogTitle>
+          <DialogDescription className="text-sm">
             Update meeting information and upload supporting documents.
           </DialogDescription>
         </DialogHeader>
