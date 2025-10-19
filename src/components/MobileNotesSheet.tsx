@@ -15,6 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { mergeLive } from "@/utils/TranscriptMerge";
 import { detectDevice } from "@/utils/DeviceDetection";
+import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { 
   Copy, 
   FileText, 
@@ -94,6 +95,14 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     creative: false,
     transcript: false,
     standard: false,
+  });
+  
+  // Email modal state
+  const [emailModalOpen, setEmailModalOpen] = useState(false);
+  const [emailModalContent, setEmailModalContent] = useState({ 
+    subject: '', 
+    body: '', 
+    toEmail: '' 
   });
 
   // Load existing note styles from database
@@ -464,86 +473,31 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     return `${day} ${month} ${year} at ${time}`;
   };
 
-  // Send email for specific tab
-  const sendTabEmail = async (tabType: 'executive' | 'comprehensive' | 'creative' | 'transcript' | 'standard') => {
-    if (!user?.email) {
-      toast.error('User email not found');
-      return;
-    }
-
+  // Send email for specific tab - now opens modal instead of sending directly
+  const openEmailModal = (tabType: 'executive' | 'comprehensive' | 'creative' | 'transcript' | 'standard') => {
     const content = getCurrentTabContent();
     if (!content || content.trim().length === 0) {
       toast.error('No content available to send');
       return;
     }
 
-    setSendingEmail(prev => ({ ...prev, [tabType]: true }));
+    const tabNames = {
+      standard: 'Meeting Minutes - Standard View',
+      executive: 'Executive Summary',
+      comprehensive: 'Very Detailed Minutes',
+      creative: 'Creative Summary',
+      transcript: 'Meeting Transcript'
+    };
 
-    try {
-      const tabNames = {
-        standard: 'Meeting Minutes - Standard View',
-        executive: 'Executive Summary',
-        comprehensive: 'Very Detailed Minutes',
-        creative: 'Creative Summary',
-        transcript: 'Meeting Transcript'
-      };
+    const tabName = tabNames[tabType];
+    const emailSubject = `${tabName} - ${meeting?.title || 'Meeting Notes'}`;
 
-      const tabName = tabNames[tabType];
-      const emailSubject = `${tabName} - ${meeting?.title || 'Meeting Notes'}`;
-
-      // Format content for email
-      const formattedContent = content
-        .replace(/## /g, '\n\n')
-        .replace(/### /g, '\n')
-        .replace(/\*\*/g, '')
-        .replace(/^- /gm, '  • ')
-        .replace(/^\d+\. /gm, (match) => `  ${match}`)
-        .trim();
-
-      const emailBody = `Dear ${user.email},\n\nPlease find below the ${tabName.toLowerCase()}${meeting?.title ? ` for "${meeting.title}"` : ''}.\n\nKind regards,\nNotewell AI`;
-
-      const emailData = {
-        to_email: user.email,
-        subject: emailSubject,
-        message: `${emailBody}
-
-════════════════════════════════════════════════════════════════
-
-${tabName.toUpperCase()}
-
-${formattedContent}
-
-════════════════════════════════════════════════════════════════`,
-        template_type: 'meeting_minutes',
-        from_name: 'Notewell AI - Meeting Notes',
-        reply_to: 'noreply@notewell.co.uk',
-        meeting_title: meeting?.title || 'Meeting Notes',
-        meeting_id: meeting?.id || ''
-      };
-
-      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
-        body: emailData
-      });
-
-      if (error) {
-        console.error('Email sending error:', error);
-        throw new Error(error.message || 'Failed to send email');
-      }
-
-      if (!data?.success) {
-        console.error('EmailJS error:', data);
-        throw new Error(data?.error || 'Failed to send email');
-      }
-
-      if (!isIOS) {
-        toast.success(`${tabName} sent to ${user.email}`);
-      }
-    } catch (error: any) {
-      console.error('Error sending email:', error);
-      toast.error(error.message || 'Failed to send email. Please try again.');
-    } finally {
-      setSendingEmail(prev => ({ ...prev, [tabType]: false }));
-    }
+    setEmailModalContent({
+      subject: emailSubject,
+      body: content,
+      toEmail: user?.email || ''
+    });
+    setEmailModalOpen(true);
   };
 
   // Regenerate notes functions
@@ -657,16 +611,12 @@ ${formattedContent}
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => sendTabEmail('standard')}
-                          disabled={sendingEmail.standard || !notes}
+                          onClick={() => openEmailModal('standard')}
+                          disabled={!notes}
                           className="h-8 px-2 text-xs"
                           title="Email this summary"
                         >
-                          {sendingEmail.standard ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Mail className="h-3 w-3" />
-                          )}
+                          <Mail className="h-3 w-3" />
                         </Button>
                         <Button
                           variant="ghost"
@@ -718,16 +668,12 @@ ${formattedContent}
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => sendTabEmail('transcript')}
-                          disabled={sendingEmail.transcript || !transcript}
+                          onClick={() => openEmailModal('transcript')}
+                          disabled={!transcript}
                           className="h-8 px-2 text-xs"
                           title="Email this transcript"
                         >
-                          {sendingEmail.transcript ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
-                          ) : (
-                            <Mail className="h-3 w-3" />
-                          )}
+                          <Mail className="h-3 w-3" />
                         </Button>
                       </div>
                     </div>
@@ -817,6 +763,16 @@ ${formattedContent}
           </Tabs>
         </div>
       </SheetContent>
+      
+      <MeetingMinutesEmailModal
+        isOpen={emailModalOpen}
+        onOpenChange={setEmailModalOpen}
+        defaultToEmail={emailModalContent.toEmail}
+        defaultSubject={emailModalContent.subject}
+        defaultBody={emailModalContent.body}
+        meetingTitle={meeting?.title || 'Meeting'}
+        meetingDate={meeting?.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
+      />
     </Sheet>
   );
 };
