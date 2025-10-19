@@ -628,27 +628,15 @@ ${formattedContent}
       <SheetContent side="bottom" className="h-[90vh] flex flex-col p-0">
         <div className="flex flex-col h-full">
           <SheetHeader className="p-4 pb-3 border-b flex-shrink-0">
-            <div className="flex items-start justify-between gap-3">
-              <div className="flex-1">
-                <SheetTitle className="text-lg font-semibold text-left">
-                  {meeting?.title || 'Meeting Notes'}
-                </SheetTitle>
-                <SheetDescription className="flex items-center gap-4 text-sm text-muted-foreground">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-4 w-4" />
-                    {meeting?.start_time ? formatDate(meeting.start_time) : 'N/A'}
-                  </span>
-                </SheetDescription>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onOpenChange(false)}
-                className="h-8 w-8 p-0 rounded-full hover:bg-muted"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+            <SheetTitle className="text-lg font-semibold text-left">
+              {meeting?.title || 'Meeting Notes'}
+            </SheetTitle>
+            <SheetDescription className="flex items-center gap-4 text-sm text-muted-foreground">
+              <span className="flex items-center gap-1">
+                <Calendar className="h-4 w-4" />
+                {meeting?.start_time ? formatDate(meeting.start_time) : 'N/A'}
+              </span>
+            </SheetDescription>
           </SheetHeader>
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
@@ -784,7 +772,7 @@ ${formattedContent}
             </div>
 
             {/* Action buttons */}
-            <div className="border-t pt-3 pb-1">
+            <div className="border-t pt-3 pb-2 px-3">
               <div className="grid grid-cols-3 gap-2 mb-2">
                 <Button
                   variant="outline"
@@ -816,6 +804,15 @@ ${formattedContent}
                   Full
                 </Button>
               </div>
+              
+              <Button
+                variant="default"
+                size="lg"
+                onClick={() => onOpenChange(false)}
+                className="w-full font-semibold"
+              >
+                Close
+              </Button>
             </div>
           </Tabs>
         </div>
