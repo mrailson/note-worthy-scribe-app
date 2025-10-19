@@ -47,7 +47,8 @@ import {
   RefreshCw,
   ChevronDown,
   BookOpen,
-  Sparkles
+  Sparkles,
+  Loader2
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -143,6 +144,8 @@ const ComplaintDetails = () => {
   const [complaintDocuments, setComplaintDocuments] = useState<any[]>([]);
   const [aiAnalysis, setAiAnalysis] = useState("");
   const [countdown, setCountdown] = useState(10);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isGeneratingAcknowledgement, setIsGeneratingAcknowledgement] = useState(false);
   const [isRegeneratingOutcome, setIsRegeneratingOutcome] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -1492,6 +1495,30 @@ I am committed to ensuring that all patients receive the care and service they d
       toast.error("Failed to save workflow settings");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteComplaint = async () => {
+    if (!complaint || !user) return;
+    
+    setIsDeleting(true);
+    try {
+      // Delete the complaint (cascading deletes will handle related records)
+      const { error } = await supabase
+        .from('complaints')
+        .delete()
+        .eq('id', complaint.id);
+
+      if (error) throw error;
+
+      toast.success("Complaint deleted successfully");
+      navigate('/complaints');
+    } catch (error) {
+      console.error('Error deleting complaint:', error);
+      toast.error("Failed to delete complaint");
+    } finally {
+      setIsDeleting(false);
+      setShowDeleteDialog(false);
     }
   };
 
@@ -3059,8 +3086,75 @@ I am committed to ensuring that all patients receive the care and service they d
               )}
             </TabsContent>
           </Tabs>
+
+          {/* Delete Complaint Section */}
+          <Card className="mt-6 border-destructive/50">
+            <CardHeader>
+              <CardTitle className="text-destructive flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5" />
+                Danger Zone
+              </CardTitle>
+              <CardDescription>
+                Permanently delete this complaint and all associated data
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteDialog(true)}
+                className="w-full sm:w-auto"
+              >
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete Complaint
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              Are you absolutely sure?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>This action cannot be undone. This will permanently delete:</p>
+              <ul className="list-disc list-inside space-y-1 text-sm">
+                <li>The complaint record (Reference: <strong>{complaint?.reference_number}</strong>)</li>
+                <li>All acknowledgement and outcome letters</li>
+                <li>Staff responses and involved parties</li>
+                <li>Compliance checks and audit logs</li>
+                <li>All uploaded documents</li>
+                <li>Investigation findings and evidence</li>
+              </ul>
+              <p className="font-semibold text-destructive mt-4">All complaint data will be permanently deleted.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteComplaint}
+              disabled={isDeleting}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete Permanently
+                </>
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Acknowledgement Letter Modal */}
       <Dialog open={showAcknowledgementModal} onOpenChange={(open) => !open && handleCloseAcknowledgementModal()}>
