@@ -115,24 +115,32 @@ export const TranscriptViewer: React.FC<TranscriptViewerProps> = ({
         )}
       </div>
 
-      {/* Word Count */}
-      {(displayTranscript || browserFallbackWordCount > 0) && (
+      {/* Word Count or Info Message */}
+      {(displayTranscript || browserFallbackWordCount > 0 || (!useWhisperCount && isTranscribing)) && (
         <div className="mt-4 pt-4 border-t border-border">
           <div className="flex items-center justify-between text-sm text-muted-foreground">
-            <div className="flex items-center gap-2">
-              <span>
-                Words: {stats.words}
+            {!useWhisperCount && browserFallbackWordCount === 0 && !displayTranscript ? (
+              <span className="italic">
+                Transcript will appear from 30 seconds...
               </span>
-              {!useWhisperCount && browserFallbackWordCount > 0 && (
-                <Badge variant="outline" className="text-xs">
-                  Preview
-                </Badge>
-              )}
-            </div>
-            {useWhisperCount && (
-              <span>
-                Characters: {stats.characters}
-              </span>
+            ) : (
+              <>
+                <div className="flex items-center gap-2">
+                  <span>
+                    Words: {stats.words}
+                  </span>
+                  {!useWhisperCount && browserFallbackWordCount > 0 && (
+                    <Badge variant="outline" className="text-xs">
+                      Preview
+                    </Badge>
+                  )}
+                </div>
+                {useWhisperCount && (
+                  <span>
+                    Characters: {stats.characters}
+                  </span>
+                )}
+              </>
             )}
             {isTranscribing && (
               <Badge variant="secondary" className="animate-pulse">
