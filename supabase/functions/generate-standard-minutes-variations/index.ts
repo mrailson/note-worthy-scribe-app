@@ -1,5 +1,8 @@
+import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+
+const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -169,6 +172,88 @@ async function generateExecutiveBriefVariation(content: string): Promise<string>
   const titleMatch = content.match(/^#\s+(.+)/m);
   const title = titleMatch ? titleMatch[1] : 'Meeting Summary';
   
+  if (!lovableApiKey) {
+    console.error('❌ Lovable AI API key not found, falling back to text extraction');
+    return generateExecutiveBriefFallback(content, title);
+  }
+  
+  const systemPrompt = `Create a concise executive meeting brief using British English spellings and conventions.
+
+Format:
+1. Opening paragraph (20-30 words): Brief overview of meeting purpose and main outcome
+2. Key points (3-5 bullet points): Specific decisions, actions, and deliverables
+
+Requirements:
+- Use British English spellings (e.g., 'organised', 'realise', 'colour', 'centre')
+- Total: 60-80 words maximum
+- Opening paragraph on its own line, followed by blank line
+- Then each bullet point on separate line with • character
+- Each bullet point: one clear, specific statement (8-12 words)
+- Focus on key decisions, actions, and outcomes only
+- Include critical details: names, deadlines, deliverables (if mentioned)
+- Professional, direct tone
+- NO introductory phrases or filler words
+
+Example format:
+[Paragraph describing meeting]
+
+• [First key point]
+• [Second key point]
+• [Third key point]`;
+
+  const userPrompt = `Create a concise executive brief from this meeting titled "${title}":
+
+${content.substring(0, 3000)}
+
+Format your response exactly like this:
+[Brief paragraph describing the meeting purpose and outcome]
+
+• [Key decision/action/deliverable]
+• [Key decision/action/deliverable]
+• [Key decision/action/deliverable]
+• [Additional points as needed, max 5 total]
+
+Remember: Use • bullet character, put each bullet on its own line, blank line between paragraph and bullets.`;
+
+  try {
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        max_completion_tokens: 150,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error('❌ Lovable AI API error:', response.status);
+      return generateExecutiveBriefFallback(content, title);
+    }
+
+    const data = await response.json();
+    const briefContent = data.choices?.[0]?.message?.content?.trim() || '';
+    
+    return `# Executive Brief: ${title}
+
+${briefContent}
+
+---
+*This is a condensed executive summary. Full minutes contain additional detail.*`;
+
+  } catch (error) {
+    console.error('❌ Error generating AI executive brief:', error);
+    return generateExecutiveBriefFallback(content, title);
+  }
+}
+
+function generateExecutiveBriefFallback(content: string, title: string): string {
   const keyPointsMatch = content.match(/#{1,6}\s*KEY (POINTS|DISCUSSION)[\s\S]*?(?=\n#{1,6}\s|\n\n|$)/i);
   const keyPointsSection = keyPointsMatch ? keyPointsMatch[0] : '';
   
@@ -182,8 +267,7 @@ async function generateExecutiveBriefVariation(content: string): Promise<string>
   const topDecisions = extractTopPoints(decisionsSection, 3);
   const actionsSummary = extractActionsSummary(actionsSection);
   
-  return `
-# Executive Brief: ${title}
+  return `# Executive Brief: ${title}
 
 ## Key Highlights
 ${topKeyPoints}
@@ -195,8 +279,7 @@ ${topDecisions}
 ${actionsSummary}
 
 ---
-*This is a condensed executive summary. Full minutes contain additional detail.*
-`;
+*This is a condensed executive summary. Full minutes contain additional detail.*`;
 }
 
 function extractTopPoints(section: string, count: number): string {
