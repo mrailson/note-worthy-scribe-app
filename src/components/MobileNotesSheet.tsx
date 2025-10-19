@@ -513,9 +513,21 @@ ${formattedContent}
       
       switch (noteType) {
         case 'standard':
-          // Generate standard meeting minutes
-          result = await supabase.functions.invoke('generate-meeting-minutes', {
-            body: { meetingId: meeting.id }
+          // Use the same function as desktop (generate-meeting-notes-claude)
+          const meetingDate = meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : '';
+          const meetingTime = meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString('en-GB', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+          }) : '';
+
+          result = await supabase.functions.invoke('generate-meeting-notes-claude', {
+            body: {
+              transcript: transcript,
+              meetingTitle: meeting.title,
+              meetingDate: meetingDate,
+              meetingTime: meetingTime,
+              detailLevel: 'standard'
+            }
           });
           break;
         case 'brief':
@@ -721,7 +733,10 @@ ${formattedContent}
                           <span className="text-sm text-muted-foreground">Loading transcript...</span>
                         </div>
                       ) : transcript ? (
-                        <div className="text-sm leading-relaxed whitespace-pre-wrap text-foreground">
+                        <div 
+                          className="text-sm leading-relaxed whitespace-pre-wrap text-foreground font-sans"
+                          style={{ lineHeight: '1.8' }}
+                        >
                           {transcript}
                         </div>
                       ) : (
