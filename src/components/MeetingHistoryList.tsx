@@ -2212,7 +2212,7 @@ export const MeetingHistoryList = ({
                   className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-purple-600 hover:text-purple-700"
                 >
                   <Users className="h-4 w-4" />
-                  <span>Attendees</span>
+                  <span>Manage Attendees</span>
                 </Button>
                 
                 {/* Actions Dropdown Menu */}
