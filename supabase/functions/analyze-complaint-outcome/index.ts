@@ -91,6 +91,18 @@ TONE GUIDELINES:
 - For upheld complaints: focus on learning and positive steps forward, not blame
 - Recognise the complexity of healthcare delivery and human factors
 
+⚠️ CRITICAL LANGUAGE RULES:
+- NEVER say "the complaint IS upheld/not upheld" as a definitive statement
+- ALWAYS use conditional/advisory language: "suggests", "indicates", "could support", "would recommend", "appears to"
+- In the REASONING section, you MUST start with phrases like:
+  ✓ "Based on the evidence provided, this SUGGESTS the complaint COULD BE upheld because..."
+  ✓ "The available information INDICATES the complaint MAY BE partially upheld, as..."
+  ✓ "This APPEARS TO SUPPORT upholding the complaint given that..."
+- NEVER use definitive language like:
+  ✗ "The complaint is upheld because..."
+  ✗ "This demonstrates a failure to..."
+  ✗ "The practice failed to..."
+
 Provide a CONCISE analysis in plain text format (NO markdown, NO asterisks, NO special formatting).
 
 Your response must be under 400 words and structured exactly as:
@@ -98,18 +110,21 @@ Your response must be under 400 words and structured exactly as:
 SUGGESTED OUTCOME (GUIDANCE ONLY): [upheld/partially_upheld/not_upheld]
 
 KEY FINDINGS (2-3 bullet points maximum):
-• [Finding 1 - stated constructively]
-• [Finding 2 - stated constructively]
+• [Finding 1 - stated constructively using advisory language]
+• [Finding 2 - stated constructively using advisory language]
 
 REASONING (3-4 sentences):
-[Brief, balanced justification. If upheld, acknowledge any positive actions taken and frame issues as opportunities for improvement]
+[MUST start with "Based on the evidence provided, this SUGGESTS..." or similar conditional phrasing.
+Then explain, referencing BOTH patient concerns AND the practice's documented response/actions.
+Acknowledge any positive steps taken. Frame issues as opportunities for improvement.
+Use ONLY advisory language throughout - NEVER definitive statements]
 
 COMPLIANCE CONSIDERATIONS (2 sentences):
-[How this aligns with NHS/CQC standards - focus on continuous improvement]
+[How this aligns with NHS/CQC standards - focus on continuous improvement and learning]
 
 LEARNING POINTS (2 bullet points):
-• [Constructive suggestion 1]
-• [Constructive suggestion 2]
+• [Constructive, forward-looking suggestion 1]
+• [Constructive, forward-looking suggestion 2]
 
 ⚠️ CRITICAL RULES:
 - NO markdown formatting (no **, ##, etc.)
@@ -118,6 +133,7 @@ LEARNING POINTS (2 bullet points):
 - Be supportive and constructive, especially for upheld complaints
 - Base analysis ONLY on provided information
 - Acknowledge actions already taken by the practice
+- Use ONLY advisory language - never definitive statements
 
 DISCLAIMER: This analysis is provided as guidance to support decision-making. It should not be relied upon as the sole basis for determining complaint outcomes. Human oversight and professional judgement are essential.`;
 
@@ -178,9 +194,16 @@ PATIENT INFORMATION:
 - Complaint made on behalf of patient: ${complaint.complaint_on_behalf ? 'Yes' : 'No'}
 - Consent given: ${complaint.consent_given ? 'Yes' : 'No'}
 
-IMPORTANT: Base your analysis on BOTH the original complaint AND the practice's documented investigation findings (sections 2 & 3). Consider what actions the practice has already taken and improvements made when determining the outcome.
+⚠️ CRITICAL REQUIREMENTS FOR YOUR ANALYSIS:
+1. You MUST explicitly reference the practice's documented investigation findings (sections 2 & 3) in your analysis
+2. Acknowledge specific actions the practice has already taken to address the complaint
+3. If the practice has documented improvements made, mention them in your reasoning
+4. Balance the patient's concerns against the practice's documented response and actions
+5. Use ONLY advisory, suggestive language - NEVER definitive statements about the outcome
+6. Start your REASONING section with "Based on the evidence provided, this SUGGESTS..." or similar conditional phrasing
+7. Recognise and mention any positive steps or good practice demonstrated
 
-Please provide a comprehensive analysis with recommended outcome and clear reasoning that would satisfy CQC inspection and NHS England standards.`;
+Please provide a comprehensive, balanced analysis with recommended outcome and clear reasoning that would satisfy CQC inspection and NHS England standards.`;
 
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
