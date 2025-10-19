@@ -35,6 +35,15 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
     : availableDemos.filter(meeting => {
         // Map "Others" filter to "ICB" organisation type
         const filterType = selectedOrgType === 'Others' ? 'ICB' : selectedOrgType;
+        
+        // For GP Practice filter, exclude PCN, Neighbourhood, and MDT types
+        if (filterType === 'GP Practice') {
+          return meeting.organizationType === filterType 
+            && meeting.type !== 'PCN' 
+            && meeting.type !== 'Neighbourhood' 
+            && meeting.type !== 'MDT';
+        }
+        
         return meeting.organizationType === filterType;
       });
   
