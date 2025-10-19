@@ -57,7 +57,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   notes
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("comprehensive");
+  const [activeTab, setActiveTab] = useState("standard");
   const isIOS = detectDevice().isIOS;
   const [notesStyle2, setNotesStyle2] = useState("");
   const [notesStyle3, setNotesStyle3] = useState("");
@@ -72,23 +72,27 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     comprehensive: boolean;
     executive: boolean;
     creative: boolean;
+    standard: boolean;
   }>({
     brief: false,
     detailed: false,
     comprehensive: false,
     executive: false,
     creative: false,
+    standard: false,
   });
   const [sendingEmail, setSendingEmail] = useState<{
     executive: boolean;
     comprehensive: boolean;
     creative: boolean;
     transcript: boolean;
+    standard: boolean;
   }>({
     executive: false,
     comprehensive: false,
     creative: false,
     transcript: false,
+    standard: false,
   });
 
   // Load existing note styles from database
@@ -294,6 +298,8 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   // Get current tab content
   const getCurrentTabContent = () => {
     switch (activeTab) {
+      case "standard":
+        return notes;
       case "brief":
         return notes;
       case "detailed":
@@ -415,7 +421,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   };
 
   // Send email for specific tab
-  const sendTabEmail = async (tabType: 'executive' | 'comprehensive' | 'creative' | 'transcript') => {
+  const sendTabEmail = async (tabType: 'executive' | 'comprehensive' | 'creative' | 'transcript' | 'standard') => {
     if (!user?.email) {
       toast.error('User email not found');
       return;
@@ -431,6 +437,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
 
     try {
       const tabNames = {
+        standard: 'Meeting Minutes - Standard View',
         executive: 'Executive Summary',
         comprehensive: 'Very Detailed Minutes',
         creative: 'Creative Summary',
@@ -505,6 +512,12 @@ ${formattedContent}
       let result;
       
       switch (noteType) {
+        case 'standard':
+          // Generate standard meeting minutes
+          result = await supabase.functions.invoke('generate-meeting-minutes', {
+            body: { meetingId: meeting.id }
+          });
+          break;
         case 'brief':
         case 'detailed':
         case 'comprehensive':
@@ -572,7 +585,8 @@ ${formattedContent}
 
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col overflow-hidden">
             <div className="flex justify-between items-center p-3 pb-2 border-b flex-shrink-0">
-              <TabsList className="grid w-full max-w-lg grid-cols-4 h-10">
+              <TabsList className="grid w-full max-w-lg grid-cols-5 h-10">
+                <TabsTrigger value="standard" className="text-[10px] px-1 font-medium">Standard</TabsTrigger>
                 <TabsTrigger value="comprehensive" className="text-[10px] px-1 font-medium">Detailed</TabsTrigger>
                 <TabsTrigger value="executive" className="text-[10px] px-1 font-medium">Exec</TabsTrigger>
                 <TabsTrigger value="creative" className="text-[10px] px-1 font-medium">Creative</TabsTrigger>
@@ -592,6 +606,67 @@ ${formattedContent}
             <div className="flex-1 overflow-hidden">
               <ScrollArea className="h-full">
                 <div className="p-4 pb-8">
+                  <TabsContent value="standard" className="mt-0">
+                    <div className="flex justify-between items-center mb-3">
+                      <h3 className="text-sm font-semibold text-foreground">Meeting Minutes - Standard View</h3>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => sendTabEmail('standard')}
+                          disabled={sendingEmail.standard || !notes}
+                          className="h-8 px-2 text-xs"
+                          title="Email this summary"
+                        >
+                          {sendingEmail.standard ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <Mail className="h-3 w-3" />
+                          )}
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => regenerateNotes('standard')}
+                          disabled={regenerating.standard}
+                          className="h-8 px-2 text-xs"
+                        >
+                          {regenerating.standard ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <RotateCcw className="h-3 w-3" />
+                          )}
+                          <span className="ml-1">
+                            {regenerating.standard ? 'Generating...' : 'Regenerate'}
+                          </span>
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="bg-card rounded-lg border p-4">
+                      {notes ? (
+                        <div 
+                          className="text-sm leading-relaxed space-y-2"
+                          dangerouslySetInnerHTML={{ __html: formatContent(notes) }}
+                        />
+                      ) : (
+                        <div className="text-center py-8">
+                          <p className="text-muted-foreground mb-4 text-sm">
+                            No standard minutes available
+                          </p>
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            onClick={() => regenerateNotes('standard')}
+                            disabled={regenerating.standard}
+                            className="text-xs"
+                          >
+                            Generate Standard Minutes
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </TabsContent>
+
                   <TabsContent value="comprehensive" className="mt-0">
                     <div className="flex justify-between items-center mb-3">
                       <h3 className="text-sm font-semibold text-foreground">Detailed Minutes</h3>
