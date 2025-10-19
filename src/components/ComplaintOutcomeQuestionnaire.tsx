@@ -1170,7 +1170,11 @@ export const ComplaintOutcomeQuestionnaire = ({
               Next
             </Button>
           ) : (
-            <Button onClick={handleSubmit} disabled={isSubmitting || isAnalyzing || !data.outcome_type} className="bg-green-600 hover:bg-green-700">
+            <Button 
+              onClick={handleSubmit} 
+              disabled={isSubmitting || isAnalyzing || !data.outcome_type || !confirmProfessionalJudgement} 
+              className="bg-green-600 hover:bg-green-700"
+            >
               {isSubmitting ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
