@@ -1554,61 +1554,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsEditing(!isEditing);
   };
 
-  // Handle Quick Tidy - apply medical term corrections and NHS rules
-  const handleQuickTidy = async () => {
-    // Get current content based on active tab
-    const getCurrentContent = () => {
-      switch (activeNotesStyleTab) {
-        case 'style1': return notesStyle3;
-        case 'style4': return notesStyle4;
-        default: return null;
-      }
-    };
-
-    const currentContent = getCurrentContent();
-    if (!currentContent || !currentContent.trim()) {
-      toast.error('No content to tidy');
-      return;
-    }
-
-    try {
-      setIsGenerating(true);
-      
-      // 1. Load user-specific medical term corrections
-      await medicalTermCorrector.loadCorrections(user?.id);
-      
-      // 2. Apply medical term corrections
-      let tidiedContent = medicalTermCorrector.applyCorrections(currentContent);
-      
-      // 3. Apply NHS default rules using transcriptCleaner
-      const cleanResult = cleanTranscript(tidiedContent, NHS_DEFAULT_RULES);
-      tidiedContent = cleanResult.cleaned;
-      
-      // 4. Count changes
-      const changeCount = cleanResult.appliedRuleIds.length;
-      
-      // 5. Update content and save to database
-      switch (activeNotesStyleTab) {
-        case 'style1':
-          setNotesStyle3(tidiedContent);
-          await saveNoteStyleToDatabase(3, tidiedContent);
-          break;
-        case 'style4':
-          setNotesStyle4(tidiedContent);
-          await saveNoteStyleToDatabase(4, tidiedContent);
-          break;
-      }
-      
-      // 6. Show success toast
-      toast.success(`Quick Tidy complete! ${changeCount} corrections applied.`);
-      
-    } catch (error) {
-      console.error('Quick Tidy error:', error);
-      toast.error('Quick Tidy failed. Please try again.');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   // Handle inline word correction from InlineWordCorrector component
   const handleInlineCorrection = async (correction: {
@@ -3333,15 +3278,6 @@ ${transcript}`;
                                     className="w-48 bg-popover border shadow-md z-[200]"
                                     sideOffset={5}
                                   >
-                                    {!isEditing && content && (
-                                      <DropdownMenuItem 
-                                        onSelect={() => handleQuickTidy()}
-                                        disabled={isGenerating}
-                                      >
-                                        <Eraser className="h-4 w-4 mr-2" />
-                                        Quick Tidy
-                                      </DropdownMenuItem>
-                                    )}
                                     {(activeNotesStyleTab === 'style1' || activeNotesStyleTab === 'style4' || activeNotesStyleTab === 'style5') && (
                                       <DropdownMenuItem 
                                         onSelect={() => setEnhancementDialogOpen(true)}
