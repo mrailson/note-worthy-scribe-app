@@ -243,7 +243,15 @@ serve(async (req) => {
     // Step 3: Generate SOAP notes using OpenAI
     console.log('🤖 Generating SOAP notes...');
     const soapPrompt = `
-As a UK GP, convert this consultation transcript into structured SOAP notes. 
+You are an experienced UK GP generating clinical documentation from consultation transcripts.
+
+CRITICAL ANTI-HALLUCINATION RULES:
+- Use ONLY information EXPLICITLY stated in the transcript below
+- NEVER invent, assume, or infer examination findings that were not documented
+- NEVER add negative findings (e.g., "no tenderness", "no abnormalities") unless explicitly mentioned
+- If an examination or observation was not performed or mentioned, OMIT it entirely from the notes
+- Never fabricate patient symptoms, vital signs, test results, or clinical findings
+- If a SOAP section has no information from the transcript, write "Not documented" rather than inventing content
 
 Consultation Type: ${requestData.consultationType}
 Detected Category: ${classifier.label}
@@ -251,34 +259,36 @@ Detected Category: ${classifier.label}
 Transcript:
 ${transcriptText}
 
-Please provide both GP shorthand and standard detail versions:
+Generate SOAP notes using ONLY the information above:
 
 SHORTHAND (GP abbreviations, concise):
-S: [Patient symptoms, history - use GP abbreviations like c/o, SOB, CP, etc.]
-O: [Examination findings, observations - abbreviated]
-A: [Assessment/diagnosis - concise]
-P: [Management plan - abbreviated]
+S: [Only symptoms/history explicitly mentioned - use abbreviations like c/o, SOB, CP]
+O: [Only examination findings/observations actually documented - abbreviated. If no examination mentioned, write "Examination: Not documented"]
+A: [Only assessment/diagnosis explicitly discussed - concise]
+P: [Only management plan explicitly agreed - abbreviated]
 
 STANDARD (Full clinical detail):
-S: [Complete subjective information]
-O: [Full objective findings]
-A: [Detailed assessment]
-P: [Comprehensive plan with safety-netting]
+S: [Only complete subjective information from transcript]
+O: [Only objective findings actually documented. Do NOT add examination findings that weren't performed. If minimal/no examination, state what WAS done only]
+A: [Only assessment based on what was discussed]
+P: [Only plan explicitly agreed with safety-netting if mentioned]
 
 Also provide:
-SUMMARY_LINE: [One-line summary for SystmOne]
-PATIENT_COPY: [Patient-friendly explanation in plain English]
-REFERRAL: [Referral guidance if needed, or "Not indicated"]
-REVIEW: [Follow-up recommendations and safety-netting]
+SUMMARY_LINE: [One-line summary based only on transcript content]
+PATIENT_COPY: [Patient-friendly explanation using only discussed information]
+REFERRAL: [Only if referral was explicitly discussed, otherwise "Not discussed"]
+REVIEW: [Only follow-up explicitly mentioned, plus relevant safety-netting]
 
-CLINICAL_ACTIONS: Extract structured clinical actions as:
+CLINICAL_ACTIONS: Extract ONLY actions explicitly mentioned:
 {
-  "medications": [list of prescriptions with doses],
-  "investigations": [labs, imaging ordered],
-  "followUp": [when to return, what to monitor],
-  "redFlags": [warning signs to watch for],
-  "other": [any other actions]
+  "medications": [only prescriptions explicitly issued with doses],
+  "investigations": [only tests/imaging explicitly ordered],
+  "followUp": [only if explicitly arranged],
+  "redFlags": [only warning signs explicitly discussed],
+  "other": [only other actions explicitly agreed]
 }
+
+REMEMBER: It is better to have sparse, accurate notes than detailed fabricated notes. Only document what actually happened.
 
 Format as JSON with keys: shorthand, standard, summaryLine, patientCopy, referral, review, clinicalActions
 `;
@@ -294,7 +304,7 @@ Format as JSON with keys: shorthand, standard, summaryLine, patientCopy, referra
         messages: [
           {
             role: 'system',
-            content: 'You are an experienced UK GP generating clinical documentation. Always include appropriate safety-netting advice.'
+            content: 'You are an experienced UK GP generating clinical documentation. You MUST NEVER hallucinate or fabricate clinical information. Only document what was explicitly mentioned in the consultation transcript. Never add examination findings, symptoms, or other clinical data that were not actually documented.'
           },
           {
             role: 'user',
