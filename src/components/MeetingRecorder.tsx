@@ -3173,6 +3173,13 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
+    // Guard: prevent multiple simultaneous stop operations
+    if (isStoppingRecording) {
+      console.log('⚠️ Stop already in progress, ignoring duplicate call');
+      return;
+    }
+    
+    setIsStoppingRecording(true);
     setStopRecordingStep('Stopping recording...');
     
     // Check word count before processing - skip animation for short meetings
@@ -3273,9 +3280,6 @@ export const MeetingRecorder = ({
       
       // Reset the meeting immediately for short recordings (background)
       setStopRecordingStep('Complete!');
-      setIsRecording(false);
-      isRecordingRef.current = false;
-      setConnectionStatus('Disconnected');
       setTimeout(async () => {
         try {
           await resetMeeting();
@@ -3288,8 +3292,6 @@ export const MeetingRecorder = ({
       toast.info('Meeting was too short to save (minimum 100 words required)', {
         duration: 4000,
       });
-      
-      return;
       
       return;
     }
