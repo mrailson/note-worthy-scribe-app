@@ -124,6 +124,9 @@ export const MeetingRecorder = ({
   const [chunkSaveStatuses, setChunkSaveStatuses] = useState<ChunkSaveStatus[]>([]);
   const [stopUIStatus, setStopUIStatus] = useState<string>('');
   
+  // Synchronous guard to prevent duplicate stop flows
+  const stopInProgressRef = useRef(false);
+  
   // Update removed segments periodically
   useEffect(() => {
     const interval = setInterval(() => {
@@ -3173,13 +3176,13 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
-    // Guard: prevent multiple simultaneous stop operations
-    if (isStoppingRecording) {
-      console.log('⚠️ Stop already in progress, ignoring duplicate call');
+    // Guard: prevent multiple simultaneous stop operations (state can lag)
+    if (stopInProgressRef.current) {
+      console.log('⚠️ Stop already in progress (ref), ignoring duplicate call');
       return;
     }
-    
-    setIsStoppingRecording(true);
+    stopInProgressRef.current = true;
+    if (!isStoppingRecording) setIsStoppingRecording(true);
     setStopRecordingStep('Stopping recording...');
     
     // Check word count before processing - skip animation for short meetings
@@ -3285,11 +3288,13 @@ export const MeetingRecorder = ({
           await resetMeeting();
         } finally {
           setIsStoppingRecording(false);
+          stopInProgressRef.current = false;
         }
       }, 0);
       
-      // Show toast for short meeting
+      // Show toast for short meeting (deduped)
       toast.info('Meeting was too short to save (minimum 100 words required)', {
+        id: 'short_meeting_notice',
         duration: 4000,
       });
       
@@ -3426,6 +3431,7 @@ export const MeetingRecorder = ({
       console.log('🚨 VALIDATION FAILED - Duration too short:', duration);
       showToast.error('Recording too short. Minimum 5 seconds required.', { section: 'meeting_manager' });
       setIsStoppingRecording(false);
+      stopInProgressRef.current = false;
       return;
     }
 
@@ -3434,6 +3440,7 @@ export const MeetingRecorder = ({
       console.log('🚨 VALIDATION FAILED - No transcript content:', { transcript: transcript?.length, wordCount });
       showToast.error('No transcript content detected.', { section: 'meeting_manager' });
       setIsStoppingRecording(false);
+      stopInProgressRef.current = false;
       return;
     }
     
@@ -3751,6 +3758,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           console.log('🔄 Resetting recording state');
           await resetMeeting();
           setIsStoppingRecording(false);
+          stopInProgressRef.current = false;
           console.log('✅ Recording state reset');
         }
       };
@@ -3767,6 +3775,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       } finally {
         setStopRecordingStep('');
         setIsStoppingRecording(false);
+        stopInProgressRef.current = false;
       }
     }
   };
