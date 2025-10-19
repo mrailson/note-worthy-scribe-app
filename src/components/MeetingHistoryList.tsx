@@ -2215,29 +2215,6 @@ export const MeetingHistoryList = ({
                   <span>Attendees</span>
                 </Button>
                 
-                {/* Process Meeting Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleProcessClick(meeting)}
-                  disabled={processingMeetings[meeting.id]?.isProcessing}
-                  className={`flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] ${getProcessingButtonColor(processingMeetings[meeting.id])}`}
-                  title={getProcessingTooltip(processingMeetings[meeting.id])}
-                >
-                  {(() => {
-                    const IconComponent = getProcessingButtonIcon(processingMeetings[meeting.id]);
-                    const processing = processingMeetings[meeting.id];
-                    const shouldSpin = processing?.isProcessing && processing.currentStage !== 'complete';
-                    return <IconComponent className={`h-4 w-4 ${shouldSpin ? 'animate-spin' : ''}`} />;
-                  })()}
-                  <span className="hidden sm:inline">
-                    {getProcessingButtonText(processingMeetings[meeting.id])}
-                  </span>
-                  <span className="sm:hidden">
-                    {processingMeetings[meeting.id]?.isProcessing ? '...' : 'Process'}
-                  </span>
-                </Button>
-                
                 {/* Actions Dropdown Menu */}
                 <AlertDialog>
                   <DropdownMenu>
@@ -2256,6 +2233,22 @@ export const MeetingHistoryList = ({
                       className="w-48 bg-popover border shadow-md z-50"
                       sideOffset={5}
                     >
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          handleProcessClick(meeting);
+                        }}
+                        disabled={processingMeetings[meeting.id]?.isProcessing}
+                        className={processingMeetings[meeting.id]?.isProcessing ? 'opacity-50' : ''}
+                      >
+                        {(() => {
+                          const IconComponent = getProcessingButtonIcon(processingMeetings[meeting.id]);
+                          const processing = processingMeetings[meeting.id];
+                          const shouldSpin = processing?.isProcessing && processing.currentStage !== 'complete';
+                          return <IconComponent className={`h-4 w-4 mr-2 ${shouldSpin ? 'animate-spin' : ''}`} />;
+                        })()}
+                        {getProcessingButtonText(processingMeetings[meeting.id])}
+                      </DropdownMenuItem>
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
