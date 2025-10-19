@@ -149,44 +149,62 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
 
   // Calculate popup position with improved viewport containment
   useEffect(() => {
-    if (showPopup && selectionRect && popupRef.current) {
-      const popupHeight = popupRef.current.offsetHeight;
-      const popupWidth = popupRef.current.offsetWidth;
+    if (!showPopup || !popupRef.current || !selectionRect) return;
+
+    const PADDING = 16; // Padding from viewport edges
+
+    const calcPosition = () => {
+      const popupEl = popupRef.current!;
+      const popupHeight = popupEl.offsetHeight;
+      const popupWidth = popupEl.offsetWidth;
       const viewportHeight = window.innerHeight;
       const viewportWidth = window.innerWidth;
-      const scrollY = window.scrollY;
-      const scrollX = window.scrollX;
-      
-      const PADDING = 16; // Padding from viewport edges
 
-      // Start with popup above selection, centered
-      let top = selectionRect.top + scrollY - popupHeight - 8;
-      let left = selectionRect.left + scrollX + (selectionRect.width / 2) - (popupWidth / 2);
+      // Always work in fixed (viewport) coordinates — do NOT add scroll offsets
+      const sel = window.getSelection();
+      const rect = sel && sel.rangeCount > 0 ? sel.getRangeAt(0).getBoundingClientRect() : selectionRect;
 
-      // If popup would go above viewport, show below selection
-      if (top < scrollY + PADDING) {
-        top = selectionRect.bottom + scrollY + 8;
-        
-        // If still going off bottom of viewport, position at bottom with padding
-        if (top + popupHeight > scrollY + viewportHeight - PADDING) {
-          top = scrollY + viewportHeight - popupHeight - PADDING;
+      // Prefer above selection, centred
+      let top = rect.top - popupHeight - 8;
+      let left = rect.left + (rect.width / 2) - (popupWidth / 2);
+
+      // If above is off-screen, place below
+      if (top < PADDING) {
+        top = rect.bottom + 8;
+        if (top + popupHeight > viewportHeight - PADDING) {
+          top = viewportHeight - popupHeight - PADDING;
         }
       }
-      
-      // Ensure popup doesn't go off bottom even when positioned above
-      if (top + popupHeight > scrollY + viewportHeight - PADDING) {
-        top = scrollY + viewportHeight - popupHeight - PADDING;
+
+      // Clamp vertical
+      if (top + popupHeight > viewportHeight - PADDING) {
+        top = viewportHeight - popupHeight - PADDING;
       }
 
-      // Adjust horizontal position to stay within viewport
-      if (left < scrollX + PADDING) {
-        left = scrollX + PADDING;
-      } else if (left + popupWidth > scrollX + viewportWidth - PADDING) {
-        left = scrollX + viewportWidth - popupWidth - PADDING;
+      // Clamp horizontal
+      if (left < PADDING) {
+        left = PADDING;
+      } else if (left + popupWidth > viewportWidth - PADDING) {
+        left = viewportWidth - popupWidth - PADDING;
       }
 
       setPopupPosition({ top, left });
-    }
+    };
+
+    // Initial calc
+    calcPosition();
+
+    // Reposition on scroll/resize while visible
+    const onReposition = () => {
+      calcPosition();
+    };
+    window.addEventListener('scroll', onReposition, true);
+    window.addEventListener('resize', onReposition);
+
+    return () => {
+      window.removeEventListener('scroll', onReposition, true);
+      window.removeEventListener('resize', onReposition);
+    };
   }, [showPopup, selectionRect]);
 
   // Focus input when popup opens
