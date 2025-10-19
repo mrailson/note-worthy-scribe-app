@@ -2513,7 +2513,7 @@ const MeetingHistory = () => {
         
         {/* Import Meeting Dialog */}
         <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
-          <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-[1120px] max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2">
                 <Upload className="h-5 w-5 text-primary" />
