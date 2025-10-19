@@ -174,3 +174,6 @@ verify_jwt = false
 [functions.generate-meeting-title]
 verify_jwt = false
 
+[functions.generate-standard-minutes-variations]
+verify_jwt = true
+

@@ -3692,6 +3692,7 @@ export type Database = {
           requires_audio_backup: boolean | null
           right_audio_url: string | null
           soap_notes: Json | null
+          standard_minutes_variations: Json | null
           start_time: string
           status: string
           title: string
@@ -3743,6 +3744,7 @@ export type Database = {
           requires_audio_backup?: boolean | null
           right_audio_url?: string | null
           soap_notes?: Json | null
+          standard_minutes_variations?: Json | null
           start_time?: string
           status?: string
           title: string
@@ -3794,6 +3796,7 @@ export type Database = {
           requires_audio_backup?: boolean | null
           right_audio_url?: string | null
           soap_notes?: Json | null
+          standard_minutes_variations?: Json | null
           start_time?: string
           status?: string
           title?: string

@@ -15,6 +15,13 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { renderPoeticContent } from '@/lib/poeticRenderer';
 import { renderMinutesMarkdown } from '@/lib/minutesRenderer';
+import { 
+  renderMinutesNoActions, 
+  renderMinutesBlackWhite, 
+  renderMinutesConcise, 
+  renderMinutesDetailed, 
+  renderMinutesExecutiveBrief 
+} from '@/lib/minutesRendererVariations';
 import { ClaudeEnhancementModal } from "@/components/ClaudeEnhancementModal";
 import EnhancedFindReplacePanel from "@/components/EnhancedFindReplacePanel";
 import { SpeechToText } from "@/components/SpeechToText";
@@ -134,6 +141,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
   const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
   const [isGeneratingStyle5, setIsGeneratingStyle5] = useState(false);
+  
+  // Standard Minutes format variations
+  const [selectedFormatVariation, setSelectedFormatVariation] = useState<string>('standard');
+  const [formatVariationContent, setFormatVariationContent] = useState<string>('');
+  const [isLoadingVariation, setIsLoadingVariation] = useState(false);
   
   // SOAP notes state
   const [soapNotes, setSoapNotes] = useState<{
@@ -2742,6 +2754,56 @@ ${transcript}`;
     }
   };
 
+  // Function to load format variation
+  const loadFormatVariation = async (variationType: string) => {
+    if (!meeting?.id || !notesStyle3) {
+      toast.error('Standard minutes must be generated first');
+      return;
+    }
+
+    setIsLoadingVariation(true);
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-standard-minutes-variations', {
+        body: {
+          meeting_id: meeting.id,
+          variation_type: variationType
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.variation) {
+        setFormatVariationContent(data.variation);
+        if (data.cached) {
+          toast.success('Format loaded from cache');
+        } else {
+          toast.success('Format variation generated successfully');
+        }
+      }
+    } catch (error) {
+      console.error('Error loading format variation:', error);
+      toast.error('Failed to load format variation');
+      // Fallback to client-side rendering
+      let fallbackContent = notesStyle3;
+      switch (variationType) {
+        case 'no_actions':
+          fallbackContent = fallbackContent
+            .replace(/#{1,6}\s*ACTION ITEMS[\s\S]*?(?=\n#{1,6}\s|\n\n|$)/gi, '')
+            .replace(/\n{3,}/g, '\n\n');
+          break;
+        case 'concise':
+          fallbackContent = fallbackContent
+            .replace(/\s*\([^)]{20,}\)/g, '')
+            .replace(/\n{3,}/g, '\n\n');
+          break;
+      }
+      setFormatVariationContent(fallbackContent);
+    } finally {
+      setIsLoadingVariation(false);
+    }
+  };
+
   const extractOverviewFromNotes = (meetingNotes: string): string => {
     // Extract a concise overview from the detailed meeting notes (fallback method)
     const lines = meetingNotes.split('\n').filter(line => line.trim());
@@ -3190,32 +3252,109 @@ ${transcript}`;
                           
                           {/* Font Size Controls - only show for Minutes */}
                           {activeNotesStyleTab === 'style1' && (
-                            <div className="flex items-center gap-1 border rounded-md p-1">
-                              <Type className="h-4 w-4 text-muted-foreground mr-1" />
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={() => setFontSizeStyle1(prev => Math.max(12, prev - 1))}
-                                disabled={fontSizeStyle1 <= 12}
-                                title="Decrease font size"
-                              >
-                                <Minus className="h-3 w-3" />
-                              </Button>
-                              <span className="text-xs text-muted-foreground px-1 min-w-[2.5rem] text-center">
-                                {fontSizeStyle1}px
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={() => setFontSizeStyle1(prev => Math.min(24, prev + 1))}
-                                disabled={fontSizeStyle1 >= 24}
-                                title="Increase font size"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
-                            </div>
+                            <>
+                              <div className="flex items-center gap-1 border rounded-md p-1">
+                                <Type className="h-4 w-4 text-muted-foreground mr-1" />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => setFontSizeStyle1(prev => Math.max(12, prev - 1))}
+                                  disabled={fontSizeStyle1 <= 12}
+                                  title="Decrease font size"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="text-xs text-muted-foreground px-1 min-w-[2.5rem] text-center">
+                                  {fontSizeStyle1}px
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => setFontSizeStyle1(prev => Math.min(24, prev + 1))}
+                                  disabled={fontSizeStyle1 >= 24}
+                                  title="Increase font size"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              
+                              {/* Format Variations Dropdown */}
+                              <DropdownMenu>
+                                <DropdownMenuTrigger asChild>
+                                  <Button variant="outline" size="sm" className="gap-2 text-xs">
+                                    <AlignJustify className="h-4 w-4" />
+                                    Format
+                                    <ChevronDownIcon className="h-3 w-3" />
+                                  </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end" className="w-56 bg-popover border shadow-md z-[200]">
+                                  <DropdownMenuGroup>
+                                    <DropdownMenuItem 
+                                      onClick={() => {
+                                        setSelectedFormatVariation('standard');
+                                        setFormatVariationContent('');
+                                      }}
+                                      className={selectedFormatVariation === 'standard' ? 'bg-accent' : ''}
+                                    >
+                                      <FileText className="mr-2 h-4 w-4" />
+                                      <span>Standard Format</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={async () => {
+                                        setSelectedFormatVariation('no_actions');
+                                        await loadFormatVariation('no_actions');
+                                      }}
+                                      className={selectedFormatVariation === 'no_actions' ? 'bg-accent' : ''}
+                                    >
+                                      <X className="mr-2 h-4 w-4" />
+                                      <span>No Actions</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={async () => {
+                                        setSelectedFormatVariation('black_white');
+                                        await loadFormatVariation('black_white');
+                                      }}
+                                      className={selectedFormatVariation === 'black_white' ? 'bg-accent' : ''}
+                                    >
+                                      <FileType className="mr-2 h-4 w-4" />
+                                      <span>Black & White</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={async () => {
+                                        setSelectedFormatVariation('concise');
+                                        await loadFormatVariation('concise');
+                                      }}
+                                      className={selectedFormatVariation === 'concise' ? 'bg-accent' : ''}
+                                    >
+                                      <Minus className="mr-2 h-4 w-4" />
+                                      <span>Concise</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={async () => {
+                                        setSelectedFormatVariation('detailed');
+                                        await loadFormatVariation('detailed');
+                                      }}
+                                      className={selectedFormatVariation === 'detailed' ? 'bg-accent' : ''}
+                                    >
+                                      <Plus className="mr-2 h-4 w-4" />
+                                      <span>More Detailed</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={async () => {
+                                        setSelectedFormatVariation('executive_brief');
+                                        await loadFormatVariation('executive_brief');
+                                      }}
+                                      className={selectedFormatVariation === 'executive_brief' ? 'bg-accent' : ''}
+                                    >
+                                      <Sparkles className="mr-2 h-4 w-4" />
+                                      <span>Executive Brief</span>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuGroup>
+                                </DropdownMenuContent>
+                              </DropdownMenu>
+                            </>
                           )}
 
                           <TooltipProvider>
@@ -3473,41 +3612,56 @@ ${transcript}`;
                                            </div>
                                          </div>
                                        </div>
+                                      )}
+                                     {isLoadingVariation ? (
+                                       <div className="flex items-center justify-center h-32">
+                                         <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                                       </div>
+                                     ) : (
+                                       <>
+                                         <div 
+                                           className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}
+                                           style={{ 
+                                             fontSize: `${fontSizeStyle1}px`, 
+                                             lineHeight: `${fontSizeStyle1 * 1.6}px`,
+                                             ['--base-font-size' as string]: `${fontSizeStyle1}px`
+                                           }}
+                                         >
+                                           <style>
+                                             {`
+                                               .max-w-none h1 { font-size: ${fontSizeStyle1 * 1.8}px !important; }
+                                               .max-w-none h2 { font-size: ${fontSizeStyle1 * 1.5}px !important; }
+                                               .max-w-none h3 { font-size: ${fontSizeStyle1 * 1.3}px !important; }
+                                               .max-w-none h4 { font-size: ${fontSizeStyle1 * 1.1}px !important; }
+                                               .max-w-none p, .max-w-none li, .max-w-none td, .max-w-none th { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
+                                               .max-w-none ul, .max-w-none ol { font-size: ${fontSizeStyle1}px !important; }
+                                             `}
+                                           </style>
+                                           <div 
+                                             dangerouslySetInnerHTML={{ 
+                                               __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
+                                                 selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3) :
+                                                 selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3) :
+                                                 selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3) :
+                                                 selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3) :
+                                                 selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3) :
+                                                 (minutesHtml || '')
+                                               )) : ''
+                                             }}
+                                           />
+                                         </div>
+                                         <InlineWordCorrector
+                                           content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
+                                           allTabsContent={{
+                                             style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
+                                             style4: notesStyle4,
+                                             style5: notesStyle5
+                                           }}
+                                           onApplyCorrection={handleInlineCorrection}
+                                           isActive={!isEditing && activeNotesStyleTab === 'style1'}
+                                         />
+                                       </>
                                      )}
-                                    <div 
-                                      className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}
-                                      style={{ 
-                                        fontSize: `${fontSizeStyle1}px`, 
-                                        lineHeight: `${fontSizeStyle1 * 1.6}px`,
-                                        ['--base-font-size' as string]: `${fontSizeStyle1}px`
-                                      }}
-                                    >
-                                      <style>
-                                        {`
-                                          .max-w-none h1 { font-size: ${fontSizeStyle1 * 1.8}px !important; }
-                                          .max-w-none h2 { font-size: ${fontSizeStyle1 * 1.5}px !important; }
-                                          .max-w-none h3 { font-size: ${fontSizeStyle1 * 1.3}px !important; }
-                                          .max-w-none h4 { font-size: ${fontSizeStyle1 * 1.1}px !important; }
-                                          .max-w-none p, .max-w-none li, .max-w-none td, .max-w-none th { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
-                                          .max-w-none ul, .max-w-none ol { font-size: ${fontSizeStyle1}px !important; }
-                                        `}
-                                      </style>
-                                      <div 
-                                        dangerouslySetInnerHTML={{ 
-                                          __html: activeNotesStyleTab === 'style1' ? (minutesHtml || '') : ''
-                                        }}
-                                      />
-                                    </div>
-                                   <InlineWordCorrector
-                                     content={notesStyle3}
-                                     allTabsContent={{
-                                       style3: notesStyle3,
-                                       style4: notesStyle4,
-                                       style5: notesStyle5
-                                     }}
-                                     onApplyCorrection={handleInlineCorrection}
-                                     isActive={!isEditing && activeNotesStyleTab === 'style1'}
-                                   />
                                  </div>
                                )}
                             </div>
