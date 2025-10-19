@@ -35,7 +35,7 @@ import {
   FileDown,
   Video,
   MonitorSpeaker,
-  TestTube
+  Drama
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -1518,7 +1518,7 @@ export const MeetingHistoryList = ({
       case 'in-progress':
         return <Play className="h-4 w-4 text-blue-500" />;
       case 'scheduled':
-        return <TestTube className="h-4 w-4 text-amber-500" />;
+        return <Drama className="h-4 w-4 text-amber-500" />;
       default:
         return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
