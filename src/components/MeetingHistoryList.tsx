@@ -57,6 +57,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { format } from "date-fns";
 import { MeetingOverviewEditor } from "@/components/MeetingOverviewEditor";
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
@@ -1518,7 +1524,18 @@ export const MeetingHistoryList = ({
       case 'in-progress':
         return <Play className="h-4 w-4 text-blue-500" />;
       case 'scheduled':
-        return <Drama className="h-6 w-6 text-blue-500" />;
+        return (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div>
+                <Drama className="h-6 w-6 text-blue-500" />
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Demo meeting - contains no real or confidential data</p>
+            </TooltipContent>
+          </Tooltip>
+        );
       default:
         return <AlertCircle className="h-4 w-4 text-gray-500" />;
     }
@@ -1663,7 +1680,8 @@ export const MeetingHistoryList = ({
   }
 
   return (
-    <div className="space-y-4">
+    <TooltipProvider>
+      <div className="space-y-4">
       {localMeetings.map((meeting) => (
         <Card key={meeting.id} className="hover:shadow-medium transition-shadow">
           <CardHeader className="pb-3">
@@ -2721,5 +2739,6 @@ export const MeetingHistoryList = ({
         />
       )}
     </div>
+    </TooltipProvider>
   );
 };
