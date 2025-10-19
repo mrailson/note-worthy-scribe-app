@@ -79,6 +79,7 @@ import {
 import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 import { medicalTermCorrector } from '@/utils/MedicalTermCorrector';
+import { exportConsultationToWord } from '@/utils/consultationWordExport';
 
 interface Meeting {
   id: string;
@@ -3923,8 +3924,25 @@ ${transcript}`;
                                   review={soapNotes?.review}
                                   clinicalActions={soapNotes?.clinical_actions}
                                   consultationType={soapNotes?.consultation_type}
-                                  onExport={() => {
-                                    toast.info('Export feature coming soon');
+                                  onExport={async () => {
+                                    try {
+                                      toast.info('Generating consultation document...');
+                                      await exportConsultationToWord({
+                                        shorthand: soapNotes?.shorthand,
+                                        standard: soapNotes?.standard,
+                                        summaryLine: soapNotes?.summary_line,
+                                        patientCopy: soapNotes?.patient_copy,
+                                        referral: soapNotes?.referral,
+                                        review: soapNotes?.review,
+                                        clinicalActions: soapNotes?.clinical_actions,
+                                        consultationType: soapNotes?.consultation_type,
+                                        consultationDate: meeting?.start_time ? new Date(meeting.start_time) : new Date()
+                                      });
+                                      toast.success('Consultation document downloaded');
+                                    } catch (error) {
+                                      console.error('Export failed:', error);
+                                      toast.error('Failed to export consultation document');
+                                    }
                                   }}
                                   onEmailPatientCopy={() => {
                                     if (!soapNotes?.patient_copy) {
