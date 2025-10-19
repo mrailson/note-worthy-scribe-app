@@ -115,6 +115,7 @@ export const MeetingRecorder = ({
   const { isResourceOperationSafe } = useRecording();
   const isIOS = detectDevice().isIOS;
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
+  const [stopRecordingStep, setStopRecordingStep] = useState<string>('');
   const [duration, setDuration] = useState(0);
   const [transcript, setTranscript] = useState("");
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
@@ -3145,6 +3146,7 @@ export const MeetingRecorder = ({
   };
 
   const stopRecording = async () => {
+    setStopRecordingStep('Stopping recording...');
     
     // Check word count before processing - skip animation for short meetings
     const wordCount = transcript ? transcript.trim().split(/\s+/).length : 0;
@@ -3243,6 +3245,8 @@ export const MeetingRecorder = ({
     
     // Wait 3 seconds to capture final audio chunks
     await new Promise(resolve => setTimeout(resolve, 3000));
+    
+    setStopRecordingStep('Stopping audio streams...');
     
     // NOW stop the transcribers after the processing delay
     
@@ -3405,39 +3409,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       .replace(/Thanks for watching\.?\s*/gi, '')
       .trim();
     
-    // Safety check: ensure transcript is plain text, not JSON segments
-    try {
-      if (currentTranscript.startsWith('[{') && currentTranscript.includes('"start"')) {
-        console.warn('⚠️ Detected JSON segments in final transcript, converting to plain text');
-        // Try to parse as segment JSON and convert
-        const parsed = JSON.parse(currentTranscript);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          currentTranscript = segmentsToPlainText(parsed);
-          console.log('✅ Converted JSON segments to plain text:', currentTranscript.length, 'chars');
-        }
-      }
-    } catch (e) {
-      // If it contains multiple JSON arrays concatenated, split and convert each
-      try {
-        const jsonArrays = currentTranscript.match(/\[{[^\]]+}\]/g);
-        if (jsonArrays && jsonArrays.length > 0) {
-          console.warn('⚠️ Detected multiple JSON segment arrays, converting to plain text');
-          const allSegments: Segment[] = [];
-          for (const jsonStr of jsonArrays) {
-            const parsed = JSON.parse(jsonStr);
-            if (Array.isArray(parsed)) {
-              allSegments.push(...parsed);
-            }
-          }
-          if (allSegments.length > 0) {
-            currentTranscript = segmentsToPlainText(allSegments);
-            console.log('✅ Converted multiple JSON arrays to plain text:', currentTranscript.length, 'chars');
-          }
-        }
-      } catch (e2) {
-        console.error('❌ Failed to convert JSON segments:', e2);
-      }
-    }
+    // Transcript is already plain text from state - no heavy processing needed
     
     console.log('🔍 DEBUG: After cleaning - currentTranscript length:', currentTranscript.length, 'chars');
     
@@ -3504,17 +3476,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     };
 
     console.log('🚨 SAVING MEETING TO DATABASE FIRST...');
-    console.log('🚨 STEP-BY-STEP DEBUG: About to save meeting');
-    console.log('🚨 STEP-BY-STEP DEBUG: Meeting data:', JSON.stringify({
-      title: meetingData.title,
-      duration_minutes: Math.ceil(duration / 60),
-      meeting_type: 'general',
-      start_time: meetingData.startTime,
-      status: 'completed',
-      user_id: user?.id,
-      practice_id: meetingData.practiceId,
-      meeting_format: meetingData.meetingFormat
-    }, null, 2));
+    console.log('🚨 About to save meeting:', meetingData.title);
+    
+    setStopRecordingStep('Saving transcript...');
     
     console.log('🚨 SAVING MEETING TO DATABASE...');
     
@@ -3543,6 +3507,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     });
 
       // 1. Update existing meeting record with final data
+      setStopRecordingStep('Updating database...');
+      
       const meetingId = sessionStorage.getItem('currentMeetingId');
       if (!meetingId) {
         throw new Error('No meeting ID found in session storage');
@@ -3696,6 +3662,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             });
 
           // Trigger background generation (fire and forget)
+          setStopRecordingStep('Generating notes...');
+          
           console.log('🔍 Background: Invoking auto-generate-meeting-notes function...');
           const functionResult = await supabase.functions
             .invoke('auto-generate-meeting-notes', {
@@ -3722,6 +3690,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           // Don't fail the main save process for background errors
         } finally {
           // Always reset, even if background processing fails
+          setStopRecordingStep('Complete!');
+          
           console.log('🔄 Resetting recording state');
           await resetMeeting();
           setIsStoppingRecording(false);
@@ -3739,6 +3709,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       try {
         await resetMeeting();
       } finally {
+        setStopRecordingStep('');
         setIsStoppingRecording(false);
       }
     }
@@ -4720,18 +4691,23 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                     ) : (
 
                        <>
-                         <h4 className={`text-base font-medium mb-1 ${
-                           doubleClickProtection 
-                             ? 'text-amber-600 dark:text-amber-400' 
-                             : 'text-red-600'
-                         }`}>
-                           {doubleClickProtection ? 'Click again to stop...' : 'Recording...'}
-                         </h4>
-                        <p className="text-xs text-muted-foreground">
-                          Your meeting audio is being captured
-                        </p>
-                      </>
-                    )}
+                          <h4 className={`text-base font-medium mb-1 ${
+                            doubleClickProtection 
+                              ? 'text-amber-600 dark:text-amber-400' 
+                              : 'text-red-600'
+                          }`}>
+                            {doubleClickProtection ? 'Click again to stop...' : 'Recording...'}
+                          </h4>
+                         <p className="text-xs text-muted-foreground">
+                           Your meeting audio is being captured
+                         </p>
+                         {stopRecordingStep && (
+                           <div className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 animate-pulse">
+                             {stopRecordingStep}
+                           </div>
+                         )}
+                       </>
+                     )}
                     {/* Live Summary Display */}
                     {liveSummary && (
                       <Card className="mt-4 bg-gradient-to-br from-accent/20 to-accent/10 border-accent/30">
