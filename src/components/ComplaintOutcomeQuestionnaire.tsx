@@ -82,39 +82,110 @@ export const ComplaintOutcomeQuestionnaire = ({
     improvements_made: string;
     additional_context: string;
   } | null>(null);
+  const [isDemoLoading, setIsDemoLoading] = useState(false);
+  const [demoSource, setDemoSource] = useState<'direct' | 'fallback' | null>(null);
 
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
   const complaintReference = complaintData.reference_number || '';
 
-  // Fetch demo response from database for this complaint
+  // Fetch demo response from database for this complaint with category fallback
   useEffect(() => {
     const fetchDemoResponse = async () => {
       if (!complaintReference) return;
       
-      const { data: dbResponse, error } = await supabase
-        .from('complaint_demo_responses')
-        .select('key_findings, actions_taken, improvements_made, additional_context')
-        .eq('complaint_reference', complaintReference)
-        .maybeSingle();
+      setIsDemoLoading(true);
+      setDemoResponse(null);
+      setDemoSource(null);
       
-      if (error) {
-        console.error('Error fetching demo response:', error);
-      }
-      
-      if (dbResponse) {
-        console.log('Demo response loaded for complaint:', complaintReference, dbResponse);
-        setDemoResponse(dbResponse);
-      } else {
-        console.log('No demo response found for complaint:', complaintReference);
+      try {
+        // Step 1: Normalize and attempt direct lookup
+        const normalizedRef = complaintReference.trim().toUpperCase();
+        console.log('🔍 Looking up demo response for:', normalizedRef);
+        
+        const { data: directResponse, error: directError } = await supabase
+          .from('complaint_demo_responses')
+          .select('key_findings, actions_taken, improvements_made, additional_context')
+          .eq('complaint_reference', normalizedRef)
+          .maybeSingle();
+        
+        if (directError) {
+          console.error('❌ Error fetching demo response:', directError);
+        }
+        
+        if (directResponse) {
+          console.log('✅ Direct demo response found:', normalizedRef);
+          console.log('📊 Content lengths:', {
+            key_findings: directResponse.key_findings?.length,
+            actions_taken: directResponse.actions_taken?.length,
+            improvements_made: directResponse.improvements_made?.length,
+            additional_context: directResponse.additional_context?.length
+          });
+          setDemoResponse(directResponse);
+          setDemoSource('direct');
+          return;
+        }
+        
+        // Step 2: No direct match - try category fallback
+        if (complaintData.category) {
+          console.log('🔄 No direct match, trying category fallback for:', complaintData.category);
+          
+          // Find a complaint in the same category that has demo data
+          const { data: fallbackComplaint, error: fallbackError } = await supabase
+            .from('complaints')
+            .select('reference_number')
+            .eq('category', complaintData.category as any)
+            .in('reference_number', [
+              'COMP250001', 'COMP250002', 'COMP250003', 'COMP250004', 'COMP250005',
+              'COMP250006', 'COMP250007', 'COMP250008', 'COMP250009', 'COMP250010',
+              'COMP250011', 'COMP250012', 'COMP250013', 'COMP250014', 'COMP250015',
+              'COMP250016', 'COMP250017', 'COMP250018', 'COMP250019', 'COMP250020'
+            ])
+            .limit(1)
+            .maybeSingle();
+          
+          if (fallbackError) {
+            console.error('❌ Error in category fallback:', fallbackError);
+          }
+          
+          if (fallbackComplaint) {
+            // Fetch demo response for fallback complaint
+            const { data: fallbackResponse, error: fallbackResponseError } = await supabase
+              .from('complaint_demo_responses')
+              .select('key_findings, actions_taken, improvements_made, additional_context')
+              .eq('complaint_reference', fallbackComplaint.reference_number)
+              .maybeSingle();
+            
+            if (fallbackResponseError) {
+              console.error('❌ Error fetching fallback response:', fallbackResponseError);
+            }
+            
+            if (fallbackResponse) {
+              console.log('✅ Category fallback found:', fallbackComplaint.reference_number);
+              console.log('📊 Fallback content lengths:', {
+                key_findings: fallbackResponse.key_findings?.length,
+                actions_taken: fallbackResponse.actions_taken?.length,
+                improvements_made: fallbackResponse.improvements_made?.length,
+                additional_context: fallbackResponse.additional_context?.length
+              });
+              setDemoResponse(fallbackResponse);
+              setDemoSource('fallback');
+              return;
+            }
+          }
+        }
+        
+        console.log('ℹ️ No demo response available (direct or fallback)');
+      } finally {
+        setIsDemoLoading(false);
       }
     };
     
     if (open) {
       fetchDemoResponse();
     }
-  }, [open, complaintReference]);
+  }, [open, complaintReference, complaintData.category]);
 
   // Get demo replies from database (or return empty for non-demo complaints)
   const getDemoReplies = () => {
@@ -133,6 +204,16 @@ export const ComplaintOutcomeQuestionnaire = ({
   };
 
   const loadDemoReply = (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
+    // If still loading, trigger immediate fetch or wait
+    if (isDemoLoading) {
+      toast({
+        title: "Loading demo content...",
+        description: "Please wait while we load the pre-filled content.",
+        variant: "default",
+      });
+      return;
+    }
+    
     const demoReplies = getDemoReplies();
     const content = demoReplies[field];
     
@@ -145,12 +226,22 @@ export const ComplaintOutcomeQuestionnaire = ({
       return;
     }
     
-    setData(prevData => ({ ...prevData, [field]: content }));
+    // Apply character limits when loading (enforcing field constraints)
+    const maxLength = field === 'additional_context' ? 200 : 150;
+    const trimmedContent = content.slice(0, maxLength);
+    
+    setData(prevData => ({ ...prevData, [field]: trimmedContent }));
+    
+    const sourceInfo = demoSource === 'fallback' 
+      ? ' (from similar complaint in same category)' 
+      : '';
     
     toast({
       title: "Demo reply loaded",
-      description: "Pre-filled content has been added to the field.",
+      description: `Pre-filled content has been added${sourceInfo}.`,
     });
+    
+    console.log(`✨ Loaded demo content for ${field}: ${trimmedContent.length} chars${sourceInfo}`);
   };
 
   useEffect(() => {
@@ -800,9 +891,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadDemoReply('key_findings')}
                   className="h-8 w-8 shrink-0"
-                  title="Load demo reply"
+                  title={isDemoLoading ? "Loading..." : "Load demo reply"}
+                  disabled={isDemoLoading}
                 >
-                  <Sparkles className="h-4 w-4" />
+                  {isDemoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -836,9 +928,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadDemoReply('actions_taken')}
                   className="h-8 w-8 shrink-0"
-                  title="Load demo reply"
+                  title={isDemoLoading ? "Loading..." : "Load demo reply"}
+                  disabled={isDemoLoading}
                 >
-                  <Sparkles className="h-4 w-4" />
+                  {isDemoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -872,9 +965,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadDemoReply('improvements_made')}
                   className="h-8 w-8 shrink-0"
-                  title="Load demo reply"
+                  title={isDemoLoading ? "Loading..." : "Load demo reply"}
+                  disabled={isDemoLoading}
                 >
-                  <Sparkles className="h-4 w-4" />
+                  {isDemoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -948,9 +1042,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadDemoReply('additional_context')}
                   className="h-8 w-8 shrink-0"
-                  title="Load demo reply"
+                  title={isDemoLoading ? "Loading..." : "Load demo reply"}
+                  disabled={isDemoLoading}
                 >
-                  <Sparkles className="h-4 w-4" />
+                  {isDemoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
