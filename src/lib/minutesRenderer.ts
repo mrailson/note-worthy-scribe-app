@@ -1,14 +1,12 @@
 import DOMPurify from 'dompurify';
 
 /**
- * Professional NHS-styled renderer for meeting minutes
+ * Professional NHS-styled renderer for meeting minutes - OPTION 1: Compact Inline
  * Optimized for formal medical/professional documentation
+ * Enhanced: Always inline attendees with bullet separators, improved key points formatting
  */
 export function renderMinutesMarkdown(content: string): string {
   if (!content) return '';
-
-  // console.debug disabled to prevent performance issues
-  // console.log('🔍 MINUTES RENDERER INPUT:', content.substring(0, 200));
 
   // Preprocess content to normalize spacing and remove transcript section
   let preprocessedContent = content
@@ -23,7 +21,7 @@ export function renderMinutesMarkdown(content: string): string {
 
   // Convert markdown to HTML with NHS professional styling
   let html = preprocessedContent
-    // Enhanced ATTENDEES section formatting
+    // ENHANCED: Force inline attendees regardless of count
     .replace(/(## ATTENDEES|## Attendees)\s*\n((?:[-•]\s+.+\n?)+)/gi, (match, header, list) => {
       const attendees = list.match(/[-•]\s+(.+)/g)?.map(a => a.replace(/^[-•]\s+/, '').trim()) || [];
       
@@ -31,42 +29,39 @@ export function renderMinutesMarkdown(content: string): string {
       const present = attendees.filter(a => !a.toLowerCase().includes('mentioned'));
       const mentioned = attendees.filter(a => a.toLowerCase().includes('mentioned')).map(a => a.replace(/\s*\(mentioned\)/gi, ''));
       
-      if (attendees.length <= 8) {
-        // Inline format with bullet separators for short lists (≤8 attendees)
-        let html = '<h3 class="text-lg font-semibold text-[#005EB8] mb-3 mt-5">Attendees</h3>';
-        html += '<div class="bg-[#F0F4F5] border-l-4 border-[#005EB8] p-3 mb-4 rounded-r">';
-        if (present.length > 0) html += `<p class="mb-2"><strong class="text-[#005EB8]">Present:</strong> ${present.join(' • ')}</p>`;
-        if (mentioned.length > 0) html += `<p><strong class="text-[#768692]">Also mentioned:</strong> ${mentioned.join(' • ')}</p>`;
-        html += '</div>';
-        return html;
-      } else {
-        // Compact 3-column grid format for longer lists (≥9 attendees)
-        const presentGrid = present.map(a => 
-          `<div class="px-2 py-1.5 bg-white border border-[#E8EDEE] rounded text-[#212B32] text-sm">${a}</div>`
-        ).join('');
-        const mentionedGrid = mentioned.length > 0 ? mentioned.map(a => 
-          `<div class="px-2 py-1.5 bg-white border border-[#E8EDEE] rounded text-[#768692] text-sm italic">${a}</div>`
-        ).join('') : '';
-        
-        let html = '<h3 class="text-lg font-semibold text-[#005EB8] mb-3 mt-5">Attendees</h3>';
-        if (present.length > 0) {
-          html += '<p class="text-sm font-semibold text-[#005EB8] mb-2">Present:</p>';
-          html += `<div class="grid grid-cols-3 gap-1.5 mb-2">${presentGrid}</div>`;
-        }
-        if (mentioned.length > 0) {
-          html += '<p class="text-sm font-semibold text-[#768692] mb-2">Also mentioned:</p>';
-          html += `<div class="grid grid-cols-3 gap-1.5 mb-2">${mentionedGrid}</div>`;
-        }
-        return html;
+      // Always use inline format with better styling
+      let html = '<h3 class="text-xl font-bold text-[#005EB8] mb-3 mt-6 pb-2 border-b-2 border-[#005EB8]">Attendees</h3>';
+      html += '<div class="bg-gradient-to-r from-[#F0F4F5] to-white border-l-4 border-[#005EB8] p-4 mb-6 rounded-r shadow-sm">';
+      
+      if (present.length > 0) {
+        html += `<p class="mb-2 text-base leading-relaxed">`;
+        html += `<strong class="text-[#005EB8] font-semibold">Present:</strong> `;
+        html += present.map(a => `<span class="text-[#212B32]">${a}</span>`).join('<span class="text-[#768692] mx-2">•</span>');
+        html += `</p>`;
       }
+      
+      if (mentioned.length > 0) {
+        html += `<p class="text-base leading-relaxed">`;
+        html += `<strong class="text-[#768692] font-semibold">Also mentioned:</strong> `;
+        html += mentioned.map(a => `<span class="text-[#768692] italic">${a}</span>`).join('<span class="text-[#768692] mx-2">•</span>');
+        html += `</p>`;
+      }
+      
+      html += '</div>';
+      return html;
     })
 
-    // Remove remaining markdown headers (##, ###, etc.) but keep the text
+    // ENHANCED: Better key points and header formatting with icons
     .replace(/^#{1,6}\s+(.+)$/gm, (match, content) => {
-      // Determine header level based on content
-      if (content.includes('Meeting Details') || content.includes('Executive Summary') || content.toUpperCase() === 'MEETING DETAILS') {
+      // Key discussion points get special treatment with icon
+      if (content.toLowerCase().includes('key points') || content.toLowerCase().includes('key discussion')) {
+        return `<h3 class="text-lg font-bold text-[#005EB8] mb-4 mt-6 pb-2 border-b border-[#768692] flex items-center gap-2">
+          <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
+          <span>${content}</span>
+        </h3>`;
+      } else if (content.includes('Meeting Details') || content.includes('Executive Summary') || content.toUpperCase() === 'MEETING DETAILS') {
         return `<h2 class="text-xl font-semibold text-[#005EB8] mb-4 mt-6 pb-2 border-b border-[#768692]">${content}</h2>`;
-      } else if (content.includes('Action Items') || content.includes('Discussion') || content.includes('Key Discussion') || content.includes('Decisions Made')) {
+      } else if (content.includes('Action Items') || content.includes('Discussion') || content.includes('Decisions Made')) {
         return `<h3 class="text-lg font-semibold text-[#005EB8] mb-3 mt-5">${content}</h3>`;
       } else {
         return `<h4 class="text-base font-semibold text-[#425563] mb-2 mt-4">${content}</h4>`;
@@ -182,8 +177,8 @@ export function renderMinutesMarkdown(content: string): string {
       return `<li class="mb-3 text-[#212B32] leading-relaxed pl-2" value="${num}">${content}<ul class="list-disc list-outside ml-8 mt-2 mb-2 space-y-1 text-[#425563]">${nestedBullets}</ul></li>`;
     })
     
-    // Convert top-level bullet list items
-    .replace(/^[-•\*]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed">$1</li>')
+    // Convert top-level bullet list items with better spacing
+    .replace(/^[-•\*]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed pl-1">$1</li>')
     
     // Convert nested bullets within list items
     .replace(/(<li[^>]*>.*?)((?:<!NESTED!>.*?<!NESTED_END!>\s*)+)(<\/li>)/gs, (match, opening, nested, closing) => {
@@ -197,8 +192,8 @@ export function renderMinutesMarkdown(content: string): string {
     // Clean up any remaining nested markers
     .replace(/<!NESTED!>|<!NESTED_END!>/g, '')
     
-    // Wrap consecutive top-level list items in ul tags
-    .replace(/(<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-6 mb-4 space-y-1">$&</ul>')
+    // Wrap consecutive top-level list items in ul tags with better spacing
+    .replace(/(<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-6 mb-4 space-y-2">$&</ul>')
 
     // Convert nested numbered items to bullets within list items
     .replace(/(<li[^>]*value="[^"]*">.*?)((?:<!NESTED_NUM!>.*?<!NESTED_NUM_END!>\s*)+)(<\/li>)/gs, (match, opening, nested, closing) => {
@@ -294,9 +289,9 @@ export function renderMinutesMarkdown(content: string): string {
 
   console.log('🔍 MINUTES RENDERER OUTPUT (first 500 chars):', html.substring(0, 500));
 
-  // Sanitize the HTML
+  // Sanitize the HTML - added SVG support for icons
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'style'],
-    ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style', 'value']
+    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'style', 'svg', 'path'],
+    ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style', 'value', 'fill', 'viewBox', 'fill-rule', 'clip-rule', 'd']
   });
 }
