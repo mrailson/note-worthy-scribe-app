@@ -176,7 +176,7 @@ export const MeetingRecorder = ({
       const t = setTimeout(() => {
         console.warn('⏳ Safety timeout: clearing isStoppingRecording');
         setIsStoppingRecording(false);
-      }, 15000);
+      }, 8000);
       return () => clearTimeout(t);
     }
   }, [isRecording, isStoppingRecording]);
@@ -3386,6 +3386,7 @@ export const MeetingRecorder = ({
     if (duration < 5) {
       console.log('🚨 VALIDATION FAILED - Duration too short:', duration);
       showToast.error('Recording too short. Minimum 5 seconds required.', { section: 'meeting_manager' });
+      setIsStoppingRecording(false);
       return;
     }
 
@@ -3393,6 +3394,7 @@ export const MeetingRecorder = ({
     if (!transcript && wordCount < 5) {
       console.log('🚨 VALIDATION FAILED - No transcript content:', { transcript: transcript?.length, wordCount });
       showToast.error('No transcript content detected.', { section: 'meeting_manager' });
+      setIsStoppingRecording(false);
       return;
     }
     
