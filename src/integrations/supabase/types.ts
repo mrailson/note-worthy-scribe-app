@@ -784,6 +784,36 @@ export type Database = {
           },
         ]
       }
+      complaint_demo_responses: {
+        Row: {
+          actions_taken: string
+          additional_context: string
+          complaint_reference: string
+          created_at: string | null
+          id: string
+          improvements_made: string
+          key_findings: string
+        }
+        Insert: {
+          actions_taken: string
+          additional_context: string
+          complaint_reference: string
+          created_at?: string | null
+          id?: string
+          improvements_made: string
+          key_findings: string
+        }
+        Update: {
+          actions_taken?: string
+          additional_context?: string
+          complaint_reference?: string
+          created_at?: string | null
+          id?: string
+          improvements_made?: string
+          key_findings?: string
+        }
+        Relationships: []
+      }
       complaint_documents: {
         Row: {
           complaint_id: string

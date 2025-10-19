@@ -76,155 +76,47 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [complianceChecks, setComplianceChecks] = useState<ComplianceCheck[]>([]);
   const [complianceSummary, setComplianceSummary] = useState<any>(null);
   const [activeValidationTab, setActiveValidationTab] = useState('investigation');
+  const [demoResponse, setDemoResponse] = useState<{
+    key_findings: string;
+    actions_taken: string;
+    improvements_made: string;
+    additional_context: string;
+  } | null>(null);
 
   const totalSteps = 4;
   const progress = (step / totalSteps) * 100;
 
-  // Generate contextually relevant demo replies specific to each demo complaint
-  const getDemoReplies = () => {
-    const refNumber = complaintData.reference_number || '';
-    const description = complaintData.complaint_description?.toLowerCase() || '';
+  const complaintReference = complaintData.reference_number || '';
+
+  // Fetch demo response from database for this complaint
+  useEffect(() => {
+    const fetchDemoResponse = async () => {
+      if (!complaintReference) return;
+      
+      const { data: dbResponse, error } = await supabase
+        .from('complaint_demo_responses')
+        .select('key_findings, actions_taken, improvements_made, additional_context')
+        .eq('complaint_reference', complaintReference)
+        .maybeSingle();
+      
+      if (dbResponse && !error) {
+        setDemoResponse(dbResponse);
+      }
+    };
     
-    // Specific replies for each demo complaint - SHORT, PRACTICAL, HELPFUL
-    if (refNumber === 'COMP250001') {
-      // Communication Issues - Queue waiting and receptionist asking about problem
-      return {
-        key_findings: "We reviewed the call and confirmed an 8-minute wait during peak hours. Receptionist followed standard triage protocols appropriately.",
-        actions_taken: "Added extra reception cover during busy times and installed callback system. Sent Mr Clarke an apology and information leaflet about our triage process.",
-        improvements_made: "Callback option now available for waits over 3 minutes. Recruited additional receptionist.",
-        additional_context: "Patient welcomed to discuss any concerns directly with practice manager. Triage questions help us prioritise urgent medical needs safely."
-      };
-    } else if (refNumber === 'COMP250002') {
-      // Repeated appointment cancellations - James Williams
-      return {
-        key_findings: "Four appointments cancelled - two GP sickness, one building emergency, one admin error. Patient contact details outdated so didn't receive messages.",
-        actions_taken: "Personal apology and priority rebooking arranged. Contact details updated. £25 travel costs reimbursed.",
-        improvements_made: "Quarterly contact checks for all patients. Phone call backup for cancellations. 72-hour notice policy unless emergency.",
-        additional_context: "Patient given dedicated coordinator contact. Better locum arrangements to reduce cancellations."
-      };
-    } else if (refNumber === 'COMP250003') {
-      // Prescriptions - Wrong inhaler issued to Anita Patel
-      return {
-        key_findings: "Pharmacy dispensing error identified - wrong inhaler given. Prescription was correct. No harm caused as patient had backup inhaler.",
-        actions_taken: "Met with pharmacy to improve checking procedures. Correct inhaler delivered same day with apology.",
-        improvements_made: "Enhanced double-check system now in place. Similar-looking medications now flagged on system.",
-        additional_context: "Patient offered direct contact for any future prescription queries."
-      };
-    } else if (refNumber === 'COMP250004') {
-      // Clinical Care - 45 minute wait, rude receptionist Emma, rushed Dr Sarah Smith
-      return {
-        key_findings: "42-minute delay confirmed due to urgent patients. Reception communication could have been better. Consultation shorter than usual due to backlog.",
-        actions_taken: "Personal apology given. Receptionist received customer service refresher. Dr Smith saw patient again for full consultation.",
-        improvements_made: "Staff to explain delays over 15 minutes and offer rescheduling. Added more emergency slots to reduce disruption.",
-        additional_context: "Patient can choose any GP for future appointments. Increasing GP hours to improve access."
-      };
-    } else if (refNumber === 'COMP250005') {
-      // Clinical Care - Multiple inaccuracies in medical records
-      return {
-        key_findings: "System migration error caused incorrect address. Data entry error mixed up test results. Records now corrected.",
-        actions_taken: "All affected records corrected within 48 hours. Written apology sent. Staff member retrained.",
-        improvements_made: "Double-check system implemented for data entry. Weekly quality audits now running.",
-        additional_context: "Patient offered free copy of complete record to verify accuracy. Goodwill gesture of £50 offered."
-      };
-    } else if (refNumber === 'COMP250006' || refNumber === 'COMP250007' || refNumber === 'COMP250008') {
-      // Clinical Care - Mr Mitchell missed heart attack symptoms
-      return {
-        key_findings: "GP missed red flags for cardiac symptoms. This was a serious error. Thankfully no lasting harm due to prompt A&E care.",
-        actions_taken: "Full apology given to patient and family. GP completed additional cardiac training. Case reviewed by cardiology consultant.",
-        improvements_made: "New chest pain pathway on all GP computers. ECG machine now in every consultation room. Monthly audits of cardiac presentations.",
-        additional_context: "Practice paid for additional cardiac tests. Learning shared across practice. Patient care now coordinated with hospital."
-      };
-    } else if (refNumber === 'COMP250009') {
-      // Delayed test results - Emma Richardson
-      return {
-        key_findings: "Results ready in 3 days but notification system failed. 6-week delay before patient called. System error identified.",
-        actions_taken: "Personal apology given. Patient seen within 48 hours. Notification system fixed and tested.",
-        improvements_made: "SMS and letter backup now in place. Weekly check for unreported results. New results helpline available.",
-        additional_context: "Practice paid for treatment to acknowledge delay. Patient invited to help improve systems."
-      };
-    } else if (refNumber === 'COMP250010') {
-      // Repeated appointment cancellations - James Williams
-      return {
-        key_findings: "Four appointments cancelled - two GP sickness, one building emergency, one admin error. Patient contact details outdated so didn't receive messages.",
-        actions_taken: "Personal apology and priority rebooking arranged. Contact details updated. £25 travel costs reimbursed.",
-        improvements_made: "Quarterly contact checks for all patients. Phone call backup for cancellations. 72-hour notice policy unless emergency.",
-        additional_context: "Patient given dedicated coordinator contact. Better locum arrangements to reduce cancellations."
-      };
-    } else if (refNumber === 'COMP250011' || refNumber === 'COMP250013') {
-      // Staff Attitude & Behaviour - Vexatious complaint
-      return {
-        key_findings: "Thorough investigation found no evidence of targeting or unprofessional conduct. All interactions appropriate. Patient demands unreasonable.",
-        actions_taken: "Detailed response provided with evidence. Independent review confirmed staff professionalism. Mediation offered but declined.",
-        improvements_made: "Enhanced staff support procedures. Clear policy for managing unreasonable behaviour.",
-        additional_context: "Boundary agreement in place allowing continued access with professional conduct expectations. Patient can register elsewhere if preferred."
-      };
-    } else if (refNumber === 'COMP250012') {
-      // Poor hygiene/facilities - David Thompson
-      return {
-        key_findings: "Cleanliness issues confirmed - stained chairs, overflowing bins, worn carpet. Cleaning contractor not meeting standards.",
-        actions_taken: "Immediate deep clean done. Cleaning contract terminated. New company appointed. Chairs cleaned/replaced, carpet replaced.",
-        improvements_made: "Daily inspections by practice manager. QR code system for instant reports. External monthly audits.",
-        additional_context: "Patient invited to re-inspect and confirmed satisfaction. Cleaning now managed directly by practice."
-      };
-    } else if (refNumber === 'COMP250014') {
-      // Mental health care - Mr Thomas Clarke
-      return {
-        key_findings: "Mental health support inadequate. IAPT referral delayed 3 months. Crisis callback not made. This fell below expected standards.",
-        actions_taken: "Sincere apology given. Urgent mental health assessment arranged. IAPT referral escalated. GP trained in crisis management.",
-        improvements_made: "Same-day mental health slots now available. 24-hour callback guarantee for crisis calls. Weekly check-ins for at-risk patients.",
-        additional_context: "Patient now has dedicated care coordinator. Practice mental health lead assigned. Direct crisis contact number provided."
-      };
-    } else if (refNumber === 'COMP250015') {
-      // Alleged victimisation - Barbara Anne Stevens
-      return {
-        key_findings: "No evidence of staff misconduct found. All interactions reviewed. Prescription delays due to clinical safety checks. Access restrictions due to abusive behaviour.",
-        actions_taken: "Full investigation conducted. Staff supported with training on managing challenging situations. Clear boundaries communicated in writing.",
-        improvements_made: "Enhanced incident logging system. Staff training on de-escalation. Clear acceptable behaviour policy communicated to all patients.",
-        additional_context: "Multiple attempts made to engage constructively. Patient offered mediation. Legal advice sought regarding ongoing harassment of staff."
-      };
-    } else if (refNumber === 'COMP250016') {
-      // Failure to Act on Safeguarding Concerns - Joshua Turner
-      return {
-        key_findings: "Dr Hughes did not follow safeguarding procedures. Failed to speak to child privately or document concerns properly. This was a serious safeguarding failure.",
-        actions_taken: "Full apology to family. Dr Hughes completed mandatory safeguarding training. Case reviewed by safeguarding lead. Social services now involved.",
-        improvements_made: "Enhanced safeguarding protocols implemented. All unexplained injuries flagged automatically. Monthly safeguarding audits. Direct safeguarding hotline for staff.",
-        additional_context: "Practice safeguarding lead now reviews all concerning presentations. Staff training delivered to all clinicians. Patient now has named safeguarding contact."
-      };
-    } else if (refNumber === 'COMP250017') {
-      // Aggressive Staff Behaviour - Linda Foster
-      return {
-        key_findings: "Practice Manager behaviour fell significantly below expected standards. Multiple witnesses confirmed aggressive tone and intimidating manner. Patient left in distress.",
-        actions_taken: "Formal written apology issued. Practice Manager received disciplinary action and mandatory communication skills training. Supervised for 3 months.",
-        improvements_made: "All staff retrained in professional conduct and patient dignity. New complaints handling protocol. Independent advocate now available for difficult conversations.",
-        additional_context: "Patient offered alternative contact person for future concerns. Practice committed to cultural change in patient interactions."
-      };
-    } else if (refNumber === 'COMP250018') {
-      // Telephone System Issues - William Cooper
-      return {
-        key_findings: "Telephone system capacity insufficient for patient demand. Peak time call abandonment rate 47%. System technical faults causing disconnections.",
-        actions_taken: "New telephone system with increased line capacity installed. Extended opening hours for telephone access. Online consultation option introduced.",
-        improvements_made: "Callback system for patients who cannot get through. Real-time queue monitoring. Additional reception staff during peak hours.",
-        additional_context: "Patient can book appointments online or use callback service. System capacity increased by 60%."
-      };
-    } else if (refNumber === 'COMP250019') {
-      // Prescription Safety - Olivia Matthews
-      return {
-        key_findings: "Serious drug interaction not identified. Prescribing system alert was overridden without documented reason. GP acknowledged error.",
-        actions_taken: "Full apology given. GP completed medication safety training. System now prevents override of critical interaction warnings without senior approval.",
-        improvements_made: "Enhanced prescribing system with mandatory interaction checks. Pharmacist reviews all new prescriptions. Quarterly medication safety audits.",
-        additional_context: "Near-miss incident reported to NHS patient safety system. Learning shared across practice network."
-      };
-    } else if (refNumber === 'COMP250020') {
-      // Delayed Cancer Diagnosis - Daniel Hughes
-      return {
-        key_findings: "Multiple missed opportunities to investigate red flag cancer symptoms. Three GPs failed to follow NICE guidance. Significant harm caused by diagnostic delay.",
-        actions_taken: "Sincere apology and acknowledgement of failures. All GPs completed cancer recognition training. Case reviewed by CCG. Referred to professional bodies.",
-        improvements_made: "Electronic red flag symptom checker on all consultations. Mandatory safety netting for cancer symptoms. Weekly cancer symptom reviews by senior GP.",
-        additional_context: "Practice working with oncology team on patient's care. Significant event analysis shared NHS-wide. Patient offered support with legal claim process."
-      };
+    if (open) {
+      fetchDemoResponse();
+    }
+  }, [open, complaintReference]);
+
+  // Get demo replies from database (or return empty for non-demo complaints)
+  const getDemoReplies = () => {
+    // If we have a demo response from the database, use it
+    if (demoResponse) {
+      return demoResponse;
     }
     
-    // No demo response available - return empty strings for non-demo complaints
+    // No demo response available - return empty for non-demo complaints
     return {
       key_findings: "",
       actions_taken: "",
