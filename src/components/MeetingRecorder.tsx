@@ -3226,13 +3226,21 @@ export const MeetingRecorder = ({
       lastChunkEndTime.current = null; // Reset chunk timing
       setConnectionStatus("Disconnected");
       
-      // Keep button disabled for 5 seconds to prevent double-clicks
+      // Clear unsaved meeting data but keep session IDs until meeting is saved
+      localStorage.removeItem('unsaved_meeting');
+      
+      // Reset the meeting immediately for short recordings
+      await resetMeeting();
+      
+      // Re-enable button after 5 seconds
       setTimeout(() => {
         setIsStoppingRecording(false);
       }, 5000);
       
-      // Clear unsaved meeting data but keep session IDs until meeting is saved
-      localStorage.removeItem('unsaved_meeting');
+      // Show toast for short meeting
+      toast.info('Meeting was too short to save (minimum 100 words required)', {
+        duration: 4000,
+      });
       
       return;
     }
@@ -3352,11 +3360,6 @@ export const MeetingRecorder = ({
       recordingStartTimeRef.current = null; // Reset recording start time
       lastChunkEndTime.current = null; // Reset chunk timing
     setConnectionStatus("Disconnected");
-    
-    // Keep button disabled for 5 seconds to prevent double-clicks
-    setTimeout(() => {
-      setIsStoppingRecording(false);
-    }, 5000);
     
     // Clear unsaved meeting data when stopping normally
     localStorage.removeItem('unsaved_meeting');
@@ -3894,11 +3897,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           sessionStorage.removeItem('currentMeetingId');
           console.log('✅ Background: Session storage cleaned');
 
-          // Reset all recording state
-          console.log('🔄 Background: Resetting recording state');
-          await resetMeeting();
-          console.log('✅ Background: Recording state reset');
-
           // Signal to Meeting History
           signalMeetingHistoryRefresh();
           
@@ -3906,6 +3904,16 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         } catch (error) {
           console.error('⚠️ Background processing error:', error);
           // Don't fail the main save process for background errors
+        } finally {
+          // Always reset, even if background processing fails
+          console.log('🔄 Resetting recording state');
+          await resetMeeting();
+          console.log('✅ Recording state reset');
+          
+          // Re-enable button after 5 seconds
+          setTimeout(() => {
+            setIsStoppingRecording(false);
+          }, 5000);
         }
       };
 
