@@ -322,8 +322,51 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   const formatContent = (content: string) => {
     if (!content) return '';
     
+    // First, handle tables before other markdown parsing
+    let processedContent = content;
+    
+    // Parse markdown tables
+    const tableRegex = /\|(.+)\|\n\|[\s\-:]+\|\n((?:\|.+\|\n?)+)/g;
+    processedContent = processedContent.replace(tableRegex, (match, headerRow, bodyRows) => {
+      // Parse headers
+      const headers = headerRow.split('|')
+        .map((h: string) => h.trim())
+        .filter((h: string) => h);
+      
+      // Parse body rows
+      const rows = bodyRows.trim().split('\n')
+        .map((row: string) => 
+          row.split('|')
+            .map((cell: string) => cell.trim())
+            .filter((cell: string) => cell)
+        );
+      
+      // Build HTML table with mobile-friendly styling
+      let tableHtml = '<div class="overflow-x-auto my-4"><table class="min-w-full border-collapse border border-border rounded-lg text-xs">';
+      
+      // Add header
+      tableHtml += '<thead class="bg-muted"><tr>';
+      headers.forEach((header: string) => {
+        tableHtml += `<th class="border border-border px-2 py-2 text-left font-semibold text-foreground">${header}</th>`;
+      });
+      tableHtml += '</tr></thead>';
+      
+      // Add body
+      tableHtml += '<tbody>';
+      rows.forEach((row: string[]) => {
+        tableHtml += '<tr class="hover:bg-muted/50">';
+        row.forEach((cell: string) => {
+          tableHtml += `<td class="border border-border px-2 py-2 text-foreground">${cell}</td>`;
+        });
+        tableHtml += '</tr>';
+      });
+      tableHtml += '</tbody></table></div>';
+      
+      return tableHtml;
+    });
+    
     // Enhanced markdown parsing for better mobile display
-    return content
+    return processedContent
       // Handle headings first (must be at start of line or after line break)
       .replace(/(^|\n)### ([^\n]+)/g, '$1<h3 class="text-base font-semibold mt-4 mb-2 text-foreground">$2</h3>')
       .replace(/(^|\n)## ([^\n]+)/g, '$1<h2 class="text-lg font-bold mt-6 mb-3 text-foreground">$2</h2>')
