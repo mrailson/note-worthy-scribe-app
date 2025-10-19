@@ -18,11 +18,10 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
 }) => {
   const { canViewConsultationExamples } = useAuth();
   const [currentPage, setCurrentPage] = useState(0);
-  const [selectedCategory, setSelectedCategory] = useState<'All' | 'Meeting' | 'Consultation'>('All');
   const [selectedOrgType, setSelectedOrgType] = useState<'All' | 'GP Practice' | 'LMC' | 'ICB'>('All');
   const itemsPerPage = 4;
   
-  // Filter demos based on visibility settings and selected category
+  // Filter demos based on visibility settings
   let availableDemos = demoMeetings;
   
   // Remove consultation demos if user doesn't have access
@@ -30,12 +29,7 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
     availableDemos = demoMeetings.filter(meeting => meeting.category !== 'Consultation');
   }
   
-  // Then filter by selected category
-  if (selectedCategory !== 'All') {
-    availableDemos = availableDemos.filter(meeting => meeting.category === selectedCategory);
-  }
-  
-  // Then filter by organization type
+  // Filter by organization type
   const filteredDemos = selectedOrgType === 'All'
     ? availableDemos
     : availableDemos.filter(meeting => meeting.organizationType === selectedOrgType);
@@ -46,14 +40,7 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
   const endIndex = startIndex + itemsPerPage;
   const currentMeetings = filteredDemos.slice(startIndex, endIndex);
 
-  // Reset page when category or organization type changes
-  const handleCategoryChange = (value: string) => {
-    if (value) {
-      setSelectedCategory(value as 'All' | 'Meeting' | 'Consultation');
-      setCurrentPage(0);
-    }
-  };
-
+  // Reset page when organization type changes
   const handleOrgTypeChange = (value: string) => {
     setSelectedOrgType(value as 'All' | 'GP Practice' | 'LMC' | 'ICB');
     setCurrentPage(0);
@@ -99,31 +86,6 @@ export const DemoSamplesSelector: React.FC<DemoSamplesSelectorProps> = ({
       {/* Filters */}
       <div className="flex items-center justify-between gap-4 p-4 bg-muted/30 rounded-lg border">
         <div className="flex items-center gap-4 flex-wrap">
-          <div className="flex items-center gap-3">
-            <span className="text-sm font-medium">Category:</span>
-            <ToggleGroup 
-              type="single" 
-              value={selectedCategory} 
-              onValueChange={handleCategoryChange}
-              className="gap-1"
-            >
-              <ToggleGroupItem value="All" aria-label="Show all demos" className="gap-2">
-                <Sparkles className="h-4 w-4" />
-                All
-              </ToggleGroupItem>
-              <ToggleGroupItem value="Meeting" aria-label="Show meetings only" className="gap-2">
-                <Users className="h-4 w-4" />
-                Meetings
-              </ToggleGroupItem>
-              {canViewConsultationExamples && (
-                <ToggleGroupItem value="Consultation" aria-label="Show consultations only" className="gap-2">
-                  <Stethoscope className="h-4 w-4" />
-                  Consultations
-                </ToggleGroupItem>
-              )}
-            </ToggleGroup>
-          </div>
-          
           <div className="flex items-center gap-3">
             <span className="text-sm font-medium">Organisation:</span>
             <ToggleGroup 
