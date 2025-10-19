@@ -2967,7 +2967,7 @@ I am committed to ensuring that all patients receive the care and service they d
                 </CardHeader>
                 <CardContent>
                   {complianceSummary && (
-                    <div className="grid grid-cols-3 gap-4 p-4 bg-gray-50 rounded-lg mb-6">
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg mb-6">
                       <div className="text-center">
                         <div className="text-3xl font-bold text-green-600">{complianceSummary.compliant_items}</div>
                         <div className="text-sm text-muted-foreground">Items Complete</div>
@@ -2975,10 +2975,6 @@ I am committed to ensuring that all patients receive the care and service they d
                       <div className="text-center">
                         <div className="text-3xl font-bold text-orange-600">{complianceSummary.total_items - complianceSummary.compliant_items}</div>
                         <div className="text-sm text-muted-foreground">Items Outstanding</div>
-                      </div>
-                      <div className="text-center">
-                        <div className="text-3xl font-bold text-blue-600">{Math.round(complianceSummary.compliance_percentage)}%</div>
-                        <div className="text-sm text-muted-foreground">Overall Compliance</div>
                       </div>
                     </div>
                   )}
