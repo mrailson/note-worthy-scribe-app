@@ -249,9 +249,10 @@ CRITICAL ANTI-HALLUCINATION RULES:
 - Use ONLY information EXPLICITLY stated in the transcript below
 - NEVER invent, assume, or infer examination findings that were not documented
 - NEVER add negative findings (e.g., "no tenderness", "no abnormalities") unless explicitly mentioned
-- If an examination or observation was not performed or mentioned, OMIT it entirely from the notes
+- If an examination or observation was not performed or mentioned, COMPLETELY OMIT it from the notes
 - Never fabricate patient symptoms, vital signs, test results, or clinical findings
-- If a SOAP section has no information from the transcript, write "Not documented" rather than inventing content
+- NEVER add commentary about what wasn't done (e.g., "Not documented", "No examination performed")
+- If a SOAP section has no information from the transcript, OMIT that entire section - do not comment on its absence
 
 Consultation Type: ${requestData.consultationType}
 Detected Category: ${classifier.label}
@@ -263,13 +264,13 @@ Generate SOAP notes using ONLY the information above:
 
 SHORTHAND (GP abbreviations, concise):
 S: [Only symptoms/history explicitly mentioned - use abbreviations like c/o, SOB, CP]
-O: [Only examination findings/observations actually documented - abbreviated. If no examination mentioned, write "Examination: Not documented"]
+O: [ONLY examination findings/observations actually performed and documented - abbreviated. If no examination performed, OMIT this section entirely]
 A: [Only assessment/diagnosis explicitly discussed - concise]
 P: [Only management plan explicitly agreed - abbreviated]
 
 STANDARD (Full clinical detail):
 S: [Only complete subjective information from transcript]
-O: [Only objective findings actually documented. Do NOT add examination findings that weren't performed. If minimal/no examination, state what WAS done only]
+O: [ONLY objective findings actually documented and performed. NEVER add commentary about examinations not performed. If no examination was done, OMIT this section entirely. Only document what WAS actually done]
 A: [Only assessment based on what was discussed]
 P: [Only plan explicitly agreed with safety-netting if mentioned]
 
@@ -304,7 +305,7 @@ Format as JSON with keys: shorthand, standard, summaryLine, patientCopy, referra
         messages: [
           {
             role: 'system',
-            content: 'You are an experienced UK GP generating clinical documentation. You MUST NEVER hallucinate or fabricate clinical information. Only document what was explicitly mentioned in the consultation transcript. Never add examination findings, symptoms, or other clinical data that were not actually documented.'
+            content: 'You are an experienced UK GP generating clinical documentation. You MUST NEVER hallucinate or fabricate clinical information. Only document what was explicitly mentioned in the consultation transcript. Never add examination findings, symptoms, or other clinical data that were not actually documented. NEVER add commentary about what wasn\'t performed (phrases like "Not documented", "No examination performed", "Not mentioned" are FORBIDDEN). You are a silent transcriptionist - document ONLY what happened, never comment on what didn\'t happen. If a section has no content, OMIT it entirely.'
           },
           {
             role: 'user',
