@@ -124,7 +124,7 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
 
       {/* Camera Button */}
       {!image && (
-        <div className="p-6 pb-safe">
+        <div className="p-4 pb-safe border-t bg-background">
           <input
             ref={fileInputRef}
             type="file"
@@ -135,11 +135,11 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
           />
           <Button
             size="lg"
-            className="w-full h-16 text-xl touch-manipulation"
+            className="w-full h-14 text-lg touch-manipulation"
             onClick={() => fileInputRef.current?.click()}
             disabled={isTranslating}
           >
-            <Camera className="h-6 w-6 mr-2" />
+            <Camera className="h-5 w-5 mr-2" />
             {isTranslating ? 'Translating...' : 'Take Photo'}
           </Button>
         </div>

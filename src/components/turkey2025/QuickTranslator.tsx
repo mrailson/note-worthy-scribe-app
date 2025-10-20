@@ -121,22 +121,22 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
       </div>
 
       {/* Bottom Controls */}
-      <div className="p-4 pb-safe space-y-2 border-t">
+      <div className="p-4 pb-safe space-y-2 border-t bg-background">
         <div className="flex gap-2">
           <Button
             variant={isListening ? 'destructive' : 'outline'}
             size="lg"
             onClick={isListening ? stopListening : startListening}
-            className="flex-1 h-14 text-base touch-manipulation"
+            className="flex-1 h-12 text-base touch-manipulation"
           >
-            <Mic className="h-5 w-5 mr-2" />
-            {isListening ? 'Stop' : 'Voice Input'}
+            <Mic className="h-4 w-4 mr-2" />
+            {isListening ? 'Stop' : 'Voice'}
           </Button>
           <Button
             size="lg"
             onClick={handleTranslate}
             disabled={isTranslating || !sourceText.trim()}
-            className="flex-1 h-14 text-base touch-manipulation"
+            className="flex-1 h-12 text-base touch-manipulation"
           >
             {isTranslating ? 'Translating...' : 'Translate'}
           </Button>

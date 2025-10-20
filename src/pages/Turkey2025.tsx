@@ -4,8 +4,10 @@ import ModeSelector from '@/components/turkey2025/ModeSelector';
 import MenuPhotoTranslator from '@/components/turkey2025/MenuPhotoTranslator';
 import QuickTranslator from '@/components/turkey2025/QuickTranslator';
 import VoiceConversation from '@/components/turkey2025/VoiceConversation';
+import LiveCameraTranslator from '@/components/turkey2025/LiveCameraTranslator';
+import HistoryView from '@/components/turkey2025/HistoryView';
 
-type Mode = 'select' | 'menu' | 'text' | 'voice';
+type Mode = 'select' | 'menu' | 'text' | 'voice' | 'live' | 'history';
 
 const Turkey2025 = () => {
   const [mode, setMode] = useState<Mode>('select');
@@ -23,6 +25,8 @@ const Turkey2025 = () => {
         {mode === 'menu' && <MenuPhotoTranslator onBack={() => setMode('select')} />}
         {mode === 'text' && <QuickTranslator onBack={() => setMode('select')} />}
         {mode === 'voice' && <VoiceConversation onBack={() => setMode('select')} />}
+        {mode === 'live' && <LiveCameraTranslator onBack={() => setMode('select')} />}
+        {mode === 'history' && <HistoryView onBack={() => setMode('select')} />}
       </div>
     </div>
   );

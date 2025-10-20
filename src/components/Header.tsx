@@ -504,6 +504,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               </Button>
                             </CollapsibleTrigger>
                             <CollapsibleContent className="pl-6 space-y-1 mt-1">
+                              <DrawerClose asChild>
+                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/turkey2025')}>
+                                  <Languages className="h-4 w-4 mr-2" />
+                                  Turkey 2025 Translator
+                                </Button>
+                              </DrawerClose>
                               {hasModuleAccess('shared_drive_access') && (
                                 <DrawerClose asChild>
                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/shared-drive')}>

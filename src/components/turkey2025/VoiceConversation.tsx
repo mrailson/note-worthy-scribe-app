@@ -104,7 +104,7 @@ const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
       </div>
 
       {/* Mic Button */}
-      <div className="p-6 pb-safe flex flex-col items-center gap-4">
+      <div className="p-4 pb-safe flex flex-col items-center gap-3 border-t bg-background">
         <p className="text-sm text-muted-foreground">
           Speaking: {currentLang === 'en' ? '🇬🇧 English' : '🇹🇷 Turkish'}
         </p>
@@ -112,9 +112,9 @@ const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
           size="lg"
           variant={isListening ? 'destructive' : 'default'}
           onClick={toggleListening}
-          className={`h-20 w-20 rounded-full touch-manipulation ${isListening ? 'animate-pulse' : ''}`}
+          className={`h-16 w-16 rounded-full touch-manipulation ${isListening ? 'animate-pulse' : ''}`}
         >
-          <Mic className="h-10 w-10" />
+          <Mic className="h-8 w-8" />
         </Button>
       </div>
     </div>
