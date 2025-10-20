@@ -29,6 +29,11 @@ const LiveCameraTranslator = ({ onBack }: LiveCameraTranslatorProps) => {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setIsStreaming(true);
+        
+        // Ensure video plays on iOS
+        videoRef.current.play().catch(err => {
+          console.error('Video play error:', err);
+        });
       }
     } catch (error) {
       console.error('Camera error:', error);
@@ -142,7 +147,9 @@ const LiveCameraTranslator = ({ onBack }: LiveCameraTranslatorProps) => {
               ref={videoRef}
               autoPlay
               playsInline
+              muted
               className="w-full h-full object-cover"
+              style={{ backgroundColor: 'transparent' }}
             />
             <canvas ref={canvasRef} className="hidden" />
             
