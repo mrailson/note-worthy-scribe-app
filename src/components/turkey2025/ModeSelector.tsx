@@ -1,6 +1,6 @@
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Camera, MessageSquare, Mic, Video, History, Calculator } from 'lucide-react';
+import { Camera, MessageSquare, Mic, History, Calculator } from 'lucide-react';
 
 interface ModeSelectProps {
   onSelectMode: (mode: 'menu' | 'text' | 'voice' | 'live' | 'history' | 'currency' | 'select') => void;
