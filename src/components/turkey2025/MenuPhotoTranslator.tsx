@@ -26,7 +26,6 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
       const imageData = event.target?.result as string;
       setImage(imageData);
       
-      // Translate the image
       const result = await translateDocument(imageData, 'en');
       
       if (result) {
@@ -46,7 +45,6 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
   };
 
   const saveToFavorites = () => {
-    // Save to localStorage
     const saved = JSON.parse(localStorage.getItem('turkeyFavorites') || '[]');
     saved.push({
       id: Date.now(),
@@ -76,14 +74,19 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
         <div className="w-12" />
       </div>
 
-      {/* Content */}
       <div className="flex-1 overflow-auto p-4">
         {!image ? (
           <div className="h-full flex flex-col items-center justify-center gap-6">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="cursor-pointer hover:scale-105 active:scale-95 transition-transform touch-manipulation"
+              aria-label="Take photo"
+            >
+              <Camera className="h-32 w-32 text-primary" />
+            </button>
             <div className="text-center">
-              <Camera className="h-24 w-24 mx-auto mb-4 text-muted-foreground" />
               <h2 className="text-2xl font-bold mb-2">Take a Photo</h2>
-              <p className="text-muted-foreground">Snap a picture of a Turkish menu for instant English translation</p>
+              <p className="text-muted-foreground">Tap the camera icon or button below to capture a menu</p>
             </div>
           </div>
         ) : (
@@ -108,12 +111,12 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
                 </div>
 
                 <div className="flex gap-2">
-                  <Button onClick={speakTranslation} className="flex-1 h-14 text-base touch-manipulation">
+                  <Button onClick={speakTranslation} className="flex-1 h-12 text-base touch-manipulation">
                     <Volume2 className="h-5 w-5 mr-2" />
                     Play Audio
                   </Button>
-                  <Button onClick={saveToFavorites} variant="outline" size="icon" className="h-14 w-14 touch-manipulation">
-                    <Star className="h-6 w-6" />
+                  <Button onClick={saveToFavorites} variant="outline" size="icon" className="h-12 w-12 touch-manipulation">
+                    <Star className="h-5 w-5" />
                   </Button>
                 </div>
               </Card>
