@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
 import { useTurkishTranslation } from '@/hooks/useTurkishTranslation';
 import { useTurkishSpeech } from '@/hooks/useTurkishSpeech';
+import { supabase } from '@/integrations/supabase/client';
 
 interface QuickTranslatorProps {
   onBack: () => void;
@@ -57,53 +58,81 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
     setSourceText('');
   };
 
-  const speakTranslation = () => {
-    if ('speechSynthesis' in window && translation) {
-      // Cancel any ongoing speech first
-      window.speechSynthesis.cancel();
+  const speakTranslation = async () => {
+    const text = translation?.trim();
+    if (!text) {
+      toast({ title: 'No translation to play', variant: 'destructive' });
+      return;
+    }
 
-      const utterance = new SpeechSynthesisUtterance(translation);
-      const langCode = targetLang === 'tr' ? 'tr-TR' : 'en-GB';
-      utterance.lang = langCode;
-      utterance.rate = 0.95;
-      utterance.pitch = 1;
-      utterance.volume = 1;
+    const langCode = targetLang === 'tr' ? 'tr-TR' : 'en-GB';
 
-      // Try to pick a voice that matches the target language
+    // Try Web Speech API first
+    const playWithWebSpeech = async (): Promise<boolean> => {
+      if (!('speechSynthesis' in window)) return false;
+
       try {
-        const matchExact = voices.find(v => v.lang?.toLowerCase() === langCode.toLowerCase());
-        const matchPrefix = voices.find(v => v.lang?.toLowerCase().startsWith(langCode.slice(0,2).toLowerCase()));
-        const fallback = voices.find(v => (targetLang === 'en' ? v.lang?.startsWith('en') : v.lang?.startsWith('tr')));
-        const selected = matchExact || matchPrefix || fallback;
-        if (selected) utterance.voice = selected;
-      } catch {}
+        // iOS/Safari quirk: resume loop prevents auto-pause
+        const resumeInterval = setInterval(() => {
+          try { window.speechSynthesis.resume(); } catch {}
+        }, 200);
 
-      // Add error handling
-      utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event);
-        toast({ 
-          title: 'Speech playback failed', 
-          description: 'Please try again',
-          variant: 'destructive' 
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = langCode;
+        utterance.rate = 0.95;
+        utterance.pitch = 1;
+        utterance.volume = 1;
+
+        try {
+          const matchExact = voices.find(v => v.lang?.toLowerCase() === langCode.toLowerCase());
+          const matchPrefix = voices.find(v => v.lang?.toLowerCase().startsWith(langCode.slice(0,2).toLowerCase()));
+          const fallback = voices.find(v => (targetLang === 'en' ? v.lang?.startsWith('en') : v.lang?.startsWith('tr')));
+          const selected = matchExact || matchPrefix || fallback;
+          if (selected) utterance.voice = selected;
+        } catch {}
+
+        const result = await new Promise<boolean>((resolve) => {
+          utterance.onend = () => { clearInterval(resumeInterval); resolve(true); };
+          utterance.onerror = (e) => { 
+            console.error('Speech synthesis error:', e);
+            clearInterval(resumeInterval);
+            resolve(false);
+          };
+          window.speechSynthesis.speak(utterance);
         });
-      };
 
-      utterance.onend = () => {
-        console.log('Speech finished');
-      };
+        return result;
+      } catch (e) {
+        console.error('Web Speech playback error:', e);
+        return false;
+      }
+    };
 
-      window.speechSynthesis.speak(utterance);
+    const webOk = await playWithWebSpeech();
+    if (webOk) {
       toast({ title: 'Playing translation' });
-    } else if (!translation) {
-      toast({ 
-        title: 'No translation to play',
-        variant: 'destructive' 
+      return;
+    }
+
+    // Fallback to Edge TTS (server)
+    try {
+      const { data, error } = await supabase.functions.invoke('text-to-speech', {
+        body: { text, languageCode: langCode }
       });
-    } else {
-      toast({ 
-        title: 'Speech not supported',
-        description: "Your browser doesn't support text-to-speech",
-        variant: 'destructive' 
+      if (error) throw error;
+      const base64: string | undefined = data?.audioContent;
+      if (!base64) throw new Error('No audio returned');
+
+      const audio = new Audio(`data:audio/mp3;base64,${base64}`);
+      await audio.play();
+      toast({ title: 'Playing translation' });
+    } catch (err) {
+      console.error('TTS fallback error:', err);
+      toast({
+        title: 'Speech playback failed',
+        description: 'Please try again or check your device volume',
+        variant: 'destructive'
       });
     }
   };
