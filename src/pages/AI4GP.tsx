@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { SEO } from '@/components/SEO';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -171,6 +172,12 @@ const AI4GP = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col mobile-container safe-area-top safe-area-bottom">
+      <SEO 
+        title="AI4GP | AI Assistant for General Practice | NoteWell AI"
+        description="Advanced AI-powered consultation assistance for GP practices. Real-time voice interaction, clinical guidance, and intelligent documentation support for NHS primary care."
+        canonical="https://www.gpnotewell.co.uk/ai4gp"
+        keywords="AI GP assistant, voice-activated consultation tool, clinical AI, NHS GP AI, general practice assistant, consultation support"
+      />
       <Header onNewMeeting={() => {}} />
       
       

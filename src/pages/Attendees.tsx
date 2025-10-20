@@ -1,4 +1,5 @@
 import { Helmet } from 'react-helmet-async';
+import { SEO } from '@/components/SEO';
 import { Header } from '@/components/Header';
 import { AttendeeManager } from '@/components/AttendeeManager';
 import { useAuth } from '@/contexts/AuthContext';
@@ -29,6 +30,12 @@ const Attendees = () => {
 
   return (
     <div className="min-h-screen bg-gradient-background">
+      <SEO 
+        title="Manage Attendees - NoteWell AI"
+        description="Manage meeting attendees, add contact details, and create reusable attendee templates for efficient practice management."
+        canonical="https://www.gpnotewell.co.uk/attendees"
+        keywords="meeting attendees, contact management, meeting templates, NHS meetings, practice management"
+      />
       <Helmet>
         <title>Manage Attendees - Notewell AI</title>
         <meta name="description" content="Manage meeting attendees, add contact details, and create reusable attendee templates" />

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEO } from "@/components/SEO";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { Header } from "@/components/Header";
@@ -1651,6 +1652,12 @@ const MeetingHistory = () => {
 
   return (
     <div className="min-h-screen bg-gradient-background">
+      <SEO 
+        title="Consultation History | NoteWell AI"
+        description="View, edit, and manage your saved consultations and meeting notes. Comprehensive history and document management for NHS GP practices."
+        canonical="https://www.gpnotewell.co.uk/meeting-history"
+        keywords="consultation history, meeting notes, medical records management, GP consultation log, NHS meeting history"
+      />
       <Header />
       
        <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-6 max-w-6xl">

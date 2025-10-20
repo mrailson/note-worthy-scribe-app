@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEO } from "@/components/SEO";
 import { Header } from "@/components/Header";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { 
@@ -310,6 +311,12 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-gradient-background mobile-container safe-area-top safe-area-bottom">
+      <SEO 
+        title="GPScribe | AI Consultation Notes & Recording | NoteWell AI"
+        description="AI-powered consultation transcription and SOAP note generation for GP practices. Real-time recording, patient summaries, and clinical documentation for NHS primary care."
+        canonical="https://www.gpnotewell.co.uk/gp-scribe"
+        keywords="GP consultation notes, AI medical transcription, SOAP notes, consultation recording, clinical documentation, NHS GP software"
+      />
       <Header onNewMeeting={() => {}} />
       
       <div className="container mx-auto px-2 py-2 sm:px-4 sm:py-6 lg:py-8 space-y-3 sm:space-y-6 max-w-6xl mobile-scroll">

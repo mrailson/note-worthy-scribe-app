@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { SEO } from "@/components/SEO";
 import { useNavigate } from "react-router-dom";
 import { useDeviceInfo } from "@/hooks/use-mobile";
 import { Button } from "@/components/ui/button";
@@ -1292,6 +1293,12 @@ const ComplaintsSystem = () => {
 
   return (
     <div className="min-h-screen bg-gradient-subtle">
+      <SEO 
+        title="NHS Complaints Management System | NoteWell AI"
+        description="Secure, NHS-compliant complaint management system with full evidence tracking, audit trails, and automated acknowledgement letters for GP practices."
+        canonical="https://www.gpnotewell.co.uk/complaints"
+        keywords="NHS complaints management, GP complaint system, medical complaints handling, NHS compliance, complaint audit trail"
+      />
       <Header onNewMeeting={() => {}} />
       <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
         <MaintenanceBanner />
