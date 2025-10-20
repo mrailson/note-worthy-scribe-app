@@ -4,7 +4,7 @@ import { HelmetProvider } from 'react-helmet-async';
 import { SecurityWrapper } from '@/components/SecurityWrapper';
 import { useSessionActivity } from '@/hooks/useSessionActivity';
 import { useEffect } from 'react';
-import { getSafeDOMObserver, installHasAttributeSafeguardPolyfill } from '@/utils/domSafety Polyfill';
+import { getSafeDOMObserver, installHasAttributeSafeguard } from '@/utils/domSafetyPolyfill';
 import Index from "./pages/Index";
 import AI4GP from "./pages/AI4GP";
 import GPScribe from "./pages/GPScribe";
@@ -25,7 +25,7 @@ import StaffFeedback from "./pages/StaffFeedback";
 import SharedDrive from "./pages/SharedDrive";
 import Auth from "./pages/Auth";
 import AI4PMService from "./pages/AI4PMService";
-import CQCompliance from "./pages/CQCompliance";
+import CQCCompliance from "./pages/CQCCompliance";
 import ComplianceDocumentation from "./pages/ComplianceDocumentation";
 import SecurityCompliance from "./pages/SecurityCompliance";
 import TranslationTool from "./pages/TranslationTool";
@@ -41,7 +41,7 @@ import { NetworkDiagnosticsPage } from "./pages/NetworkDiagnosticsPage";
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute";
-import GPSoapUI from "./pages/GPSoapUI";
+import GPSoapUI from "./components/GPSoapUI";
 import Turkey2025 from "./pages/Turkey2025";
 
 const App = () => {
@@ -51,7 +51,7 @@ const App = () => {
     installHasAttributeSafeguard();
     const observer = getSafeDOMObserver();
     observer.start();
-    return () => observer.disconnect();
+    return () => observer.destroy();
   }, []);
 
   return (
