@@ -17,21 +17,6 @@ const ModeSelector = ({ onSelectMode }: ModeSelectProps) => {
       <div className="flex-1 flex flex-col gap-4 justify-center max-w-md mx-auto w-full pb-20">
         <Card 
           className="p-6 cursor-pointer hover:bg-accent transition-all active:scale-95 touch-manipulation border-2"
-          onClick={() => onSelectMode('live')}
-        >
-          <div className="flex items-center gap-4">
-            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-              <Video className="h-7 w-7 text-primary" />
-            </div>
-            <div className="text-left flex-1">
-              <h2 className="text-xl font-bold mb-1">📹 Live Camera</h2>
-              <p className="text-sm text-muted-foreground">Real-time Turkish to English translation</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card 
-          className="p-6 cursor-pointer hover:bg-accent transition-all active:scale-95 touch-manipulation border-2"
           onClick={() => onSelectMode('menu')}
         >
           <div className="flex items-center gap-4">
@@ -39,7 +24,7 @@ const ModeSelector = ({ onSelectMode }: ModeSelectProps) => {
               <Camera className="h-7 w-7 text-primary" />
             </div>
             <div className="text-left flex-1">
-              <h2 className="text-xl font-bold mb-1">📸 Menu Photo</h2>
+              <h2 className="text-xl font-bold mb-1">📸 Menu, Photo</h2>
               <p className="text-sm text-muted-foreground">Snap menus for translation</p>
             </div>
           </div>
