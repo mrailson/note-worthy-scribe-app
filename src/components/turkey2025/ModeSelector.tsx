@@ -74,6 +74,21 @@ const ModeSelector = ({ onSelectMode }: ModeSelectProps) => {
             </div>
           </div>
         </Card>
+
+        <Card 
+          className="p-6 cursor-pointer hover:bg-accent transition-all active:scale-95 touch-manipulation border-2"
+          onClick={() => onSelectMode('currency')}
+        >
+          <div className="flex items-center gap-4">
+            <div className="h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+              <Calculator className="h-7 w-7 text-primary" />
+            </div>
+            <div className="text-left flex-1">
+              <h2 className="text-xl font-bold mb-1">💰 Currency</h2>
+              <p className="text-sm text-muted-foreground">Turkish Lira to Pounds</p>
+            </div>
+          </div>
+        </Card>
       </div>
 
       {/* History Button */}
