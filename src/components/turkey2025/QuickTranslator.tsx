@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ArrowLeft, Mic, Volume2, Copy, Star, ArrowLeftRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -25,6 +25,25 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
 
   const sourceLang = targetLang === 'tr' ? 'en' : 'tr';
 
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+
+  useEffect(() => {
+    if (!('speechSynthesis' in window)) return;
+    const synth = window.speechSynthesis;
+
+    const loadVoices = () => {
+      const v = synth.getVoices();
+      if (v && v.length) setVoices(v);
+    };
+
+    loadVoices();
+    synth.onvoiceschanged = loadVoices;
+
+    return () => {
+      if (synth.onvoiceschanged === loadVoices) synth.onvoiceschanged = null as any;
+    };
+  }, []);
+
   const handleTranslate = async () => {
     if (!sourceText.trim()) {
       toast({ title: 'Please enter text to translate', variant: 'destructive' });
@@ -42,13 +61,23 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
     if ('speechSynthesis' in window && translation) {
       // Cancel any ongoing speech first
       window.speechSynthesis.cancel();
-      
+
       const utterance = new SpeechSynthesisUtterance(translation);
-      utterance.lang = targetLang === 'tr' ? 'tr-TR' : 'en-GB';
-      utterance.rate = 0.9;
+      const langCode = targetLang === 'tr' ? 'tr-TR' : 'en-GB';
+      utterance.lang = langCode;
+      utterance.rate = 0.95;
       utterance.pitch = 1;
       utterance.volume = 1;
-      
+
+      // Try to pick a voice that matches the target language
+      try {
+        const matchExact = voices.find(v => v.lang?.toLowerCase() === langCode.toLowerCase());
+        const matchPrefix = voices.find(v => v.lang?.toLowerCase().startsWith(langCode.slice(0,2).toLowerCase()));
+        const fallback = voices.find(v => (targetLang === 'en' ? v.lang?.startsWith('en') : v.lang?.startsWith('tr')));
+        const selected = matchExact || matchPrefix || fallback;
+        if (selected) utterance.voice = selected;
+      } catch {}
+
       // Add error handling
       utterance.onerror = (event) => {
         console.error('Speech synthesis error:', event);
@@ -58,12 +87,13 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
           variant: 'destructive' 
         });
       };
-      
+
       utterance.onend = () => {
         console.log('Speech finished');
       };
-      
+
       window.speechSynthesis.speak(utterance);
+      toast({ title: 'Playing translation' });
     } else if (!translation) {
       toast({ 
         title: 'No translation to play',
@@ -72,7 +102,7 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
     } else {
       toast({ 
         title: 'Speech not supported',
-        description: 'Your browser doesn\'t support text-to-speech',
+        description: "Your browser doesn't support text-to-speech",
         variant: 'destructive' 
       });
     }
