@@ -40,9 +40,41 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
 
   const speakTranslation = () => {
     if ('speechSynthesis' in window && translation) {
+      // Cancel any ongoing speech first
+      window.speechSynthesis.cancel();
+      
       const utterance = new SpeechSynthesisUtterance(translation);
       utterance.lang = targetLang === 'tr' ? 'tr-TR' : 'en-GB';
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      
+      // Add error handling
+      utterance.onerror = (event) => {
+        console.error('Speech synthesis error:', event);
+        toast({ 
+          title: 'Speech playback failed', 
+          description: 'Please try again',
+          variant: 'destructive' 
+        });
+      };
+      
+      utterance.onend = () => {
+        console.log('Speech finished');
+      };
+      
       window.speechSynthesis.speak(utterance);
+    } else if (!translation) {
+      toast({ 
+        title: 'No translation to play',
+        variant: 'destructive' 
+      });
+    } else {
+      toast({ 
+        title: 'Speech not supported',
+        description: 'Your browser doesn\'t support text-to-speech',
+        variant: 'destructive' 
+      });
     }
   };
 
