@@ -3286,8 +3286,50 @@ ${transcript}`;
                             const isCurrentlyGenerating = getGeneratingState();
                             
                             return content ? (
-                              <>\n                                <div className="flex items-center gap-2">\n                                  <Button\n                                    variant="outline"\n                                    size="icon"\n                                    title="Download Word"\n                                    aria-label="Download Word"\n                                    onClick={() => {\n                                      if (content) {\n                                        generateAdvancedWordDocument(content, tabName);\n                                      }\n                                    }}\n                                  >\n                                    <FileText className="h-4 w-4" />\n                                  </Button>\n                                  <Button\n                                    variant="outline"\n                                    size="icon"\n                                    title="Email notes"\n                                    aria-label="Email notes"\n                                    onClick={() => {\n                                      const subject = `${meeting?.title || 'Meeting'} - ${new Date().toLocaleDateString('en-GB')}`;\n                                      const body = content || '';\n                                      setEmailModalContent({ subject, body, toEmail: user?.email || '' });\n                                      setEmailModalOpen(true);\n                                    }}\n                                  >\n                                    <Mail className="h-4 w-4" />\n                                  </Button>\n                                  <Button\n                                    variant="outline"\n                                    size="icon"\n                                    title="Copy to clipboard"\n                                    aria-label="Copy to clipboard"\n                                    onClick={async () => {\n                                      if (content) {\n                                        await copyPlainTextToClipboard(content, `${tabName} copied to clipboard`);\n                                      }\n                                    }}\n                                  >\n                                    <Copy className="h-4 w-4" />\n                                  </Button>
-                                <DropdownMenu
+                              <>
+                                <div className="flex items-center gap-2">
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    title="Download Word"
+                                    aria-label="Download Word"
+                                    onClick={() => {
+                                      if (content) {
+                                        generateAdvancedWordDocument(content, tabName);
+                                      }
+                                    }}
+                                  >
+                                    <FileText className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    title="Email notes"
+                                    aria-label="Email notes"
+                                    onClick={() => {
+                                      const subject = `${meeting?.title || 'Meeting'} - ${new Date().toLocaleDateString('en-GB')}`;
+                                      const body = content || '';
+                                      setEmailModalContent({ subject, body, toEmail: user?.email || '' });
+                                      setEmailModalOpen(true);
+                                    }}
+                                  >
+                                    <Mail className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    title="Copy to clipboard"
+                                    aria-label="Copy to clipboard"
+                                    onClick={async () => {
+                                      if (content) {
+                                        await copyPlainTextToClipboard(content, `${tabName} copied to clipboard`);
+                                      }
+                                    }}
+                                  >
+                                    <Copy className="h-4 w-4" />
+                                  </Button>
+
+                                  <DropdownMenu
                                   open={actionsDropdownOpen}
                                   onOpenChange={(open) => {
                                     console.log('Actions dropdown open:', open);
@@ -3364,7 +3406,8 @@ ${transcript}`;
                                       Send Email
                                     </DropdownMenuItem>
                                   </DropdownMenuContent>
-                                </DropdownMenu>
+                                 </DropdownMenu>
+                                </div>
                               </>
                             ) : null;
                           })()}
