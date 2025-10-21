@@ -3109,134 +3109,60 @@ ${transcript}`;
                           
                           {/* Font Size Controls - only show for Minutes */}
                           {activeNotesStyleTab === 'style1' && (
-                            <>
-                              <div className="flex items-center gap-1 border rounded-md p-1">
-                                <Type className="h-4 w-4 text-muted-foreground mr-1" />
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => setFontSizeStyle1(prev => Math.max(12, prev - 1))}
-                                  disabled={fontSizeStyle1 <= 12}
-                                  title="Decrease font size"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="text-xs text-muted-foreground px-1 min-w-[2.5rem] text-center">
-                                  {fontSizeStyle1}px
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => setFontSizeStyle1(prev => Math.min(24, prev + 1))}
-                                  disabled={fontSizeStyle1 >= 24}
-                                  title="Increase font size"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
-                              
-                              {/* Manage Attendees and Regenerate buttons */}
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      onClick={() => setAttendeeModalOpen(true)}
-                                      aria-label="Manage attendees"
-                                    >
-                                      <Users className="h-4 w-4" />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Manage Attendees</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      variant="outline"
-                                      size="icon"
-                                      onClick={generateNotesStyle3}
-                                      disabled={isGeneratingStyle3 || !transcript}
-                                      aria-label="Regenerate meeting notes"
-                                    >
-                                      <RefreshCw className={`h-4 w-4 ${isGeneratingStyle3 ? 'animate-spin' : ''}`} />
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>Regenerate Meeting Notes</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </>
+                            <div className="flex items-center gap-1 border rounded-md p-1">
+                              <Type className="h-4 w-4 text-muted-foreground mr-1" />
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setFontSizeStyle1(prev => Math.max(12, prev - 1))}
+                                disabled={fontSizeStyle1 <= 12}
+                                title="Decrease font size"
+                              >
+                                <Minus className="h-3 w-3" />
+                              </Button>
+                              <span className="text-xs text-muted-foreground px-1 min-w-[2.5rem] text-center">
+                                {fontSizeStyle1}px
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setFontSizeStyle1(prev => Math.min(24, prev + 1))}
+                                disabled={fontSizeStyle1 >= 24}
+                                title="Increase font size"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
+                            </div>
                           )}
 
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  onClick={handleEditToggle}
-                                  variant="outline"
-                                  size="icon"
-                                >
-                                  <Edit3 className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{isEditing ? 'Save' : 'Edit'} notes</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-
-                          {/* Action buttons for each tab when content exists */}
+                          {/* Action buttons grouped with 20px spacing */}
                           {(() => {
                             const getTabContent = () => {
                               switch (activeNotesStyleTab) {
                                 case 'style1': return notesStyle3;
                                 case 'style2': return notes;
-                                case 'style6': return null; // Patient Consultation has its own UI
+                                case 'style6': return null;
                                 default: return null;
                               }
                             };
                             
-                             const getTabName = () => {
-                               switch (activeNotesStyleTab) {
-                                 case 'style1': return 'Minutes';
-                                 case 'style2': return 'Minutes - Brief';
+                            const getTabName = () => {
+                              switch (activeNotesStyleTab) {
+                                case 'style1': return 'Minutes';
+                                case 'style2': return 'Minutes - Brief';
                                 case 'style6': return 'Patient Consultation';
                                 default: return 'Meeting Notes';
-                               }
-                            };
-                            
-                            const getGenerateFunction = () => {
-                              switch (activeNotesStyleTab) {
-                                case 'style1': return generateNotesStyle3;
-                                case 'style2': return handleRegenerateNotes;
-                                default: return () => {};
-                              }
-                            };
-                            
-                            const getGeneratingState = () => {
-                              switch (activeNotesStyleTab) {
-                                case 'style1': return isGeneratingStyle3;
-                                case 'style2': return isGenerating;
-                                default: return false;
                               }
                             };
                             
                             const content = getTabContent();
                             const tabName = getTabName();
-                            const generateFunction = getGenerateFunction();
-                            const isCurrentlyGenerating = getGeneratingState();
                             
                             return content ? (
                               <>
+                                {/* Group 1: Word and Email icons */}
                                 <div className="flex items-center gap-2">
                                   <Button
                                     variant="outline"
@@ -3265,6 +3191,30 @@ ${transcript}`;
                                   >
                                     <Mail className="h-4 w-4" />
                                   </Button>
+                                </div>
+
+                                {/* 20px spacer */}
+                                <div className="w-5" />
+
+                                {/* Group 2: Edit and Copy icons */}
+                                <div className="flex items-center gap-2">
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          onClick={handleEditToggle}
+                                          variant="outline"
+                                          size="icon"
+                                        >
+                                          <Edit3 className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>{isEditing ? 'Save' : 'Edit'} notes</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+
                                   <Button
                                     variant="outline"
                                     size="icon"
@@ -3278,8 +3228,52 @@ ${transcript}`;
                                   >
                                     <Copy className="h-4 w-4" />
                                   </Button>
-
                                 </div>
+
+                                {/* 20px spacer */}
+                                <div className="w-5" />
+
+                                {/* Group 3: Manage Attendees and Regenerate icons - only for style1 */}
+                                {activeNotesStyleTab === 'style1' && (
+                                  <div className="flex items-center gap-2">
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={() => setAttendeeModalOpen(true)}
+                                            aria-label="Manage attendees"
+                                          >
+                                            <Users className="h-4 w-4" />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Manage Attendees</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+
+                                    <TooltipProvider>
+                                      <Tooltip>
+                                        <TooltipTrigger asChild>
+                                          <Button
+                                            variant="outline"
+                                            size="icon"
+                                            onClick={generateNotesStyle3}
+                                            disabled={isGeneratingStyle3 || !transcript}
+                                            aria-label="Regenerate meeting notes"
+                                          >
+                                            <RefreshCw className={`h-4 w-4 ${isGeneratingStyle3 ? 'animate-spin' : ''}`} />
+                                          </Button>
+                                        </TooltipTrigger>
+                                        <TooltipContent>
+                                          <p>Regenerate Meeting Notes</p>
+                                        </TooltipContent>
+                                      </Tooltip>
+                                    </TooltipProvider>
+                                  </div>
+                                )}
                               </>
                             ) : null;
                           })()}
