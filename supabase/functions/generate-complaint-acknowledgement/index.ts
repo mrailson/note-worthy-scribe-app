@@ -292,8 +292,17 @@ CRITICAL: Never include personal email addresses or direct contact details in th
 
     if (statusError) {
       console.error('Failed to update complaint status:', statusError);
-      // Don't throw error here, acknowledgement was still generated successfully
+      console.error('Status update error details:', {
+        message: statusError.message,
+        details: statusError.details,
+        hint: statusError.hint,
+        code: statusError.code
+      });
+      // This is critical - throw error so frontend knows status update failed
+      throw new Error(`Failed to update complaint status: ${statusError.message}`);
     }
+    
+    console.log('✅ Successfully updated complaint status to under_review');
 
     return new Response(JSON.stringify({ 
       acknowledgementLetter,

@@ -67,6 +67,7 @@ import FindReplacePanel from "@/components/FindReplacePanel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Maximize2, Minimize2, FileEdit, Eye as EyeIcon, Columns } from "lucide-react";
 import { AIEditLetterDialog } from "@/components/AIEditLetterDialog";
+import { ManualAcknowledgementGenerator } from "@/components/ManualAcknowledgementGenerator";
 
 
 interface Complaint {
@@ -2129,6 +2130,19 @@ I am committed to ensuring that all patients receive the care and service they d
                   )}
                 </CardContent>
               </Card>
+
+              {/* Manual Acknowledgement Generator - shown when status is stuck */}
+              {complaint.status === 'submitted' && (
+                <ManualAcknowledgementGenerator
+                  complaintId={complaint.id}
+                  complaintReference={complaint.reference_number}
+                  currentStatus={complaint.status}
+                  onSuccess={() => {
+                    // Refresh complaint data
+                    fetchComplaintDetails();
+                  }}
+                />
+              )}
 
               {/* Outcome Letter Section */}
               {existingOutcome && outcomeLetter && (
