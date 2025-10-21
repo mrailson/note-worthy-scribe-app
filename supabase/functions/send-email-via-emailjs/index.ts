@@ -392,7 +392,16 @@ const handler = async (req: Request): Promise<Response> => {
       
       // Use the professional email template
       templateParams.html_message = generateProfessionalEmailHTML(parsedContent);
-      templateParams.message = emailData.message; // Keep original for fallback
+      
+      // Strip markdown formatting from message for plain text fallback
+      const cleanMessage = (emailData.message || '')
+        .replace(/^#{1,6}\s+/gm, '') // Remove markdown headers
+        .replace(/\*\*\*(.*?)\*\*\*/g, '$1') // Remove bold+italic
+        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+        .replace(/\*(.*?)\*/g, '$1') // Remove italic
+        .replace(/`(.*?)`/g, '$1'); // Remove inline code
+      
+      templateParams.message = cleanMessage;
     }
     
     // EmailJS requires attachments in data URL format
