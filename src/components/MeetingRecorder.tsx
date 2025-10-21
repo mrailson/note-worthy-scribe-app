@@ -136,6 +136,17 @@ export const MeetingRecorder = ({
     return () => clearInterval(interval);
   }, []);
 
+  // Calculate word count from all chunks
+  useEffect(() => {
+    const totalWords = chunkSaveStatuses.reduce((total, chunk) => {
+      const chunkWordCount = chunk.text.trim().split(/\s+/).filter(word => word.length > 0).length;
+      return total + chunkWordCount;
+    }, 0);
+    
+    setWordCount(totalWords);
+    onWordCountUpdate(totalWords);
+  }, [chunkSaveStatuses, onWordCountUpdate]);
+
   const [connectionStatus, setConnectionStatus] = useState<string>("Disconnected");
   const [speakerCount, setSpeakerCount] = useState(0);
   const [wordCount, setWordCount] = useState(0);
@@ -637,13 +648,7 @@ export const MeetingRecorder = ({
         setTranscript(cleanedTranscript);
         onTranscriptUpdate(cleanedTranscript);
         
-        // Update word count - ensure it never decreases
-        const calculatedWordCount = cleanedTranscript.trim().split(/\s+/).length;
-        setWordCount(prev => {
-          const newWordCount = Math.max(prev, calculatedWordCount);
-          onWordCountUpdate(newWordCount);
-          return newWordCount;
-        });
+        // Word count is calculated from chunks
         
         showToast.success('Transcript auto-cleaned successfully', { section: 'meeting_manager', id: 'auto-clean' });
         console.log('✅ Auto Deep Clean completed');
@@ -1261,14 +1266,7 @@ export const MeetingRecorder = ({
 
           // Assembly AI backup transcription is handled by real-time client
 
-          // Update word count with immediate feedback
-          const words = transcriptionText.split(/\s+/).filter(word => word.length > 0);
-          setWordCount(prev => {
-            const newCount = prev + words.length;
-            console.log(`📊 Word count updated: ${newCount} words (+${words.length})`);
-            onWordCountUpdate(newCount);
-            return newCount;
-          });
+          // Word count is now calculated from chunks via useEffect
 
           // Create transcript data for live display
           const transcriptData: TranscriptData = {
@@ -1780,15 +1778,10 @@ export const MeetingRecorder = ({
         onTranscriptUpdate(fullTranscript);
         latestCompleteTranscriptRef.current = fullTranscript;
         
-        // Update word count - ensure it never decreases
-        const words = fullTranscript.split(' ').filter(word => word.length > 0);
-        setWordCount(prev => {
-          const newWordCount = Math.max(prev, words.length);
-          onWordCountUpdate(newWordCount);
-          return newWordCount;
-        });
+        // Word count is calculated from chunks
         
         // Extract last phrase (max 6 words)
+        const words = fullTranscript.split(' ').filter(word => word.length > 0);
         const lastSixWords = words.slice(-6).join(' ');
         setLastPhrase(lastSixWords);
         
