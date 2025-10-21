@@ -225,18 +225,16 @@ export function EmailMeetingMinutesModal({
         // Continue without attachment
       }
 
-      // Helper function to convert markdown and format to HTML
+      // Helper function to convert markdown and format to HTML with proper structure
       const convertToStyledHTML = (text: string): string => {
-        // FIRST: Strip ALL bold markers from the entire text before any processing
+        // Strip bold markers
         let cleanedText = text.replace(/\*\*/g, '');
         
-        // Remove transcript section if present (everything after "MEETING TRANSCRIPT FOR REFERENCE:")
+        // Remove transcript sections
         const transcriptIndex = cleanedText.indexOf('MEETING TRANSCRIPT FOR REFERENCE:');
         if (transcriptIndex !== -1) {
           cleanedText = cleanedText.substring(0, transcriptIndex).trim();
         }
-        
-        // Also remove any transcript sections that might be in different formats
         cleanedText = cleanedText.replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '');
         cleanedText = cleanedText.replace(/\n*Transcript:[\s\S]*$/i, '');
         cleanedText = cleanedText.replace(/\n*Full Transcript:[\s\S]*$/i, '');
@@ -244,27 +242,24 @@ export function EmailMeetingMinutesModal({
         const lines = cleanedText.split('\n');
         let html = '';
         let i = 0;
-        let numberedListCounter = 1; // Track sequential numbering across all numbered lists
         
         while (i < lines.length) {
           const line = lines[i].trim();
           
           // Handle tables
           if (line.includes('|')) {
-            let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 20px 0; font-family: Arial, sans-serif; background-color: #ffffff;">\n';
+            let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 16px 0; font-family: Arial, sans-serif;">\n';
             let isFirstRow = true;
             let inTable = true;
             
             while (i < lines.length && inTable) {
               const currentLine = lines[i].trim();
               
-              // Check if it's a separator line (dashes and pipes)
               if (/^[\|\-\s]+$/.test(currentLine)) {
                 i++;
                 continue;
               }
               
-              // Check if line has pipes (table row)
               if (currentLine.includes('|')) {
                 const cells = currentLine.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
                 
@@ -272,9 +267,9 @@ export function EmailMeetingMinutesModal({
                   tableHTML += '  <tr>\n';
                   cells.forEach(cell => {
                     if (isFirstRow) {
-                      tableHTML += `    <th style="border: 1px solid #ddd; padding: 12px; background-color: #f8f9fa; text-align: left; font-weight: bold;">${cell}</th>\n`;
+                      tableHTML += `    <th style="border: 1px solid #ddd; padding: 10px; background-color: #f5f5f5; text-align: left; font-weight: 600;">${cell}</th>\n`;
                     } else {
-                      tableHTML += `    <td style="border: 1px solid #ddd; padding: 12px; text-align: left;">${cell}</td>\n`;
+                      tableHTML += `    <td style="border: 1px solid #ddd; padding: 10px; text-align: left;">${cell}</td>\n`;
                     }
                   });
                   tableHTML += '  </tr>\n';
@@ -291,20 +286,19 @@ export function EmailMeetingMinutesModal({
             continue;
           }
           
-          // Handle headers (lines in ALL CAPS or starting with #)
-          if (line.match(/^#{1,6}\s/) || (line.length > 0 && line === line.toUpperCase() && line.length < 100)) {
-            const headerText = line.replace(/^#{1,6}\s/, '');
-            html += `<h2 style="color: #2c3e50; font-size: 18px; font-weight: bold; margin: 24px 0 12px 0; font-family: Arial, sans-serif;">${headerText}</h2>\n`;
+          // Handle section headers (ALL CAPS lines)
+          if (line.length > 0 && line === line.toUpperCase() && line.length < 100 && !line.match(/^\d/)) {
+            html += `<h2 style="color: #1a1a1a; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${line}</h2>\n`;
             i++;
             continue;
           }
           
           // Handle bullet points
           if (line.match(/^[•\-\*]\s/)) {
-            let listHTML = '<ul style="margin: 12px 0; padding-left: 20px;">\n';
+            let listHTML = '<ul style="margin: 8px 0 8px 20px; padding: 0;">\n';
             while (i < lines.length && lines[i].trim().match(/^[•\-\*]\s/)) {
               const itemText = lines[i].trim().replace(/^[•\-\*]\s/, '');
-              listHTML += `  <li style="margin: 6px 0; line-height: 1.6; font-family: Arial, sans-serif; color: #2c3e50;">${itemText}</li>\n`;
+              listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
               i++;
             }
             listHTML += '</ul>\n';
@@ -312,13 +306,12 @@ export function EmailMeetingMinutesModal({
             continue;
           }
           
-          // Handle numbered lists with sequential numbering
+          // Handle numbered lists
           if (line.match(/^\d+\.\s/)) {
-            let listHTML = `<ol start="${numberedListCounter}" style="margin: 12px 0; padding-left: 20px;">\n`;
+            let listHTML = '<ol style="margin: 8px 0 8px 20px; padding: 0;">\n';
             while (i < lines.length && lines[i].trim().match(/^\d+\.\s/)) {
               const itemText = lines[i].trim().replace(/^\d+\.\s/, '');
-              listHTML += `  <li style="margin: 6px 0; line-height: 1.6; font-family: Arial, sans-serif; color: #2c3e50;">${itemText}</li>\n`;
-              numberedListCounter++; // Increment counter for each item
+              listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
               i++;
             }
             listHTML += '</ol>\n';
@@ -333,7 +326,7 @@ export function EmailMeetingMinutesModal({
           }
           
           // Handle regular paragraphs
-          html += `<p style="margin: 12px 0; line-height: 1.6; font-family: Arial, sans-serif; color: #2c3e50;">${line}</p>\n`;
+          html += `<p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${line}</p>\n`;
           i++;
         }
         
@@ -358,10 +351,18 @@ export function EmailMeetingMinutesModal({
         return;
       }
 
+      // Build meeting details section
+      const meetingDetailsHTML = `
+        <h2 style="color: #1a1a1a; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">MEETING DETAILS</h2>
+        <p style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;"><strong>Meeting Title:</strong> ${meetingTitle}</p>
+        ${meetingDate ? `<p style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;"><strong>Date:</strong> ${meetingDate}</p>` : ''}
+        ${meetingDateTime ? `<p style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;"><strong>Time:</strong> ${meetingDateTime.split(' at ')[1]}</p>` : ''}
+      `;
+
       const emailData = {
         to_email: uniqueRecipients.join(', '),
         subject: subject.trim(),
-        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff;"><div style="background-color: #f8f9fa; padding: 20px; border-bottom: 3px solid #0066cc;"><p style="margin: 0; color: #2c3e50; font-size: 14px; line-height: 1.6;">${emailBody.replace(/\n/g, '<br>')}</p></div><div style="padding: 20px; background-color: #ffffff;"><div style="padding-top: 20px;"><h1 style="color: #0066cc; font-size: 24px; font-weight: bold; margin: 0 0 20px 0;">MEETING NOTES</h1>${formattedNotes}</div></div></div>`,
+        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;"><div style="margin-bottom: 20px;"><p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">${emailBody.replace(/\n/g, '<br>')}</p></div><div style="border-top: 3px solid #0066cc; padding-top: 20px;"><h1 style="color: #0066cc; font-size: 18px; font-weight: bold; margin: 0 0 16px 0; font-family: Arial, sans-serif;">MEETING NOTES</h1>${meetingDetailsHTML}<div style="margin-top: 16px;">${formattedNotes}</div></div></div>`,
         template_type: 'meeting_minutes',
         from_name: 'GP Tools - Meeting Minutes',
         reply_to: 'noreply@gp-tools.nhs.uk',
