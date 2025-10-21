@@ -1,6 +1,7 @@
 import RichTextEditor from "@/components/RichTextEditor";
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
+import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 import { InlineWordCorrector } from "@/components/InlineWordCorrector";
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
@@ -192,6 +193,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [showContextDialog, setShowContextDialog] = useState(false);
   const [emailModalOpen, setEmailModalOpen] = useState(false);
   const [emailModalContent, setEmailModalContent] = useState({ subject: '', body: '', toEmail: '' });
+  const [standardEmailModalOpen, setStandardEmailModalOpen] = useState(false);
+  const [standardEmailContent, setStandardEmailContent] = useState({ meetingId: '', meetingTitle: '', meetingNotes: '' });
   
   // Version history for undo functionality
   const [notesVersions, setNotesVersions] = useState<ContentVersion[]>([]);
@@ -3183,10 +3186,13 @@ ${transcript}`;
                                     title="Email notes"
                                     aria-label="Email notes"
                                     onClick={() => {
-                                      const subject = `${meeting?.title || 'Meeting'} - ${new Date().toLocaleDateString('en-GB')}`;
-                                      const body = content || '';
-                                      setEmailModalContent({ subject, body, toEmail: user?.email || '' });
-                                      setEmailModalOpen(true);
+                                      // Use the professional email modal with attendees for standard view
+                                      setStandardEmailContent({
+                                        meetingId: meeting?.id || '',
+                                        meetingTitle: meeting?.title || 'Meeting',
+                                        meetingNotes: content || ''
+                                      });
+                                      setStandardEmailModalOpen(true);
                                     }}
                                   >
                                     <Mail className="h-4 w-4" />
@@ -4007,6 +4013,15 @@ ${transcript}`;
         defaultBody={emailModalContent.body}
         meetingTitle={meeting?.title || 'Meeting'}
         meetingDate={meeting?.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
+      />
+
+      {/* Professional Email Modal for Standard View */}
+      <EmailMeetingMinutesModal
+        isOpen={standardEmailModalOpen}
+        onOpenChange={setStandardEmailModalOpen}
+        meetingId={standardEmailContent.meetingId}
+        meetingTitle={standardEmailContent.meetingTitle}
+        meetingNotes={standardEmailContent.meetingNotes}
       />
 
       {/* Attendee Modal */}
