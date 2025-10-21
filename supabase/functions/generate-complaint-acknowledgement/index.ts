@@ -185,9 +185,15 @@ Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
 
 Generate a professional acknowledgement letter addressing the specific concerns raised. Include the date at the top of the letter as "${currentDate}". 
 
-IMPORTANT: If patient address is provided, include it in the letter header after "Private & Confidential". Use the practice and signature details provided to create appropriate headers and signature blocks. If practice phone number is available, include it in the practice contact details.
+IMPORTANT: If patient address is provided, include it in the letter header after "Private & Confidential". Use the practice and signature details provided to create appropriate headers and signature blocks.
 
-CRITICAL: Never include personal email addresses or direct contact details in the signature. ${practiceDetails?.email ? `Use the practice email: ${practiceDetails.email}` : 'Use a generic practice email'} ${practiceDetails?.phone ? `and practice phone number: ${practiceDetails.phone}` : ''} for contact information.`;
+CRITICAL CONTACT INFORMATION RULES:
+- Never include personal email addresses or direct contact details in the signature
+- You MUST use the EXACT practice contact details provided above
+- ${practiceDetails?.email ? `The practice email is: ${practiceDetails.email} - include this EXACT email address in the letter` : 'Include a generic practice email'}
+- ${practiceDetails?.phone ? `The practice phone number is: ${practiceDetails.phone} - include this EXACT phone number in the letter` : 'Indicate phone number is available upon request'}
+- DO NOT use placeholders like "[Practice Phone Number]" or "[Practice Email Address]"
+- Use the ACTUAL values provided in the Practice Details section above`;
 
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
