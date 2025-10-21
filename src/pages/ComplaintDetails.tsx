@@ -2997,10 +2997,9 @@ I am committed to ensuring that all patients receive the care and service they d
                     {complianceChecks.map((check) => (
                       <Card 
                         key={check.id} 
-                        className={`cursor-pointer transition-colors hover:shadow-md ${
+                        className={`transition-colors ${
                           check.is_compliant ? 'border-green-500 bg-green-50' : 'border-gray-200'
                         }`}
-                        onClick={() => updateComplianceCheck(check.id, !check.is_compliant)}
                       >
                         <CardContent className="p-4">
                           <div className="flex items-start gap-3">
@@ -3008,11 +3007,9 @@ I am committed to ensuring that all patients receive the care and service they d
                               type="checkbox"
                               checked={check.is_compliant}
                               onChange={(e) => {
-                                e.stopPropagation();
                                 updateComplianceCheck(check.id, e.target.checked);
                               }}
-                              className="mt-1 rounded accent-green-600"
-                              tabIndex={-1}
+                              className="mt-1 h-5 w-5 rounded accent-green-600 cursor-pointer"
                             />
                             <div className="flex-1">
                               <div className="flex items-center justify-between">
