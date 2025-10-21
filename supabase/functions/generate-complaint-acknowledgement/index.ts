@@ -57,7 +57,7 @@ serve(async (req) => {
       .from('user_roles')
       .select(`
         practice_id,
-        practice_details (
+        gp_practices (
           practice_name, 
           address, 
           phone, 
@@ -76,13 +76,13 @@ serve(async (req) => {
     
     console.log('User practice query result:', { userPractice, userPracticeError });
     
-    if (userPractice && userPractice.practice_details) {
-      practiceDetails = userPractice.practice_details;
+    if (userPractice && userPractice.gp_practices) {
+      practiceDetails = userPractice.gp_practices;
       console.log('Retrieved practice details from user profile:', practiceDetails);
     } else if (complaint.practice_id) {
       console.log('Fallback: Fetching practice details for complaint practice_id:', complaint.practice_id);
       const { data: practice } = await supabase
-        .from('practice_details')
+        .from('gp_practices')
         .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
         .eq('id', complaint.practice_id)
         .single();
@@ -91,7 +91,7 @@ serve(async (req) => {
     } else {
       console.log('Final fallback: fetching practice details directly by practice name');
       const { data: directPractice } = await supabase
-        .from('practice_details')
+        .from('gp_practices')
         .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers, updated_at')
         .eq('practice_name', 'Oak Lane Medical Practice')
         .order('updated_at', { ascending: false })
