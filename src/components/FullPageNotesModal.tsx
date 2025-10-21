@@ -3135,7 +3135,7 @@ ${transcript}`;
                                     <ChevronDownIcon className="h-3 w-3" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56 bg-popover border shadow-md z-[200] pointer-events-auto">
+                                <DropdownMenuContent align="end" className="w-56 bg-popover border shadow-md pointer-events-auto">
                                   <DropdownMenuGroup>
                                     <DropdownMenuItem 
                                       onClick={() => {
@@ -3271,7 +3271,7 @@ ${transcript}`;
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent 
                                     align="end" 
-                                    className="w-48 bg-popover border shadow-md z-[200] pointer-events-auto"
+                                    className="w-48 bg-popover border shadow-md pointer-events-auto"
                                     sideOffset={5}
                                   >
                                     {(activeNotesStyleTab === 'style1' || activeNotesStyleTab === 'style4' || activeNotesStyleTab === 'style5') && (
