@@ -3261,7 +3261,7 @@ ${transcript}`;
                                             variant="outline"
                                             size="icon"
                                             onClick={generateNotesStyle3}
-                                            disabled={isGeneratingStyle3 || !transcript}
+                                            disabled={isGeneratingStyle3}
                                             aria-label="Regenerate meeting notes"
                                           >
                                             <RefreshCw className={`h-4 w-4 ${isGeneratingStyle3 ? 'animate-spin' : ''}`} />
@@ -3329,7 +3329,7 @@ ${transcript}`;
                                    </p>
                                    <Button
                                      onClick={generateNotesStyle3}
-                                     disabled={isGeneratingStyle3 || !transcript}
+                                     disabled={isGeneratingStyle3}
                                      className="gap-2"
                                    >
                                      {isGeneratingStyle3 ? (
