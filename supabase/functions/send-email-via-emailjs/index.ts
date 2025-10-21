@@ -404,6 +404,18 @@ const handler = async (req: Request): Promise<Response> => {
       templateParams.message = cleanMessage;
     }
     
+    // Universal cleanup: remove markdown heading hashes from any message (plain text or HTML)
+    if ((templateParams as any).message) {
+      let msg = String((templateParams as any).message);
+      // Remove markdown headers at line starts
+      msg = msg.replace(/^#{1,6}\s+/gm, '');
+      // Remove stray hashes inside HTML heading tags like <h2># Title</h2>
+      msg = msg.replace(/(<h[1-6][^>]*>)\s*#+\s*/gi, '$1');
+      // Also handle cases where hashes appear right after a tag close or new line
+      msg = msg.replace(/(^|>|\n|\r)\s*#+\s+/g, '$1');
+      (templateParams as any).message = msg;
+    }
+    
     // EmailJS requires attachments in data URL format
     if (emailData.word_attachment) {
       console.log("Processing word attachment:", {
