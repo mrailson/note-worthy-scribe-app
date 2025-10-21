@@ -3917,74 +3917,67 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
 
       if (error) throw error;
 
-      // Get transcript counts, summaries, and documents for each meeting
-      const meetingsWithCounts = await Promise.all(
-        (meetingsData || []).map(async (meeting) => {
-          const [transcriptResult, summaryData, transcriptContent, documentsData] = await Promise.all([
-            supabase
-              .from('meeting_transcripts')
-              .select('*', { count: 'exact', head: true })
-              .eq('meeting_id', meeting.id),
-            
-            supabase
-              .from('meeting_summaries')
-              .select('summary')
-              .eq('meeting_id', meeting.id)
-              .maybeSingle(),
-              
-            supabase
-              .from('meeting_transcripts')
-              .select('content')
-              .eq('meeting_id', meeting.id),
+      // Batch lightweight counts to avoid heavy per-meeting queries
+      const meetingIds = (meetingsData || []).map(m => m.id);
 
-            // Fetch document details
-            supabase
-              .from('meeting_documents')
-              .select('file_name, file_size, uploaded_at, file_type')
-              .eq('meeting_id', meeting.id)
-              .order('uploaded_at', { ascending: false })
-          ]);
+      const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
+        // Transcript chunk counts per meeting
+        supabase
+          .from('meeting_transcription_chunks')
+          .select('meeting_id', { count: 'exact' })
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            const counts: Record<string, number> = {};
+            data?.forEach((row: any) => {
+              counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
+            });
+            return counts;
+          }),
 
-          // Calculate word count from transcript content
-          let wordCount = 0;
-          if (transcriptContent.data && transcriptContent.data.length > 0) {
-            wordCount = transcriptContent.data.reduce((total, transcript) => {
-              const words = transcript.content.split(/\s+/).filter(word => word.length > 0);
-              return total + words.length;
-            }, 0);
-          }
+        // Summary existence per meeting
+        supabase
+          .from('meeting_summaries')
+          .select('meeting_id')
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            const exists: Record<string, boolean> = {};
+            data?.forEach((row: any) => {
+              exists[row.meeting_id] = true;
+            });
+            return exists;
+          }),
 
-          const meetingWithOverview = {
-            ...meeting,
-            transcript_count: transcriptResult.count || 0,
-            summary_exists: !!summaryData.data?.summary,
-            meeting_summary: summaryData.data?.summary || null,
-            overview: meeting.meeting_overviews?.overview || null,
-            word_count: wordCount,
-            document_count: documentsData.data?.length || 0,
-            documents: documentsData.data || [],
-            // Add default values for compatibility
-            access_type: 'owner',
-            access_level: 'full',
-            shared_by: null,
-            shared_at: null,
-            share_message: null,
-            share_id: null
-          };
-          
-          // Debug log to check overview data
-          console.log('Meeting with overview:', {
-            id: meeting.id,
-            title: meeting.title,
-            overview: meetingWithOverview.overview,
-            rawOverviews: meeting.meeting_overviews,
-            wordCount: wordCount,
-            documentCount: meetingWithOverview.document_count
-          });
-          
-          return meetingWithOverview;
-        })
-      );
+        // Document counts per meeting
+        supabase
+          .from('meeting_documents')
+          .select('meeting_id', { count: 'exact' })
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            const counts: Record<string, number> = {};
+            data?.forEach((row: any) => {
+              counts[row.meeting_id] = (counts[row.meeting_id] || 0) + 1;
+            });
+            return counts;
+          })
+      ]);
+
+      // Build enriched objects without fetching heavy transcript contents
+      const meetingsWithCounts = (meetingsData || []).map((meeting: any) => ({
+        ...meeting,
+        transcript_count: transcriptCounts[meeting.id] || 0,
+        summary_exists: !!summaryExists[meeting.id],
+        meeting_summary: null,
+        overview: meeting.meeting_overviews?.overview || null,
+        word_count: null,
+        document_count: documentCounts[meeting.id] || 0,
+        documents: [],
+        access_type: 'owner',
+        access_level: 'full',
+        shared_by: null,
+        shared_at: null,
+        share_message: null,
+        share_id: null
+      }));
 
       setMeetings(meetingsWithCounts);
     } catch (error) {
