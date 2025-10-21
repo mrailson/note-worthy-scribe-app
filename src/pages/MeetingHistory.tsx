@@ -207,6 +207,12 @@ const MeetingHistory = () => {
   // Import dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false);
 
+  // Component lifecycle logging
+  useEffect(() => {
+    console.log('🟢 MeetingHistory component MOUNTED');
+    return () => console.log('🔴 MeetingHistory component UNMOUNTED');
+  }, []);
+
   const handleViewMeetingSummary = async (meetingId: string) => {
     console.log('🔍 handleViewMeetingSummary called with meetingId:', meetingId);
     console.log('🔍 Current user:', user?.id);
@@ -994,12 +1000,15 @@ const MeetingHistory = () => {
       setMicTestServiceVisible(false);
     }
   };
+  // Primary data fetch - triggers when user ID changes
   useEffect(() => {
+    console.log('📍 Primary useEffect triggered - User ID:', user?.id);
     if (user) {
+      console.log('✅ Calling fetchMeetings from primary useEffect');
       fetchMeetings();
       fetchMicTestServiceSettings();
     }
-  }, [user]);
+  }, [user?.id]); // Use user.id instead of user object to prevent unnecessary re-renders
 
   const handlePageChange = (page: number) => {
     fetchMeetings(page);
@@ -1089,17 +1098,18 @@ const MeetingHistory = () => {
     };
   }, [user]);
 
-  // Initial load on mount
+  // Fallback initial load - only runs once on mount as a safety net
   useEffect(() => {
     const timer = setTimeout(() => {
+      console.log('🕐 Fallback timer triggered - User:', user?.id, 'Meetings:', meetings.length, 'Loading:', loading);
       if (user && meetings.length === 0 && !loading) {
-        console.log('📥 Initial data load');
+        console.log('✅ Calling fetchMeetings from fallback');
         fetchMeetings(1);
       }
-    }, 300);
+    }, 100); // Reduced from 300ms for faster initial load
 
     return () => clearTimeout(timer);
-  }, [user]);
+  }, []); // Empty dependency array - only runs once on mount
 
   // Handle auto-opening transcript dialog when navigated from MeetingRecorder
   useEffect(() => {
@@ -1200,12 +1210,16 @@ const MeetingHistory = () => {
   };
 
   const fetchMeetings = async (pageToFetch = 1) => {
-    if (!user) return;
+    console.log('🎯 fetchMeetings CALLED - Page:', pageToFetch, 'User ID:', user?.id);
+    
+    if (!user) {
+      console.log('❌ fetchMeetings BLOCKED - No user');
+      return;
+    }
     
     try {
       setLoading(true);
-      
-      console.log('📥 Fetching meetings - Page:', pageToFetch);
+      console.log('📥 Fetching meetings - Page:', pageToFetch, 'User:', user.id);
       
       const offset = (pageToFetch - 1) * itemsPerPage;
        
@@ -1312,8 +1326,10 @@ const MeetingHistory = () => {
       console.log('✅ Meetings loaded successfully');
       
     } catch (error: any) {
-      console.error("Error loading meetings:", error.message);
+      console.error("❌ Error loading meetings:", error.message, error);
+      toast.error("Failed to load meetings");
     } finally {
+      console.log('✅ fetchMeetings completed - Setting loading to false');
       setLoading(false);
     }
   };
