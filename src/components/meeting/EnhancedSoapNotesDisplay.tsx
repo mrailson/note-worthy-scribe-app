@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Copy, FileText, ChevronDown, ChevronUp, FileDown, MoreVertical, Mail } from 'lucide-react';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { toast } from 'sonner';
 import { ClinicalActionsPanel, ClinicalAction } from './ClinicalActionsPanel';
 import { SafetyNettingPanel } from './SafetyNettingPanel';
@@ -486,26 +486,64 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
             </div>
           </div>
 
-          {/* Actions Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-2">
-                <MoreVertical className="h-4 w-4" />
-                Actions
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-              <DropdownMenuItem onClick={handleCopyAll}>
-                <Copy className="h-4 w-4 mr-2" />
-                Copy All
-              </DropdownMenuItem>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleExportToWord}>
-                <FileDown className="h-4 w-4 mr-2" />
-                Export to Word
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Inline quick actions and Popover menu (replaces dropdown) */}
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              aria-label="Email patient copy"
+              onClick={() => {
+                if (onEmailPatientCopy) {
+                  onEmailPatientCopy();
+                } else {
+                  toast.info('Email action not available');
+                }
+              }}
+            >
+              <Mail className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="default"
+              size="sm"
+              className="h-8 w-8 p-0"
+              aria-label="Download Word document"
+              onClick={handleExportToWord}
+            >
+              <FileDown className="h-4 w-4" />
+            </Button>
+
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="outline" size="sm" className="gap-2 h-8">
+                  <MoreVertical className="h-4 w-4" />
+                  Actions
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="end" sideOffset={6} className="z-[9999] w-56 p-1">
+                <div className="flex flex-col">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start gap-2"
+                    onClick={handleCopyAll}
+                  >
+                    <Copy className="h-4 w-4" />
+                    Copy all
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start gap-2"
+                    onClick={handleExportToWord}
+                  >
+                    <FileDown className="h-4 w-4" />
+                    Export to Word
+                  </Button>
+                </div>
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </div>
 
