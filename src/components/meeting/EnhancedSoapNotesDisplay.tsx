@@ -509,15 +509,25 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
               className="h-8 w-8 p-0"
               aria-label="Download Word document"
               onClick={handleExportToWord}
+              title="Download Word document"
             >
               <FileDown className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 w-8 p-0"
+              aria-label="Copy all clinical notes"
+              onClick={handleCopyAll}
+              title="Copy all clinical notes"
+            >
+              <Copy className="h-4 w-4" />
             </Button>
 
             <Popover>
               <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2 h-8">
+                <Button variant="outline" size="sm" className="h-8 w-8 p-0" aria-label="More actions">
                   <MoreVertical className="h-4 w-4" />
-                  Actions
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="end" sideOffset={6} className="z-[9999] w-56 p-1">
