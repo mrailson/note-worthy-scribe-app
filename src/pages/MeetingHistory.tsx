@@ -1076,22 +1076,10 @@ const MeetingHistory = () => {
       )
       .subscribe((status) => {
         console.log('📡 Real-time subscription status:', status);
-        
-        // If subscription fails, set up a fallback refresh
         if (status === 'SUBSCRIBED') {
           console.log('✅ Real-time updates connected successfully');
         } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
-          console.warn('⚠️ Real-time subscription failed, enabling fallback refresh');
-          // Enable more frequent polling as fallback
-          const fallbackTimer = setInterval(() => {
-            if (user?.id && !document.hidden) {
-              console.log('🔄 Fallback refresh due to subscription failure');
-              fetchMeetings(currentPage);
-            }
-          }, 15000); // Every 15 seconds
-          
-          // Clean up fallback after 5 minutes
-          setTimeout(() => clearInterval(fallbackTimer), 300000);
+          console.warn('⚠️ Real-time subscription failed - manual refresh required');
         }
       });
 
@@ -1101,18 +1089,17 @@ const MeetingHistory = () => {
     };
   }, [user]);
 
-  // Additional effect to ensure meetings are fetched when component mounts
-  // This handles cases where user state might be available but the effect didn't trigger
+  // Initial load on mount
   useEffect(() => {
     const timer = setTimeout(() => {
       if (user && meetings.length === 0 && !loading) {
-        console.log('🔄 Backup fetchMeetings triggered - ensuring data is loaded');
+        console.log('📥 Initial data load');
         fetchMeetings(1);
       }
-    }, 500);
+    }, 300);
 
     return () => clearTimeout(timer);
-  }, []);
+  }, [user]);
 
   // Handle auto-opening transcript dialog when navigated from MeetingRecorder
   useEffect(() => {
@@ -1147,95 +1134,53 @@ const MeetingHistory = () => {
     }
   }, [filteredMeetings]);
 
-  // Listen for navigation from MeetingRecorder and add mobile optimizations
+  // Listen for refresh triggers - NO periodic polling
   useEffect(() => {
-    let refreshTimer: NodeJS.Timeout | null = null;
-    let visibilityTimer: NodeJS.Timeout | null = null;
-    
-    // Enhanced storage listener for multiple refresh signals
+    let refreshTimer: NodeJS.Timeout;
+    let lastRefreshTime = 0;
+    const MIN_REFRESH_INTERVAL = 2000; // Minimum 2 seconds between refreshes
+
+    // Debounced refresh function
+    const debouncedRefresh = (reason: string) => {
+      const now = Date.now();
+      if (now - lastRefreshTime < MIN_REFRESH_INTERVAL) {
+        console.log(`🔄 Refresh throttled: ${reason}`);
+        return;
+      }
+      
+      clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        console.log(`🔄 Refreshing: ${reason}`);
+        lastRefreshTime = Date.now();
+        fetchMeetings(currentPage);
+      }, 300);
+    };
+
+    // Refresh when new meeting is saved via localStorage signal
     const handleStorageChange = (e: StorageEvent) => {
       if ((e.key === 'meeting_just_saved' || e.key === 'meetingHistoryRefresh') && user?.id) {
-        console.log('🔄 Meeting saved signal received, refreshing list');
         localStorage.removeItem('meeting_just_saved');
         localStorage.removeItem('meetingHistoryRefresh');
-        setTimeout(() => fetchMeetings(currentPage), 1000); // Small delay to ensure DB is updated
+        debouncedRefresh('meeting saved');
       }
     };
 
-    // Enhanced focus handler with mobile optimizations
+    // Refresh when window/tab gains focus (but throttled)
     const handleFocus = () => {
-      if (user?.id) {
-        console.log('🔄 Tab/window focused, refreshing meetings');
-        fetchMeetings(currentPage);
+      if (user?.id && document.visibilityState === 'visible') {
+        debouncedRefresh('tab focused');
       }
     };
 
-    // Mobile-specific visibility change handler
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user?.id) {
-        // Clear any pending timer
-        if (visibilityTimer) clearTimeout(visibilityTimer);
-        
-        // Debounce the refresh to avoid excessive calls
-        visibilityTimer = setTimeout(() => {
-          console.log('🔄 App became visible, refreshing meetings');
-          fetchMeetings(currentPage);
-        }, 500);
-      }
-    };
-
-    // Periodic polling as fallback for mobile Safari issues
-    const startPeriodicRefresh = () => {
-      if (refreshTimer) clearInterval(refreshTimer);
-      
-      // Only enable periodic refresh when recording is likely happening
-      const lastActivity = localStorage.getItem('meetingHistoryRefresh');
-      const recentActivity = lastActivity && (Date.now() - parseInt(lastActivity)) < 30000; // 30 seconds
-      
-      if (recentActivity) {
-        console.log('🔄 Starting periodic refresh due to recent activity');
-        refreshTimer = setInterval(() => {
-          if (user?.id && !document.hidden) {
-            console.log('🔄 Periodic refresh check');
-            fetchMeetings(currentPage);
-          }
-        }, 10000); // Check every 10 seconds
-      }
-    };
-
-    // Mobile detection
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-    
-    // Set up listeners
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('focus', handleFocus);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    // For mobile, also listen to page show/hide events
-    if (isMobile) {
-      window.addEventListener('pageshow', handleFocus);
-      window.addEventListener('pagehide', () => {
-        if (refreshTimer) clearInterval(refreshTimer);
-      });
-    }
-    
-    // Start periodic refresh if needed
-    startPeriodicRefresh();
     
     return () => {
+      clearTimeout(refreshTimer);
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      
-      if (isMobile) {
-        window.removeEventListener('pageshow', handleFocus);
-        window.removeEventListener('pagehide', () => {});
-      }
-      
-      if (refreshTimer) clearInterval(refreshTimer);
-      if (visibilityTimer) clearTimeout(visibilityTimer);
     };
-  }, [user?.id, currentPage]);
+  }, [user, currentPage]);
 
   // Load notes for modal when generation completes
   const loadNotesForModal = async (meetingId: string) => {
@@ -1260,25 +1205,12 @@ const MeetingHistory = () => {
     try {
       setLoading(true);
       
-      console.log('🚨 FETCHING MEETINGS - User ID:', user?.id, 'Page:', pageToFetch);
-      
-      // First get total count for pagination
-      const { count, error: countError } = await supabase
-        .from('meetings')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user.id)
-        .neq('meeting_type', 'gp_consultation');
-
-      if (countError) throw countError;
-
-      const totalCount = count || 0;
-      setTotalMeetings(totalCount);
-      setTotalPages(Math.ceil(totalCount / itemsPerPage));
+      console.log('📥 Fetching meetings - Page:', pageToFetch);
       
       const offset = (pageToFetch - 1) * itemsPerPage;
        
-       // Get everything in one optimized query using joins
-      const { data: meetingsData, error: meetingsError } = await supabase
+      // Single optimized query with count
+      const { data: meetingsData, error: meetingsError, count } = await supabase
         .from('meetings')
         .select(`
           id,
@@ -1301,103 +1233,86 @@ const MeetingHistory = () => {
           recording_created_at,
           notes_generation_status,
           meeting_overviews(overview)
-        `)
-        .eq('user_id', user?.id)
+        `, { count: 'exact' })
+        .eq('user_id', user.id)
         .neq('meeting_type', 'gp_consultation')
         .order('created_at', { ascending: false })
         .range(offset, offset + itemsPerPage - 1);
 
-      console.log('🚨 MEETINGS QUERY RESULT:');
-      console.log('🚨 Error:', meetingsError);
-      console.log('🚨 Data count:', meetingsData?.length);
-      console.log('🚨 Raw data:', meetingsData);
-
       if (meetingsError) throw meetingsError;
 
+      // Update pagination
+      setTotalMeetings(count || 0);
+      setTotalPages(Math.ceil((count || 0) / itemsPerPage));
+
       if (!meetingsData || meetingsData.length === 0) {
-        console.log('🚨 NO MEETINGS DATA - setting empty array');
         setMeetings([]);
         setFilteredMeetings([]);
         return;
       }
 
-      console.log('🚨 MEETINGS DATA RECEIVED:', meetingsData.length, 'meetings');
-      meetingsData.forEach((meeting, index) => {
-        console.log(`🚨 Meeting ${index}:`, meeting.title, meeting.created_at);
-      });
+      console.log('✅ Loaded', meetingsData.length, 'meetings');
 
-      // Step 1: Load critical meeting data first (counts, summaries, documents)
+      // Load additional data in parallel (counts only, not full content)
       const meetingIds = meetingsData.map(m => m.id);
       
-      console.log('✅ Loading basic meeting data for:', meetingIds.length, 'meetings');
-      
-      const [transcriptCounts, summaryExists, documentsData] = await Promise.all([
-          // Get transcript counts in one query
-          supabase
-            .from('meeting_transcription_chunks')
-            .select('meeting_id')
-            .in('meeting_id', meetingIds)
-            .then(({ data }) => {
-              return data?.reduce((acc, t) => {
-                acc[t.meeting_id] = (acc[t.meeting_id] || 0) + 1;
-                return acc;
-              }, {} as Record<string, number>) || {};
-            }),
-          
-          // Get summary existence in one query
-          supabase
-            .from('meeting_summaries')
-            .select('meeting_id')
-            .in('meeting_id', meetingIds)
-            .then(({ data }) => {
-              return data?.reduce((acc, s) => {
-                acc[s.meeting_id] = true;
-                return acc;
-              }, {} as Record<string, boolean>) || {};
-            }),
+      const [transcriptCounts, summaryExists, documentCounts] = await Promise.all([
+        // Just count transcripts
+        supabase
+          .from('meeting_transcription_chunks')
+          .select('meeting_id', { count: 'exact' })
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            const counts: Record<string, number> = {};
+            data?.forEach(chunk => {
+              counts[chunk.meeting_id] = (counts[chunk.meeting_id] || 0) + 1;
+            });
+            return counts;
+          }),
+        
+        // Check summary existence
+        supabase
+          .from('meeting_summaries')
+          .select('meeting_id')
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            const exists: Record<string, boolean> = {};
+            data?.forEach(s => exists[s.meeting_id] = true);
+            return exists;
+          }),
 
-          // Get document details
-          supabase
-            .from('meeting_documents')
-            .select('meeting_id, file_name, file_size, uploaded_at, file_type')
-            .in('meeting_id', meetingIds)
-            .order('uploaded_at', { ascending: false })
-            .then(({ data }) => {
-              const documentsData: Record<string, any[]> = {};
-              data?.forEach(doc => {
-                if (!documentsData[doc.meeting_id]) {
-                  documentsData[doc.meeting_id] = [];
-                }
-                documentsData[doc.meeting_id].push({
-                  file_name: doc.file_name,
-                  file_size: doc.file_size,
-                  uploaded_at: doc.uploaded_at,
-                  file_type: doc.file_type
-                });
-              });
-              return documentsData;
-            })
+        // Just count documents
+        supabase
+          .from('meeting_documents')
+          .select('meeting_id', { count: 'exact' })
+          .in('meeting_id', meetingIds)
+          .then(({ data }) => {
+            const counts: Record<string, number> = {};
+            data?.forEach(doc => {
+              counts[doc.meeting_id] = (counts[doc.meeting_id] || 0) + 1;
+            });
+            return counts;
+          })
       ]);
 
-      // Step 2: Create meetings with basic data - this ensures the UI loads even if transcripts fail
-      const basicMeetings = meetingsData.map(meeting => ({
+      // Create meetings with lightweight data
+      const enrichedMeetings = meetingsData.map(meeting => ({
         ...meeting,
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id],
-        word_count: null, // Will be populated by transcript data
-        transcript: null, // Will be populated by transcript data
-        document_count: documentsData[meeting.id]?.length || 0,
-        documents: documentsData[meeting.id] || [],
+        word_count: null,
+        transcript: null,
+        document_count: documentCounts[meeting.id] || 0,
+        documents: [],
         overview: meeting.meeting_overviews?.overview || null
       }));
 
-      // Set meetings immediately so UI loads
-      setMeetings(basicMeetings);
+      setMeetings(enrichedMeetings);
       setCurrentPage(pageToFetch);
-      console.log('✅ Basic meetings loaded, UI should be visible (transcripts will load on-demand)');
+      console.log('✅ Meetings loaded successfully');
       
     } catch (error: any) {
-      console.error("Error Loading Meetings:", error.message);
+      console.error("Error loading meetings:", error.message);
     } finally {
       setLoading(false);
     }
