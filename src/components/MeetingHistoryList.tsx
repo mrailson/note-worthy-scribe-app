@@ -197,6 +197,7 @@ export const MeetingHistoryList = ({
   const [userPractices, setUserPractices] = useState<Array<{id: string, practice_name: string}>>([]);
   const [customLocations, setCustomLocations] = useState<string[]>([]);
   const [locationInputOpen, setLocationInputOpen] = useState<Record<string, boolean>>({});
+  const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   
   // Fetch user practices and custom locations
   useEffect(() => {
@@ -2219,7 +2220,10 @@ export const MeetingHistoryList = ({
                 
                 {/* Actions Dropdown Menu */}
                 <AlertDialog>
-                  <DropdownMenu>
+                  <DropdownMenu 
+                    open={openDropdowns[meeting.id] || false}
+                    onOpenChange={(open) => setOpenDropdowns(prev => ({ ...prev, [meeting.id]: open }))}
+                  >
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="outline"
@@ -2289,7 +2293,10 @@ export const MeetingHistoryList = ({
                       </DropdownMenuItem>
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem 
-                          onSelect={(e) => e.preventDefault()}
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          }}
                           className="text-destructive focus:text-destructive"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
