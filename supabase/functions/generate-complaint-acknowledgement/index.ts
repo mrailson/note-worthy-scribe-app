@@ -58,14 +58,15 @@ serve(async (req) => {
       .select(`
         practice_id,
         gp_practices (
-          practice_name, 
-          address, 
-          phone, 
-          email, 
-          logo_url, 
-          practice_logo_url, 
-          footer_text, 
-          website, 
+          id,
+          practice_name,
+          address,
+          phone,
+          email,
+          logo_url,
+          practice_logo_url,
+          footer_text,
+          website,
           show_page_numbers
         )
       `)
