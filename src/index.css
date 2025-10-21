@@ -472,6 +472,12 @@ tbody tr:hover {
   width: auto;
 }
 
+/* Global styling for Radix popper wrappers to ensure proper stacking and interactivity */
+[data-radix-popper-content-wrapper] {
+  z-index: 100000 !important;
+  pointer-events: auto !important;
+}
+
 @layer base {
   * {
     @apply border-0;

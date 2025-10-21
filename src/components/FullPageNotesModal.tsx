@@ -127,6 +127,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   console.log('🔍 Modal props received:', { isOpen, meetingId: meeting?.id, notesLength: notes?.length });
   
   const minutesContainerRef = useRef<HTMLDivElement>(null);
+  const dialogContentRef = useRef<HTMLDivElement>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
@@ -146,6 +147,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [selectedFormatVariation, setSelectedFormatVariation] = useState<string>('standard');
   const [formatVariationContent, setFormatVariationContent] = useState<string>('');
   const [isLoadingVariation, setIsLoadingVariation] = useState(false);
+  
+  // Dropdown controlled states for debugging
+  const [formatDropdownOpen, setFormatDropdownOpen] = useState(false);
+  const [actionsDropdownOpen, setActionsDropdownOpen] = useState(false);
   
   // SOAP notes state
   const [soapNotes, setSoapNotes] = useState<{
@@ -2862,7 +2867,8 @@ ${transcript}`;
         }}
       >
       <DialogContent 
-        className={`${isMobile 
+        ref={dialogContentRef}
+        className={`${isMobile
           ? "w-full h-full max-w-none max-h-none inset-0 m-0 rounded-none border-0" 
           : "w-[86.4rem] max-w-[95vw] h-[90vh] max-h-screen"
         } flex flex-col overflow-hidden z-[100] ${showContextDialog ? "pointer-events-none" : ""}`}
@@ -3127,15 +3133,33 @@ ${transcript}`;
                               </div>
                               
                               {/* Format Variations Dropdown */}
-                              <DropdownMenu>
+                              <DropdownMenu 
+                                open={formatDropdownOpen} 
+                                onOpenChange={(open) => {
+                                  console.log('Format dropdown open:', open);
+                                  setFormatDropdownOpen(open);
+                                }}
+                              >
                                 <DropdownMenuTrigger asChild>
-                                  <Button variant="outline" size="sm" className="gap-2 text-xs">
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm" 
+                                    className="gap-2 text-xs"
+                                    onPointerDownCapture={(e) => e.stopPropagation()}
+                                  >
                                     <AlignJustify className="h-4 w-4" />
                                     Format
                                     <ChevronDownIcon className="h-3 w-3" />
                                   </Button>
                                 </DropdownMenuTrigger>
-                                <DropdownMenuContent align="end" className="w-56 bg-popover border shadow-md pointer-events-auto">
+                                <DropdownMenuContent 
+                                  container={dialogContentRef.current}
+                                  align="end" 
+                                  className="w-56 bg-white dark:bg-slate-900 border shadow-md"
+                                  sideOffset={6}
+                                  collisionPadding={8}
+                                  avoidCollisions={true}
+                                >
                                   <DropdownMenuGroup>
                                     <DropdownMenuItem 
                                       onClick={() => {
@@ -3263,16 +3287,29 @@ ${transcript}`;
                             
                             return content ? (
                               <>
-                                <DropdownMenu>
+                                <DropdownMenu
+                                  open={actionsDropdownOpen}
+                                  onOpenChange={(open) => {
+                                    console.log('Actions dropdown open:', open);
+                                    setActionsDropdownOpen(open);
+                                  }}
+                                >
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="outline" size="icon">
+                                    <Button 
+                                      variant="outline" 
+                                      size="icon"
+                                      onPointerDownCapture={(e) => e.stopPropagation()}
+                                    >
                                       <MoreVertical className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent 
+                                    container={dialogContentRef.current}
                                     align="end" 
-                                    className="w-48 bg-popover border shadow-md pointer-events-auto"
-                                    sideOffset={5}
+                                    className="w-48 bg-white dark:bg-slate-900 border shadow-md"
+                                    sideOffset={6}
+                                    collisionPadding={8}
+                                    avoidCollisions={true}
                                   >
                                     {(activeNotesStyleTab === 'style1' || activeNotesStyleTab === 'style4' || activeNotesStyleTab === 'style5') && (
                                       <DropdownMenuItem 
