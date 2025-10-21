@@ -107,7 +107,7 @@ interface Complaint {
 
 const ComplaintDetails = () => {
   const { user } = useAuth();
-  const { complaintId } = useParams();
+  const { id: complaintId } = useParams();
   const navigate = useNavigate();
   
   // All state hooks must be called before any conditional returns
