@@ -3,6 +3,7 @@ import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialo
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { InlineWordCorrector } from "@/components/InlineWordCorrector";
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
+import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -74,7 +75,8 @@ import {
   Minus,
   Plus,
   AlertTriangle,
-  Stethoscope
+  Stethoscope,
+  Users
 } from "lucide-react";
 import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
@@ -147,6 +149,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [selectedFormatVariation, setSelectedFormatVariation] = useState<string>('standard');
   const [formatVariationContent, setFormatVariationContent] = useState<string>('');
   const [isLoadingVariation, setIsLoadingVariation] = useState(false);
+  
+  // Attendee modal state
+  const [attendeeModalOpen, setAttendeeModalOpen] = useState(false);
   
   // Dropdown controlled states for debugging
   const [formatDropdownOpen, setFormatDropdownOpen] = useState(false);
@@ -3132,6 +3137,43 @@ ${transcript}`;
                                 </Button>
                               </div>
                               
+                              {/* Manage Attendees and Regenerate buttons */}
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={() => setAttendeeModalOpen(true)}
+                                      aria-label="Manage attendees"
+                                    >
+                                      <Users className="h-4 w-4" />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Manage Attendees</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Button
+                                      variant="outline"
+                                      size="icon"
+                                      onClick={generateNotesStyle3}
+                                      disabled={isGeneratingStyle3 || !transcript}
+                                      aria-label="Regenerate meeting notes"
+                                    >
+                                      <RefreshCw className={`h-4 w-4 ${isGeneratingStyle3 ? 'animate-spin' : ''}`} />
+                                    </Button>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <p>Regenerate Meeting Notes</p>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </>
                           )}
 
@@ -3972,6 +4014,16 @@ ${transcript}`;
         meetingTitle={meeting?.title || 'Meeting'}
         meetingDate={meeting?.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
       />
+
+      {/* Attendee Modal */}
+      {meeting && (
+        <MeetingAttendeeModal
+          isOpen={attendeeModalOpen}
+          onClose={() => setAttendeeModalOpen(false)}
+          meetingId={meeting.id}
+          meetingTitle={meeting.title}
+        />
+      )}
     </>
   );
 };
