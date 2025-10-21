@@ -2923,11 +2923,9 @@ const ComplaintsSystem = () => {
                                     type="checkbox"
                                     checked={check.is_compliant}
                                     onChange={(e) => {
-                                      e.stopPropagation();
                                       updateComplianceCheck(check.id, e.target.checked);
                                     }}
-                                    className="rounded pointer-events-none"
-                                    tabIndex={-1}
+                                    className="rounded cursor-pointer"
                                   />
                                   <span className={`text-sm font-medium ${
                                     check.is_compliant ? 'line-through text-muted-foreground' : 'text-foreground'

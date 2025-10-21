@@ -908,19 +908,18 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                   complianceChecks.map((check) => (
                     <div 
                       key={check.id} 
-                      className={`flex items-start gap-3 p-3 border rounded-lg cursor-pointer transition-colors ${
+                      className={`flex items-start gap-3 p-3 border rounded-lg transition-colors ${
                         check.is_compliant 
                           ? 'bg-green-50 border-green-200 hover:bg-green-100' 
                           : 'hover:bg-gray-50'
-                      } ${disabled ? 'cursor-not-allowed opacity-60' : ''}`}
-                      onClick={() => !disabled && updateComplianceCheck(check.id, !check.is_compliant)}
+                      } ${disabled ? 'opacity-60' : ''}`}
                     >
                       <Checkbox
                         id={check.id}
                         checked={check.is_compliant}
                         onCheckedChange={(checked) => updateComplianceCheck(check.id, checked as boolean)}
                         disabled={disabled}
-                        className="mt-1 pointer-events-none"
+                        className="mt-1"
                       />
                       <div className="flex-1">
                         <Label
