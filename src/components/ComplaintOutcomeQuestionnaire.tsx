@@ -9,6 +9,7 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { SpeechToText } from '@/components/SpeechToText';
@@ -63,6 +64,10 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [aiSuggestedOutcome, setAiSuggestedOutcome] = useState<string>('');
   const [aiAnalysisText, setAiAnalysisText] = useState<string>('');
   const [confirmProfessionalJudgement, setConfirmProfessionalJudgement] = useState<boolean>(false);
+  const [enableAiAnalysis, setEnableAiAnalysis] = useState<boolean>(() => {
+    const saved = localStorage.getItem('complaint-ai-analysis-enabled');
+    return saved !== null ? JSON.parse(saved) : true;
+  });
   const [data, setData] = useState<QuestionnaireData>({
     investigation_complete: false,
     outcome_type: undefined,
@@ -430,12 +435,17 @@ export const ComplaintOutcomeQuestionnaire = ({
     }
   };
 
-  // Trigger AI analysis when reaching Step 4
+  // Save AI analysis preference to localStorage
   useEffect(() => {
-    if (step === 4 && open && !aiAnalysisText && !isAnalyzing) {
+    localStorage.setItem('complaint-ai-analysis-enabled', JSON.stringify(enableAiAnalysis));
+  }, [enableAiAnalysis]);
+
+  // Trigger AI analysis when reaching Step 4 (only if enabled)
+  useEffect(() => {
+    if (step === 4 && open && !aiAnalysisText && !isAnalyzing && enableAiAnalysis) {
       analyzeComplaintOutcome();
     }
-  }, [step, open]);
+  }, [step, open, enableAiAnalysis]);
 
   const handleNext = () => {
     if (step === 1) {
@@ -1045,60 +1055,89 @@ export const ComplaintOutcomeQuestionnaire = ({
         {/* Step 4: AI Outcome Analysis */}
         {step === 4 && (
           <div className="space-y-6">
-            {/* AI Disclaimer Banner */}
-            <Alert className="bg-amber-50 border-amber-300">
-              <AlertCircle className="h-5 w-5 text-amber-600" />
-              <AlertTitle className="text-amber-900 font-semibold">AI GUIDANCE ONLY</AlertTitle>
-              <AlertDescription className="text-amber-800 text-sm leading-relaxed">
-                The AI-generated recommendation below is provided as guidance to support your decision-making process. The final decision on whether to uphold, partially uphold, or not uphold this complaint must be made by appropriately qualified staff based on thorough review of all evidence. <strong>Human oversight and professional judgement are essential.</strong>
-              </AlertDescription>
-            </Alert>
-
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-              <div className="flex items-center gap-2 mb-3">
-                <Sparkles className="h-5 w-5 text-blue-600" />
-                <h3 className="font-semibold text-blue-900">AI Outcome Analysis</h3>
+            {/* AI Analysis Toggle */}
+            <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 p-4 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <Sparkles className="h-4 w-4 text-slate-600" />
+                    <Label htmlFor="ai-toggle" className="text-sm font-semibold text-slate-900 cursor-pointer">
+                      AI Suggested Outcome & Analysis
+                    </Label>
+                  </div>
+                  <p className="text-xs text-slate-600">
+                    {enableAiAnalysis 
+                      ? 'AI will analyse the complaint and provide a suggested outcome for reference' 
+                      : 'Make your own decision without AI assistance'}
+                  </p>
+                </div>
+                <Switch
+                  id="ai-toggle"
+                  checked={enableAiAnalysis}
+                  onCheckedChange={setEnableAiAnalysis}
+                  className="ml-4"
+                />
               </div>
-
-              {isAnalyzing ? (
-                <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                  <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
-                  <p className="text-sm text-blue-700">Analysing complaint details, staff responses, and investigation findings...</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {aiSuggestedOutcome && (
-                    <div className="bg-white p-3 rounded border border-blue-200">
-                      <div className="flex items-center gap-2 mb-2">
-                        <Sparkles className="h-4 w-4 text-blue-600" />
-                        <span className="font-medium text-sm">AI Guidance: Suggested Outcome (For Reference Only)</span>
-                      </div>
-                      <p className="text-xs text-slate-600 mb-2">This is a suggestion only - you are not required to follow this recommendation</p>
-                      <Badge 
-                        variant={
-                          aiSuggestedOutcome === 'upheld' ? 'destructive' : 
-                          aiSuggestedOutcome === 'partially_upheld' ? 'default' : 
-                          'secondary'
-                        }
-                        className="text-xs"
-                      >
-                        {aiSuggestedOutcome === 'upheld' ? 'Upheld' : 
-                         aiSuggestedOutcome === 'partially_upheld' ? 'Partially Upheld' : 
-                         'Not Upheld'}
-                      </Badge>
-                    </div>
-                  )}
-
-                  {aiAnalysisText && (
-                    <div className="bg-white p-4 rounded border border-blue-200 max-h-[300px] overflow-y-auto">
-                      <div className="text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
-                        {aiAnalysisText.replace(/\*\*/g, '').replace(/##/g, '')}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
             </div>
+
+            {enableAiAnalysis && (
+              <>
+                {/* AI Disclaimer Banner */}
+                <Alert className="bg-amber-50 border-amber-200">
+                  <AlertCircle className="h-5 w-5 text-amber-600" />
+                  <AlertTitle className="text-amber-900 font-semibold">AI GUIDANCE ONLY</AlertTitle>
+                  <AlertDescription className="text-amber-800 text-sm leading-relaxed">
+                    The AI-generated recommendation below is provided as guidance to support your decision-making process. The final decision on whether to uphold, partially uphold, or not uphold this complaint must be made by appropriately qualified staff based on thorough review of all evidence. <strong>Human oversight and professional judgement are essential.</strong>
+                  </AlertDescription>
+                </Alert>
+
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Sparkles className="h-5 w-5 text-blue-600" />
+                    <h3 className="font-semibold text-blue-900">AI Outcome Analysis</h3>
+                  </div>
+
+                  {isAnalyzing ? (
+                    <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                      <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+                      <p className="text-sm text-blue-700">Analysing complaint details, staff responses, and investigation findings...</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {aiSuggestedOutcome && (
+                        <div className="bg-white p-3 rounded border border-blue-200">
+                          <div className="flex items-center gap-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-blue-600" />
+                            <span className="font-medium text-sm">AI Guidance: Suggested Outcome (For Reference Only)</span>
+                          </div>
+                          <p className="text-xs text-slate-600 mb-2">This is a suggestion only - you are not required to follow this recommendation</p>
+                          <Badge 
+                            variant={
+                              aiSuggestedOutcome === 'upheld' ? 'destructive' : 
+                              aiSuggestedOutcome === 'partially_upheld' ? 'default' : 
+                              'secondary'
+                            }
+                            className="text-xs"
+                          >
+                            {aiSuggestedOutcome === 'upheld' ? 'Upheld' : 
+                             aiSuggestedOutcome === 'partially_upheld' ? 'Partially Upheld' : 
+                             'Not Upheld'}
+                          </Badge>
+                        </div>
+                      )}
+
+                      {aiAnalysisText && (
+                        <div className="bg-white p-4 rounded border border-blue-200 max-h-[300px] overflow-y-auto">
+                          <div className="text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
+                            {aiAnalysisText.replace(/\*\*/g, '').replace(/##/g, '')}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             <div>
               <Label className="text-sm font-semibold mb-2 block">
@@ -1136,7 +1175,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                   htmlFor="confirm-judgement"
                   className="text-sm text-slate-700 leading-relaxed cursor-pointer"
                 >
-                  <strong>Required confirmation:</strong> I confirm that I have reviewed all evidence and am making this decision based on my professional judgement, not solely on AI recommendation.
+                  <strong>Required confirmation:</strong> I confirm that I have reviewed all evidence and am making this decision based on my professional judgement{enableAiAnalysis ? ', not solely on AI recommendation' : ''}.
                 </label>
               </div>
             </div>
