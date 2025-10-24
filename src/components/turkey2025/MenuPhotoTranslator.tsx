@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Camera, ArrowLeft, Volume2, Star, X } from 'lucide-react';
+import { Camera, ArrowLeft, Volume2, Star, X, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +13,7 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
   const [image, setImage] = useState<string | null>(null);
   const [translation, setTranslation] = useState<string>('');
   const [originalText, setOriginalText] = useState<string>('');
+  const [targetLang, setTargetLang] = useState<'en' | 'tr'>('en');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
   const { translateDocument, isTranslating } = useDocumentTranslate();
@@ -26,7 +27,7 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
       const imageData = event.target?.result as string;
       setImage(imageData);
       
-      const result = await translateDocument(imageData, 'en');
+      const result = await translateDocument(imageData, targetLang);
       
       if (result) {
         setOriginalText(result.originalText);
@@ -39,7 +40,7 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
   const speakTranslation = () => {
     if ('speechSynthesis' in window && translation) {
       const utterance = new SpeechSynthesisUtterance(translation);
-      utterance.lang = 'en-GB';
+      utterance.lang = targetLang === 'en' ? 'en-GB' : 'tr-TR';
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -71,7 +72,15 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
           <ArrowLeft className="h-6 w-6" />
         </Button>
         <h1 className="text-xl font-bold">Menu Translator</h1>
-        <div className="w-12" />
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setTargetLang(prev => prev === 'en' ? 'tr' : 'en')}
+          className="touch-manipulation"
+        >
+          <Languages className="h-4 w-4 mr-1" />
+          {targetLang === 'en' ? '🇹🇷→🇬🇧' : '🇬🇧→🇹🇷'}
+        </Button>
       </div>
 
       <div className="flex-1 overflow-auto p-4">

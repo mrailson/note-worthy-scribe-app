@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Camera, X } from 'lucide-react';
+import { ArrowLeft, Camera, X, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
@@ -13,6 +13,7 @@ const LiveCameraTranslator = ({ onBack }: LiveCameraTranslatorProps) => {
   const [isStreaming, setIsStreaming] = useState(false);
   const [translation, setTranslation] = useState('');
   const [isTranslating, setIsTranslating] = useState(false);
+  const [targetLang, setTargetLang] = useState<'en' | 'tr'>('en');
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -80,7 +81,7 @@ const LiveCameraTranslator = ({ onBack }: LiveCameraTranslatorProps) => {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const imageData = e.target?.result as string;
-        const result = await translateDocument(imageData, 'en');
+        const result = await translateDocument(imageData, targetLang);
         
         if (result) {
           setTranslation(result.translatedText);
@@ -88,7 +89,7 @@ const LiveCameraTranslator = ({ onBack }: LiveCameraTranslatorProps) => {
           // Auto-speak translation
           if ('speechSynthesis' in window) {
             const utterance = new SpeechSynthesisUtterance(result.translatedText);
-            utterance.lang = 'en-GB';
+            utterance.lang = targetLang === 'en' ? 'en-GB' : 'tr-TR';
             window.speechSynthesis.speak(utterance);
           }
         }
@@ -107,11 +108,20 @@ const LiveCameraTranslator = ({ onBack }: LiveCameraTranslatorProps) => {
   return (
     <div className="flex flex-col h-full bg-black">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 pt-safe bg-background/95 backdrop-blur">
+      <div className="flex items-center gap-2 p-4 pt-safe bg-background/95 backdrop-blur">
         <Button variant="ghost" size="lg" onClick={onBack} className="touch-manipulation">
           <ArrowLeft className="h-6 w-6" />
         </Button>
-        <h1 className="text-xl font-bold">Live Camera</h1>
+        <h1 className="text-xl font-bold flex-1">Live Camera</h1>
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setTargetLang(prev => prev === 'en' ? 'tr' : 'en')}
+          className="touch-manipulation"
+        >
+          <Languages className="h-4 w-4 mr-1" />
+          {targetLang === 'en' ? '🇹🇷→🇬🇧' : '🇬🇧→🇹🇷'}
+        </Button>
         <Button 
           variant="ghost" 
           size="lg" 

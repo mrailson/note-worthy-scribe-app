@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Mic } from 'lucide-react';
+import { ArrowLeft, Mic, Languages } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useTurkishSpeech } from '@/hooks/useTurkishSpeech';
@@ -72,7 +72,15 @@ const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
           <ArrowLeft className="h-6 w-6" />
         </Button>
         <h1 className="text-xl font-bold">Voice Chat</h1>
-        <div className="w-12" />
+        <Button 
+          variant="outline" 
+          size="sm" 
+          onClick={() => setCurrentLang(prev => prev === 'en' ? 'tr' : 'en')}
+          className="touch-manipulation"
+        >
+          <Languages className="h-4 w-4 mr-1" />
+          {currentLang === 'en' ? '🇬🇧→🇹🇷' : '🇹🇷→🇬🇧'}
+        </Button>
       </div>
 
       {/* Messages */}
