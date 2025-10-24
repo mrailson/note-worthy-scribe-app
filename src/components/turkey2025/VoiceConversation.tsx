@@ -72,15 +72,7 @@ const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
           <ArrowLeft className="h-6 w-6" />
         </Button>
         <h1 className="text-xl font-bold">Voice Chat</h1>
-        <Button 
-          variant="outline" 
-          size="sm" 
-          onClick={() => setCurrentLang(prev => prev === 'en' ? 'tr' : 'en')}
-          className="touch-manipulation"
-        >
-          <Languages className="h-4 w-4 mr-1" />
-          {currentLang === 'en' ? '🇬🇧→🇹🇷' : '🇹🇷→🇬🇧'}
-        </Button>
+        <div className="w-10" />
       </div>
 
       {/* Messages */}
@@ -112,18 +104,28 @@ const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
       </div>
 
       {/* Mic Button */}
-      <div className="p-4 pb-safe flex flex-col items-center gap-3 border-t bg-background">
+      <div className="pb-[100px] flex flex-col items-center gap-3 bg-background">
         <p className="text-sm text-muted-foreground">
           Speaking: {currentLang === 'en' ? '🇬🇧 English' : '🇹🇷 Turkish'}
         </p>
-        <Button
-          size="lg"
-          variant={isListening ? 'destructive' : 'default'}
-          onClick={toggleListening}
-          className={`h-16 w-16 rounded-full touch-manipulation ${isListening ? 'animate-pulse' : ''}`}
-        >
-          <Mic className="h-8 w-8" />
-        </Button>
+        <div className="flex items-center gap-4">
+          <Button 
+            variant="outline" 
+            size="lg"
+            onClick={() => setCurrentLang(prev => prev === 'en' ? 'tr' : 'en')}
+            className="h-16 w-16 rounded-full touch-manipulation"
+          >
+            <Languages className="h-6 w-6" />
+          </Button>
+          <Button
+            size="lg"
+            variant={isListening ? 'destructive' : 'default'}
+            onClick={toggleListening}
+            className={`h-16 w-16 rounded-full touch-manipulation ${isListening ? 'animate-pulse' : ''}`}
+          >
+            <Mic className="h-8 w-8" />
+          </Button>
+        </div>
       </div>
     </div>
   );
