@@ -212,7 +212,7 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
       </div>
 
       {/* Bottom Controls */}
-      <div className="p-4 pb-safe space-y-2 border-t bg-background">
+      <div className="p-4 pb-safe space-y-2 border-t bg-background mb-[50px]">
         <div className="flex gap-2">
           <Button
             variant={isListening ? 'destructive' : 'outline'}
