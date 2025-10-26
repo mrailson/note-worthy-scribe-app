@@ -55,9 +55,9 @@ const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
 
           if (error) throw error;
 
-          if (data?.audioContent) {
+          if (data?.audioData) {
             const audio = new Audio();
-            audio.src = `data:audio/mpeg;base64,${data.audioContent}`;
+            audio.src = `data:audio/mpeg;base64,${data.audioData}`;
             await audio.play();
           }
         } catch (error) {
@@ -97,9 +97,9 @@ const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
 
       if (error) throw error;
 
-      if (data?.audioContent) {
+      if (data?.audioData) {
         const audio = new Audio();
-        audio.src = `data:audio/mpeg;base64,${data.audioContent}`;
+        audio.src = `data:audio/mpeg;base64,${data.audioData}`;
         audio.onended = () => setPlayingId(null);
         await audio.play();
       }
