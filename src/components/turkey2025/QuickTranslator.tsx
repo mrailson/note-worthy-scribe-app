@@ -167,7 +167,7 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-auto p-4 space-y-4">
+      <div className="flex-1 overflow-auto p-4 space-y-4 pb-[180px]">
         {/* Language Toggle */}
         <div className="flex items-center justify-center gap-4">
           <span className="text-2xl font-bold">{sourceLang === 'en' ? '🇬🇧' : '🇹🇷'}</span>
@@ -212,25 +212,27 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
       </div>
 
       {/* Bottom Controls */}
-      <div className="p-4 pb-safe space-y-2 border-t bg-background mb-[50px]">
-        <div className="flex gap-2">
-          <Button
-            variant={isListening ? 'destructive' : 'outline'}
-            size="lg"
-            onClick={isListening ? stopListening : startListening}
-            className="flex-1 h-12 text-base touch-manipulation"
-          >
-            <Mic className="h-4 w-4 mr-2" />
-            {isListening ? 'Stop' : 'Voice'}
-          </Button>
-          <Button
-            size="lg"
-            onClick={handleTranslate}
-            disabled={isTranslating || !sourceText.trim()}
-            className="flex-1 h-12 text-base touch-manipulation"
-          >
-            {isTranslating ? 'Translating...' : 'Translate'}
-          </Button>
+      <div className="fixed inset-x-0 bottom-[96px] px-4 pb-safe z-20">
+        <div className="mx-auto max-w-screen-sm">
+          <div className="flex gap-2">
+            <Button
+              variant={isListening ? 'destructive' : 'outline'}
+              size="lg"
+              onClick={isListening ? stopListening : startListening}
+              className="flex-1 h-12 text-base touch-manipulation"
+            >
+              <Mic className="h-4 w-4 mr-2" />
+              {isListening ? 'Stop' : 'Voice'}
+            </Button>
+            <Button
+              size="lg"
+              onClick={handleTranslate}
+              disabled={isTranslating || !sourceText.trim()}
+              className="flex-1 h-12 text-base touch-manipulation"
+            >
+              {isTranslating ? 'Translating...' : 'Translate'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
