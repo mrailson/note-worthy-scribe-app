@@ -64,6 +64,19 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
     setOriginalText('');
   };
 
+  // Format text to make it more readable by splitting into paragraphs
+  const formatText = (text: string) => {
+    if (!text) return [];
+    
+    // Split by newlines, periods followed by capital letters, or numbered lists
+    const lines = text
+      .split(/\n+|(?<=\.)\s+(?=[A-Z])|(?=\d+\.)/g)
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    return lines;
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -113,12 +126,40 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
             </Card>
 
             {translation && (
-              <Card className="p-6 space-y-4">
-                <div>
-                  <h3 className="text-sm font-medium text-muted-foreground mb-2">Translation:</h3>
-                  <p className="text-2xl font-medium leading-relaxed">{translation}</p>
-                </div>
+              <div className="space-y-4">
+                {/* Original Text */}
+                {originalText && (
+                  <Card className="p-4 bg-secondary/50">
+                    <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                      <span>{targetLang === 'en' ? '🇹🇷' : '🇬🇧'}</span>
+                      Original Text
+                    </h3>
+                    <div className="space-y-2">
+                      {formatText(originalText).map((line, idx) => (
+                        <p key={idx} className="text-base leading-relaxed">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  </Card>
+                )}
 
+                {/* Translation */}
+                <Card className="p-4">
+                  <h3 className="text-sm font-semibold text-muted-foreground mb-3 flex items-center gap-2">
+                    <span>{targetLang === 'en' ? '🇬🇧' : '🇹🇷'}</span>
+                    Translation
+                  </h3>
+                  <div className="space-y-3">
+                    {formatText(translation).map((line, idx) => (
+                      <p key={idx} className="text-lg font-medium leading-relaxed">
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                </Card>
+
+                {/* Action Buttons */}
                 <div className="flex gap-2">
                   <Button onClick={speakTranslation} className="flex-1 h-12 text-base touch-manipulation">
                     <Volume2 className="h-5 w-5 mr-2" />
@@ -128,7 +169,7 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
                     <Star className="h-5 w-5" />
                   </Button>
                 </div>
-              </Card>
+              </div>
             )}
           </div>
         )}
