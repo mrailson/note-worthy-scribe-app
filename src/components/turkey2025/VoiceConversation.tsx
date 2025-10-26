@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { ArrowLeft, Mic, Languages } from 'lucide-react';
+import { ArrowLeft, Mic, Languages, Volume2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useTurkishSpeech } from '@/hooks/useTurkishSpeech';
@@ -22,6 +22,7 @@ interface VoiceConversationProps {
 const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [currentLang, setCurrentLang] = useState<'en' | 'tr'>('en');
+  const [playingId, setPlayingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
   const { translate } = useTurkishTranslation();
@@ -82,6 +83,33 @@ const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
     }
   };
 
+  const playTranslation = async (text: string, langCode: string, messageId: string) => {
+    if (playingId === messageId) return;
+    
+    setPlayingId(messageId);
+    try {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+        body: { 
+          text, 
+          languageCode: langCode 
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.audioContent) {
+        const audio = new Audio();
+        audio.src = `data:audio/mpeg;base64,${data.audioContent}`;
+        audio.onended = () => setPlayingId(null);
+        await audio.play();
+      }
+    } catch (error) {
+      console.error('Text-to-speech error:', error);
+      toast.error('Failed to play translation');
+      setPlayingId(null);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -107,12 +135,38 @@ const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
             {messages.map((msg) => (
               <div key={msg.id} className="space-y-2">
                 <Card className={`p-4 ${msg.language === 'en' ? 'bg-primary text-primary-foreground ml-8' : 'bg-secondary mr-8'}`}>
-                  <p className="text-lg font-medium mb-1">{msg.text}</p>
-                  <p className="text-sm opacity-75">{msg.language === 'en' ? '🇬🇧' : '🇹🇷'}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="text-lg font-medium mb-1">{msg.text}</p>
+                      <p className="text-sm opacity-75">{msg.language === 'en' ? '🇬🇧' : '🇹🇷'}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => playTranslation(msg.text, msg.language, `${msg.id}-original`)}
+                      disabled={playingId === `${msg.id}-original`}
+                      className="shrink-0 h-8 w-8 p-0"
+                    >
+                      <Volume2 className={`h-4 w-4 ${playingId === `${msg.id}-original` ? 'animate-pulse' : ''}`} />
+                    </Button>
+                  </div>
                 </Card>
                 <Card className={`p-4 ${msg.language === 'en' ? 'bg-secondary mr-8' : 'bg-primary text-primary-foreground ml-8'}`}>
-                  <p className="text-lg font-medium mb-1">{msg.translated}</p>
-                  <p className="text-sm opacity-75">{msg.language === 'en' ? '🇹🇷' : '🇬🇧'}</p>
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1">
+                      <p className="text-lg font-medium mb-1">{msg.translated}</p>
+                      <p className="text-sm opacity-75">{msg.language === 'en' ? '🇹🇷' : '🇬🇧'}</p>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => playTranslation(msg.translated, msg.language === 'en' ? 'tr' : 'en', `${msg.id}-translated`)}
+                      disabled={playingId === `${msg.id}-translated`}
+                      className="shrink-0 h-8 w-8 p-0"
+                    >
+                      <Volume2 className={`h-4 w-4 ${playingId === `${msg.id}-translated` ? 'animate-pulse' : ''}`} />
+                    </Button>
+                  </div>
                 </Card>
               </div>
             ))}
