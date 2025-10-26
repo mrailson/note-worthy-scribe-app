@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Mic, Volume2, Copy, Star, ArrowLeftRight } from 'lucide-react';
+import { ArrowLeft, Mic, Volume2, Copy, Star, ArrowLeftRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Card } from '@/components/ui/card';
@@ -155,6 +155,11 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
     toast({ title: 'Saved to favorites' });
   };
 
+  const clearAll = () => {
+    setSourceText('');
+    toast({ title: 'Cleared' });
+  };
+
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
@@ -178,13 +183,23 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
         </div>
 
         {/* Input */}
-        <Card className="p-4">
+        <Card className="p-4 relative">
           <Textarea
             placeholder={`Type in ${sourceLang === 'en' ? 'English' : 'Turkish'}...`}
             value={sourceText}
             onChange={(e) => setSourceText(e.target.value)}
             className="min-h-[120px] text-lg resize-none border-0 focus-visible:ring-0"
           />
+          {sourceText && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={clearAll}
+              className="absolute top-2 right-2 h-8 w-8"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
         </Card>
 
         {/* Translation Result */}
