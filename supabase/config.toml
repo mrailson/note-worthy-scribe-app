@@ -177,3 +177,6 @@ verify_jwt = false
 [functions.generate-standard-minutes-variations]
 verify_jwt = true
 
+[functions.elevenlabs-tts]
+verify_jwt = false
+
