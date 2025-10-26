@@ -212,7 +212,7 @@ const QuickTranslate = ({ onBack }: QuickTranslatorProps) => {
       </div>
 
       {/* Bottom Controls */}
-      <div className="fixed inset-x-0 bottom-[96px] px-4 pb-safe z-20">
+      <div className="fixed inset-x-0 bottom-[144px] px-4 pb-safe z-20">
         <div className="mx-auto max-w-screen-sm">
           <div className="flex gap-2">
             <Button
