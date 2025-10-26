@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useTurkishSpeech } from '@/hooks/useTurkishSpeech';
 import { useTurkishTranslation } from '@/hooks/useTurkishTranslation';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface Message {
   id: string;
@@ -41,10 +43,26 @@ const VoiceConversation = ({ onBack }: VoiceConversationProps) => {
         
         setMessages(prev => [...prev, newMessage]);
         
-        // Auto-play translated text
-        const utterance = new SpeechSynthesisUtterance(result);
-        utterance.lang = targetLang === 'tr' ? 'tr-TR' : 'en-GB';
-        window.speechSynthesis.speak(utterance);
+        // Auto-play translated text using ElevenLabs
+        try {
+          const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+            body: { 
+              text: result, 
+              languageCode: targetLang 
+            }
+          });
+
+          if (error) throw error;
+
+          if (data?.audioContent) {
+            const audio = new Audio();
+            audio.src = `data:audio/mpeg;base64,${data.audioContent}`;
+            await audio.play();
+          }
+        } catch (error) {
+          console.error('Text-to-speech error:', error);
+          toast.error('Failed to play translation');
+        }
       }
       
       // Switch language for next input
