@@ -177,12 +177,11 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
 
       {/* Camera Button */}
       {!image && (
-        <div className="p-4 pb-safe border-t bg-background">
+        <div className="p-4 pb-safe border-t bg-background space-y-2">
           <input
             ref={fileInputRef}
             type="file"
             accept="image/*"
-            capture="environment"
             onChange={handleCapture}
             className="hidden"
           />
@@ -193,8 +192,11 @@ const MenuPhotoTranslator = ({ onBack }: MenuPhotoTranslatorProps) => {
             disabled={isTranslating}
           >
             <Camera className="h-5 w-5 mr-2" />
-            {isTranslating ? 'Translating...' : 'Take Photo'}
+            {isTranslating ? 'Translating...' : 'Take Photo or Choose from Gallery'}
           </Button>
+          <p className="text-xs text-center text-muted-foreground">
+            Tap to take a photo or select from your camera roll
+          </p>
         </div>
       )}
     </div>
