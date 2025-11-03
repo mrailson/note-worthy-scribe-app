@@ -32,12 +32,20 @@ export const StyleGalleryContainer = ({
   meetingContext,
   currentNotesStyle
 }: StyleGalleryContainerProps) => {
-  const { previews, isGenerating, error, progress, generatePreviews, clearCache } = useStyleGeneration();
+  const { previews, isGenerating, error, progress, generatePreviews, clearCache, loadFromCacheOnly } = useStyleGeneration();
   const [viewModalOpen, setViewModalOpen] = useState(false);
   const [viewContent, setViewContent] = useState('');
   const [viewTitle, setViewTitle] = useState('');
+  const [hasAttemptedLoad, setHasAttemptedLoad] = useState(false);
 
-  // Don't auto-generate - wait for user interaction
+  // Auto-load cached styles when component mounts
+  useEffect(() => {
+    if (meetingId && transcript && transcript.length >= 50 && !hasAttemptedLoad && !isGenerating && Object.keys(previews).length === 0) {
+      console.log('🎨 Auto-checking for cached style previews');
+      setHasAttemptedLoad(true);
+      loadFromCacheOnly(meetingId, transcript);
+    }
+  }, [meetingId, transcript, hasAttemptedLoad, isGenerating, previews, loadFromCacheOnly]);
 
   const handleView = (content: string, styleName: string) => {
     setViewContent(content);

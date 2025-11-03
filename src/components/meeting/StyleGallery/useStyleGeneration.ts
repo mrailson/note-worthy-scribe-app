@@ -163,12 +163,32 @@ export const useStyleGeneration = () => {
     }
   }, []);
 
+  const loadFromCacheOnly = useCallback(async (meetingId: string, transcript: string) => {
+    if (!transcript || transcript.length < 50) {
+      return false;
+    }
+
+    try {
+      const cached = await checkCache(meetingId, transcript);
+      if (cached) {
+        console.log('Loading cached previews silently');
+        setPreviews(cached.previews);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Error loading cache:', err);
+      return false;
+    }
+  }, []);
+
   return {
     previews,
     isGenerating,
     error,
     progress,
     generatePreviews,
-    clearCache
+    clearCache,
+    loadFromCacheOnly
   };
 };
