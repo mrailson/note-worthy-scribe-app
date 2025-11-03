@@ -29,36 +29,44 @@ import { PatientDataDisclosureWarning, PatientDataWarningBanner } from "@/compon
 import { usePatientDataAccess } from "@/hooks/usePatientDataAccess";
 import { NHSComplianceBanner } from "@/components/NHSComplianceBanner";
 
-import { 
-  AlertCircle, 
-  Clock, 
-  CheckCircle, 
-  XCircle, 
-  Search,
+import {
   FileText,
-  Plus,
-  Calendar,
   User,
-  Building,
-  Phone,
-  Mail,
-  MapPin,
-  Users,
-  Send,
-  Eye,
+  Calendar,
+  CheckCircle,
+  CheckCircle2,
+  XCircle,
+  Clock,
   Edit,
   Trash2,
+  Plus,
   Download,
-  Upload,
-  Brain,
-  Shield,
-  X,
-  Save,
-  Copy,
+  FileCheck,
+  Filter,
+  Search,
+  AlertCircle,
+  Building,
+  MapPin,
+  Mail,
+  FileOutput,
+  Users,
   BarChart3,
-  Settings,
+  Activity,
+  RefreshCw,
+  ChevronRight,
+  Eye,
+  Send,
+  UserCheck,
+  FileSignature,
+  ExternalLink,
   Home,
-  BookOpen
+  BookOpen,
+  Settings,
+  X,
+  Upload,
+  Shield,
+  Save,
+  Copy
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -66,7 +74,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { createLetterDocument } from "@/utils/letterFormatter";
 import { cn } from "@/lib/utils";
-import { calculateDaysUntilDeadline } from "@/utils/workingDays";
+import { calculateDaysUntilDeadline, addWorkingDays, calculateWorkingDays } from "@/utils/workingDays";
 
 interface Complaint {
   id: string;
@@ -1480,19 +1488,55 @@ const ComplaintsSystem = () => {
                   {complaints.slice(0, 5).map((complaint) => {
                     const startDate = complaint.submitted_at ?? complaint.created_at;
                     const daysRemaining = startDate ? calculateDaysUntilDeadline(startDate) : null;
+                    
+                    // For closed complaints, calculate if they were early or late
+                    const isClosed = complaint.status === 'closed';
+                    let daysEarlyOrLate = null;
+                    if (isClosed && complaint.closed_at && startDate) {
+                      const submittedDate = new Date(startDate);
+                      const closedDate = new Date(complaint.closed_at);
+                      const deadline = addWorkingDays(submittedDate, 20);
+                      daysEarlyOrLate = calculateWorkingDays(closedDate, deadline);
+                    }
+                    
                     const getDaysColor = () => {
+                      if (isClosed) {
+                        return daysEarlyOrLate && daysEarlyOrLate > 0 ? 'bg-green-500' : 'bg-destructive';
+                      }
                       if (daysRemaining === null) return 'bg-muted';
                       if (daysRemaining < 0) return 'bg-destructive';
                       if (daysRemaining <= 4) return 'bg-destructive';
                       if (daysRemaining <= 9) return 'bg-amber-500';
                       return 'bg-green-500';
                     };
+                    
                     const getDaysText = () => {
+                      if (isClosed) {
+                        if (daysEarlyOrLate === null) return 'Closed';
+                        if (daysEarlyOrLate > 0) return `${daysEarlyOrLate} days early`;
+                        if (daysEarlyOrLate < 0) return `${Math.abs(daysEarlyOrLate)} days late`;
+                        return 'On time';
+                      }
                       if (daysRemaining === null) return 'Not submitted';
                       if (daysRemaining < 0) return `Over target by ${Math.abs(daysRemaining)} days`;
                       if (daysRemaining === 0) return 'Due today';
                       if (daysRemaining === 1) return '1 day left';
                       return `${daysRemaining} days left`;
+                    };
+                    
+                    const getIconOrNumber = () => {
+                      if (isClosed) {
+                        if (daysEarlyOrLate && daysEarlyOrLate > 0) {
+                          return <CheckCircle className="h-8 w-8" />;
+                        }
+                        if (daysEarlyOrLate && daysEarlyOrLate < 0) {
+                          return <XCircle className="h-8 w-8" />;
+                        }
+                        return <CheckCircle className="h-8 w-8" />;
+                      }
+                      if (daysRemaining === null) return '?';
+                      if (daysRemaining >= 0) return daysRemaining;
+                      return <AlertCircle className="h-6 w-6" />;
                     };
 
                     return (
@@ -1508,14 +1552,16 @@ const ComplaintsSystem = () => {
                               "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg",
                               getDaysColor()
                             )}>
-                              {daysRemaining === null ? '?' : daysRemaining >= 0 ? daysRemaining : <AlertCircle className="h-6 w-6" />}
+                              {getIconOrNumber()}
                             </div>
                             <p className={cn(
                               "text-xs font-medium mt-1 text-center",
-                              daysRemaining === null ? 'text-muted-foreground' :
-                              daysRemaining < 0 ? 'text-destructive' : 
-                              daysRemaining <= 4 ? 'text-destructive' :
-                              daysRemaining <= 9 ? 'text-amber-600' : 'text-green-600'
+                              isClosed ? 
+                                (daysEarlyOrLate && daysEarlyOrLate > 0 ? 'text-green-600' : 'text-destructive') :
+                                daysRemaining === null ? 'text-muted-foreground' :
+                                daysRemaining < 0 ? 'text-destructive' : 
+                                daysRemaining <= 4 ? 'text-destructive' :
+                                daysRemaining <= 9 ? 'text-amber-600' : 'text-green-600'
                             )}>
                               {getDaysText()}
                             </p>
