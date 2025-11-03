@@ -48,7 +48,10 @@ export const calculateDaysUntilDeadline = (submittedAt: string | null): number |
   const today = new Date();
   today.setHours(0, 0, 0, 0); // Reset time to start of day
   
-  const daysRemaining = calculateWorkingDays(today, deadline);
+  const isOverdue = today > deadline;
+  const daysRemaining = isOverdue
+    ? -calculateWorkingDays(deadline, today)
+    : calculateWorkingDays(today, deadline);
   
   return daysRemaining;
 };

@@ -1478,7 +1478,8 @@ const ComplaintsSystem = () => {
               <CardContent>
                 <div className="space-y-4">
                   {complaints.slice(0, 5).map((complaint) => {
-                    const daysRemaining = calculateDaysUntilDeadline(complaint.submitted_at);
+                    const startDate = complaint.submitted_at ?? complaint.created_at;
+                    const daysRemaining = startDate ? calculateDaysUntilDeadline(startDate) : null;
                     const getDaysColor = () => {
                       if (daysRemaining === null) return 'bg-muted';
                       if (daysRemaining < 0) return 'bg-destructive';
@@ -1804,10 +1805,13 @@ const ComplaintsSystem = () => {
                           </div>
                           
                           {/* Days until deadline */}
-                          {complaint.submitted_at && (() => {
-                            const daysRemaining = calculateDaysUntilDeadline(complaint.submitted_at);
+                          {(() => {
+                            const startDate = complaint.submitted_at ?? complaint.created_at;
+                            const daysRemaining = startDate ? calculateDaysUntilDeadline(startDate) : null;
                             console.log(`Days calculation for ${complaint.reference_number}:`, {
+                              startDate,
                               submitted_at: complaint.submitted_at,
+                              created_at: complaint.created_at,
                               status: complaint.status,
                               daysRemaining
                             });
