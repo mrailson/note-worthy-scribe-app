@@ -399,22 +399,8 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         } else {
           console.log('✅ Meeting processing completed:', data);
           toast({ 
-            title: "Meeting Processed", 
-            description: "Your meeting has been transcribed and notes are being generated.",
-          });
-          
-          // Trigger style gallery generation in background (non-blocking)
-          console.log('🎨 Triggering style gallery generation in background...');
-          supabase.functions.invoke('generate-style-gallery', {
-            body: { meetingId: currentMeetingId }
-          }).then(({ data: styleData, error: styleError }) => {
-            if (styleError) {
-              console.error('❌ Style gallery generation failed:', styleError);
-            } else {
-              console.log('✅ Style gallery generation completed:', styleData);
-            }
-          }).catch(err => {
-            console.error('❌ Style gallery generation error:', err);
+            title: "Meeting Completed!", 
+            description: "Transcript cleaned and notes generated automatically."
           });
         }
       } catch (err) {
