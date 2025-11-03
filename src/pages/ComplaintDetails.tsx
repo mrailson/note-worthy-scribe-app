@@ -945,6 +945,15 @@ const ComplaintDetails = () => {
       return;
     }
 
+    // Get practice name for subject line
+    const { data: practiceData } = await supabase
+      .from('practice_details')
+      .select('practice_name')
+      .eq('user_id', user?.id)
+      .single();
+    
+    const practiceName = practiceData?.practice_name || 'Medical Practice';
+
     setIsSendingAcknowledgementEmail(true);
     try {
       // Build recipients list
@@ -954,23 +963,6 @@ const ComplaintDetails = () => {
       }
       if (emailToUser && profile?.email) {
         recipients.push(profile.email);
-      }
-
-      // Extract logo URL from acknowledgement letter
-      const logoMatch = acknowledgementLetter.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
-      let logoUrl = logoMatch ? logoMatch[1] : null;
-      
-      // If no logo in letter, fetch from practice details
-      if (!logoUrl) {
-        const { data: practiceData } = await supabase
-          .from('practice_details')
-          .select('logo_url, practice_logo_url')
-          .eq('user_id', user?.id)
-          .single();
-          
-        if (practiceData) {
-          logoUrl = practiceData.practice_logo_url || practiceData.logo_url;
-        }
       }
 
       // Generate Word document attachment if requested
@@ -1001,11 +993,11 @@ const ComplaintDetails = () => {
 
       // Format the letter content as HTML matching the Word document style
       const { formatLetterForEmail } = await import('@/utils/formatLetterForEmail');
-      const formattedLetterHtml = formatLetterForEmail(acknowledgementLetter, logoUrl);
+      const formattedLetterHtml = formatLetterForEmail(acknowledgementLetter);
 
       const emailData = {
         to_email: recipients.join(', '),
-        subject: `Complaint Acknowledgement - ${complaint.reference_number}`,
+        subject: `Complaint Acknowledgement - ${complaint.reference_number} - ${practiceName}`,
         message: formattedLetterHtml,
         template_type: 'complaint_acknowledgement',
         from_name: 'NHS Complaints Team',

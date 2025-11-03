@@ -121,15 +121,6 @@ export const formatLetterForEmail = (letterContent: string, logoUrl?: string | n
     <div style="max-width: 800px; margin: 0 auto; background-color: #ffffff; font-family: Arial, sans-serif;">
   `;
   
-  // Logo section
-  if (logoUrl) {
-    html += `
-      <div style="padding: 32px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-        <img src="${logoUrl}" alt="Practice Logo" style="max-height: 180px; width: auto; display: inline-block;" />
-      </div>
-    `;
-  }
-  
   // Main content section
   html += `<div style="padding: 32px;">`;
   
@@ -150,15 +141,6 @@ export const formatLetterForEmail = (letterContent: string, logoUrl?: string | n
       </p>
     </div>
   `;
-  
-  // Addressee
-  if (sections.addresseeSection.length > 0) {
-    html += `<div style="margin-bottom: 24px;">`;
-    sections.addresseeSection.forEach(line => {
-      html += `<p style="margin: 0 0 4px 0; color: #1a1a1a; font-size: 14px;">${formatTextWithBold(line)}</p>`;
-    });
-    html += `</div>`;
-  }
   
   // Body
   if (sections.bodyLines.length > 0) {
