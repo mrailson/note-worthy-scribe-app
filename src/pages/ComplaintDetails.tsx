@@ -956,6 +956,23 @@ const ComplaintDetails = () => {
         recipients.push(profile.email);
       }
 
+      // Extract logo URL from acknowledgement letter
+      const logoMatch = acknowledgementLetter.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
+      let logoUrl = logoMatch ? logoMatch[1] : null;
+      
+      // If no logo in letter, fetch from practice details
+      if (!logoUrl) {
+        const { data: practiceData } = await supabase
+          .from('practice_details')
+          .select('logo_url, practice_logo_url')
+          .eq('user_id', user?.id)
+          .single();
+          
+        if (practiceData) {
+          logoUrl = practiceData.practice_logo_url || practiceData.logo_url;
+        }
+      }
+
       // Generate Word document attachment if requested
       let wordAttachment = null;
       if (includeAttachment) {
@@ -982,27 +999,14 @@ const ComplaintDetails = () => {
         }
       }
 
-      // Strip HTML and format for email
-      const stripHTML = (html: string): string => {
-        const tmp = document.createElement('div');
-        tmp.innerHTML = html;
-        return tmp.textContent || tmp.innerText || '';
-      };
-
-      const cleanContent = stripHTML(acknowledgementLetter)
-        .replace(/\s+/g, ' ')
-        .trim();
+      // Format the letter content as HTML matching the Word document style
+      const { formatLetterForEmail } = await import('@/utils/formatLetterForEmail');
+      const formattedLetterHtml = formatLetterForEmail(acknowledgementLetter, logoUrl);
 
       const emailData = {
         to_email: recipients.join(', '),
         subject: `Complaint Acknowledgement - ${complaint.reference_number}`,
-        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
-          <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">Dear ${complaint.patient_name},</p>
-          <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">Please find ${includeAttachment ? 'attached' : 'below'} your complaint acknowledgement letter.</p>
-          <div style="border-top: 3px solid #0066cc; padding-top: 20px; margin-top: 20px;">
-            <p style="margin: 0; color: #1a1a1a; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${cleanContent}</p>
-          </div>
-        </div>`,
+        message: formattedLetterHtml,
         template_type: 'complaint_acknowledgement',
         from_name: 'NHS Complaints Team',
         reply_to: 'complaints@nhs.net',
