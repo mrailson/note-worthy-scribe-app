@@ -3509,7 +3509,10 @@ I am committed to ensuring that all patients receive the care and service they d
               <div className="flex-1 overflow-hidden">
                 {!isEditingAcknowledgement ? (
                   <div className="bg-muted/30 p-4 rounded-lg h-full overflow-y-auto">
-                    <div className="max-w-none bg-background p-8 rounded shadow-sm">
+                    <div 
+                      className="max-w-none bg-background p-8 rounded shadow-sm origin-top transition-transform duration-300"
+                      style={{ transform: isFullscreen ? 'scale(1.35)' : 'scale(1)' }}
+                    >
                       <FormattedLetterContent content={acknowledgementLetter} />
                     </div>
                   </div>
@@ -3532,7 +3535,10 @@ I am committed to ensuring that all patients receive the care and service they d
                         <ResizableHandle withHandle />
                         <ResizablePanel defaultSize={50} minSize={30}>
                           <div className="h-full overflow-y-auto bg-muted/30 p-4">
-                            <div className="bg-background p-8 rounded shadow-sm">
+                            <div 
+                              className="bg-background p-8 rounded shadow-sm origin-top transition-transform duration-300"
+                              style={{ transform: isFullscreen ? 'scale(1.35)' : 'scale(1)' }}
+                            >
                               <FormattedLetterContent content={editedAcknowledgementContent} />
                             </div>
                           </div>
@@ -3555,7 +3561,10 @@ I am committed to ensuring that all patients receive the care and service they d
                     
                     {editorMode === 'preview' && (
                       <div className="flex-1 overflow-y-auto bg-muted/30 p-4 rounded-lg border">
-                        <div className="bg-background p-6 rounded shadow-sm max-w-4xl mx-auto">
+                        <div 
+                          className="bg-background p-6 rounded shadow-sm max-w-4xl mx-auto origin-top transition-transform duration-300"
+                          style={{ transform: isFullscreen ? 'scale(1.35)' : 'scale(1)' }}
+                        >
                           <FormattedLetterContent content={editedAcknowledgementContent} />
                         </div>
                       </div>
