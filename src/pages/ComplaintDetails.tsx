@@ -958,25 +958,30 @@ const ComplaintDetails = () => {
       return;
     }
 
-    // Get practice name for subject line using the complaint's practice_id
-    let practiceName = 'Medical Practice'; // Default fallback
-    
+    // Resolve practice name for subject line
+    let practiceName = 'Medical Practice';
+
     if (complaint.practice_id) {
       const { data: practiceData, error: practiceError } = await supabase
         .from('practice_details')
         .select('practice_name')
         .eq('id', complaint.practice_id)
         .maybeSingle();
-      
-      if (practiceError) {
-        console.error('Error fetching practice name:', practiceError);
-      }
-      
-      if (practiceData?.practice_name) {
-        practiceName = practiceData.practice_name;
-      }
+      if (practiceError) console.error('Error fetching practice by id:', practiceError);
+      if (practiceData?.practice_name) practiceName = practiceData.practice_name;
+    } else if (user?.id) {
+      // Fallback: latest practice for current user (handles multiple rows)
+      const { data: latestPractice, error: latestError } = await supabase
+        .from('practice_details')
+        .select('practice_name, updated_at')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (latestError) console.error('Error fetching latest user practice:', latestError);
+      if (latestPractice?.practice_name) practiceName = latestPractice.practice_name;
     }
-    
+
     console.log('Using practice name for email:', practiceName);
 
     setIsSendingAcknowledgementEmail(true);
