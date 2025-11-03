@@ -958,12 +958,11 @@ const ComplaintDetails = () => {
       return;
     }
 
-    // Get practice name for subject line
+    // Get practice name for subject line using the complaint's practice_id
     const { data: practiceData } = await supabase
       .from('practice_details')
       .select('practice_name')
-      .eq('user_id', user?.id)
-      .limit(1)
+      .eq('id', complaint.practice_id)
       .maybeSingle();
     
     const practiceName = practiceData?.practice_name || 'Medical Practice';
