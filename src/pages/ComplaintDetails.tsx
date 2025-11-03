@@ -2122,7 +2122,7 @@ I am committed to ensuring that all patients receive the care and service they d
                             disabled={submitting}
                           >
                             <RefreshCw className={`h-4 w-4 mr-1 ${submitting ? 'animate-spin' : ''}`} />
-                            Regenerate Letter
+                            {submitting ? 'Regenerating...' : 'Regenerate Letter'}
                           </Button>
                         </div>
                       </div>
