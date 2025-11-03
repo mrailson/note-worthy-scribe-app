@@ -1502,24 +1502,23 @@ const ComplaintsSystem = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           {/* Days remaining indicator */}
-                          {daysRemaining !== null && (
-                            <div className="flex flex-col items-center min-w-[100px]">
-                              <div className={cn(
-                                "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg",
-                                getDaysColor()
-                              )}>
-                                {daysRemaining >= 0 ? daysRemaining : <AlertCircle className="h-6 w-6" />}
-                              </div>
-                              <p className={cn(
-                                "text-xs font-medium mt-1 text-center",
-                                daysRemaining < 0 ? 'text-destructive' : 
-                                daysRemaining <= 4 ? 'text-destructive' :
-                                daysRemaining <= 9 ? 'text-amber-600' : 'text-green-600'
-                              )}>
-                                {getDaysText()}
-                              </p>
+                          <div className="flex flex-col items-center min-w-[100px]">
+                            <div className={cn(
+                              "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg",
+                              getDaysColor()
+                            )}>
+                              {daysRemaining === null ? '?' : daysRemaining >= 0 ? daysRemaining : <AlertCircle className="h-6 w-6" />}
                             </div>
-                          )}
+                            <p className={cn(
+                              "text-xs font-medium mt-1 text-center",
+                              daysRemaining === null ? 'text-muted-foreground' :
+                              daysRemaining < 0 ? 'text-destructive' : 
+                              daysRemaining <= 4 ? 'text-destructive' :
+                              daysRemaining <= 9 ? 'text-amber-600' : 'text-green-600'
+                            )}>
+                              {getDaysText()}
+                            </p>
+                          </div>
                           <div className="flex flex-col gap-2">
                             <Badge className={getStatusColor(complaint.status)}>
                               {getStatusIcon(complaint.status)}
