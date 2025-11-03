@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Header } from "@/components/Header";
 import { ViewFullResponseModal } from "@/components/ViewFullResponseModal";
 import { AcknowledgementQuickPick } from "@/components/AcknowledgementQuickPick";
@@ -170,6 +171,10 @@ const ComplaintDetails = () => {
   const [aiEditInstructions, setAiEditInstructions] = useState("");
   const [isRegeneratingWithAI, setIsRegeneratingWithAI] = useState(false);
   const [isSendingAcknowledgementEmail, setIsSendingAcknowledgementEmail] = useState(false);
+  const [showAcknowledgementEmailDialog, setShowAcknowledgementEmailDialog] = useState(false);
+  const [emailToPatient, setEmailToPatient] = useState(true);
+  const [emailToUser, setEmailToUser] = useState(false);
+  const [includeAttachment, setIncludeAttachment] = useState(true);
 
 
   // Define all functions before useEffect
@@ -916,35 +921,65 @@ const ComplaintDetails = () => {
   const handleSendAcknowledgementEmail = async () => {
     if (!acknowledgementLetter || !complaint) return;
 
-    if (!complaint.patient_contact_email) {
+    // Check if at least one recipient is selected
+    if (!emailToPatient && !emailToUser) {
+      toast.error("Please select at least one recipient");
+      return;
+    }
+
+    // Check if patient email is available when patient is selected
+    if (emailToPatient && !complaint.patient_contact_email) {
       toast.error("No patient email address available");
+      return;
+    }
+
+    // Get user profile for user email
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('user_id', user?.id)
+      .single();
+
+    if (emailToUser && !profile?.email) {
+      toast.error("No user email address available");
       return;
     }
 
     setIsSendingAcknowledgementEmail(true);
     try {
-      // Generate Word document attachment
+      // Build recipients list
+      const recipients: string[] = [];
+      if (emailToPatient && complaint.patient_contact_email) {
+        recipients.push(complaint.patient_contact_email);
+      }
+      if (emailToUser && profile?.email) {
+        recipients.push(profile.email);
+      }
+
+      // Generate Word document attachment if requested
       let wordAttachment = null;
-      try {
-        const doc = await createLetterDocument(acknowledgementLetter, 'acknowledgement', complaint.reference_number);
-        const buffer = await Packer.toBlob(doc);
-        const reader = new FileReader();
-        const base64Promise = new Promise<string>((resolve) => {
-          reader.onloadend = () => {
-            const base64 = (reader.result as string).split(',')[1];
-            resolve(base64);
+      if (includeAttachment) {
+        try {
+          const doc = await createLetterDocument(acknowledgementLetter, 'acknowledgement', complaint.reference_number);
+          const buffer = await Packer.toBlob(doc);
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve) => {
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve(base64);
+            };
+          });
+          reader.readAsDataURL(buffer);
+          const base64Content = await base64Promise;
+          
+          wordAttachment = {
+            content: base64Content,
+            filename: `Acknowledgement_Letter_${complaint.reference_number}.docx`,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           };
-        });
-        reader.readAsDataURL(buffer);
-        const base64Content = await base64Promise;
-        
-        wordAttachment = {
-          content: base64Content,
-          filename: `Acknowledgement_Letter_${complaint.reference_number}.docx`,
-          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        };
-      } catch (docError) {
-        console.warn('Word document generation failed:', docError);
+        } catch (docError) {
+          console.warn('Word document generation failed:', docError);
+        }
       }
 
       // Strip HTML and format for email
@@ -959,11 +994,11 @@ const ComplaintDetails = () => {
         .trim();
 
       const emailData = {
-        to_email: complaint.patient_contact_email,
+        to_email: recipients.join(', '),
         subject: `Complaint Acknowledgement - ${complaint.reference_number}`,
         message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
           <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">Dear ${complaint.patient_name},</p>
-          <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">Please find attached your complaint acknowledgement letter.</p>
+          <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">Please find ${includeAttachment ? 'attached' : 'below'} your complaint acknowledgement letter.</p>
           <div style="border-top: 3px solid #0066cc; padding-top: 20px; margin-top: 20px;">
             <p style="margin: 0; color: #1a1a1a; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${cleanContent}</p>
           </div>
@@ -989,7 +1024,8 @@ const ComplaintDetails = () => {
         throw new Error(data?.error || 'Failed to send email via EmailJS');
       }
 
-      toast.success(`Acknowledgement letter sent to ${complaint.patient_contact_email}`);
+      toast.success(`Acknowledgement letter sent to ${recipients.join(', ')}`);
+      setShowAcknowledgementEmailDialog(false);
     } catch (error) {
       console.error('Error sending acknowledgement email:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to send email');
@@ -3296,21 +3332,17 @@ I am committed to ensuring that all patients receive the care and service they d
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleSendAcknowledgementEmail}
-                    disabled={isSendingAcknowledgementEmail || !complaint?.patient_contact_email}
-                    title={!complaint?.patient_contact_email ? 'No patient email address available' : 'Send acknowledgement letter via email'}
+                    onClick={() => {
+                      // Reset email options when opening dialog
+                      setEmailToPatient(!!complaint?.patient_contact_email);
+                      setEmailToUser(false);
+                      setIncludeAttachment(true);
+                      setShowAcknowledgementEmailDialog(true);
+                    }}
+                    disabled={isSendingAcknowledgementEmail}
                   >
-                    {isSendingAcknowledgementEmail ? (
-                      <>
-                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <Mail className="h-4 w-4 mr-1" />
-                        Email
-                      </>
-                    )}
+                    <Mail className="h-4 w-4 mr-1" />
+                    Email
                   </Button>
                   <AcknowledgementQuickPick
                     currentLetter={editedAcknowledgementContent}
@@ -3524,6 +3556,91 @@ I am committed to ensuring that all patients receive the care and service they d
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Email options dialog */}
+      <Dialog open={showAcknowledgementEmailDialog} onOpenChange={setShowAcknowledgementEmailDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Email Acknowledgement Letter</DialogTitle>
+            <DialogDescription>
+              Select recipients and options for sending the acknowledgement letter
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Recipients */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Recipients</Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="emailToPatient"
+                    checked={emailToPatient}
+                    onCheckedChange={(checked) => setEmailToPatient(checked as boolean)}
+                    disabled={!complaint?.patient_contact_email}
+                  />
+                  <Label
+                    htmlFor="emailToPatient"
+                    className={`text-sm font-normal cursor-pointer ${!complaint?.patient_contact_email ? 'text-muted-foreground' : ''}`}
+                  >
+                    Patient ({complaint?.patient_contact_email || 'No email available'})
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="emailToUser"
+                    checked={emailToUser}
+                    onCheckedChange={(checked) => setEmailToUser(checked as boolean)}
+                  />
+                  <Label htmlFor="emailToUser" className="text-sm font-normal cursor-pointer">
+                    Me (copy to my email)
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Attachment option */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Attachment</Label>
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="includeAttachment"
+                  checked={includeAttachment}
+                  onCheckedChange={(checked) => setIncludeAttachment(checked as boolean)}
+                />
+                <Label htmlFor="includeAttachment" className="text-sm font-normal cursor-pointer">
+                  Include Word document attachment
+                </Label>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowAcknowledgementEmailDialog(false)}
+              disabled={isSendingAcknowledgementEmail}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendAcknowledgementEmail}
+              disabled={isSendingAcknowledgementEmail || (!emailToPatient && !emailToUser)}
+            >
+              {isSendingAcknowledgementEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Email
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Outcome Questionnaire Modal */}
       {complaint && (
