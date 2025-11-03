@@ -117,11 +117,15 @@ export function renderMinutesMarkdown(content: string): string {
       return `<div class="overflow-x-auto my-6 shadow-sm rounded-lg">\n        <table class="w-full border-collapse border border-[#768692]">\n          <thead><tr>${headerHtml}</tr></thead>\n          <tbody>${bodyHtml}</tbody>\n        </table>\n      </div>`;
     })
 
-    // Bold text
+    // Bold text - handle both ** and remaining single *
     .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-[#212B32]">$1</strong>')
+    
+    // Remove stray asterisks at the beginning of lines (not part of lists or formatting)
+    .replace(/^\*([A-Z])/gm, '$1')
+    .replace(/\s\*([A-Z])/g, ' $1')
 
-    // Italic text
-    .replace(/\*(.*?)\*/g, '<em class="italic text-[#425563]">$1</em>')
+    // Italic text (only if not already processed)
+    .replace(/\*([^\*\n]+?)\*/g, '<em class="italic text-[#425563]">$1</em>')
     
     // Option 1: Indented sub-sections with left border (for Key Points and similar sections)
     // Detects patterns like "**Heading:** content" and styles them with NHS blue left border
