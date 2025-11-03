@@ -173,8 +173,9 @@ const ComplaintDetails = () => {
   const [isSendingAcknowledgementEmail, setIsSendingAcknowledgementEmail] = useState(false);
   const [showAcknowledgementEmailDialog, setShowAcknowledgementEmailDialog] = useState(false);
   const [emailToPatient, setEmailToPatient] = useState(true);
-  const [emailToUser, setEmailToUser] = useState(false);
-  const [includeAttachment, setIncludeAttachment] = useState(true);
+  const [bccToUser, setBccToUser] = useState(false);
+  const [manualToEmails, setManualToEmails] = useState('');
+  const [manualCcEmails, setManualCcEmails] = useState('');
 
 
   // Define all functions before useEffect
@@ -921,9 +922,20 @@ const ComplaintDetails = () => {
   const handleSendAcknowledgementEmail = async () => {
     if (!acknowledgementLetter || !complaint) return;
 
-    // Check if at least one recipient is selected
-    if (!emailToPatient && !emailToUser) {
-      toast.error("Please select at least one recipient");
+    // Parse and validate manual email entries
+    const parseEmails = (emailString: string): string[] => {
+      return emailString
+        .split(',')
+        .map(email => email.trim())
+        .filter(email => email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    };
+
+    const manualToList = parseEmails(manualToEmails);
+    const manualCcList = parseEmails(manualCcEmails);
+
+    // Check if at least one recipient is selected or provided
+    if (!emailToPatient && !bccToUser && manualToList.length === 0 && manualCcList.length === 0) {
+      toast.error("Please provide at least one recipient");
       return;
     }
 
@@ -933,14 +945,14 @@ const ComplaintDetails = () => {
       return;
     }
 
-    // Get user profile for user email
+    // Get user profile for BCC email
     const { data: profile } = await supabase
       .from('profiles')
       .select('email')
       .eq('user_id', user?.id)
       .single();
 
-    if (emailToUser && !profile?.email) {
+    if (bccToUser && !profile?.email) {
       toast.error("No user email address available");
       return;
     }
@@ -956,39 +968,20 @@ const ComplaintDetails = () => {
 
     setIsSendingAcknowledgementEmail(true);
     try {
-      // Build recipients list
-      const recipients: string[] = [];
+      // Build TO recipients list
+      const toRecipients: string[] = [];
       if (emailToPatient && complaint.patient_contact_email) {
-        recipients.push(complaint.patient_contact_email);
+        toRecipients.push(complaint.patient_contact_email);
       }
-      if (emailToUser && profile?.email) {
-        recipients.push(profile.email);
-      }
+      toRecipients.push(...manualToList);
 
-      // Generate Word document attachment if requested
-      let wordAttachment = null;
-      if (includeAttachment) {
-        try {
-          const doc = await createLetterDocument(acknowledgementLetter, 'acknowledgement', complaint.reference_number);
-          const buffer = await Packer.toBlob(doc);
-          const reader = new FileReader();
-          const base64Promise = new Promise<string>((resolve) => {
-            reader.onloadend = () => {
-              const base64 = (reader.result as string).split(',')[1];
-              resolve(base64);
-            };
-          });
-          reader.readAsDataURL(buffer);
-          const base64Content = await base64Promise;
-          
-          wordAttachment = {
-            content: base64Content,
-            filename: `Acknowledgement_Letter_${complaint.reference_number}.docx`,
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-          };
-        } catch (docError) {
-          console.warn('Word document generation failed:', docError);
-        }
+      // Build CC list
+      const ccRecipients = manualCcList;
+
+      // Build BCC list
+      const bccRecipients: string[] = [];
+      if (bccToUser && profile?.email) {
+        bccRecipients.push(profile.email);
       }
 
       // Format the letter content as HTML matching the Word document style
@@ -996,13 +989,14 @@ const ComplaintDetails = () => {
       const formattedLetterHtml = formatLetterForEmail(acknowledgementLetter);
 
       const emailData = {
-        to_email: recipients.join(', '),
+        to_email: toRecipients.join(', '),
+        cc_email: ccRecipients.length > 0 ? ccRecipients.join(', ') : undefined,
+        bcc_email: bccRecipients.length > 0 ? bccRecipients.join(', ') : undefined,
         subject: `Complaint Acknowledgement - ${complaint.reference_number} - ${practiceName}`,
         message: formattedLetterHtml,
         template_type: 'complaint_acknowledgement',
         from_name: 'NHS Complaints Team',
         reply_to: 'complaints@nhs.net',
-        word_attachment: wordAttachment,
         complaint_reference: complaint.reference_number
       };
 
@@ -1020,7 +1014,8 @@ const ComplaintDetails = () => {
         throw new Error(data?.error || 'Failed to send email via EmailJS');
       }
 
-      toast.success(`Acknowledgement letter sent to ${recipients.join(', ')}`);
+      const allRecipients = [...toRecipients, ...ccRecipients, ...bccRecipients];
+      toast.success(`Acknowledgement letter sent to ${allRecipients.length} recipient(s)`);
       setShowAcknowledgementEmailDialog(false);
     } catch (error) {
       console.error('Error sending acknowledgement email:', error);
@@ -3331,8 +3326,9 @@ I am committed to ensuring that all patients receive the care and service they d
                     onClick={() => {
                       // Reset email options when opening dialog
                       setEmailToPatient(!!complaint?.patient_contact_email);
-                      setEmailToUser(false);
-                      setIncludeAttachment(true);
+                      setBccToUser(false);
+                      setManualToEmails('');
+                      setManualCcEmails('');
                       setShowAcknowledgementEmailDialog(true);
                     }}
                     disabled={isSendingAcknowledgementEmail}
@@ -3555,7 +3551,7 @@ I am committed to ensuring that all patients receive the care and service they d
 
       {/* Email options dialog */}
       <Dialog open={showAcknowledgementEmailDialog} onOpenChange={setShowAcknowledgementEmailDialog}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Email Acknowledgement Letter</DialogTitle>
             <DialogDescription>
@@ -3583,29 +3579,47 @@ I am committed to ensuring that all patients receive the care and service they d
                 </div>
                 <div className="flex items-center space-x-2">
                   <Checkbox
-                    id="emailToUser"
-                    checked={emailToUser}
-                    onCheckedChange={(checked) => setEmailToUser(checked as boolean)}
+                    id="bccToUser"
+                    checked={bccToUser}
+                    onCheckedChange={(checked) => setBccToUser(checked as boolean)}
                   />
-                  <Label htmlFor="emailToUser" className="text-sm font-normal cursor-pointer">
-                    Me (copy to my email)
+                  <Label htmlFor="bccToUser" className="text-sm font-normal cursor-pointer">
+                    Me (BCC - blind copy me)
                   </Label>
                 </div>
               </div>
             </div>
 
-            {/* Attachment option */}
+            {/* Manual Email Entry */}
             <div className="space-y-3">
-              <Label className="text-sm font-medium">Attachment</Label>
-              <div className="flex items-center space-x-2">
-                <Checkbox
-                  id="includeAttachment"
-                  checked={includeAttachment}
-                  onCheckedChange={(checked) => setIncludeAttachment(checked as boolean)}
-                />
-                <Label htmlFor="includeAttachment" className="text-sm font-normal cursor-pointer">
-                  Include Word document attachment
-                </Label>
+              <Label className="text-sm font-medium">Additional Recipients</Label>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="manualToEmails" className="text-xs text-muted-foreground">
+                    To (separate multiple emails with commas)
+                  </Label>
+                  <Input
+                    id="manualToEmails"
+                    type="text"
+                    placeholder="email@example.com, another@example.com"
+                    value={manualToEmails}
+                    onChange={(e) => setManualToEmails(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="manualCcEmails" className="text-xs text-muted-foreground">
+                    CC (separate multiple emails with commas)
+                  </Label>
+                  <Input
+                    id="manualCcEmails"
+                    type="text"
+                    placeholder="email@example.com, another@example.com"
+                    value={manualCcEmails}
+                    onChange={(e) => setManualCcEmails(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -3620,7 +3634,7 @@ I am committed to ensuring that all patients receive the care and service they d
             </Button>
             <Button
               onClick={handleSendAcknowledgementEmail}
-              disabled={isSendingAcknowledgementEmail || (!emailToPatient && !emailToUser)}
+              disabled={isSendingAcknowledgementEmail || (!emailToPatient && !bccToUser && !manualToEmails.trim() && !manualCcEmails.trim())}
             >
               {isSendingAcknowledgementEmail ? (
                 <>

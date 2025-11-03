@@ -23,6 +23,7 @@ interface EmailRequest {
   subject?: string;
   message?: string;
   cc_email?: string;
+  bcc_email?: string;
   word_attachment?: {
     content: string;
     filename: string;
@@ -562,6 +563,7 @@ const handler = async (req: Request): Promise<Response> => {
       template_id: templateId,
       to_email: emailData.to_email,
       cc_email: emailData.cc_email,
+      bcc_email: emailData.bcc_email,
       template_type: emailData.template_type || 'meeting',
       user_name: emailData.user_name,
       temporary_password: emailData.temporary_password,
