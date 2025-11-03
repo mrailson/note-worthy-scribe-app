@@ -363,7 +363,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
          // First, prefer any manually saved transcript on the meeting record
          const { data: manualData, error: manualError } = await supabase
            .from('meetings')
-           .select('live_transcript_text, assembly_ai_transcript')
+           .select('live_transcript_text, assembly_ai_transcript, meeting_context')
            .eq('id', currentMeetingId)
            .eq('user_id', user!.id)
            .maybeSingle();
@@ -438,8 +438,36 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             
             // Final validation before setting state
             if (meeting?.id === currentMeetingId) {
+              // Build context prefix from saved meeting_context if available and not already present
+              const contextData = (manualData as any)?.meeting_context as any;
+              let contextPrefix = '';
+              try {
+                if (contextData && !/=== MEETING CONTEXT ===/i.test(normalised.plain)) {
+                  const ctxParts: string[] = ['=== MEETING CONTEXT ==='];
+                  if (contextData.attendees) ctxParts.push(`ATTENDEES:\n${contextData.attendees}`);
+                  if (contextData.agenda) ctxParts.push(`AGENDA:\n${contextData.agenda}`);
+                  if (contextData.additional_notes) ctxParts.push(`NOTES:\n${contextData.additional_notes}`);
+                  if (Array.isArray(contextData.uploaded_files) && contextData.uploaded_files.length) {
+                    ctxParts.push('UPLOADED DOCUMENTS:');
+                    contextData.uploaded_files.forEach((f: any, i: number) => {
+                      if (f?.content) ctxParts.push(`- Document ${i + 1}:\n${f.content}`);
+                    });
+                  }
+                  ctxParts.push('=== TRANSCRIPT ===');
+                  contextPrefix = ctxParts.join('\n\n') + '\n\n';
+                  console.log('ℹ️ Prepending meeting context to transcript display');
+                }
+              } catch (e) {
+                console.warn('⚠️ Failed to build meeting context prefix:', e);
+              }
+
               // Use plain text for large transcripts to avoid rendering overhead
-              setTranscript(isLargeTranscript || rawSize > 30000 ? normalised.plain : normalised.html);
+              const preferPlain = isLargeTranscript || rawSize > 30000;
+              const preferred = preferPlain ? normalised.plain : normalised.html;
+              const finalTranscript = contextPrefix
+                ? (preferPlain ? contextPrefix + normalised.plain : contextPrefix + normalised.html)
+                : preferred;
+              setTranscript(finalTranscript);
             } else {
               console.warn('⚠️ Meeting changed during transcript processing, discarding results');
             }
