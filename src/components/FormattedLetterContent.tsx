@@ -45,7 +45,9 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
   }, [embeddedLogoUrl]);
   
   // Remove the logo metadata comment from content for parsing
-  const cleanContent = content.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
+  const cleanContent = content
+    .replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '')
+    .replace(/!\[.*?\]\(.*?\)/g, ''); // Remove markdown image syntax
   
   // Parse content into sections
   const lines = cleanContent.split('\n').filter(line => line.trim());

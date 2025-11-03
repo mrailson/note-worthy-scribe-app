@@ -52,7 +52,9 @@ export async function createLetterDocument(letterContent: string, letterType: st
   const logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
   
   // Remove the logo metadata comment from content for parsing
-  const cleanContent = letterContent.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
+  const cleanContent = letterContent
+    .replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '')
+    .replace(/!\[.*?\]\(.*?\)/g, ''); // Remove markdown image syntax
   
   // Parse content into sections
   const lines = cleanContent.split('\n').filter(line => line.trim());
