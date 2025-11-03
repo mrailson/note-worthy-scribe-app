@@ -1527,16 +1527,16 @@ const ComplaintsSystem = () => {
                     const getIconOrNumber = () => {
                       if (isClosed) {
                         if (daysEarlyOrLate && daysEarlyOrLate > 0) {
-                          return <CheckCircle className="h-7 w-7" />;
+                          return <CheckCircle className="h-7 w-7 shrink-0" />;
                         }
                         if (daysEarlyOrLate && daysEarlyOrLate < 0) {
-                          return <XCircle className="h-7 w-7" />;
+                          return <XCircle className="h-7 w-7 shrink-0" />;
                         }
-                        return <CheckCircle className="h-7 w-7" />;
+                        return <CheckCircle className="h-7 w-7 shrink-0" />;
                       }
-                      if (daysRemaining === null) return <span className="text-2xl font-bold leading-7 flex items-center justify-center h-7">?</span>;
-                      if (daysRemaining >= 0) return <span className="text-2xl font-bold leading-7 flex items-center justify-center h-7">{daysRemaining}</span>;
-                      return <AlertCircle className="h-7 w-7" />;
+                      if (daysRemaining === null) return <div className="text-2xl font-bold h-7 w-7 flex items-center justify-center shrink-0">?</div>;
+                      if (daysRemaining >= 0) return <div className="text-2xl font-bold h-7 w-7 flex items-center justify-center shrink-0">{daysRemaining}</div>;
+                      return <AlertCircle className="h-7 w-7 shrink-0" />;
                     };
 
                     return (
