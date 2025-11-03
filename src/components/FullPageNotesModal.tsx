@@ -665,10 +665,36 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         }
 
        const columnName = `notes_style_${styleNumber}`;
+       let updateError: any = null;
        const { error } = await supabase
          .from('meetings')
          .update({ [columnName]: content })
          .eq('id', currentMeetingId);
+
+       updateError = error;
+
+       if (updateError) {
+         console.warn(`⚠️ Direct update failed for notes style ${styleNumber}, attempting server-side persist...`, updateError);
+         try {
+           const { data: persistData, error: persistError } = await supabase.functions.invoke('persist-standard-minutes', {
+             body: { meetingId: currentMeetingId, content }
+           });
+           if (persistError || persistData?.success === false) {
+             console.error(`❌ Persist via edge function failed for style ${styleNumber}:`, persistError || persistData);
+           } else {
+             console.log(`✅ Persisted notes style ${styleNumber} via edge function`);
+             updateError = null;
+           }
+         } catch (fnErr) {
+           console.error('❌ Error invoking persist-standard-minutes:', fnErr);
+         }
+       }
+
+       if (updateError) {
+         console.error(`❌ Error saving notes style ${styleNumber} for meeting ${currentMeetingId}:`, updateError);
+       } else {
+         console.log(`✅ Meeting Notes Style ${styleNumber} saved to database for meeting ${currentMeetingId}`);
+       }
 
        // Validate we're still on the same meeting after save
        if (meeting?.id !== currentMeetingId) {
