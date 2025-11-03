@@ -4556,7 +4556,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                                    )}
                                  </Button>
                                </TooltipTrigger>
-                               <TooltipContent>
+                               <TooltipContent side="bottom" align="center" className="z-50">
                                  <p>Add Meeting Context</p>
                                </TooltipContent>
                              </Tooltip>
