@@ -179,6 +179,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [minutesHtml, setMinutesHtml] = useState<string>("");
   const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
   const [transcript, setTranscript] = useState("");
+
+  // Cache helpers for Standard minutes HTML across navigations
+  const minutesHash = (s: string) => {
+    let h = 5381;
+    for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
+    return (h >>> 0).toString(16);
+  };
+  const getMinutesCacheKey = (id: string, content: string) => `minutes-html-${id}-${minutesHash(content)}`;
   const [fontSizeStyle1, setFontSizeStyle1] = useState(13); // Font size for Minutes (default 13)
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
@@ -244,39 +252,44 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [activeNotesStyleTab, notesStyle4]);
   
-  // Generate Minutes (Standard) HTML lazily - only when tab becomes active
+  // Generate Minutes (Standard) HTML lazily - only when tab becomes active, with cache
   useEffect(() => {
     if (activeNotesStyleTab !== 'style1') {
-      // Don't clear content when switching away - keep it cached
       return;
     }
-    
+
     if (!notesStyle3?.trim()) {
       setMinutesHtml("");
       setIsRenderingMinutes(false);
       return;
     }
-    
-    // If already rendered, don't re-render
-    if (minutesHtml && !isRenderingMinutes) {
-      return;
+
+    // Try cached HTML to avoid re-formatting delays on navigation
+    const key = meeting?.id ? getMinutesCacheKey(meeting.id, notesStyle3) : null;
+    if (key) {
+      const cached = localStorage.getItem(key);
+      if (cached) {
+        setMinutesHtml(cached);
+        return; // skip rendering
+      }
     }
-    
+
     setIsRenderingMinutes(true);
-    // Use requestIdleCallback for non-blocking render
     const id = requestIdleCallback(() => {
       try {
         const html = renderMinutesMarkdown(notesStyle3);
         setMinutesHtml(html);
+        if (key) localStorage.setItem(key, html);
       } catch (e) {
         console.error('Error rendering Standard minutes:', e);
         setMinutesHtml(notesStyle3);
+        if (key) localStorage.setItem(key, notesStyle3);
       } finally {
         setIsRenderingMinutes(false);
       }
     }, { timeout: 100 });
     return () => cancelIdleCallback(id);
-  }, [activeNotesStyleTab, notesStyle3]);
+  }, [activeNotesStyleTab, notesStyle3, meeting?.id]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");

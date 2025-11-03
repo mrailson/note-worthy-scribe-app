@@ -189,3 +189,5 @@ verify_jwt = false
 [functions.generate-style-previews]
 verify_jwt = true
 
+[functions.persist-standard-minutes]
+verify_jwt = true
