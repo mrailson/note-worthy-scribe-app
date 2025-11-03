@@ -335,6 +335,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
    }, [isOpen, meeting?.id, meeting?.title, user?.id]);
 
+   // Auto-load transcript when Style Gallery tab is opened
+   useEffect(() => {
+     if (activeTab === 'notes' && activeNotesStyleTab === 'style-gallery' && !transcriptLoaded && !isLoadingTranscript && meeting?.id) {
+       console.log('🎨 Style Gallery opened - auto-loading transcript');
+       fetchTranscriptData();
+     }
+   }, [activeTab, activeNotesStyleTab, transcriptLoaded, isLoadingTranscript, meeting?.id]);
+
    const fetchTranscriptData = async () => {
      if (!meeting?.id) {
        console.error('❌ fetchTranscriptData called without meeting ID');
