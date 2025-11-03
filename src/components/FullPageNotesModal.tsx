@@ -228,8 +228,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         return;
       }
       setIsRenderingExec(true);
-      // Defer heavy markdown rendering to next tick to keep UI responsive
-      const id = setTimeout(() => {
+      // Use requestIdleCallback for better performance
+      const id = requestIdleCallback(() => {
         try {
           const html = renderNHSMarkdown(notesStyle4, { enableNHSStyling: true });
           setExecHtml(html);
@@ -239,20 +239,32 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         } finally {
           setIsRenderingExec(false);
         }
-      }, 0);
-      return () => clearTimeout(id);
+      }, { timeout: 100 });
+      return () => cancelIdleCallback(id);
     }
   }, [activeNotesStyleTab, notesStyle4]);
-  // Generate Minutes (Standard) HTML lazily when tab is opened or content changes
+  
+  // Generate Minutes (Standard) HTML lazily - only when tab becomes active
   useEffect(() => {
-    if (activeNotesStyleTab !== 'style1') return;
+    if (activeNotesStyleTab !== 'style1') {
+      // Don't clear content when switching away - keep it cached
+      return;
+    }
+    
     if (!notesStyle3?.trim()) {
       setMinutesHtml("");
       setIsRenderingMinutes(false);
       return;
     }
+    
+    // If already rendered, don't re-render
+    if (minutesHtml && !isRenderingMinutes) {
+      return;
+    }
+    
     setIsRenderingMinutes(true);
-    const id = setTimeout(() => {
+    // Use requestIdleCallback for non-blocking render
+    const id = requestIdleCallback(() => {
       try {
         const html = renderMinutesMarkdown(notesStyle3);
         setMinutesHtml(html);
@@ -262,8 +274,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       } finally {
         setIsRenderingMinutes(false);
       }
-    }, 0);
-    return () => clearTimeout(id);
+    }, { timeout: 100 });
+    return () => cancelIdleCallback(id);
   }, [activeNotesStyleTab, notesStyle3]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);

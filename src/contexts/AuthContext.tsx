@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (aggregatedAccess.fridge_monitoring_access) modules.push('fridge_monitoring_access');
       
       console.log(`Found ${data.length} role record(s) for user, aggregated modules:`, modules);
-      setUserModules(prev => JSON.stringify(prev) === JSON.stringify(modules) ? prev : modules);
+      setUserModules(modules);
     } catch (error) {
       console.error('Error fetching user modules:', error);
     }
@@ -116,9 +116,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       console.log('System admin check result:', { data, error });
       if (!error) {
-        const newVal = !!data;
-        setIsSystemAdmin(prev => (prev !== newVal ? newVal : prev));
-        console.log('Set isSystemAdmin to:', newVal);
+        setIsSystemAdmin(data || false);
+        console.log('Set isSystemAdmin to:', data || false);
       } else {
         console.error('RPC error:', error);
         setIsSystemAdmin(false);
@@ -145,8 +144,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         console.error('Error checking consultation examples visibility:', error);
         setCanViewConsultationExamples(true); // Default to true on error
       } else {
-        const newVal = data ?? true;
-        setCanViewConsultationExamples(prev => (prev !== newVal ? newVal : prev));
+        setCanViewConsultationExamples(data ?? true);
       }
     } catch (error) {
       console.error('Error in checkConsultationExamplesVisibility:', error);
