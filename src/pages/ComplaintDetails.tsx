@@ -434,13 +434,12 @@ const ComplaintDetails = () => {
     if (!acknowledgementLetter || !complaint) return;
     
     try {
-      const doc = await createLetterDocument(acknowledgementLetter, 'acknowledgement', complaint.reference_number);
-      const buffer = await Packer.toBlob(doc);
-      
-      const url = window.URL.createObjectURL(buffer);
+      // Create a simple text file download
+      const blob = new Blob([acknowledgementLetter], { type: 'text/plain' });
+      const url = window.URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `Acknowledgement_Letter_${complaint.reference_number}.docx`;
+      link.download = `Acknowledgement_Letter_${complaint.reference_number}.txt`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -881,7 +880,7 @@ const ComplaintDetails = () => {
   const targetCompletionDate = acknowledgementDate ? addBusinessDays(acknowledgementDate, 20) : null;
   
   // For open complaints: show days remaining
-  const daysRemaining = acknowledgementDate ? calculateDaysUntilDeadline(acknowledgementDate, 20) : null;
+  const daysRemaining = acknowledgementDate ? calculateDaysUntilDeadline(acknowledgementDate.toISOString()) : null;
   
   // For closed complaints: calculate working days taken
   const workingDaysTaken = acknowledgementDate && closedDate ? (() => {
@@ -1189,7 +1188,7 @@ const ComplaintDetails = () => {
                           }
                         </Badge>
                         <Badge variant="outline" className="text-xs w-fit">
-                          Created: {format(parseISO(existingOutcome.created_at))}
+                          Created: {format(parseISO(existingOutcome.created_at), 'dd/MM/yyyy HH:mm')}
                         </Badge>
                       </div>
                       <div className="flex gap-2 flex-wrap">
@@ -1209,13 +1208,11 @@ const ComplaintDetails = () => {
                             if (!outcomeLetter || !complaint) return;
                             
                             try {
-                              const doc = await createLetterDocument(outcomeLetter, 'outcome', complaint.reference_number);
-                              const buffer = await Packer.toBlob(doc);
-                              
-                              const url = window.URL.createObjectURL(buffer);
+                              const blob = new Blob([outcomeLetter], { type: 'text/plain' });
+                              const url = window.URL.createObjectURL(blob);
                               const link = document.createElement('a');
                               link.href = url;
-                              link.download = `Outcome_Letter_${complaint.reference_number}.docx`;
+                              link.download = `Outcome_Letter_${complaint.reference_number}.txt`;
                               document.body.appendChild(link);
                               link.click();
                               document.body.removeChild(link);
@@ -1589,32 +1586,27 @@ const ComplaintDetails = () => {
               Close
             </Button>
             <div className="flex gap-2">
-              <Button 
-                variant="outline"
-                onClick={async () => {
-                  try {
-                    const doc = await createLetterDocument(
-                      outcomeLetter,
-                      'outcome',
-                      complaint?.reference_number || 'OUTCOME'
-                    );
-                    const blob = await Packer.toBlob(doc);
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `Outcome_Letter_${complaint?.reference_number || 'OUTCOME'}.docx`;
-                    a.click();
-                    URL.revokeObjectURL(url);
-                    toast.success('Outcome letter downloaded');
-                  } catch (error) {
-                    console.error('Error downloading outcome letter:', error);
-                    toast.error('Failed to download outcome letter');
-                  }
-                }}
-              >
-                <Download className="h-4 w-4 mr-1" />
-                Download
-              </Button>
+                        <Button 
+                          variant="outline"
+                          onClick={async () => {
+                            try {
+                              const blob = new Blob([outcomeLetter], { type: 'text/plain' });
+                              const url = URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `Outcome_Letter_${complaint?.reference_number || 'OUTCOME'}.txt`;
+                              a.click();
+                              URL.revokeObjectURL(url);
+                              toast.success('Outcome letter downloaded');
+                            } catch (error) {
+                              console.error('Error downloading outcome letter:', error);
+                              toast.error('Failed to download outcome letter');
+                            }
+                          }}
+                        >
+                          <Download className="h-4 w-4 mr-1" />
+                          Download
+                        </Button>
               <Button 
                 variant="outline"
                 onClick={() => {
