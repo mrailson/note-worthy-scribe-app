@@ -97,6 +97,8 @@ export const useStyleGeneration = () => {
       // Generate new previews
       setProgress({ current: 0, total: 10, currentStyle: 'Generating styles...' });
       
+      console.log('Invoking generate-style-previews function...');
+      
       const { data, error: functionError } = await supabase.functions.invoke('generate-style-previews', {
         body: {
           meetingId,
@@ -105,7 +107,10 @@ export const useStyleGeneration = () => {
         }
       });
 
+      console.log('Function response:', { data, error: functionError });
+
       if (functionError) {
+        console.error('Function invocation error:', functionError);
         throw new Error(functionError.message || 'Failed to generate style previews');
       }
 
