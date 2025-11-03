@@ -1527,16 +1527,16 @@ const ComplaintsSystem = () => {
                     const getIconOrNumber = () => {
                       if (isClosed) {
                         if (daysEarlyOrLate && daysEarlyOrLate > 0) {
-                          return <CheckCircle className="h-8 w-8" />;
+                          return <CheckCircle className="h-7 w-7" />;
                         }
                         if (daysEarlyOrLate && daysEarlyOrLate < 0) {
-                          return <XCircle className="h-8 w-8" />;
+                          return <XCircle className="h-7 w-7" />;
                         }
-                        return <CheckCircle className="h-8 w-8" />;
+                        return <CheckCircle className="h-7 w-7" />;
                       }
-                      if (daysRemaining === null) return '?';
-                      if (daysRemaining >= 0) return daysRemaining;
-                      return <AlertCircle className="h-6 w-6" />;
+                      if (daysRemaining === null) return <span className="text-2xl">?</span>;
+                      if (daysRemaining >= 0) return <span className="text-2xl">{daysRemaining}</span>;
+                      return <AlertCircle className="h-7 w-7" />;
                     };
 
                     return (
@@ -1549,7 +1549,7 @@ const ComplaintsSystem = () => {
                           {/* Days remaining indicator */}
                           <div className="flex flex-col items-center min-w-[100px]">
                             <div className={cn(
-                              "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg",
+                              "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold shadow-lg",
                               getDaysColor()
                             )}>
                               {getIconOrNumber()}
