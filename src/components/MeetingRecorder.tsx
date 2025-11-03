@@ -29,7 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check } from "lucide-react";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
@@ -44,6 +44,7 @@ import { DashboardLauncher } from "@/components/meeting-dashboard/DashboardLaunc
 import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/RealtimeMeetingDashboard";
 import { ChunkSaveStatus } from "@/components/ChunkSaveStatus";
 import { MeetingImporter } from "@/components/meeting-dashboard/MeetingImporter";
+import { RecordingContextDialog, MeetingContext } from "@/components/meeting/RecordingContextDialog";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -287,6 +288,11 @@ export const MeetingRecorder = ({
   
   // Import dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  
+  // Recording context state
+  const [showContextDialog, setShowContextDialog] = useState(false);
+  const [meetingContext, setMeetingContext] = useState<MeetingContext | undefined>();
+  const [hasContext, setHasContext] = useState(false);
   
   
   // Meeting settings - use from useMeetingData hook
@@ -3513,11 +3519,35 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     
     const defaultTitle = `Meeting - ${dayOfWeek}, ${dayWithSuffix} ${month} ${year} (${time})`;
     
+    // Prepend meeting context if available
+    let transcriptWithContext = currentTranscript;
+    if (meetingContext && hasContext) {
+      let contextPrefix = '=== MEETING CONTEXT ===\n\n';
+      if (meetingContext.attendees) {
+        contextPrefix += `ATTENDEES:\n${meetingContext.attendees}\n\n`;
+      }
+      if (meetingContext.agenda) {
+        contextPrefix += `AGENDA:\n${meetingContext.agenda}\n\n`;
+      }
+      if (meetingContext.additional_notes) {
+        contextPrefix += `ADDITIONAL NOTES:\n${meetingContext.additional_notes}\n\n`;
+      }
+      if (meetingContext.uploaded_files && meetingContext.uploaded_files.length > 0) {
+        contextPrefix += 'UPLOADED DOCUMENTS:\n';
+        meetingContext.uploaded_files.forEach(file => {
+          contextPrefix += `\n--- ${file.name} ---\n${file.content}\n`;
+        });
+        contextPrefix += '\n';
+      }
+      contextPrefix += '=== TRANSCRIPT ===\n\n';
+      transcriptWithContext = contextPrefix + currentTranscript;
+    }
+    
     const meetingData = {
       title: meetingSettings?.title?.trim() || initialSettings?.title?.trim() || defaultTitle,
       duration: formatDuration(duration),
       wordCount: wordCount,
-      transcript: currentTranscript,
+      transcript: transcriptWithContext,
       liveTranscriptText: liveTranscriptRef.current?.getCurrentTranscript() || undefined, // Add live transcript from the meeting
       speakerCount: speakerCount,
       startTime: startTime,
@@ -4525,9 +4555,33 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                                 <p>Open Meeting Dashboard</p>
                               </TooltipContent>
                             </Tooltip>
-                          )}
-                          
-                          {/* Show/Hide Live Speech Toggle - Hidden on Edge */}
+                           )}
+                           
+                           {/* Add Context Button - Desktop only */}
+                           {!isIOS && (
+                             <Tooltip>
+                               <TooltipTrigger asChild>
+                                 <Button
+                                   onClick={() => setShowContextDialog(true)}
+                                   variant="ghost"
+                                   size="sm"
+                                   className="h-8 w-8 p-0 text-primary hover:bg-primary/10 relative"
+                                 >
+                                   <ClipboardList className="h-4 w-4" />
+                                   {hasContext && (
+                                     <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-600 rounded-full flex items-center justify-center">
+                                       <Check className="h-2 w-2 text-white" />
+                                     </div>
+                                   )}
+                                 </Button>
+                               </TooltipTrigger>
+                               <TooltipContent>
+                                 <p>Add Meeting Context</p>
+                               </TooltipContent>
+                             </Tooltip>
+                           )}
+                           
+                           {/* Show/Hide Live Speech Toggle - Hidden on Edge */}
                           {!/Edg/.test(navigator.userAgent) && (
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -5261,6 +5315,33 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           </div>
         </DialogContent>
       </Dialog>
+      
+      {/* Recording Context Dialog */}
+      {isRecording && (
+        <RecordingContextDialog
+          open={showContextDialog}
+          onOpenChange={setShowContextDialog}
+          meetingId={sessionStorage.getItem('currentMeetingId') || ''}
+          existingContext={meetingContext}
+          onContextSaved={() => {
+            setHasContext(true);
+            const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+            if (currentMeetingId) {
+              // Fetch the updated context
+              supabase
+                .from('meetings')
+                .select('meeting_context')
+                .eq('id', currentMeetingId)
+                .single()
+                .then(({ data }) => {
+                  if (data?.meeting_context) {
+                    setMeetingContext(data.meeting_context as MeetingContext);
+                  }
+                });
+            }
+          }}
+        />
+      )}
     </div>
   );
 };

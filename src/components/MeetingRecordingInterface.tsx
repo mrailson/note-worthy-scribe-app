@@ -2,13 +2,14 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Mic, Square, Clock, FileText, Sparkles } from 'lucide-react';
+import { Mic, Square, Clock, FileText, Sparkles, ClipboardList, Check } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRecording } from '@/contexts/RecordingContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
 import { MeetingCompletionModal } from './MeetingCompletionModal';
+import { RecordingContextDialog, MeetingContext } from './meeting/RecordingContextDialog';
 
 interface MeetingRecordingInterfaceProps {
   onClose: () => void;
@@ -35,6 +36,9 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
   const [processingStatus, setProcessingStatus] = useState<'idle' | 'processing' | 'completed'>('idle');
   const [showCompletionModal, setShowCompletionModal] = useState(false);
   const [audioChunks, setAudioChunks] = useState<Blob[]>([]);
+  const [showContextDialog, setShowContextDialog] = useState(false);
+  const [meetingContext, setMeetingContext] = useState<MeetingContext | undefined>();
+  const [hasContext, setHasContext] = useState(false);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -322,7 +326,30 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
       console.log('🔄 Starting recording processing for meeting:', currentMeetingId);
       
       // Generate basic transcript from stored chunks or use simple note
-      const basicTranscript = `Meeting recorded from ${new Date(Date.now() - recordingTime * 1000).toLocaleTimeString()} to ${new Date().toLocaleTimeString()}. Duration: ${Math.floor(recordingTime / 60)} minutes ${recordingTime % 60} seconds.`;
+      let basicTranscript = `Meeting recorded from ${new Date(Date.now() - recordingTime * 1000).toLocaleTimeString()} to ${new Date().toLocaleTimeString()}. Duration: ${Math.floor(recordingTime / 60)} minutes ${recordingTime % 60} seconds.`;
+      
+      // Prepend meeting context if available
+      if (meetingContext && hasContext) {
+        let contextPrefix = '=== MEETING CONTEXT ===\n\n';
+        if (meetingContext.attendees) {
+          contextPrefix += `ATTENDEES:\n${meetingContext.attendees}\n\n`;
+        }
+        if (meetingContext.agenda) {
+          contextPrefix += `AGENDA:\n${meetingContext.agenda}\n\n`;
+        }
+        if (meetingContext.additional_notes) {
+          contextPrefix += `ADDITIONAL NOTES:\n${meetingContext.additional_notes}\n\n`;
+        }
+        if (meetingContext.uploaded_files && meetingContext.uploaded_files.length > 0) {
+          contextPrefix += 'UPLOADED DOCUMENTS:\n';
+          meetingContext.uploaded_files.forEach(file => {
+            contextPrefix += `\n--- ${file.name} ---\n${file.content}\n`;
+          });
+          contextPrefix += '\n';
+        }
+        contextPrefix += '=== TRANSCRIPT ===\n\n';
+        basicTranscript = contextPrefix + basicTranscript;
+      }
       
       setTranscript(basicTranscript);
       
@@ -492,7 +519,20 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
                 </div>
               </div>
 
-              <div className="flex justify-center">
+              <div className="flex flex-col items-center gap-3">
+                {isRecording && (
+                  <Button 
+                    onClick={() => setShowContextDialog(true)} 
+                    variant="outline" 
+                    size="sm"
+                    className="hidden md:flex items-center gap-2"
+                  >
+                    <ClipboardList className="h-4 w-4" />
+                    Add Context
+                    {hasContext && <Check className="h-3 w-3 text-green-600" />}
+                  </Button>
+                )}
+                
                 {isRecording ? (
                   <Button onClick={stopRecording} variant="destructive" size="lg">
                     <Square className="h-4 w-4 mr-2" />
@@ -535,6 +575,29 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
         onSaveForLater={handleSaveForLater}
         onGenerateNow={handleGenerateNow}
       />
+
+      {currentMeetingId && (
+        <RecordingContextDialog
+          open={showContextDialog}
+          onOpenChange={setShowContextDialog}
+          meetingId={currentMeetingId}
+          existingContext={meetingContext}
+          onContextSaved={() => {
+            setHasContext(true);
+            // Fetch the updated context
+            supabase
+              .from('meetings')
+              .select('meeting_context')
+              .eq('id', currentMeetingId)
+              .single()
+              .then(({ data }) => {
+                if (data?.meeting_context) {
+                  setMeetingContext(data.meeting_context as MeetingContext);
+                }
+              });
+          }}
+        />
+      )}
     </>
   );
 };
