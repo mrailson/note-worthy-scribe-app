@@ -1477,24 +1477,62 @@ const ComplaintsSystem = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {complaints.slice(0, 5).map((complaint) => (
-                    <div key={complaint.id} className="flex items-center justify-between border-b pb-2">
-                      <div>
-                        <p className="font-medium">{complaint.reference_number}</p>
-                        <p className="text-sm text-muted-foreground">{complaint.complaint_title}</p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Badge className={getStatusColor(complaint.status)}>
-                          {getStatusIcon(complaint.status)}
-                          <span className="ml-1">{getStatusLabel(complaint.status)}</span>
-                        </Badge>
-                        {isOverdue(complaint) && (
-                          <Badge variant="destructive">Overdue</Badge>
-                        )}
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={async () => {
+                  {complaints.slice(0, 5).map((complaint) => {
+                    const daysRemaining = calculateDaysUntilDeadline(complaint.submitted_at);
+                    const getDaysColor = () => {
+                      if (daysRemaining === null) return 'bg-muted';
+                      if (daysRemaining < 0) return 'bg-destructive';
+                      if (daysRemaining <= 4) return 'bg-destructive';
+                      if (daysRemaining <= 9) return 'bg-amber-500';
+                      return 'bg-green-500';
+                    };
+                    const getDaysText = () => {
+                      if (daysRemaining === null) return 'Not submitted';
+                      if (daysRemaining < 0) return `Over target by ${Math.abs(daysRemaining)} days`;
+                      if (daysRemaining === 0) return 'Due today';
+                      if (daysRemaining === 1) return '1 day left';
+                      return `${daysRemaining} days left`;
+                    };
+
+                    return (
+                      <div key={complaint.id} className="flex items-center justify-between border-b pb-3">
+                        <div className="flex-1">
+                          <p className="font-medium">{complaint.reference_number}</p>
+                          <p className="text-sm text-muted-foreground">{complaint.complaint_title}</p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          {/* Days remaining indicator */}
+                          {daysRemaining !== null && (
+                            <div className="flex flex-col items-center min-w-[100px]">
+                              <div className={cn(
+                                "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold text-lg shadow-lg",
+                                getDaysColor()
+                              )}>
+                                {daysRemaining >= 0 ? daysRemaining : <AlertCircle className="h-6 w-6" />}
+                              </div>
+                              <p className={cn(
+                                "text-xs font-medium mt-1 text-center",
+                                daysRemaining < 0 ? 'text-destructive' : 
+                                daysRemaining <= 4 ? 'text-destructive' :
+                                daysRemaining <= 9 ? 'text-amber-600' : 'text-green-600'
+                              )}>
+                                {getDaysText()}
+                              </p>
+                            </div>
+                          )}
+                          <div className="flex flex-col gap-2">
+                            <Badge className={getStatusColor(complaint.status)}>
+                              {getStatusIcon(complaint.status)}
+                              <span className="ml-1">{getStatusLabel(complaint.status)}</span>
+                            </Badge>
+                            {isOverdue(complaint) && (
+                              <Badge variant="destructive">Overdue</Badge>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={async () => {
                             if (complaint.status === 'submitted') {
                               console.log('Button clicked but complaint is still being processed');
                               return;
@@ -1518,7 +1556,8 @@ const ComplaintsSystem = () => {
                         </Button>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </Card>
