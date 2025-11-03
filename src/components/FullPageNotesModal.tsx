@@ -457,11 +457,29 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
      console.log('🔍 Loading existing note styles for meeting:', currentMeetingId, 'user:', user.id);
 
      try {
-       // Use validate_meeting_access function for security
-       const { data: accessCheck } = await supabase.rpc('validate_meeting_access', {
-         p_meeting_id: currentMeetingId,
-         p_user_id: user.id
-       });
+       // Run all queries in parallel for faster loading
+       const [accessCheckResult, meetingDataResult, multiNotesResult] = await Promise.all([
+         supabase.rpc('validate_meeting_access', {
+           p_meeting_id: currentMeetingId,
+           p_user_id: user.id
+         }),
+         supabase
+           .from('meetings')
+           .select('notes_style_2, notes_style_3, notes_style_4, notes_style_5')
+           .eq('id', currentMeetingId)
+           .eq('user_id', user.id)
+           .maybeSingle(),
+         supabase
+           .from('meeting_notes_multi')
+           .select('note_type, content')
+           .eq('meeting_id', currentMeetingId)
+           .in('note_type', ['executive'])
+           .order('generated_at', { ascending: false })
+       ]);
+
+       const { data: accessCheck } = accessCheckResult;
+       const { data: meetingData, error } = meetingDataResult;
+       const { data: multiNotesData } = multiNotesResult;
 
         if (!accessCheck) {
           console.error('❌ User does not have access to meeting:', currentMeetingId);
@@ -469,25 +487,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           return;
         }
 
-       const { data: meetingData, error } = await supabase
-         .from('meetings')
-         .select('notes_style_2, notes_style_3, notes_style_4, notes_style_5')
-         .eq('id', currentMeetingId)
-         .eq('user_id', user.id)
-         .maybeSingle();
-
        if (error) {
          console.error('❌ Error loading note styles:', error);
          return;
        }
-
-       // Load executive and limerick notes from meeting_notes_multi table
-       const { data: multiNotesData } = await supabase
-          .from('meeting_notes_multi')
-          .select('note_type, content')
-          .eq('meeting_id', currentMeetingId)
-          .in('note_type', ['executive'])
-          .order('generated_at', { ascending: false });
 
        // Validate we're still on the same meeting before updating state
        if (meeting?.id !== currentMeetingId) {
