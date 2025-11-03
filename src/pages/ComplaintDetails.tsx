@@ -984,6 +984,12 @@ const ComplaintDetails = () => {
         bccRecipients.push(profile.email);
       }
 
+      // If only BCC is selected, move it to "To" instead
+      if (toRecipients.length === 0 && bccRecipients.length > 0) {
+        toRecipients.push(...bccRecipients);
+        bccRecipients.length = 0; // Clear BCC array
+      }
+
       // Format the letter content as HTML matching the Word document style
       const { formatLetterForEmail } = await import('@/utils/formatLetterForEmail');
       const formattedLetterHtml = formatLetterForEmail(acknowledgementLetter);
