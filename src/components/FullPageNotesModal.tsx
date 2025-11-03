@@ -515,7 +515,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
            .from('meetings')
            .select('notes_style_2, notes_style_3, notes_style_4, notes_style_5')
            .eq('id', currentMeetingId)
-           .eq('user_id', user.id)
            .maybeSingle(),
          supabase
            .from('meeting_notes_multi')
@@ -669,8 +668,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
        const { error } = await supabase
          .from('meetings')
          .update({ [columnName]: content })
-         .eq('id', currentMeetingId)
-         .eq('user_id', user.id);
+         .eq('id', currentMeetingId);
 
        // Validate we're still on the same meeting after save
        if (meeting?.id !== currentMeetingId) {

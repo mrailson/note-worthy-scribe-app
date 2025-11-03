@@ -115,7 +115,6 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
         .from('meetings')
         .select('notes_style_2, notes_style_3, notes_style_4, notes_style_5')
         .eq('id', meeting.id)
-        .eq('user_id', user.id)
         .single();
 
       if (error) {
