@@ -3725,6 +3725,9 @@ export type Database = {
           standard_minutes_variations: Json | null
           start_time: string
           status: string
+          style_previews: Json | null
+          style_previews_generated_at: string | null
+          style_previews_transcript_hash: string | null
           title: string
           transcript_cleaned_at: string | null
           transcript_cleaned_word_count: number | null
@@ -3777,6 +3780,9 @@ export type Database = {
           standard_minutes_variations?: Json | null
           start_time?: string
           status?: string
+          style_previews?: Json | null
+          style_previews_generated_at?: string | null
+          style_previews_transcript_hash?: string | null
           title: string
           transcript_cleaned_at?: string | null
           transcript_cleaned_word_count?: number | null
@@ -3829,6 +3835,9 @@ export type Database = {
           standard_minutes_variations?: Json | null
           start_time?: string
           status?: string
+          style_previews?: Json | null
+          style_previews_generated_at?: string | null
+          style_previews_transcript_hash?: string | null
           title?: string
           transcript_cleaned_at?: string | null
           transcript_cleaned_word_count?: number | null
@@ -4201,7 +4210,7 @@ export type Database = {
           complaints_system_usefulness: number
           created_at: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           meeting_manager_usefulness: number
           practice_id: string | null
           practice_name: string | null
@@ -4215,7 +4224,7 @@ export type Database = {
           complaints_system_usefulness: number
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           meeting_manager_usefulness: number
           practice_id?: string | null
           practice_name?: string | null
@@ -4229,7 +4238,7 @@ export type Database = {
           complaints_system_usefulness?: number
           created_at?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           meeting_manager_usefulness?: number
           practice_id?: string | null
           practice_name?: string | null
@@ -4625,7 +4634,7 @@ export type Database = {
           event_timestamp: string
           event_type: string
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           resolution_notes: string | null
           resolved_at: string | null
           resolved_by: string | null
@@ -4640,7 +4649,7 @@ export type Database = {
           event_timestamp?: string
           event_type: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
@@ -4655,7 +4664,7 @@ export type Database = {
           event_timestamp?: string
           event_type?: string
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           resolution_notes?: string | null
           resolved_at?: string | null
           resolved_by?: string | null
@@ -5255,7 +5264,7 @@ export type Database = {
       system_audit_log: {
         Row: {
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           new_values: Json | null
           old_values: Json | null
           operation: string
@@ -5270,7 +5279,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_values?: Json | null
           old_values?: Json | null
           operation: string
@@ -5285,7 +5294,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           new_values?: Json | null
           old_values?: Json | null
           operation?: string
@@ -5869,7 +5878,7 @@ export type Database = {
       user_sessions: {
         Row: {
           id: string
-          ip_address: unknown | null
+          ip_address: unknown
           is_active: boolean | null
           last_activity: string
           login_time: string
@@ -5882,7 +5891,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_active?: boolean | null
           last_activity?: string
           login_time?: string
@@ -5895,7 +5904,7 @@ export type Database = {
         }
         Update: {
           id?: string
-          ip_address?: unknown | null
+          ip_address?: unknown
           is_active?: boolean | null
           last_activity?: string
           login_time?: string
@@ -6044,29 +6053,17 @@ export type Database = {
         Args: { p_email: string; p_practice_id: string }
         Returns: Json
       }
-      cleanup_ai4gp_chat_history: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      cleanup_expired_sessions: {
-        Args: Record<PropertyKey, never>
-        Returns: number
-      }
-      cleanup_old_sessions: {
-        Args: { days_old?: number }
-        Returns: number
-      }
+      cleanup_ai4gp_chat_history: { Args: never; Returns: number }
+      cleanup_expired_sessions: { Args: never; Returns: number }
+      cleanup_old_sessions: { Args: { days_old?: number }; Returns: number }
       cleanup_stuck_meetings: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           fixed_meeting_ids: string[]
           fixed_meetings_count: number
         }[]
       }
-      complete_meeting: {
-        Args: { meeting_id: string }
-        Returns: Json
-      }
+      complete_meeting: { Args: { meeting_id: string }; Returns: Json }
       create_complaint_outcome: {
         Args: {
           p_complaint_id: string
@@ -6084,20 +6081,14 @@ export type Database = {
         Args: { p_practice_id: string; p_user_id: string }
         Returns: undefined
       }
-      deduplicate_medicines: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      delay_seconds: {
-        Args: { seconds: number }
-        Returns: undefined
-      }
+      deduplicate_medicines: { Args: never; Returns: undefined }
+      delay_seconds: { Args: { seconds: number }; Returns: undefined }
       delete_complaint_cascade: {
         Args: { p_complaint_id: string }
         Returns: Json
       }
       detect_meeting_data_crossover: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           last_updated: string
           meeting_id: string
@@ -6107,7 +6098,7 @@ export type Database = {
         }[]
       }
       emergency_detect_transcript_data_loss: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           chunk_count: number
           created_at: string
@@ -6136,14 +6127,8 @@ export type Database = {
           word_count: number
         }[]
       }
-      generate_complaint_reference: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
-      generate_incident_reference: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      generate_complaint_reference: { Args: never; Returns: string }
+      generate_incident_reference: { Args: never; Returns: string }
       get_combined_transcript: {
         Args: { p_meeting_id: string; p_session_id: string }
         Returns: string
@@ -6194,16 +6179,13 @@ export type Database = {
           traffic_light_status: string
         }[]
       }
-      get_current_user_id: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      get_current_user_id: { Args: never; Returns: string }
       get_current_user_role: {
         Args: { check_user_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
       }
       get_database_table_sizes: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           row_count: number
           size_bytes: number
@@ -6235,7 +6217,7 @@ export type Database = {
         }[]
       }
       get_large_files_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           files_500kb_to_1mb: number
           files_over_1mb: number
@@ -6266,7 +6248,7 @@ export type Database = {
         Returns: string
       }
       get_monitoring_dashboard: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           critical_alerts: number
           last_check: string
@@ -6281,7 +6263,7 @@ export type Database = {
         Returns: string[]
       }
       get_practice_manager_assignable_roles: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: Database["public"]["Enums"]["app_role"][]
       }
       get_practice_manager_practice_id: {
@@ -6324,10 +6306,7 @@ export type Database = {
           user_id: string
         }[]
       }
-      get_security_setting: {
-        Args: { setting_name: string }
-        Returns: string
-      }
+      get_security_setting: { Args: { setting_name: string }; Returns: string }
       get_user_modules: {
         Args: { p_user_id?: string }
         Returns: {
@@ -6346,10 +6325,7 @@ export type Database = {
           role: Database["public"]["Enums"]["app_role"]
         }[]
       }
-      get_user_practice_ids: {
-        Args: { p_user_id?: string }
-        Returns: string[]
-      }
+      get_user_practice_ids: { Args: { p_user_id?: string }; Returns: string[] }
       get_user_role_for_policy: {
         Args: { check_user_id?: string }
         Returns: Database["public"]["Enums"]["app_role"]
@@ -6363,7 +6339,7 @@ export type Database = {
         }[]
       }
       get_users_with_practices: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           email: string
           full_name: string
@@ -6396,18 +6372,12 @@ export type Database = {
         }
         Returns: boolean
       }
-      icn_norm: {
-        Args: { input_name: string }
-        Returns: string
-      }
+      icn_norm: { Args: { input_name: string }; Returns: string }
       initialize_complaint_compliance: {
         Args: { complaint_id_param: string }
         Returns: undefined
       }
-      is_pcn_manager: {
-        Args: { _user_id?: string }
-        Returns: boolean
-      }
+      is_pcn_manager: { Args: { _user_id?: string }; Returns: boolean }
       is_pcn_manager_for_practice: {
         Args: { _practice_id: string; _user_id: string }
         Returns: boolean
@@ -6416,26 +6386,23 @@ export type Database = {
         Args: { _practice_id: string; _user_id: string }
         Returns: boolean
       }
-      is_session_valid: {
-        Args: { p_session_id: string }
-        Returns: boolean
-      }
-      is_system_admin: {
-        Args: { _user_id?: string }
-        Returns: boolean
-      }
-      log_complaint_action: {
-        Args:
-          | { p_action: string; p_complaint_id: string; p_details?: Json }
-          | {
+      is_session_valid: { Args: { p_session_id: string }; Returns: boolean }
+      is_system_admin: { Args: { _user_id?: string }; Returns: boolean }
+      log_complaint_action:
+        | {
+            Args: {
               p_action_description: string
               p_action_type: string
               p_complaint_id: string
               p_new_values?: Json
               p_old_values?: Json
             }
-        Returns: undefined
-      }
+            Returns: undefined
+          }
+        | {
+            Args: { p_action: string; p_complaint_id: string; p_details?: Json }
+            Returns: string
+          }
       log_complaint_activity: {
         Args: {
           p_action: string
@@ -6478,11 +6445,13 @@ export type Database = {
         }
         Returns: undefined
       }
-      log_security_event: {
-        Args:
-          | { event_data: Json; event_type: string }
-          | { p_details?: Json; p_event_type: string; p_user_id: string }
-          | {
+      log_security_event:
+        | {
+            Args: { p_details?: Json; p_event_type: string; p_user_id: string }
+            Returns: string
+          }
+        | {
+            Args: {
               p_event_details?: Json
               p_event_type: string
               p_ip_address?: unknown
@@ -6491,8 +6460,9 @@ export type Database = {
               p_user_email?: string
               p_user_id?: string
             }
-        Returns: string
-      }
+            Returns: string
+          }
+        | { Args: { event_data: Json; event_type: string }; Returns: undefined }
       log_session_access_attempt: {
         Args: { p_access_type: string; p_session_id: string }
         Returns: undefined
@@ -6520,10 +6490,7 @@ export type Database = {
         Args: { p_session_id?: string; p_user_id: string }
         Returns: undefined
       }
-      purge_expired_data: {
-        Args: Record<PropertyKey, never>
-        Returns: string
-      }
+      purge_expired_data: { Args: never; Returns: string }
       remove_user_from_practice: {
         Args: {
           p_practice_id: string
@@ -6543,18 +6510,12 @@ export type Database = {
         Args: { text1: string; text2: string }
         Returns: number
       }
-      safe_unaccent: {
-        Args: { input_text: string }
-        Returns: string
-      }
+      safe_unaccent: { Args: { input_text: string }; Returns: string }
       submit_external_response: {
         Args: { access_token_param: string; response_text_param: string }
         Returns: boolean
       }
-      trigger_queue_processing: {
-        Args: Record<PropertyKey, never>
-        Returns: Json
-      }
+      trigger_queue_processing: { Args: never; Returns: Json }
       update_chunk_cleaning_stats: {
         Args: {
           p_chunks_processed?: number
@@ -6568,21 +6529,25 @@ export type Database = {
         Args: { p_session_id?: string; p_user_id: string }
         Returns: undefined
       }
-      update_transcript_cleaning_stats: {
-        Args: Record<PropertyKey, never>
-        Returns: undefined
-      }
-      update_user_session_activity: {
-        Args:
-          | {
+      update_transcript_cleaning_stats: { Args: never; Returns: undefined }
+      update_user_session_activity:
+        | {
+            Args: {
+              p_ip_address?: unknown
+              p_user_agent?: string
+              p_user_id: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
               p_ip_address?: unknown
               p_session_id?: string
               p_user_agent?: string
               p_user_id: string
             }
-          | { p_ip_address?: unknown; p_user_agent?: string; p_user_id: string }
-        Returns: undefined
-      }
+            Returns: undefined
+          }
       user_has_meeting_access: {
         Args: { p_meeting_id: string; p_user_id?: string }
         Returns: boolean
@@ -6606,10 +6571,7 @@ export type Database = {
         Args: { p_content_type?: string; p_meeting_id: string }
         Returns: boolean
       }
-      validate_nhs_email: {
-        Args: { email_address: string }
-        Returns: boolean
-      }
+      validate_nhs_email: { Args: { email_address: string }; Returns: boolean }
     }
     Enums: {
       app_module:

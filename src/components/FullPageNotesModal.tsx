@@ -5,6 +5,7 @@ import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal"
 import { InlineWordCorrector } from "@/components/InlineWordCorrector";
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
+import { StyleGalleryContainer } from "@/components/meeting/StyleGallery/StyleGalleryContainer";
 import React, { useState, useEffect, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -3103,6 +3104,10 @@ ${transcript}`;
                             <TabsTrigger value="style1" className="text-xs sm:text-sm">
                               Meeting Minutes - Standard View
                             </TabsTrigger>
+                            <TabsTrigger value="style-gallery" className="text-xs sm:text-sm">
+                              <Sparkles className="h-4 w-4 mr-1" />
+                              Style Gallery
+                            </TabsTrigger>
                             {canViewConsultationExamples && (
                               <TabsTrigger value="style6" className="text-xs sm:text-sm">
                                 Patient Consultation
@@ -3460,6 +3465,18 @@ ${transcript}`;
                           )}
                        </TabsContent>
                       
+                      {/* Style Gallery Tab */}
+                      <TabsContent value="style-gallery" className="flex-1 overflow-hidden mt-0">
+                        <StyleGalleryContainer
+                          meetingId={meeting?.id || ''}
+                          transcript={transcript}
+                          meetingContext={{
+                            title: meeting?.title || 'Meeting',
+                            date: meeting?.start_time
+                          }}
+                          currentNotesStyle={notesStyle3}
+                        />
+                      </TabsContent>
                       
                          {/* Patient Consultation Content (style6) */}
                        <TabsContent value="style6" className="flex-1 overflow-hidden mt-0">
