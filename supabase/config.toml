@@ -191,3 +191,6 @@ verify_jwt = true
 
 [functions.persist-standard-minutes]
 verify_jwt = true
+
+[functions.regenerate-acknowledgement-letter]
+verify_jwt = true

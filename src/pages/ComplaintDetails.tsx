@@ -13,6 +13,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 import { Header } from "@/components/Header";
 import { ViewFullResponseModal } from "@/components/ViewFullResponseModal";
+import { AcknowledgementQuickPick } from "@/components/AcknowledgementQuickPick";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -3206,6 +3207,16 @@ I am committed to ensuring that all patients receive the care and service they d
                     <Download className="h-4 w-4 mr-1" />
                     Download
                   </Button>
+                  <AcknowledgementQuickPick
+                    currentLetter={editedAcknowledgementContent}
+                    onLetterChange={(newLetter) => {
+                      setEditedAcknowledgementContent(newLetter);
+                      setHasUnsavedChanges(true);
+                    }}
+                    complaintId={complaint.id}
+                    complaintDescription={complaint.complaint_description}
+                    referenceNumber={complaint.reference_number}
+                  />
                   <Button 
                     variant="outline"
                     size="sm"
