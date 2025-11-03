@@ -1545,9 +1545,9 @@ const ComplaintsSystem = () => {
                           <p className="font-medium">{complaint.reference_number}</p>
                           <p className="text-sm text-muted-foreground">{complaint.complaint_title}</p>
                         </div>
-                        <div className="flex items-center gap-3">
+                        <div className="grid items-center gap-3 grid-cols-[100px_1fr_auto] w-[380px]">
                           {/* Days remaining indicator */}
-                          <div className="flex flex-col items-center min-w-[100px]">
+                          <div className="flex flex-col items-center w-[100px]">
                             <div className={cn(
                               "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold shadow-lg",
                               getDaysColor()
