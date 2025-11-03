@@ -151,9 +151,9 @@ export async function createLetterDocument(letterContent: string, letterType: st
         const imageBuffer = await imageBlob.arrayBuffer();
         const uint8Array = new Uint8Array(imageBuffer);
 
-        // Compute dimensions preserving aspect ratio within bounds
-        let targetWidth = 200;
-        let targetHeight = 80;
+        // Compute dimensions preserving aspect ratio within bounds (40% larger)
+        let targetWidth = 280;
+        let targetHeight = 112;
         try {
           const tempImg = document.createElement('img');
           const objectUrl = URL.createObjectURL(imageBlob);
@@ -167,11 +167,11 @@ export async function createLetterDocument(letterContent: string, letterType: st
           URL.revokeObjectURL(objectUrl);
 
           if (naturalW && naturalH) {
-            const maxW = 240; // px
-            const maxH = 100; // px
+            const maxW = 336; // px (40% larger)
+            const maxH = 140; // px (40% larger)
             const scale = Math.min(maxW / naturalW, maxH / naturalH, 1);
-            targetWidth = Math.max(60, Math.round(naturalW * scale));
-            targetHeight = Math.max(20, Math.round(naturalH * scale));
+            targetWidth = Math.max(84, Math.round(naturalW * scale));
+            targetHeight = Math.max(28, Math.round(naturalH * scale));
           }
         } catch (_) {
           // keep defaults
