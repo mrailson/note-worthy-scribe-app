@@ -4537,25 +4537,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                               <p>{isPaused ? "Resume Recording" : "Pause Recording"}</p>
                             </TooltipContent>
                           </Tooltip>
-
-                          {/* Dashboard Button - Hidden on iPhone to prevent recording interference */}
-                          {!isIOS && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  onClick={() => setDashboardOpen(true)}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
-                                >
-                                  <Monitor className="h-4 w-4" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>Open Meeting Dashboard</p>
-                              </TooltipContent>
-                            </Tooltip>
-                           )}
                            
                            {/* Add Context Button - Desktop only */}
                            {!isIOS && (
