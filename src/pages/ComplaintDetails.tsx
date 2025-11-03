@@ -169,6 +169,7 @@ const ComplaintDetails = () => {
   const [showOutcomeAIEdit, setShowOutcomeAIEdit] = useState(false);
   const [aiEditInstructions, setAiEditInstructions] = useState("");
   const [isRegeneratingWithAI, setIsRegeneratingWithAI] = useState(false);
+  const [isSendingAcknowledgementEmail, setIsSendingAcknowledgementEmail] = useState(false);
 
 
   // Define all functions before useEffect
@@ -909,6 +910,91 @@ const ComplaintDetails = () => {
     } catch (error) {
       console.error('Error downloading acknowledgement letter:', error);
       toast.error("Failed to download acknowledgement letter");
+    }
+  };
+
+  const handleSendAcknowledgementEmail = async () => {
+    if (!acknowledgementLetter || !complaint) return;
+
+    if (!complaint.patient_contact_email) {
+      toast.error("No patient email address available");
+      return;
+    }
+
+    setIsSendingAcknowledgementEmail(true);
+    try {
+      // Generate Word document attachment
+      let wordAttachment = null;
+      try {
+        const doc = await createLetterDocument(acknowledgementLetter, 'acknowledgement', complaint.reference_number);
+        const buffer = await Packer.toBlob(doc);
+        const reader = new FileReader();
+        const base64Promise = new Promise<string>((resolve) => {
+          reader.onloadend = () => {
+            const base64 = (reader.result as string).split(',')[1];
+            resolve(base64);
+          };
+        });
+        reader.readAsDataURL(buffer);
+        const base64Content = await base64Promise;
+        
+        wordAttachment = {
+          content: base64Content,
+          filename: `Acknowledgement_Letter_${complaint.reference_number}.docx`,
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        };
+      } catch (docError) {
+        console.warn('Word document generation failed:', docError);
+      }
+
+      // Strip HTML and format for email
+      const stripHTML = (html: string): string => {
+        const tmp = document.createElement('div');
+        tmp.innerHTML = html;
+        return tmp.textContent || tmp.innerText || '';
+      };
+
+      const cleanContent = stripHTML(acknowledgementLetter)
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      const emailData = {
+        to_email: complaint.patient_contact_email,
+        subject: `Complaint Acknowledgement - ${complaint.reference_number}`,
+        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
+          <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">Dear ${complaint.patient_name},</p>
+          <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">Please find attached your complaint acknowledgement letter.</p>
+          <div style="border-top: 3px solid #0066cc; padding-top: 20px; margin-top: 20px;">
+            <p style="margin: 0; color: #1a1a1a; font-size: 14px; line-height: 1.6; white-space: pre-wrap;">${cleanContent}</p>
+          </div>
+        </div>`,
+        template_type: 'complaint_acknowledgement',
+        from_name: 'NHS Complaints Team',
+        reply_to: 'complaints@nhs.net',
+        word_attachment: wordAttachment,
+        complaint_reference: complaint.reference_number
+      };
+
+      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
+        body: emailData
+      });
+
+      if (error) {
+        console.error('Email sending error:', error);
+        throw new Error(error.message || 'Failed to send email');
+      }
+
+      if (!data?.success) {
+        console.error('EmailJS error:', data);
+        throw new Error(data?.error || 'Failed to send email via EmailJS');
+      }
+
+      toast.success(`Acknowledgement letter sent to ${complaint.patient_contact_email}`);
+    } catch (error) {
+      console.error('Error sending acknowledgement email:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to send email');
+    } finally {
+      setIsSendingAcknowledgementEmail(false);
     }
   };
 
@@ -3206,6 +3292,25 @@ I am committed to ensuring that all patients receive the care and service they d
                   >
                     <Download className="h-4 w-4 mr-1" />
                     Download
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSendAcknowledgementEmail}
+                    disabled={isSendingAcknowledgementEmail || !complaint?.patient_contact_email}
+                    title={!complaint?.patient_contact_email ? 'No patient email address available' : 'Send acknowledgement letter via email'}
+                  >
+                    {isSendingAcknowledgementEmail ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                        Sending...
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="h-4 w-4 mr-1" />
+                        Email
+                      </>
+                    )}
                   </Button>
                   <AcknowledgementQuickPick
                     currentLetter={editedAcknowledgementContent}
