@@ -20,7 +20,17 @@ Requirements:
 - Use formal language (e.g., "The Chair opened the meeting at...")
 - Include section numbering (1.0, 1.1, 1.2, etc.)
 - Length: 800-1200 words
-- Tone: Formal, authoritative, governance-focused`
+- Tone: Formal, authoritative, governance-focused
+
+FORMATTING REQUIREMENTS:
+- Use ## for main section headings (e.g., ## 1.0 Meeting Called to Order)
+- Use ### for subsections
+- Add blank lines between sections for spacing
+- Use **bold** for important terms, names, and key decisions
+- Use *italics* for notes or clarifications
+- Format dates, times consistently (e.g., **Date:** 28th October 2023, **Time:** 14:00)
+- Use bullet points with clear spacing (add blank line before and after lists)
+- Format motions with clear indentation and bold formatting`
   },
   action_focused: {
     name: 'Action-Focused Summary',
@@ -35,7 +45,17 @@ Requirements:
 - Highlight urgent items
 - Keep descriptions brief and specific
 - Length: 600-900 words
-- Tone: Direct, action-oriented, clear`
+- Tone: Direct, action-oriented, clear
+
+FORMATTING REQUIREMENTS:
+- Use ## for main sections (e.g., ## Meeting Overview, ## Key Decisions)
+- Add blank lines between all sections for visual breathing room
+- Use **bold** for decision outcomes and action owners
+- Format the action items table properly with markdown table syntax
+- Use ⚠️ emoji for high-priority or urgent items
+- Use ✅ emoji for completed items
+- Format dates consistently (e.g., **Deadline:** 5th November 2023)
+- Use clear bullet points with spacing`
   },
   clinical_team: {
     name: 'Clinical Team Briefing',
@@ -49,7 +69,17 @@ Requirements:
 - Note any resource or staffing implications
 - Use clinical terminology appropriately
 - Length: 700-1000 words
-- Tone: Professional, clinically-focused, collaborative`
+- Tone: Professional, clinically-focused, collaborative
+
+FORMATTING REQUIREMENTS:
+- Use ## for main sections (e.g., ## Clinical Priorities, ## Safety Concerns)
+- Use ### for subsections within each area
+- Add blank lines between sections
+- Use **bold** for patient safety issues, critical actions, and key clinical terms
+- Use 🚨 emoji for urgent safety concerns
+- Use bullet points for clear readability
+- Format protocols/guidelines references with *italics*
+- Use clear spacing around lists and priority items`
   },
   executive_summary: {
     name: 'Executive Summary',
@@ -63,7 +93,17 @@ Requirements:
 - Avoid operational detail unless strategically significant
 - Use bullet points for readability
 - Highlight risks, opportunities and major issues
-- Tone: Executive-level, strategic, concise`
+- Tone: Executive-level, strategic, concise
+
+FORMATTING REQUIREMENTS:
+- Use ## for main sections only (keep it clean and executive-level)
+- Add generous spacing between sections
+- Use **bold** for critical decisions, financial figures, and strategic priorities
+- Use bullet points with clear hierarchy (main points and sub-points)
+- Format financial figures clearly (e.g., **£250,000** or **15% increase**)
+- Use 🎯 emoji for strategic priorities
+- Use ⚠️ emoji for risks
+- Keep formatting clean and professional - avoid over-formatting`
   },
   agenda_based: {
     name: 'Agenda-Based Notes',
@@ -78,7 +118,17 @@ Requirements:
 - If no clear agenda exists, create logical sections from topics discussed
 - Include an "Any Other Business" section if relevant
 - Length: 800-1100 words
-- Tone: Structured, organised, comprehensive`
+- Tone: Structured, organised, comprehensive
+
+FORMATTING REQUIREMENTS:
+- Use ## for agenda items (e.g., ## 1.0 Introduction to Consortia-Based Research)
+- Use ### for subsections (Discussion, Decision/Outcome, Actions Arising)
+- Add blank lines between agenda items and subsections
+- Use **bold** for decisions and action owners
+- Use bullet points for discussion points with proper spacing
+- Format meeting metadata at the top (date, location, attendees) with clear labels
+- Use *italics* for notes or clarifications
+- Ensure consistent numbering throughout`
   },
   narrative: {
     name: 'Narrative Minutes',
@@ -94,7 +144,17 @@ Requirements:
 - Connect related topics and themes
 - Maintain chronological flow
 - Length: 900-1300 words
-- Tone: Narrative, contextual, comprehensive`
+- Tone: Narrative, contextual, comprehensive
+
+FORMATTING REQUIREMENTS:
+- Use ## for main sections/phases of the meeting
+- Write in well-spaced paragraphs (add blank line between paragraphs)
+- Use **bold** for key decisions, important names, and critical moments
+- Use *italics* for emphasis or quoted phrases
+- Format the opening with clear meeting context (date, time, purpose)
+- Use clear transitions between sections
+- Add subtle paragraph breaks for readability - don't create walls of text
+- Keep it flowing but visually appealing`
   },
   partnership: {
     name: 'Partnership Meeting Notes',
@@ -108,7 +168,17 @@ Requirements:
 - Reference relevant QOF, CQC or regulatory matters
 - Include any partnership agreement considerations
 - Length: 900-1200 words
-- Tone: Partnership-focused, balanced, comprehensive`
+- Tone: Partnership-focused, balanced, comprehensive
+
+FORMATTING REQUIREMENTS:
+- Use ## for main sections (e.g., ## Clinical Matters, ## Financial Review)
+- Use ### for subsections within each area
+- Add blank lines between all sections
+- Use **bold** for partnership decisions, voting outcomes, and financial figures
+- Use 💷 emoji for financial matters
+- Use ✅ emoji for compliance/regulatory items
+- Format key metrics and figures clearly (e.g., **QOF Achievement: 95%**)
+- Use bullet points with proper spacing for clear readability`
   },
   quality_safety: {
     name: 'Quality & Safety Report',
@@ -123,7 +193,19 @@ Requirements:
 - Highlight immediate safety actions prominently
 - Track action completion and responsibilities
 - Length: 700-1000 words
-- Tone: Safety-focused, improvement-oriented, analytical`
+- Tone: Safety-focused, improvement-oriented, analytical
+
+FORMATTING REQUIREMENTS:
+- Use ## for main sections (e.g., ## Incidents Reviewed, ## Safety Concerns Raised)
+- Use ### for incident categories or risk levels
+- Add blank lines between sections and incidents
+- Use **bold** for incident numbers, risk levels, and responsible persons
+- Use 🚨 emoji for HIGH risk items
+- Use ⚠️ emoji for MEDIUM risk items
+- Use ℹ️ emoji for LOW risk items
+- Use ✅ emoji for completed actions
+- Format incident details in clear tables where appropriate
+- Use bullet points with proper spacing for learning points`
   },
   concise_bullets: {
     name: 'Concise Bullet Points',
@@ -139,7 +221,17 @@ Requirements:
 - Use sub-bullets sparingly
 - Focus on "what" not "why"
 - Include dates, names and deadlines
-- Tone: Brief, direct, to-the-point`
+- Tone: Brief, direct, to-the-point
+
+FORMATTING REQUIREMENTS:
+- Use ## for the four main sections only
+- Add blank lines between sections
+- Use clean, simple bullet points (-)
+- Use **bold** for names, dates, and key terms
+- Add blank line before and after each section
+- Keep it visually clean - no over-formatting
+- Format dates consistently (e.g., **Next meeting:** 15th November 2023)
+- Use sub-bullets only when absolutely necessary`
   },
   detailed_record: {
     name: 'Detailed Record',
@@ -156,7 +248,18 @@ Requirements:
 - Provide full rationale for decisions
 - Comprehensive action tracking with full context
 - Sections: Detailed Attendance, Full Discussion by Topic, Complete Decision Records, Comprehensive Actions, Background Context
-- Tone: Thorough, detailed, archival-quality`
+- Tone: Thorough, detailed, archival-quality
+
+FORMATTING REQUIREMENTS:
+- Use ## for main sections (e.g., ## Detailed Attendance, ## Discussion Topics)
+- Use ### for subsections and individual topics
+- Add generous spacing between sections
+- Use **bold** for speaker names, key decisions, and important terms
+- Use *italics* for document references and quotes
+- Format attendance lists clearly with roles
+- Use bullet points for discussion points with proper spacing
+- Create clear visual hierarchy for nested information
+- Use tables for structured data (attendance, actions, etc.)`
   }
 };
 
