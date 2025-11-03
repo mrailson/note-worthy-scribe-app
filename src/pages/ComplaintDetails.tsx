@@ -434,16 +434,9 @@ const ComplaintDetails = () => {
     if (!acknowledgementLetter || !complaint) return;
     
     try {
-      // Create a simple text file download
-      const blob = new Blob([acknowledgementLetter], { type: 'text/plain' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `Acknowledgement_Letter_${complaint.reference_number}.txt`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      const { generateWordDocument } = await import('@/utils/documentGenerators');
+      const title = `Acknowledgement_Letter_${complaint.reference_number}`;
+      await generateWordDocument(acknowledgementLetter, title, true);
       
       toast.success("Acknowledgement letter downloaded successfully");
     } catch (error) {
@@ -1590,13 +1583,9 @@ const ComplaintDetails = () => {
                           variant="outline"
                           onClick={async () => {
                             try {
-                              const blob = new Blob([outcomeLetter], { type: 'text/plain' });
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `Outcome_Letter_${complaint?.reference_number || 'OUTCOME'}.txt`;
-                              a.click();
-                              URL.revokeObjectURL(url);
+                              const { generateWordDocument } = await import('@/utils/documentGenerators');
+                              const title = `Outcome_Letter_${complaint?.reference_number || 'OUTCOME'}`;
+                              await generateWordDocument(outcomeLetter, title, true);
                               toast.success('Outcome letter downloaded');
                             } catch (error) {
                               console.error('Error downloading outcome letter:', error);
