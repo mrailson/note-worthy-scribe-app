@@ -9,7 +9,6 @@ import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw, Loader2, Download, Copy, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
-import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
 import { stripMarkdown } from '@/utils/stripMarkdown';
 import { renderMinutesMarkdown } from '@/lib/minutesRenderer';
@@ -62,23 +61,87 @@ export const StyleGalleryContainer = ({
       const plainText = stripMarkdown(content);
       const fileName = `${meetingContext.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-${styleName.replace(/[^a-z0-9]/gi, '-').toLowerCase()}`;
 
-      // Export as PDF
-      const doc = new jsPDF();
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const margin = 20;
-      const maxWidth = pageWidth - 2 * margin;
+      // Export as Word document
+      const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } = await import('docx');
       
-      doc.setFontSize(16);
-      doc.text(styleName, margin, margin);
-      doc.setFontSize(10);
-      doc.text(meetingContext.title, margin, margin + 10);
+      // Parse content into structured paragraphs
+      const lines = content.split('\n').filter(line => line.trim());
+      const paragraphs = [];
       
-      const lines = doc.splitTextToSize(plainText, maxWidth);
-      doc.setFontSize(11);
-      doc.text(lines, margin, margin + 20);
+      for (const line of lines) {
+        if (line.startsWith('##')) {
+          // Heading
+          const text = line.replace(/^#+\s*/, '').trim();
+          paragraphs.push(
+            new Paragraph({
+              text,
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 240, after: 120 }
+            })
+          );
+        } else if (line.startsWith('#')) {
+          // Main heading
+          const text = line.replace(/^#+\s*/, '').trim();
+          paragraphs.push(
+            new Paragraph({
+              text,
+              heading: HeadingLevel.HEADING_1,
+              spacing: { before: 240, after: 120 }
+            })
+          );
+        } else if (line.match(/^\d+\./)) {
+          // Numbered list
+          const text = line.replace(/^\d+\.\s*/, '').replace(/\*\*/g, '').trim();
+          paragraphs.push(
+            new Paragraph({
+              text,
+              numbering: { reference: 'default-numbering', level: 0 },
+              spacing: { before: 80, after: 80 }
+            })
+          );
+        } else if (line.match(/^[-•*]/)) {
+          // Bullet list
+          const text = line.replace(/^[-•*]\s*/, '').replace(/\*\*/g, '').trim();
+          paragraphs.push(
+            new Paragraph({
+              text,
+              bullet: { level: 0 },
+              spacing: { before: 80, after: 80 }
+            })
+          );
+        } else if (line.trim()) {
+          // Regular paragraph
+          const text = line.replace(/\*\*/g, '').trim();
+          paragraphs.push(
+            new Paragraph({
+              text,
+              spacing: { before: 120, after: 120 }
+            })
+          );
+        }
+      }
       
-      doc.save(`${fileName}.pdf`);
-      toast.success('Exported as PDF');
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            new Paragraph({
+              text: styleName,
+              heading: HeadingLevel.TITLE,
+              spacing: { after: 200 }
+            }),
+            new Paragraph({
+              text: meetingContext.title,
+              spacing: { after: 400 }
+            }),
+            ...paragraphs
+          ]
+        }]
+      });
+      
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${fileName}.docx`);
+      toast.success('Exported as Word document');
     } catch (err) {
       console.error('Export error:', err);
       toast.error('Failed to export');
@@ -258,7 +321,7 @@ export const StyleGalleryContainer = ({
               onClick={() => handleExport(viewContent, viewTitle)}
             >
               <Download className="h-4 w-4 mr-1" />
-              Export PDF
+              Export Word
             </Button>
           </div>
           <ScrollArea className="flex-1 border rounded-md p-4 bg-background">
