@@ -328,27 +328,40 @@ export const MeetingRecordingInterface: React.FC<MeetingRecordingInterfaceProps>
       // Generate basic transcript from stored chunks or use simple note
       let basicTranscript = `Meeting recorded from ${new Date(Date.now() - recordingTime * 1000).toLocaleTimeString()} to ${new Date().toLocaleTimeString()}. Duration: ${Math.floor(recordingTime / 60)} minutes ${recordingTime % 60} seconds.`;
       
-      // Prepend meeting context if available
-      if (meetingContext && hasContext) {
-        let contextPrefix = '=== MEETING CONTEXT ===\n\n';
-        if (meetingContext.attendees) {
-          contextPrefix += `ATTENDEES:\n${meetingContext.attendees}\n\n`;
+      // Fetch and prepend meeting context from database if available
+      try {
+        const { data: meetingData } = await supabase
+          .from('meetings')
+          .select('meeting_context')
+          .eq('id', currentMeetingId)
+          .single();
+        
+        const contextData = meetingData?.meeting_context as MeetingContext | null;
+        
+        if (contextData) {
+          let contextPrefix = '=== MEETING CONTEXT ===\n\n';
+          if (contextData.attendees) {
+            contextPrefix += `ATTENDEES:\n${contextData.attendees}\n\n`;
+          }
+          if (contextData.agenda) {
+            contextPrefix += `AGENDA:\n${contextData.agenda}\n\n`;
+          }
+          if (contextData.additional_notes) {
+            contextPrefix += `ADDITIONAL NOTES:\n${contextData.additional_notes}\n\n`;
+          }
+          if (contextData.uploaded_files && contextData.uploaded_files.length > 0) {
+            contextPrefix += 'UPLOADED DOCUMENTS:\n';
+            contextData.uploaded_files.forEach(file => {
+              contextPrefix += `\n--- ${file.name} ---\n${file.content}\n`;
+            });
+            contextPrefix += '\n';
+          }
+          contextPrefix += '=== TRANSCRIPT ===\n\n';
+          basicTranscript = contextPrefix + basicTranscript;
+          console.log('✅ Meeting context prepended to transcript');
         }
-        if (meetingContext.agenda) {
-          contextPrefix += `AGENDA:\n${meetingContext.agenda}\n\n`;
-        }
-        if (meetingContext.additional_notes) {
-          contextPrefix += `ADDITIONAL NOTES:\n${meetingContext.additional_notes}\n\n`;
-        }
-        if (meetingContext.uploaded_files && meetingContext.uploaded_files.length > 0) {
-          contextPrefix += 'UPLOADED DOCUMENTS:\n';
-          meetingContext.uploaded_files.forEach(file => {
-            contextPrefix += `\n--- ${file.name} ---\n${file.content}\n`;
-          });
-          contextPrefix += '\n';
-        }
-        contextPrefix += '=== TRANSCRIPT ===\n\n';
-        basicTranscript = contextPrefix + basicTranscript;
+      } catch (error) {
+        console.error('Error fetching meeting context:', error);
       }
       
       setTranscript(basicTranscript);

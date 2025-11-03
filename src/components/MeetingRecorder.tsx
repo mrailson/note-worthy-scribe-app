@@ -3519,28 +3519,44 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     
     const defaultTitle = `Meeting - ${dayOfWeek}, ${dayWithSuffix} ${month} ${year} (${time})`;
     
-    // Prepend meeting context if available
+    // Fetch and prepend meeting context from database if available
     let transcriptWithContext = currentTranscript;
-    if (meetingContext && hasContext) {
-      let contextPrefix = '=== MEETING CONTEXT ===\n\n';
-      if (meetingContext.attendees) {
-        contextPrefix += `ATTENDEES:\n${meetingContext.attendees}\n\n`;
+    const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+    if (currentMeetingId) {
+      try {
+        const { data: meetingData } = await supabase
+          .from('meetings')
+          .select('meeting_context')
+          .eq('id', currentMeetingId)
+          .single();
+        
+        const contextData = meetingData?.meeting_context as MeetingContext | null;
+        
+        if (contextData) {
+          let contextPrefix = '=== MEETING CONTEXT ===\n\n';
+          if (contextData.attendees) {
+            contextPrefix += `ATTENDEES:\n${contextData.attendees}\n\n`;
+          }
+          if (contextData.agenda) {
+            contextPrefix += `AGENDA:\n${contextData.agenda}\n\n`;
+          }
+          if (contextData.additional_notes) {
+            contextPrefix += `ADDITIONAL NOTES:\n${contextData.additional_notes}\n\n`;
+          }
+          if (contextData.uploaded_files && contextData.uploaded_files.length > 0) {
+            contextPrefix += 'UPLOADED DOCUMENTS:\n';
+            contextData.uploaded_files.forEach(file => {
+              contextPrefix += `\n--- ${file.name} ---\n${file.content}\n`;
+            });
+            contextPrefix += '\n';
+          }
+          contextPrefix += '=== TRANSCRIPT ===\n\n';
+          transcriptWithContext = contextPrefix + currentTranscript;
+          console.log('✅ Meeting context prepended to transcript');
+        }
+      } catch (error) {
+        console.error('Error fetching meeting context:', error);
       }
-      if (meetingContext.agenda) {
-        contextPrefix += `AGENDA:\n${meetingContext.agenda}\n\n`;
-      }
-      if (meetingContext.additional_notes) {
-        contextPrefix += `ADDITIONAL NOTES:\n${meetingContext.additional_notes}\n\n`;
-      }
-      if (meetingContext.uploaded_files && meetingContext.uploaded_files.length > 0) {
-        contextPrefix += 'UPLOADED DOCUMENTS:\n';
-        meetingContext.uploaded_files.forEach(file => {
-          contextPrefix += `\n--- ${file.name} ---\n${file.content}\n`;
-        });
-        contextPrefix += '\n';
-      }
-      contextPrefix += '=== TRANSCRIPT ===\n\n';
-      transcriptWithContext = contextPrefix + currentTranscript;
     }
     
     const meetingData = {
