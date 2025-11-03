@@ -66,6 +66,7 @@ import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { createLetterDocument } from "@/utils/letterFormatter";
 import { cn } from "@/lib/utils";
+import { calculateDaysUntilDeadline } from "@/utils/workingDays";
 
 interface Complaint {
   id: string;
@@ -1744,7 +1745,7 @@ const ComplaintsSystem = () => {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        <div className="space-y-3">
+                          <div className="space-y-3">
                           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                             <div className="flex items-center gap-2">
                               <Building className="h-4 w-4 text-muted-foreground" />
@@ -1763,6 +1764,34 @@ const ComplaintsSystem = () => {
                               </div>
                             )}
                           </div>
+                          
+                          {/* Days until deadline */}
+                          {complaint.submitted_at && complaint.status !== 'closed' && (() => {
+                            const daysRemaining = calculateDaysUntilDeadline(complaint.submitted_at);
+                            if (daysRemaining !== null) {
+                              const isUrgent = daysRemaining <= 5;
+                              const isOverdue = daysRemaining < 0;
+                              return (
+                                <div className="flex items-center gap-2 text-sm">
+                                  <Clock className={cn(
+                                    "h-4 w-4",
+                                    isOverdue ? "text-destructive" : isUrgent ? "text-orange-500" : "text-muted-foreground"
+                                  )} />
+                                  <span className={cn(
+                                    isOverdue && "text-destructive font-semibold",
+                                    isUrgent && !isOverdue && "text-orange-500 font-medium"
+                                  )}>
+                                    <strong>Days to close:</strong> {
+                                      isOverdue 
+                                        ? `${Math.abs(daysRemaining)} working days overdue`
+                                        : `${daysRemaining} working days remaining`
+                                    }
+                                  </span>
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
                           
                           <p className="text-sm text-muted-foreground line-clamp-2">
                             {complaint.complaint_description}
