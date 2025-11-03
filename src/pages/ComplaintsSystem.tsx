@@ -1534,8 +1534,8 @@ const ComplaintsSystem = () => {
                         }
                         return <CheckCircle className="h-7 w-7" />;
                       }
-                      if (daysRemaining === null) return <span className="text-2xl">?</span>;
-                      if (daysRemaining >= 0) return <span className="text-2xl">{daysRemaining}</span>;
+                      if (daysRemaining === null) return <span className="text-2xl font-bold leading-7 flex items-center justify-center h-7">?</span>;
+                      if (daysRemaining >= 0) return <span className="text-2xl font-bold leading-7 flex items-center justify-center h-7">{daysRemaining}</span>;
                       return <AlertCircle className="h-7 w-7" />;
                     };
 
