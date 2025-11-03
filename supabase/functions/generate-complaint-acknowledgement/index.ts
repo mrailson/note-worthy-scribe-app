@@ -134,18 +134,23 @@ serve(async (req) => {
 7. Is empathetic and professional
 
 IMPORTANT FORMATTING REQUIREMENTS:
-- Start directly with the date, do NOT include any practice headers or letterhead
-- Use the practice branding and footer information provided ONLY ONCE in the signature block
-- DO NOT duplicate practice details anywhere else in the letter
-- DO NOT include practice details in a footer format with dashes (---)
-- Include practice contact details ONLY in the signature area, not in the body of the letter
+- Start with the practice logo/letterhead (if provided via logo URL)
+- Include the date in format "DD Month YYYY"
+- Follow with "PRIVATE & CONFIDENTIAL" in red text
+- Then include the patient's address details
 - Format as a clean, professional NHS letter
-- Include appropriate signature block with all provided signature details
+- End with signature block that includes:
+  * "Yours sincerely,"
+  * Two blank lines
+  * The signatory's name
+  * The signatory's job title
+  * Practice name
+  * Full practice address on separate lines
 - NEVER include personal email addresses or phone numbers in contact details
 - Only use practice-wide email and phone numbers
-- CRITICAL: Do not repeat practice information multiple times - use it only once in the signature
+- Include practice contact details naturally in the signature area
 
-Format as a formal letter with NHS styling.`;
+Format as a formal letter with NHS styling matching standard outcome letter formatting.`;
 
     const currentDate = new Date().toLocaleDateString('en-GB', {
       day: 'numeric',
@@ -186,7 +191,15 @@ Show Page Numbers: ${practiceDetails.show_page_numbers ? 'Yes' : 'No'}
 
 Generate a professional acknowledgement letter addressing the specific concerns raised. Include the date at the top of the letter as "${currentDate}". 
 
-IMPORTANT: If patient address is provided, include it in the letter header after "Private & Confidential". Use the practice and signature details provided to create appropriate headers and signature blocks.
+IMPORTANT SIGNATURE FORMATTING:
+- If patient address is provided, include it in the letter header after "Private & Confidential"
+- End the letter with a complete signature block that includes:
+  1. "Yours sincerely,"
+  2. Two blank lines
+  3. ${signatureDetails?.name || '[Signatory Name]'}
+  4. ${signatureDetails?.job_title || 'Practice Manager'}
+  5. ${practiceDetails?.practice_name || '[Practice Name]'}
+  6. ${practiceDetails?.address || '[Practice Address]'} (format address on separate lines)
 
 CRITICAL CONTACT INFORMATION RULES:
 - Never include personal email addresses or direct contact details in the signature
