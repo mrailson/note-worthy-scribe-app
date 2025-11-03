@@ -7,7 +7,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { AlertTriangle, RefreshCw, Loader2, Download, Copy } from 'lucide-react';
+import { AlertTriangle, RefreshCw, Loader2, Download, Copy, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
@@ -36,12 +36,7 @@ export const StyleGalleryContainer = ({
   const [viewContent, setViewContent] = useState('');
   const [viewTitle, setViewTitle] = useState('');
 
-  useEffect(() => {
-    // Auto-generate when component mounts if no previews exist
-    if (Object.keys(previews).length === 0 && !isGenerating && !error) {
-      generatePreviews(meetingId, transcript, meetingContext);
-    }
-  }, [meetingId]); // Only run on mount or when meetingId changes
+  // Don't auto-generate - wait for user interaction
 
   const handleView = (content: string, styleName: string) => {
     setViewContent(content);
@@ -81,8 +76,16 @@ export const StyleGalleryContainer = ({
     }
   };
 
-  const handleRetry = () => {
+  const handleGenerate = () => {
+    if (!transcript || transcript.length < 50) {
+      toast.error('Please load the meeting transcript first');
+      return;
+    }
     generatePreviews(meetingId, transcript, meetingContext);
+  };
+
+  const handleRetry = () => {
+    handleGenerate();
   };
 
   const handleClearCache = () => {
@@ -106,9 +109,21 @@ export const StyleGalleryContainer = ({
         <div>
           <h2 className="text-xl font-semibold">Professional Note Styles</h2>
           <p className="text-sm text-muted-foreground">
-            {previewCount > 0 ? `${previewCount} styles available` : 'Generating professional note styles...'}
+            {previewCount > 0 
+              ? `${previewCount} styles available` 
+              : 'Click "Generate Styles" to begin'}
           </p>
         </div>
+        {previewCount === 0 && !isGenerating && !error && (
+          <Button
+            onClick={handleGenerate}
+            variant="default"
+            size="lg"
+          >
+            <Sparkles className="h-4 w-4 mr-2" />
+            Generate Styles
+          </Button>
+        )}
         {previewCount > 0 && !isGenerating && (
           <div className="flex gap-2">
             <Button
@@ -186,9 +201,18 @@ export const StyleGalleryContainer = ({
           </div>
         ) : (
           <div className="flex items-center justify-center h-full">
-            <div className="text-center space-y-4">
-              <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
-              <p className="text-muted-foreground">Initialising style gallery...</p>
+            <div className="text-center space-y-4 max-w-md">
+              <Sparkles className="h-12 w-12 mx-auto text-primary" />
+              <div>
+                <h3 className="text-lg font-semibold mb-2">Ready to Generate Professional Styles</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Click "Generate Styles" to create 10 different professional meeting note formats tailored for healthcare practice managers and GPs.
+                </p>
+                <Button onClick={handleGenerate} size="lg">
+                  <Sparkles className="h-4 w-4 mr-2" />
+                  Generate 10 Professional Styles
+                </Button>
+              </div>
             </div>
           </div>
         )}
