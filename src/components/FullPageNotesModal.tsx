@@ -3381,27 +3381,47 @@ ${transcript}`;
                                 </div>
                                 ) : (
                                    <div className="space-y-4 relative min-h-[500px]">
-                                     {/* Animated loading overlay */}
-                                     {isGeneratingStyle3 && (
-                                       <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
-                                         <div className="flex flex-col items-center gap-4 animate-scale-in">
-                                           <div className="relative">
-                                             <RefreshCw className="h-12 w-12 text-primary animate-spin" />
-                                             <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
-                                           </div>
-                                           <div className="text-center space-y-2">
-                                             <p className="text-lg font-semibold">Regenerating Notes</p>
-                                             <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
-                                           </div>
-                                         </div>
-                                       </div>
-                                      )}
-                                     {isLoadingVariation ? (
-                                       <div className="flex items-center justify-center h-32">
-                                         <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
-                                       </div>
-                                     ) : (
-                                       <>
+                                      {/* Animated loading overlay */}
+                                      {isGeneratingStyle3 && (
+                                        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center animate-fade-in">
+                                          <div className="flex flex-col items-center gap-4 animate-scale-in">
+                                            <div className="relative">
+                                              <RefreshCw className="h-12 w-12 text-primary animate-spin" />
+                                              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                                            </div>
+                                            <div className="text-center space-y-2">
+                                              <p className="text-lg font-semibold">Regenerating Notes</p>
+                                              <p className="text-sm text-muted-foreground">Creating your updated meeting minutes...</p>
+                                            </div>
+                                          </div>
+                                        </div>
+                                       )}
+                                      {isLoadingVariation ? (
+                                        <div className="flex items-center justify-center h-32">
+                                          <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                                        </div>
+                                      ) : (isRenderingMinutes && !minutesHtml) ? (
+                                        <div className="flex items-center justify-center min-h-[500px]">
+                                          <div className="flex flex-col items-center gap-4 animate-fade-in">
+                                            <div className="relative">
+                                              <Sparkles className="h-12 w-12 text-primary animate-pulse" />
+                                              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                                            </div>
+                                            <div className="text-center space-y-2">
+                                              <p className="text-lg font-semibold">Loading Meeting Minutes</p>
+                                              <div className="flex items-center gap-2">
+                                                <p className="text-sm text-muted-foreground">Formatting your notes</p>
+                                                <div className="flex gap-1">
+                                                  <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0s_infinite]"></span>
+                                                  <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.2s_infinite]"></span>
+                                                  <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.4s_infinite]"></span>
+                                                </div>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        </div>
+                                      ) : (
+                                        <>
                                          <div 
                                            className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}
                                            style={{ 
@@ -3434,20 +3454,20 @@ ${transcript}`;
                                              }}
                                            />
                                          </div>
-                                          <InlineWordCorrector
-                                           content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
-                                            allTabsContent={{
-                                              style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
-                                              style4: notesStyle4
-                                            }}
-                                           onApplyCorrection={handleInlineCorrection}
-                                           isActive={!isEditing && activeNotesStyleTab === 'style1'}
-                                           selectionRootRef={minutesContainerRef}
-                                         />
-                                       </>
-                                     )}
-                                 </div>
-                               )}
+                                           <InlineWordCorrector
+                                            content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
+                                             allTabsContent={{
+                                               style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
+                                               style4: notesStyle4
+                                             }}
+                                            onApplyCorrection={handleInlineCorrection}
+                                            isActive={!isEditing && activeNotesStyleTab === 'style1'}
+                                            selectionRootRef={minutesContainerRef}
+                                          />
+                                        </>
+                                      )}
+                                  </div>
+                                )}
                             </div>
                           )}
                        </TabsContent>
