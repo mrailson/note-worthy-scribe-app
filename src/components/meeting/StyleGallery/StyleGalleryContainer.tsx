@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 import jsPDF from 'jspdf';
 import { saveAs } from 'file-saver';
 import { stripMarkdown } from '@/utils/stripMarkdown';
-import ReactMarkdown from 'react-markdown';
+import { renderMinutesMarkdown } from '@/lib/minutesRenderer';
 
 interface StyleGalleryContainerProps {
   meetingId: string;
@@ -261,10 +261,13 @@ export const StyleGalleryContainer = ({
               Export PDF
             </Button>
           </div>
-          <ScrollArea className="flex-1 border rounded-md p-4">
-            <div className="prose prose-sm dark:prose-invert max-w-none">
-              <ReactMarkdown>{viewContent}</ReactMarkdown>
-            </div>
+          <ScrollArea className="flex-1 border rounded-md p-4 bg-background">
+            <div 
+              className="max-w-none"
+              dangerouslySetInnerHTML={{ 
+                __html: renderMinutesMarkdown(viewContent) 
+              }}
+            />
           </ScrollArea>
         </DialogContent>
       </Dialog>
