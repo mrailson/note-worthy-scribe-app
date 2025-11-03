@@ -1766,23 +1766,33 @@ const ComplaintsSystem = () => {
                           </div>
                           
                           {/* Days until deadline */}
-                          {complaint.submitted_at && complaint.status !== 'closed' && (() => {
+                          {complaint.submitted_at && (() => {
                             const daysRemaining = calculateDaysUntilDeadline(complaint.submitted_at);
+                            console.log(`Days calculation for ${complaint.reference_number}:`, {
+                              submitted_at: complaint.submitted_at,
+                              status: complaint.status,
+                              daysRemaining
+                            });
+                            
                             if (daysRemaining !== null) {
                               const isUrgent = daysRemaining <= 5;
                               const isOverdue = daysRemaining < 0;
+                              const isClosed = complaint.status === 'closed';
+                              
                               return (
                                 <div className="flex items-center gap-2 text-sm">
                                   <Clock className={cn(
                                     "h-4 w-4",
-                                    isOverdue ? "text-destructive" : isUrgent ? "text-orange-500" : "text-muted-foreground"
+                                    isOverdue && !isClosed ? "text-destructive" : isUrgent && !isClosed ? "text-orange-500" : "text-muted-foreground"
                                   )} />
                                   <span className={cn(
-                                    isOverdue && "text-destructive font-semibold",
-                                    isUrgent && !isOverdue && "text-orange-500 font-medium"
+                                    isOverdue && !isClosed && "text-destructive font-semibold",
+                                    isUrgent && !isOverdue && !isClosed && "text-orange-500 font-medium"
                                   )}>
                                     <strong>Days to close:</strong> {
-                                      isOverdue 
+                                      isClosed
+                                        ? 'Closed'
+                                        : isOverdue 
                                         ? `${Math.abs(daysRemaining)} working days overdue`
                                         : `${daysRemaining} working days remaining`
                                     }
