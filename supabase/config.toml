@@ -189,3 +189,6 @@ verify_jwt = false
 [functions.generate-style-previews]
 verify_jwt = true
 
+[functions.generate-style-gallery]
+verify_jwt = false
+
