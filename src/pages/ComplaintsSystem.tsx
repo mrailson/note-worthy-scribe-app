@@ -1484,6 +1484,18 @@ const ComplaintsSystem = () => {
                 <CardTitle>Recent Activity</CardTitle>
               </CardHeader>
               <CardContent>
+                {/* Column headings */}
+                <div className="flex items-center justify-between border-b pb-2 mb-4">
+                  <div className="flex-1">
+                    <p className="text-sm font-semibold text-muted-foreground">Complaint</p>
+                  </div>
+                  <div className="grid items-center gap-3 grid-cols-[100px_1fr_auto] w-[380px]">
+                    <div className="text-sm font-semibold text-muted-foreground text-center">Deadline</div>
+                    <div className="text-sm font-semibold text-muted-foreground text-center">Status</div>
+                    <div className="text-sm font-semibold text-muted-foreground text-center">Actions</div>
+                  </div>
+                </div>
+                
                 <div className="space-y-4">
                   {complaints.slice(0, 5).map((complaint) => {
                     const startDate = complaint.submitted_at ?? complaint.created_at;
