@@ -963,9 +963,10 @@ const ComplaintDetails = () => {
       .from('practice_details')
       .select('practice_name')
       .eq('user_id', user?.id)
-      .single();
+      .limit(1)
+      .maybeSingle();
     
-    const practiceName = practiceData?.practice_name || 'GP Practice Name';
+    const practiceName = practiceData?.practice_name || 'Medical Practice';
 
     setIsSendingAcknowledgementEmail(true);
     try {
