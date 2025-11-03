@@ -959,13 +959,25 @@ const ComplaintDetails = () => {
     }
 
     // Get practice name for subject line using the complaint's practice_id
-    const { data: practiceData } = await supabase
-      .from('practice_details')
-      .select('practice_name')
-      .eq('id', complaint.practice_id)
-      .maybeSingle();
+    let practiceName = 'Medical Practice'; // Default fallback
     
-    const practiceName = practiceData?.practice_name || 'Medical Practice';
+    if (complaint.practice_id) {
+      const { data: practiceData, error: practiceError } = await supabase
+        .from('practice_details')
+        .select('practice_name')
+        .eq('id', complaint.practice_id)
+        .maybeSingle();
+      
+      if (practiceError) {
+        console.error('Error fetching practice name:', practiceError);
+      }
+      
+      if (practiceData?.practice_name) {
+        practiceName = practiceData.practice_name;
+      }
+    }
+    
+    console.log('Using practice name for email:', practiceName);
 
     setIsSendingAcknowledgementEmail(true);
     try {
