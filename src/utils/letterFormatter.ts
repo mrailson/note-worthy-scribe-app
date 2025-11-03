@@ -340,61 +340,6 @@ export async function createLetterDocument(letterContent: string, letterType: st
     });
   }
 
-  // Practice information as footer
-  documentChildren.push(new Paragraph({
-    children: [new TextRun("")],
-    spacing: { after: 400 }
-  }));
-
-  // Add horizontal separator line
-  documentChildren.push(new Paragraph({
-    children: [
-      new TextRun({
-        text: "____________________________________________________",
-        size: 16,
-        color: "cccccc",
-        font: "Calibri"
-      })
-    ],
-    alignment: AlignmentType.CENTER,
-    spacing: { after: 200 }
-  }));
-
-  // Practice information footer
-  if (headerLines.length > 0) {
-    // Practice name (first header line)
-    documentChildren.push(new Paragraph({
-      children: [
-        new TextRun({
-          text: headerLines[0].replace(/\*\*/g, ''),
-          bold: true,
-          size: 20,
-          color: "1f4e79",
-          font: "Calibri"
-        })
-      ],
-      alignment: AlignmentType.CENTER,
-      spacing: { after: 100 }
-    }));
-
-    // Practice details (remaining header lines)
-    headerLines.slice(1).forEach(line => {
-      documentChildren.push(new Paragraph({
-        children: [
-          new TextRun({
-            text: line.replace(/\*\*/g, ''),
-            size: 16,
-            color: "666666",
-            font: "Calibri"
-          })
-        ],
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 50 }
-      }));
-    });
-  }
-
-
   return new Document({
     sections: [{
       properties: {
