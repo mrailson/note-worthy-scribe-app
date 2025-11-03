@@ -1684,8 +1684,8 @@ const ComplaintDetails = () => {
             ? "w-screen h-screen max-w-none max-h-none m-0 rounded-none"
             : "max-w-6xl max-h-[90vh]"
         )}>
-          <DialogHeader className="flex-shrink-0 border-b pb-3">
-            <div className="flex items-start gap-2">
+          <DialogHeader className="flex-shrink-0 border-b pb-3 pr-12">
+            <div className="flex items-start gap-3">
               <div className="flex-1 min-w-0">
                 <DialogTitle className="flex items-center gap-2">
                   <Mail className="h-5 w-5 flex-shrink-0" />
@@ -1699,7 +1699,7 @@ const ComplaintDetails = () => {
                 variant="ghost"
                 size="sm"
                 onClick={() => setIsFullscreen(!isFullscreen)}
-                className="h-8 w-8 p-0 -mt-1"
+                className="h-8 w-8 p-0 flex-shrink-0"
                 title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
               >
                 {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
