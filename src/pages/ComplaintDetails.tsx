@@ -2121,7 +2121,7 @@ I am committed to ensuring that all patients receive the care and service they d
                             onClick={() => handleGenerateAcknowledgement(complaint.id)}
                             disabled={submitting}
                           >
-                            <RefreshCw className="h-4 w-4 mr-1" />
+                            <RefreshCw className={`h-4 w-4 mr-1 ${submitting ? 'animate-spin' : ''}`} />
                             Regenerate Letter
                           </Button>
                         </div>
@@ -2224,7 +2224,7 @@ I am committed to ensuring that all patients receive the care and service they d
                             disabled={isRegeneratingOutcome}
                             className="border-green-600 text-green-700 hover:bg-green-100"
                           >
-                            <RefreshCw className="h-4 w-4 mr-1" />
+                            <RefreshCw className={`h-4 w-4 mr-1 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
                             {isRegeneratingOutcome ? 'Regenerating...' : 'Regenerate Letter'}
                           </Button>
                           {aiAnalysis && (
@@ -3215,7 +3215,7 @@ I am committed to ensuring that all patients receive the care and service they d
                     }}
                     disabled={submitting}
                   >
-                    <RefreshCw className="h-4 w-4 mr-1" />
+                    <RefreshCw className={`h-4 w-4 mr-1 ${submitting ? 'animate-spin' : ''}`} />
                     {submitting ? 'Regenerating...' : 'Regenerate'}
                   </Button>
                 </div>
