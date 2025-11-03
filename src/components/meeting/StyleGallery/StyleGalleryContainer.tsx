@@ -148,11 +148,18 @@ export const StyleGalleryContainer = ({
 
       {/* Progress Bar */}
       {isGenerating && progress && (
-        <div className="space-y-2">
+        <div className="space-y-3">
           <Progress value={progressPercentage} className="w-full" />
-          <p className="text-sm text-muted-foreground text-center">
-            Generating styles: {progress.current} of {progress.total} complete
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            <p className="text-sm text-muted-foreground">
+              Generating Styles - This may take a couple of minutes
+            </p>
+            <div className="flex gap-1">
+              <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0s_infinite]"></span>
+              <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.2s_infinite]"></span>
+              <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.4s_infinite]"></span>
+            </div>
+          </div>
         </div>
       )}
 
