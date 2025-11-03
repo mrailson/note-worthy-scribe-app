@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
@@ -209,25 +208,53 @@ CRITICAL CONTACT INFORMATION RULES:
 - DO NOT use placeholders like "[Practice Phone Number]" or "[Practice Email Address]"
 - Use the ACTUAL values provided in the Practice Details section above`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_tokens: 1500,
-      }),
-    });
+    console.log('Making OpenAI API request...');
+    
+    // Create AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 55000); // 55 second timeout
+    
+    let response;
+    try {
+      response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openAIApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_tokens: 1500,
+        }),
+        signal: controller.signal,
+      });
+    } catch (fetchError) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('OpenAI API request timed out');
+        throw new Error('Request to OpenAI timed out. Please try again.');
+      }
+      console.error('OpenAI API fetch error:', fetchError);
+      throw new Error(`Failed to connect to OpenAI: ${fetchError.message}`);
+    } finally {
+      clearTimeout(timeoutId);
+    }
+
+    console.log('OpenAI API response status:', response.status);
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error?.message || 'OpenAI API error');
+      const errorText = await response.text();
+      console.error('OpenAI API error response:', errorText);
+      try {
+        const errorData = JSON.parse(errorText);
+        throw new Error(errorData.error?.message || 'OpenAI API error');
+      } catch {
+        throw new Error(`OpenAI API error: ${response.status} ${response.statusText}`);
+      }
     }
 
     const data = await response.json();
