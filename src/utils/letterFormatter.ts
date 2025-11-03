@@ -356,7 +356,7 @@ export async function createLetterDocument(letterContent: string, letterType: st
       },
       children: documentChildren
     }],
-    creator: "NHS Complaints Management System",
+    creator: "Notewell AI Complaints Management System",
     title: `${letterType === 'acknowledgement' ? 'Acknowledgement' : 'Outcome'} Letter - ${referenceNumber}`,
     description: `${letterType === 'acknowledgement' ? 'Acknowledgement' : 'Outcome'} letter for complaint ${referenceNumber}`,
     styles: {
