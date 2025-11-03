@@ -7,6 +7,7 @@ import { Eye, Copy, Download, Sparkles } from 'lucide-react';
 import { toast } from 'sonner';
 import { StyleDefinition } from './types';
 import { stripMarkdown } from '@/utils/stripMarkdown';
+import ReactMarkdown from 'react-markdown';
 
 interface StyleCardProps {
   style: StyleDefinition;
@@ -89,8 +90,10 @@ export const StyleCard = ({
       
       <CardContent className="flex-1 overflow-hidden pb-3">
         <ScrollArea className="h-full max-h-[300px] w-full rounded-md border bg-muted/30 p-3">
-          <div className="text-xs sm:text-sm whitespace-pre-wrap font-mono">
-            {content.substring(0, 800)}
+          <div className="text-xs sm:text-sm prose prose-sm dark:prose-invert max-w-none">
+            <ReactMarkdown>
+              {content.substring(0, 800)}
+            </ReactMarkdown>
             {content.length > 800 && (
               <span className="text-muted-foreground italic">... (preview truncated)</span>
             )}
