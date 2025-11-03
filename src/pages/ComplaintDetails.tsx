@@ -59,6 +59,7 @@ import { Document, Packer } from "docx";
 import { InvestigationEvidence } from "@/components/InvestigationEvidence";
 import { InvestigationFindings } from "@/components/InvestigationFindings";
 import { InvestigationDecisionAndLearning } from "@/components/InvestigationDecisionAndLearning";
+import { calculateDaysUntilDeadline, calculateWorkingDays } from "@/utils/workingDays";
 
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { CQCReportModal } from "@/components/CQCReportModal";
@@ -1729,6 +1730,67 @@ I am committed to ensuring that all patients receive the care and service they d
                   <div><strong>Due Date:</strong> {format(new Date(complaint.response_due_date), 'dd/MM/yyyy')}</div>
                 )}
               </div>
+              
+              {/* Days Remaining / Processing Time Display */}
+              {complaint.submitted_at && (() => {
+                const isClosed = complaint.status === 'closed';
+                const daysRemaining = calculateDaysUntilDeadline(complaint.submitted_at);
+                
+                if (isClosed && complaint.closed_at) {
+                  // Calculate days taken to process the complaint - inline to avoid type issues
+                  const submittedDate = new Date(complaint.submitted_at);
+                  const closedDate = new Date(complaint.closed_at);
+                  
+                  let daysTaken = 0;
+                  const current = new Date(submittedDate);
+                  current.setHours(0, 0, 0, 0);
+                  closedDate.setHours(0, 0, 0, 0);
+                  
+                  while (current <= closedDate) {
+                    const dayOfWeek = current.getDay();
+                    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+                      daysTaken++;
+                    }
+                    current.setDate(current.getDate() + 1);
+                  }
+                  
+                  const withinTarget = daysTaken <= 20;
+                  
+                  return (
+                    <Alert className={`mt-4 ${withinTarget ? 'border-green-500 bg-green-50' : 'border-orange-500 bg-orange-50'}`}>
+                      <CheckCircle className={`h-4 w-4 ${withinTarget ? 'text-green-600' : 'text-orange-600'}`} />
+                      <AlertTitle className={withinTarget ? 'text-green-900' : 'text-orange-900'}>
+                        Complaint Processed
+                      </AlertTitle>
+                      <AlertDescription className={withinTarget ? 'text-green-800' : 'text-orange-800'}>
+                        Completed in <strong>{daysTaken} working days</strong>
+                        {withinTarget ? ' - Within 20 working day target ✓' : ' - Exceeded 20 working day target'}
+                      </AlertDescription>
+                    </Alert>
+                  );
+                } else if (daysRemaining !== null) {
+                  // Show days remaining for open complaints
+                  const isUrgent = daysRemaining <= 5;
+                  const isOverdue = daysRemaining < 0;
+                  
+                  return (
+                    <Alert className={`mt-4 ${isOverdue ? 'border-destructive bg-destructive/10' : isUrgent ? 'border-orange-500 bg-orange-50' : 'border-blue-500 bg-blue-50'}`}>
+                      <Clock className={`h-4 w-4 ${isOverdue ? 'text-destructive' : isUrgent ? 'text-orange-600' : 'text-blue-600'}`} />
+                      <AlertTitle className={isOverdue ? 'text-destructive' : isUrgent ? 'text-orange-900' : 'text-blue-900'}>
+                        {isOverdue ? 'Overdue' : 'Days Remaining'}
+                      </AlertTitle>
+                      <AlertDescription className={isOverdue ? 'text-destructive' : isUrgent ? 'text-orange-800' : 'text-blue-800'}>
+                        {isOverdue 
+                          ? <><strong>{Math.abs(daysRemaining)} working days overdue</strong> to meet the 20 working day target</>
+                          : <><strong>{daysRemaining} working days remaining</strong> to meet the 20 working day target</>
+                        }
+                      </AlertDescription>
+                    </Alert>
+                  );
+                }
+                return null;
+              })()}
+              
               <div className="mt-4">
                 <strong>Description:</strong>
                 <p className="mt-1 text-base text-muted-foreground">{complaint.complaint_description}</p>
