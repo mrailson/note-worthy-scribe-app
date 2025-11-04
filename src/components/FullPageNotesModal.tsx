@@ -371,41 +371,23 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
      const currentMeetingId = meeting.id;
      console.log('🔍 Starting fetchTranscriptData for meeting:', currentMeetingId, 'title:', meeting.title);
      
-     setIsLoadingTranscript(true);
-       try {
-         // First, prefer any manually saved transcript on the meeting record
-         const { data: manualData, error: manualError } = await supabase
-           .from('meetings')
-           .select('live_transcript_text, assembly_ai_transcript, meeting_context')
-           .eq('id', currentMeetingId)
-           .eq('user_id', user!.id)
-           .maybeSingle();
- 
-      if (manualError) {
-        console.error('❌ Error checking manually saved transcript:', manualError);
-      } else {
-        // Always load backup transcript if available
-        if (manualData?.assembly_ai_transcript) {
-          setBackupTranscript(manualData.assembly_ai_transcript);
-          console.log('✅ Loaded Assembly AI backup transcript:', manualData.assembly_ai_transcript.length, 'chars');
-        }
-        
-        // Check if we have a manually saved primary transcript
-        if (
-          manualData?.live_transcript_text &&
-          manualData.live_transcript_text.trim().length > 0
-        ) {
-          // Use the saved manual/edited transcript as source of truth
-          console.log('✅ Using manually saved transcript from meetings.live_transcript_text');
-          if (meeting?.id === currentMeetingId) {
-            setTranscript(manualData.live_transcript_text);
-            setIsLoadingTranscript(false);
+      setIsLoadingTranscript(true);
+        try {
+          // Fetch meeting metadata and backup transcript
+          const { data: manualData, error: manualError } = await supabase
+            .from('meetings')
+            .select('live_transcript_text, assembly_ai_transcript, meeting_context')
+            .eq('id', currentMeetingId)
+            .eq('user_id', user!.id)
+            .maybeSingle();
+  
+          // Always load backup transcript if available
+          if (manualData?.assembly_ai_transcript) {
+            setBackupTranscript(manualData.assembly_ai_transcript);
+            console.log('✅ Loaded Assembly AI backup transcript:', manualData.assembly_ai_transcript.length, 'chars');
           }
-          return; // Skip RPC fallback
-        }
-      }
- 
-          // Fallback: Fetch processed transcript with explicit user validation
+          
+          // Always fetch the full processed transcript from chunks
           const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
             p_meeting_id: currentMeetingId
           });
