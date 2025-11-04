@@ -51,12 +51,23 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
         audioRef.current = null;
       }
 
+      console.log('Calling deepgram-tts edge function...');
+      
       // Call edge function
       const { data, error } = await supabase.functions.invoke('deepgram-tts', {
         body: { text: transcriptText }
       });
 
-      if (error) throw error;
+      console.log('Edge function response:', { data, error });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      if (!data || !data.audioContent) {
+        throw new Error('No audio content received from API');
+      }
 
       // Convert base64 to audio blob
       const binaryString = atob(data.audioContent);
@@ -76,7 +87,8 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
         URL.revokeObjectURL(audioUrl);
       };
 
-      audio.onerror = () => {
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
         setIsPlaying(false);
         toast.error('Failed to play audio');
         URL.revokeObjectURL(audioUrl);
@@ -85,9 +97,10 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
       await audio.play();
       toast.success('Playing transcript');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('TTS error:', error);
-      toast.error('Failed to generate speech');
+      const errorMessage = error?.message || 'Failed to generate speech';
+      toast.error(errorMessage);
       setIsPlaying(false);
     }
   };

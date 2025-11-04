@@ -13,6 +13,8 @@ serve(async (req) => {
   try {
     const { text } = await req.json();
     
+    console.log('Received TTS request, text length:', text?.length);
+    
     if (!text) {
       throw new Error('Text is required');
     }
@@ -20,8 +22,11 @@ serve(async (req) => {
     const deepgramApiKey = Deno.env.get('DEEPGRAM_API_KEY');
     
     if (!deepgramApiKey) {
+      console.error('DEEPGRAM_API_KEY not configured');
       throw new Error('DEEPGRAM_API_KEY not configured');
     }
+
+    console.log('Calling Deepgram TTS API...');
 
     // Call Deepgram TTS API
     const response = await fetch('https://api.deepgram.com/v1/speak?model=aura-asteria-en', {
@@ -33,18 +38,24 @@ serve(async (req) => {
       body: JSON.stringify({ text }),
     });
 
+    console.log('Deepgram API response status:', response.status);
+
     if (!response.ok) {
       const error = await response.text();
-      throw new Error(`Deepgram API error: ${error}`);
+      console.error('Deepgram API error:', error);
+      throw new Error(`Deepgram API error: ${response.status} - ${error}`);
     }
 
     // Get audio as array buffer
     const audioBuffer = await response.arrayBuffer();
+    console.log('Audio buffer size:', audioBuffer.byteLength);
     
     // Convert to base64
     const base64Audio = btoa(
       String.fromCharCode(...new Uint8Array(audioBuffer))
     );
+
+    console.log('Successfully generated audio, base64 length:', base64Audio.length);
 
     return new Response(
       JSON.stringify({ audioContent: base64Audio }),
