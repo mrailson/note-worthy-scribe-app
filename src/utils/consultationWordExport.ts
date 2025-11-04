@@ -5,6 +5,7 @@ import {
   HeadingLevel, 
   AlignmentType,
   BorderStyle,
+  UnderlineType,
   Packer
 } from 'docx';
 import { format } from 'date-fns';
@@ -65,7 +66,7 @@ function parseTextWithFormatting(text: string): TextRun[] {
   return runs.length > 0 ? runs : [new TextRun({ text })];
 }
 
-// Helper to create a section heading
+// Helper to create a section heading with underline
 function createSectionHeading(icon: string, title: string): Paragraph {
   return new Paragraph({
     children: [
@@ -73,12 +74,24 @@ function createSectionHeading(icon: string, title: string): Paragraph {
         text: `${icon} ${title}`,
         bold: true,
         size: 28,
-        color: '2563EB'
+        color: '005EB8',
+        underline: {
+          type: UnderlineType.SINGLE,
+          color: '005EB8'
+        }
       })
     ],
     spacing: {
       before: 400,
       after: 200
+    },
+    border: {
+      bottom: {
+        color: '005EB8',
+        space: 1,
+        style: BorderStyle.SINGLE,
+        size: 6
+      }
     }
   });
 }
@@ -179,7 +192,7 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
         text: 'GP Consultation Notes',
         bold: true,
         size: 36,
-        color: '1E40AF'
+        color: '005EB8'
       })
     ],
     alignment: AlignmentType.CENTER,
@@ -216,10 +229,22 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
           text: '📋 Quick Summary',
           bold: true,
           size: 28,
-          color: '2563EB'
+          color: '005EB8',
+          underline: {
+            type: UnderlineType.SINGLE,
+            color: '005EB8'
+          }
         })
       ],
-      spacing: { before: 400, after: 200 }
+      spacing: { before: 400, after: 200 },
+      border: {
+        bottom: {
+          color: '005EB8',
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 6
+        }
+      }
     }));
     
     sections.push(new Paragraph({
@@ -245,10 +270,22 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
           text: '📝 Clinical Notes (SOAP Format)',
           bold: true,
           size: 32,
-          color: '1E40AF'
+          color: '005EB8',
+          underline: {
+            type: UnderlineType.SINGLE,
+            color: '005EB8'
+          }
         })
       ],
-      spacing: { before: 600, after: 300 }
+      spacing: { before: 600, after: 300 },
+      border: {
+        bottom: {
+          color: '005EB8',
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 6
+        }
+      }
     }));
     
     const soapKeys: Array<keyof SoapNote> = ['S', 'O', 'A', 'P'];
@@ -266,10 +303,22 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
           text: '⚡ Quick Reference (Shorthand)',
           bold: true,
           size: 32,
-          color: '1E40AF'
+          color: '005EB8',
+          underline: {
+            type: UnderlineType.SINGLE,
+            color: '005EB8'
+          }
         })
       ],
-      spacing: { before: 600, after: 300 }
+      spacing: { before: 600, after: 300 },
+      border: {
+        bottom: {
+          color: '005EB8',
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 6
+        }
+      }
     }));
     
     const soapKeys: Array<keyof SoapNote> = ['S', 'O', 'A', 'P'];
@@ -287,10 +336,22 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
           text: '🎯 Clinical Actions',
           bold: true,
           size: 32,
-          color: '1E40AF'
+          color: '005EB8',
+          underline: {
+            type: UnderlineType.SINGLE,
+            color: '005EB8'
+          }
         })
       ],
-      spacing: { before: 600, after: 300 }
+      spacing: { before: 600, after: 300 },
+      border: {
+        bottom: {
+          color: '005EB8',
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 6
+        }
+      }
     }));
     
     sections.push(...createClinicalActionsParagraphs(data.clinicalActions));
@@ -304,10 +365,22 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
           text: '🛡️ Safety Netting & Follow-Up',
           bold: true,
           size: 32,
-          color: '1E40AF'
+          color: '005EB8',
+          underline: {
+            type: UnderlineType.SINGLE,
+            color: '005EB8'
+          }
         })
       ],
-      spacing: { before: 600, after: 300 }
+      spacing: { before: 600, after: 300 },
+      border: {
+        bottom: {
+          color: '005EB8',
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 6
+        }
+      }
     }));
     
     sections.push(...createBodyParagraphs(data.review));
@@ -321,10 +394,22 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
           text: '👤 Patient-Friendly Summary',
           bold: true,
           size: 32,
-          color: '1E40AF'
+          color: '005EB8',
+          underline: {
+            type: UnderlineType.SINGLE,
+            color: '005EB8'
+          }
         })
       ],
-      spacing: { before: 600, after: 300 }
+      spacing: { before: 600, after: 300 },
+      border: {
+        bottom: {
+          color: '005EB8',
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 6
+        }
+      }
     }));
     
     sections.push(...createBodyParagraphs(data.patientCopy));
@@ -338,10 +423,22 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
           text: '📤 Referral Details',
           bold: true,
           size: 32,
-          color: '1E40AF'
+          color: '005EB8',
+          underline: {
+            type: UnderlineType.SINGLE,
+            color: '005EB8'
+          }
         })
       ],
-      spacing: { before: 600, after: 300 }
+      spacing: { before: 600, after: 300 },
+      border: {
+        bottom: {
+          color: '005EB8',
+          space: 1,
+          style: BorderStyle.SINGLE,
+          size: 6
+        }
+      }
     }));
     
     sections.push(...createBodyParagraphs(data.referral));
