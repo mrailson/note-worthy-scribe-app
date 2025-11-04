@@ -131,7 +131,7 @@ export const buildNumbering = () => {
           {
             level: 0,
             format: "bullet" as const,
-            text: "■",
+            text: "•",
             alignment: AlignmentType.LEFT,
             style: {
               paragraph: {
@@ -142,7 +142,7 @@ export const buildNumbering = () => {
           {
             level: 1,
             format: "bullet" as const,
-            text: "▪",
+            text: "○",
             alignment: AlignmentType.LEFT,
             style: {
               paragraph: {
