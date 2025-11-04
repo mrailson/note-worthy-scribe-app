@@ -2279,8 +2279,9 @@ ${transcript}`;
       } else {
         console.error('❌ No content in Brief response:', data);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Error generating Brief notes:', error);
+      toast.error(error?.message || 'Failed to generate brief notes');
     } finally {
       console.log('🏁 Brief generation finished');
       setIsGeneratingStyle2(false);
@@ -2302,13 +2303,31 @@ ${transcript}`;
     try {
       console.log('🚀 Calling auto-generate-meeting-notes with forceRegenerate...');
 
-      // Start the generation (this returns immediately, actual generation happens async)
-      const { data, error } = await supabase.functions.invoke('auto-generate-meeting-notes', {
-        body: {
-          meetingId: meeting.id,
-          forceRegenerate: true
+      // Create abort controller with 2 minute timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 120000);
+
+      let data, error;
+      try {
+        // Start the generation with custom timeout
+        const result = await supabase.functions.invoke('auto-generate-meeting-notes', {
+          body: {
+            meetingId: meeting.id,
+            forceRegenerate: true
+          }
+        });
+        data = result.data;
+        error = result.error;
+        clearTimeout(timeoutId);
+      } catch (invokeError: any) {
+        clearTimeout(timeoutId);
+        if (invokeError.name === 'AbortError') {
+          console.error('⏱️ Function call timed out after 2 minutes');
+          toast.error('Notes generation timed out. Please try again with a shorter transcript.');
+          return;
         }
-      });
+        throw invokeError;
+      }
 
       console.log('📋 Response:', { data: !!data, error: !!error });
 
