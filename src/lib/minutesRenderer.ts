@@ -133,6 +133,13 @@ export function renderMinutesMarkdown(content: string): string {
     // Simple subsection formatting with clear spacing - properly captures until next heading
     .replace(/<strong class="font-semibold text-\[#212B32\]">([^<]+?):<\/strong>\s*((?:(?!<strong class="font-semibold text-\[#212B32\]">).)+?)(?=<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>|$)/gs, 
       '<p class="mb-5 leading-relaxed text-[#212B32]"><strong class="font-semibold text-[#005EB8]">$1:</strong> $2</p>')
+    
+    // Intelligently break up long dense paragraphs at natural breaks for better readability
+    // Split after sentences when followed by key transition phrases or topic changes
+    .replace(/(\.\s+)((?:Key |A |The |This |Concerns |Expressions |However,|Additionally,|Furthermore,)[A-Z][^.]{20,})/g, '.$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]">$2')
+    
+    // Add breaks after sentences ending with closing parentheses followed by new topic sentences
+    .replace(/(\)\.\s+)([A-Z][a-z]{2,}\s+[^.]{30,})/g, ').$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]">$2')
 
     // Detect and convert standalone bullets that are subheadings (like "Background", "Key Points")
     .replace(/^[-•]\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*$/gm, '<h4 class="text-base font-semibold text-[#425563] mb-2 mt-4">$1</h4>')
