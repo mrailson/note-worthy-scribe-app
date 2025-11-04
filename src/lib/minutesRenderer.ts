@@ -127,8 +127,8 @@ export function renderMinutesMarkdown(content: string): string {
     // Italic text (only if not already processed)
     .replace(/\*([^\*\n]+?)\*/g, '<em class="italic text-[#425563]">$1</em>')
     
-    // Simple subsection formatting with clear spacing and proper line breaks
-    .replace(/<strong class="font-semibold text-\[#212B32\]">([^<]+?):<\/strong>\s*([^<\n]+?)(?=(?:<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>)|$)/g, 
+    // Simple subsection formatting with clear spacing - properly captures until next heading
+    .replace(/<strong class="font-semibold text-\[#212B32\]">([^<]+?):<\/strong>\s*((?:(?!<strong class="font-semibold text-\[#212B32\]">).)+?)(?=<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>|$)/gs, 
       '<p class="mb-5 leading-relaxed text-[#212B32]"><strong class="font-semibold text-[#005EB8]">$1:</strong> $2</p>')
 
     // Detect and convert standalone bullets that are subheadings (like "Background", "Key Points")
