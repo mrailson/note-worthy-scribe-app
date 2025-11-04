@@ -54,16 +54,22 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
       if (meetingData.content) {
         fullContent += meetingData.content;
       }
+
+      // Try to extract the actual meeting title from content (e.g. "Meeting Title: ...")
+      const titleMatch = fullContent.match(/^\s*[-•*]?\s*\**\s*Meeting Title\s*:\s*(.+)$/im);
+      const extractedTitle = titleMatch ? titleMatch[1].trim() : (meetingData.title || 'Meeting Notes');
+      const safeTitle = extractedTitle.replace(/\*\*/g, '').replace(/\*/g, '').trim();
+      const filename = `${safeTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString()}.docx`;
       
       await generateMeetingNotesDocx({
         metadata: {
-          title: meetingData.title || 'Meeting Notes',
+          title: safeTitle,
           date: meetingData.date,
           duration: meetingData.duration,
           attendees: meetingData.attendees,
         },
         content: fullContent,
-        filename: `${(meetingData.title || 'meeting-notes').replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${(meetingData.date || new Date().toLocaleDateString('en-GB')).replace(/\//g,'-')}.docx`,
+        filename,
       });
       
       setStatus('Success!');
