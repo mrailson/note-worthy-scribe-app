@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Pagination, PaginationContent, PaginationEllipsis, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Header } from "@/components/Header";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
 import { useAuth } from "@/contexts/AuthContext";
@@ -1605,12 +1606,35 @@ const ComplaintsSystem = () => {
                           </div>
                           {/* Days remaining indicator */}
                           <div className="flex flex-col items-center w-[100px]">
-                            <div className={cn(
-                              "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold shadow-lg",
-                              getDaysColor()
-                            )}>
-                              {getIconOrNumber()}
-                            </div>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <div className={cn(
+                                  "relative w-16 h-16 rounded-full flex items-center justify-center text-white font-bold shadow-lg cursor-help",
+                                  getDaysColor()
+                                )}>
+                                  {getIconOrNumber()}
+                                </div>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="p-4 max-w-xs">
+                                <div className="space-y-2">
+                                  <div className="font-semibold text-base border-b pb-2">Important Dates</div>
+                                  <div className="space-y-1.5">
+                                    <div>
+                                      <div className="text-xs text-muted-foreground">Complaint Opened</div>
+                                      <div className="font-medium">{format(new Date(startDate), 'do MMM yyyy HH:mm')}</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-muted-foreground">Acknowledgement Due</div>
+                                      <div className="font-medium">{format(addWorkingDays(new Date(startDate), 3), 'do MMM yyyy')}</div>
+                                    </div>
+                                    <div>
+                                      <div className="text-xs text-muted-foreground">Outcome Letter Due</div>
+                                      <div className="font-medium">{format(addWorkingDays(new Date(startDate), 20), 'do MMM yyyy')}</div>
+                                    </div>
+                                  </div>
+                                </div>
+                              </TooltipContent>
+                            </Tooltip>
                             <p className={cn(
                               "text-xs font-medium mt-1 text-center",
                               isClosed ? 
