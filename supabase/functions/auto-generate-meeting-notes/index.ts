@@ -299,6 +299,55 @@ serve(async (req) => {
       organization?: string;
     }
     
+    // Parse attendee list from transcript if present
+    function parseTranscriptAttendeeList(transcript: string): AttendeeInfo[] {
+      const attendees: AttendeeInfo[] = [];
+      
+      // Look for attendee list markers
+      const attendeeListMatch = transcript.match(/---\s*(?:ATTENDEE LIST|attendees|ATTENDEES)\s*---\s*\n([\s\S]*?)(?=\n---|\n\*\*\*|$)/i);
+      
+      if (attendeeListMatch) {
+        const attendeeText = attendeeListMatch[1];
+        console.log('📋 Found attendee list in transcript');
+        
+        // Parse lines like: "MASSEY, Catherine (ABINGDON PARK SURGERY)"
+        const lines = attendeeText.split(/[;\n]/).filter(line => line.trim());
+        
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed) continue;
+          
+          // Match patterns like "SURNAME, Firstname (ORGANIZATION)" or "Name (ORGANIZATION)"
+          const match = trimmed.match(/^([^(]+?)\s*\(([^)]+)\)/);
+          if (match) {
+            const namePart = match[1].trim();
+            const org = match[2].trim();
+            
+            // Handle "SURNAME, Firstname" format
+            let name = namePart;
+            if (namePart.includes(',')) {
+              const parts = namePart.split(',').map(p => p.trim());
+              // Convert "SURNAME, Firstname" to "Firstname SURNAME" with proper capitalization
+              if (parts.length === 2) {
+                const surname = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
+                const firstname = parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase();
+                name = `${firstname} ${surname}`;
+              }
+            }
+            
+            attendees.push({ name, organization: org });
+          }
+        }
+        
+        console.log(`✅ Parsed ${attendees.length} attendees from transcript`);
+      }
+      
+      return attendees;
+    }
+    
+    // Try to parse attendees from transcript first
+    const transcriptAttendees = parseTranscriptAttendeeList(fullTranscript);
+    
     const cardAttendeeDetails: AttendeeInfo[] = cardAttendees
       ?.map(item => ({
         name: item.attendee?.name,
@@ -306,8 +355,20 @@ serve(async (req) => {
       }))
       .filter((item): item is AttendeeInfo => Boolean(item.name)) || [];
 
-    const cardAttendeeNames = cardAttendeeDetails.map(a => a.name);
-    console.log('👥 Card attendees:', cardAttendeeNames.length, cardAttendeeNames);
+    // Merge transcript attendees with card attendees (transcript takes priority for org info)
+    const mergedAttendeeDetails: AttendeeInfo[] = [...transcriptAttendees];
+    for (const cardAttendee of cardAttendeeDetails) {
+      const exists = mergedAttendeeDetails.find(a => 
+        a.name.toLowerCase().includes(cardAttendee.name.toLowerCase()) ||
+        cardAttendee.name.toLowerCase().includes(a.name.toLowerCase())
+      );
+      if (!exists) {
+        mergedAttendeeDetails.push(cardAttendee);
+      }
+    }
+
+    const cardAttendeeNames = mergedAttendeeDetails.map(a => a.name);
+    console.log('👥 Merged attendees:', cardAttendeeNames.length, cardAttendeeNames);
     console.log('👥 Transcript participants:', meeting.participants?.length || 0, meeting.participants);
 
     // Determine final attendee list using intelligent merge
@@ -318,9 +379,13 @@ serve(async (req) => {
       const transcriptParticipants = meeting.participants || [];
       finalAttendees = fuzzyDeduplicate(cardAttendeeNames, transcriptParticipants);
       
-      // Format attendees with organizations (only for card attendees)
+      // Format attendees with organizations (use merged details that include transcript orgs)
       attendeeWithOrg = finalAttendees.map(name => {
-        const attendeeDetail = cardAttendeeDetails.find(a => a.name === name);
+        const attendeeDetail = mergedAttendeeDetails.find(a => 
+          a.name.toLowerCase() === name.toLowerCase() ||
+          a.name.toLowerCase().includes(name.toLowerCase()) ||
+          name.toLowerCase().includes(a.name.toLowerCase())
+        );
         if (attendeeDetail?.organization) {
           return `${name} (${attendeeDetail.organization})`;
         }
