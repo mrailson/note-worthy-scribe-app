@@ -56,6 +56,9 @@ export function renderMinutesMarkdown(content: string): string {
       // Remove any remaining # symbols from the content
       const cleanContent = content.replace(/^#+\s*/, '').trim();
       
+      // Check if this is a numbered section (e.g., "1.0 Meeting Called to Order" or "2. Commercial Opportunities")
+      const isNumberedSection = /^\d+\.?\d*\s+/.test(cleanContent);
+      
       // Key discussion points get special treatment with icon
       if (cleanContent.toLowerCase().includes('key points') || cleanContent.toLowerCase().includes('key discussion')) {
         return `<h3 class="text-lg font-bold text-[#005EB8] mb-4 mt-6 pb-2 border-b border-[#768692] flex items-center gap-2">
@@ -66,6 +69,9 @@ export function renderMinutesMarkdown(content: string): string {
         return `<h2 class="text-xl font-semibold text-[#005EB8] mb-4 mt-6 pb-2 border-b border-[#768692]">${cleanContent}</h2>`;
       } else if (cleanContent.toLowerCase().includes('action items') || cleanContent.toLowerCase().includes('discussion') || cleanContent.toLowerCase().includes('decisions made')) {
         return `<h3 class="text-lg font-semibold text-[#005EB8] mb-3 mt-5">${cleanContent}</h3>`;
+      } else if (isNumberedSection) {
+        // Numbered sections get prominent styling with left alignment
+        return `<h3 class="text-lg font-bold text-[#005EB8] mb-3 mt-6 pb-1 border-b-2 border-[#005EB8]">${cleanContent}</h3>`;
       } else {
         return `<h4 class="text-base font-semibold text-[#425563] mb-2 mt-4">${cleanContent}</h4>`;
       }
@@ -130,9 +136,9 @@ export function renderMinutesMarkdown(content: string): string {
     // Italic text (only if not already processed)
     .replace(/\*([^\*\n]+?)\*/g, '<em class="italic text-[#425563]">$1</em>')
     
-    // Enhanced subsection formatting with improved spacing and prominent headings
+    // Enhanced subsection formatting with improved spacing, prominent headings, and indentation
     .replace(/<strong class="font-semibold text-\[#212B32\]">([^<]+?):<\/strong>\s*((?:(?!<strong class="font-semibold text-\[#212B32\]">).)+?)(?=<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>|$)/gs, 
-      '<p class="mb-6 mt-2 leading-relaxed text-[#212B32]"><strong class="font-bold text-[#005EB8] text-[15px]">$1:</strong> $2</p>')
+      '<p class="mb-6 mt-2 ml-6 leading-relaxed text-[#212B32]"><strong class="font-bold text-[#005EB8] text-[15px]">$1:</strong> $2</p>')
     
     // Enhanced intelligent paragraph breaking - detect natural topic transitions
     // Split after sentences when followed by key transition phrases or topic changes
