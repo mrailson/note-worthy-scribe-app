@@ -413,6 +413,9 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
   // Strip transcript sections
   const cleanedContent = stripTranscriptSection(options.content);
   
+  // Clean the title by removing leading asterisks and markdown formatting
+  const cleanTitle = options.metadata.title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+  
   // Build document children
   const children: any[] = [];
   
@@ -420,7 +423,7 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
   children.push(
     new Paragraph({
       children: [new TextRun({
-        text: options.metadata.title,
+        text: cleanTitle,
         bold: true,
         size: FONTS.size.title,
         color: NHS_COLORS.headingBlue,
