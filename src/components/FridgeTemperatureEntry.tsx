@@ -20,7 +20,7 @@ interface Fridge {
 }
 
 export const FridgeTemperatureEntry = () => {
-  const { fridgeId } = useParams<{ fridgeId: string }>();
+  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user, hasModuleAccess } = useAuth();
   const isPublicAccess = window.location.pathname.includes('/public/');
@@ -46,7 +46,7 @@ export const FridgeTemperatureEntry = () => {
     }
     
     loadFridge();
-  }, [fridgeId, hasModuleAccess, navigate, isPublicAccess]);
+  }, [id, hasModuleAccess, navigate, isPublicAccess]);
 
   const getNextWorkingDay = (fromDate: Date = new Date()): string => {
     let nextDay = addDays(fromDate, 1);
@@ -62,13 +62,13 @@ export const FridgeTemperatureEntry = () => {
   };
 
   const loadFridge = async () => {
-    if (!fridgeId) return;
+    if (!id) return;
 
     try {
       const { data, error } = await supabase
         .from('practice_fridges')
         .select('*')
-        .eq('id', fridgeId)
+        .eq('id', id)
         .eq('is_active', true)
         .single();
 
@@ -78,13 +78,13 @@ export const FridgeTemperatureEntry = () => {
         const { data: inactiveFridge } = await supabase
           .from('practice_fridges')
           .select('fridge_name, is_active')
-          .eq('id', fridgeId)
+          .eq('id', id)
           .single();
         
         if (inactiveFridge && !inactiveFridge.is_active) {
           toast.error(`Fridge "${inactiveFridge.fridge_name}" is inactive`);
         } else {
-          toast.error(`Fridge not found. The QR code may be outdated. ID: ${fridgeId}`);
+          toast.error(`Fridge not found. The QR code may be outdated. ID: ${id}`);
         }
         throw error;
       }
@@ -209,7 +209,7 @@ export const FridgeTemperatureEntry = () => {
             </p>
             <div className="bg-muted p-3 rounded-lg text-xs text-left space-y-1">
               <p><strong>QR Code Fridge ID:</strong></p>
-              <p className="font-mono break-all">{fridgeId}</p>
+              <p className="font-mono break-all">{id}</p>
               <p className="text-muted-foreground mt-2">
                 This QR code may be outdated. Please print a new QR code from the Fridge Management dashboard.
               </p>

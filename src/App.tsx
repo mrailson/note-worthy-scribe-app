@@ -76,6 +76,7 @@ const App = () => {
               <Route path="/practice-admin/fridges" element={<PracticeAdminFridges />} />
               <Route path="/attendees" element={<Attendees />} />
               <Route path="/fridge-temp/:id" element={<FridgeTemperatureEntry />} />
+              <Route path="/public/fridge-temp/:id" element={<FridgeTemperatureEntry />} />
               <Route path="/complaints" element={<ComplaintsSystem />} />
               <Route path="/complaints/:id" element={<ComplaintDetails />} />
               <Route path="/complaints-guide" element={<ComplaintsUserGuide />} />
