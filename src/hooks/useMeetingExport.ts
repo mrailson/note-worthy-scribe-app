@@ -1,10 +1,8 @@
 import { useState } from "react";
 import { MeetingData, MeetingSettingsState } from "@/types/meetingTypes";
-import { saveAs } from "file-saver";
-import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel, Table, TableRow, TableCell, WidthType } from "docx";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
-import { stripMarkdown, copyPlainTextToClipboard } from '@/utils/stripMarkdown';
+import { copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 
 // Helper function to render tables in PDF
 const renderTable = (
@@ -65,200 +63,26 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
     try {
       setIsExporting(true);
       
-      // Function to parse a line and convert markdown formatting to Word TextRuns
-      const parseLineToTextRuns = (line: string): TextRun[] => {
-        const runs: TextRun[] = [];
-        let currentIndex = 0;
-        
-        // Regex to match **bold** and *italic* patterns
-        const markdownRegex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
-        let match;
-        
-        while ((match = markdownRegex.exec(line)) !== null) {
-          // Add text before the match as normal text
-          if (match.index > currentIndex) {
-            const normalText = line.substring(currentIndex, match.index);
-            if (normalText) {
-              runs.push(new TextRun({ text: normalText, size: 22 }));
-            }
-          }
-          
-          // Add the matched text with formatting
-          if (match[2]) {
-            // Bold text (**text**)
-            runs.push(new TextRun({ text: match[2], size: 22, bold: true }));
-          } else if (match[3]) {
-            // Italic text (*text*)
-            runs.push(new TextRun({ text: match[3], size: 22, italics: true }));
-          }
-          
-          currentIndex = match.index + match[0].length;
-        }
-        
-        // Add remaining text after last match
-        if (currentIndex < line.length) {
-          const remainingText = line.substring(currentIndex);
-          if (remainingText) {
-            runs.push(new TextRun({ text: remainingText, size: 22 }));
-          }
-        }
-        
-        // If no markdown found, return the whole line as normal text
-        if (runs.length === 0) {
-          runs.push(new TextRun({ text: line, size: 22 }));
-        }
-        
-        return runs;
-      };
+      const { generateMeetingNotesDocx } = await import('@/utils/generateMeetingNotesDocx');
       
-      // Function to detect if a line is a markdown table separator
-      const isTableSeparator = (line: string): boolean => {
-        return /^\|[\s\-:]+\|/.test(line.trim());
-      };
+      // Get meeting time if available
+      const meetingTime = meetingData?.startTime 
+        ? new Date(meetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+        : undefined;
       
-      // Function to parse markdown table into Word Table
-      const parseMarkdownTable = (lines: string[], startIndex: number): { table: any, endIndex: number } => {
-        const tableLines: string[] = [];
-        let i = startIndex;
-        
-        // Collect all table lines
-        while (i < lines.length && lines[i].trim().startsWith('|')) {
-          tableLines.push(lines[i]);
-          i++;
-        }
-        
-        // Filter out separator line
-        const dataLines = tableLines.filter(line => !isTableSeparator(line));
-        
-        if (dataLines.length === 0) {
-          return { table: null, endIndex: i };
-        }
-        
-        // Parse header and rows
-        const parseCells = (line: string): string[] => {
-          return line.split('|')
-            .map(cell => cell.trim())
-            .filter(cell => cell.length > 0)
-            .map(cell => cell.replace(/\*\*/g, '')); // Remove bold markers
-        };
-        
-        const headerCells = parseCells(dataLines[0]);
-        const bodyRows = dataLines.slice(1).map(parseCells);
-        
-        // Create Word table using already imported components
-        const table = new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows: [
-            // Header row
-            new TableRow({
-              children: headerCells.map(cell => 
-                new TableCell({
-                  children: [new Paragraph({
-                    children: [new TextRun({ text: cell, bold: true, size: 20 })]
-                  })],
-                  shading: { fill: "D3D3D3" }
-                })
-              )
-            }),
-            // Body rows
-            ...bodyRows.map(row => 
-              new TableRow({
-                children: row.map(cell => 
-                  new TableCell({
-                    children: [new Paragraph({
-                      children: [new TextRun({ text: cell, size: 20 })]
-                    })]
-                  })
-                )
-              })
-            )
-          ]
-        });
-        
-        return { table, endIndex: i };
-      };
-      
-      // Process content into paragraphs and tables
-      const lines = content.split('\n');
-      const children: any[] = [
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: title,
-              bold: true,
-              size: 32,
-            })
-          ],
-          heading: HeadingLevel.HEADING_1,
-          alignment: AlignmentType.CENTER,
-        }),
-        new Paragraph({
-          children: [
-            new TextRun({
-              text: `Date: ${getMeetingDate()}`,
-              size: 24,
-            })
-          ],
-          alignment: AlignmentType.CENTER,
-        }),
-        new Paragraph({ text: "" }), // Empty line
-      ];
-      
-      let i = 0;
-      while (i < lines.length) {
-        const line = lines[i];
-        
-        // Check if this is a markdown table
-        if (line.trim().startsWith('|')) {
-          const { table, endIndex } = parseMarkdownTable(lines, i);
-          if (table) {
-            children.push(table);
-            children.push(new Paragraph({ text: "" })); // Add spacing after table
-          }
-          i = endIndex;
-          continue;
-        }
-        
-        // Check for markdown headings
-        const headingMatch = line.match(/^(#{1,6})\s+(.+)$/);
-        if (headingMatch) {
-          const level = headingMatch[1].length;
-          const headingText = headingMatch[2];
-          
-          const headingLevels = [
-            HeadingLevel.HEADING_1,
-            HeadingLevel.HEADING_2,
-            HeadingLevel.HEADING_3,
-            HeadingLevel.HEADING_4,
-            HeadingLevel.HEADING_5,
-            HeadingLevel.HEADING_6
-          ];
-          
-          children.push(new Paragraph({
-            children: parseLineToTextRuns(headingText),
-            heading: headingLevels[level - 1],
-            spacing: { before: 240, after: 120 }
-          }));
-          i++;
-          continue;
-        }
-        
-        // Regular paragraph
-        children.push(new Paragraph({
-          children: parseLineToTextRuns(line)
-        }));
-        i++;
-      }
-      
-      const doc = new Document({
-        sections: [{
-          properties: {},
-          children: children
-        }]
+      await generateMeetingNotesDocx({
+        metadata: {
+          title,
+          date: getMeetingDate(),
+          time: meetingTime,
+          duration: meetingData?.duration,
+          location: meetingSettings?.location || meetingData?.meetingLocation,
+          attendees: meetingSettings?.attendees || meetingData?.attendees?.join(', '),
+        },
+        content,
+        filename: `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${getMeetingDate()}.docx`,
       });
-
-      const blob = await Packer.toBlob(doc);
-      saveAs(blob, `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${getMeetingDate()}.docx`);
+      
       toast.success('Word document generated successfully!');
     } catch (error) {
       console.error('Word generation error:', error);

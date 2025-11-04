@@ -1,0 +1,184 @@
+import { AlignmentType, convertInchesToTwip } from "docx";
+
+// NHS and UI color scheme
+export const NHS_COLORS = {
+  nhsBlue: "005EB8",
+  headingBlue: "2563EB", // Tailwind blue-600
+  textGrey: "374151",
+  textLightGrey: "6B7280",
+  tableHeaderBg: "2563EB",
+  tableHeaderText: "FFFFFF",
+  white: "FFFFFF",
+};
+
+// Font configuration
+export const FONTS = {
+  default: "Calibri",
+  fallback: "Arial",
+  size: {
+    title: 32,
+    heading1: 28,
+    heading2: 24,
+    heading3: 22,
+    body: 22,
+    small: 20,
+    footer: 18,
+  },
+};
+
+// Build NHS-styled document styles
+export const buildNHSStyles = () => {
+  return {
+    default: {
+      document: {
+        run: {
+          font: FONTS.default,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+        },
+        paragraph: {
+          spacing: {
+            line: 276, // 1.15 line spacing
+            after: 120, // 6pt after
+          },
+        },
+      },
+    },
+    paragraphStyles: [
+      {
+        id: "Heading1",
+        name: "Heading 1",
+        basedOn: "Normal",
+        next: "Normal",
+        run: {
+          font: FONTS.default,
+          size: FONTS.size.heading1,
+          bold: true,
+          color: NHS_COLORS.headingBlue,
+        },
+        paragraph: {
+          spacing: {
+            before: 240,
+            after: 120,
+          },
+        },
+      },
+      {
+        id: "Heading2",
+        name: "Heading 2",
+        basedOn: "Normal",
+        next: "Normal",
+        run: {
+          font: FONTS.default,
+          size: FONTS.size.heading2,
+          bold: true,
+          color: NHS_COLORS.headingBlue,
+        },
+        paragraph: {
+          spacing: {
+            before: 200,
+            after: 100,
+          },
+        },
+      },
+      {
+        id: "Heading3",
+        name: "Heading 3",
+        basedOn: "Normal",
+        next: "Normal",
+        run: {
+          font: FONTS.default,
+          size: FONTS.size.heading3,
+          bold: true,
+          color: NHS_COLORS.headingBlue,
+        },
+        paragraph: {
+          spacing: {
+            before: 160,
+            after: 80,
+          },
+        },
+      },
+      {
+        id: "ListParagraph",
+        name: "List Paragraph",
+        basedOn: "Normal",
+        run: {
+          font: FONTS.default,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+        },
+        paragraph: {
+          spacing: {
+            after: 60,
+          },
+          indent: {
+            left: convertInchesToTwip(0.25),
+          },
+        },
+      },
+    ],
+  };
+};
+
+// Numbering definitions for bullets and numbered lists
+export const buildNumbering = () => {
+  return {
+    config: [
+      {
+        reference: "bullet-numbering",
+        levels: [
+          {
+            level: 0,
+            format: "bullet" as const,
+            text: "•",
+            alignment: AlignmentType.LEFT,
+            style: {
+              paragraph: {
+                indent: { left: convertInchesToTwip(0.25), hanging: convertInchesToTwip(0.18) },
+              },
+            },
+          },
+          {
+            level: 1,
+            format: "bullet" as const,
+            text: "◦",
+            alignment: AlignmentType.LEFT,
+            style: {
+              paragraph: {
+                indent: { left: convertInchesToTwip(0.5), hanging: convertInchesToTwip(0.18) },
+              },
+            },
+          },
+        ],
+      },
+      {
+        reference: "numbered-numbering",
+        levels: [
+          {
+            level: 0,
+            format: "decimal" as const,
+            text: "%1.",
+            alignment: AlignmentType.LEFT,
+            style: {
+              paragraph: {
+                indent: { left: convertInchesToTwip(0.25), hanging: convertInchesToTwip(0.18) },
+              },
+            },
+          },
+          {
+            level: 1,
+            format: "decimal" as const,
+            text: "%1.%2.",
+            alignment: AlignmentType.LEFT,
+            style: {
+              paragraph: {
+                indent: { left: convertInchesToTwip(0.5), hanging: convertInchesToTwip(0.18) },
+              },
+            },
+          },
+        ],
+      },
+    ],
+  };
+};
