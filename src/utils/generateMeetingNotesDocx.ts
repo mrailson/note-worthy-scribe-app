@@ -30,6 +30,9 @@ const stripTranscriptSection = (content: string): string => {
   // Remove duplicate "Meeting Title:" lines (with or without bullet points)
   cleaned = cleaned.replace(/^\s*[-•*]?\s*\**\s*Meeting Title\s*:\s*.*$/gim, '');
   
+  // Remove "Background" heading
+  cleaned = cleaned.replace(/^#+\s*Background\s*$/gim, '');
+  
   return cleaned.trim();
 };
 
