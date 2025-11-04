@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LiveTranscriptModal } from '@/components/LiveTranscriptModal';
-import { DeepgramRealtimeTranscriber } from '@/utils/DeepgramRealtimeTranscriber';
+import { DeepgramRealtimeTranscriber, TranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
 
 const StandaloneTranscriptionViewer: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -11,13 +11,34 @@ const StandaloneTranscriptionViewer: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [transcriber, setTranscriber] = useState<DeepgramRealtimeTranscriber | null>(null);
 
+  // Manage incremental vs final text to avoid duplication
+  const [committedText, setCommittedText] = useState('');
+  const [pendingText, setPendingText] = useState('');
+  const lastFinalRef = useRef<string>('');
+
   const handleToggleModal = () => {
     setIsModalOpen(!isModalOpen);
   };
 
-  const handleTranscriptUpdate = (data: any) => {
-    if (data.text) {
-      setTranscriptText(prev => prev + (prev ? ' ' : '') + data.text);
+const handleTranscriptUpdate = (data: TranscriptData) => {
+    const newText = (data.text || '').trim();
+    if (!newText) return;
+
+    if (data.is_final) {
+      // Avoid appending the same final twice
+      if (lastFinalRef.current === newText) return;
+      lastFinalRef.current = newText;
+
+      setCommittedText(prev => {
+        const prevTrim = prev.trimEnd();
+        // If the new final already matches the end, don't duplicate
+        if (prevTrim.endsWith(newText)) return prevTrim;
+        return (prevTrim ? prevTrim + ' ' : '') + newText;
+      });
+      setPendingText('');
+    } else {
+      // Interim text replaces the pending line (no duplication)
+      setPendingText(newText);
     }
   };
 
@@ -29,7 +50,7 @@ const StandaloneTranscriptionViewer: React.FC = () => {
     console.log('Transcription status:', status);
   };
 
-  // Initialize transcriber
+// Initialize transcriber
   useEffect(() => {
     const newTranscriber = new DeepgramRealtimeTranscriber(
       handleTranscriptUpdate,
@@ -45,18 +66,26 @@ const StandaloneTranscriptionViewer: React.FC = () => {
     };
   }, []);
 
-  // Auto-start/stop transcription when modal opens/closes
+  // Compose displayed transcript from committed + pending
+  useEffect(() => {
+    setTranscriptText([committedText, pendingText].filter(Boolean).join(' '));
+  }, [committedText, pendingText]);
+
+// Auto-start/stop transcription when modal opens/closes
   useEffect(() => {
     if (!transcriber) return;
 
     if (isModalOpen && !isRecording) {
-      // Start transcription
-      transcriber.startTranscription();
-      setIsRecording(true);
+      transcriber
+        .startTranscription()
+        .then(() => setIsRecording(true))
+        .catch((e) => console.error('Failed to start transcription', e));
     } else if (!isModalOpen && isRecording) {
-      // Stop transcription and clear
       transcriber.stopTranscription();
       setIsRecording(false);
+      setCommittedText('');
+      setPendingText('');
+      lastFinalRef.current = '';
       setTranscriptText('');
     }
   }, [isModalOpen, transcriber]);

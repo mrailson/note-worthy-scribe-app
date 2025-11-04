@@ -37,7 +37,7 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="w-full max-w-none h-[100dvh] md:max-w-4xl md:w-[95vw] md:h-[90vh] md:max-h-[800px] flex flex-col p-4 md:p-6 m-0 md:m-auto inset-0 md:inset-auto translate-x-0 translate-y-0 md:translate-x-[-50%] md:translate-y-[-50%] rounded-none md:rounded-lg">
+      <DialogContent className="w-[95vw] max-w-4xl h-[85vh] max-h-[85vh] flex flex-col p-4 md:p-6">
         <DialogHeader>
           <DialogTitle className="sr-only">Live Transcript</DialogTitle>
         </DialogHeader>
