@@ -29,7 +29,7 @@ serve(async (req) => {
     console.log('Calling Deepgram TTS API...');
 
     // Call Deepgram TTS API
-    const response = await fetch('https://api.deepgram.com/v1/speak?model=aura-asteria-en', {
+    const response = await fetch('https://api.deepgram.com/v1/speak?model=aura-2-draco-en', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${deepgramApiKey}`,
