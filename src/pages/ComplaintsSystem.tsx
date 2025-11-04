@@ -1685,10 +1685,11 @@ const ComplaintsSystem = () => {
                           </div>
                           <div className="flex flex-col gap-2">
                             <Badge className={getStatusColor(complaint.status)}>
-                              {complaint.status === 'under_review' && complaint.acknowledged_at && (
+                              {complaint.status === 'under_review' && complaint.acknowledged_at ? (
                                 <Mail className="h-5 w-5 mr-1" />
+                              ) : (
+                                getStatusIcon(complaint.status)
                               )}
-                              {getStatusIcon(complaint.status)}
                               <span className="ml-1">{getStatusLabel(complaint.status)}</span>
                             </Badge>
                             {isOverdue(complaint) && (
@@ -1967,10 +1968,11 @@ const ComplaintsSystem = () => {
                                 deviceInfo.isIPhone ? "text-[10px]" : "text-xs"
                               )}>Status:</span>
                               <Badge className={getStatusColor(complaint.status)}>
-                                {complaint.status === 'under_review' && complaint.acknowledged_at && (
+                                {complaint.status === 'under_review' && complaint.acknowledged_at ? (
                                   <Mail className="h-5 w-5 mr-1" />
+                                ) : (
+                                  getStatusIcon(complaint.status)
                                 )}
-                                {getStatusIcon(complaint.status)}
                                 <span className="ml-1">{getStatusLabel(complaint.status)}</span>
                               </Badge>
                             </div>
