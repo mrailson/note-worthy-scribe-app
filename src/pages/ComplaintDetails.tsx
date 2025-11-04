@@ -177,6 +177,8 @@ const ComplaintDetails = () => {
   const [bccToUser, setBccToUser] = useState(false);
   const [manualToEmails, setManualToEmails] = useState('');
   const [manualCcEmails, setManualCcEmails] = useState('');
+  const [acknowledgementSentToPatient, setAcknowledgementSentToPatient] = useState(false);
+  const [acknowledgementSentAt, setAcknowledgementSentAt] = useState<string | null>(null);
 
 
   // Define all functions before useEffect
@@ -278,6 +280,8 @@ const ComplaintDetails = () => {
         console.log('Acknowledgement data:', ackData);
         setAcknowledgementLetter(ackData.acknowledgement_letter);
         setAcknowledgementDate(ackData.created_at);
+        setAcknowledgementSentToPatient(!!ackData.sent_at);
+        setAcknowledgementSentAt(ackData.sent_at);
       }
 
     } catch (error) {
@@ -766,6 +770,51 @@ const ComplaintDetails = () => {
     } finally {
       setSubmitting(false);
       setIsGeneratingAcknowledgement(false);
+    }
+  };
+
+  const handleMarkAcknowledgementSent = async (isSent: boolean) => {
+    if (!complaintId || !complaint) return;
+    
+    try {
+      const now = isSent ? new Date().toISOString() : null;
+      
+      // Update the acknowledgement record
+      const { error: ackError } = await supabase
+        .from('complaint_acknowledgements')
+        .update({ 
+          sent_at: now,
+          sent_by: isSent ? user?.id : null
+        })
+        .eq('complaint_id', complaintId);
+
+      if (ackError) throw ackError;
+
+      // Update complaint status to under_review if marking as sent
+      if (isSent) {
+        const { error: statusError } = await supabase
+          .from('complaints')
+          .update({ 
+            status: 'under_review',
+            acknowledged_at: now
+          })
+          .eq('id', complaintId);
+
+        if (statusError) throw statusError;
+        
+        setComplaint({ ...complaint, status: 'under_review', acknowledged_at: now });
+      }
+
+      setAcknowledgementSentToPatient(isSent);
+      setAcknowledgementSentAt(now);
+      
+      toast.success(isSent 
+        ? "Acknowledgement marked as sent to patient" 
+        : "Acknowledgement send status cleared"
+      );
+    } catch (error) {
+      console.error('Error updating acknowledgement sent status:', error);
+      toast.error("Failed to update acknowledgement status");
     }
   };
 
@@ -2278,10 +2327,30 @@ I am committed to ensuring that all patients receive the care and service they d
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-2">
-                          <Badge variant="default">Letter Generated</Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="default">Letter Generated</Badge>
+                            {acknowledgementSentToPatient && (
+                              <Badge variant="default" className="bg-green-600">
+                                <CheckCircle className="h-3 w-3 mr-1" />
+                                Sent to Patient
+                              </Badge>
+                            )}
+                            {complaint?.status === 'under_review' && acknowledgementSentToPatient && (
+                              <Badge variant="secondary">
+                                <Clock className="h-3 w-3 mr-1" />
+                                Under Review
+                              </Badge>
+                            )}
+                          </div>
                           {acknowledgementDate && (complaint?.submitted_at || complaint?.created_at) && (
                             <div className="text-sm text-muted-foreground">
                               Generated: {format(new Date(acknowledgementDate), 'dd/MM/yyyy HH:mm')}
+                              {acknowledgementSentAt && (
+                                <>
+                                  <br />
+                                  Sent to patient: {format(new Date(acknowledgementSentAt), 'dd/MM/yyyy HH:mm')}
+                                </>
+                              )}
                               <br />
                               <span className={`font-medium ${
                                 calculateWorkingDays(complaint.submitted_at || complaint.created_at, acknowledgementDate) <= 3 
@@ -2296,6 +2365,18 @@ I am committed to ensuring that all patients receive the care and service they d
                               </span>
                             </div>
                           )}
+                          
+                          {/* Checkbox for marking acknowledgement as sent */}
+                          <div className="flex items-center space-x-2 mt-2 p-3 border rounded-lg bg-muted/50">
+                            <Checkbox 
+                              id="ack-sent"
+                              checked={acknowledgementSentToPatient}
+                              onCheckedChange={(checked) => handleMarkAcknowledgementSent(checked as boolean)}
+                            />
+                            <Label htmlFor="ack-sent" className="text-sm font-medium cursor-pointer">
+                              Mark acknowledgement as sent to patient
+                            </Label>
+                          </div>
                         </div>
                         <div className="space-x-2">
                           <Button
