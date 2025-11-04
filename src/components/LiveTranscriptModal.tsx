@@ -1,8 +1,9 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Copy, Eye } from 'lucide-react';
+import { Copy, Eye, Play, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 interface LiveTranscriptModalProps {
   isOpen: boolean;
@@ -16,6 +17,8 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
   transcriptText,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Auto-scroll to bottom when new content is added
   useEffect(() => {
@@ -30,6 +33,62 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
       toast.success('Live transcript copied to clipboard');
     } catch (error) {
       toast.error('Failed to copy transcript');
+    }
+  };
+
+  const playTranscript = async () => {
+    if (!transcriptText.trim()) {
+      toast.error('No text to play');
+      return;
+    }
+
+    try {
+      setIsPlaying(true);
+
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      // Call edge function
+      const { data, error } = await supabase.functions.invoke('deepgram-tts', {
+        body: { text: transcriptText }
+      });
+
+      if (error) throw error;
+
+      // Convert base64 to audio blob
+      const binaryString = atob(data.audioContent);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(blob);
+
+      // Play audio
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      
+      audio.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = () => {
+        setIsPlaying(false);
+        toast.error('Failed to play audio');
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
+      toast.success('Playing transcript');
+
+    } catch (error) {
+      console.error('TTS error:', error);
+      toast.error('Failed to generate speech');
+      setIsPlaying(false);
     }
   };
 
@@ -54,6 +113,19 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                 Live
               </span>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={playTranscript}
+                disabled={!transcriptText || isPlaying}
+              >
+                {isPlaying ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="w-4 h-4 mr-2" />
+                )}
+                Play
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
