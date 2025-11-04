@@ -130,16 +130,19 @@ export function renderMinutesMarkdown(content: string): string {
     // Italic text (only if not already processed)
     .replace(/\*([^\*\n]+?)\*/g, '<em class="italic text-[#425563]">$1</em>')
     
-    // Simple subsection formatting with clear spacing - properly captures until next heading
+    // Enhanced subsection formatting with improved spacing and prominent headings
     .replace(/<strong class="font-semibold text-\[#212B32\]">([^<]+?):<\/strong>\s*((?:(?!<strong class="font-semibold text-\[#212B32\]">).)+?)(?=<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>|$)/gs, 
-      '<p class="mb-5 leading-relaxed text-[#212B32]"><strong class="font-semibold text-[#005EB8]">$1:</strong> $2</p>')
+      '<p class="mb-6 mt-2 leading-relaxed text-[#212B32]"><strong class="font-bold text-[#005EB8] text-[15px]">$1:</strong> $2</p>')
     
-    // Intelligently break up long dense paragraphs at natural breaks for better readability
+    // Enhanced intelligent paragraph breaking - detect natural topic transitions
     // Split after sentences when followed by key transition phrases or topic changes
-    .replace(/(\.\s+)((?:Key |A |The |This |Concerns |Expressions |However,|Additionally,|Furthermore,)[A-Z][^.]{20,})/g, '.$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]">$2')
+    .replace(/(\.\s+)((?:Key |A |The |This |Concerns |Expressions |However,|Additionally,|Furthermore,|Subsequently,|Moreover,|Meanwhile,|In addition,)[A-Z][^.]{20,})/g, '.$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]">$2')
     
     // Add breaks after sentences ending with closing parentheses followed by new topic sentences
     .replace(/(\)\.\s+)([A-Z][a-z]{2,}\s+[^.]{30,})/g, ').$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]">$2')
+    
+    // Add breaks when a sentence ends and the next starts with a capitalized term followed by specific phrases
+    .replace(/(\.\s+)([A-Z][a-z]+\s+(?:was|were|is|are|has|have|will|should|must|could|would)\s+[^.]{25,})/g, '.$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]">$2')
 
     // Detect and convert standalone bullets that are subheadings (like "Background", "Key Points")
     .replace(/^[-•]\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*$/gm, '<h4 class="text-base font-semibold text-[#425563] mb-2 mt-4">$1</h4>')
