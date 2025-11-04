@@ -1685,6 +1685,9 @@ const ComplaintsSystem = () => {
                           </div>
                           <div className="flex flex-col gap-2">
                             <Badge className={getStatusColor(complaint.status)}>
+                              {complaint.status === 'under_review' && complaint.acknowledged_at && (
+                                <Mail className="h-4 w-4 mr-1" />
+                              )}
                               {getStatusIcon(complaint.status)}
                               <span className="ml-1">{getStatusLabel(complaint.status)}</span>
                             </Badge>
@@ -1964,6 +1967,9 @@ const ComplaintsSystem = () => {
                                 deviceInfo.isIPhone ? "text-[10px]" : "text-xs"
                               )}>Status:</span>
                               <Badge className={getStatusColor(complaint.status)}>
+                                {complaint.status === 'under_review' && complaint.acknowledged_at && (
+                                  <Mail className="h-4 w-4 mr-1" />
+                                )}
                                 {getStatusIcon(complaint.status)}
                                 <span className="ml-1">{getStatusLabel(complaint.status)}</span>
                               </Badge>
