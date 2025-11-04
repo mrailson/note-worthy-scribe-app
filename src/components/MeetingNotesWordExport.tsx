@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
 import { toast } from 'sonner';
+import { extractAttendees } from '@/utils/extractAttendees';
 
 interface MeetingData {
   title: string;
@@ -61,12 +62,18 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
       const safeTitle = extractedTitle.replace(/\*\*/g, '').replace(/\*/g, '').trim();
       const filename = `${safeTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString()}.docx`;
       
+      // Prefer meetingData.attendees, otherwise extract from content
+      const computedAttendees = (meetingData.attendees && meetingData.attendees.trim())
+        ? meetingData.attendees
+        : extractAttendees(fullContent);
+      console.log('🧑‍🤝‍🧑 Extracted attendees for DOCX:', computedAttendees);
+      
       await generateMeetingNotesDocx({
         metadata: {
           title: safeTitle,
           date: meetingData.date,
           duration: meetingData.duration,
-          attendees: meetingData.attendees,
+          attendees: computedAttendees,
         },
         content: fullContent,
         filename,

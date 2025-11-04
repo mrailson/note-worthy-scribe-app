@@ -786,35 +786,53 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     location: ''
   };
 
-  // Extract attendees from content
+  // Extract attendees from content (robust to multiple formats)
   const extractAttendees = (content: string): string => {
-    // Look for "ATTENDEE LIST" section
-    const attendeeMatch = content.match(/ATTENDEE LIST[:\s]*\n([\s\S]*?)(?=\n\n[A-Z\-]|\n---\s*[A-Z]|$)/i);
-    
-    if (!attendeeMatch) return '';
+    const cleanupItems = (items: string[]) => {
+      const cleaned = items
+        .map((l) => l.trim())
+        .filter((l) => l && !/^---.*---$/i.test(l) && !/^[-_]{2,}$/.test(l))
+        .map((l) => l.replace(/^[-•*]\s*/, '')) // bullets
+        .map((l) => l.replace(/^\d+[)\.]\s*/, '')) // numbered
+        .map((l) => l.replace(/\b(Unverified|Unconfirmed)\b/gi, '').replace(/\(\s*Unverified\s*\)/gi, '').trim())
+        .filter((l) => l.length > 0);
 
-    const attendeeSection = attendeeMatch[1];
-    
-    // Split by lines and clean up
-    const lines = attendeeSection
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => {
-        // Filter out empty lines, timestamp markers, and pure dashes
-        return line && 
-               !line.match(/^---\s*\d+\.png\s*---$/) && 
-               !line.match(/^-+$/) &&
-               line.length > 1;
-      })
-      .map(line => {
-        // Remove leading bullets/markers
-        return line.replace(/^[-•*]\s*/, '').trim();
-      })
-      .filter(line => line.length > 0);
+      // de-duplicate while preserving order
+      const seen = new Set<string>();
+      const unique: string[] = [];
+      for (const it of cleaned) {
+        const key = it.toLowerCase();
+        if (!seen.has(key)) { seen.add(key); unique.push(it); }
+      }
+      return unique;
+    };
 
-    return lines.join(', ');
+    // 1) Single-line label (e.g., "Attendees: A, B; C")
+    const singleLine = content.match(/^\s*(Attendee(?:s|\(s\))?|Attendees|Participants|Present|In attendance|Attendance)\s*:\s*(.+)$/im);
+    if (singleLine) {
+      const raw = singleLine[2];
+      const items = raw.split(/\s*(?:,|;|•| and )\s*/i).filter(Boolean);
+      return cleanupItems(items).join(', ');
+    }
+
+    // 2) Section header then list
+    const headerRegex = /^\s*(ATTENDEE LIST|Attendee(?:s|\(s\))?|Attendees?|Participants|Attendance|In attendance|Present)\s*(?:List)?\s*:??\s*$/im;
+    const headerMatch = headerRegex.exec(content);
+    if (headerMatch) {
+      const start = headerMatch.index + headerMatch[0].length;
+      const tail = content.slice(start);
+      // Stop at next heading, markdown header, or divider/image marker
+      const boundaryRegex = /^(?:\s*(?:#|##)\s+.+|[A-Z][A-Z\s&\/-]{2,}:?\s*$|---.*---\s*$)/m;
+      const boundary = boundaryRegex.exec(tail);
+      const section = boundary ? tail.slice(0, boundary.index) : tail;
+
+      const lines = section.split('\n');
+      const items = cleanupItems(lines);
+      if (items.length) return items.join(', ');
+    }
+
+    return '';
   };
-
   // Advanced Word export aligned with NHS-styled exporter (card view)
   const generateAdvancedWordDocument = async (content: string, title: string) => {
     try {
@@ -828,6 +846,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
       // Extract attendees from content
       const extractedAttendees = extractAttendees(content);
+      console.log('🧑‍🤝‍🧑 Extracted attendees for DOCX:', extractedAttendees);
 
       const dateStr = new Date().toLocaleDateString('en-GB');
       const filename = `${cleanTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${dateStr.replace(/\//g, '-')}.docx`;
