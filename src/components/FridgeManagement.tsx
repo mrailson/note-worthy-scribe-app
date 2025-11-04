@@ -202,7 +202,7 @@ export const FridgeManagement = () => {
   const generateQRCodeData = (fridgeId: string) => {
     // Always use current origin to ensure QR codes work after deployment/domain changes
     const baseUrl = window.location.origin;
-    return `${baseUrl}/public/fridge-temp/${fridgeId}`;
+    return `${baseUrl}/fridge-temp/${fridgeId}`;
   };
 
   const handleCreateFridge = async () => {
