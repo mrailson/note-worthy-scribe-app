@@ -15,12 +15,13 @@ const StandaloneTranscriptionViewer: React.FC = () => {
   const [committedText, setCommittedText] = useState('');
   const [pendingText, setPendingText] = useState('');
   const lastFinalRef = useRef<string>('');
+  const lastInterimRef = useRef<string>('');
 
   const handleToggleModal = () => {
     setIsModalOpen(!isModalOpen);
   };
 
-const handleTranscriptUpdate = (data: TranscriptData) => {
+  const handleTranscriptUpdate = (data: TranscriptData) => {
     const newText = (data.text || '').trim();
     if (!newText) return;
 
@@ -36,9 +37,43 @@ const handleTranscriptUpdate = (data: TranscriptData) => {
         return (prevTrim ? prevTrim + ' ' : '') + newText;
       });
       setPendingText('');
+      lastInterimRef.current = '';
     } else {
-      // Interim text replaces the pending line (no duplication)
-      setPendingText(newText);
+      // Interim: commit stable words, keep only the last ~10 words as pending
+      const words = newText.split(/\s+/);
+      const UNSTABLE_WORD_COUNT = 10;
+      
+      if (words.length > UNSTABLE_WORD_COUNT) {
+        // Split into stable (commit) and unstable (pending)
+        const stableWords = words.slice(0, -UNSTABLE_WORD_COUNT);
+        const unstableWords = words.slice(-UNSTABLE_WORD_COUNT);
+        
+        const stableText = stableWords.join(' ');
+        const unstableText = unstableWords.join(' ');
+        
+        // Only commit stable text if it's new (not already committed)
+        if (stableText !== lastInterimRef.current) {
+          setCommittedText(prev => {
+            const prevTrim = prev.trimEnd();
+            // Find what's new in stable text
+            if (lastInterimRef.current && stableText.startsWith(lastInterimRef.current)) {
+              const newPortion = stableText.slice(lastInterimRef.current.length).trim();
+              if (newPortion) {
+                return (prevTrim ? prevTrim + ' ' : '') + newPortion;
+              }
+              return prevTrim;
+            }
+            // First interim or completely different
+            return (prevTrim ? prevTrim + ' ' : '') + stableText;
+          });
+          lastInterimRef.current = stableText;
+        }
+        
+        setPendingText(unstableText);
+      } else {
+        // Less than 10 words, keep all as pending
+        setPendingText(newText);
+      }
     }
   };
 
@@ -101,6 +136,7 @@ const handleTranscriptUpdate = (data: TranscriptData) => {
       setCommittedText('');
       setPendingText('');
       lastFinalRef.current = '';
+      lastInterimRef.current = '';
       setTranscriptText('');
     }
   }, [isModalOpen, transcriber]);
