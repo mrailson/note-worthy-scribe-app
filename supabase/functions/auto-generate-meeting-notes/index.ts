@@ -302,48 +302,82 @@ serve(async (req) => {
     // Parse attendee list from transcript if present
     function parseTranscriptAttendeeList(transcript: string): AttendeeInfo[] {
       const attendees: AttendeeInfo[] = [];
-      
-      // Look for attendee list markers - handle both newline and same-line formats
-      const attendeeListMatch = transcript.match(/---\s*(?:ATTENDEE LIST|attendees|ATTENDEES)\s*---\s*\n?([\s\S]*?)(?=\n---|\n\*\*\*|$)/i);
-      
-      if (attendeeListMatch) {
-        const attendeeText = attendeeListMatch[1];
-        console.log('📋 Found attendee list in transcript:', attendeeText.substring(0, 200));
-        
-        // Parse lines like: "MASSEY, Catherine (ABINGDON PARK SURGERY)"
-        // Split by both semicolons and newlines
-        const lines = attendeeText.split(/[;\n]/).filter(line => line.trim());
-        
-        for (const line of lines) {
-          const trimmed = line.trim();
-          if (!trimmed) continue;
-          
-          // Match patterns like "SURNAME, Firstname (ORGANIZATION)" or "Name (ORGANIZATION)"
-          const match = trimmed.match(/^([^(]+?)\s*\(([^)]+)\)/);
-          if (match) {
-            const namePart = match[1].trim();
-            const org = match[2].trim();
-            
-            // Handle "SURNAME, Firstname" format
-            let name = namePart;
+
+      // Strategy 1: Original marker style --- ATTENDEE LIST --- ... ---
+      const markerMatch = transcript.match(/---\s*(?:ATTENDEE LIST|attendees|ATTENDEES)\s*---\s*\n?([\s\S]*?)(?=\n---|\n\*\*\*|$)/i);
+      if (markerMatch) {
+        const attendeeText = markerMatch[1];
+        console.log('📋 Found attendee list (marker style) in transcript:', attendeeText.substring(0, 200));
+        parseLinesIntoAttendees(attendeeText, attendees);
+        return attendees;
+      }
+
+      // Strategy 2: Heading style with underline, as shown in user screenshots
+      // e.g.
+      // ATTENDEE LIST\n_____\n...names...
+      const headingIndex = transcript.search(/^\s*ATTENDEE LIST\s*$/im);
+      if (headingIndex !== -1) {
+        // Slice from heading line
+        const afterHeading = transcript.slice(headingIndex);
+        const lines = afterHeading.split(/\r?\n/);
+        // Drop the heading line
+        let restLines = lines.slice(1);
+        // Drop an optional underline line made of _ or - characters
+        if (restLines[0] && /^[\s_\-]{3,}$/.test(restLines[0])) {
+          restLines = restLines.slice(1);
+        }
+
+        // Stop when we hit an obvious new section heading or pagination/control text
+        const stopAt = restLines.findIndex(l => /^(?:Next|Previous|EXECUTIVE SUMMARY|DISCUSSION|MEETING|Key Points|Agenda|MINUTES|Meeting Details)\b/i.test(l));
+        const relevant = (stopAt === -1 ? restLines : restLines.slice(0, stopAt))
+          .join('\n')
+          // Remove image/artifact lines like "--- file.png ---"
+          .replace(/^---.*\.(?:png|jpg|jpeg|pdf).*---$/gim, '')
+          // Remove excessive underscores lines
+          .replace(/^[\s_\-]{3,}$/gim, '')
+          .trim();
+
+        console.log('📋 Found attendee list (heading style) in transcript:', relevant.substring(0, 200));
+        parseLinesIntoAttendees(relevant, attendees);
+        return attendees;
+      }
+
+      return attendees;
+
+      // Helper: parse lines into attendees supporting formats like
+      // "SURNAME, Firstname (ORG)", "Firstname Surname (ORG)", or semicolon-separated lists
+      function parseLinesIntoAttendees(text: string, bucket: AttendeeInfo[]) {
+        // Split by newlines or semicolons
+        const rawLines = text.split(/[;\n]/).map(l => l.trim()).filter(Boolean);
+        for (const raw of rawLines) {
+          // Skip obvious non-name artefacts
+          if (/^---/.test(raw) || /\.(?:png|jpg|jpeg|pdf)$/i.test(raw)) continue;
+
+          // Match patterns like "Name (ORG)" while allowing commas in the name
+          const m = raw.match(/^([^()]+?)\s*\(([^)]+)\)\s*$/);
+          if (m) {
+            let namePart = m[1].trim();
+            const org = m[2].trim();
+            // Convert "SURNAME, Firstname" → "Firstname Surname"
             if (namePart.includes(',')) {
               const parts = namePart.split(',').map(p => p.trim());
-              // Convert "SURNAME, Firstname" to "Firstname SURNAME" with proper capitalization
               if (parts.length === 2) {
                 const surname = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
                 const firstname = parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase();
-                name = `${firstname} ${surname}`;
+                namePart = `${firstname} ${surname}`;
               }
             }
-            
-            attendees.push({ name, organization: org });
+            bucket.push({ name: namePart, organization: org });
+            continue;
+          }
+
+          // If no org provided, still capture the name if it looks like one
+          const nameOnly = raw.replace(/^[\-•\*\s]+/, '').trim();
+          if (nameOnly && /[A-Za-z]/.test(nameOnly) && nameOnly.length >= 3) {
+            bucket.push({ name: nameOnly });
           }
         }
-        
-        console.log(`✅ Parsed ${attendees.length} attendees from transcript`);
       }
-      
-      return attendees;
     }
     
     // Try to parse attendees from transcript first
