@@ -1615,7 +1615,7 @@ const ComplaintsSystem = () => {
                                   {getIconOrNumber()}
                                 </div>
                               </TooltipTrigger>
-                              <TooltipContent side="top" className="p-4 max-w-xs">
+                              <TooltipContent side="left" align="center" className="p-4 max-w-xs z-50">
                                 <div className="space-y-2">
                                   <div className="font-semibold text-base border-b pb-2">Important Dates</div>
                                   <div className="space-y-1.5">
