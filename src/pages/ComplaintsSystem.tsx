@@ -1617,20 +1617,56 @@ const ComplaintsSystem = () => {
                               </TooltipTrigger>
                               <TooltipContent side="left" align="center" className="p-4 max-w-xs z-50">
                                 <div className="space-y-2">
-                                  <div className="font-semibold text-base border-b pb-2">Important Dates</div>
-                                  <div className="space-y-1.5">
+                                  <div className="font-semibold text-base border-b pb-2">
+                                    {isClosed ? 'Complaint Timeline' : 'Important Dates'}
+                                  </div>
+                                  <div className="space-y-2">
                                     <div>
-                                      <div className="text-xs text-muted-foreground">Complaint Opened</div>
-                                      <div className="font-medium">{format(new Date(startDate), 'do MMM yyyy HH:mm')}</div>
+                                      <div className="text-xs text-muted-foreground">
+                                        {isClosed ? 'Opened' : 'Complaint Opened'}
+                                      </div>
+                                      <div className="font-medium">{format(new Date(startDate), 'do MMM yyyy')}</div>
                                     </div>
-                                    <div>
-                                      <div className="text-xs text-muted-foreground">Acknowledgement Due</div>
-                                      <div className="font-medium">{format(addWorkingDays(new Date(startDate), 3), 'do MMM yyyy')}</div>
+                                    <div className="flex items-start gap-2">
+                                      <div className="flex-1">
+                                        <div className="text-xs text-muted-foreground">
+                                          {isClosed ? 'Acknowledgement Letter' : 'Acknowledgement Due'}
+                                        </div>
+                                        <div className="font-medium">{format(addWorkingDays(new Date(startDate), 3), 'do MMM yyyy')}</div>
+                                      </div>
+                                      {isClosed && complaint.acknowledged_at && (
+                                        <div className="mt-1">
+                                          {new Date(complaint.acknowledged_at) <= addWorkingDays(new Date(startDate), 3) ? (
+                                            <CheckCircle className="h-4 w-4 text-green-600" />
+                                          ) : (
+                                            <XCircle className="h-4 w-4 text-destructive" />
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
-                                    <div>
-                                      <div className="text-xs text-muted-foreground">Outcome Letter Due</div>
-                                      <div className="font-medium">{format(addWorkingDays(new Date(startDate), 20), 'do MMM yyyy')}</div>
+                                    <div className="flex items-start gap-2">
+                                      <div className="flex-1">
+                                        <div className="text-xs text-muted-foreground">
+                                          {isClosed ? 'Outcome Letter' : 'Outcome Letter Due'}
+                                        </div>
+                                        <div className="font-medium">{format(addWorkingDays(new Date(startDate), 20), 'do MMM yyyy')}</div>
+                                      </div>
+                                      {isClosed && complaint.closed_at && (
+                                        <div className="mt-1">
+                                          {new Date(complaint.closed_at) <= addWorkingDays(new Date(startDate), 20) ? (
+                                            <CheckCircle className="h-4 w-4 text-green-600" />
+                                          ) : (
+                                            <XCircle className="h-4 w-4 text-destructive" />
+                                          )}
+                                        </div>
+                                      )}
                                     </div>
+                                    {isClosed && complaint.closed_at && (
+                                      <div className="pt-2 border-t">
+                                        <div className="text-xs text-muted-foreground">Closed</div>
+                                        <div className="font-medium">{format(new Date(complaint.closed_at), 'do MMM yyyy')}</div>
+                                      </div>
+                                    )}
                                   </div>
                                 </div>
                               </TooltipContent>
