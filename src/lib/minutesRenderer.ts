@@ -129,9 +129,9 @@ export function renderMinutesMarkdown(content: string): string {
     
     // Option 1: Indented sub-sections with left border (for Key Points and similar sections)
     // Detects patterns like "**Heading:** content" and styles them with NHS blue left border
-    // ENHANCED: More breathing room with increased spacing and padding
+    // ENHANCED: Improved visual hierarchy with background, better spacing, and enhanced typography
     .replace(/<strong class="font-semibold text-\[#212B32\]">([^<]+?):<\/strong>\s*([^<\n]+?)(?=(?:<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>)|$)/g, 
-      '<div class="ml-6 pl-4 border-l-[3px] border-[#005EB8] mb-5 py-2 mt-3"><strong class="font-semibold text-[#005EB8]">$1:</strong> <span class="text-[#212B32]">$2</span></div>')
+      '<div class="ml-6 pl-5 pr-4 border-l-[4px] border-[#005EB8] bg-[#F0F4F5] rounded-sm shadow-sm mb-7 py-3 mt-4"><strong class="font-semibold text-[#005EB8] text-[15px]">$1:</strong> <span class="text-[#212B32] leading-loose block mt-1">$2</span></div>')
 
     // Detect and convert standalone bullets that are subheadings (like "Background", "Key Points")
     .replace(/^[-•]\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*$/gm, '<h4 class="text-base font-semibold text-[#425563] mb-2 mt-4">$1</h4>')
