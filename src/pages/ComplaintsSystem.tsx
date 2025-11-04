@@ -1597,7 +1597,7 @@ const ComplaintsSystem = () => {
                         <div className="grid items-center gap-3 grid-cols-[110px_230px_100px_1fr_auto] w-[720px]">
                           {/* Open Date */}
                           <div className="text-sm text-muted-foreground text-center">
-                            {format(new Date(complaint.submitted_at || complaint.created_at), 'dd/MM/yyyy')}
+                            {format(new Date(complaint.submitted_at || complaint.created_at), 'do MMM yyyy')}
                           </div>
                           {/* Practice Name */}
                           <div className="text-sm text-muted-foreground text-center truncate px-2">
