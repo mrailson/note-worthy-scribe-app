@@ -431,6 +431,42 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             console.log(`📝 Transcript normalised using ${normalised.used} approach`);
             console.log('📝 Normalised preview:', normalised.plain.substring(0, 200));
             
+            // Add natural paragraph breaks to plain text for better readability
+            const formatWithParagraphs = (text: string): string => {
+              // Split on sentence endings followed by capital letters (new sentence)
+              const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
+              const paragraphs: string[] = [];
+              let currentParagraph: string[] = [];
+              
+              sentences.forEach((sentence, idx) => {
+                currentParagraph.push(sentence);
+                
+                // Create paragraph break every 3-5 sentences or at natural breaks
+                const shouldBreak = 
+                  currentParagraph.length >= 4 || 
+                  (currentParagraph.length >= 2 && (
+                    sentence.includes('?') || 
+                    sentence.length > 200 ||
+                    idx === sentences.length - 1
+                  ));
+                
+                if (shouldBreak) {
+                  paragraphs.push(currentParagraph.join(' '));
+                  currentParagraph = [];
+                }
+              });
+              
+              // Add any remaining sentences
+              if (currentParagraph.length > 0) {
+                paragraphs.push(currentParagraph.join(' '));
+              }
+              
+              return paragraphs.join('\n\n');
+            };
+            
+            // Apply paragraph formatting to plain text
+            const formattedPlain = formatWithParagraphs(normalised.plain);
+            
             // Final validation before setting state
             if (meeting?.id === currentMeetingId) {
               // Build context prefix from saved meeting_context if available and not already present
@@ -456,11 +492,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                 console.warn('⚠️ Failed to build meeting context prefix:', e);
               }
 
-              // Use plain text for large transcripts to avoid rendering overhead
+              // Use plain text with paragraph formatting for better readability
               const preferPlain = isLargeTranscript || rawSize > 30000;
-              const preferred = preferPlain ? normalised.plain : normalised.html;
+              const preferred = preferPlain ? formattedPlain : normalised.html;
               const finalTranscript = contextPrefix
-                ? (preferPlain ? contextPrefix + normalised.plain : contextPrefix + normalised.html)
+                ? (preferPlain ? contextPrefix + formattedPlain : contextPrefix + normalised.html)
                 : preferred;
               setTranscript(finalTranscript);
             } else {
