@@ -168,9 +168,9 @@ const parseContentToDocxElements = async (content: string) => {
       continue;
     }
     
-    // Check for bullet points (- or •)
-    if (line.startsWith('-') || line.startsWith('•')) {
-      const bulletText = line.replace(/^[-•]\s*/, '');
+    // Check for bullet points (-, •, or *)
+    if (line.startsWith('-') || line.startsWith('•') || line.startsWith('*')) {
+      const bulletText = line.replace(/^[-•*]\s*/, '');
       const runs = parseInlineFormatting(bulletText, TextRun);
       
       elements.push(new Paragraph({
