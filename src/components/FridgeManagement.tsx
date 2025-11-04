@@ -101,23 +101,34 @@ export const FridgeManagement = () => {
 
       if (fridgeError) throw fridgeError;
 
-      // Get the latest temperature reading for each fridge
-      const fridgesWithReadings = await Promise.all(
-        (fridgeData || []).map(async (fridge) => {
-          const { data: latestReading } = await supabase
-            .from('fridge_temperature_readings')
-            .select('temperature_celsius, recorded_at, is_within_range')
-            .eq('fridge_id', fridge.id)
-            .order('recorded_at', { ascending: false })
-            .limit(1)
-            .single();
+      // Get the latest temperature reading for all fridges in a single query (avoid N+1)
+      const ids = (fridgeData || []).map(f => f.id);
+      const latestByFridge: Record<string, { temperature_celsius: number; recorded_at: string; is_within_range: boolean }> = {};
+      if (ids.length > 0) {
+        const { data: readingsData, error: readingsError } = await supabase
+          .from('fridge_temperature_readings')
+          .select('fridge_id, temperature_celsius, recorded_at, is_within_range')
+          .in('fridge_id', ids)
+          .order('recorded_at', { ascending: false });
 
-          return {
-            ...fridge,
-            latest_reading: latestReading
-          };
-        })
-      );
+        if (readingsError) throw readingsError;
+
+        for (const r of (readingsData || []) as any[]) {
+          // first occurrence after ordering desc is the latest per fridge
+          if (!latestByFridge[(r as any).fridge_id]) {
+            latestByFridge[(r as any).fridge_id] = {
+              temperature_celsius: (r as any).temperature_celsius,
+              recorded_at: (r as any).recorded_at,
+              is_within_range: (r as any).is_within_range,
+            };
+          }
+        }
+      }
+
+      const fridgesWithReadings = (fridgeData || []).map(fridge => ({
+        ...fridge,
+        latest_reading: latestByFridge[fridge.id] || null,
+      }));
 
       // Get alert counts for each fridge
       const fridgeIds = fridgeData?.map(f => f.id) || [];
