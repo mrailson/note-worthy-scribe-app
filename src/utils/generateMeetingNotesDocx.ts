@@ -437,12 +437,7 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
     })
   );
   
-  // Metadata table
-  const metadataTable = await createMetadataTable(options.metadata);
-  if (metadataTable) {
-    children.push(metadataTable);
-    children.push(new Paragraph({ text: "", spacing: { after: 120 } }));
-  }
+  // Metadata table removed - details are shown in the Meeting Details section of the content
   
   // Attendees
   if (options.metadata.attendees) {
