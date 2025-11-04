@@ -141,6 +141,8 @@ const ComplaintsSystem = () => {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
+  const [dashboardCurrentPage, setDashboardCurrentPage] = useState(1);
+  const dashboardItemsPerPage = 8;
   const [submitting, setSubmitting] = useState(false);
   const [selectedComplaint, setSelectedComplaint] = useState<Complaint | null>(null);
   const [showDetails, setShowDetails] = useState(false);
@@ -1291,6 +1293,11 @@ const ComplaintsSystem = () => {
     setCurrentPage(1);
   }, [searchTerm, selectedCategory, selectedStatus, selectedPriority, selectedOutcome, dashboardFilter]);
 
+  // Reset dashboard pagination when filter changes
+  useEffect(() => {
+    setDashboardCurrentPage(1);
+  }, [dashboardFilter]);
+
   if (!user) {
     return (
       <div className="min-h-screen bg-gradient-subtle">
@@ -1513,7 +1520,15 @@ const ComplaintsSystem = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {(dashboardFilter === "" ? complaints.slice(0, 5) : filteredComplaints).map((complaint) => {
+                  {(() => {
+                    const complaintsToShow = dashboardFilter === "" ? complaints.slice(0, 5) : filteredComplaints;
+                    const startIndex = (dashboardCurrentPage - 1) * dashboardItemsPerPage;
+                    const endIndex = dashboardFilter === "" ? 5 : startIndex + dashboardItemsPerPage;
+                    const paginatedComplaints = dashboardFilter === "" 
+                      ? complaintsToShow 
+                      : complaintsToShow.slice(startIndex, endIndex);
+                    
+                    return paginatedComplaints.map((complaint) => {
                     const startDate = complaint.submitted_at ?? complaint.created_at;
                     const daysRemaining = startDate ? calculateDaysUntilDeadline(startDate) : null;
                     
@@ -1631,8 +1646,33 @@ const ComplaintsSystem = () => {
                       </div>
                     </div>
                     );
-                  })}
+                  })})()}
                 </div>
+                
+                {/* Pagination for filtered results */}
+                {dashboardFilter !== "" && filteredComplaints.length > dashboardItemsPerPage && (
+                  <div className="flex items-center justify-center gap-2 mt-6">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDashboardCurrentPage(p => Math.max(1, p - 1))}
+                      disabled={dashboardCurrentPage === 1}
+                    >
+                      Previous
+                    </Button>
+                    <span className="text-sm text-muted-foreground">
+                      Page {dashboardCurrentPage} of {Math.ceil(filteredComplaints.length / dashboardItemsPerPage)}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setDashboardCurrentPage(p => Math.min(Math.ceil(filteredComplaints.length / dashboardItemsPerPage), p + 1))}
+                      disabled={dashboardCurrentPage >= Math.ceil(filteredComplaints.length / dashboardItemsPerPage)}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>
