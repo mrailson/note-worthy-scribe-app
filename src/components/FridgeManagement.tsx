@@ -202,7 +202,33 @@ export const FridgeManagement = () => {
   const generateQRCodeData = (fridgeId: string) => {
     // Always use current origin to ensure QR codes work after deployment/domain changes
     const baseUrl = window.location.origin;
-    return `${baseUrl}/fridge-temp/${fridgeId}`;
+    return `${baseUrl}/public/fridge-temp/${fridgeId}`;
+  };
+
+  const updateAllQRCodes = async () => {
+    try {
+      const updates = fridges.map(fridge => ({
+        id: fridge.id,
+        qr_code_data: generateQRCodeData(fridge.id)
+      }));
+
+      for (const update of updates) {
+        const { error } = await supabase
+          .from('practice_fridges')
+          .update({ qr_code_data: update.qr_code_data })
+          .eq('id', update.id);
+
+        if (error) {
+          console.error(`Error updating QR code for fridge ${update.id}:`, error);
+        }
+      }
+
+      toast.success('All QR codes updated to current domain');
+      loadFridges(); // Reload to show updated data
+    } catch (error) {
+      console.error('Error updating QR codes:', error);
+      toast.error('Failed to update QR codes');
+    }
   };
 
   const handleCreateFridge = async () => {
@@ -573,71 +599,76 @@ export const FridgeManagement = () => {
           <h2 className="text-2xl font-bold">Fridge Temperature Monitoring</h2>
           <p className="text-muted-foreground">Manage refrigerators and monitor temperatures for compliance</p>
         </div>
-        
-        <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Fridge
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Fridge</DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="fridge_name">Fridge Name</Label>
-                <Input
-                  id="fridge_name"
-                  value={formData.fridge_name}
-                  onChange={(e) => setFormData(prev => ({ ...prev, fridge_name: e.target.value }))}
-                  placeholder="e.g., Main Vaccine Fridge"
-                />
-              </div>
-              <div>
-                <Label htmlFor="location">Location</Label>
-                <Input
-                  id="location"
-                  value={formData.location}
-                  onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
-                  placeholder="e.g., Nurse Station Room 1"
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="min_temp">Min Temperature (°C)</Label>
-                  <Input
-                    id="min_temp"
-                    type="number"
-                    step="0.1"
-                    value={formData.min_temp_celsius}
-                    onChange={(e) => setFormData(prev => ({ ...prev, min_temp_celsius: parseFloat(e.target.value) }))}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="max_temp">Max Temperature (°C)</Label>
-                  <Input
-                    id="max_temp"
-                    type="number"
-                    step="0.1"
-                    value={formData.max_temp_celsius}
-                    onChange={(e) => setFormData(prev => ({ ...prev, max_temp_celsius: parseFloat(e.target.value) }))}
-                  />
-                </div>
-              </div>
-              <Button 
-                onClick={() => {
-                  console.log('Create button clicked!');
-                  handleCreateFridge();
-                }} 
-                className="w-full"
-              >
-                Create Fridge
+        <div className="flex items-center gap-2">
+          <Button variant="outline" onClick={updateAllQRCodes}>
+            <QrCode className="mr-2 h-4 w-4" />
+            Update All QR Codes
+          </Button>
+          <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Fridge
               </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Fridge</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="fridge_name">Fridge Name</Label>
+                  <Input
+                    id="fridge_name"
+                    value={formData.fridge_name}
+                    onChange={(e) => setFormData(prev => ({ ...prev, fridge_name: e.target.value }))}
+                    placeholder="e.g., Main Vaccine Fridge"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input
+                    id="location"
+                    value={formData.location}
+                    onChange={(e) => setFormData(prev => ({ ...prev, location: e.target.value }))}
+                    placeholder="e.g., Nurse Station Room 1"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="min_temp">Min Temperature (°C)</Label>
+                    <Input
+                      id="min_temp"
+                      type="number"
+                      step="0.1"
+                      value={formData.min_temp_celsius}
+                      onChange={(e) => setFormData(prev => ({ ...prev, min_temp_celsius: parseFloat(e.target.value) }))}
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="max_temp">Max Temperature (°C)</Label>
+                    <Input
+                      id="max_temp"
+                      type="number"
+                      step="0.1"
+                      value={formData.max_temp_celsius}
+                      onChange={(e) => setFormData(prev => ({ ...prev, max_temp_celsius: parseFloat(e.target.value) }))}
+                    />
+                  </div>
+                </div>
+                <Button 
+                  onClick={() => {
+                    console.log('Create button clicked!');
+                    handleCreateFridge();
+                  }} 
+                  className="w-full"
+                >
+                  Create Fridge
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
