@@ -126,6 +126,8 @@ const ComplaintDetails = () => {
   const [existingOutcome, setExistingOutcome] = useState<any>(null);
   const [outcomeLetter, setOutcomeLetter] = useState("");
   const [showOutcomeLetter, setShowOutcomeLetter] = useState(false);
+  const [outcomeLetterSent, setOutcomeLetterSent] = useState(false);
+  const [outcomeLetterSentAt, setOutcomeLetterSentAt] = useState<string | null>(null);
   const [showAiAnalysisModal, setShowAiAnalysisModal] = useState(false);
   const [editingOutcome, setEditingOutcome] = useState(false);
   const [acknowledgementLetter, setAcknowledgementLetter] = useState("");
@@ -229,6 +231,8 @@ const ComplaintDetails = () => {
         setOutcomeType(outcomeData.outcome_type);
         setOutcomeSummary(outcomeData.outcome_summary);
         setOutcomeLetter(outcomeData.outcome_letter || "");
+        setOutcomeLetterSent(!!outcomeData.sent_at);
+        setOutcomeLetterSentAt(outcomeData.sent_at);
         
         // Fetch the questionnaire data used to generate this outcome
         const { data: questionnaireData } = await supabase
@@ -942,6 +946,31 @@ const ComplaintDetails = () => {
       toast.error("Failed to regenerate outcome letter");
     } finally {
       setIsRegeneratingOutcome(false);
+    }
+  };
+
+  const handleToggleOutcomeLetterSent = async (isSent: boolean) => {
+    if (!existingOutcome || !complaintId) return;
+    
+    try {
+      const now = isSent ? new Date().toISOString() : null;
+      
+      const { error } = await supabase
+        .from('complaint_outcomes')
+        .update({ 
+          sent_at: now,
+          sent_by: isSent ? user?.id : null
+        })
+        .eq('id', existingOutcome.id);
+
+      if (error) throw error;
+
+      setOutcomeLetterSent(isSent);
+      setOutcomeLetterSentAt(now);
+      toast.success(isSent ? "Outcome letter marked as sent" : "Outcome letter marked as not sent");
+    } catch (error) {
+      console.error('Error updating outcome letter sent status:', error);
+      toast.error("Failed to update outcome letter status");
     }
   };
 
@@ -2527,6 +2556,23 @@ I am committed to ensuring that all patients receive the care and service they d
                             </Button>
                           )}
                         </div>
+                      </div>
+                      
+                      {/* Outcome Letter Sent Checkbox */}
+                      <div className="flex items-center gap-3 p-3 bg-green-100 rounded border border-green-200">
+                        <Checkbox
+                          id="outcome-letter-sent"
+                          checked={outcomeLetterSent}
+                          onCheckedChange={(checked) => handleToggleOutcomeLetterSent(checked as boolean)}
+                        />
+                        <Label htmlFor="outcome-letter-sent" className="text-sm font-medium text-green-800 cursor-pointer">
+                          Outcome letter/email sent to patient
+                        </Label>
+                        {outcomeLetterSentAt && (
+                          <span className="text-xs text-green-600 ml-auto">
+                            Sent: {format(new Date(outcomeLetterSentAt), 'dd/MM/yyyy HH:mm')}
+                          </span>
+                        )}
                       </div>
                       
                       {/* Questionnaire Responses Section */}

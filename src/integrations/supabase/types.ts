@@ -1143,6 +1143,8 @@ export type Database = {
           outcome_letter: string
           outcome_summary: string
           outcome_type: string
+          sent_at: string | null
+          sent_by: string | null
         }
         Insert: {
           complaint_id: string
@@ -1153,6 +1155,8 @@ export type Database = {
           outcome_letter: string
           outcome_summary: string
           outcome_type: string
+          sent_at?: string | null
+          sent_by?: string | null
         }
         Update: {
           complaint_id?: string
@@ -1163,6 +1167,8 @@ export type Database = {
           outcome_letter?: string
           outcome_summary?: string
           outcome_type?: string
+          sent_at?: string | null
+          sent_by?: string | null
         }
         Relationships: [
           {
