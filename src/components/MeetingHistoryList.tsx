@@ -91,6 +91,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { AttendeeRoleBadge } from './meeting-history/AttendeeRoleBadge';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
 import { toast } from 'sonner';
+import { TranscriptRepairButton } from '@/components/admin/TranscriptRepairButton';
 
 
 interface Meeting {
@@ -182,7 +183,7 @@ export const MeetingHistoryList = ({
 }: MeetingHistoryListProps) => {
   const navigate = useNavigate();
   const { isRecording, isResourceOperationSafe, setRecordingState } = useRecording();
-  const { user } = useAuth();
+  const { user, isSystemAdmin } = useAuth();
   const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
   const isIOS = detectDevice().isIOS;
   console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
@@ -2291,6 +2292,28 @@ export const MeetingHistoryList = ({
                         })()}
                         {getProcessingButtonText(processingMeetings[meeting.id])}
                       </DropdownMenuItem>
+                      
+                      {/* System Admin Only - Repair Transcript Chunks */}
+                      {isSystemAdmin && meeting.transcript_count && meeting.transcript_count > 0 && (
+                        <DropdownMenuItem 
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          }}
+                          asChild
+                        >
+                          <div className="w-full">
+                            <TranscriptRepairButton 
+                              meetingId={meeting.id}
+                              onRepairComplete={() => {
+                                onRefresh?.();
+                                toast.success('Transcript repair complete - refreshing meeting data');
+                              }}
+                            />
+                          </div>
+                        </DropdownMenuItem>
+                      )}
+                      
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem 
                           onSelect={(e) => {
