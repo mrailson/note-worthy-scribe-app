@@ -120,6 +120,9 @@ export function renderMinutesMarkdown(content: string): string {
     // Bold text - handle both ** and remaining single *
     .replace(/\*\*(.*?)\*\*/g, '<strong class="font-semibold text-[#212B32]">$1</strong>')
     
+    // Remove stray asterisks after headings (like "**Heading:** * content")
+    .replace(/(<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>)\s*\*/g, '$1 ')
+    
     // Remove stray asterisks at the beginning of lines (not part of lists or formatting)
     .replace(/^\*([A-Z])/gm, '$1')
     .replace(/\s\*([A-Z])/g, ' $1')
