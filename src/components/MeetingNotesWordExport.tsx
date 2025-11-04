@@ -33,7 +33,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
 
   const generateWordDocument = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    console.log('🔍 Generating full-featured Word document with formatting!');
+    console.log('🔍 Generating Word document with better formatting!');
     
     try {
       setIsGenerating(true);
@@ -44,7 +44,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
         throw new Error('No meeting data available');
       }
       
-      const { generateMeetingNotesDocx } = await import('@/utils/generateMeetingNotesDocx');
+      const { generateWordDocument: generateDoc } = await import('@/utils/documentGenerators');
       
       // Combine overview and content
       let fullContent = '';
@@ -55,20 +55,15 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
         fullContent += meetingData.content;
       }
       
-      await generateMeetingNotesDocx({
-        metadata: {
-          title: meetingData.title || 'Meeting Notes',
-          date: meetingData.date,
-          duration: meetingData.duration,
-          attendees: meetingData.attendees,
-        },
-        content: fullContent,
-        filename: `Meeting_Notes_${new Date().toISOString().split('T')[0]}.docx`,
-      });
+      await generateDoc(
+        fullContent,
+        meetingData.title || 'Meeting Notes',
+        true
+      );
       
       setStatus('Success!');
       toast.success('Word document downloaded successfully!');
-      console.log('🔍 Full-featured Word document download completed!');
+      console.log('🔍 Word document download completed!');
       
     } catch (error: any) {
       console.error('❌ Word generation failed:', error);
