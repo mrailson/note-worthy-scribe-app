@@ -587,55 +587,72 @@ ${cleanedTranscript}`;
     console.log('📊 System prompt length:', systemPrompt.length, 'chars');
     console.log('📊 User prompt length:', userPrompt.length, 'chars');
     
-    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        max_completion_tokens: 2000,
-      }),
-    });
-
-    console.log('📡 Lovable AI response status:', response.status);
-
-    if (!response.ok) {
-      const errorData = await response.text();
-      console.error('❌ Lovable AI API error:', response.status, errorData);
-      
-      // Handle specific error cases
-      if (response.status === 429) {
-        throw new Error('Rate limit exceeded. Please wait a moment and try again.');
-      }
-      if (response.status === 402) {
-        throw new Error('Insufficient AI credits. Please add credits to your workspace.');
-      }
-      if (response.status === 413) {
-        throw new Error('Transcript too large. Please try cleaning the transcript first.');
-      }
-      
-      throw new Error(`Lovable AI API error: ${response.status} - ${errorData}`);
-    }
-
-    const data = await response.json();
-    console.log('📦 Lovable AI response data:', JSON.stringify(data).substring(0, 500));
+    // Create AbortController with 2 minute timeout for AI generation
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 2 minutes
     
-    const generatedNotes = data.choices?.[0]?.message?.content || '';
+    let generatedNotes = '';
     
-    if (!generatedNotes || generatedNotes.trim().length === 0) {
-      console.error('⚠️ Lovable AI returned empty content!');
-      console.error('Response structure:', JSON.stringify(data));
-      throw new Error('Lovable AI returned empty content. This may indicate an API configuration issue.');
-    }
+    try {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+          max_completion_tokens: 2000,
+        }),
+        signal: controller.signal,
+      });
 
-    console.log('✅ Generated notes length:', generatedNotes.length, 'chars');
-    console.log('📝 Generated preview:', generatedNotes.substring(0, 200));
+      clearTimeout(timeoutId);
+      console.log('📡 Lovable AI response status:', response.status);
+
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('❌ Lovable AI API error:', response.status, errorData);
+        
+        // Handle specific error cases
+        if (response.status === 429) {
+          throw new Error('Rate limit exceeded. Please wait a moment and try again.');
+        }
+        if (response.status === 402) {
+          throw new Error('Insufficient AI credits. Please add credits to your workspace.');
+        }
+        if (response.status === 413) {
+          throw new Error('Transcript too large. Please try cleaning the transcript first.');
+        }
+        
+        throw new Error(`Lovable AI API error: ${response.status} - ${errorData}`);
+      }
+
+      const data = await response.json();
+      console.log('📦 Lovable AI response data:', JSON.stringify(data).substring(0, 500));
+      
+      generatedNotes = data.choices?.[0]?.message?.content || '';
+      
+      if (!generatedNotes || generatedNotes.trim().length === 0) {
+        console.error('⚠️ Lovable AI returned empty content!');
+        console.error('Response structure:', JSON.stringify(data));
+        throw new Error('Lovable AI returned empty content. This may indicate an API configuration issue.');
+      }
+
+      console.log('✅ Generated notes length:', generatedNotes.length, 'chars');
+      console.log('📝 Generated preview:', generatedNotes.substring(0, 200));
+    } catch (fetchError: any) {
+      clearTimeout(timeoutId);
+      if (fetchError.name === 'AbortError') {
+        console.error('⏱️ AI generation timed out after 2 minutes');
+        throw new Error('AI generation timed out. Please try with a shorter transcript or contact support.');
+      }
+      throw fetchError;
+    }
 
     // Extract overview from the generated notes (first section after "EXECUTIVE SUMMARY")
     const overviewMatch = generatedNotes.match(/\*\*EXECUTIVE SUMMARY\*\*\s*\n(.*?)(?=\n\*\*|$)/s);
