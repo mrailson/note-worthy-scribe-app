@@ -219,14 +219,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   
   // Search functionality for transcript
   const [searchTerm, setSearchTerm] = useState("");
-  
-  // Download transcript function
-  const handleDownloadTranscript = () => {
-    const blob = new Blob([transcript], { type: 'text/plain;charset=utf-8' });
-    const fileName = `${meeting?.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-transcript.txt`;
-    saveAs(blob, fileName);
-    toast.success('Transcript downloaded');
-  };
   // Generate Executive HTML lazily when tab is opened or content changes
   useEffect(() => {
     if (activeNotesStyleTab === 'style4') {
@@ -4106,7 +4098,8 @@ ${transcript}`;
                     <PaginatedTranscriptViewer
                       transcript={transcript}
                       pageSize={5000}
-                      onDownload={handleDownloadTranscript}
+                      meetingContext={meeting}
+                      onAddContext={() => setShowContextDialog(true)}
                     />
                   </div>
                 ) : (

@@ -2,20 +2,266 @@ import React, { useState, useMemo } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { ChevronLeft, ChevronRight, Download } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, FilePlus2 } from 'lucide-react';
+import { Document, Paragraph, TextRun, Packer } from 'docx';
+import { saveAs } from 'file-saver';
+import { toast } from 'sonner';
 
 interface PaginatedTranscriptViewerProps {
   transcript: string;
   pageSize?: number;
-  onDownload?: () => void;
+  meetingContext?: any;
+  onAddContext?: () => void;
 }
 
 export const PaginatedTranscriptViewer: React.FC<PaginatedTranscriptViewerProps> = ({
   transcript,
   pageSize = 5000, // ~5KB per page
-  onDownload
+  meetingContext,
+  onAddContext
 }) => {
   const [currentPage, setCurrentPage] = useState(0);
+
+  // Helper function to clean HTML from transcript
+  const cleanHTMLFromTranscript = (text: string): string => {
+    const containsHTML = /<\/?[a-z][\s\S]*>/i.test(text);
+    if (!containsHTML) return text;
+    
+    return text
+      .replace(/<\/p>\s*<p[^>]*>/gi, '\n\n')
+      .replace(/<p[^>]*>/gi, '')
+      .replace(/<\/p>/gi, '\n\n')
+      .replace(/<br\s*\/?>(\s*<br\s*\/?>)*/gi, '\n')
+      .replace(/&nbsp;/gi, ' ')
+      .replace(/<[^>]+>/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+  };
+
+  // Split transcript into paragraphs
+  const splitIntoParagraphs = (text: string): string[] => {
+    const byBlankLines = text.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+    if (byBlankLines.length > 1) return byBlankLines;
+
+    const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z0-9])/);
+    const paras: string[] = [];
+    let buf = '';
+    for (const s of sentences) {
+      buf = buf ? `${buf} ${s}` : s;
+      if (buf.length > 400) {
+        paras.push(buf.trim());
+        buf = '';
+      }
+    }
+    if (buf.trim()) paras.push(buf.trim());
+    return paras.length ? paras : [text];
+  };
+
+  const handleDownloadWord = async () => {
+    if (!transcript) {
+      toast.error('No transcript to download');
+      return;
+    }
+
+    try {
+      const cleanedText = cleanHTMLFromTranscript(transcript);
+      const paragraphs = splitIntoParagraphs(cleanedText);
+
+      const headerSections = [];
+      
+      if (meetingContext?.title) {
+        headerSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: meetingContext.title,
+                bold: true,
+                size: 24,
+                font: 'Calibri',
+              })
+            ],
+            spacing: { after: 300 }
+          })
+        );
+      }
+
+      if (meetingContext?.date || meetingContext?.start_time) {
+        let dt: Date | null = null;
+        const dateStr = meetingContext?.date as string | undefined;
+        const startStr = meetingContext?.start_time as string | undefined;
+
+        if (dateStr) {
+          const parsed = new Date(dateStr);
+          if (!isNaN(parsed.getTime())) dt = parsed;
+        }
+
+        if (!dt && startStr && !/^(\d{1,2}:\d{2})$/.test(startStr)) {
+          const parsed = new Date(startStr);
+          if (!isNaN(parsed.getTime())) dt = parsed;
+        }
+
+        const ordinal = (n: number) => {
+          if (n > 3 && n < 21) return 'th';
+          switch (n % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; }
+        };
+
+        let formattedDate = '';
+        let formattedTime = '';
+
+        if (dt) {
+          const dayName = dt.toLocaleDateString('en-GB', { weekday: 'long' });
+          const monthName = dt.toLocaleDateString('en-GB', { month: 'long' });
+          const day = dt.getDate();
+          const year = dt.getFullYear();
+          formattedDate = `${dayName} ${day}${ordinal(day)} ${monthName} ${year}`;
+          formattedTime = dt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false });
+        } else if (dateStr) {
+          const d = new Date(dateStr);
+          if (!isNaN(d.getTime())) {
+            const dayName = d.toLocaleDateString('en-GB', { weekday: 'long' });
+            const monthName = d.toLocaleDateString('en-GB', { month: 'long' });
+            const day = d.getDate();
+            const year = d.getFullYear();
+            formattedDate = `${dayName} ${day}${ordinal(day)} ${monthName} ${year}`;
+          }
+        }
+
+        if (startStr && /^(\d{1,2}:\d{2})$/.test(startStr)) {
+          formattedTime = startStr;
+        }
+
+        const dateTimeText = formattedDate
+          ? `${formattedDate}${formattedTime ? ` at ${formattedTime}` : ''}`
+          : (formattedTime ? `at ${formattedTime}` : '');
+
+        headerSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({ text: 'Meeting Date: ', bold: true, size: 24, font: 'Calibri' }),
+              new TextRun({ text: dateTimeText, size: 24, font: 'Calibri' })
+            ],
+            spacing: { after: 200 }
+          })
+        );
+      }
+
+      if (meetingContext?.meeting_type) {
+        headerSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: 'Meeting Type: ',
+                bold: true,
+                size: 24,
+                font: 'Calibri',
+              }),
+              new TextRun({
+                text: meetingContext.meeting_type === 'face-to-face' ? 'Face to Face' : 'MS Teams',
+                size: 24,
+                font: 'Calibri',
+              })
+            ],
+            spacing: { after: 200 }
+          })
+        );
+      }
+
+      if (meetingContext?.attendees && meetingContext.attendees.length > 0) {
+        headerSections.push(
+          new Paragraph({
+            children: [
+              new TextRun({
+                text: 'Attendees:',
+                bold: true,
+                size: 24,
+                font: 'Calibri',
+              })
+            ],
+            spacing: { after: 100 }
+          })
+        );
+
+        meetingContext.attendees.forEach((attendee: string) => {
+          headerSections.push(
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `• ${attendee}`,
+                  size: 24,
+                  font: 'Calibri',
+                })
+              ],
+              spacing: { after: 100 },
+              indent: { left: 720 }
+            })
+          );
+        });
+      }
+
+      headerSections.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: '─'.repeat(40),
+              size: 24,
+              color: '999999',
+            })
+          ],
+          spacing: { before: 200, after: 400 }
+        })
+      );
+
+      headerSections.push(
+        new Paragraph({
+          children: [
+            new TextRun({
+              text: 'Transcript',
+              bold: true,
+              size: 28,
+              font: 'Calibri',
+            })
+          ],
+          spacing: { after: 300 }
+        })
+      );
+
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            ...headerSections,
+            ...paragraphs.map(text => 
+              new Paragraph({
+                children: [
+                  new TextRun({
+                    text: text.trim(),
+                    size: 24,
+                    font: 'Calibri',
+                  })
+                ],
+                spacing: {
+                  after: 280,
+                  line: 360,
+                },
+                alignment: 'left',
+              })
+            )
+          ]
+        }]
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const fileName = meetingContext?.title 
+        ? `${meetingContext.title.replace(/[^a-z0-9]/gi, '-').toLowerCase()}-transcript.docx`
+        : `transcript-${new Date().toISOString().split('T')[0]}.docx`;
+      
+      saveAs(blob, fileName);
+      toast.success('Transcript downloaded as Word document');
+    } catch (error) {
+      console.error('Error downloading transcript:', error);
+      toast.error('Failed to download transcript');
+    }
+  };
 
   const pages = useMemo(() => {
     if (!transcript) return [];
@@ -64,17 +310,28 @@ export const PaginatedTranscriptViewer: React.FC<PaginatedTranscriptViewerProps>
           )}
         </div>
 
-        {onDownload && (
+        <div className="flex items-center gap-2">
+          {onAddContext && (
+            <Button
+              onClick={onAddContext}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <FilePlus2 className="h-4 w-4" />
+              Add Context
+            </Button>
+          )}
           <Button
-            onClick={onDownload}
+            onClick={handleDownloadWord}
             variant="outline"
             size="sm"
             className="flex items-center gap-2"
           >
             <Download className="h-4 w-4" />
-            Download Full
+            Download Word
           </Button>
-        )}
+        </div>
       </div>
 
       <div className="min-h-[300px] max-h-[500px] overflow-y-auto mb-4">
