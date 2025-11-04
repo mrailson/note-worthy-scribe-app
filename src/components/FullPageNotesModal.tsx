@@ -348,59 +348,59 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
      }
    }, [activeTab, activeNotesStyleTab, transcriptLoaded, isLoadingTranscript, meeting?.id]);
 
-   const fetchTranscriptData = async () => {
+   const fetchTranscriptData = async (): Promise<string> => {
      if (!meeting?.id) {
        console.error('❌ fetchTranscriptData called without meeting ID');
-       return;
+       return '';
      }
      
      // Additional validation before database calls
      if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
        console.error('❌ Invalid meeting ID format in fetchTranscriptData:', meeting.id);
-       return;
+       return '';
      }
      
      const currentMeetingId = meeting.id;
      console.log('🔍 Starting fetchTranscriptData for meeting:', currentMeetingId, 'title:', meeting.title);
      
-      setIsLoadingTranscript(true);
-        try {
-          // Fetch meeting metadata and check for manually edited transcript
-          const { data: manualData, error: manualError } = await supabase
-            .from('meetings')
-            .select('live_transcript_text, assembly_ai_transcript, meeting_context')
-            .eq('id', currentMeetingId)
-            .eq('user_id', user!.id)
-            .maybeSingle();
-  
-          // Always load backup transcript if available
-          if (manualData?.assembly_ai_transcript) {
-            setBackupTranscript(manualData.assembly_ai_transcript);
-            console.log('✅ Loaded Assembly AI backup transcript:', manualData.assembly_ai_transcript.length, 'chars');
-          }
-          
-          // Check if we have a manually saved/edited transcript (with context or edits)
-          // Prefer this over the chunks since it represents the user's customized version
-          if (
-            manualData?.live_transcript_text &&
-            manualData.live_transcript_text.trim().length > 0
-          ) {
-            console.log('✅ Using saved transcript with context/edits from meetings.live_transcript_text');
-            if (meeting?.id === currentMeetingId) {
-              setTranscript(manualData.live_transcript_text);
-              setTranscriptSize(manualData.live_transcript_text.length);
-              setIsLargeTranscript(manualData.live_transcript_text.length > 30000);
-              setIsLoadingTranscript(false);
-              setTranscriptLoaded(true);
-            }
-            return;
-          }
-          
-          // Otherwise, fetch the full processed transcript from chunks
-          console.log('📋 No saved transcript found, fetching from chunks...');
-          const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
-            p_meeting_id: currentMeetingId
-          });
+     setIsLoadingTranscript(true);
+       try {
+         // Fetch meeting metadata and check for manually edited transcript
+         const { data: manualData, error: manualError } = await supabase
+           .from('meetings')
+           .select('live_transcript_text, assembly_ai_transcript, meeting_context')
+           .eq('id', currentMeetingId)
+           .eq('user_id', user!.id)
+           .maybeSingle();
+ 
+         // Always load backup transcript if available
+         if (manualData?.assembly_ai_transcript) {
+           setBackupTranscript(manualData.assembly_ai_transcript);
+           console.log('✅ Loaded Assembly AI backup transcript:', manualData.assembly_ai_transcript.length, 'chars');
+         }
+         
+         // Check if we have a manually saved/edited transcript (with context or edits)
+         // Prefer this over the chunks since it represents the user's customized version
+         if (
+           manualData?.live_transcript_text &&
+           manualData.live_transcript_text.trim().length > 0
+         ) {
+           console.log('✅ Using saved transcript with context/edits from meetings.live_transcript_text');
+           if (meeting?.id === currentMeetingId) {
+             setTranscript(manualData.live_transcript_text);
+             setTranscriptSize(manualData.live_transcript_text.length);
+             setIsLargeTranscript(manualData.live_transcript_text.length > 30000);
+             setIsLoadingTranscript(false);
+             setTranscriptLoaded(true);
+           }
+           return manualData.live_transcript_text;
+         }
+         
+         // Otherwise, fetch the full processed transcript from chunks
+         console.log('📋 No saved transcript found, fetching from chunks...');
+         const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
+           p_meeting_id: currentMeetingId
+         });
           
           // Validate we're still showing the same meeting (prevent race conditions)
           if (meeting?.id !== currentMeetingId) {
@@ -509,18 +509,22 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
                 ? (preferPlain ? contextPrefix + formattedPlain : contextPrefix + normalised.html)
                 : preferred;
               setTranscript(finalTranscript);
+              return finalTranscript;
             } else {
               console.warn('⚠️ Meeting changed during transcript processing, discarding results');
+              return '';
             }
           } else {
             console.log('📝 No transcript data found for meeting:', currentMeetingId);
             setTranscript('');
             setTranscriptSize(0);
             setIsLargeTranscript(false);
+            return '';
           }
         
      } catch (error) {
        console.error('Error fetching transcript data for meeting', currentMeetingId, ':', error);
+       return '';
       } finally {
         // Only update loading state if we're still on the same meeting
         if (meeting?.id === currentMeetingId) {
@@ -2136,7 +2140,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   };
 
   const handleRegenerateNotes = async () => {
-    if (!meeting?.id || !transcript) {
+    if (!meeting?.id) {
+      toast.error('Missing meeting data');
       return;
     }
 
@@ -2145,6 +2150,21 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsGenerating(true);
     
     try {
+      // Ensure transcript is loaded before regenerating
+      let transcriptToUse = transcript;
+      if (!transcriptToUse || transcriptToUse.trim().length === 0) {
+        console.log('📋 Transcript not loaded yet, fetching before regeneration...');
+        toast.info('Loading transcript...', { duration: 2000 });
+        transcriptToUse = await fetchTranscriptData();
+        
+        // If still no transcript after fetching, abort
+        if (!transcriptToUse || transcriptToUse.trim().length === 0) {
+          toast.error('No transcript available to generate notes from');
+          setIsGenerating(false);
+          return;
+        }
+      }
+
       const meetingDate = meeting.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : '';
       const meetingTime = meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString('en-GB', { 
         hour: '2-digit', 
@@ -2152,7 +2172,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }) : '';
 
       // Add meeting metadata to transcript
-      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcript, {
+      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcriptToUse, {
         startTime: meeting.start_time,
         endTime: meeting.end_time || undefined,
         duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
@@ -2179,6 +2199,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
     } catch (error) {
       console.error('Error regenerating meeting notes:', error);
+      toast.error('Failed to regenerate notes');
     } finally {
       setIsGenerating(false);
     }
@@ -2187,13 +2208,27 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const generateNotesStyle2 = async () => {
     console.log('📄 Starting Minutes - Brief regeneration...');
     
-    if (!meeting?.id || !transcript) {
-      console.error('❌ Missing required data for Very Detailed:', { meetingId: meeting?.id, hasTranscript: !!transcript });
+    if (!meeting?.id) {
+      console.error('❌ Missing meeting ID for Very Detailed');
+      toast.error('Missing meeting data');
       return;
     }
 
     setIsGeneratingStyle2(true);
     try {
+      // Ensure transcript is loaded
+      let transcriptToUse = transcript;
+      if (!transcriptToUse || transcriptToUse.trim().length === 0) {
+        console.log('📋 Transcript not loaded yet, fetching...');
+        toast.info('Loading transcript...', { duration: 2000 });
+        transcriptToUse = await fetchTranscriptData();
+        
+        if (!transcriptToUse || transcriptToUse.trim().length === 0) {
+          toast.error('No transcript available');
+          setIsGeneratingStyle2(false);
+          return;
+        }
+      }
       const style2Prompt = `Please analyze the provided meeting transcript and create brief, professional meeting minutes with the following structure. Focus on capturing every point discussed while keeping descriptions concise and actionable.
 
 FORMATTING REQUIREMENTS
@@ -2267,13 +2302,13 @@ LENGTH TARGET: Aim for 1-2 pages maximum while ensuring completeness.
 
 Paste your meeting transcript after this prompt for processing.
 
-${transcript}`;
+${transcriptToUse}`;
 
       console.log('📝 Very Detailed prompt created, length:', style2Prompt.length);
       console.log('🚀 Calling Very Detailed generation...');
 
       // Add meeting metadata to transcript
-      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcript, {
+      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcriptToUse, {
         startTime: meeting.start_time,
         endTime: meeting.end_time || undefined,
         duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
@@ -2454,13 +2489,27 @@ ${transcript}`;
     // Reset state immediately to prevent sticking
     setIsGeneratingStyle4(true);
     
-    if (!meeting?.id || !transcript) {
-      console.error('❌ Missing required data for Executive:', { meetingId: meeting?.id, hasTranscript: !!transcript });
+    if (!meeting?.id) {
+      console.error('❌ Missing meeting ID for Executive');
       setIsGeneratingStyle4(false);
-      toast.error('Missing meeting data or transcript');
+      toast.error('Missing meeting data');
       return;
     }
     try {
+      // Ensure transcript is loaded
+      let transcriptToUse = transcript;
+      if (!transcriptToUse || transcriptToUse.trim().length === 0) {
+        console.log('📋 Transcript not loaded yet, fetching...');
+        toast.info('Loading transcript...', { duration: 2000 });
+        transcriptToUse = await fetchTranscriptData();
+        
+        if (!transcriptToUse || transcriptToUse.trim().length === 0) {
+          toast.error('No transcript available');
+          setIsGeneratingStyle4(false);
+          return;
+        }
+      }
+      
       // Round time to nearest 15 minutes
       const roundToNearest15Minutes = (date: Date) => {
         const minutes = date.getMinutes();
@@ -2556,16 +2605,16 @@ For: [What types of queries they handle]
 
 Here is the PCN meeting transcript to process:
 
-${transcript}`;
+${transcriptToUse}`;
 
       console.log('📝 Executive prompt created, length:', style4Prompt.length);
       console.log('📅 Meeting date being sent:', meetingDate);
       console.log('🕐 Meeting time being sent:', meetingTime);
-      console.log('📄 Transcript length:', transcript?.length);
+      console.log('📄 Transcript length:', transcriptToUse?.length);
       console.log('🚀 Calling Executive generation...');
 
       // Add meeting metadata to transcript
-      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcript, {
+      const transcriptWithMetadata = addMeetingMetadataToTranscript(transcriptToUse, {
         startTime: meeting.start_time,
         endTime: meeting.end_time || undefined,
         duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : meeting.duration
