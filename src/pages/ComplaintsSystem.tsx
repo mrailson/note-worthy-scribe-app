@@ -401,7 +401,7 @@ const ComplaintsSystem = () => {
   const statusOptions = [
     { value: "draft", label: "Draft" },
     { value: "submitted", label: "Submitted" },
-    { value: "under_review", label: "Under Review" },
+    { value: "under_review", label: "Open - Under Review" },
     { value: "response_sent", label: "Response Sent" },
     { value: "closed", label: "Closed" },
     { value: "escalated", label: "Escalated" },
