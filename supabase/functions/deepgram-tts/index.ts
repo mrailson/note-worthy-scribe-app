@@ -19,6 +19,32 @@ serve(async (req) => {
       throw new Error('Text is required');
     }
 
+    // Deepgram TTS has a 2000 character limit
+    const MAX_CHARS = 2000;
+    let processedText = text;
+    let wasTruncated = false;
+    
+    if (text.length > MAX_CHARS) {
+      // Truncate at sentence boundary if possible
+      const truncated = text.substring(0, MAX_CHARS);
+      const lastPeriod = truncated.lastIndexOf('.');
+      const lastQuestion = truncated.lastIndexOf('?');
+      const lastExclamation = truncated.lastIndexOf('!');
+      const lastSentenceEnd = Math.max(lastPeriod, lastQuestion, lastExclamation);
+      
+      if (lastSentenceEnd > MAX_CHARS * 0.8) {
+        // If we found a sentence ending in the last 20%, use it
+        processedText = truncated.substring(0, lastSentenceEnd + 1);
+      } else {
+        // Otherwise just truncate at word boundary
+        const lastSpace = truncated.lastIndexOf(' ');
+        processedText = truncated.substring(0, lastSpace) + '...';
+      }
+      
+      wasTruncated = true;
+      console.log('Text truncated from', text.length, 'to', processedText.length, 'characters');
+    }
+
     const deepgramApiKey = Deno.env.get('DEEPGRAM_API_KEY');
     
     if (!deepgramApiKey) {
@@ -35,7 +61,7 @@ serve(async (req) => {
         'Authorization': `Token ${deepgramApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text }),
+      body: JSON.stringify({ text: processedText }),
     });
 
     console.log('Deepgram API response status:', response.status);
@@ -58,7 +84,12 @@ serve(async (req) => {
     console.log('Successfully generated audio, base64 length:', base64Audio.length);
 
     return new Response(
-      JSON.stringify({ audioContent: base64Audio }),
+      JSON.stringify({ 
+        audioContent: base64Audio,
+        wasTruncated,
+        originalLength: text.length,
+        processedLength: processedText.length
+      }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }

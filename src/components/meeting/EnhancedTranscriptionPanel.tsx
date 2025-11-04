@@ -344,6 +344,11 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         throw new Error('No audio content received from API');
       }
 
+      // Show warning if text was truncated
+      if (data.wasTruncated) {
+        toast.warning(`Text was truncated from ${data.originalLength} to ${data.processedLength} characters (Deepgram limit: 2000)`);
+      }
+
       // Convert base64 to audio blob
       const binaryString = atob(data.audioContent);
       const bytes = new Uint8Array(binaryString.length);
