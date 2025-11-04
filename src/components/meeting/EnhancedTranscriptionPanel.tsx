@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Clock, ChevronDown, ChevronUp, FileText, Users, Sparkles, 
-  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, FilePlus2, Download, MoreVertical
+  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, FilePlus2, Download, MoreVertical, Play, Loader2
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
@@ -80,6 +80,10 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   
   // Format state
   const [isFormatting, setIsFormatting] = useState(false);
+  
+  // TTS state
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
   
   // Fetch chunks with timestamp extraction
   useEffect(() => {
@@ -304,6 +308,75 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
       toast.error('Failed to format transcript');
     } finally {
       setIsFormatting(false);
+    }
+  };
+
+  const playTranscript = async () => {
+    if (!transcript?.trim()) {
+      toast.error('No text to play');
+      return;
+    }
+
+    try {
+      setIsPlaying(true);
+
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+
+      console.log('Calling deepgram-tts edge function...');
+      
+      // Call edge function
+      const { data, error } = await supabase.functions.invoke('deepgram-tts', {
+        body: { text: transcript }
+      });
+
+      console.log('Edge function response:', { data, error });
+
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
+
+      if (!data || !data.audioContent) {
+        throw new Error('No audio content received from API');
+      }
+
+      // Convert base64 to audio blob
+      const binaryString = atob(data.audioContent);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'audio/mpeg' });
+      const audioUrl = URL.createObjectURL(blob);
+
+      // Play audio
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      
+      audio.onended = () => {
+        setIsPlaying(false);
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        setIsPlaying(false);
+        toast.error('Failed to play audio');
+        URL.revokeObjectURL(audioUrl);
+      };
+
+      await audio.play();
+      toast.success('Playing transcript');
+
+    } catch (error: any) {
+      console.error('TTS error:', error);
+      const errorMessage = error?.message || 'Failed to generate speech';
+      toast.error(errorMessage);
+      setIsPlaying(false);
     }
   };
 
@@ -936,6 +1009,18 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               >
                 <Copy className="h-4 w-4 mr-2" />
                 Copy
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem 
+                onClick={playTranscript}
+                disabled={!transcript || isPlaying}
+              >
+                {isPlaying ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Play className="h-4 w-4 mr-2" />
+                )}
+                Play
               </DropdownMenuItem>
               
               <DropdownMenuItem 
