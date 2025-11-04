@@ -1352,9 +1352,6 @@ const ComplaintsSystem = () => {
           </div>
         </div>
 
-        {/* NHS Compliance Banner */}
-        <NHSComplianceBanner activeSessionsCount={getActiveSessionCount()} />
-
         <Tabs value={currentTab} onValueChange={setCurrentTab} className={cn(
           deviceInfo.isIPhone ? "space-y-3" : "space-y-4 sm:space-y-6"
         )}>
