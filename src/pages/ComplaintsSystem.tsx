@@ -1408,8 +1408,7 @@ const ComplaintsSystem = () => {
             )}>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
                     onClick={() => { 
-                      setDashboardFilter("all"); 
-                      setCurrentTab("view");
+                      setDashboardFilter("all");
                     }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
@@ -1427,8 +1426,7 @@ const ComplaintsSystem = () => {
               </Card>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
                     onClick={() => { 
-                      setDashboardFilter("open"); 
-                      setCurrentTab("view");
+                      setDashboardFilter("open");
                     }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Open</CardTitle>
@@ -1445,8 +1443,7 @@ const ComplaintsSystem = () => {
               </Card>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
                     onClick={() => { 
-                      setDashboardFilter("overdue"); 
-                      setCurrentTab("view");
+                      setDashboardFilter("overdue");
                     }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">Overdue</CardTitle>
@@ -1463,8 +1460,7 @@ const ComplaintsSystem = () => {
               </Card>
               <Card className="cursor-pointer hover:shadow-md transition-shadow" 
                     onClick={() => { 
-                      setDashboardFilter("closed_this_month"); 
-                      setCurrentTab("view");
+                      setDashboardFilter("closed_this_month");
                     }}>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-medium text-muted-foreground">Closed This Month</CardTitle>
@@ -1481,7 +1477,24 @@ const ComplaintsSystem = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle>
+                    {dashboardFilter === "all" && "Recent Activity"}
+                    {dashboardFilter === "open" && "Open Complaints"}
+                    {dashboardFilter === "overdue" && "Overdue Complaints"}
+                    {dashboardFilter === "closed_this_month" && "Closed This Month"}
+                  </CardTitle>
+                  {dashboardFilter !== "all" && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setDashboardFilter("all")}
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Clear filter
+                    </Button>
+                  )}
+                </div>
               </CardHeader>
               <CardContent>
                 {/* Column headings */}
@@ -1497,7 +1510,7 @@ const ComplaintsSystem = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {complaints.slice(0, 5).map((complaint) => {
+                  {(dashboardFilter === "all" ? complaints.slice(0, 5) : filteredComplaints).map((complaint) => {
                     const startDate = complaint.submitted_at ?? complaint.created_at;
                     const daysRemaining = startDate ? calculateDaysUntilDeadline(startDate) : null;
                     
