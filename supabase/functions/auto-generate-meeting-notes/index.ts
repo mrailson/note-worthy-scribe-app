@@ -303,14 +303,15 @@ serve(async (req) => {
     function parseTranscriptAttendeeList(transcript: string): AttendeeInfo[] {
       const attendees: AttendeeInfo[] = [];
       
-      // Look for attendee list markers
-      const attendeeListMatch = transcript.match(/---\s*(?:ATTENDEE LIST|attendees|ATTENDEES)\s*---\s*\n([\s\S]*?)(?=\n---|\n\*\*\*|$)/i);
+      // Look for attendee list markers - handle both newline and same-line formats
+      const attendeeListMatch = transcript.match(/---\s*(?:ATTENDEE LIST|attendees|ATTENDEES)\s*---\s*\n?([\s\S]*?)(?=\n---|\n\*\*\*|$)/i);
       
       if (attendeeListMatch) {
         const attendeeText = attendeeListMatch[1];
-        console.log('📋 Found attendee list in transcript');
+        console.log('📋 Found attendee list in transcript:', attendeeText.substring(0, 200));
         
         // Parse lines like: "MASSEY, Catherine (ABINGDON PARK SURGERY)"
+        // Split by both semicolons and newlines
         const lines = attendeeText.split(/[;\n]/).filter(line => line.trim());
         
         for (const line of lines) {
