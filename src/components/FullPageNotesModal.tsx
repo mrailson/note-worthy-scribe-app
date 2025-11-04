@@ -365,7 +365,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
      
       setIsLoadingTranscript(true);
         try {
-          // Fetch meeting metadata and backup transcript
+          // Fetch meeting metadata and check for manually edited transcript
           const { data: manualData, error: manualError } = await supabase
             .from('meetings')
             .select('live_transcript_text, assembly_ai_transcript, meeting_context')
@@ -379,7 +379,25 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             console.log('✅ Loaded Assembly AI backup transcript:', manualData.assembly_ai_transcript.length, 'chars');
           }
           
-          // Always fetch the full processed transcript from chunks
+          // Check if we have a manually saved/edited transcript (with context or edits)
+          // Prefer this over the chunks since it represents the user's customized version
+          if (
+            manualData?.live_transcript_text &&
+            manualData.live_transcript_text.trim().length > 0
+          ) {
+            console.log('✅ Using saved transcript with context/edits from meetings.live_transcript_text');
+            if (meeting?.id === currentMeetingId) {
+              setTranscript(manualData.live_transcript_text);
+              setTranscriptSize(manualData.live_transcript_text.length);
+              setIsLargeTranscript(manualData.live_transcript_text.length > 30000);
+              setIsLoadingTranscript(false);
+              setTranscriptLoaded(true);
+            }
+            return;
+          }
+          
+          // Otherwise, fetch the full processed transcript from chunks
+          console.log('📋 No saved transcript found, fetching from chunks...');
           const { data: transcriptData, error: transcriptError } = await supabase.rpc('get_meeting_full_transcript', {
             p_meeting_id: currentMeetingId
           });
