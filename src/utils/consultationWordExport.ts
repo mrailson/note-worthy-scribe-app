@@ -68,8 +68,14 @@ function parseTextWithFormatting(text: string): TextRun[] {
 // Helper to create a section heading
 function createSectionHeading(icon: string, title: string): Paragraph {
   return new Paragraph({
-    text: `${icon} ${title}`,
-    heading: HeadingLevel.HEADING_2,
+    children: [
+      new TextRun({
+        text: `${icon} ${title}`,
+        bold: true,
+        size: 28,
+        color: '2563EB'
+      })
+    ],
     spacing: {
       before: 400,
       after: 200
@@ -168,8 +174,14 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
   
   // Document title
   sections.push(new Paragraph({
-    text: 'GP Consultation Notes',
-    heading: HeadingLevel.HEADING_1,
+    children: [
+      new TextRun({
+        text: 'GP Consultation Notes',
+        bold: true,
+        size: 36,
+        color: '1E40AF'
+      })
+    ],
     alignment: AlignmentType.CENTER,
     spacing: { after: 300 }
   }));
@@ -199,8 +211,14 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
   // Quick Summary Section
   if (data.summaryLine) {
     sections.push(new Paragraph({
-      text: '📋 Quick Summary',
-      heading: HeadingLevel.HEADING_2,
+      children: [
+        new TextRun({
+          text: '📋 Quick Summary',
+          bold: true,
+          size: 28,
+          color: '2563EB'
+        })
+      ],
       spacing: { before: 400, after: 200 }
     }));
     
@@ -222,8 +240,14 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
   // SOAP Notes - Detailed version
   if (data.standard) {
     sections.push(new Paragraph({
-      text: '📝 Clinical Notes (SOAP Format)',
-      heading: HeadingLevel.HEADING_1,
+      children: [
+        new TextRun({
+          text: '📝 Clinical Notes (SOAP Format)',
+          bold: true,
+          size: 32,
+          color: '1E40AF'
+        })
+      ],
       spacing: { before: 600, after: 300 }
     }));
     
@@ -237,8 +261,14 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
   // SOAP Notes - Shorthand version
   if (data.shorthand) {
     sections.push(new Paragraph({
-      text: '⚡ Quick Reference (Shorthand)',
-      heading: HeadingLevel.HEADING_1,
+      children: [
+        new TextRun({
+          text: '⚡ Quick Reference (Shorthand)',
+          bold: true,
+          size: 32,
+          color: '1E40AF'
+        })
+      ],
       spacing: { before: 600, after: 300 }
     }));
     
@@ -252,8 +282,14 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
   // Clinical Actions
   if (data.clinicalActions) {
     sections.push(new Paragraph({
-      text: '🎯 Clinical Actions',
-      heading: HeadingLevel.HEADING_1,
+      children: [
+        new TextRun({
+          text: '🎯 Clinical Actions',
+          bold: true,
+          size: 32,
+          color: '1E40AF'
+        })
+      ],
       spacing: { before: 600, after: 300 }
     }));
     
@@ -263,8 +299,14 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
   // Safety Netting / Review
   if (data.review) {
     sections.push(new Paragraph({
-      text: '🛡️ Safety Netting & Follow-Up',
-      heading: HeadingLevel.HEADING_1,
+      children: [
+        new TextRun({
+          text: '🛡️ Safety Netting & Follow-Up',
+          bold: true,
+          size: 32,
+          color: '1E40AF'
+        })
+      ],
       spacing: { before: 600, after: 300 }
     }));
     
@@ -274,8 +316,14 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
   // Patient Copy
   if (data.patientCopy) {
     sections.push(new Paragraph({
-      text: '👤 Patient-Friendly Summary',
-      heading: HeadingLevel.HEADING_1,
+      children: [
+        new TextRun({
+          text: '👤 Patient-Friendly Summary',
+          bold: true,
+          size: 32,
+          color: '1E40AF'
+        })
+      ],
       spacing: { before: 600, after: 300 }
     }));
     
@@ -285,8 +333,14 @@ export async function exportConsultationToWord(data: ConsultationData): Promise<
   // Referral
   if (data.referral) {
     sections.push(new Paragraph({
-      text: '📤 Referral Details',
-      heading: HeadingLevel.HEADING_1,
+      children: [
+        new TextRun({
+          text: '📤 Referral Details',
+          bold: true,
+          size: 32,
+          color: '1E40AF'
+        })
+      ],
       spacing: { before: 600, after: 300 }
     }));
     
