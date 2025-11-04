@@ -66,9 +66,24 @@ const handleTranscriptUpdate = (data: TranscriptData) => {
     };
   }, []);
 
+  // Format text with natural breaks and paragraphs
+  const formatTranscript = (text: string): string => {
+    if (!text) return '';
+    
+    // Split into sentences (periods, question marks, exclamation marks)
+    let formatted = text
+      // Add line break after sentence-ending punctuation followed by space
+      .replace(/([.!?])\s+/g, '$1\n')
+      // Create paragraph breaks after 2-3 consecutive sentences
+      .replace(/\n\n+/g, '\n\n');
+    
+    return formatted;
+  };
+
   // Compose displayed transcript from committed + pending
   useEffect(() => {
-    setTranscriptText([committedText, pendingText].filter(Boolean).join(' '));
+    const combined = [committedText, pendingText].filter(Boolean).join(' ');
+    setTranscriptText(formatTranscript(combined));
   }, [committedText, pendingText]);
 
 // Auto-start/stop transcription when modal opens/closes
