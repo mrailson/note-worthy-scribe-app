@@ -16,7 +16,7 @@ interface GenerateMeetingNotesOptions {
   filename?: string;
 }
 
-// Strip transcript sections from content
+// Strip transcript sections and duplicate meeting title from content
 const stripTranscriptSection = (content: string): string => {
   let cleaned = content;
   
@@ -26,6 +26,9 @@ const stripTranscriptSection = (content: string): string => {
   cleaned = cleaned.replace(/\n*Full Transcript:[\s\S]*$/i, '');
   cleaned = cleaned.replace(/\n*##?\s*TRANSCRIPT[\s\S]*$/i, '');
   cleaned = cleaned.replace(/\n*##?\s*Meeting Transcript[\s\S]*$/i, '');
+  
+  // Remove duplicate "Meeting Title:" lines (with or without bullet points)
+  cleaned = cleaned.replace(/^\s*[-•*]?\s*Meeting Title:\s*.*$/gm, '');
   
   return cleaned.trim();
 };
