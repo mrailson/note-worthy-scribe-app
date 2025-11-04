@@ -786,6 +786,35 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     location: ''
   };
 
+  // Extract attendees from content
+  const extractAttendees = (content: string): string => {
+    // Look for "ATTENDEE LIST" section
+    const attendeeMatch = content.match(/ATTENDEE LIST[:\s]*\n([\s\S]*?)(?=\n\n[A-Z\-]|\n---\s*[A-Z]|$)/i);
+    
+    if (!attendeeMatch) return '';
+
+    const attendeeSection = attendeeMatch[1];
+    
+    // Split by lines and clean up
+    const lines = attendeeSection
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => {
+        // Filter out empty lines, timestamp markers, and pure dashes
+        return line && 
+               !line.match(/^---\s*\d+\.png\s*---$/) && 
+               !line.match(/^-+$/) &&
+               line.length > 1;
+      })
+      .map(line => {
+        // Remove leading bullets/markers
+        return line.replace(/^[-•*]\s*/, '').trim();
+      })
+      .filter(line => line.length > 0);
+
+    return lines.join(', ');
+  };
+
   // Advanced Word export aligned with NHS-styled exporter (card view)
   const generateAdvancedWordDocument = async (content: string, title: string) => {
     try {
@@ -797,11 +826,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const extracted = titleMatch ? titleMatch[1] : title;
       const cleanTitle = extracted.replace(/\*\*/g, '').replace(/\*/g, '').trim() || 'Meeting Notes';
 
+      // Extract attendees from content
+      const extractedAttendees = extractAttendees(content);
+
       const dateStr = new Date().toLocaleDateString('en-GB');
       const filename = `${cleanTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${dateStr.replace(/\//g, '-')}.docx`;
 
       await generateMeetingNotesDocx({
-        metadata: { title: cleanTitle },
+        metadata: { 
+          title: cleanTitle,
+          attendees: extractedAttendees
+        },
         content,
         filename,
       });
