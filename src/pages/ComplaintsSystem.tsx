@@ -1514,7 +1514,7 @@ const ComplaintsSystem = () => {
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-muted-foreground">Complaint</p>
                   </div>
-                  <div className="grid items-center gap-3 grid-cols-[110px_230px_100px_1fr_auto] w-[720px]">
+                  <div className="grid items-center gap-3 grid-cols-[110px_230px_100px_220px_auto] w-[820px]">
                     <div className="text-sm font-semibold text-muted-foreground text-center">Open Date</div>
                     <div className="text-sm font-semibold text-muted-foreground text-center">Practice</div>
                     <div className="text-sm font-semibold text-muted-foreground text-center">Deadline</div>
@@ -1592,7 +1592,7 @@ const ComplaintsSystem = () => {
                           <p className="text-lg font-semibold">{complaint.reference_number}</p>
                           <p className="text-base text-muted-foreground">{complaint.complaint_title}</p>
                         </div>
-                        <div className="grid items-center gap-3 grid-cols-[110px_230px_100px_1fr_auto] w-[720px]">
+                        <div className="grid items-center gap-3 grid-cols-[110px_230px_100px_220px_auto] w-[820px]">
                           {/* Open Date */}
                           <div className="text-sm text-muted-foreground text-center">
                             {format(new Date(complaint.submitted_at || complaint.created_at), 'do MMM yyyy')}
