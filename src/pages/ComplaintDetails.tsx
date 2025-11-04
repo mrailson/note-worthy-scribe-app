@@ -668,7 +668,7 @@ const ComplaintDetails = () => {
     const statusMap: { [key: string]: string } = {
       draft: "Draft",
       submitted: "Submitted",
-      under_review: "Under Review",
+      under_review: "Open - Under Review",
       response_sent: "Response Sent", 
       closed: "Closed",
       escalated: "Escalated"
@@ -1790,7 +1790,12 @@ I am committed to ensuring that all patients receive the care and service they d
                 <div><strong>Patient:</strong> {complaint.patient_name}</div>
                 <div><strong>Category:</strong> {getCategoryLabel(complaint.category)}</div>
                 <div><strong>Priority:</strong> {getPriorityLabel(complaint.priority)}</div>
-                <div><strong>Status:</strong> {getStatusLabel(complaint.status)}</div>
+                <div><strong>Status:</strong> 
+                  {complaint.status === 'under_review' && acknowledgementSentToPatient && (
+                    <Mail className="h-3 w-3 inline ml-1 mr-1" />
+                  )}
+                  {getStatusLabel(complaint.status)}
+                </div>
                 <div><strong>Incident Date:</strong> {format(new Date(complaint.incident_date), 'dd/MM/yyyy')}</div>
                 {complaint.response_due_date && (
                   <div><strong>Due Date:</strong> {format(new Date(complaint.response_due_date), 'dd/MM/yyyy')}</div>
@@ -2138,6 +2143,9 @@ I am committed to ensuring that all patients receive the care and service they d
                     <div>
                       <Label className="font-medium">Status</Label>
                       <Badge variant={complaint.status === 'closed' ? 'default' : complaint.status === 'submitted' ? 'secondary' : 'outline'}>
+                        {complaint.status === 'under_review' && acknowledgementSentToPatient && (
+                          <Mail className="h-3 w-3 mr-1" />
+                        )}
                         {getStatusLabel(complaint.status)}
                       </Badge>
                     </div>
