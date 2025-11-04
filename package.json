@@ -95,6 +95,7 @@
     "string-similarity": "^4.0.4",
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
+    "ua-parser-js": "^2.0.6",
     "vaul": "^1.1.2",
     "xlsx": "^0.18.5",
     "zod": "^3.23.8"

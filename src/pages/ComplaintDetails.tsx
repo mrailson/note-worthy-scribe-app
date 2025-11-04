@@ -60,6 +60,7 @@ import { InvestigationEvidence } from "@/components/InvestigationEvidence";
 import { InvestigationFindings } from "@/components/InvestigationFindings";
 import { InvestigationDecisionAndLearning } from "@/components/InvestigationDecisionAndLearning";
 import { calculateDaysUntilDeadline, calculateWorkingDays } from "@/utils/workingDays";
+import { logComplaintViewWithMetadata } from "@/utils/auditLogger";
 
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { CQCReportModal } from "@/components/CQCReportModal";
@@ -71,6 +72,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Maximize2, Minimize2, FileEdit, Eye as EyeIcon, Columns } from "lucide-react";
 import { AIEditLetterDialog } from "@/components/AIEditLetterDialog";
 import { ManualAcknowledgementGenerator } from "@/components/ManualAcknowledgementGenerator";
+import { EnhancedAuditLogViewer } from "@/components/EnhancedAuditLogViewer";
 
 
 interface Complaint {
@@ -519,10 +521,7 @@ const ComplaintDetails = () => {
   const logComplaintView = async () => {
     if (!user || !complaintId) return;
     try {
-      await supabase.rpc('log_complaint_view', {
-        p_complaint_id: complaintId,
-        p_view_context: 'complaint_details_page'
-      });
+      await logComplaintViewWithMetadata(complaintId, 'complaint_details_page');
     } catch (error) {
       console.error('Error logging complaint view:', error);
       // Don't show toast for view logging errors to avoid cluttering UI
@@ -3377,37 +3376,7 @@ I am committed to ensuring that all patients receive the care and service they d
 
             {/* Audit Log Tab */}
             <TabsContent value="audit" className="space-y-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Complaint Activity Log</CardTitle>
-                  <CardDescription>Complete audit trail of all actions taken on this complaint</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    {auditLogs.length > 0 ? (
-                      auditLogs.map((log) => (
-                        <div key={log.id} className="border-l-2 border-blue-200 pl-4 py-2">
-                          <div className="flex items-center justify-between">
-                            <h4 className="font-medium">{log.action_type}</h4>
-                            <span className="text-xs text-muted-foreground">
-                              {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm')}
-                            </span>
-                          </div>
-                          <p className="text-sm text-muted-foreground">{log.action_description}</p>
-                          {log.user_email && (
-                            <p className="text-xs text-muted-foreground">By: {log.user_email}</p>
-                          )}
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8 text-muted-foreground">
-                        <Clock className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p>No activity recorded yet for this complaint.</p>
-                      </div>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+              <EnhancedAuditLogViewer logs={auditLogs} />
 
               {complianceAuditLogs.length > 0 && (
                 <Card>

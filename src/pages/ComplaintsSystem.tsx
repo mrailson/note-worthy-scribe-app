@@ -76,6 +76,7 @@ import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { createLetterDocument } from "@/utils/letterFormatter";
 import { cn } from "@/lib/utils";
 import { calculateDaysUntilDeadline, addWorkingDays, calculateWorkingDays } from "@/utils/workingDays";
+import { logComplaintViewWithMetadata } from "@/utils/auditLogger";
 
 interface Complaint {
   id: string;
@@ -1702,10 +1703,7 @@ const ComplaintsSystem = () => {
                               return;
                             }
                             try {
-                              await supabase.rpc('log_complaint_view', {
-                                p_complaint_id: complaint.id,
-                                p_view_context: 'dashboard_recent_activity'
-                              });
+                              await logComplaintViewWithMetadata(complaint.id, 'dashboard_recent_activity');
                             } catch (error) {
                               console.error('Error logging complaint view:', error);
                             }
@@ -2077,10 +2075,7 @@ const ComplaintsSystem = () => {
                                   return;
                                 }
                                 try {
-                                  await supabase.rpc('log_complaint_view', {
-                                    p_complaint_id: complaint.id,
-                                    p_view_context: 'complaints_list_view'
-                                  });
+                                  await logComplaintViewWithMetadata(complaint.id, 'complaints_list_view');
                                 } catch (error) {
                                   console.error('Error logging complaint view:', error);
                                 }

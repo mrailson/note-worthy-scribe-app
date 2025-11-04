@@ -605,12 +605,24 @@ export type Database = {
         Row: {
           action_description: string
           action_type: string
+          browser_name: string | null
+          browser_version: string | null
           complaint_id: string | null
           created_at: string
+          device_fingerprint: string | null
+          device_type: string | null
+          geographic_location: string | null
           id: string
           ip_address: string | null
+          language: string | null
           new_values: Json | null
           old_values: Json | null
+          os_name: string | null
+          os_version: string | null
+          referrer: string | null
+          screen_resolution: string | null
+          session_id: string | null
+          timezone: string | null
           user_agent: string | null
           user_email: string | null
           user_id: string | null
@@ -618,12 +630,24 @@ export type Database = {
         Insert: {
           action_description: string
           action_type: string
+          browser_name?: string | null
+          browser_version?: string | null
           complaint_id?: string | null
           created_at?: string
+          device_fingerprint?: string | null
+          device_type?: string | null
+          geographic_location?: string | null
           id?: string
           ip_address?: string | null
+          language?: string | null
           new_values?: Json | null
           old_values?: Json | null
+          os_name?: string | null
+          os_version?: string | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          session_id?: string | null
+          timezone?: string | null
           user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
@@ -631,12 +655,24 @@ export type Database = {
         Update: {
           action_description?: string
           action_type?: string
+          browser_name?: string | null
+          browser_version?: string | null
           complaint_id?: string | null
           created_at?: string
+          device_fingerprint?: string | null
+          device_type?: string | null
+          geographic_location?: string | null
           id?: string
           ip_address?: string | null
+          language?: string | null
           new_values?: Json | null
           old_values?: Json | null
+          os_name?: string | null
+          os_version?: string | null
+          referrer?: string | null
+          screen_resolution?: string | null
+          session_id?: string | null
+          timezone?: string | null
           user_agent?: string | null
           user_email?: string | null
           user_id?: string | null
@@ -6408,6 +6444,18 @@ export type Database = {
               p_action_description: string
               p_action_type: string
               p_complaint_id: string
+              p_ip_address?: string
+              p_new_values?: Json
+              p_old_values?: Json
+              p_user_agent?: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_action_description: string
+              p_action_type: string
+              p_complaint_id: string
               p_new_values?: Json
               p_old_values?: Json
             }
@@ -6427,19 +6475,41 @@ export type Database = {
         }
         Returns: undefined
       }
-      log_complaint_document_action: {
-        Args: {
-          p_action_type: string
-          p_complaint_id: string
-          p_document_id?: string
-          p_document_name: string
-        }
-        Returns: string
-      }
-      log_complaint_view: {
-        Args: { p_complaint_id: string; p_view_context?: string }
-        Returns: undefined
-      }
+      log_complaint_document_action:
+        | {
+            Args: {
+              p_action_type: string
+              p_complaint_id: string
+              p_document_id?: string
+              p_document_name: string
+              p_ip_address?: string
+              p_user_agent?: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_action_type: string
+              p_complaint_id: string
+              p_document_id?: string
+              p_document_name: string
+            }
+            Returns: string
+          }
+      log_complaint_view:
+        | {
+            Args: {
+              p_complaint_id: string
+              p_ip_address?: string
+              p_user_agent?: string
+              p_view_context?: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: { p_complaint_id: string; p_view_context?: string }
+            Returns: undefined
+          }
       log_compliance_change: {
         Args: {
           p_complaint_id: string
