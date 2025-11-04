@@ -104,6 +104,9 @@ interface Complaint {
   created_at: string;
   updated_at: string;
   practice_id: string | null;
+  gp_practices?: {
+    name: string;
+  };
 }
 
 interface ComplaintFormData {
@@ -489,7 +492,8 @@ const ComplaintsSystem = () => {
         .from('complaints')
         .select(`
           *,
-          complaint_outcomes(outcome_letter)
+          complaint_outcomes(outcome_letter),
+          gp_practices(name)
         `)
         .order('created_at', { ascending: false });
 
@@ -1512,7 +1516,8 @@ const ComplaintsSystem = () => {
                   <div className="flex-1">
                     <p className="text-sm font-semibold text-muted-foreground">Complaint</p>
                   </div>
-                  <div className="grid items-center gap-3 grid-cols-[100px_1fr_auto] w-[380px]">
+                  <div className="grid items-center gap-3 grid-cols-[150px_100px_1fr_auto] w-[530px]">
+                    <div className="text-sm font-semibold text-muted-foreground text-center">Practice</div>
                     <div className="text-sm font-semibold text-muted-foreground text-center">Deadline</div>
                     <div className="text-sm font-semibold text-muted-foreground text-center">Status</div>
                     <div className="text-sm font-semibold text-muted-foreground text-center">Actions</div>
@@ -1588,7 +1593,11 @@ const ComplaintsSystem = () => {
                           <p className="font-medium">{complaint.reference_number}</p>
                           <p className="text-sm text-muted-foreground">{complaint.complaint_title}</p>
                         </div>
-                        <div className="grid items-center gap-3 grid-cols-[100px_1fr_auto] w-[380px]">
+                        <div className="grid items-center gap-3 grid-cols-[150px_100px_1fr_auto] w-[530px]">
+                          {/* Practice Name */}
+                          <div className="text-sm text-muted-foreground text-center truncate px-2">
+                            {complaint.gp_practices?.name || 'N/A'}
+                          </div>
                           {/* Days remaining indicator */}
                           <div className="flex flex-col items-center w-[100px]">
                             <div className={cn(

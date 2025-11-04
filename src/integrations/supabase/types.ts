@@ -1410,7 +1410,15 @@ export type Database = {
           submitted_at?: string | null
           updated_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "fk_complaints_practice"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       consultation_history: {
         Row: {
