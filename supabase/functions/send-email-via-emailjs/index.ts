@@ -417,6 +417,42 @@ const handler = async (req: Request): Promise<Response> => {
       (templateParams as any).message = msg;
     }
     
+    // NHS/Outlook compatibility: Simplify HTML for NHS email addresses
+    const isNHSEmail = emailData.to_email?.toLowerCase().includes('nhs.net') || 
+                       emailData.to_email?.toLowerCase().includes('nhs.uk');
+    
+    if (isNHSEmail && (templateParams as any).message) {
+      console.log("NHS email detected - simplifying HTML for Outlook compatibility");
+      
+      let simplifiedMessage = String((templateParams as any).message);
+      
+      // Strip complex inline styles that trigger Outlook spam filters
+      simplifiedMessage = simplifiedMessage
+        .replace(/style="[^"]*"/gi, '')
+        .replace(/class="[^"]*"/gi, '')
+        // Keep basic structure but remove divs
+        .replace(/<div[^>]*>/gi, '<p>')
+        .replace(/<\/div>/gi, '</p>')
+        // Remove empty paragraphs
+        .replace(/<p>\s*<\/p>/gi, '')
+        // Ensure proper spacing
+        .replace(/<\/p>\s*<p>/gi, '</p>\n\n<p>');
+      
+      (templateParams as any).message = simplifiedMessage;
+      
+      // Add plain text version for better deliverability
+      (templateParams as any).message_text = simplifiedMessage
+        .replace(/<[^>]*>/g, '')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/\s+/g, ' ')
+        .trim();
+      
+      console.log("HTML simplified for NHS email system");
+    }
+    
     // EmailJS requires attachments in data URL format
     if (emailData.word_attachment) {
       console.log("Processing word attachment:", {
