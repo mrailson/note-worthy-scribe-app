@@ -136,7 +136,7 @@ const ComplaintsSystem = () => {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [selectedPriority, setSelectedPriority] = useState("all");
   const [selectedOutcome, setSelectedOutcome] = useState("all");
-  const [dashboardFilter, setDashboardFilter] = useState("all");
+  const [dashboardFilter, setDashboardFilter] = useState("");
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
@@ -1274,6 +1274,8 @@ const ComplaintsSystem = () => {
     } else if (dashboardFilter === "closed_this_month") {
       matchesDashboardFilter = complaint.status === 'closed' && 
         new Date(complaint.closed_at || '').getMonth() === new Date().getMonth();
+    } else if (dashboardFilter === "all") {
+      matchesDashboardFilter = true;
     }
 
     return matchesSearch && matchesCategory && matchesStatus && matchesPriority && matchesOutcome && matchesDashboardFilter;
@@ -1479,16 +1481,17 @@ const ComplaintsSystem = () => {
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <CardTitle>
-                    {dashboardFilter === "all" && "Recent Activity"}
+                    {dashboardFilter === "" && "Recent Activity"}
+                    {dashboardFilter === "all" && "Total Complaints"}
                     {dashboardFilter === "open" && "Open Complaints"}
                     {dashboardFilter === "overdue" && "Overdue Complaints"}
                     {dashboardFilter === "closed_this_month" && "Closed This Month"}
                   </CardTitle>
-                  {dashboardFilter !== "all" && (
+                  {dashboardFilter !== "" && (
                     <Button 
                       variant="ghost" 
                       size="sm"
-                      onClick={() => setDashboardFilter("all")}
+                      onClick={() => setDashboardFilter("")}
                     >
                       <X className="h-4 w-4 mr-1" />
                       Clear filter
@@ -1510,7 +1513,7 @@ const ComplaintsSystem = () => {
                 </div>
                 
                 <div className="space-y-4">
-                  {(dashboardFilter === "all" ? complaints.slice(0, 5) : filteredComplaints).map((complaint) => {
+                  {(dashboardFilter === "" ? complaints.slice(0, 5) : filteredComplaints).map((complaint) => {
                     const startDate = complaint.submitted_at ?? complaint.created_at;
                     const daysRemaining = startDate ? calculateDaysUntilDeadline(startDate) : null;
                     
