@@ -1590,8 +1590,8 @@ const ComplaintsSystem = () => {
                     return (
                       <div key={complaint.id} className="flex items-center justify-between border-b pb-3">
                         <div className="flex-1">
-                          <p className="font-medium">{complaint.reference_number}</p>
-                          <p className="text-sm text-muted-foreground">{complaint.complaint_title}</p>
+                          <p className="text-lg font-semibold">{complaint.reference_number}</p>
+                          <p className="text-base text-muted-foreground">{complaint.complaint_title}</p>
                         </div>
                         <div className="grid items-center gap-3 grid-cols-[230px_100px_1fr_auto] w-[610px]">
                           {/* Practice Name */}
