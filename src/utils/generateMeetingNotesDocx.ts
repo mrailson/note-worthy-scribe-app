@@ -171,7 +171,7 @@ const parseContentToDocxElements = async (content: string) => {
     // Check for bullet points (- or •)
     if (line.startsWith('-') || line.startsWith('•')) {
       const bulletText = line.replace(/^[-•]\s*/, '');
-      const runs = parseInlineFormatting(bulletText);
+      const runs = parseInlineFormatting(bulletText, TextRun);
       
       elements.push(new Paragraph({
         children: runs,
@@ -189,7 +189,7 @@ const parseContentToDocxElements = async (content: string) => {
     const numberMatch = line.match(/^(\d+)\.\s+(.+)$/);
     if (numberMatch) {
       const listText = numberMatch[2];
-      const runs = parseInlineFormatting(listText);
+      const runs = parseInlineFormatting(listText, TextRun);
       
       elements.push(new Paragraph({
         children: runs,
@@ -204,7 +204,7 @@ const parseContentToDocxElements = async (content: string) => {
     }
     
     // Regular paragraph with inline formatting
-    const runs = parseInlineFormatting(line);
+    const runs = parseInlineFormatting(line, TextRun);
     elements.push(new Paragraph({
       children: runs,
       spacing: { after: 80 },
@@ -216,8 +216,7 @@ const parseContentToDocxElements = async (content: string) => {
 };
 
 // Parse inline bold/italic formatting
-const parseInlineFormatting = (text: string) => {
-  const { TextRun } = require("docx");
+const parseInlineFormatting = (text: string, TextRun: any) => {
   const runs: any[] = [];
   let currentIndex = 0;
   
