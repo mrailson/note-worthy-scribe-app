@@ -2289,30 +2289,9 @@ export const MeetingHistoryList = ({
                           const processing = processingMeetings[meeting.id];
                           const shouldSpin = processing?.isProcessing && processing.currentStage !== 'complete';
                           return <IconComponent className={`h-4 w-4 mr-2 ${shouldSpin ? 'animate-spin' : ''}`} />;
-                        })()}
+                      })()}
                         {getProcessingButtonText(processingMeetings[meeting.id])}
                       </DropdownMenuItem>
-                      
-                      {/* System Admin Only - Repair Transcript Chunks */}
-                      {isSystemAdmin && meeting.transcript_count && meeting.transcript_count > 0 && (
-                        <DropdownMenuItem 
-                          onSelect={(e) => {
-                            e.preventDefault();
-                            setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          }}
-                          asChild
-                        >
-                          <div className="w-full">
-                            <TranscriptRepairButton 
-                              meetingId={meeting.id}
-                              onRepairComplete={() => {
-                                onRefresh?.();
-                                toast.success('Transcript repair complete - refreshing meeting data');
-                              }}
-                            />
-                          </div>
-                        </DropdownMenuItem>
-                      )}
                       
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem 
