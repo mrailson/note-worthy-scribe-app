@@ -695,6 +695,57 @@ ${cleanedTranscript}`;
       throw fetchError;
     }
 
+    // Post-process ACTION ITEMS to enforce explicit ownership only
+    try {
+      const transcriptForCheck = typeof fullTranscript === 'string' ? fullTranscript : '';
+      const escapeRegExp = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const hasExplicitAssignment = (transcript: string, name: string): boolean => {
+        if (!transcript || !name) return false;
+        const escaped = escapeRegExp(name);
+        const nameWord = `\\b${escaped}\\b`;
+        const patterns = [
+          new RegExp(`${nameWord}\\s+(?:to|will|must|is to|agreed to|shall)\\s+\\w+`, 'i'),
+          new RegExp(`(?:owner|responsible|lead)\\s*[:\\-]\\s*${nameWord}`, 'i'),
+          new RegExp(`${nameWord}.*(?:responsible|owner|lead)`, 'i'),
+          new RegExp(`assign(?:ed)?\\s+to\\s+${nameWord}`, 'i')
+        ];
+        return patterns.some((p) => p.test(transcript));
+      };
+
+      const headerIdx = generatedNotes.indexOf('# ACTION ITEMS');
+      if (headerIdx !== -1) {
+        const afterHeader = generatedNotes.slice(headerIdx);
+        const tableMatch = afterHeader.match(/\n\|.*\|\n\|[-\s|]+\|\n([\s\S]*?)(?:\n(?=#)|$)/);
+        if (tableMatch) {
+          const tableRows = tableMatch[1]
+            .split('\n')
+            .map((r) => r.trim())
+            .filter((r) => r.startsWith('|'));
+
+          const rebuilt = tableRows.map((row) => {
+            const cells = row.split('|').map((c) => c.trim());
+            // Expect: ['', Action, Responsible Party, Deadline, Priority, '']
+            if (cells.length >= 6) {
+              const responsible = cells[2];
+              if (responsible && responsible.toUpperCase() !== 'TBC') {
+                if (!hasExplicitAssignment(transcriptForCheck, responsible)) {
+                  cells[2] = 'TBC';
+                }
+              }
+              return '|' + cells.slice(1, cells.length - 1).join(' | ') + ' |';
+            }
+            return row;
+          }).join('\n');
+
+          const before = generatedNotes.slice(0, headerIdx);
+          const afterTable = afterHeader.replace(tableMatch[1], rebuilt);
+          generatedNotes = before + afterTable;
+        }
+      }
+    } catch (ppErr) {
+      console.warn('⚠️ Post-process of ACTION ITEMS failed:', ppErr);
+    }
+
     // Extract overview from the generated notes (first section after "EXECUTIVE SUMMARY")
     const overviewMatch = generatedNotes.match(/\*\*EXECUTIVE SUMMARY\*\*\s*\n(.*?)(?=\n\*\*|$)/s);
     const overview = overviewMatch ? overviewMatch[1].trim() : 'Overview not available';
