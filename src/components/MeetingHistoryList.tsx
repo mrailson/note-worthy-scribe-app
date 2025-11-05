@@ -1122,11 +1122,11 @@ export const MeetingHistoryList = ({
     const meetingId = meeting.id;
     
     // Show toast notification
-    toast.info('Regenerating Standard Minutes, Meeting Overview, and Style Gallery...', {
+    toast.info('Regenerating Meeting Overview, Standard Minutes, and Style Gallery...', {
       duration: 3000
     });
     
-    // Automatically regenerate Standard Minutes and Meeting Overview
+    // Automatically regenerate Overview first, then Standard Minutes
     await handleFullProcessing(meeting, {
       standard: true,
       overview: true,
@@ -1134,7 +1134,7 @@ export const MeetingHistoryList = ({
       limerick: false
     });
     
-    // Also regenerate Style Gallery in parallel
+    // Now regenerate Style Gallery and wait for completion
     try {
       const { data: transcriptData } = await supabase.rpc('get_meeting_full_transcript', { 
         p_meeting_id: meetingId 
@@ -1142,8 +1142,10 @@ export const MeetingHistoryList = ({
       const transcript = transcriptData?.[0]?.transcript;
       
       if (transcript && transcript.length >= 50) {
-        // Trigger style gallery regeneration
-        supabase.functions.invoke('generate-style-previews', {
+        console.log('🎨 Regenerating Style Gallery...');
+        
+        // Trigger style gallery regeneration and await it
+        const { error } = await supabase.functions.invoke('generate-style-previews', {
           body: {
             meetingId,
             transcript,
@@ -1152,13 +1154,19 @@ export const MeetingHistoryList = ({
               date: meeting.start_time
             }
           }
-        }).then(({ error }) => {
-          if (error) {
-            console.error('Style gallery regeneration error:', error);
-          } else {
-            console.log('Style gallery regeneration triggered');
-          }
         });
+        
+        if (error) {
+          console.error('Style gallery regeneration error:', error);
+          toast.error('Failed to regenerate Style Gallery');
+        } else {
+          console.log('✅ Style gallery regenerated successfully');
+          
+          // Force a refresh to show the new style gallery
+          if (onRefresh) {
+            onRefresh();
+          }
+        }
       }
     } catch (err) {
       console.error('Error triggering style gallery:', err);
