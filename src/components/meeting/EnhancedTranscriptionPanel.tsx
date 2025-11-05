@@ -56,6 +56,15 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const [chunks, setChunks] = useState<TranscriptionChunk[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   
+  // Chunk consolidation state
+  const [isConsolidating, setIsConsolidating] = useState(false);
+  const [chunkStats, setChunkStats] = useState<{
+    totalChunks: number;
+    totalWords: number;
+    cleanedChunks: number;
+    pendingChunks: number;
+  } | null>(null);
+  
   // UI State
   const [showTimestamps, setShowTimestamps] = useState(false);
   const [showConfidence, setShowConfidence] = useState(false);
@@ -87,7 +96,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const audioCtxRef = React.useRef<AudioContext | null>(null);
   const sourceRef = React.useRef<AudioBufferSourceNode | null>(null);
   
-  // Fetch chunks with timestamp extraction
+  // Fetch chunks with timestamp extraction and calculate stats
   useEffect(() => {
     if (!meetingId) return;
     
@@ -120,6 +129,18 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         });
         
         setChunks(chunksWithTimestamps);
+        
+        // Calculate chunk stats
+        const totalWords = chunksWithTimestamps.reduce((sum, chunk) => sum + (chunk.word_count || 0), 0);
+        const cleanedCount = chunksWithTimestamps.filter(c => c.cleaning_status === 'completed').length;
+        const pendingCount = chunksWithTimestamps.filter(c => c.cleaning_status === 'pending').length;
+        
+        setChunkStats({
+          totalChunks: chunksWithTimestamps.length,
+          totalWords,
+          cleanedChunks: cleanedCount,
+          pendingChunks: pendingCount
+        });
       } catch (error) {
         console.error('Error fetching chunks:', error);
         toast.error('Failed to load transcription chunks');
@@ -275,6 +296,47 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     setTranscriptHistory(prev => prev.slice(0, -1));
     onTranscriptChange(lastVersion);
     toast.success('Changes undone');
+  };
+
+  const handleConsolidateChunks = async () => {
+    if (!meetingId) {
+      toast.error('No meeting ID available');
+      return;
+    }
+
+    setIsConsolidating(true);
+    try {
+      console.log('🔄 Consolidating chunks for meeting:', meetingId);
+      
+      const { data, error } = await supabase.functions.invoke('consolidate-meeting-chunks', {
+        body: { meetingId }
+      });
+
+      if (error) {
+        console.error('Consolidate chunks error:', error);
+        toast.error('Failed to consolidate chunks');
+        return;
+      }
+
+      if (data?.success) {
+        toast.success(`Consolidated ${data.chunksProcessed} chunks (${data.totalWords.toLocaleString()} words)`);
+        
+        // Update chunk stats
+        setChunkStats({
+          totalChunks: data.chunksProcessed,
+          totalWords: data.totalWords,
+          cleanedChunks: data.cleanedChunks,
+          pendingChunks: data.pendingChunks
+        });
+        
+        // Parent component should refresh if needed
+      }
+    } catch (error) {
+      console.error('Error consolidating chunks:', error);
+      toast.error('Failed to consolidate chunks');
+    } finally {
+      setIsConsolidating(false);
+    }
   };
 
   const handleFormatTranscript = async () => {
@@ -1029,6 +1091,27 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             </Button>
           </div>
 
+          {/* Consolidate Chunks Button - Show if chunks exist and transcript seems incomplete */}
+          {chunkStats && chunkStats.totalChunks > 0 && (
+            <Button
+              variant="outline"
+              size={isIPhone ? "sm" : "sm"}
+              onClick={handleConsolidateChunks}
+              disabled={isConsolidating}
+              className={cn(
+                "gap-2",
+                isIPhone && "w-full justify-start"
+              )}
+            >
+              {isConsolidating ? (
+                <Loader2 className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4", "animate-spin")} />
+              ) : (
+                <FilePlus2 className={cn(isIPhone ? "h-3 w-3" : "h-4 w-4")} />
+              )}
+              {isConsolidating ? 'Consolidating...' : 'Consolidate Chunks'}
+            </Button>
+          )}
+
           {/* Add Context Button */}
           <Button 
             variant="outline" 
@@ -1170,10 +1253,42 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               Statistics
             </span>
           </div>
-          <div className={cn(
+           <div className={cn(
             "grid gap-4",
             isIPhone ? "grid-cols-2 gap-3" : isMobile ? "grid-cols-3" : "grid-cols-6"
           )}>
+            {chunkStats && (
+              <>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">DB Chunks</p>
+                  <p className={cn(
+                    "font-semibold",
+                    isIPhone ? "text-lg" : "text-2xl"
+                  )}>{chunkStats.totalChunks}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Chunk Words</p>
+                  <p className={cn(
+                    "font-semibold",
+                    isIPhone ? "text-lg" : "text-2xl"
+                  )}>{chunkStats.totalWords.toLocaleString()}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Cleaned</p>
+                  <p className={cn(
+                    "font-semibold text-green-600",
+                    isIPhone ? "text-lg" : "text-2xl"
+                  )}>{chunkStats.cleanedChunks}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground mb-1">Pending</p>
+                  <p className={cn(
+                    "font-semibold text-amber-600",
+                    isIPhone ? "text-lg" : "text-2xl"
+                  )}>{chunkStats.pendingChunks}</p>
+                </div>
+              </>
+            )}
             <div>
               <p className="text-xs text-muted-foreground mb-1">{isIPhone ? "Chunks" : "Total Chunks"}</p>
               <p className={cn(

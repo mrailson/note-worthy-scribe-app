@@ -264,9 +264,9 @@ async function handleUncleanedFullTranscripts(supabase: any, apiKey: string, bat
 
 // Consolidate cleaned chunks into full meeting transcripts
 async function consolidateCleanedChunks(supabase: any, batchSize: number) {
-  console.log('🔄 Phase 3: Consolidating cleaned chunks into full transcripts...');
+  console.log('🔄 Phase 3: Consolidating chunks (including pending) into full transcripts...');
   
-  // Find meetings with cleaned chunks but outdated full transcripts
+  // Find meetings with any transcription chunks (pending or completed)
   const { data: meetingsToConsolidate, error } = await supabase
     .from('meetings')
     .select(`
@@ -277,11 +277,11 @@ async function consolidateCleanedChunks(supabase: any, batchSize: number) {
         id,
         cleaned_text,
         chunk_number,
-        cleaning_status
+        cleaning_status,
+        transcription_text
       )
     `)
-    .eq('meeting_transcription_chunks.cleaning_status', 'completed')
-    .not('meeting_transcription_chunks.cleaned_text', 'is', null)
+    .in('meeting_transcription_chunks.cleaning_status', ['completed', 'pending'])
     .limit(batchSize);
 
   if (error || !meetingsToConsolidate?.length) {
@@ -296,24 +296,41 @@ async function consolidateCleanedChunks(supabase: any, batchSize: number) {
 
   for (const meeting of meetingsToConsolidate) {
     try {
-      // Get all cleaned chunks for this meeting
-      const { data: cleanedChunks, error: chunkError } = await supabase
+      // Get all chunks for this meeting (completed or pending)
+      const { data: chunks, error: chunkError } = await supabase
         .from('meeting_transcription_chunks')
-        .select('cleaned_text, chunk_number')
+        .select('cleaned_text, chunk_number, cleaning_status, transcription_text, word_count')
         .eq('meeting_id', meeting.id)
-        .eq('cleaning_status', 'completed')
-        .not('cleaned_text', 'is', null)
+        .in('cleaning_status', ['completed', 'pending'])
         .order('chunk_number');
 
-      if (chunkError || !cleanedChunks?.length) continue;
+      if (chunkError || !chunks?.length) continue;
 
-      // Combine cleaned chunks into full transcript
-      const consolidatedTranscript = cleanedChunks
-        .map(chunk => chunk.cleaned_text)
+      // Combine chunks: use cleaned_text if available, otherwise parse raw transcription
+      const consolidatedTranscript = chunks
+        .map(chunk => {
+          // Prefer cleaned text if available and status is completed
+          if (chunk.cleaned_text && chunk.cleaning_status === 'completed') {
+            return chunk.cleaned_text;
+          }
+          
+          // Fallback to raw transcription_text for pending chunks
+          try {
+            const parsed = JSON.parse(chunk.transcription_text);
+            if (Array.isArray(parsed)) {
+              return parsed.map(seg => seg.text || '').join(' ');
+            }
+            return chunk.transcription_text;
+          } catch {
+            return chunk.transcription_text;
+          }
+        })
         .join(' ')
         .trim();
 
       if (!consolidatedTranscript) continue;
+
+      const totalWords = chunks.reduce((sum, chunk) => sum + (chunk.word_count || 0), 0);
 
       // Update meeting with consolidated transcript
       await supabase
@@ -326,12 +343,15 @@ async function consolidateCleanedChunks(supabase: any, batchSize: number) {
 
       results.push({
         meetingId: meeting.id,
-        chunksConsolidated: cleanedChunks.length,
-        transcriptLength: consolidatedTranscript.length
+        chunksConsolidated: chunks.length,
+        transcriptLength: consolidatedTranscript.length,
+        totalWords,
+        cleanedChunks: chunks.filter(c => c.cleaning_status === 'completed').length,
+        pendingChunks: chunks.filter(c => c.cleaning_status === 'pending').length
       });
       
       consolidated++;
-      console.log(`✅ Consolidated ${cleanedChunks.length} chunks for meeting ${meeting.id}`);
+      console.log(`✅ Consolidated ${chunks.length} chunks (${chunks.filter(c => c.cleaning_status === 'completed').length} cleaned, ${chunks.filter(c => c.cleaning_status === 'pending').length} pending) for meeting ${meeting.id}`);
       
     } catch (error) {
       console.error(`❌ Failed to consolidate meeting ${meeting.id}:`, error);

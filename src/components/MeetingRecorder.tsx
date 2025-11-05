@@ -3457,8 +3457,61 @@ export const MeetingRecorder = ({
     // STOP all real-time processing immediately to prevent interference
     setRealtimeTranscripts([]); // Clear any pending real-time transcripts
 
-    // Lightweight final transcript: use current in-memory transcript only
-    let finalTranscript = (transcript || '').trim();
+    console.log('🔍 Consolidating chunks from database...');
+    
+    // Get the current meeting ID for chunk consolidation
+    const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+    
+    // Wait 2 seconds for in-flight chunks to save
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Query all chunks from database for reliable consolidation
+    const { data: allChunks, error: chunksError } = currentMeetingId ? await supabase
+      .from('meeting_transcription_chunks')
+      .select('transcription_text, chunk_number, word_count, cleaned_text, cleaning_status')
+      .eq('meeting_id', currentMeetingId)
+      .order('chunk_number') : { data: null, error: null };
+
+    let finalTranscript = '';
+    let totalChunkWords = 0;
+
+    if (chunksError) {
+      console.error('❌ Error fetching chunks:', chunksError);
+      // Fallback to in-memory transcript
+      finalTranscript = (transcript || '').trim();
+    } else if (allChunks && allChunks.length > 0) {
+      console.log(`📊 Found ${allChunks.length} chunks in database`);
+      
+      // Use cleaned text if available, otherwise use raw transcription
+      finalTranscript = allChunks
+        .map(chunk => {
+          // Count words from chunk
+          totalChunkWords += chunk.word_count || 0;
+          
+          // Use cleaned text if available and status is completed
+          if (chunk.cleaned_text && chunk.cleaning_status === 'completed') {
+            return chunk.cleaned_text;
+          }
+          
+          // Otherwise parse raw transcription_text
+          try {
+            const parsed = JSON.parse(chunk.transcription_text);
+            if (Array.isArray(parsed)) {
+              return parsed.map(seg => seg.text || '').join(' ');
+            }
+            return chunk.transcription_text;
+          } catch {
+            return chunk.transcription_text;
+          }
+        })
+        .join(' ')
+        .trim();
+      
+      console.log(`✅ Consolidated transcript: ${finalTranscript.length} chars, ${totalChunkWords} words from chunks`);
+    } else {
+      console.log('⚠️ No chunks found, using in-memory transcript');
+      finalTranscript = (transcript || '').trim();
+    }
     
     // Inject meeting metadata silently into transcript for AI processing
     const meetingTypeLabel = meetingType === 'teams' ? 'MS Teams' : 
@@ -3526,7 +3579,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     
     // Fetch and prepend meeting context from database if available
     let transcriptWithContext = currentTranscript;
-    const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+    // currentMeetingId already retrieved above for chunk consolidation
     if (currentMeetingId) {
       try {
         const { data: meetingData } = await supabase
