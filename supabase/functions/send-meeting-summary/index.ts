@@ -47,16 +47,8 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("EmailJS configuration is incomplete");
     }
 
-    // Prepare email content
-    const emailContent = `NHS Meeting Summary - ${meetingTitle}
-
-Meeting Date: ${meetingDate}
-Duration: ${duration}
-${practiceName ? `Practice: ${practiceName}` : ''}
-
-MEETING SUMMARY
-===============
-${summary}
+    // Prepare email content (summary already contains meeting details)
+    const emailContent = `${summary}
 
 ${includeTranscript && transcript ? `
 MEETING TRANSCRIPT
