@@ -112,6 +112,26 @@ export const BatchConsolidateButton: React.FC = () => {
         }));
 
       console.log(`✅ Found ${meetingsWithChunks.length} meetings with chunks`);
+      
+      // Fetch user profiles to get actual emails/names
+      const uniqueUserIds = [...new Set(meetingsWithChunks.map(m => m.user_id))];
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('id, email, full_name')
+        .in('id', uniqueUserIds);
+
+      // Update meetings with user information
+      if (profiles) {
+        const profileMap = profiles.reduce((acc, p) => {
+          acc[p.id] = p.email || p.full_name || `User ${p.id.substring(0, 8)}`;
+          return acc;
+        }, {} as Record<string, string>);
+
+        meetingsWithChunks.forEach(m => {
+          m.user_email = profileMap[m.user_id] || `User ${m.user_id.substring(0, 8)}`;
+        });
+      }
+
       setMeetings(meetingsWithChunks);
       
     } catch (error) {
