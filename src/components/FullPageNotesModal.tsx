@@ -3335,6 +3335,7 @@ ${transcriptToUse}`;
                                          >
                                            <style>
                                              {`
+                                               .max-w-none .minutes-content, .max-w-none .minutes-content * { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
                                                .max-w-none h1 { font-size: ${fontSizeStyle1 * 1.8}px !important; }
                                                .max-w-none h2 { font-size: ${fontSizeStyle1 * 1.5}px !important; }
                                                .max-w-none h3 { font-size: ${fontSizeStyle1 * 1.3}px !important; }
