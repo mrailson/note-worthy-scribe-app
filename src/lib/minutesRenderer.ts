@@ -65,7 +65,9 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
           <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
           <span>${cleanContent}</span>
         </h3>`;
-      } else if (cleanContent.toLowerCase().includes('meeting details') || cleanContent.toLowerCase().includes('executive summary')) {
+      } else if (cleanContent.toLowerCase().includes('meeting details')) {
+        return ''; // Hide Meeting Details header
+      } else if (cleanContent.toLowerCase().includes('executive summary')) {
         return `<h2 style="font-size: ${baseFontSize * 1.5}px" class="font-semibold text-[#005EB8] mb-4 mt-6 pb-2 border-b border-[#768692]">${cleanContent}</h2>`;
       } else if (cleanContent.toLowerCase().includes('action items') || cleanContent.toLowerCase().includes('discussion') || cleanContent.toLowerCase().includes('decisions made')) {
         return `<h3 style="font-size: ${baseFontSize * 1.3}px" class="font-semibold text-[#005EB8] mb-3 mt-5">${cleanContent}</h3>`;
