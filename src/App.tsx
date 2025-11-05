@@ -38,6 +38,7 @@ import Attendees from "./pages/Attendees";
 import PracticeManagerFeedback from "./pages/PracticeManagerFeedback";
 import FeedbackResults from "./pages/FeedbackResults";
 import { NetworkDiagnosticsPage } from "./pages/NetworkDiagnosticsPage";
+import { AdminConsolidate } from "./pages/AdminConsolidate";
 import NotFound from "./pages/NotFound";
 import { ResetPassword } from "./components/ResetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -95,6 +96,7 @@ const App = () => {
               <Route path="/feedback" element={<PracticeManagerFeedback />} />
               <Route path="/feedback/results" element={<FeedbackResults />} />
               <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
+              <Route path="/admin/consolidate" element={<AdminConsolidate />} />
               <Route path="/turkey2025" element={<Turkey2025 />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

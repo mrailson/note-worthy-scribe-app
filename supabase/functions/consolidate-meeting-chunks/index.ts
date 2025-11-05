@@ -77,18 +77,20 @@ serve(async (req) => {
     console.log(`✅ Consolidated: ${consolidatedTranscript.length} chars, ${totalWords} words`);
     console.log(`📈 Breakdown: ${cleanedCount} cleaned, ${pendingCount} pending`);
 
-    // Update the meeting's transcript
-    const { error: updateError } = await supabase
-      .from('meetings')
-      .update({
-        transcript: consolidatedTranscript,
+    // Update the meeting's transcript in meeting_transcripts table
+    const { error: upsertError } = await supabase
+      .from('meeting_transcripts')
+      .upsert({
+        meeting_id: meetingId,
+        transcript_text: consolidatedTranscript,
         word_count: totalWords,
         updated_at: new Date().toISOString()
-      })
-      .eq('id', meetingId);
+      }, {
+        onConflict: 'meeting_id'
+      });
 
-    if (updateError) {
-      throw new Error(`Error updating meeting: ${updateError.message}`);
+    if (upsertError) {
+      throw new Error(`Error updating meeting: ${upsertError.message}`);
     }
 
     return new Response(JSON.stringify({
