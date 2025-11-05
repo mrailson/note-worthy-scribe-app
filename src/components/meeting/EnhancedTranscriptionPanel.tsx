@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Clock, ChevronDown, ChevronUp, FileText, Users, Sparkles, 
-  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, FilePlus2, Download, MoreVertical, Play, Loader2
+  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, FilePlus2, Download, MoreVertical, Play, Loader2, Square
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
@@ -326,11 +326,32 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         audioRef.current = null;
       }
 
+      // Limit text to 800 characters for faster initial playback
+      const MAX_QUICK_CHARS = 800;
+      let textToPlay = transcript;
+      let wasLimited = false;
+      
+      if (transcript.length > MAX_QUICK_CHARS) {
+        const truncated = transcript.substring(0, MAX_QUICK_CHARS);
+        const lastPeriod = truncated.lastIndexOf('.');
+        const lastQuestion = truncated.lastIndexOf('?');
+        const lastExclamation = truncated.lastIndexOf('!');
+        const lastSentenceEnd = Math.max(lastPeriod, lastQuestion, lastExclamation);
+        
+        if (lastSentenceEnd > MAX_QUICK_CHARS * 0.7) {
+          textToPlay = truncated.substring(0, lastSentenceEnd + 1);
+        } else {
+          const lastSpace = truncated.lastIndexOf(' ');
+          textToPlay = truncated.substring(0, lastSpace) + '...';
+        }
+        wasLimited = true;
+      }
+
       console.log('Calling deepgram-tts edge function...');
       
       // Call edge function
       const { data, error } = await supabase.functions.invoke('deepgram-tts', {
-        body: { text: transcript }
+        body: { text: textToPlay }
       });
 
       console.log('Edge function response:', { data, error });
@@ -344,9 +365,14 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         throw new Error('No audio content received from API');
       }
 
-      // Show warning if text was truncated
+      // Show info if text was limited for faster playback
+      if (wasLimited) {
+        toast.info(`Playing first ${textToPlay.length} characters for faster playback`);
+      }
+
+      // Show warning if text was truncated by Deepgram
       if (data.wasTruncated) {
-        toast.warning(`Text was truncated from ${data.originalLength} to ${data.processedLength} characters (Deepgram limit: 2000)`);
+        toast.warning(`Text was truncated to ${data.processedLength} characters (Deepgram limit: 2000)`);
       }
 
       // Convert base64 to audio blob
@@ -383,6 +409,15 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
       toast.error(errorMessage);
       setIsPlaying(false);
     }
+  };
+
+  const stopTranscript = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsPlaying(false);
+    toast.info('Playback stopped');
   };
 
   const handleDownloadWord = async () => {
@@ -1016,17 +1051,22 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                 Copy
               </DropdownMenuItem>
               
-              <DropdownMenuItem 
-                onClick={playTranscript}
-                disabled={!transcript || isPlaying}
-              >
-                {isPlaying ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
+              {!isPlaying ? (
+                <DropdownMenuItem 
+                  onClick={playTranscript}
+                  disabled={!transcript}
+                >
                   <Play className="h-4 w-4 mr-2" />
-                )}
-                Play
-              </DropdownMenuItem>
+                  Play
+                </DropdownMenuItem>
+              ) : (
+                <DropdownMenuItem 
+                  onClick={stopTranscript}
+                >
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Stop
+                </DropdownMenuItem>
+              )}
               
               <DropdownMenuItem 
                 onClick={handleStartEdit}
