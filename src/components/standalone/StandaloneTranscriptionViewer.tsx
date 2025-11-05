@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mic, MicOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { LiveTranscriptModal } from '@/components/LiveTranscriptModal';
@@ -156,11 +155,7 @@ const StandaloneTranscriptionViewer: React.FC = () => {
           )}
           title={isRecording ? "Stop transcription" : "Start live transcription"}
         >
-          {isRecording ? (
-            <MicOff className="h-6 w-6" />
-          ) : (
-            <Mic className="h-6 w-6" />
-          )}
+          <span className="text-2xl font-bold text-white">D</span>
         </Button>
         <span className="text-xs font-medium text-muted-foreground">
           {isRecording ? "Live" : "Deepgram"}
