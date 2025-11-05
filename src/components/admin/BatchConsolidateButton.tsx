@@ -51,28 +51,48 @@ export const BatchConsolidateButton: React.FC = () => {
     setIsLoadingMeetings(true);
     try {
       console.log('🔍 Loading meetings with chunks...');
+      console.log('User authenticated:', (await supabase.auth.getUser()).data.user?.id);
       
-      // Get all meetings that have chunks
-      const { data: chunksData, error: chunksError } = await supabase
-        .from('meeting_transcription_chunks')
-        .select('meeting_id, word_count');
+      // Try a simpler approach - get meetings first, then check for chunks
+      const { data: allMeetings, error: meetingsError } = await supabase
+        .from('meetings')
+        .select('id, title, start_time, user_id, word_count')
+        .not('word_count', 'is', null)
+        .order('start_time', { ascending: false })
+        .limit(100);
 
-      console.log('📊 Chunks query result:', { chunksData: chunksData?.length, chunksError });
+      console.log('📊 Meetings query result:', { count: allMeetings?.length, error: meetingsError });
 
-      if (chunksError) {
-        console.error('Chunks query error:', chunksError);
-        throw chunksError;
+      if (meetingsError) {
+        console.error('Meetings query error:', meetingsError);
+        toast.error(`Database error: ${meetingsError.message}`);
+        setIsLoadingMeetings(false);
+        return;
       }
 
-      if (!chunksData || chunksData.length === 0) {
-        console.log('⚠️ No chunks found in database');
+      if (!allMeetings || allMeetings.length === 0) {
+        console.log('⚠️ No meetings found');
         setMeetings([]);
         setIsLoadingMeetings(false);
         return;
       }
 
-      // Group by meeting_id and calculate totals
-      const meetingChunkStats = chunksData.reduce((acc, chunk) => {
+      // Now get chunk stats for these meetings
+      const { data: chunksData, error: chunksError } = await supabase
+        .from('meeting_transcription_chunks')
+        .select('meeting_id, word_count')
+        .in('meeting_id', allMeetings.map(m => m.id));
+
+      console.log('📊 Chunks query result:', { count: chunksData?.length, error: chunksError });
+
+      if (chunksError) {
+        console.error('Chunks query error:', chunksError);
+        toast.error(`Chunks query error: ${chunksError.message}`);
+        // Continue anyway with meetings that have no chunk data
+      }
+
+      // Group chunks by meeting
+      const meetingChunkStats = (chunksData || []).reduce((acc, chunk) => {
         if (!acc[chunk.meeting_id]) {
           acc[chunk.meeting_id] = { count: 0, words: 0 };
         }
@@ -81,32 +101,18 @@ export const BatchConsolidateButton: React.FC = () => {
         return acc;
       }, {} as Record<string, { count: number; words: number }>);
 
-      const meetingIds = Object.keys(meetingChunkStats);
-      console.log(`📋 Found ${meetingIds.length} unique meetings with chunks`);
+      // Filter to only meetings that have chunks
+      const meetingsWithChunks: MeetingWithChunks[] = allMeetings
+        .filter(m => meetingChunkStats[m.id])
+        .map(m => ({
+          ...m,
+          chunk_count: meetingChunkStats[m.id]?.count || 0,
+          chunk_words: meetingChunkStats[m.id]?.words || 0,
+          user_email: 'User ' + m.user_id.substring(0, 8)
+        }));
 
-      // Get meeting details
-      const { data: meetingsData, error: meetingsError } = await supabase
-        .from('meetings')
-        .select('id, title, start_time, user_id, word_count')
-        .in('id', meetingIds)
-        .order('start_time', { ascending: false });
-
-      console.log('📊 Meetings query result:', { meetingsData: meetingsData?.length, meetingsError });
-
-      if (meetingsError) {
-        console.error('Meetings query error:', meetingsError);
-        throw meetingsError;
-      }
-
-      const meetingsWithChunks: MeetingWithChunks[] = (meetingsData || []).map(m => ({
-        ...m,
-        chunk_count: meetingChunkStats[m.id]?.count || 0,
-        chunk_words: meetingChunkStats[m.id]?.words || 0,
-        user_email: 'Loading...'
-      }));
-
+      console.log(`✅ Found ${meetingsWithChunks.length} meetings with chunks`);
       setMeetings(meetingsWithChunks);
-      console.log(`✅ Loaded ${meetingsWithChunks.length} meetings with chunks`);
       
     } catch (error) {
       console.error('Error loading meetings:', error);
