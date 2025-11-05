@@ -306,16 +306,14 @@ export function EmailMeetingMinutesModal({
             continue;
           }
           
-          // Handle numbered lists
+          // Handle numbered lists - but treat each numbered item as a standalone heading with bold text
+          // This prevents non-sequential numbering issues when numbers restart
           if (line.match(/^\d+\.\s/)) {
-            let listHTML = '<ol style="margin: 8px 0 8px 20px; padding: 0;">\n';
-            while (i < lines.length && lines[i].trim().match(/^\d+\.\s/)) {
-              const itemText = lines[i].trim().replace(/^\d+\.\s/, '');
-              listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
-              i++;
-            }
-            listHTML += '</ol>\n';
-            html += listHTML;
+            const itemText = line.replace(/^\d+\.\s*/, '');
+            const numberMatch = line.match(/^(\d+)\.\s/);
+            const number = numberMatch ? numberMatch[1] : '';
+            html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;"><strong>${number}. ${itemText}</strong></p>\n`;
+            i++;
             continue;
           }
           
