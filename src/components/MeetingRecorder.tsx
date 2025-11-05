@@ -3189,8 +3189,8 @@ export const MeetingRecorder = ({
     if (!isStoppingRecording) setIsStoppingRecording(true);
     setStopRecordingStep('Stopping recording...');
     
-    // Check word count before processing - skip animation for short meetings
-    const wordCount = transcript ? transcript.trim().split(/\s+/).length : 0;
+    // Check word count before processing - use the state wordCount that's already being tracked
+    // (this matches what's displayed in the UI)
     console.log('📊 Meeting word count:', wordCount);
     
     if (wordCount < 100) {
