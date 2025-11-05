@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Copy, Eye, Play, Loader2 } from 'lucide-react';
+import { Copy, Eye, Play, Loader2, Square } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -51,11 +51,30 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
         audioRef.current = null;
       }
 
+      // Limit text for faster initial playback
+      const MAX_QUICK_CHARS = 300;
+      let textToPlay = transcriptText;
+      let wasLimited = false;
+      if (transcriptText.length > MAX_QUICK_CHARS) {
+        const truncated = transcriptText.substring(0, MAX_QUICK_CHARS);
+        const lastPeriod = truncated.lastIndexOf('.');
+        const lastQuestion = truncated.lastIndexOf('?');
+        const lastExclamation = truncated.lastIndexOf('!');
+        const lastSentenceEnd = Math.max(lastPeriod, lastQuestion, lastExclamation);
+        if (lastSentenceEnd > MAX_QUICK_CHARS * 0.7) {
+          textToPlay = truncated.substring(0, lastSentenceEnd + 1);
+        } else {
+          const lastSpace = truncated.lastIndexOf(' ');
+          textToPlay = truncated.substring(0, lastSpace) + '...';
+        }
+        wasLimited = true;
+      }
+
       console.log('Calling deepgram-tts edge function...');
       
       // Call edge function
       const { data, error } = await supabase.functions.invoke('deepgram-tts', {
-        body: { text: transcriptText }
+        body: { text: textToPlay }
       });
 
       console.log('Edge function response:', { data, error });
@@ -69,9 +88,13 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
         throw new Error('No audio content received from API');
       }
 
-      // Show warning if text was truncated
+      if (wasLimited) {
+        toast.info(`Playing first ${textToPlay.length} characters for faster playback`);
+      }
+
+      // Show warning if text was truncated by provider
       if (data.wasTruncated) {
-        toast.warning(`Text was truncated from ${data.originalLength} to ${data.processedLength} characters (Deepgram limit: 2000)`);
+        toast.warning(`Text was truncated to ${data.processedLength} characters (Deepgram limit: 2000)`);
       }
 
       // Convert base64 to audio blob
@@ -110,6 +133,14 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
     }
   };
 
+  const stopTranscript = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current = null;
+    }
+    setIsPlaying(false);
+    toast.info('Playback stopped');
+  };
   const wordCount = transcriptText.split(' ').filter(w => w.trim()).length;
 
   return (
@@ -131,19 +162,26 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
                 <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
                 Live
               </span>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={playTranscript}
-                disabled={!transcriptText || isPlaying}
-              >
-                {isPlaying ? (
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                ) : (
+              {!isPlaying ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={playTranscript}
+                  disabled={!transcriptText}
+                >
                   <Play className="w-4 h-4 mr-2" />
-                )}
-                Play
-              </Button>
+                  Play
+                </Button>
+              ) : (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={stopTranscript}
+                >
+                  <Square className="w-4 h-4 mr-2" />
+                  Stop
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"

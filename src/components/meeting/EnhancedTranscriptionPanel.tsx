@@ -327,7 +327,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
       }
 
       // Limit text to 800 characters for faster initial playback
-      const MAX_QUICK_CHARS = 800;
+      const MAX_QUICK_CHARS = 300;
       let textToPlay = transcript;
       let wasLimited = false;
       
