@@ -258,7 +258,7 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
   }
 
   // Professional NHS wrapper with optimized typography
-  html = `<div class="minutes-content font-nhs max-w-full px-4">
+  html = `<div class="minutes-content font-nhs max-w-full px-2">
     <style>
       .minutes-content {
         font-family: 'Fira Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
