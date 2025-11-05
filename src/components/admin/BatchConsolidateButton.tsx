@@ -50,29 +50,39 @@ export const BatchConsolidateButton: React.FC = () => {
   const loadMeetingsWithChunks = async () => {
     setIsLoadingMeetings(true);
     try {
+      console.log('🔍 Loading meetings with chunks...');
+      
       // Get all meetings that have chunks
       const { data: chunksData, error: chunksError } = await supabase
         .from('meeting_transcription_chunks')
         .select('meeting_id, word_count');
 
-      if (chunksError) throw chunksError;
+      console.log('📊 Chunks query result:', { chunksData: chunksData?.length, chunksError });
+
+      if (chunksError) {
+        console.error('Chunks query error:', chunksError);
+        throw chunksError;
+      }
+
+      if (!chunksData || chunksData.length === 0) {
+        console.log('⚠️ No chunks found in database');
+        setMeetings([]);
+        setIsLoadingMeetings(false);
+        return;
+      }
 
       // Group by meeting_id and calculate totals
-      const meetingChunkStats = chunksData?.reduce((acc, chunk) => {
+      const meetingChunkStats = chunksData.reduce((acc, chunk) => {
         if (!acc[chunk.meeting_id]) {
           acc[chunk.meeting_id] = { count: 0, words: 0 };
         }
         acc[chunk.meeting_id].count += 1;
         acc[chunk.meeting_id].words += chunk.word_count || 0;
         return acc;
-      }, {} as Record<string, { count: number; words: number }>) || {};
+      }, {} as Record<string, { count: number; words: number }>);
 
       const meetingIds = Object.keys(meetingChunkStats);
-
-      if (meetingIds.length === 0) {
-        setMeetings([]);
-        return;
-      }
+      console.log(`📋 Found ${meetingIds.length} unique meetings with chunks`);
 
       // Get meeting details
       const { data: meetingsData, error: meetingsError } = await supabase
@@ -81,31 +91,26 @@ export const BatchConsolidateButton: React.FC = () => {
         .in('id', meetingIds)
         .order('start_time', { ascending: false });
 
-      if (meetingsError) throw meetingsError;
+      console.log('📊 Meetings query result:', { meetingsData: meetingsData?.length, meetingsError });
 
-      // Get user emails
-      const userIds = [...new Set(meetingsData?.map(m => m.user_id) || [])];
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, email')
-        .in('id', userIds);
-
-      const emailMap = profilesData?.reduce((acc, p) => {
-        acc[p.id] = p.email;
-        return acc;
-      }, {} as Record<string, string>) || {};
+      if (meetingsError) {
+        console.error('Meetings query error:', meetingsError);
+        throw meetingsError;
+      }
 
       const meetingsWithChunks: MeetingWithChunks[] = (meetingsData || []).map(m => ({
         ...m,
         chunk_count: meetingChunkStats[m.id]?.count || 0,
         chunk_words: meetingChunkStats[m.id]?.words || 0,
-        user_email: emailMap[m.user_id] || 'Unknown'
+        user_email: 'Loading...'
       }));
 
       setMeetings(meetingsWithChunks);
+      console.log(`✅ Loaded ${meetingsWithChunks.length} meetings with chunks`);
+      
     } catch (error) {
       console.error('Error loading meetings:', error);
-      toast.error('Failed to load meetings');
+      toast.error('Failed to load meetings: ' + (error instanceof Error ? error.message : 'Unknown error'));
     } finally {
       setIsLoadingMeetings(false);
     }
