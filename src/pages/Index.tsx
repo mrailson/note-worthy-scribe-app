@@ -13,7 +13,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
-import StandaloneTranscriptionViewer from "@/components/standalone/StandaloneTranscriptionViewer";
 
 const Index = () => {
   const { user, loading, hasModuleAccess } = useAuth();
@@ -274,8 +273,6 @@ const Index = () => {
           />
         </div>
 
-      {/* Standalone transcription viewer */}
-      <StandaloneTranscriptionViewer />
     </div>
   );
 };
