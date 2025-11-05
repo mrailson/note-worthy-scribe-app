@@ -77,10 +77,11 @@ serve(async (req) => {
     console.log(`✅ Consolidated: ${consolidatedTranscript.length} chars, ${totalWords} words`);
     console.log(`📈 Breakdown: ${cleanedCount} cleaned, ${pendingCount} pending`);
 
-    // Update the meeting's primary transcript
+    // Update the meeting's transcript (use live_transcript_text as it's what the UI reads)
     const { error: updateError } = await supabase
       .from('meetings')
       .update({
+        live_transcript_text: consolidatedTranscript,
         whisper_transcript_text: consolidatedTranscript,
         word_count: totalWords,
         primary_transcript_source: 'whisper_chunks_consolidated',
