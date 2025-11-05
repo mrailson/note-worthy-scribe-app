@@ -4,12 +4,13 @@ export interface RenderOptions {
   enableNHSStyling?: boolean;
   className?: string;
   isUserMessage?: boolean;
+  baseFontSize?: number; // px base font size for dynamic scaling
 }
 
 export function renderNHSMarkdown(content: string, options: RenderOptions = {}): string {
   if (!content) return '';
 
-  const { enableNHSStyling = true, isUserMessage = false } = options;
+  const { enableNHSStyling = true, isUserMessage = false, baseFontSize = 13 } = options;
   
   // Debug: Log the original content to see what we're processing
   // console.debug disabled to prevent performance issues with large content
@@ -212,8 +213,17 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
 
   // NHS-specific styling wrapper with mathematical expression styles
   if (enableNHSStyling) {
-    html = `<div class="ai4gp-content nhs-content prose prose-sm max-w-none dark:prose-invert">
+    html = `<div class="ai4gp-content nhs-content prose max-w-none dark:prose-invert">
       <style>
+        .nhs-content { font-size: ${baseFontSize}px; line-height: ${baseFontSize * 1.6}px; }
+        .nhs-content h1 { font-size: ${baseFontSize * 1.8}px !important; }
+        .nhs-content h2 { font-size: ${baseFontSize * 1.5}px !important; }
+        .nhs-content h3 { font-size: ${baseFontSize * 1.3}px !important; }
+        .nhs-content h4 { font-size: ${baseFontSize * 1.1}px !important; }
+        .nhs-content p,
+        .nhs-content li,
+        .nhs-content td,
+        .nhs-content th { font-size: ${baseFontSize}px !important; line-height: ${baseFontSize * 1.6}px !important; }
         .inline-math { 
           font-family: 'Times New Roman', serif; 
           font-style: italic; 

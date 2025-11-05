@@ -232,7 +232,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       // Use requestIdleCallback for better performance
       const id = requestIdleCallback(() => {
         try {
-          const html = renderNHSMarkdown(notesStyle4, { enableNHSStyling: true });
+          const html = renderNHSMarkdown(notesStyle4, { enableNHSStyling: true, baseFontSize: fontSizeStyle1 });
           setExecHtml(html);
         } catch (e) {
           console.error('Error rendering Executive notes markdown:', e);
@@ -243,7 +243,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }, { timeout: 100 });
       return () => cancelIdleCallback(id);
     }
-  }, [activeNotesStyleTab, notesStyle4]);
+  }, [activeNotesStyleTab, notesStyle4, fontSizeStyle1]);
   
   // Generate Minutes (Standard) HTML lazily - only when tab becomes active, with cache
   useEffect(() => {
@@ -3400,12 +3400,12 @@ ${transcriptToUse}`;
                                    </div>
                                  </div>
                                )}
-                              <div className={`prose prose-sm max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground transition-opacity duration-300 ${isGenerating ? 'opacity-50' : 'opacity-100'}`}>
-                                <div 
-                                  dangerouslySetInnerHTML={{ 
-                                    __html: renderNHSMarkdown(notes, { enableNHSStyling: true })
-                                  }}
-                                />
+                                <div className={`prose max-w-none prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-li:text-foreground transition-opacity duration-300 ${isGenerating ? 'opacity-50' : 'opacity-100'}`}>
+                                  <div 
+                                    dangerouslySetInnerHTML={{ 
+                                      __html: renderNHSMarkdown(notes, { enableNHSStyling: true, baseFontSize: fontSizeStyle1 })
+                                    }}
+                                  />
                               </div>
                             </div>
                           )}
