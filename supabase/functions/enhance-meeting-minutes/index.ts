@@ -93,8 +93,16 @@ serve(async (req) => {
         break;
 
       case 'add_action_items':
-        systemPrompt = `You are an expert meeting minutes enhancer. Identify and highlight action items, decisions, and follow-up tasks from meeting content, organising them clearly. Use "Matters to Revisit" for any deferred or unresolved items (never use "Parking Lot"). ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).`;
-        userPrompt = `Please identify and clearly organise all action items, decisions, follow-up tasks, and matters to revisit from these meeting minutes using British English spelling:\n\n${originalContent}${transcriptContext}`;
+        systemPrompt = `You are an expert meeting minutes enhancer. Identify and highlight action items, decisions, and follow-up tasks from meeting content, organising them clearly. Use "Matters to Revisit" for any deferred or unresolved items (never use "Parking Lot"). ALWAYS use British English spelling (organised, realise, colour, centre, recognised, specialise, summarise, prioritise, behaviour, analyse, programme).
+
+STRICT RULES FOR ACTION ITEMS:
+- ONLY list action owners if they are EXPLICITLY stated in the content/transcript
+- NEVER infer or make up who is responsible
+- If owner is not explicitly stated, write "TBC"
+- If deadline is not explicitly stated, write "TBC"`;
+        userPrompt = `Please identify and clearly organise all action items, decisions, follow-up tasks, and matters to revisit from these meeting minutes using British English spelling. Apply the strict rules above:
+
+${originalContent}${transcriptContext}`;
         break;
 
       case 'nhs_format':
