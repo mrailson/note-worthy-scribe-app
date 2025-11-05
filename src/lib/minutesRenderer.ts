@@ -5,7 +5,7 @@ import DOMPurify from 'dompurify';
  * Optimized for formal medical/professional documentation
  * Enhanced: Always inline attendees with bullet separators, improved key points formatting
  */
-export function renderMinutesMarkdown(content: string): string {
+export function renderMinutesMarkdown(content: string, baseFontSize: number = 13): string {
   if (!content) return '';
 
   // Preprocess content to normalize spacing and remove transcript section
@@ -30,18 +30,18 @@ export function renderMinutesMarkdown(content: string): string {
       const mentioned = attendees.filter(a => a.toLowerCase().includes('mentioned')).map(a => a.replace(/\s*\(mentioned\)/gi, ''));
       
       // Always use inline format with better styling
-      let html = '<h3 class="text-xl font-bold text-[#005EB8] mb-3 mt-6 pb-2 border-b-2 border-[#005EB8]">Attendees</h3>';
+      let html = `<h3 style="font-size: ${baseFontSize * 1.5}px" class="font-bold text-[#005EB8] mb-3 mt-6 pb-2 border-b-2 border-[#005EB8]">Attendees</h3>`;
       html += '<div class="p-4 mb-6">';
       
       if (present.length > 0) {
-        html += `<p class="mb-2 text-base leading-relaxed">`;
+        html += `<p class="mb-2 leading-relaxed" style="font-size: ${baseFontSize}px">`;
         html += `<strong class="text-[#005EB8] font-semibold">Present:</strong> `;
         html += present.map(a => `<span class="text-[#212B32]">${a}</span>`).join('<span class="text-[#768692] mx-2">•</span>');
         html += `</p>`;
       }
       
       if (mentioned.length > 0) {
-        html += `<p class="text-base leading-relaxed">`;
+        html += `<p class="leading-relaxed" style="font-size: ${baseFontSize}px">`;
         html += `<strong class="text-[#768692] font-semibold">Also mentioned:</strong> `;
         html += mentioned.map(a => `<span class="text-[#768692] italic">${a}</span>`).join('<span class="text-[#768692] mx-2">•</span>');
         html += `</p>`;
@@ -61,25 +61,25 @@ export function renderMinutesMarkdown(content: string): string {
       
       // Key discussion points get special treatment with icon
       if (cleanContent.toLowerCase().includes('key points') || cleanContent.toLowerCase().includes('key discussion')) {
-        return `<h3 class="text-lg font-bold text-[#005EB8] mb-4 mt-6 pb-2 border-b border-[#768692] flex items-center gap-2">
+        return `<h3 style="font-size: ${baseFontSize * 1.3}px" class="font-bold text-[#005EB8] mb-4 mt-6 pb-2 border-b border-[#768692] flex items-center gap-2">
           <svg class="w-5 h-5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fill-rule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clip-rule="evenodd"></path></svg>
           <span>${cleanContent}</span>
         </h3>`;
       } else if (cleanContent.toLowerCase().includes('meeting details') || cleanContent.toLowerCase().includes('executive summary')) {
-        return `<h2 class="text-xl font-semibold text-[#005EB8] mb-4 mt-6 pb-2 border-b border-[#768692]">${cleanContent}</h2>`;
+        return `<h2 style="font-size: ${baseFontSize * 1.5}px" class="font-semibold text-[#005EB8] mb-4 mt-6 pb-2 border-b border-[#768692]">${cleanContent}</h2>`;
       } else if (cleanContent.toLowerCase().includes('action items') || cleanContent.toLowerCase().includes('discussion') || cleanContent.toLowerCase().includes('decisions made')) {
-        return `<h3 class="text-lg font-semibold text-[#005EB8] mb-3 mt-5">${cleanContent}</h3>`;
+        return `<h3 style="font-size: ${baseFontSize * 1.3}px" class="font-semibold text-[#005EB8] mb-3 mt-5">${cleanContent}</h3>`;
       } else if (isNumberedSection) {
         // Numbered sections get prominent styling with left alignment
-        return `<h3 class="text-lg font-bold text-[#005EB8] mb-3 mt-6 pb-1 border-b-2 border-[#005EB8]">${cleanContent}</h3>`;
+        return `<h3 style="font-size: ${baseFontSize * 1.3}px" class="font-bold text-[#005EB8] mb-3 mt-6 pb-1 border-b-2 border-[#005EB8]">${cleanContent}</h3>`;
       } else {
-        return `<h4 class="text-base font-semibold text-[#425563] mb-2 mt-4">${cleanContent}</h4>`;
+        return `<h4 style="font-size: ${baseFontSize}px" class="font-semibold text-[#425563] mb-2 mt-4">${cleanContent}</h4>`;
       }
     })
 
     // Meeting Details section - create a styled info box
     .replace(/(Date|Time|Location|Duration|Meeting Type):\s*([^\n]+)/g, 
-      '<div class="flex mb-2"><span class="font-semibold text-[#005EB8] min-w-[120px]">$1:</span><span class="text-[#212B32]">$2</span></div>')
+      `<div class="flex mb-2" style="font-size: ${baseFontSize}px"><span class="font-semibold text-[#005EB8] min-w-[120px]">$1:</span><span class="text-[#212B32]">$2</span></div>`)
 
     // Process markdown tables with enhanced NHS styling
     .replace(/\|(.+?)\|\s*\n\s*\|[-:]+\|.*?\n((?:\s*\|.+?\|\s*(?:\n|$))+)/gs, (match, headerRow, bodyRows) => {
@@ -94,7 +94,7 @@ export function renderMinutesMarkdown(content: string): string {
 
       const headerHtml = headers.map((header, idx) => {
         const width = idx === 0 ? 'w-[40%]' : (isActionItemsTable && idx === headers.length - 2) ? 'w-[15%]' : 'w-auto';
-        return `<th class="border border-[#768692] px-4 py-3 bg-[#005EB8] text-white font-semibold text-left text-sm ${width}">${header}</th>`;
+        return `<th style="font-size: ${baseFontSize}px" class="border border-[#768692] px-4 py-3 bg-[#005EB8] text-white font-semibold text-left ${width}">${header}</th>`;
       }).join('');
 
       const bodyHtml = rows.map((row, rowIdx) => {
@@ -113,9 +113,9 @@ export function renderMinutesMarkdown(content: string): string {
               } else {
                 badge = cell;
               }
-              return `<td class="border border-[#768692] px-4 py-3 text-sm text-[#212B32]">${badge}</td>`;
+              return `<td style="font-size: ${baseFontSize}px" class="border border-[#768692] px-4 py-3 text-[#212B32]">${badge}</td>`;
             }
-            return `<td class="border border-[#768692] px-4 py-3 text-sm text-[#212B32] leading-relaxed">${cell}</td>`;
+            return `<td style="font-size: ${baseFontSize}px" class="border border-[#768692] px-4 py-3 text-[#212B32] leading-relaxed">${cell}</td>`;
           }).join('')}
         </tr>`;
       }).join('');
@@ -138,20 +138,20 @@ export function renderMinutesMarkdown(content: string): string {
     
     // Enhanced subsection formatting with improved spacing, prominent headings, and indentation
     .replace(/<strong class="font-semibold text-\[#212B32\]">([^<]+?):<\/strong>\s*((?:(?!<strong class="font-semibold text-\[#212B32\]">).)+?)(?=<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>|$)/gs, 
-      '<p class="mb-6 mt-2 ml-6 leading-relaxed text-[#212B32]"><strong class="font-bold text-[#005EB8] text-[15px]">$1:</strong> $2</p>')
+      `<p class="mb-6 mt-2 ml-6 leading-relaxed text-[#212B32]" style="font-size: ${baseFontSize}px"><strong class="font-bold text-[#005EB8]" style="font-size: ${baseFontSize * 1.15}px">$1:</strong> $2</p>`)
     
     // Enhanced intelligent paragraph breaking - detect natural topic transitions
     // Split after sentences when followed by key transition phrases or topic changes
-    .replace(/(\.\s+)((?:Key |A |The |This |Concerns |Expressions |However,|Additionally,|Furthermore,|Subsequently,|Moreover,|Meanwhile,|In addition,)[A-Z][^.]{20,})/g, '.$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]">$2')
+    .replace(/(\.\s+)((?:Key |A |The |This |Concerns |Expressions |However,|Additionally,|Furthermore,|Subsequently,|Moreover,|Meanwhile,|In addition,)[A-Z][^.]{20,})/g, `.$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]" style="font-size: ${baseFontSize}px">$2`)
     
     // Add breaks after sentences ending with closing parentheses followed by new topic sentences
-    .replace(/(\)\.\s+)([A-Z][a-z]{2,}\s+[^.]{30,})/g, ').$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]">$2')
+    .replace(/(\)\.\s+)([A-Z][a-z]{2,}\s+[^.]{30,})/g, `).$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]" style="font-size: ${baseFontSize}px">$2`)
     
     // Add breaks when a sentence ends and the next starts with a capitalized term followed by specific phrases
-    .replace(/(\.\s+)([A-Z][a-z]+\s+(?:was|were|is|are|has|have|will|should|must|could|would)\s+[^.]{25,})/g, '.$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]">$2')
+    .replace(/(\.\s+)([A-Z][a-z]+\s+(?:was|were|is|are|has|have|will|should|must|could|would)\s+[^.]{25,})/g, `.$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]" style="font-size: ${baseFontSize}px">$2`)
 
     // Detect and convert standalone bullets that are subheadings (like "Background", "Key Points")
-    .replace(/^[-•]\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*$/gm, '<h4 class="text-base font-semibold text-[#425563] mb-2 mt-4">$1</h4>')
+    .replace(/^[-•]\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s*$/gm, `<h4 style="font-size: ${baseFontSize}px" class="font-semibold text-[#425563] mb-2 mt-4">$1</h4>`)
     
     // Smart numbered list processing: detect which numbered items should be nested
     // This converts sequences of short numbered items after a longer one into nested bullets
@@ -189,7 +189,7 @@ export function renderMinutesMarkdown(content: string): string {
     .replace(/^[ ]{2,}(\d+)[\.)]\s+(.+)$/gm, '<!NESTED_NUM!>$2<!NESTED_NUM_END!>')
     
     // Convert remaining simple numbered items (not processed by smart nesting)
-    .replace(/<!NUM!>(\d+)<!NUM_SEP!>(.*?)<!NUM_END!>/g, '<li class="mb-2 text-[#212B32] leading-relaxed pl-2" value="$1">$2</li>')
+    .replace(/<!NUM!>(\d+)<!NUM_SEP!>(.*?)<!NUM_END!>/g, `<li style="font-size: ${baseFontSize}px" class="mb-2 text-[#212B32] leading-relaxed pl-2" value="$1">$2</li>`)
     
     // Convert main numbered items with nested content
     .replace(/<!MAIN_NUM!>(\d+)<!MAIN_NUM_SEP!>(.*?)<!NESTED_START!>(.*?)<!NESTED_STOP!>/gs, (match, num, content, nested) => {
@@ -199,11 +199,11 @@ export function renderMinutesMarkdown(content: string): string {
         .map(item => `<li class="mb-1.5 text-[#425563] text-sm leading-relaxed">${item}</li>`)
         .join('') || '';
       
-      return `<li class="mb-3 text-[#212B32] leading-relaxed pl-2" value="${num}">${content}<ul class="list-disc list-outside ml-8 mt-2 mb-2 space-y-1 text-[#425563]">${nestedBullets}</ul></li>`;
+      return `<li style="font-size: ${baseFontSize}px" class="mb-3 text-[#212B32] leading-relaxed pl-2" value="${num}">${content}<ul class="list-disc list-outside ml-8 mt-2 mb-2 space-y-1 text-[#425563]">${nestedBullets}</ul></li>`;
     })
     
     // Convert top-level bullet list items with better spacing
-    .replace(/^[-•\*]\s+(.+)$/gm, '<li class="mb-2 text-[#212B32] leading-relaxed pl-1">$1</li>')
+    .replace(/^[-•\*]\s+(.+)$/gm, `<li style="font-size: ${baseFontSize}px" class="mb-2 text-[#212B32] leading-relaxed pl-1">$1</li>`)
     
     // Convert nested bullets within list items
     .replace(/(<li[^>]*>.*?)((?:<!NESTED!>.*?<!NESTED_END!>\s*)+)(<\/li>)/gs, (match, opening, nested, closing) => {
@@ -239,7 +239,7 @@ export function renderMinutesMarkdown(content: string): string {
     .replace(/(<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-6 space-y-1">$&</ol>')
 
     // Paragraphs
-    .replace(/\n\n/g, '</p><p class="mb-4 text-[#212B32] leading-relaxed">')
+    .replace(/\n\n/g, `</p><p style="font-size: ${baseFontSize}px" class="mb-4 text-[#212B32] leading-relaxed">`)
 
     // Clean up empty paragraphs and double wrapping
     .replace(/<p[^>]*><\/p>/g, '')
@@ -254,7 +254,7 @@ export function renderMinutesMarkdown(content: string): string {
 
   // Wrap initial paragraphs
   if (!html.startsWith('<')) {
-    html = '<p class="mb-4 text-[#212B32] leading-relaxed">' + html + '</p>';
+    html = `<p style="font-size: ${baseFontSize}px" class="mb-4 text-[#212B32] leading-relaxed">` + html + '</p>';
   }
 
   // Professional NHS wrapper with optimized typography

@@ -5,7 +5,7 @@ import { renderMinutesMarkdown } from './minutesRenderer';
  * NO ACTIONS FORMAT
  * Removes all action items tables and action-related sections from the minutes
  */
-export function renderMinutesNoActions(content: string): string {
+export function renderMinutesNoActions(content: string, baseFontSize: number = 13): string {
   if (!content) return '';
   
   // Remove action items tables (markdown and already rendered HTML)
@@ -19,18 +19,18 @@ export function renderMinutesNoActions(content: string): string {
     // Clean up multiple line breaks
     .replace(/\n{3,}/g, '\n\n');
   
-  return renderMinutesMarkdown(noActionsContent);
+  return renderMinutesMarkdown(noActionsContent, baseFontSize);
 }
 
 /**
  * BLACK & WHITE FORMAT
  * Removes all NHS blue colours and styling for print-optimised output
  */
-export function renderMinutesBlackWhite(content: string): string {
+export function renderMinutesBlackWhite(content: string, baseFontSize: number = 13): string {
   if (!content) return '';
   
   // First render with standard formatter
-  let html = renderMinutesMarkdown(content);
+  let html = renderMinutesMarkdown(content, baseFontSize);
   
   // Replace all NHS blue colours with black/grey
   html = html
@@ -79,7 +79,7 @@ export function renderMinutesBlackWhite(content: string): string {
  * CONCISE FORMAT
  * Condenses content by ~40% - removes verbose explanations, keeps key points
  */
-export function renderMinutesConcise(content: string): string {
+export function renderMinutesConcise(content: string, baseFontSize: number = 13): string {
   if (!content) return '';
   
   let conciseContent = content
@@ -99,7 +99,7 @@ export function renderMinutesConcise(content: string): string {
     // Clean up
     .replace(/\n{3,}/g, '\n\n');
   
-  return renderMinutesMarkdown(conciseContent);
+  return renderMinutesMarkdown(conciseContent, baseFontSize);
 }
 
 /**
@@ -107,7 +107,7 @@ export function renderMinutesConcise(content: string): string {
  * Expands content with more context and explanatory notes
  * Note: This would ideally use AI to expand, but for now adds structural enhancements
  */
-export function renderMinutesDetailed(content: string): string {
+export function renderMinutesDetailed(content: string, baseFontSize: number = 13): string {
   if (!content) return '';
   
   // Add more context markers and expand structure
@@ -119,14 +119,14 @@ export function renderMinutesDetailed(content: string): string {
     // Expand action items with detail prompts
     .replace(/(\|.*?\|.*?\|.*?\|)/g, '$1');
   
-  return renderMinutesMarkdown(detailedContent);
+  return renderMinutesMarkdown(detailedContent, baseFontSize);
 }
 
 /**
  * EXECUTIVE BRIEF FORMAT
  * Ultra-compact, top 5-7 key points, action items summary, one-page target
  */
-export function renderMinutesExecutiveBrief(content: string): string {
+export function renderMinutesExecutiveBrief(content: string, baseFontSize: number = 13): string {
   if (!content) return '';
   
   // Extract key components
@@ -162,7 +162,7 @@ ${extractActionsSummary(actionsSection)}
 *This is a condensed executive summary. Full minutes contain additional detail.*
 `;
   
-  return renderMinutesMarkdown(executiveBrief);
+  return renderMinutesMarkdown(executiveBrief, baseFontSize);
 }
 
 // Helper function to extract top N points from a section

@@ -257,8 +257,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       return;
     }
 
-    // Try cached HTML to avoid re-formatting delays on navigation
-    const key = meeting?.id ? getMinutesCacheKey(meeting.id, notesStyle3) : null;
+    // Try cached HTML to avoid re-formatting delays on navigation - include font size in cache key
+    const key = meeting?.id ? `${getMinutesCacheKey(meeting.id, notesStyle3)}_fs${fontSizeStyle1}` : null;
     if (key) {
       const cached = localStorage.getItem(key);
       if (cached) {
@@ -270,7 +270,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsRenderingMinutes(true);
     const id = requestIdleCallback(() => {
       try {
-        const html = renderMinutesMarkdown(notesStyle3);
+        const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
         setMinutesHtml(html);
         if (key) localStorage.setItem(key, html);
       } catch (e) {
@@ -282,7 +282,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
     }, { timeout: 100 });
     return () => cancelIdleCallback(id);
-  }, [activeNotesStyleTab, notesStyle3, meeting?.id]);
+  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
@@ -3343,19 +3343,19 @@ ${transcriptToUse}`;
                                                .max-w-none ul, .max-w-none ol { font-size: ${fontSizeStyle1}px !important; }
                                              `}
                                            </style>
-                                           <div 
-                                             ref={minutesContainerRef}
-                                             dangerouslySetInnerHTML={{ 
-                                               __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
-                                                 selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3) :
-                                                 selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3) :
-                                                 selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3) :
-                                                 selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3) :
-                                                 selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3) :
-                                                 (minutesHtml || '')
-                                               )) : ''
-                                             }}
-                                           />
+                                            <div 
+                                              ref={minutesContainerRef}
+                                              dangerouslySetInnerHTML={{ 
+                                                __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
+                                                  selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  (minutesHtml || '')
+                                                )) : ''
+                                              }}
+                                            />
                                          </div>
                                            <InlineWordCorrector
                                             content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
