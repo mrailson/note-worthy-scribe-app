@@ -1117,54 +1117,52 @@ export const MeetingHistoryList = ({
     throw new Error(`Timeout waiting for ${noteType} to complete`);
   };
 
-  // Handle process button click - shows confirmation dialog
+  // Handle process button click - auto-regenerate Standard, Overview, and Style Gallery
   const handleProcessClick = async (meeting: Meeting) => {
     const meetingId = meeting.id;
     
-    // Check if notes already exist
-    const [notesMultiData, meetingData, overviewData] = await Promise.all([
-      supabase.from('meeting_notes_multi').select('note_type, created_at').eq('meeting_id', meetingId),
-      supabase.from('meetings').select('notes_style_3, updated_at').eq('id', meetingId).single(),
-      supabase.from('meeting_overviews').select('created_at').eq('meeting_id', meetingId).single()
-    ]);
-    
-    // Find most recent timestamp
-    let lastRunDate: Date | null = null;
-    
-    if (notesMultiData.data && notesMultiData.data.length > 0) {
-      const timestamps = notesMultiData.data.map(n => new Date(n.created_at));
-      lastRunDate = new Date(Math.max(...timestamps.map(d => d.getTime())));
-    }
-    
-    if (meetingData.data?.notes_style_3 && meetingData.data.updated_at) {
-      const meetingDate = new Date(meetingData.data.updated_at);
-      if (!lastRunDate || meetingDate > lastRunDate) {
-        lastRunDate = meetingDate;
-      }
-    }
-    
-    if (overviewData.data?.created_at) {
-      const overviewDate = new Date(overviewData.data.created_at);
-      if (!lastRunDate || overviewDate > lastRunDate) {
-        lastRunDate = overviewDate;
-      }
-    }
-    
-    const lastRunFormatted = lastRunDate 
-      ? format(lastRunDate, "d MMMM yyyy 'at' HH:mm")
-      : null;
-    
-    setConfirmProcessDialog({
-      open: true,
-      meeting,
-      lastRun: lastRunFormatted,
-      selectedTypes: {
-        standard: true,
-        overview: true,
-        executive: false,
-        limerick: false
-      }
+    // Show toast notification
+    toast.info('Regenerating Standard Minutes, Meeting Overview, and Style Gallery...', {
+      duration: 3000
     });
+    
+    // Automatically regenerate Standard Minutes and Meeting Overview
+    await handleFullProcessing(meeting, {
+      standard: true,
+      overview: true,
+      executive: false,
+      limerick: false
+    });
+    
+    // Also regenerate Style Gallery in parallel
+    try {
+      const { data: transcriptData } = await supabase.rpc('get_meeting_full_transcript', { 
+        p_meeting_id: meetingId 
+      });
+      const transcript = transcriptData?.[0]?.transcript;
+      
+      if (transcript && transcript.length >= 50) {
+        // Trigger style gallery regeneration
+        supabase.functions.invoke('generate-style-previews', {
+          body: {
+            meetingId,
+            transcript,
+            meetingContext: {
+              title: meeting.title,
+              date: meeting.start_time
+            }
+          }
+        }).then(({ error }) => {
+          if (error) {
+            console.error('Style gallery regeneration error:', error);
+          } else {
+            console.log('Style gallery regeneration triggered');
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error triggering style gallery:', err);
+    }
   };
 
   // Handle full processing pipeline - Sequential processing
