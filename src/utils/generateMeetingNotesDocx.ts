@@ -17,7 +17,7 @@ interface GenerateMeetingNotesOptions {
 }
 
 // Strip transcript sections and duplicate meeting title from content
-const stripTranscriptSection = (content: string): string => {
+export const stripTranscriptSection = (content: string): string => {
   let cleaned = content;
   
   // Remove various transcript section patterns
@@ -38,7 +38,7 @@ const stripTranscriptSection = (content: string): string => {
 };
 
 // Parse content and convert to docx elements
-const parseContentToDocxElements = async (content: string) => {
+export const parseContentToDocxElements = async (content: string) => {
   const { Paragraph, TextRun, Table, TableRow, TableCell, WidthType, HeadingLevel, BorderStyle } = await import("docx");
   
   const elements: any[] = [];

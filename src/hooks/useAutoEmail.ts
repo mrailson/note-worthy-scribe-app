@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { generateWordDocument } from '@/utils/documentGenerators';
+import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
 import { useUserProfile } from '@/hooks/useUserProfile';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 
@@ -31,10 +31,73 @@ export function useAutoEmail() {
       // Format message with consultation intro
       const message = `Thank you for using our AI consultation service. Here is the information generated for you:\n\n${content}`;
       
-      // Generate Word attachment
+      // Generate Word attachment using the same NHS-styled function as Standard Minutes tab
       let wordAttachment = null;
       try {
-        const blob = await generateWordDocument(content, subject, false);
+        const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
+        const { parseContentToDocxElements, stripTranscriptSection } = await import('@/utils/generateMeetingNotesDocx');
+        const { buildNHSStyles, buildNumbering, NHS_COLORS, FONTS } = await import('@/utils/wordTheme');
+        
+        // Strip transcript sections
+        const cleanedContent = stripTranscriptSection(content);
+        
+        // Clean the title
+        const cleanTitle = subject.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+        
+        // Build document children
+        const children: any[] = [];
+        
+        // Title
+        children.push(
+          new Paragraph({
+            children: [new TextRun({
+              text: cleanTitle,
+              bold: true,
+              size: FONTS.size.title,
+              color: NHS_COLORS.headingBlue,
+              font: FONTS.default,
+            })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 240 },
+          })
+        );
+        
+        // Parse and add content
+        const contentElements = await parseContentToDocxElements(cleanedContent);
+        children.push(...contentElements);
+        
+        // Footer
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-GB');
+        const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        
+        children.push(
+          new Paragraph({
+            children: [new TextRun({
+              text: `Generated on ${dateStr} ${timeStr}`,
+              italics: true,
+              size: FONTS.size.footer,
+              color: NHS_COLORS.textLightGrey,
+              font: FONTS.default,
+            })],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 480 },
+          })
+        );
+        
+        // Create document with NHS theme
+        const styles = buildNHSStyles();
+        const numbering = buildNumbering();
+        
+        const doc = new Document({
+          styles: styles,
+          numbering: numbering,
+          sections: [{
+            children,
+          }],
+        });
+        
+        const blob = await Packer.toBlob(doc);
         const reader = new FileReader();
         const base64Promise = new Promise<string>((resolve) => {
           reader.onloadend = () => {
