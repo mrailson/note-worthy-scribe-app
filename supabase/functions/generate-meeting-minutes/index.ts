@@ -122,9 +122,12 @@ INSTRUCTION: List specific decisions as numbered items (1., 2., 3., etc.). Each 
 
 INSTRUCTION: Create a markdown table with columns: Action | Responsible Party | Deadline | Priority
 
-For Responsible Party column: Use actual names or roles from transcript (e.g., "Practice Manager", "Clinical Lead", "Reception Team"). Never write "Insert Owner Name" or similar placeholders.
+CRITICAL: For Responsible Party column: 
+- ONLY use names or roles EXPLICITLY mentioned in the transcript as responsible for that specific action
+- NEVER infer, assume, or make up who should be responsible
+- If not explicitly stated, write "TBC" (To Be Confirmed)
 
-For Deadline column: Use actual dates mentioned (e.g., "22nd October 2025") or write "To be determined" if no deadline stated.
+For Deadline column: Use actual dates mentioned (e.g., "22nd October 2025") or write "TBC" if no deadline stated.
 
 For Priority column: Write "High", "Medium", or "Low" based on urgency mentioned in transcript.
 
@@ -134,7 +137,7 @@ Example format:
 | Action | Responsible Party | Deadline | Priority |
 |--------|------------------|----------|----------|
 | Investigate telephony system messaging | IT Lead | 29th October 2025 | High |
-| Arrange staff training session | Practice Manager | 5th November 2025 | Medium |
+| Arrange staff training session | TBC | TBC | Medium |
 
 ---
 

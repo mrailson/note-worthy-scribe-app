@@ -168,7 +168,7 @@ Markdown table only if actions exist:
 | Action | Responsible Party | Deadline | Priority |
 |--------|------------------|----------|----------|
 
-Use real names/roles from transcript. Use "To be determined" for unspecified deadlines.
+CRITICAL: ONLY use names/roles EXPLICITLY mentioned in transcript as responsible for specific actions. If not stated, write "TBC". Use "TBC" for unspecified deadlines. NEVER infer or assume responsibility.
 
 # FOLLOW-UP REQUIREMENTS
 Bullet points for monitoring/check-ins mentioned. Omit if none.

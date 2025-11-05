@@ -543,8 +543,15 @@ Key Points
 # ACTION ITEMS
 | Action | Responsible Party | Deadline | Priority |
 |--------|-------------------|----------|----------|
-| [Specific task description] | [Person's name] | [Date or timeframe] | High/Medium/Low |
-| [Next action item] | [Person's name] | [Date or timeframe] | High/Medium/Low |
+| [Specific task description] | [Person's name OR "TBC" if not explicitly mentioned] | [Date/timeframe OR "TBC" if not specified] | High/Medium/Low |
+| [Next action item] | [Person's name OR "TBC" if not explicitly mentioned] | [Date/timeframe OR "TBC" if not specified] | High/Medium/Low |
+
+CRITICAL: For Action Items:
+- ONLY include a person's name in "Responsible Party" if they were EXPLICITLY mentioned in the transcript as being responsible for that specific action
+- NEVER infer, assume, or make up who should be responsible
+- If the responsible party is not explicitly stated, write "TBC" (To Be Confirmed)
+- If a deadline is not explicitly mentioned, write "TBC"
+- Do NOT assign actions to people based on their role or position unless explicitly stated in the transcript
 
 (Format as a proper markdown table with these exact column headers)
 
