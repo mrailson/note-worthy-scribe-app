@@ -6590,6 +6590,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      safe_extract_word_count: { Args: { p_text: string }; Returns: number }
       safe_similarity: {
         Args: { text1: string; text2: string }
         Returns: number
