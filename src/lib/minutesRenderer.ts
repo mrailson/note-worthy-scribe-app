@@ -262,8 +262,8 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
     <style>
       .minutes-content {
         font-family: 'Fira Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-        font-size: 14px;
-        line-height: 1.7;
+        font-size: ${baseFontSize}px;
+        line-height: ${baseFontSize * 1.6}px;
         color: #212B32;
       }
       
