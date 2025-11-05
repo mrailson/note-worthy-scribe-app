@@ -135,7 +135,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   
   const minutesContainerRef = useRef<HTMLDivElement>(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
@@ -2806,12 +2805,9 @@ ${transcriptToUse}`;
       >
       <DialogContent 
         ref={dialogContentRef}
-        className={`${
-          isFullscreen 
-            ? "fixed inset-0 w-screen h-screen max-w-none max-h-none m-0 rounded-none border-0" 
-            : isMobile
-              ? "w-full h-full max-w-none max-h-none inset-0 m-0 rounded-none border-0" 
-              : "w-[86.4rem] max-w-[95vw] h-[90vh] max-h-screen"
+        className={`${isMobile
+          ? "w-full h-full max-w-none max-h-none inset-0 m-0 rounded-none border-0" 
+          : "w-[86.4rem] max-w-[95vw] h-[90vh] max-h-screen"
         } flex flex-col overflow-hidden z-[100] ${showContextDialog ? "pointer-events-none" : ""}`}
         style={{ zIndex: 100 }}
         aria-hidden={showContextDialog}
@@ -2826,19 +2822,6 @@ ${transcriptToUse}`;
               <Bot className="h-5 w-5 text-primary flex-shrink-0" />
               <span className="truncate">{meeting.title} - Meeting Notes</span>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsFullscreen(!isFullscreen)}
-              title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
-              className="ml-2 flex-shrink-0"
-            >
-              {isFullscreen ? (
-                <Minimize2 className="h-4 w-4" />
-              ) : (
-                <Maximize2 className="h-4 w-4" />
-              )}
-            </Button>
           </DialogTitle>
           <DialogDescription className="sr-only">
             View and edit meeting notes and transcript for {meeting.title}
