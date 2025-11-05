@@ -2808,7 +2808,7 @@ ${transcriptToUse}`;
         ref={dialogContentRef}
         className={`${
           isFullscreen 
-            ? "w-screen h-screen max-w-none max-h-none inset-0 m-0 rounded-none border-0" 
+            ? "fixed inset-0 w-screen h-screen max-w-none max-h-none m-0 rounded-none border-0" 
             : isMobile
               ? "w-full h-full max-w-none max-h-none inset-0 m-0 rounded-none border-0" 
               : "w-[86.4rem] max-w-[95vw] h-[90vh] max-h-screen"
