@@ -2819,8 +2819,8 @@ ${transcriptToUse}`;
         <DialogHeader>
           <DialogTitle className={`flex items-center justify-between ${isMobile ? "pr-4" : "pr-8"}`}>
             <div className="flex items-center gap-2 min-w-0 flex-1">
-              <Bot className="h-5 w-5 text-primary flex-shrink-0" />
-              <span className="truncate">{meeting.title} - Meeting Notes</span>
+              <Bot className="h-5 w-5 flex-shrink-0" style={{ color: '#005EB8' }} />
+              <span className="truncate" style={{ color: '#005EB8' }}>{meeting.title} - Meeting Notes</span>
             </div>
           </DialogTitle>
           <DialogDescription className="sr-only">
