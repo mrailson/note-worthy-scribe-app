@@ -266,12 +266,10 @@ export function EmailMeetingMinutesModal({
         // Strip bold markers
         let cleanedText = text.replace(/\*\*/g, '');
         
-        // Remove the first MEETING DETAILS section (we add it separately)
-        // This removes lines from "MEETING DETAILS" through the first occurrence of a new all-caps section
-        const firstMeetingDetailsMatch = cleanedText.match(/MEETING DETAILS[\s\S]*?(?=\n[A-Z\s]{3,}(?:\n|$))/);
-        if (firstMeetingDetailsMatch) {
-          cleanedText = cleanedText.replace(firstMeetingDetailsMatch[0], '');
-        }
+        // Remove any MEETING DETAILS sections from the notes (we add this separately at the top)
+        cleanedText = cleanedText
+          .replace(/(?:^|\n)MEETING DETAILS[\s\S]*?(?=(\n[A-Z][A-Z\s]{2,}(?:\n|$))|$)/g, '\n')
+          .trim();
         
         // Remove transcript sections
         const transcriptIndex = cleanedText.indexOf('MEETING TRANSCRIPT FOR REFERENCE:');
