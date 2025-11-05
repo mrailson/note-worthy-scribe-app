@@ -1173,10 +1173,10 @@ export const MeetingHistoryList = ({
       return; // Already processing
     }
 
-    // Build list of selected types in order
+    // Build list of selected types in order - Overview first, then Standard, then others
     const typesToProcess: Array<'standard' | 'overview' | 'executive' | 'limerick'> = [];
-    if (selectedTypes.standard) typesToProcess.push('standard');
     if (selectedTypes.overview) typesToProcess.push('overview');
+    if (selectedTypes.standard) typesToProcess.push('standard');
     if (selectedTypes.executive) typesToProcess.push('executive');
     if (selectedTypes.limerick) typesToProcess.push('limerick');
     
