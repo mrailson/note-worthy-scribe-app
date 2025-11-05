@@ -85,7 +85,7 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
 
     // Meeting Title styling - value in NHS blue
     .replace(/Meeting Title:\s*([^\n]+)/i, 
-      `<div class="flex mb-2" style="font-size: ${baseFontSize}px"><span class="font-semibold text-[#005EB8] min-w-[120px]">Meeting Title:</span><span class="text-[#005EB8] font-semibold">$1</span></div>`)
+      `<div class="flex mb-2" style="font-size: ${baseFontSize}px"><span class="font-semibold text-[#005EB8] min-w-[120px]">Meeting Title: </span><span class="text-[#005EB8] font-semibold">$1</span></div>`)
 
     // Process markdown tables with enhanced NHS styling
     .replace(/\|(.+?)\|\s*\n\s*\|[-:]+\|.*?\n((?:\s*\|.+?\|\s*(?:\n|$))+)/gs, (match, headerRow, bodyRows) => {
