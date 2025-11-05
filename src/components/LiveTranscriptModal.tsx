@@ -19,6 +19,8 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const sourceRef = useRef<AudioBufferSourceNode | null>(null);
 
   // Auto-scroll to bottom when new content is added
   useEffect(() => {
@@ -47,8 +49,14 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
 
       // Stop any currently playing audio
       if (audioRef.current) {
-        audioRef.current.pause();
+        try { audioRef.current.pause(); } catch {}
         audioRef.current = null;
+      }
+      try { sourceRef.current?.stop(); } catch {}
+      sourceRef.current = null;
+      if (audioCtxRef.current) {
+        try { audioCtxRef.current.close(); } catch {}
+        audioCtxRef.current = null;
       }
 
       // Limit text for faster initial playback
@@ -103,35 +111,27 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
-      const blob = new Blob([bytes], { type: 'audio/mpeg' });
-      const audioUrl = URL.createObjectURL(blob);
+      // Decode with Web Audio for glitch-free start
+      const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
+      const ctx: AudioContext = new AudioCtx();
+      audioCtxRef.current = ctx;
 
-      // Create and configure audio element
-      const audio = new Audio();
-      audio.preload = 'auto'; // Ensure full buffering before play
-      audioRef.current = audio;
-      
-      audio.onended = () => {
+      const buffer: AudioBuffer = await ctx.decodeAudioData(arrayBuffer as ArrayBuffer);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.connect(ctx.destination);
+      source.onended = () => {
         setIsPlaying(false);
-        URL.revokeObjectURL(audioUrl);
+        try { ctx.close(); } catch {}
+        audioCtxRef.current = null;
+        sourceRef.current = null;
       };
 
-      audio.onerror = (e) => {
-        console.error('Audio playback error:', e);
-        setIsPlaying(false);
-        toast.error('Failed to play audio');
-        URL.revokeObjectURL(audioUrl);
-      };
+      sourceRef.current = source;
 
-      // Wait for audio to be ready before playing
-      await new Promise<void>((resolve, reject) => {
-        audio.oncanplaythrough = () => resolve();
-        audio.onerror = (e) => reject(e);
-        audio.src = audioUrl;
-      });
-
-      // Now play the audio
-      await audio.play();
+      await ctx.resume();
+      source.start(0);
       toast.success('Playing transcript');
 
     } catch (error: any) {
@@ -143,9 +143,17 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
   };
 
   const stopTranscript = () => {
+    // Stop HTMLAudio fallback if any
     if (audioRef.current) {
-      audioRef.current.pause();
+      try { audioRef.current.pause(); } catch {}
       audioRef.current = null;
+    }
+    // Stop WebAudio playback
+    try { sourceRef.current?.stop(); } catch {}
+    sourceRef.current = null;
+    if (audioCtxRef.current) {
+      try { audioCtxRef.current.close(); } catch {}
+      audioCtxRef.current = null;
     }
     setIsPlaying(false);
     toast.info('Playback stopped');
