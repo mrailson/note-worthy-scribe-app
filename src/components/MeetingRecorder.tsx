@@ -5351,12 +5351,14 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         />
       )}
       
-      {/* Deepgram Backup Transcription (Hidden UI) */}
-      <div style={{ display: 'none' }}>
-        <StandaloneTranscriptionViewer
-          onTranscriptUpdate={(text) => setDeepgramBackupTranscript(text)}
-        />
-      </div>
+      {/* Deepgram Backup Transcription (Hidden UI) - only active during recording */}
+      {isRecording && (
+        <div style={{ display: 'none' }}>
+          <StandaloneTranscriptionViewer
+            onTranscriptUpdate={(text) => setDeepgramBackupTranscript(text)}
+          />
+        </div>
+      )}
     </div>
   );
 };

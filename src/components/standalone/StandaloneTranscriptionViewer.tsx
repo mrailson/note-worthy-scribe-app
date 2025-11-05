@@ -130,54 +130,64 @@ const StandaloneTranscriptionViewer: React.FC<StandaloneTranscriptionViewerProps
     }
   }, [committedText, pendingText, onTranscriptUpdate]);
 
-// Auto-start/stop transcription when modal opens/closes
+// Auto-start transcription immediately when component mounts
   useEffect(() => {
     if (!transcriber) return;
 
-    if (isModalOpen && !isRecording) {
+    // Start transcription immediately
+    if (!isRecording) {
       transcriber
         .startTranscription()
         .then(() => setIsRecording(true))
         .catch((e) => console.error('Failed to start transcription', e));
-    } else if (!isModalOpen && isRecording) {
-      transcriber.stopTranscription();
-      setIsRecording(false);
-      setCommittedText('');
-      setPendingText('');
-      lastFinalRef.current = '';
-      lastInterimRef.current = '';
-      setTranscriptText('');
     }
-  }, [isModalOpen, transcriber]);
+
+    // Cleanup on unmount
+    return () => {
+      if (transcriber.isActive()) {
+        transcriber.stopTranscription();
+        setIsRecording(false);
+        setCommittedText('');
+        setPendingText('');
+        lastFinalRef.current = '';
+        lastInterimRef.current = '';
+        setTranscriptText('');
+      }
+    };
+  }, [transcriber]);
 
   return (
     <>
-      {/* Floating button */}
-      <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-2">
-        <Button
-          onClick={handleToggleModal}
-          size="lg"
-          className={cn(
-            "h-14 w-14 rounded-full shadow-lg transition-all duration-300",
-            isRecording 
-              ? "bg-destructive hover:bg-destructive/90 animate-pulse" 
-              : "bg-primary hover:bg-primary/90"
-          )}
-          title={isRecording ? "Stop transcription" : "Start live transcription"}
-        >
-          <span className="text-2xl font-bold text-white">D</span>
-        </Button>
-        <span className="text-xs font-medium text-muted-foreground">
-          {isRecording ? "Live" : "Deepgram"}
-        </span>
-      </div>
+      {/* Floating button - only show if onTranscriptUpdate is not provided */}
+      {!onTranscriptUpdate && (
+        <>
+          <div className="fixed bottom-6 right-6 z-50 flex flex-col items-center gap-2">
+            <Button
+              onClick={handleToggleModal}
+              size="lg"
+              className={cn(
+                "h-14 w-14 rounded-full shadow-lg transition-all duration-300",
+                isRecording 
+                  ? "bg-destructive hover:bg-destructive/90 animate-pulse" 
+                  : "bg-primary hover:bg-primary/90"
+              )}
+              title={isRecording ? "Stop transcription" : "Start live transcription"}
+            >
+              <span className="text-2xl font-bold text-white">D</span>
+            </Button>
+            <span className="text-xs font-medium text-muted-foreground">
+              {isRecording ? "Live" : "Deepgram"}
+            </span>
+          </div>
 
-      {/* Live transcript modal */}
-      <LiveTranscriptModal
-        isOpen={isModalOpen}
-        onOpenChange={setIsModalOpen}
-        transcriptText={transcriptText}
-      />
+          {/* Live transcript modal */}
+          <LiveTranscriptModal
+            isOpen={isModalOpen}
+            onOpenChange={setIsModalOpen}
+            transcriptText={transcriptText}
+          />
+        </>
+      )}
     </>
   );
 };
