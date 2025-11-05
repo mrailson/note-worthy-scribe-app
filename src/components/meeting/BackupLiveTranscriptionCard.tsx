@@ -12,7 +12,7 @@ export const BackupLiveTranscriptionCard: React.FC<BackupLiveTranscriptionCardPr
   transcriptText,
   isRecording,
 }) => {
-  const [isOpen, setIsOpen] = React.useState(true);
+  const [isOpen, setIsOpen] = React.useState(false);
 
   const wordCount = transcriptText.split(' ').filter(w => w.trim()).length;
 
@@ -24,7 +24,7 @@ export const BackupLiveTranscriptionCard: React.FC<BackupLiveTranscriptionCardPr
             <div className="flex items-center justify-between">
               <CardTitle className="text-base sm:text-lg flex items-center gap-2">
                 <span className="text-2xl">🔄</span>
-                Backup Live Transcription Service
+                Backup Transcription Service
               </CardTitle>
               {isOpen ? (
                 <ChevronDown className="h-4 w-4 text-muted-foreground" />
