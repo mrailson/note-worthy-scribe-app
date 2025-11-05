@@ -99,10 +99,41 @@ export function useAutoEmail() {
     }
   };
 
+  // Function to strip duplicate meeting details blocks from content
+  const stripDuplicateBlocks = (content: string): string => {
+    if (!content) return content;
+    
+    let cleaned = content;
+    
+    // Remove markdown-style duplicate blocks
+    cleaned = cleaned
+      // Remove standalone "MEETING NOTES" heading (markdown)
+      .replace(/^#\s*MEETING\s*NOTES\s*$/gim, '')
+      // Remove standalone "MEETING DETAILS" heading (markdown)
+      .replace(/^#{1,2}\s*MEETING\s*DETAILS\s*$/gim, '')
+      // Remove "Meeting Title:" lines
+      .replace(/^\*?\*?Meeting\s*Title:\*?\*?.*$/gim, '')
+      // Remove "Date:" lines
+      .replace(/^\*?\*?Date:\*?\*?.*$/gim, '')
+      // Remove "Time:" lines
+      .replace(/^\*?\*?Time:\*?\*?.*$/gim, '');
+    
+    // Clean up excessive whitespace left behind
+    cleaned = cleaned
+      .replace(/\n{3,}/g, '\n\n')
+      .replace(/^\s+|\s+$/g, '')
+      .trim();
+    
+    return cleaned;
+  };
+
   // Function to convert content to styled HTML for email (matching on-screen appearance)
   const convertContentToStyledHTML = (text: string): string => {
+    // Strip duplicate blocks before rendering
+    const cleanedText = stripDuplicateBlocks(text);
+    
     // Use the same renderer as the on-screen display
-    const renderedHTML = renderNHSMarkdown(text, { enableNHSStyling: false, isUserMessage: false });
+    const renderedHTML = renderNHSMarkdown(cleanedText, { enableNHSStyling: false, isUserMessage: false });
     
     // Add email-specific CSS styling to match the on-screen appearance
     const emailCSS = `

@@ -155,6 +155,47 @@ const handler = async (req: Request): Promise<Response> => {
       return tips[role] || '• Log in and explore your dashboard\n• Complete your profile setup\n• Contact support if you need assistance';
     }
 
+    // Function to strip duplicate meeting details blocks from content
+    function stripDuplicateBlocks(content: string): string {
+      if (!content) return content;
+      
+      let cleaned = content;
+      
+      // Remove markdown-style duplicate blocks
+      cleaned = cleaned
+        // Remove standalone "MEETING NOTES" heading (markdown)
+        .replace(/^#\s*MEETING\s*NOTES\s*$/gim, '')
+        // Remove standalone "MEETING DETAILS" heading (markdown)
+        .replace(/^#{1,2}\s*MEETING\s*DETAILS\s*$/gim, '')
+        // Remove "Meeting Title:" lines
+        .replace(/^\*?\*?Meeting\s*Title:\*?\*?.*$/gim, '')
+        // Remove "Date:" lines
+        .replace(/^\*?\*?Date:\*?\*?.*$/gim, '')
+        // Remove "Time:" lines
+        .replace(/^\*?\*?Time:\*?\*?.*$/gim, '');
+      
+      // Remove HTML-style duplicate blocks
+      cleaned = cleaned
+        // Remove "MEETING NOTES" heading (HTML)
+        .replace(/<h[1-6][^>]*>\s*MEETING\s*NOTES\s*<\/h[1-6]>/gi, '')
+        // Remove "MEETING DETAILS" heading (HTML)
+        .replace(/<h[1-6][^>]*>\s*MEETING\s*DETAILS\s*<\/h[1-6]>/gi, '')
+        // Remove "Meeting Title:" paragraphs
+        .replace(/<p[^>]*>\s*<strong>\s*Meeting\s*Title:\s*<\/strong>.*?<\/p>/gi, '')
+        // Remove "Date:" paragraphs
+        .replace(/<p[^>]*>\s*<strong>\s*Date:\s*<\/strong>.*?<\/p>/gi, '')
+        // Remove "Time:" paragraphs
+        .replace(/<p[^>]*>\s*<strong>\s*Time:\s*<\/strong>.*?<\/p>/gi, '');
+      
+      // Clean up excessive whitespace left behind
+      cleaned = cleaned
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/^\s+|\s+$/g, '')
+        .trim();
+      
+      return cleaned;
+    }
+
     // Function to parse meeting content into structured data
     function parseMeetingContent(content: string, subject: string) {
       const lines = content.split('\n').map(line => line.trim()).filter(line => line);
@@ -389,13 +430,16 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Professional HTML email template for AI-generated content
     if (emailData.template_type === 'ai_generated_content') {
-      const parsedContent = parseMeetingContent(emailData.message || '', emailData.subject || '');
+      // Strip duplicate blocks FIRST before any processing
+      const cleanedContent = stripDuplicateBlocks(emailData.message || '');
+      
+      const parsedContent = parseMeetingContent(cleanedContent, emailData.subject || '');
       
       // Use the professional email template
       templateParams.html_message = generateProfessionalEmailHTML(parsedContent);
       
       // Strip markdown formatting from message for plain text fallback
-      const cleanMessage = (emailData.message || '')
+      const cleanMessage = cleanedContent
         .replace(/^#{1,6}\s+/gm, '') // Remove markdown headers
         .replace(/\*\*\*(.*?)\*\*\*/g, '$1') // Remove bold+italic
         .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
@@ -403,6 +447,8 @@ const handler = async (req: Request): Promise<Response> => {
         .replace(/`(.*?)`/g, '$1'); // Remove inline code
       
       templateParams.message = cleanMessage;
+      
+      console.log("Cleaned message snippet:", cleanMessage.substring(0, 200));
     }
     
     // Universal cleanup: remove markdown heading hashes from any message (plain text or HTML)
