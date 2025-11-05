@@ -45,6 +45,8 @@ import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/Realtim
 import { ChunkSaveStatus } from "@/components/ChunkSaveStatus";
 import { MeetingImporter } from "@/components/meeting-dashboard/MeetingImporter";
 import { RecordingContextDialog, MeetingContext } from "@/components/meeting/RecordingContextDialog";
+import { BackupLiveTranscriptionCard } from "@/components/meeting/BackupLiveTranscriptionCard";
+import StandaloneTranscriptionViewer from "@/components/standalone/StandaloneTranscriptionViewer";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -248,6 +250,9 @@ export const MeetingRecorder = ({
   
   // Auto-clean state
   const [isAutoCleaningTranscript, setIsAutoCleaningTranscript] = useState(false);
+  
+  // Deepgram backup transcription state
+  const [deepgramBackupTranscript, setDeepgramBackupTranscript] = useState<string>('');
   const [lastAutoCleanTime, setLastAutoCleanTime] = useState<Date | null>(null);
   
   
@@ -4918,8 +4923,14 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             }}
           />
 
+          {/* Backup Live Transcription Service Card */}
+          <BackupLiveTranscriptionCard
+            transcriptText={deepgramBackupTranscript}
+            isRecording={isRecording}
+          />
+
           {/* Audio Chunking Live Overview - Show real-time chunk confirmations */}
-          <ChunkSaveStatus 
+          <ChunkSaveStatus
             chunks={chunkSaveStatuses} 
             isRecording={isRecording}
             mainTranscript={transcript}
@@ -5339,6 +5350,13 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           }}
         />
       )}
+      
+      {/* Deepgram Backup Transcription (Hidden UI) */}
+      <div style={{ display: 'none' }}>
+        <StandaloneTranscriptionViewer
+          onTranscriptUpdate={(text) => setDeepgramBackupTranscript(text)}
+        />
+      </div>
     </div>
   );
 };

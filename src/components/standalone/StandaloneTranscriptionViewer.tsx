@@ -4,7 +4,11 @@ import { cn } from '@/lib/utils';
 import { LiveTranscriptModal } from '@/components/LiveTranscriptModal';
 import { DeepgramRealtimeTranscriber, TranscriptData } from '@/utils/DeepgramRealtimeTranscriber';
 
-const StandaloneTranscriptionViewer: React.FC = () => {
+interface StandaloneTranscriptionViewerProps {
+  onTranscriptUpdate?: (text: string) => void;
+}
+
+const StandaloneTranscriptionViewer: React.FC<StandaloneTranscriptionViewerProps> = ({ onTranscriptUpdate }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [transcriptText, setTranscriptText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
@@ -117,8 +121,14 @@ const StandaloneTranscriptionViewer: React.FC = () => {
   // Compose displayed transcript from committed + pending
   useEffect(() => {
     const combined = [committedText, pendingText].filter(Boolean).join(' ');
-    setTranscriptText(formatTranscript(combined));
-  }, [committedText, pendingText]);
+    const formatted = formatTranscript(combined);
+    setTranscriptText(formatted);
+    
+    // Call the callback if provided
+    if (onTranscriptUpdate) {
+      onTranscriptUpdate(formatted);
+    }
+  }, [committedText, pendingText, onTranscriptUpdate]);
 
 // Auto-start/stop transcription when modal opens/closes
   useEffect(() => {
