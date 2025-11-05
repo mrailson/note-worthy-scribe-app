@@ -2243,6 +2243,7 @@ export const MeetingHistoryList = ({
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
                           handleEmailMinutesClick(meeting);
                         }}
                       >
@@ -2252,6 +2253,7 @@ export const MeetingHistoryList = ({
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
                           handleDownloadWord(meeting);
                         }}
                       >
@@ -2261,6 +2263,7 @@ export const MeetingHistoryList = ({
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
                           handleDownloadPDF(meeting);
                         }}
                       >
@@ -2270,6 +2273,7 @@ export const MeetingHistoryList = ({
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
                           handleUploadClick(meeting);
                         }}
                       >
@@ -2279,6 +2283,7 @@ export const MeetingHistoryList = ({
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
                           handleProcessClick(meeting);
                         }}
                         disabled={processingMeetings[meeting.id]?.isProcessing}
