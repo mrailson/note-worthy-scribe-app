@@ -106,8 +106,9 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
       const blob = new Blob([bytes], { type: 'audio/mpeg' });
       const audioUrl = URL.createObjectURL(blob);
 
-      // Play audio
-      const audio = new Audio(audioUrl);
+      // Create and configure audio element
+      const audio = new Audio();
+      audio.preload = 'auto'; // Ensure full buffering before play
       audioRef.current = audio;
       
       audio.onended = () => {
@@ -122,6 +123,14 @@ export const LiveTranscriptModal: React.FC<LiveTranscriptModalProps> = ({
         URL.revokeObjectURL(audioUrl);
       };
 
+      // Wait for audio to be ready before playing
+      await new Promise<void>((resolve, reject) => {
+        audio.oncanplaythrough = () => resolve();
+        audio.onerror = (e) => reject(e);
+        audio.src = audioUrl;
+      });
+
+      // Now play the audio
       await audio.play();
       toast.success('Playing transcript');
 
