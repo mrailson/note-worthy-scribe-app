@@ -1,5 +1,6 @@
 import RichTextEditor from "@/components/RichTextEditor";
 import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialog";
+import { sanitiseActionOwners } from "@/utils/sanitiseActionOwners";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 import { InlineWordCorrector } from "@/components/InlineWordCorrector";
@@ -2181,10 +2182,18 @@ ${transcriptToUse}`;
       }
 
       if (generatedContent) {
-        setNotesStyle3(generatedContent);
+        // Sanitise action owners before saving (client-side safety net)
+        const transcriptText = typeof transcript === 'string' ? transcript : '';
+        const sanitised = sanitiseActionOwners(generatedContent, transcriptText);
+        
+        if (sanitised !== generatedContent) {
+          toast.info('Action item owners corrected to prevent hallucinations');
+        }
+        
+        setNotesStyle3(sanitised);
         
         // Save to meetings table so it persists when returning to the meeting
-        await saveNoteStyleToDatabase(3, generatedContent);
+        await saveNoteStyleToDatabase(3, sanitised);
         
         toast.success('Meeting notes regenerated successfully');
       } else {
