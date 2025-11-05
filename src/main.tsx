@@ -149,18 +149,20 @@ import "./index.css";
         }
       };
 
-      // 4) Additional safety for existing observers that use descendants
+      // 4) Additional safety for existing observers - validate target is a valid Node
       const originalObserve = OriginalMO.prototype.observe;
       OriginalMO.prototype.observe = function(target: Node, options?: MutationObserverInit) {
         try {
-          // Ensure target is an element before observing
-          if (target && target.nodeType === 1) {
+          // Allow observing any valid Node (Element, Document, DocumentFragment, etc.)
+          if (target && typeof target.nodeType === 'number' && target.nodeType > 0) {
             return originalObserve.call(this, target, options);
           } else {
-            console.warn('DOM Safety: Blocking observe() on non-element node');
+            console.warn('DOM Safety: Blocking observe() on invalid node:', target);
+            return; // Explicitly return undefined for blocked calls
           }
         } catch (e) {
           console.warn('DOM Safety: observe() failed safely:', e);
+          return; // Explicitly return undefined on error
         }
       };
     }
