@@ -118,16 +118,52 @@ export function EmailMeetingMinutesModal({
       setSubject(subjectLine);
       const userName = profile?.full_name || profile?.display_name || 'GP Tools User';
       
-      // Find recipient name from attendees list or use email prefix as fallback
-      let recipientName = 'recipient';
-      if (toEmail) {
-        const attendee = meetingAttendees.find(a => a.email?.toLowerCase() === toEmail.toLowerCase());
-        recipientName = attendee?.name || toEmail.split('@')[0];
-      }
+      // Find recipient name - try multiple sources
+      const getRecipientName = async () => {
+        let recipientName = 'recipient';
+        
+        if (toEmail) {
+          // First, check if they're in the meeting attendees list
+          const attendee = meetingAttendees.find(a => a.email?.toLowerCase() === toEmail.toLowerCase());
+          if (attendee?.name) {
+            recipientName = attendee.name;
+          } else {
+            // Second, try to get their name from the profiles table
+            try {
+              const { data: profileData } = await supabase
+                .from('profiles')
+                .select('full_name')
+                .eq('email', toEmail.toLowerCase())
+                .maybeSingle();
+              
+              if (profileData?.full_name) {
+                recipientName = profileData.full_name;
+              } else {
+                // Fall back to formatting the email username (e.g., "malcolm.railson" -> "Malcolm Railson")
+                const emailUsername = toEmail.split('@')[0];
+                recipientName = emailUsername
+                  .split(/[._-]/)
+                  .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+                  .join(' ');
+              }
+            } catch (error) {
+              console.error('Error fetching recipient profile:', error);
+              // Fall back to formatting the email username
+              const emailUsername = toEmail.split('@')[0];
+              recipientName = emailUsername
+                .split(/[._-]/)
+                .map(part => part.charAt(0).toUpperCase() + part.slice(1).toLowerCase())
+                .join(' ');
+            }
+          }
+        }
+        
+        setEmailBody(
+          `Dear ${recipientName},\n\nPlease find attached the meeting notes for "${meetingTitle}".\n\nKind regards,\n${userName}`
+        );
+      };
       
-      setEmailBody(
-        `Dear ${recipientName},\n\nPlease find attached the meeting notes for "${meetingTitle}".\n\nKind regards,\n${userName}`
-      );
+      getRecipientName();
     }
   }, [isOpen, meetingTitle, profile?.display_name, profile?.full_name, meetingDate, toEmail, meetingAttendees]);
 
