@@ -58,7 +58,7 @@ serve(async (req) => {
         console.log(`📊 Found ${chunks.length} chunks for meeting ${meetingId}`);
 
         // Consolidate chunks: prefer cleaned_text, fallback to raw transcription
-        const consolidatedTranscript = chunks
+        const chunkTexts = chunks
           .map(chunk => {
             // Use cleaned text if available and status is completed
             if (chunk.cleaned_text && chunk.cleaning_status === 'completed') {
@@ -76,8 +76,11 @@ serve(async (req) => {
               return chunk.transcription_text;
             }
           })
-          .join(' ')
-          .trim();
+          .map(text => text.trim())
+          .filter(text => text.length > 0);
+        
+        // Format into paragraphs: join chunks with double newlines for paragraph spacing
+        const consolidatedTranscript = chunkTexts.join('\n\n');
 
         const totalWords = chunks.reduce((sum, chunk) => sum + (chunk.word_count || 0), 0);
         const cleanedCount = chunks.filter(c => c.cleaning_status === 'completed').length;
