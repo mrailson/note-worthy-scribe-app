@@ -1217,6 +1217,7 @@ export type Database = {
           decided_at: string | null
           decided_by: string | null
           id: string
+          letter_style: string | null
           outcome_letter: string
           outcome_summary: string
           outcome_type: string
@@ -1229,6 +1230,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           id?: string
+          letter_style?: string | null
           outcome_letter: string
           outcome_summary: string
           outcome_type: string
@@ -1241,6 +1243,7 @@ export type Database = {
           decided_at?: string | null
           decided_by?: string | null
           id?: string
+          letter_style?: string | null
           outcome_letter?: string
           outcome_summary?: string
           outcome_type?: string

@@ -85,6 +85,10 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
       if (data) {
         setExistingOutcome(data);
         setOutcomeLetter(data.outcome_letter || '');
+        // Load the saved letter style
+        if (data.letter_style) {
+          setLetterStyle(data.letter_style);
+        }
       }
     } catch (error) {
       console.error('Error fetching existing outcome:', error);
@@ -414,6 +418,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
           .from('complaint_outcomes')
           .update({ 
             outcome_letter: letterContent,
+            letter_style: letterStyle,
             updated_at: new Date().toISOString()
           })
           .eq('id', existingOutcome.id);
@@ -465,6 +470,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
             outcome_type: mapDecisionTypeToOutcomeType(decision.decision_type),
             outcome_summary: decision.decision_reasoning,
             outcome_letter: letterContent,
+            letter_style: letterStyle,
             decided_by: user.data.user.id
           })
           .select()
