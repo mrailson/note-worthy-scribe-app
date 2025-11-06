@@ -9,39 +9,59 @@ const corsHeaders = {
 function preprocessTextForTTS(text: string): string {
   let processed = text;
   
-  // Convert currency amounts with M (millions) and K (thousands)
+  // Convert currency amounts with M (millions) - handle decimal points
   processed = processed.replace(/£(\d+\.?\d*)\s*million/gi, (match, num) => {
-    return `${num} million pounds`;
+    const parts = num.split('.');
+    if (parts.length > 1 && parts[1] !== '0') {
+      return `${num} million pounds sterling`;
+    }
+    return `${num} million pounds sterling`;
   });
   
   processed = processed.replace(/£(\d+\.?\d*)M\b/g, (match, num) => {
-    const spoken = parseFloat(num) === 1 ? 'one million pounds' : `${num} million pounds`;
-    return spoken;
+    return `${num} million pounds sterling`;
   });
   
   processed = processed.replace(/£(\d+\.?\d*)K\b/g, (match, num) => {
-    const spoken = parseFloat(num) === 1 ? 'one thousand pounds' : `${num} thousand pounds`;
-    return spoken;
+    return `${num} thousand pounds sterling`;
   });
   
-  // Convert regular currency amounts (£123,456.78 or £123456.78)
-  processed = processed.replace(/£([\d,]+\.?\d*)/g, (match, num) => {
+  // Convert regular currency amounts with pence (£26.33)
+  processed = processed.replace(/£([\d,]+)\.(\d{2})\b/g, (match, pounds, pence) => {
+    const cleanPounds = pounds.replace(/,/g, '');
+    const penceNum = parseInt(pence);
+    
+    if (penceNum === 0) {
+      return `${cleanPounds} pounds sterling`;
+    }
+    return `${cleanPounds} pounds and ${pence} pence`;
+  });
+  
+  // Convert regular currency amounts without pence (£146,442 or £2.4)
+  processed = processed.replace(/£([\d,]+\.?\d*)\b/g, (match, num) => {
     const cleanNum = num.replace(/,/g, '');
     const numValue = parseFloat(cleanNum);
     
     if (numValue >= 1000000) {
-      const millions = (numValue / 1000000).toFixed(2).replace(/\.?0+$/, '');
-      return `${millions} million pounds`;
+      const millions = (numValue / 1000000).toFixed(1).replace(/\.0$/, '');
+      return `${millions} million pounds sterling`;
     } else if (numValue >= 1000) {
-      const thousands = (numValue / 1000).toFixed(1).replace(/\.?0+$/, '');
-      return `${thousands} thousand pounds`;
+      // For numbers like 146442, say "146 thousand 442 pounds"
+      const thousands = Math.floor(numValue / 1000);
+      const remainder = Math.round(numValue % 1000);
+      if (remainder === 0) {
+        return `${thousands} thousand pounds sterling`;
+      }
+      return `${thousands} thousand, ${remainder} pounds sterling`;
+    } else if (numValue < 1000 && numValue >= 100) {
+      return `${cleanNum} pounds sterling`;
     } else {
-      return `${cleanNum} pounds`;
+      return `${cleanNum} pounds sterling`;
     }
   });
   
   // Convert standalone £ symbol
-  processed = processed.replace(/£/g, 'pounds');
+  processed = processed.replace(/£/g, 'pounds sterling');
   
   // Convert large numbers with commas for better pronunciation
   processed = processed.replace(/\b(\d{1,3}(?:,\d{3})+)\b/g, (match, num) => {
