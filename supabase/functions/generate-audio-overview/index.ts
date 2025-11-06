@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { meetingId } = await req.json();
+    const { meetingId, voiceProvider = 'deepgram', voiceId } = await req.json();
     
     if (!meetingId) {
       throw new Error('meetingId is required');
@@ -123,16 +123,22 @@ Create an informal 2-minute audio overview of this meeting.`;
     
     console.log('Generated narrative length:', narrative.length);
 
-    // Convert narrative to audio using Deepgram TTS
-    console.log('Converting to audio with Deepgram TTS...');
+    // Convert narrative to audio using selected TTS provider
+    const ttsFunction = voiceProvider === 'elevenlabs' ? 'elevenlabs-tts' : 'deepgram-tts';
+    console.log(`Converting to audio with ${voiceProvider} TTS...`, voiceId ? `voiceId: ${voiceId}` : '');
     
-    const ttsResponse = await fetch(`${supabaseUrl}/functions/v1/deepgram-tts`, {
+    const ttsBody: any = { text: narrative };
+    if (voiceId) {
+      ttsBody.voiceId = voiceId;
+    }
+    
+    const ttsResponse = await fetch(`${supabaseUrl}/functions/v1/${ttsFunction}`, {
       method: 'POST',
       headers: {
         'Authorization': `Bearer ${supabaseKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text: narrative }),
+      body: JSON.stringify(ttsBody),
     });
 
     if (!ttsResponse.ok) {

@@ -177,9 +177,6 @@ verify_jwt = false
 [functions.generate-standard-minutes-variations]
 verify_jwt = true
 
-[functions.elevenlabs-tts]
-verify_jwt = false
-
 [functions.translate-text-simple]
 verify_jwt = false
 
@@ -199,6 +196,9 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.repair-transcript-chunks]
+verify_jwt = true
+
+[functions.elevenlabs-tts]
 verify_jwt = true
 
 [functions.deepgram-tts]

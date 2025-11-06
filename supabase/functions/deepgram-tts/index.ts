@@ -11,7 +11,7 @@ serve(async (req) => {
   }
 
   try {
-    const { text } = await req.json();
+    const { text, voiceId } = await req.json();
     
     console.log('Received TTS request, text length:', text?.length);
     
@@ -52,13 +52,19 @@ serve(async (req) => {
       throw new Error('DEEPGRAM_API_KEY not configured');
     }
 
-    console.log('Calling Deepgram TTS API...');
-
     // Add a small lead-in pause to prevent audio cutouts at the start
     const textWithLeadIn = ` ${processedText}`;
 
-    // Call Deepgram TTS API with aura-asteria-en (higher quality, more natural voice)
-    const response = await fetch('https://api.deepgram.com/v1/speak?model=aura-asteria-en', {
+    // Call Deepgram TTS API with selected British voice
+    const deepgramVoiceMap: Record<string, string> = {
+      'arcas': 'aura-arcas-en',
+      'orion': 'aura-orion-en',
+      'luna': 'aura-luna-en',
+      'stella': 'aura-stella-en',
+    };
+    const voiceModel = voiceId && deepgramVoiceMap[voiceId] ? deepgramVoiceMap[voiceId] : 'aura-arcas-en';
+    
+    const response = await fetch(`https://api.deepgram.com/v1/speak?model=${voiceModel}`, {
       method: 'POST',
       headers: {
         'Authorization': `Token ${deepgramApiKey}`,

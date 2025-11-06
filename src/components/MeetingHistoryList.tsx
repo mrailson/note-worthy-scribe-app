@@ -2362,16 +2362,21 @@ export const MeetingHistoryList = ({
                   // Also refresh from database
                   onRefresh?.();
                 }}
-                onRegenerateAudio={async () => {
+                onRegenerateAudio={async (voiceProvider?: string, voiceId?: string) => {
                   toast.info('Generating audio overview...');
+                  const body: any = { meetingId: meeting.id };
+                  if (voiceProvider) body.voiceProvider = voiceProvider;
+                  if (voiceId) body.voiceId = voiceId;
+                  
                   const { data, error } = await supabase.functions.invoke('generate-audio-overview', {
-                    body: { meetingId: meeting.id }
+                    body
                   });
                   if (error) {
                     toast.error('Failed to generate audio overview');
                     console.error('Audio generation error:', error);
                   } else {
                     toast.success('Audio overview generated!');
+                    // Refresh to get the new audio URL
                     onRefresh?.();
                   }
                 }}
