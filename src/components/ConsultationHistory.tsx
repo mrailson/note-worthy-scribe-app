@@ -228,6 +228,12 @@ export const ConsultationHistory = () => {
     }
   };
 
+  const getWordCount = (c: ConsultationRecord) => {
+    const source = (c.transcript?.trim() || c.summary?.trim() || c.full_note?.trim() || "");
+    if (!source) return 0;
+    return source.split(/\s+/).filter(w => w.length > 0).length;
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -311,6 +317,7 @@ export const ConsultationHistory = () => {
       <div className="space-y-3">
         {consultations.map((consultation) => {
           const { date, time } = formatDate(consultation.created_at);
+          const wordCount = getWordCount(consultation);
           
           return (
             <Card key={consultation.id} className="hover:shadow-md transition-shadow">
@@ -341,6 +348,12 @@ export const ConsultationHistory = () => {
                         <Clock className="h-3 w-3" />
                         {formatDuration(consultation.duration_minutes)}
                       </div>
+                      {wordCount > 0 && (
+                        <div className="flex items-center gap-1">
+                          <FileText className="h-3 w-3" />
+                          {wordCount} words
+                        </div>
+                      )}
                     </div>
                   </div>
                   
