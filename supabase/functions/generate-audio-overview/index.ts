@@ -76,18 +76,19 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const systemPrompt = `Create a 2-minute informal spoken overview of this meeting in a news article style.
-Write as if you're a journalist summarising the meeting for listeners.
+    const systemPrompt = `Create a 2-minute spoken overview of this meeting as if you're briefing a GP partner who couldn't attend.
 
 Guidelines:
-- Start with: "This meeting focused on..." or similar engaging opening
-- Use conversational, natural language suitable for speaking
-- Highlight key decisions and actions in storytelling format
-- Target 250-300 words for approximately 2 minute speaking time
-- No bullet points - full narrative prose only
+- Write in a clear, professional conversational tone
+- Start naturally: "This meeting covered..." or "The main focus was..."
+- Use plain narrative prose without any formatting characters
+- NO special characters (* = # - bullets etc.) - they don't read well when spoken
+- NO stage directions, sound effects, or script notations
+- Summarise key decisions, actions, and outcomes in a straightforward manner
+- Target 250-300 words for approximately 2 minutes speaking time
 - British English spelling and phrasing
-- Make it engaging and informative, like a news report
-- Include specific details about outcomes and next steps`;
+- Be informative and concise, like a colleague catching up another colleague
+- Include specific details about outcomes and next steps when relevant`;
 
     const userPrompt = `Meeting Title: ${meeting.title}
 
