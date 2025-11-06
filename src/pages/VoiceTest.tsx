@@ -20,11 +20,14 @@ const VOICES: Voice[] = [
   { id: 'deepgram-orion', name: 'Orion', provider: 'deepgram', voiceId: 'orion', description: 'British Male - Conversational' },
   { id: 'deepgram-luna', name: 'Luna', provider: 'deepgram', voiceId: 'luna', description: 'British Female - Warm' },
   { id: 'deepgram-stella', name: 'Stella', provider: 'deepgram', voiceId: 'stella', description: 'British Female - Clear' },
+  { id: 'elevenlabs-chris', name: 'Chris', provider: 'elevenlabs', voiceId: 'iP95p4xoKVk53GoZ742B', description: 'British Male - Natural' },
   { id: 'elevenlabs-george', name: 'George', provider: 'elevenlabs', voiceId: 'JBFqnCBsd6RMkjVDRZzb', description: 'British Male - Professional' },
-  { id: 'elevenlabs-charlotte', name: 'Charlotte', provider: 'elevenlabs', voiceId: 'XB0fDUnXU5powFXDhCwa', description: 'British Female - Elegant' },
-  { id: 'elevenlabs-alice', name: 'Alice', provider: 'elevenlabs', voiceId: 'Xb7hH8MSUJpSbSDYk0k2', description: 'British Female - Friendly' },
+  { id: 'elevenlabs-brian', name: 'Brian', provider: 'elevenlabs', voiceId: 'nPczCjzI2devNBz1zQrb', description: 'British Male - Warm' },
+  { id: 'elevenlabs-daniel', name: 'Daniel', provider: 'elevenlabs', voiceId: 'onwK4e9ZLuTAKqWW03F9', description: 'British Male - Deep' },
   { id: 'elevenlabs-callum', name: 'Callum', provider: 'elevenlabs', voiceId: 'N2lVS1w4EtoT3dr4eOWO', description: 'British Male - Youthful' },
   { id: 'elevenlabs-charlie', name: 'Charlie', provider: 'elevenlabs', voiceId: 'IKne3meq5aSn9XLyUdCD', description: 'British Male - Casual' },
+  { id: 'elevenlabs-alice', name: 'Alice', provider: 'elevenlabs', voiceId: 'Xb7hH8MSUJpSbSDYk0k2', description: 'British Female - Friendly' },
+  { id: 'elevenlabs-charlotte', name: 'Charlotte', provider: 'elevenlabs', voiceId: 'XB0fDUnXU5powFXDhCwa', description: 'British Female - Elegant' },
 ];
 
 export default function VoiceTest() {
