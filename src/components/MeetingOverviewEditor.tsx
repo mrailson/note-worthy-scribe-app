@@ -127,22 +127,39 @@ export const MeetingOverviewEditor = ({
   };
 
   const handlePlayAudio = () => {
-    if (!audioOverviewUrl) return;
+    if (!audioOverviewUrl) {
+      console.log('❌ No audio URL available');
+      toast.error('No audio URL available');
+      return;
+    }
+
+    console.log('🎵 Attempting to play audio:', audioOverviewUrl);
 
     if (!audioRef.current) {
       audioRef.current = new Audio(audioOverviewUrl);
-      audioRef.current.addEventListener('ended', () => setIsPlaying(false));
-      audioRef.current.addEventListener('error', () => {
-        toast.error('Failed to play audio');
+      audioRef.current.addEventListener('ended', () => {
+        console.log('✅ Audio playback ended');
+        setIsPlaying(false);
+      });
+      audioRef.current.addEventListener('error', (e) => {
+        console.error('❌ Audio playback error:', e);
+        console.error('Audio URL:', audioOverviewUrl);
+        toast.error('Failed to play audio - check console for details');
         setIsPlaying(false);
       });
     }
 
     if (isPlaying) {
+      console.log('⏸️ Pausing audio');
       audioRef.current.pause();
       setIsPlaying(false);
     } else {
-      audioRef.current.play();
+      console.log('▶️ Playing audio');
+      audioRef.current.play().catch(error => {
+        console.error('❌ Play error:', error);
+        toast.error(`Playback error: ${error.message}`);
+        setIsPlaying(false);
+      });
       setIsPlaying(true);
     }
   };
