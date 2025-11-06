@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Edit, Save, X, Play, Pause, RefreshCw, Headphones } from "lucide-react";
+import { Edit, Save, X, Play, Pause, RefreshCw, Headphones, Download } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderMinutesMarkdown } from "@/lib/minutesRenderer";
@@ -32,6 +33,7 @@ export const MeetingOverviewEditor = ({
   const [saving, setSaving] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioObjectUrlRef = useRef<string | null>(null);
   const sourceUrlRef = useRef<string | null>(null);
@@ -155,6 +157,7 @@ export const MeetingOverviewEditor = ({
 
       if (!audioRef.current) {
         audioRef.current = new Audio(audioObjectUrlRef.current!);
+        audioRef.current.playbackRate = playbackSpeed;
         audioRef.current.addEventListener('ended', () => {
           console.log('✅ Audio playback ended');
           setIsPlaying(false);
@@ -226,6 +229,39 @@ export const MeetingOverviewEditor = ({
     };
   }, []);
 
+  const handleDownloadAudio = async () => {
+    if (!audioOverviewUrl) {
+      toast.error('No audio available to download');
+      return;
+    }
+
+    try {
+      const res = await fetch(audioOverviewUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `meeting-overview-${meetingId}.mp3`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      toast.success('Audio downloaded');
+    } catch (error: any) {
+      console.error('❌ Download error:', error);
+      toast.error(`Download failed: ${error.message}`);
+    }
+  };
+
+  const handleSpeedChange = (speed: string) => {
+    const speedValue = parseFloat(speed);
+    setPlaybackSpeed(speedValue);
+    if (audioRef.current) {
+      audioRef.current.playbackRate = speedValue;
+    }
+  };
+
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '0:00';
     const mins = Math.floor(seconds / 60);
@@ -268,7 +304,7 @@ export const MeetingOverviewEditor = ({
           {/* Audio Overview Section */}
           {(audioOverviewUrl || onRegenerateAudio) && (
             <div className="mt-4 pt-4 border-t border-border">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <Headphones className="h-4 w-4 text-primary" />
                   <span className="text-sm font-medium text-foreground">
@@ -282,24 +318,47 @@ export const MeetingOverviewEditor = ({
                 </div>
                 <div className="flex items-center gap-2">
                   {audioOverviewUrl && (
-                    <Button
-                      onClick={handlePlayAudio}
-                      variant="outline"
-                      size="sm"
-                      className="h-8 px-3"
-                    >
-                      {isPlaying ? (
-                        <>
-                          <Pause className="h-4 w-4 mr-1" />
-                          Pause
-                        </>
-                      ) : (
-                        <>
-                          <Play className="h-4 w-4 mr-1" />
-                          Play
-                        </>
-                      )}
-                    </Button>
+                    <>
+                      <Select value={playbackSpeed.toString()} onValueChange={handleSpeedChange}>
+                        <SelectTrigger className="h-8 w-20 text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="0.75">0.75×</SelectItem>
+                          <SelectItem value="1">1×</SelectItem>
+                          <SelectItem value="1.25">1.25×</SelectItem>
+                          <SelectItem value="1.5">1.5×</SelectItem>
+                          <SelectItem value="1.75">1.75×</SelectItem>
+                          <SelectItem value="2">2×</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        onClick={handlePlayAudio}
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3"
+                      >
+                        {isPlaying ? (
+                          <>
+                            <Pause className="h-4 w-4 mr-1" />
+                            Pause
+                          </>
+                        ) : (
+                          <>
+                            <Play className="h-4 w-4 mr-1" />
+                            Play
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        onClick={handleDownloadAudio}
+                        variant="outline"
+                        size="sm"
+                        className="h-8 px-3"
+                      >
+                        <Download className="h-4 w-4" />
+                      </Button>
+                    </>
                   )}
                   {onRegenerateAudio && (
                     <Button
