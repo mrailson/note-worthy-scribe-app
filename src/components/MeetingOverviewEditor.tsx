@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Edit, Save, X, Play, Pause, RefreshCw, Headphones, Download } from "lucide-react";
+import { Edit, Save, X, Play, Pause, RefreshCw, Headphones, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -34,6 +34,7 @@ export const MeetingOverviewEditor = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
+  const [showTranscript, setShowTranscript] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioObjectUrlRef = useRef<string | null>(null);
   const sourceUrlRef = useRef<string | null>(null);
@@ -381,10 +382,32 @@ export const MeetingOverviewEditor = ({
               )}
               
               {audioOverviewText && (
-                <div className="mt-3 p-3 bg-muted/30 rounded-md border border-border/50">
-                  <p className="text-sm text-muted-foreground leading-relaxed">
-                    {audioOverviewText}
-                  </p>
+                <div className="mt-3">
+                  <Button
+                    onClick={() => setShowTranscript(!showTranscript)}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 text-xs mb-2"
+                  >
+                    {showTranscript ? (
+                      <>
+                        <ChevronUp className="h-3 w-3 mr-1" />
+                        Hide Transcript
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="h-3 w-3 mr-1" />
+                        Show Transcript
+                      </>
+                    )}
+                  </Button>
+                  {showTranscript && (
+                    <div className="p-3 bg-muted/30 rounded-md border border-border/50">
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        {audioOverviewText}
+                      </p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
