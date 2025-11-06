@@ -25,30 +25,47 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get meeting data
+    // Get meeting title
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
-      .select('title, transcript')
+      .select('title')
       .eq('id', meetingId)
       .single();
 
     if (meetingError || !meeting) {
-      throw new Error('Meeting not found');
+      console.error('Error loading meeting:', meetingError);
+      throw new Error('Unable to load meeting');
     }
 
-    // Get meeting notes for context
-    const { data: notes } = await supabase
-      .from('meeting_notes')
-      .select('content')
+    // Get aggregated transcript from chunks (prefer cleaned_text)
+    const { data: chunks, error: chunksError } = await supabase
+      .from('meeting_transcription_chunks')
+      .select('cleaned_text, transcription_text, seq')
       .eq('meeting_id', meetingId)
-      .eq('note_type', 'standard')
-      .single();
+      .order('seq', { ascending: true });
 
-    const transcript = meeting.transcript || '';
-    const meetingNotes = notes?.content || '';
+    if (chunksError) {
+      console.warn('No transcription chunks found or error:', chunksError);
+    }
+
+    const transcript = (chunks ?? [])
+      .map((c: any) => c.cleaned_text || c.transcription_text || '')
+      .filter((t: string) => t && t.trim().length > 0)
+      .join(' ')
+      .slice(0, 10000);
+
+    // Get latest meeting summary for context (optional)
+    const { data: summaries } = await supabase
+      .from('meeting_summaries')
+      .select('summary, updated_at')
+      .eq('meeting_id', meetingId)
+      .order('updated_at', { ascending: false })
+      .limit(1);
+
+    const meetingNotes = summaries?.[0]?.summary || '';
     
     if (!transcript && !meetingNotes) {
-      throw new Error('No transcript or notes available for this meeting');
+      throw new Error('No transcript or summary available for this meeting');
     }
 
     console.log('Generating informal narrative with Lovable AI...');
