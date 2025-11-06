@@ -33,7 +33,7 @@ serve(async (req) => {
         complaint_outcomes (*),
         complaint_involved_parties (staff_name, staff_role, response_text),
         complaint_notes (note, is_internal),
-        practices (practice_name)
+        gp_practices (practice_name)
       `)
       .eq('id', complaintId)
       .single();
@@ -78,7 +78,7 @@ serve(async (req) => {
         .join(' ');
 
       // Extract practice name
-      const practiceName = complaint.practices?.practice_name || 'our practice';
+      const practiceName = complaint.gp_practices?.practice_name || 'our practice';
       
       const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a clear, professional 1-2 minute spoken summary for practice partners and management to quickly understand this complaint.
 
