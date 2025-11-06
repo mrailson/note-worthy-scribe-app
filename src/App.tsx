@@ -40,6 +40,7 @@ import FeedbackResults from "./pages/FeedbackResults";
 import { NetworkDiagnosticsPage } from "./pages/NetworkDiagnosticsPage";
 import { AdminConsolidate } from "./pages/AdminConsolidate";
 import NotFound from "./pages/NotFound";
+import VoiceTest from "./pages/VoiceTest";
 import { ResetPassword } from "./components/ResetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import GPSoapUI from "./components/GPSoapUI";
@@ -98,6 +99,7 @@ const App = () => {
               <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
               <Route path="/admin/consolidate" element={<AdminConsolidate />} />
               <Route path="/turkey2025" element={<Turkey2025 />} />
+              <Route path="/voice-test" element={<VoiceTest />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
