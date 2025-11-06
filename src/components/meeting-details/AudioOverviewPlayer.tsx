@@ -31,10 +31,12 @@ export const AudioOverviewPlayer = ({
   const [showTranscript, setShowTranscript] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isSeeking, setIsSeeking] = useState(false);
   const { voiceConfig } = useVoicePreference();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioObjectUrlRef = useRef<string | null>(null);
   const sourceUrlRef = useRef<string | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
 
   const handlePlayAudio = async () => {
     if (!audioOverviewUrl) {
@@ -82,6 +84,9 @@ export const AudioOverviewPlayer = ({
         console.log('✅ Audio playback ended');
         setIsPlaying(false);
         setCurrentTime(0);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
         // Resume microphones after playback completes
         import('@/utils/AudioFocusManager').then(({ audioFocusManager }) => {
           audioFocusManager.resumeAll();
@@ -93,16 +98,13 @@ export const AudioOverviewPlayer = ({
         console.error('Audio URL (blob):', audioObjectUrlRef.current);
         toast.error('Failed to play audio - check console for details');
         setIsPlaying(false);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
         // Resume microphones on error
         import('@/utils/AudioFocusManager').then(({ audioFocusManager }) => {
           audioFocusManager.resumeAll();
         });
-      });
-
-      audioRef.current.addEventListener('timeupdate', () => {
-        if (audioRef.current) {
-          setCurrentTime(audioRef.current.currentTime);
-        }
       });
 
       audioRef.current.addEventListener('loadedmetadata', () => {
@@ -110,6 +112,17 @@ export const AudioOverviewPlayer = ({
           setDuration(audioRef.current.duration);
         }
       });
+
+      // Smooth animation frame-based time updates
+      const updateTime = () => {
+        if (audioRef.current && !isSeeking) {
+          setCurrentTime(audioRef.current.currentTime);
+        }
+        if (isPlaying) {
+          animationFrameRef.current = requestAnimationFrame(updateTime);
+        }
+      };
+      animationFrameRef.current = requestAnimationFrame(updateTime);
 
       // AUDIO CUTOUT FIX: Pause microphones, play silent pre-roll, then start audio
       const { audioFocusManager, playoutSilentPreRoll, fadeInVolume } = await import('@/utils/AudioFocusManager');
@@ -182,6 +195,9 @@ export const AudioOverviewPlayer = ({
 
   useEffect(() => {
     return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -235,12 +251,20 @@ export const AudioOverviewPlayer = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSeek = (value: number[]) => {
-    const newTime = value[0];
+  const handleSeekStart = () => {
+    setIsSeeking(true);
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newTime = parseFloat(e.target.value);
     setCurrentTime(newTime);
+  };
+
+  const handleSeekEnd = () => {
     if (audioRef.current) {
-      audioRef.current.currentTime = newTime;
+      audioRef.current.currentTime = currentTime;
     }
+    setIsSeeking(false);
   };
 
   const totalDuration = duration || audioOverviewDuration || 0;
@@ -308,8 +332,13 @@ export const AudioOverviewPlayer = ({
                 type="range"
                 min="0"
                 max={totalDuration}
+                step="0.01"
                 value={currentTime}
-                onChange={(e) => handleSeek([parseFloat(e.target.value)])}
+                onMouseDown={handleSeekStart}
+                onTouchStart={handleSeekStart}
+                onChange={handleSeek}
+                onMouseUp={handleSeekEnd}
+                onTouchEnd={handleSeekEnd}
                 className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0"
               />
               <div className="flex items-center justify-between text-xs text-muted-foreground">
