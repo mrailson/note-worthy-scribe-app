@@ -601,6 +601,47 @@ export type Database = {
           },
         ]
       }
+      complaint_audio_overviews: {
+        Row: {
+          audio_overview_duration: number | null
+          audio_overview_text: string | null
+          audio_overview_url: string | null
+          complaint_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          updated_at: string
+        }
+        Insert: {
+          audio_overview_duration?: number | null
+          audio_overview_text?: string | null
+          audio_overview_url?: string | null
+          complaint_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Update: {
+          audio_overview_duration?: number | null
+          audio_overview_text?: string | null
+          audio_overview_url?: string | null
+          complaint_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_audio_overviews_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: true
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_audit_detailed: {
         Row: {
           action_description: string

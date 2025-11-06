@@ -50,7 +50,8 @@ import {
   ChevronDown,
   BookOpen,
   Sparkles,
-  Loader2
+  Loader2,
+  Headphones
 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
@@ -73,6 +74,7 @@ import { Maximize2, Minimize2, FileEdit, Eye as EyeIcon, Columns } from "lucide-
 import { AIEditLetterDialog } from "@/components/AIEditLetterDialog";
 import { ManualAcknowledgementGenerator } from "@/components/ManualAcknowledgementGenerator";
 import { EnhancedAuditLogViewer } from "@/components/EnhancedAuditLogViewer";
+import { ComplaintAudioOverviewPlayer } from "@/components/complaints/ComplaintAudioOverviewPlayer";
 
 
 interface Complaint {
@@ -183,6 +185,8 @@ const ComplaintDetails = () => {
   const [manualCcEmails, setManualCcEmails] = useState('');
   const [acknowledgementSentToPatient, setAcknowledgementSentToPatient] = useState(false);
   const [acknowledgementSentAt, setAcknowledgementSentAt] = useState<string | null>(null);
+  const [audioOverview, setAudioOverview] = useState<any>(null);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
 
 
   // Define all functions before useEffect
@@ -288,6 +292,17 @@ const ComplaintDetails = () => {
         setAcknowledgementDate(ackData.created_at);
         setAcknowledgementSentToPatient(!!ackData.sent_at);
         setAcknowledgementSentAt(ackData.sent_at);
+      }
+
+      // Fetch audio overview if available
+      const { data: audioData } = await supabase
+        .from('complaint_audio_overviews')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .maybeSingle();
+
+      if (audioData) {
+        setAudioOverview(audioData);
       }
 
     } catch (error) {
@@ -1173,6 +1188,33 @@ const ComplaintDetails = () => {
       toast.error("Failed to save acknowledgement letter");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleRegenerateComplaintAudio = async (voiceProvider?: string, voiceId?: string, updatedText?: string) => {
+    if (!complaint) return;
+    
+    setIsGeneratingAudio(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-complaint-audio-overview', {
+        body: {
+          complaintId: complaint.id,
+          voiceProvider: voiceProvider || 'elevenlabs',
+          voiceId: voiceId || 'G17SuINrv2H9FC6nvetn',
+          overrideText: updatedText
+        }
+      });
+
+      if (error) throw error;
+
+      // Refresh to get new audio data
+      await fetchComplaintDetails();
+      toast.success('Audio overview generated successfully');
+    } catch (error: any) {
+      console.error('Error generating audio:', error);
+      toast.error(`Failed to generate audio: ${error.message}`);
+    } finally {
+      setIsGeneratingAudio(false);
     }
   };
 
@@ -2458,6 +2500,30 @@ I am committed to ensuring that all patients receive the care and service they d
                     fetchComplaintDetails();
                   }}
                 />
+              )}
+
+              {/* Executive Audio Summary - Show after outcome */}
+              {existingOutcome && complaint?.status === 'closed' && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-800">
+                      <Headphones className="h-5 w-5" />
+                      Executive Audio Summary
+                    </CardTitle>
+                    <CardDescription className="text-blue-700">
+                      AI-generated audio briefing for management and partners
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ComplaintAudioOverviewPlayer
+                      complaintId={complaint.id}
+                      audioOverviewUrl={audioOverview?.audio_overview_url}
+                      audioOverviewText={audioOverview?.audio_overview_text}
+                      audioOverviewDuration={audioOverview?.audio_overview_duration}
+                      onRegenerateAudio={handleRegenerateComplaintAudio}
+                    />
+                  </CardContent>
+                </Card>
               )}
 
               {/* Outcome Letter Section */}
