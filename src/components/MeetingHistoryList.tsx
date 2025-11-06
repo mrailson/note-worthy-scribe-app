@@ -329,6 +329,38 @@ export const MeetingHistoryList = ({
     fetchAttendeesForVisibleMeetings();
   }, [meetings, user?.id, user?.email]);
 
+  // Fetch transcript-based word counts for meetings
+  useEffect(() => {
+    const fetchWordCounts = async () => {
+      const meetingIds = meetings.map(m => m.id);
+      if (meetingIds.length === 0) return;
+
+      try {
+        const { data, error } = await supabase
+          .from('meeting_transcripts')
+          .select('meeting_id, content')
+          .in('meeting_id', meetingIds);
+
+        if (error) {
+          console.error('❌ Error fetching word counts:', error);
+          return;
+        }
+
+        const map: Record<string, number> = {};
+        (data || []).forEach((row: any) => {
+          const count = (row.content || '').trim().split(/\s+/).filter((w: string) => w.length > 0).length;
+          map[row.meeting_id] = Math.max(map[row.meeting_id] || 0, count);
+        });
+
+        setWordCounts(map);
+      } catch (e) {
+        console.error('❌ Error computing word counts:', e);
+      }
+    };
+
+    fetchWordCounts();
+  }, [meetings]);
+
   // Real-time subscription for automatic refresh when meetings are updated
   useEffect(() => {
     if (!onRefresh || !user?.id) return;
@@ -411,6 +443,9 @@ export const MeetingHistoryList = ({
   
   // Add state for collapsible audio sections
   const [collapsedAudioSections, setCollapsedAudioSections] = useState<Record<string, boolean>>({});
+  
+  // Word counts computed from transcripts
+  const [wordCounts, setWordCounts] = useState<Record<string, number>>({});
   
   // Add state for confirmation dialog
   const [confirmProcessDialog, setConfirmProcessDialog] = useState<{
@@ -1795,7 +1830,7 @@ export const MeetingHistoryList = ({
                           {(() => {
                             const wc = (meeting.word_count && meeting.word_count > 0)
                               ? meeting.word_count
-                              : computeWordCount(meeting);
+                              : (wordCounts[meeting.id] ?? computeWordCount(meeting));
                             const display = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K words` : `${wc} words`;
                             return (
                               <>
