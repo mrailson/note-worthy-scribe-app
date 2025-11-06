@@ -46,13 +46,13 @@ function preprocessTextForTTS(text: string): string {
       const millions = (numValue / 1000000).toFixed(1).replace(/\.0$/, '');
       return `${millions} million pounds sterling`;
     } else if (numValue >= 1000) {
-      // For numbers like 146442, say "146 thousand 442 pounds"
+      // For numbers like 146442, say "146 thousand 442 pounds" (NO comma in output)
       const thousands = Math.floor(numValue / 1000);
       const remainder = Math.round(numValue % 1000);
       if (remainder === 0) {
         return `${thousands} thousand pounds sterling`;
       }
-      return `${thousands} thousand, ${remainder} pounds sterling`;
+      return `${thousands} thousand ${remainder} pounds sterling`;
     } else if (numValue < 1000 && numValue >= 100) {
       return `${cleanNum} pounds sterling`;
     } else {
