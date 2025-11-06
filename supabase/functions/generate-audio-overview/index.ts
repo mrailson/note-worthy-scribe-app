@@ -168,6 +168,7 @@ Create an informal 2-minute audio overview of this meeting.`;
       .upload(fileName, audioBuffer, {
         contentType: 'audio/mpeg',
         upsert: true,
+        cacheControl: '0',
       });
 
     if (uploadError) {
@@ -180,7 +181,8 @@ Create an informal 2-minute audio overview of this meeting.`;
       .from('meeting-audio-overviews')
       .getPublicUrl(fileName);
 
-    const audioUrl = urlData.publicUrl;
+    const rawUrl = urlData.publicUrl;
+    const audioUrl = `${rawUrl}?v=${Date.now()}`;
 
     // Estimate duration (very rough: ~150 words per minute, 5 chars per word average)
     const estimatedWords = narrative.length / 5;

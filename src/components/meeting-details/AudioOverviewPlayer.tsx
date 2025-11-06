@@ -57,7 +57,7 @@ export const AudioOverviewPlayer = ({
 
       if (sourceUrlRef.current !== audioOverviewUrl || !audioObjectUrlRef.current) {
         console.log('⬇️ Downloading audio to blob URL due to CSP');
-        const res = await fetch(audioOverviewUrl);
+         const res = await fetch(audioOverviewUrl, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
         if (!blob.type.startsWith('audio/')) {
@@ -239,7 +239,7 @@ export const AudioOverviewPlayer = ({
     }
 
     try {
-      const res = await fetch(audioOverviewUrl);
+       const res = await fetch(audioOverviewUrl, { cache: 'no-store' });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
