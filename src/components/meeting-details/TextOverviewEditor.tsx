@@ -101,7 +101,18 @@ export const TextOverviewEditor = ({
     <div className={className}>
       {!isEditing ? (
         <div>
-          <div className="flex items-center justify-between mb-3">
+          {overview ? (
+            <div 
+              className="prose prose-sm max-w-none text-muted-foreground mb-3"
+              dangerouslySetInnerHTML={{ __html: renderMinutesMarkdown(overview) }}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground italic mb-3">
+              No overview available. Click Edit to add one.
+            </p>
+          )}
+          
+          <div className="flex items-center justify-end">
             <Button
               onClick={() => setIsEditing(true)}
               variant="ghost"
@@ -112,17 +123,6 @@ export const TextOverviewEditor = ({
               Edit
             </Button>
           </div>
-          
-          {overview ? (
-            <div 
-              className="prose prose-sm max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ __html: renderMinutesMarkdown(overview) }}
-            />
-          ) : (
-            <p className="text-sm text-muted-foreground italic">
-              No overview available. Click Edit to add one.
-            </p>
-          )}
         </div>
       ) : (
         <div className="space-y-3">
