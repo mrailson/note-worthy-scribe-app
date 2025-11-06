@@ -113,21 +113,34 @@ export default function VoiceTest() {
     if (audioRef.current) {
       console.log('⏹️ Stopping current audio');
       audioRef.current.pause();
-      audioRef.current.src = ''; // Clear source to stop any loading
-      audioRef.current.load(); // Reset the audio element
+      audioRef.current.removeEventListener('loadedmetadata', () => {});
+      audioRef.current.removeEventListener('canplay', () => {});
+      audioRef.current.removeEventListener('ended', () => {});
+      audioRef.current.removeEventListener('error', () => {});
       audioRef.current = null;
     }
+    setPlayingVoice(null);
 
-    // Create new audio element with a slight delay to avoid race conditions
-    setTimeout(() => {
-      audioRef.current = new Audio(blobUrl);
+    // Create new audio element with preload
+    audioRef.current = new Audio();
+    audioRef.current.preload = 'auto';
     
     audioRef.current.addEventListener('loadedmetadata', () => {
       console.log('✅ Audio metadata loaded, duration:', audioRef.current?.duration);
     });
     
     audioRef.current.addEventListener('canplay', () => {
-      console.log('✅ Audio can play');
+      console.log('✅ Audio can play, starting playback');
+      audioRef.current?.play()
+        .then(() => {
+          console.log('✅ Playback started successfully');
+          setPlayingVoice(voiceId);
+        })
+        .catch((err) => {
+          console.error('❌ Play promise rejected:', err);
+          toast.error(`Playback failed: ${err.message}`);
+          setPlayingVoice(null);
+        });
     });
     
     audioRef.current.addEventListener('ended', () => {
@@ -142,18 +155,10 @@ export default function VoiceTest() {
       setPlayingVoice(null);
     });
 
-      console.log('▶️ Starting playback...');
-      audioRef.current.play()
-        .then(() => {
-          console.log('✅ Playback started successfully');
-          setPlayingVoice(voiceId);
-        })
-        .catch((err) => {
-          console.error('❌ Play promise rejected:', err);
-          toast.error(`Playback failed: ${err.message}`);
-          setPlayingVoice(null);
-        });
-    }, 50); // Small delay to ensure cleanup completes
+    // Set source and load
+    console.log('📥 Loading audio...');
+    audioRef.current.src = blobUrl;
+    audioRef.current.load();
   };
 
   const stopAudio = () => {

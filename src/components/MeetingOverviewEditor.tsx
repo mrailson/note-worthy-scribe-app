@@ -144,6 +144,14 @@ export const MeetingOverviewEditor = ({
     }
 
     try {
+      // Stop current audio if playing
+      if (audioRef.current && isPlaying) {
+        console.log('⏸️ Pausing audio');
+        audioRef.current.pause();
+        setIsPlaying(false);
+        return;
+      }
+
       // Prepare blob URL to bypass CSP (media-src 'self' blob:)
       if (sourceUrlRef.current !== audioOverviewUrl || !audioObjectUrlRef.current) {
         console.log('⬇️ Downloading audio to blob URL due to CSP');
@@ -161,35 +169,59 @@ export const MeetingOverviewEditor = ({
         console.log('✅ Blob URL ready');
       }
 
-      if (!audioRef.current) {
-        audioRef.current = new Audio(audioObjectUrlRef.current!);
-        audioRef.current.playbackRate = playbackSpeed;
-        audioRef.current.addEventListener('ended', () => {
-          console.log('✅ Audio playback ended');
-          setIsPlaying(false);
-        });
-        audioRef.current.addEventListener('error', (e) => {
-          console.error('❌ Audio playback error:', e);
-          console.error('Audio URL (blob):', audioObjectUrlRef.current);
-          toast.error('Failed to play audio - check console for details');
-          setIsPlaying(false);
-        });
-      } else {
-        // If player exists but source changed, reload
-        if (audioObjectUrlRef.current && audioRef.current.src !== audioObjectUrlRef.current) {
-          audioRef.current.src = audioObjectUrlRef.current;
-        }
+      // Clean up existing audio element
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.removeEventListener('ended', () => {});
+        audioRef.current.removeEventListener('error', () => {});
+        audioRef.current = null;
       }
 
-      if (isPlaying) {
-        console.log('⏸️ Pausing audio');
-        audioRef.current.pause();
+      // Create fresh audio element
+      audioRef.current = new Audio();
+      audioRef.current.preload = 'auto';
+      audioRef.current.playbackRate = playbackSpeed;
+      
+      // Set up event listeners before setting src
+      audioRef.current.addEventListener('ended', () => {
+        console.log('✅ Audio playback ended');
         setIsPlaying(false);
-      } else {
-        console.log('▶️ Playing audio');
-        await audioRef.current.play();
-        setIsPlaying(true);
-      }
+      });
+      
+      audioRef.current.addEventListener('error', (e) => {
+        console.error('❌ Audio playback error:', e);
+        console.error('Audio URL (blob):', audioObjectUrlRef.current);
+        toast.error('Failed to play audio - check console for details');
+        setIsPlaying(false);
+      });
+
+      // Wait for audio to be ready before playing
+      await new Promise<void>((resolve, reject) => {
+        const onCanPlay = () => {
+          audioRef.current?.removeEventListener('canplay', onCanPlay);
+          audioRef.current?.removeEventListener('error', onError);
+          resolve();
+        };
+        
+        const onError = (e: Event) => {
+          audioRef.current?.removeEventListener('canplay', onCanPlay);
+          audioRef.current?.removeEventListener('error', onError);
+          reject(new Error('Failed to load audio'));
+        };
+
+        audioRef.current?.addEventListener('canplay', onCanPlay, { once: true });
+        audioRef.current?.addEventListener('error', onError, { once: true });
+        
+        // Set src after listeners are attached
+        if (audioRef.current) {
+          audioRef.current.src = audioObjectUrlRef.current!;
+          audioRef.current.load();
+        }
+      });
+
+      console.log('▶️ Playing audio');
+      await audioRef.current.play();
+      setIsPlaying(true);
     } catch (error: any) {
       console.error('❌ Play error:', error);
       toast.error(`Playback error: ${error.message}`);
