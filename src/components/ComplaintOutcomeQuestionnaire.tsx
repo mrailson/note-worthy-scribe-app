@@ -90,7 +90,7 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [isDemoLoading, setIsDemoLoading] = useState(false);
   const [demoSource, setDemoSource] = useState<'direct' | 'fallback' | null>(null);
 
-  const totalSteps = 4;
+  const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
 
   const complaintReference = complaintData.reference_number || '';
@@ -442,24 +442,13 @@ export const ComplaintOutcomeQuestionnaire = ({
 
   // Trigger AI analysis when reaching Step 4 (only if enabled)
   useEffect(() => {
-    if (step === 4 && open && !aiAnalysisText && !isAnalyzing && enableAiAnalysis) {
+    if (step === 3 && open && !aiAnalysisText && !isAnalyzing && enableAiAnalysis) {
       analyzeComplaintOutcome();
     }
   }, [step, open, enableAiAnalysis]);
 
   const handleNext = () => {
     if (step === 1) {
-      // Check required fields but show visual feedback
-      if (!data.investigation_complete) {
-        // Highlight the investigation validation tab if they're on compliance tab
-        if (activeValidationTab === 'compliance') {
-          setActiveValidationTab('investigation');
-        }
-        return;
-      }
-    }
-
-    if (step === 2) {
       if (!data.key_findings || data.key_findings.length < 20) {
         return;
       }
@@ -693,144 +682,8 @@ export const ComplaintOutcomeQuestionnaire = ({
 
         <Progress value={progress} className="mb-4" />
 
-        {/* Step 1: Investigation Validation */}
+        {/* Step 1: Letter Details */}
         {step === 1 && (
-          <div className="space-y-6">
-            <Tabs value={activeValidationTab} onValueChange={setActiveValidationTab}>
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="investigation">Investigation Validation</TabsTrigger>
-                <TabsTrigger value="compliance">
-                  CQC Compliance Review{complianceSummary?.compliance_percentage === 100 ? ' (Completed)' : ''}
-                </TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="investigation" className="space-y-4 mt-4">
-                <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm">
-                  <p className="text-blue-900">
-                    <strong>Note:</strong> The outcome will be determined at the end after AI analysis of all investigation details.
-                  </p>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="compliance" className="space-y-4 mt-4">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <ClipboardCheck className="h-5 w-5" />
-                      <h3 className="text-lg font-medium">CQC Compliance Review (Optional)</h3>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {complianceSummary && (
-                        <Badge variant="outline" className="text-sm">
-                          {complianceSummary.compliant_items} / {complianceSummary.total_items} Complete
-                          ({complianceSummary.compliance_percentage}%)
-                        </Badge>
-                      )}
-                      {complianceChecks.length > 0 && complianceSummary?.compliance_percentage !== 100 && (
-                        <Button 
-                          variant="outline" 
-                          size="sm" 
-                          onClick={markAllCompliant}
-                          className="text-sm"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" />
-                          Mark All Completed
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-
-                  {complianceSummary && (
-                    <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-medium text-blue-900">Compliance Progress</span>
-                        <span className="text-sm text-blue-800">{complianceSummary.compliance_percentage}%</span>
-                      </div>
-                      <div className="w-full bg-blue-200 rounded-full h-2">
-                        <div 
-                          className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                          style={{ width: `${complianceSummary.compliance_percentage}%` }}
-                        ></div>
-                      </div>
-                      {complianceSummary.outstanding_items && complianceSummary.outstanding_items.length > 0 && (
-                        <div className="mt-3">
-                          <p className="text-sm text-blue-800 font-medium">Outstanding Items:</p>
-                          <ul className="mt-1 text-sm text-blue-700">
-                            {complianceSummary.outstanding_items.slice(0, 3).map((item: string, index: number) => (
-                              <li key={index} className="truncate">• {item}</li>
-                            ))}
-                            {complianceSummary.outstanding_items.length > 3 && (
-                              <li className="text-blue-600">...and {complianceSummary.outstanding_items.length - 3} more</li>
-                            )}
-                          </ul>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto">
-                    {complianceChecks.length === 0 ? (
-                      <div className="text-center py-8 text-muted-foreground">
-                        No compliance checks available for this complaint
-                      </div>
-                    ) : (
-                      complianceChecks.map((check) => (
-                        <div 
-                          key={check.id} 
-                          className={`flex items-start gap-3 p-3 border rounded-lg transition-colors ${
-                            check.is_compliant 
-                              ? 'bg-green-50 border-green-200 hover:bg-green-100' 
-                              : 'hover:bg-gray-50'
-                          }`}
-                        >
-                          <Checkbox
-                            id={check.id}
-                            checked={check.is_compliant}
-                            onCheckedChange={(checked) => updateComplianceCheck(check.id, checked as boolean)}
-                            className="mt-1"
-                          />
-                          <div className="flex-1">
-                            <Label
-                              htmlFor={check.id}
-                              className={`text-sm cursor-pointer ${
-                                check.is_compliant 
-                                  ? 'line-through text-muted-foreground' 
-                                  : ''
-                              }`}
-                            >
-                              {check.compliance_item}
-                            </Label>
-                            {check.notes && (
-                              <p className="text-xs text-muted-foreground mt-1">{check.notes}</p>
-                            )}
-                            {check.checked_at && (
-                              <p className="text-xs text-muted-foreground mt-1">
-                                Checked: {new Date(check.checked_at).toLocaleDateString()}
-                              </p>
-                            )}
-                          </div>
-                          {check.is_compliant && (
-                            <CheckCircle className="h-4 w-4 text-green-600 mt-1" />
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-
-                  <div className="p-3 bg-amber-50 border border-amber-200 rounded text-sm">
-                    <p className="text-amber-900">
-                      <strong>Note:</strong> This compliance review is optional and provided as a helpful quality assurance tool. 
-                      Items marked with auto-confirmation have been verified based on complaint data.
-                    </p>
-                  </div>
-                </div>
-              </TabsContent>
-            </Tabs>
-          </div>
-        )}
-
-        {/* Step 2: Letter Details */}
-        {step === 2 && (
           <div className="space-y-6">
             <div>
               <div className="flex items-center justify-between mb-2">
@@ -945,8 +798,8 @@ export const ComplaintOutcomeQuestionnaire = ({
           </div>
         )}
 
-        {/* Step 3: Final Review */}
-        {step === 3 && (
+        {/* Step 2: Final Review */}
+        {step === 2 && (
           <div className="space-y-6">
             <div className="bg-green-50 p-4 rounded-lg border border-green-200">
               <div className="flex items-center gap-2 mb-3">
@@ -1027,8 +880,8 @@ export const ComplaintOutcomeQuestionnaire = ({
           </div>
         )}
 
-        {/* Step 4: AI Outcome Analysis */}
-        {step === 4 && (
+        {/* Step 3: AI Outcome Analysis */}
+        {step === 3 && (
           <div className="space-y-6">
             {/* AI Analysis Toggle */}
             <div className="bg-gradient-to-r from-slate-50 to-slate-100 border border-slate-200 p-4 rounded-lg">
@@ -1200,7 +1053,7 @@ export const ComplaintOutcomeQuestionnaire = ({
           </Button>
           
           {step < totalSteps ? (
-            <Button onClick={handleNext} disabled={isSubmitting || (step === 4 && isAnalyzing)}>
+            <Button onClick={handleNext} disabled={isSubmitting || (step === 3 && isAnalyzing)}>
               Next
             </Button>
           ) : (
