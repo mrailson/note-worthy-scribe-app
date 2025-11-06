@@ -183,6 +183,8 @@ const ComplaintDetails = () => {
   const [bccToUser, setBccToUser] = useState(false);
   const [manualToEmails, setManualToEmails] = useState('');
   const [manualCcEmails, setManualCcEmails] = useState('');
+  const [isSendingOutcomeEmail, setIsSendingOutcomeEmail] = useState(false);
+  const [showOutcomeEmailDialog, setShowOutcomeEmailDialog] = useState(false);
   const [acknowledgementSentToPatient, setAcknowledgementSentToPatient] = useState(false);
   const [acknowledgementSentAt, setAcknowledgementSentAt] = useState<string | null>(null);
   const [audioOverview, setAudioOverview] = useState<any>(null);
@@ -1138,6 +1140,128 @@ const ComplaintDetails = () => {
       toast.error(error instanceof Error ? error.message : 'Failed to send email');
     } finally {
       setIsSendingAcknowledgementEmail(false);
+    }
+  };
+
+  const handleSendOutcomeEmail = async () => {
+    if (!outcomeLetter || !complaint) return;
+
+    // Parse and validate manual email entries
+    const parseEmails = (emailString: string): string[] => {
+      return emailString
+        .split(',')
+        .map(email => email.trim())
+        .filter(email => email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email));
+    };
+
+    const manualToList = parseEmails(manualToEmails);
+    const manualCcList = parseEmails(manualCcEmails);
+
+    // Check if at least one recipient is selected or provided
+    if (!emailToPatient && !bccToUser && manualToList.length === 0 && manualCcList.length === 0) {
+      toast.error('Please provide at least one recipient');
+      return;
+    }
+
+    // Check if patient email is available when patient is selected
+    if (emailToPatient && !complaint.patient_contact_email) {
+      toast.error('No patient email address available');
+      return;
+    }
+
+    // Get user profile for BCC email
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('email')
+      .eq('user_id', user?.id)
+      .single();
+
+    if (bccToUser && !profile?.email) {
+      toast.error('No user email address available');
+      return;
+    }
+
+    // Resolve practice name for subject line
+    let practiceName = 'Medical Practice';
+
+    if (complaint.practice_id) {
+      const { data: practiceData } = await supabase
+        .from('practice_details')
+        .select('practice_name')
+        .eq('id', complaint.practice_id)
+        .maybeSingle();
+      if (practiceData?.practice_name) practiceName = practiceData.practice_name;
+    } else if (user?.id) {
+      const { data: latestPractice } = await supabase
+        .from('practice_details')
+        .select('practice_name, updated_at')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (latestPractice?.practice_name) practiceName = latestPractice.practice_name;
+    }
+
+    setIsSendingOutcomeEmail(true);
+    try {
+      // Build TO recipients list
+      const toRecipients: string[] = [];
+      if (emailToPatient && complaint.patient_contact_email) {
+        toRecipients.push(complaint.patient_contact_email);
+      }
+      toRecipients.push(...manualToList);
+
+      // Build CC list
+      const ccRecipients = manualCcList;
+
+      // Build BCC list
+      const bccRecipients: string[] = [];
+      if (bccToUser && profile?.email) {
+        bccRecipients.push(profile.email);
+      }
+
+      // If only BCC is selected, move it to "To" instead
+      if (toRecipients.length === 0 && bccRecipients.length > 0) {
+        toRecipients.push(...bccRecipients);
+        bccRecipients.length = 0;
+      }
+
+      // Format the letter content as HTML
+      const { formatLetterForEmail } = await import('@/utils/formatLetterForEmail');
+      const formattedLetterHtml = formatLetterForEmail(outcomeLetter);
+
+      const emailData = {
+        to_email: toRecipients.join(', '),
+        cc_email: ccRecipients.length > 0 ? ccRecipients.join(', ') : undefined,
+        bcc_email: bccRecipients.length > 0 ? bccRecipients.join(', ') : undefined,
+        subject: `Complaint Outcome - ${complaint.reference_number} - ${practiceName}`,
+        message: formattedLetterHtml,
+        template_type: 'complaint_outcome',
+        from_name: 'NHS Complaints Team',
+        reply_to: 'complaints@nhs.net',
+        complaint_reference: complaint.reference_number
+      };
+
+      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
+        body: emailData
+      });
+
+      if (error) {
+        throw new Error(error.message || 'Failed to send email');
+      }
+
+      if (!data?.success) {
+        throw new Error(data?.error || 'Failed to send email via EmailJS');
+      }
+
+      const allRecipients = [...toRecipients, ...ccRecipients, ...bccRecipients];
+      toast.success(`Outcome letter sent to ${allRecipients.length} recipient(s)`);
+      setShowOutcomeEmailDialog(false);
+    } catch (error) {
+      console.error('Error sending outcome email:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to send email');
+    } finally {
+      setIsSendingOutcomeEmail(false);
     }
   };
 
@@ -2778,6 +2902,20 @@ I am committed to ensuring that all patients receive the care and service they d
                       <div className="flex gap-2">
                         <Button 
                           variant="outline"
+                          onClick={() => {
+                            setEmailToPatient(!!complaint?.patient_contact_email);
+                            setBccToUser(false);
+                            setManualToEmails('');
+                            setManualCcEmails('');
+                            setShowOutcomeEmailDialog(true);
+                          }}
+                          disabled={isSendingOutcomeEmail}
+                        >
+                          <Mail className="h-4 w-4 mr-1" />
+                          Email
+                        </Button>
+                        <Button 
+                          variant="outline"
                           onClick={async () => {
                             try {
                               const doc = await createLetterDocument(
@@ -3901,6 +4039,109 @@ I am committed to ensuring that all patients receive the care and service they d
               disabled={isSendingAcknowledgementEmail || (!emailToPatient && !bccToUser && !manualToEmails.trim() && !manualCcEmails.trim())}
             >
               {isSendingAcknowledgementEmail ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Sending...
+                </>
+              ) : (
+                <>
+                  <Mail className="h-4 w-4 mr-2" />
+                  Send Email
+                </>
+              )}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Outcome Letter Dialog */}
+      <Dialog open={showOutcomeEmailDialog} onOpenChange={setShowOutcomeEmailDialog}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Email Outcome Letter</DialogTitle>
+            <DialogDescription>
+              Select recipients and options for sending the outcome letter
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            {/* Recipients */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Recipients</Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="emailToPatientOutcome"
+                    checked={emailToPatient}
+                    onCheckedChange={(checked) => setEmailToPatient(checked as boolean)}
+                    disabled={!complaint?.patient_contact_email}
+                  />
+                  <Label
+                    htmlFor="emailToPatientOutcome"
+                    className={`text-sm font-normal cursor-pointer ${!complaint?.patient_contact_email ? 'text-muted-foreground' : ''}`}
+                  >
+                    Patient ({complaint?.patient_contact_email || 'No email available'})
+                  </Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="bccToUserOutcome"
+                    checked={bccToUser}
+                    onCheckedChange={(checked) => setBccToUser(checked as boolean)}
+                  />
+                  <Label htmlFor="bccToUserOutcome" className="text-sm font-normal cursor-pointer">
+                    Me (BCC - blind copy me)
+                  </Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Manual Email Entry */}
+            <div className="space-y-3">
+              <Label className="text-sm font-medium">Additional Recipients</Label>
+              <div className="space-y-3">
+                <div>
+                  <Label htmlFor="manualToEmailsOutcome" className="text-xs text-muted-foreground">
+                    To (separate multiple emails with commas)
+                  </Label>
+                  <Input
+                    id="manualToEmailsOutcome"
+                    type="text"
+                    placeholder="email@example.com, another@example.com"
+                    value={manualToEmails}
+                    onChange={(e) => setManualToEmails(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="manualCcEmailsOutcome" className="text-xs text-muted-foreground">
+                    CC (separate multiple emails with commas)
+                  </Label>
+                  <Input
+                    id="manualCcEmailsOutcome"
+                    type="text"
+                    placeholder="email@example.com, another@example.com"
+                    value={manualCcEmails}
+                    onChange={(e) => setManualCcEmails(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowOutcomeEmailDialog(false)}
+              disabled={isSendingOutcomeEmail}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSendOutcomeEmail}
+              disabled={isSendingOutcomeEmail || (!emailToPatient && !bccToUser && !manualToEmails.trim() && !manualCcEmails.trim())}
+            >
+              {isSendingOutcomeEmail ? (
                 <>
                   <Loader2 className="h-4 w-4 mr-2 animate-spin" />
                   Sending...
