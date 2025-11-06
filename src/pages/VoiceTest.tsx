@@ -20,7 +20,7 @@ const VOICES: Voice[] = [
   { id: 'deepgram-orion', name: 'Orion', provider: 'deepgram', voiceId: 'orion', description: 'British Male - Conversational' },
   { id: 'deepgram-luna', name: 'Luna', provider: 'deepgram', voiceId: 'luna', description: 'British Female - Warm' },
   { id: 'deepgram-stella', name: 'Stella', provider: 'deepgram', voiceId: 'stella', description: 'British Female - Clear' },
-  { id: 'elevenlabs-chris', name: 'Chris', provider: 'elevenlabs', voiceId: 'iP95p4xoKVk53GoZ742B', description: 'British Male - Natural' },
+  { id: 'elevenlabs-chris', name: 'Chris', provider: 'elevenlabs', voiceId: 'G17SuINrv2H9FC6nvetn', description: 'British Male - Natural' },
   { id: 'elevenlabs-george', name: 'George', provider: 'elevenlabs', voiceId: 'JBFqnCBsd6RMkjVDRZzb', description: 'British Male - Professional' },
   { id: 'elevenlabs-brian', name: 'Brian', provider: 'elevenlabs', voiceId: 'nPczCjzI2devNBz1zQrb', description: 'British Male - Warm' },
   { id: 'elevenlabs-daniel', name: 'Daniel', provider: 'elevenlabs', voiceId: 'onwK4e9ZLuTAKqWW03F9', description: 'British Male - Deep' },
