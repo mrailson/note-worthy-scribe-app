@@ -53,9 +53,7 @@ serve(async (req) => {
     formData.append('response_format', 'verbose_json');
     // Anti-hallucination parameters
     formData.append('temperature', '0');
-    formData.append('no_speech_threshold', '0.6');
-    formData.append('condition_on_previous_text', 'false');
-    formData.append('prompt', ''); // Empty prompt reduces hallucinations
+    formData.append('prompt', 'This is a medical meeting recording with healthcare professionals discussing patient care and clinical matters.'); // Context helps prevent hallucinations
 
     console.log('📡 SPEECH-TO-TEXT: Sending request to OpenAI Whisper API...');
     

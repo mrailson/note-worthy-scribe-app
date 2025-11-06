@@ -51,13 +51,15 @@ serve(async (req) => {
 
     console.log('🎵 Audio file received:', audioFile.size, 'bytes, type:', audioFile.type);
 
-    // Create form data for OpenAI
+    // Create form data for OpenAI with anti-hallucination parameters
     const whisperFormData = new FormData();
     whisperFormData.append('file', audioFile, 'audio.webm');
     whisperFormData.append('model', 'whisper-1');
     whisperFormData.append('language', 'en'); // Force English transcription
+    whisperFormData.append('temperature', '0'); // Reduce creativity/hallucinations
+    whisperFormData.append('prompt', 'This is a medical meeting recording with healthcare professionals discussing patient care and clinical matters.'); // Provide context
     
-    console.log('📤 Sending to OpenAI Whisper...');
+    console.log('📤 Sending to OpenAI Whisper with anti-hallucination settings...');
     
     // Call OpenAI Whisper
     const whisperResponse = await fetch('https://api.openai.com/v1/audio/transcriptions', {

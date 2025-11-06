@@ -80,11 +80,12 @@ serve(async (req: Request) => {
     
     const normalized = new File([bytes], name.endsWith(".webm") ? name : `${name}.webm`, { type: finalType });
 
-    console.log("📤 Sending to OpenAI with language=en and English prompt");
+    console.log("📤 Sending to OpenAI with anti-hallucination settings");
     const out = new FormData();
     out.append("model", model);
     out.append("language", "en"); // Force English transcription
-    out.append("prompt", "This is an English language test recording of a transcription service."); // Guide toward English
+    out.append("temperature", "0"); // Reduce creativity and hallucinations
+    out.append("prompt", "This is a medical meeting recording with healthcare professionals discussing patient care and clinical matters."); // Provide relevant context
     out.append("file", normalized, normalized.name);
 
     const resp = await fetch("https://api.openai.com/v1/audio/transcriptions", {
