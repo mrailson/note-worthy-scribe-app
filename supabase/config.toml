@@ -209,3 +209,6 @@ verify_jwt = true
 
 [functions.generate-complaint-audio-overview]
 verify_jwt = true
+
+[functions.manage-demo-responses]
+verify_jwt = false
