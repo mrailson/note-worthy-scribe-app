@@ -195,21 +195,21 @@ export const MeetingOverviewEditor = ({
         setIsPlaying(false);
       });
 
-      // Wait for audio to be ready before playing
+      // Wait for audio to be fully buffered before playing
       await new Promise<void>((resolve, reject) => {
-        const onCanPlay = () => {
-          audioRef.current?.removeEventListener('canplay', onCanPlay);
+        const onCanPlayThrough = () => {
+          audioRef.current?.removeEventListener('canplaythrough', onCanPlayThrough);
           audioRef.current?.removeEventListener('error', onError);
           resolve();
         };
         
         const onError = (e: Event) => {
-          audioRef.current?.removeEventListener('canplay', onCanPlay);
+          audioRef.current?.removeEventListener('canplaythrough', onCanPlayThrough);
           audioRef.current?.removeEventListener('error', onError);
           reject(new Error('Failed to load audio'));
         };
 
-        audioRef.current?.addEventListener('canplay', onCanPlay, { once: true });
+        audioRef.current?.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
         audioRef.current?.addEventListener('error', onError, { once: true });
         
         // Set src after listeners are attached

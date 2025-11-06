@@ -114,7 +114,7 @@ export default function VoiceTest() {
       console.log('⏹️ Stopping current audio');
       audioRef.current.pause();
       audioRef.current.removeEventListener('loadedmetadata', () => {});
-      audioRef.current.removeEventListener('canplay', () => {});
+      audioRef.current.removeEventListener('canplaythrough', () => {});
       audioRef.current.removeEventListener('ended', () => {});
       audioRef.current.removeEventListener('error', () => {});
       audioRef.current = null;
@@ -129,8 +129,8 @@ export default function VoiceTest() {
       console.log('✅ Audio metadata loaded, duration:', audioRef.current?.duration);
     });
     
-    audioRef.current.addEventListener('canplay', () => {
-      console.log('✅ Audio can play, starting playback');
+    audioRef.current.addEventListener('canplaythrough', () => {
+      console.log('✅ Audio fully buffered and ready, starting playback');
       audioRef.current?.play()
         .then(() => {
           console.log('✅ Playback started successfully');
