@@ -31,7 +31,6 @@ serve(async (req) => {
       .select(`
         *,
         complaint_outcomes (*),
-        complaint_investigation_decisions (*),
         complaint_involved_parties (staff_name, staff_role, response_text),
         complaint_notes (note_text, is_internal)
       `)
@@ -49,7 +48,6 @@ serve(async (req) => {
     }
 
     const outcome = complaint.complaint_outcomes[0];
-    const decision = complaint.complaint_investigation_decisions?.[0];
     
     let narrative: string;
     
@@ -99,8 +97,6 @@ Incident Date: ${complaint.incident_date}
 
 Complaint Description:
 ${complaint.complaint_description.slice(0, 800)}
-
-${decision ? `Investigation Decision & Learning:\n${decision.decision_summary?.slice(0, 600) || ''}\n${decision.learning_points?.slice(0, 600) || ''}\n\n` : ''}
 
 ${staffResponses ? `Staff Responses:\n${staffResponses.slice(0, 1000)}\n\n` : ''}
 
