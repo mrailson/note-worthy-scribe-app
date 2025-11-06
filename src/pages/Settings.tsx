@@ -48,12 +48,15 @@ import {
   FileCheck,
   FolderOpen,
   Headphones,
+  Volume2,
   Stethoscope,
   Sparkles,
   Bell
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useToastPreferences } from '@/hooks/useToastPreferences';
+import { useVoicePreference } from '@/hooks/useVoicePreference';
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Select, 
   SelectContent, 
@@ -128,6 +131,10 @@ export default function Settings() {
     allEnabled: allToastsEnabled,
     allDisabled: allToastsDisabled,
   } = useToastPreferences();
+
+  // Voice preferences
+  const { voicePreference, setVoicePreference } = useVoicePreference();
+
 
 
   // Fetch NHS terms
@@ -691,6 +698,46 @@ export default function Settings() {
                       </div>
                     </div>
                   )}
+                </CardContent>
+              </Card>
+
+              {/* Voice Preference Card */}
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Volume2 className="h-5 w-5" />
+                    Voice Preference
+                  </CardTitle>
+                  <p className="text-muted-foreground">
+                    Select your preferred voice for audio overviews
+                  </p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Choose between Chris (British Male) or Alice (British Female) for all audio summaries and overviews.
+                    </p>
+                    <RadioGroup 
+                      value={voicePreference} 
+                      onValueChange={(value) => setVoicePreference(value as 'chris' | 'alice')}
+                      className="space-y-3"
+                    >
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
+                        <RadioGroupItem value="chris" id="voice-chris" />
+                        <Label htmlFor="voice-chris" className="flex-1 cursor-pointer">
+                          <div className="font-medium">Chris</div>
+                          <div className="text-sm text-muted-foreground">British Male - Natural voice</div>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
+                        <RadioGroupItem value="alice" id="voice-alice" />
+                        <Label htmlFor="voice-alice" className="flex-1 cursor-pointer">
+                          <div className="font-medium">Alice</div>
+                          <div className="text-sm text-muted-foreground">British Female - Friendly voice</div>
+                        </Label>
+                      </div>
+                    </RadioGroup>
+                  </div>
                 </CardContent>
               </Card>
 
