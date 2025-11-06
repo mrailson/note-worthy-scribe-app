@@ -92,6 +92,7 @@ import { AttendeeRoleBadge } from './meeting-history/AttendeeRoleBadge';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
 import { toast } from 'sonner';
 import { TranscriptRepairButton } from '@/components/admin/TranscriptRepairButton';
+import { useVoicePreference } from '@/hooks/useVoicePreference';
 
 
 interface Meeting {
@@ -187,6 +188,7 @@ export const MeetingHistoryList = ({
   const navigate = useNavigate();
   const { isRecording, isResourceOperationSafe, setRecordingState } = useRecording();
   const { user, isSystemAdmin } = useAuth();
+  const { voiceConfig } = useVoicePreference();
   const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
   const isIOS = detectDevice().isIOS;
   console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
@@ -1125,7 +1127,7 @@ export const MeetingHistoryList = ({
     const meetingId = meeting.id;
     
     // Show toast notification
-    toast.info('Regenerating Meeting Overview, Standard Minutes, and Style Gallery...', {
+    toast.info('Regenerating Meeting Overview, Standard Minutes, Style Gallery, and Audio...', {
       duration: 3000
     });
     
@@ -1164,15 +1166,34 @@ export const MeetingHistoryList = ({
           toast.error('Failed to regenerate Style Gallery');
         } else {
           console.log('✅ Style gallery regenerated successfully');
-          
-          // Force a refresh to show the new style gallery
-          if (onRefresh) {
-            onRefresh();
-          }
+        }
+        
+        // Generate audio overview at the end
+        console.log('🔊 Regenerating Audio Overview...');
+        const audioBody = {
+          meetingId,
+          voiceProvider: voiceConfig.provider,
+          voiceId: voiceConfig.voiceId
+        };
+        
+        const { error: audioError } = await supabase.functions.invoke('generate-audio-overview', {
+          body: audioBody
+        });
+        
+        if (audioError) {
+          console.error('Audio generation error:', audioError);
+          toast.error('Failed to generate audio overview');
+        } else {
+          console.log('✅ Audio overview generated successfully');
+        }
+        
+        // Force a refresh to show all updates
+        if (onRefresh) {
+          onRefresh();
         }
       }
     } catch (err) {
-      console.error('Error triggering style gallery:', err);
+      console.error('Error triggering regeneration:', err);
     }
   };
 
