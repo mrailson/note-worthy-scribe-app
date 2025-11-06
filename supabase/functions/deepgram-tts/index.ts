@@ -54,14 +54,17 @@ serve(async (req) => {
 
     console.log('Calling Deepgram TTS API...');
 
-    // Call Deepgram TTS API
-    const response = await fetch('https://api.deepgram.com/v1/speak?model=aura-2-draco-en', {
+    // Add a small lead-in pause to prevent audio cutouts at the start
+    const textWithLeadIn = ` ${processedText}`;
+
+    // Call Deepgram TTS API with aura-asteria-en (higher quality, more natural voice)
+    const response = await fetch('https://api.deepgram.com/v1/speak?model=aura-asteria-en', {
       method: 'POST',
       headers: {
         'Authorization': `Token ${deepgramApiKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ text: processedText }),
+      body: JSON.stringify({ text: textWithLeadIn }),
     });
 
     console.log('Deepgram API response status:', response.status);
