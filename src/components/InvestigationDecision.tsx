@@ -664,6 +664,21 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
       const allRecipients = [...toRecipients, ...ccRecipients, ...bccRecipients];
       toast.success(`Outcome letter sent to ${allRecipients.length} recipient(s)`);
       setShowOutcomeEmailDialog(false);
+      
+      // Update the sent_at timestamp in the database
+      try {
+        const now = new Date().toISOString();
+        const { error: updateError } = await supabase
+          .from('complaint_outcomes')
+          .update({ sent_at: now })
+          .eq('complaint_id', complaintId);
+        
+        if (!updateError && existingOutcome) {
+          setExistingOutcome({ ...existingOutcome, sent_at: now });
+        }
+      } catch (updateError) {
+        console.error('Failed to update sent_at timestamp:', updateError);
+      }
     } catch (error) {
       console.error('Error sending outcome email:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to send email');
