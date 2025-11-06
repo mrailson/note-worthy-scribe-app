@@ -2348,11 +2348,12 @@ export const MeetingHistoryList = ({
           <CardContent className="pt-0">
             <div className="space-y-3">
               {/* Meeting Overview Editor */}
-              <MeetingOverviewEditor 
-                meetingId={meeting.id}
-                currentOverview={meeting.overview || ""}
-                audioOverviewUrl={meeting.audio_overview_url || undefined}
-                audioOverviewDuration={meeting.audio_overview_duration || undefined}
+                <MeetingOverviewEditor 
+                  meetingId={meeting.id}
+                  currentOverview={meeting.overview || ""}
+                  audioOverviewUrl={meeting.audio_overview_url || undefined}
+                  audioOverviewText={meeting.audio_overview_text || undefined}
+                  audioOverviewDuration={meeting.audio_overview_duration || undefined}
                 onOverviewChange={(newOverview) => {
                   // Update local state immediately
                   setLocalMeetings(prev => prev.map(m => 

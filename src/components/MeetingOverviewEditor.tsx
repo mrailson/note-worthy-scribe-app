@@ -10,6 +10,7 @@ interface MeetingOverviewEditorProps {
   meetingId: string;
   currentOverview: string;
   audioOverviewUrl?: string;
+  audioOverviewText?: string;
   audioOverviewDuration?: number;
   onOverviewChange: (overview: string) => void;
   onRegenerateAudio?: () => void;
@@ -20,6 +21,7 @@ export const MeetingOverviewEditor = ({
   meetingId, 
   currentOverview,
   audioOverviewUrl,
+  audioOverviewText,
   audioOverviewDuration,
   onOverviewChange,
   onRegenerateAudio,
@@ -265,6 +267,14 @@ export const MeetingOverviewEditor = ({
                 <p className="text-xs text-muted-foreground mt-2">
                   Generate a 2-minute spoken overview of this meeting
                 </p>
+              )}
+              
+              {audioOverviewText && (
+                <div className="mt-3 p-3 bg-muted/30 rounded-md border border-border/50">
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {audioOverviewText}
+                  </p>
+                </div>
               )}
             </div>
           )}
