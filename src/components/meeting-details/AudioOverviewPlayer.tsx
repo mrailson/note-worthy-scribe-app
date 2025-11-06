@@ -271,33 +271,68 @@ export const AudioOverviewPlayer = ({
 
   return (
     <div className={className}>
-      <div className="flex items-center justify-end gap-2 mb-3">
-        {audioOverviewUrl && (
-          <>
-            <Select value={playbackSpeed.toString()} onValueChange={handleSpeedChange}>
-              <SelectTrigger className="h-8 w-20 text-xs">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="0.75">0.75×</SelectItem>
-                <SelectItem value="1">1×</SelectItem>
-                <SelectItem value="1.25">1.25×</SelectItem>
-                <SelectItem value="1.5">1.5×</SelectItem>
-                <SelectItem value="1.75">1.75×</SelectItem>
-                <SelectItem value="2">2×</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button
-              onClick={handleDownloadAudio}
-              variant="outline"
-              size="sm"
-              className="h-8 px-3"
-            >
-              <Download className="h-4 w-4" />
-            </Button>
-          </>
-        )}
-        {onRegenerateAudio && (
+      {audioOverviewUrl && (
+        <div className="flex items-center gap-3">
+          <Button
+            onClick={handlePlayAudio}
+            variant="ghost"
+            size="sm"
+            className="h-9 w-9 p-0 shrink-0"
+          >
+            {isPlaying ? (
+              <Pause className="h-4 w-4" />
+            ) : (
+              <Play className="h-4 w-4" />
+            )}
+          </Button>
+          
+          <div className="flex-1 max-w-[50%] space-y-1">
+            <input
+              type="range"
+              min="0"
+              max={totalDuration}
+              step="0.01"
+              value={currentTime}
+              onMouseDown={handleSeekStart}
+              onTouchStart={handleSeekStart}
+              onChange={handleSeek}
+              onMouseUp={handleSeekEnd}
+              onTouchEnd={handleSeekEnd}
+              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0"
+            />
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>{formatDuration(currentTime)}</span>
+              <span>{formatDuration(totalDuration)}</span>
+            </div>
+          </div>
+
+          <Select value={playbackSpeed.toString()} onValueChange={handleSpeedChange}>
+            <SelectTrigger className="h-8 w-16 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="0.75">0.75×</SelectItem>
+              <SelectItem value="1">1×</SelectItem>
+              <SelectItem value="1.25">1.25×</SelectItem>
+              <SelectItem value="1.5">1.5×</SelectItem>
+              <SelectItem value="1.75">1.75×</SelectItem>
+              <SelectItem value="2">2×</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Button
+            onClick={handleDownloadAudio}
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 p-0"
+          >
+            <Download className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
+      {onRegenerateAudio && (
+        <div className="flex justify-end mt-2">
           <Button
             onClick={handleRegenerateAudio}
             variant="ghost"
@@ -308,45 +343,6 @@ export const AudioOverviewPlayer = ({
             <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
             {isGeneratingAudio ? 'Generating...' : audioOverviewUrl ? 'Regenerate' : 'Generate'}
           </Button>
-        )}
-      </div>
-
-      {audioOverviewUrl && (
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <Button
-              onClick={handlePlayAudio}
-              variant="ghost"
-              size="sm"
-              className="h-10 w-10 p-0 shrink-0"
-            >
-              {isPlaying ? (
-                <Pause className="h-5 w-5" />
-              ) : (
-                <Play className="h-5 w-5" />
-              )}
-            </Button>
-            
-            <div className="flex-1 space-y-1">
-              <input
-                type="range"
-                min="0"
-                max={totalDuration}
-                step="0.01"
-                value={currentTime}
-                onMouseDown={handleSeekStart}
-                onTouchStart={handleSeekStart}
-                onChange={handleSeek}
-                onMouseUp={handleSeekEnd}
-                onTouchEnd={handleSeekEnd}
-                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0"
-              />
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{formatDuration(currentTime)}</span>
-                <span>{formatDuration(totalDuration)}</span>
-              </div>
-            </div>
-          </div>
         </div>
       )}
       {!audioOverviewUrl && !isGeneratingAudio && (
