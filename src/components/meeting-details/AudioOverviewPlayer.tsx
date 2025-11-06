@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Play, Pause, RefreshCw, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { useVoicePreference } from '@/hooks/useVoicePreference';
 
@@ -273,18 +274,14 @@ export const AudioOverviewPlayer = ({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
-  const handleSeekStart = () => {
+  const handleSeek = (value: number[]) => {
+    setCurrentTime(value[0]);
     setIsSeeking(true);
   };
 
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newTime = parseFloat(e.target.value);
-    setCurrentTime(newTime);
-  };
-
-  const handleSeekEnd = () => {
+  const handleSeekEnd = (value: number[]) => {
     if (audioRef.current) {
-      audioRef.current.currentTime = currentTime;
+      audioRef.current.currentTime = value[0];
     }
     setIsSeeking(false);
   };
@@ -309,18 +306,13 @@ export const AudioOverviewPlayer = ({
           </Button>
           
           <div className="flex-1 max-w-[50%] space-y-1">
-            <input
-              type="range"
-              min="0"
+            <Slider
+              value={[currentTime]}
               max={totalDuration}
-              step="0.01"
-              value={currentTime}
-              onMouseDown={handleSeekStart}
-              onTouchStart={handleSeekStart}
-              onChange={handleSeek}
-              onMouseUp={handleSeekEnd}
-              onTouchEnd={handleSeekEnd}
-              className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0"
+              step={0.01}
+              onValueChange={handleSeek}
+              onValueCommit={handleSeekEnd}
+              className="w-full"
             />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{formatDuration(currentTime)}</span>
