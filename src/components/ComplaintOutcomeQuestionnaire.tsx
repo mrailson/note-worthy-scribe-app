@@ -639,6 +639,33 @@ export const ComplaintOutcomeQuestionnaire = ({
         console.log('Complaint status updated to closed');
       }
 
+      // Automatically generate executive audio summary in background
+      console.log('Step 6: Triggering audio overview generation in background...');
+      setTimeout(async () => {
+        try {
+          const { error: audioError } = await supabase.functions.invoke('generate-complaint-audio-overview', {
+            body: { 
+              complaintId,
+              voiceProvider: 'elevenlabs',
+              voiceId: 'G17SuINrv2H9FC6nvetn' // Chris voice
+            }
+          });
+          
+          if (audioError) {
+            console.error('Background audio generation error:', audioError);
+          } else {
+            console.log('✓ Audio overview generation started successfully');
+            toast({
+              title: 'Audio Summary',
+              description: 'Generating executive audio summary for management...',
+            });
+          }
+        } catch (error) {
+          console.error('Failed to start audio generation:', error);
+          // Don't show error to user - this is background task
+        }
+      }, 500); // Small delay to let main success flow complete first
+
       console.log('=== Outcome letter generation completed successfully ===');
       onSuccess();
       onOpenChange(false);
