@@ -435,13 +435,31 @@ export function EmailMeetingMinutesModal({
             continue;
           }
           
-          // Handle numbered lists - but treat each numbered item as a standalone heading with bold text
-          // This prevents non-sequential numbering issues when numbers restart
+          // Handle numbered lists - only the numbered heading should be bold and blue
+          // Body text that follows should remain regular weight and black
           if (line.match(/^\d+\.\s/)) {
-            const itemText = line.replace(/^\d+\.\s*/, '');
+            // Extract just the heading part (before the first colon if present)
+            const fullText = line.replace(/^\d+\.\s*/, '');
             const numberMatch = line.match(/^(\d+)\.\s/);
             const number = numberMatch ? numberMatch[1] : '';
-            html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #2563EB; font-size: 14px;"><strong>${number}. ${itemText}</strong></p>\n`;
+            
+            // If there's a colon, split heading from body text
+            const colonIndex = fullText.indexOf(':');
+            if (colonIndex !== -1) {
+              const heading = fullText.substring(0, colonIndex + 1);
+              const bodyText = fullText.substring(colonIndex + 1).trim();
+              
+              // Heading in blue and bold, body text in regular black
+              html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">`;
+              html += `<strong style="color: #2563EB;">${number}. ${heading}</strong>`;
+              if (bodyText) {
+                html += ` <span style="color: #1a1a1a; font-weight: normal;">${bodyText}</span>`;
+              }
+              html += `</p>\n`;
+            } else {
+              // No colon, entire line is heading
+              html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;"><strong style="color: #2563EB;">${number}. ${fullText}</strong></p>\n`;
+            }
             i++;
             continue;
           }
