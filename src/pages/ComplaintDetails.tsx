@@ -2502,30 +2502,6 @@ I am committed to ensuring that all patients receive the care and service they d
                 />
               )}
 
-              {/* Executive Audio Summary - Show after outcome */}
-              {existingOutcome && complaint?.status === 'closed' && (
-                <Card className="border-blue-200 bg-blue-50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-800">
-                      <Headphones className="h-5 w-5" />
-                      Executive Audio Summary
-                    </CardTitle>
-                    <CardDescription className="text-blue-700">
-                      AI-generated audio briefing for management and partners
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <ComplaintAudioOverviewPlayer
-                      complaintId={complaint.id}
-                      audioOverviewUrl={audioOverview?.audio_overview_url}
-                      audioOverviewText={audioOverview?.audio_overview_text}
-                      audioOverviewDuration={audioOverview?.audio_overview_duration}
-                      onRegenerateAudio={handleRegenerateComplaintAudio}
-                    />
-                  </CardContent>
-                </Card>
-              )}
-
               {/* Outcome Letter Section */}
               {existingOutcome && outcomeLetter && (
                 <Card className="border-green-200 bg-green-50">
@@ -2747,6 +2723,30 @@ I am committed to ensuring that all patients receive the care and service they d
                         );
                       })()}
                     </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Executive Audio Summary - Show after outcome */}
+              {existingOutcome && complaint?.status === 'closed' && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2 text-blue-800">
+                      <Headphones className="h-5 w-5" />
+                      Executive Audio Summary
+                    </CardTitle>
+                    <CardDescription className="text-blue-700">
+                      AI-generated audio briefing for management and partners
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <ComplaintAudioOverviewPlayer
+                      complaintId={complaint.id}
+                      audioOverviewUrl={audioOverview?.audio_overview_url}
+                      audioOverviewText={audioOverview?.audio_overview_text}
+                      audioOverviewDuration={audioOverview?.audio_overview_duration}
+                      onRegenerateAudio={handleRegenerateComplaintAudio}
+                    />
                   </CardContent>
                 </Card>
               )}
