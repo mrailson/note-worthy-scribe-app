@@ -79,6 +79,10 @@ export const AudioOverviewPlayer = ({
       audioRef.current.addEventListener('ended', () => {
         console.log('✅ Audio playback ended');
         setIsPlaying(false);
+        // Resume microphones after playback completes
+        import('@/utils/AudioFocusManager').then(({ audioFocusManager }) => {
+          audioFocusManager.resumeAll();
+        });
       });
       
       audioRef.current.addEventListener('error', (e) => {
@@ -86,7 +90,23 @@ export const AudioOverviewPlayer = ({
         console.error('Audio URL (blob):', audioObjectUrlRef.current);
         toast.error('Failed to play audio - check console for details');
         setIsPlaying(false);
+        // Resume microphones on error
+        import('@/utils/AudioFocusManager').then(({ audioFocusManager }) => {
+          audioFocusManager.resumeAll();
+        });
       });
+
+      // AUDIO CUTOUT FIX: Pause microphones, play silent pre-roll, then start audio
+      const { audioFocusManager, playoutSilentPreRoll, fadeInVolume } = await import('@/utils/AudioFocusManager');
+      
+      // Step 1: Pause any active microphones
+      await audioFocusManager.pauseAll('audio_playback');
+      
+      // Step 2: Play silent audio to warm up device (prevents Bluetooth profile switching glitch)
+      await playoutSilentPreRoll(500);
+      
+      // Step 3: Set up audio element with zero volume initially
+      audioRef.current.volume = 0;
 
       await new Promise<void>((resolve, reject) => {
         const onCanPlayThrough = () => {
@@ -110,9 +130,13 @@ export const AudioOverviewPlayer = ({
         }
       });
 
+      // Step 4: Start playback at zero volume
       console.log('▶️ Playing audio');
       await audioRef.current.play();
       setIsPlaying(true);
+      
+      // Step 5: Fade in volume smoothly
+      fadeInVolume(audioRef.current, 1, 400);
     } catch (error: any) {
       console.error('❌ Play error:', error);
       toast.error(`Playback error: ${error.message}`);

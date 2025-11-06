@@ -129,29 +129,60 @@ export default function VoiceTest() {
       console.log('✅ Audio metadata loaded, duration:', audioRef.current?.duration);
     });
     
-    audioRef.current.addEventListener('canplaythrough', () => {
-      console.log('✅ Audio fully buffered and ready, starting playback');
-      audioRef.current?.play()
-        .then(() => {
-          console.log('✅ Playback started successfully');
-          setPlayingVoice(voiceId);
-        })
-        .catch((err) => {
-          console.error('❌ Play promise rejected:', err);
-          toast.error(`Playback failed: ${err.message}`);
-          setPlayingVoice(null);
-        });
+    // AUDIO CUTOUT FIX: Use async handler for canplaythrough
+    audioRef.current.addEventListener('canplaythrough', async () => {
+      console.log('✅ Audio fully buffered and ready');
+      
+      try {
+        // Import audio focus utilities
+        const { audioFocusManager, playoutSilentPreRoll, fadeInVolume } = await import('@/utils/AudioFocusManager');
+        
+        // Step 1: Pause microphones
+        await audioFocusManager.pauseAll('audio_playback');
+        
+        // Step 2: Play silent pre-roll
+        await playoutSilentPreRoll(500);
+        
+        // Step 3: Set initial volume to 0
+        if (audioRef.current) {
+          audioRef.current.volume = 0;
+        }
+        
+        // Step 4: Start playback
+        await audioRef.current?.play();
+        console.log('✅ Playback started successfully');
+        setPlayingVoice(voiceId);
+        
+        // Step 5: Fade in volume
+        if (audioRef.current) {
+          fadeInVolume(audioRef.current, 1, 400);
+        }
+      } catch (error: any) {
+        console.error('❌ Playback failed:', error);
+        toast.error(`Playback failed: ${error.message}`);
+        setPlayingVoice(null);
+      }
     });
     
-    audioRef.current.addEventListener('ended', () => {
+    audioRef.current.addEventListener('ended', async () => {
       console.log('✅ Audio playback ended');
+      
+      // Resume microphones
+      const { audioFocusManager } = await import('@/utils/AudioFocusManager');
+      await audioFocusManager.resumeAll();
+      
       setPlayingVoice(null);
     });
     
-    audioRef.current.addEventListener('error', (e) => {
+    audioRef.current.addEventListener('error', async (e) => {
       console.error('❌ Audio playback error:', e);
       console.error('❌ Audio error details:', audioRef.current?.error);
       toast.error(`Failed to play ${voiceId}: ${audioRef.current?.error?.message || 'Unknown error'}`);
+      
+      // Resume microphones on error
+      const { audioFocusManager } = await import('@/utils/AudioFocusManager');
+      await audioFocusManager.resumeAll();
+      
       setPlayingVoice(null);
     });
 
