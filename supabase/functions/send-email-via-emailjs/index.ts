@@ -479,10 +479,12 @@ const handler = async (req: Request): Promise<Response> => {
       
       let simplifiedMessage = String((templateParams as any).message);
       
-      // Strip complex inline styles that trigger Outlook spam filters
+      // Strip complex inline styles BUT preserve table-related styles for borders
       simplifiedMessage = simplifiedMessage
-        .replace(/style="[^"]*"/gi, '')
+        // Remove class attributes
         .replace(/class="[^"]*"/gi, '')
+        // Remove style attributes EXCEPT on table, th, td elements (preserve borders)
+        .replace(/(<(?!table|th|td)[^>]+)style="[^"]*"/gi, '$1')
         // Keep basic structure but remove divs
         .replace(/<div[^>]*>/gi, '<p>')
         .replace(/<\/div>/gi, '</p>')

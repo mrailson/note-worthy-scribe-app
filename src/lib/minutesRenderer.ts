@@ -100,11 +100,12 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
 
       const headerHtml = headers.map((header, idx) => {
         const width = idx === 0 ? 'w-[40%]' : (isActionItemsTable && idx === headers.length - 2) ? 'w-[15%]' : 'w-auto';
-        return `<th style="font-size: ${baseFontSize}px" class="border border-[#768692] px-4 py-3 bg-[#005EB8] text-white font-semibold text-left ${width}">${header}</th>`;
+        return `<th style="font-size: ${baseFontSize}px; padding: 12px; text-align: left; background-color: #005EB8; color: white; font-weight: 600; border: 1px solid #768692;" class="border border-[#768692] px-4 py-3 bg-[#005EB8] text-white font-semibold text-left ${width}">${header}</th>`;
       }).join('');
 
       const bodyHtml = rows.map((row, rowIdx) => {
         const bgClass = rowIdx % 2 === 0 ? 'bg-white' : 'bg-[#F0F4F5]';
+        const bgColor = rowIdx % 2 === 0 ? '#ffffff' : '#F0F4F5';
         return `<tr class="${bgClass} hover:bg-[#E8EDEE] transition-colors">\n          ${row.map((cell, cellIdx) => {
             // Check if this is the Priority column
             if (isActionItemsTable && headers[cellIdx]?.toLowerCase().includes('priority')) {
@@ -119,14 +120,14 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
               } else {
                 badge = cell;
               }
-              return `<td style="font-size: ${baseFontSize}px" class="border border-[#768692] px-4 py-3 text-[#212B32]">${badge}</td>`;
+              return `<td style="font-size: ${baseFontSize}px; padding: 12px; border: 1px solid #768692; background-color: ${bgColor}; color: #212B32;" class="border border-[#768692] px-4 py-3 text-[#212B32]">${badge}</td>`;
             }
-            return `<td style="font-size: ${baseFontSize}px" class="border border-[#768692] px-4 py-3 text-[#212B32] leading-relaxed">${cell}</td>`;
+            return `<td style="font-size: ${baseFontSize}px; padding: 12px; border: 1px solid #768692; background-color: ${bgColor}; color: #212B32; line-height: 1.6;" class="border border-[#768692] px-4 py-3 text-[#212B32] leading-relaxed">${cell}</td>`;
           }).join('')}
         </tr>`;
       }).join('');
 
-      return `<div class="overflow-x-auto my-6 shadow-sm rounded-lg">\n        <table class="w-full border-collapse border border-[#768692]">\n          <thead><tr>${headerHtml}</tr></thead>\n          <tbody>${bodyHtml}</tbody>\n        </table>\n      </div>`;
+      return `<div class="overflow-x-auto my-6 shadow-sm rounded-lg">\n        <table class="w-full border-collapse border border-[#768692]" border="1" cellpadding="8" cellspacing="0" style="border: 1px solid #768692; border-collapse: collapse;">\n          <thead><tr>${headerHtml}</tr></thead>\n          <tbody>${bodyHtml}</tbody>\n        </table>\n      </div>`;
     })
 
     // Bold text - handle both ** and remaining single *
