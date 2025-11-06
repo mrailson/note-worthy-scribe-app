@@ -1,28 +1,36 @@
-import { useState, useEffect } from "react";
-import { Button } from "@/components/ui/button";
+import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Edit, Save, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Edit, Save, X, Play, Pause, RefreshCw, Headphones } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
+import { renderMinutesMarkdown } from "@/lib/minutesRenderer";
 
 interface MeetingOverviewEditorProps {
   meetingId: string;
-  currentOverview?: string;
-  onOverviewChange?: (overview: string) => void;
+  currentOverview: string;
+  audioOverviewUrl?: string;
+  audioOverviewDuration?: number;
+  onOverviewChange: (overview: string) => void;
+  onRegenerateAudio?: () => void;
   className?: string;
 }
 
 export const MeetingOverviewEditor = ({ 
   meetingId, 
-  currentOverview = "", 
+  currentOverview,
+  audioOverviewUrl,
+  audioOverviewDuration,
   onOverviewChange,
+  onRegenerateAudio,
   className = ""
 }: MeetingOverviewEditorProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [overview, setOverview] = useState(currentOverview);
   const [saving, setSaving] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Sync local state with prop changes
   useEffect(() => {
@@ -116,87 +124,191 @@ export const MeetingOverviewEditor = ({
     setIsEditing(false);
   };
 
-  if (!isEditing) {
-    return (
-      <div className={`space-y-2 ${className}`}>
-        <div className="flex items-center justify-between">
-          <Label className="text-sm font-medium">Meeting Overview</Label>
-          <div className="flex gap-1">
+  const handlePlayAudio = () => {
+    if (!audioOverviewUrl) return;
+
+    if (!audioRef.current) {
+      audioRef.current = new Audio(audioOverviewUrl);
+      audioRef.current.addEventListener('ended', () => setIsPlaying(false));
+      audioRef.current.addEventListener('error', () => {
+        toast.error('Failed to play audio');
+        setIsPlaying(false);
+      });
+    }
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      audioRef.current.play();
+      setIsPlaying(true);
+    }
+  };
+
+  const handleRegenerateAudio = async () => {
+    if (!onRegenerateAudio) return;
+    
+    setIsGeneratingAudio(true);
+    try {
+      await onRegenerateAudio();
+      // Stop any currently playing audio
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      setIsPlaying(false);
+    } finally {
+      setIsGeneratingAudio(false);
+    }
+  };
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+    };
+  }, []);
+
+  const formatDuration = (seconds?: number) => {
+    if (!seconds) return '0:00';
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  // Main render - split into read-only and edit modes
+  return (
+    <div className={`bg-card border border-border rounded-lg ${className}`}>
+      {!isEditing ? (
+        // READ-ONLY VIEW
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="text-base font-semibold text-foreground flex items-center gap-2">
+              Meeting Overview
+            </h3>
             <Button
+              onClick={() => setIsEditing(true)}
               variant="ghost"
               size="sm"
-              onClick={() => setIsEditing(true)}
-              className="h-8 px-2"
+              className="h-8 px-3"
             >
-              <Edit className="h-3 w-3 mr-1" />
+              <Edit className="h-4 w-4 mr-1" />
               Edit
             </Button>
           </div>
-        </div>
-        <div className="text-sm text-muted-foreground p-3 bg-muted rounded-md min-h-[80px]">
+          
           {overview ? (
             <div 
-              dangerouslySetInnerHTML={{ 
-                __html: renderNHSMarkdown(overview, { enableNHSStyling: true })
-              }}
-              className="prose prose-sm max-w-none 
-                [&>p]:mb-4 [&>p]:leading-relaxed
-                [&>ul]:space-y-2.5 [&>ul]:mt-4 [&>ul]:pl-1
-                [&>ul>li]:leading-relaxed [&>ul>li]:pl-1
-                [&>ul>li::marker]:text-primary [&>ul>li::marker]:text-base
-                [&_br]:block [&_br]:my-2"
+              className="prose prose-sm max-w-none text-muted-foreground"
+              dangerouslySetInnerHTML={{ __html: renderMinutesMarkdown(overview) }}
             />
           ) : (
-            "No overview yet. Click Edit to add one."
+            <p className="text-sm text-muted-foreground italic">
+              No overview available. Click Edit to add one.
+            </p>
+          )}
+
+          {/* Audio Overview Section */}
+          {(audioOverviewUrl || onRegenerateAudio) && (
+            <div className="mt-4 pt-4 border-t border-border">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Headphones className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium text-foreground">
+                    Audio Overview
+                  </span>
+                  {audioOverviewDuration && (
+                    <span className="text-xs text-muted-foreground">
+                      ({formatDuration(audioOverviewDuration)})
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {audioOverviewUrl && (
+                    <Button
+                      onClick={handlePlayAudio}
+                      variant="outline"
+                      size="sm"
+                      className="h-8 px-3"
+                    >
+                      {isPlaying ? (
+                        <>
+                          <Pause className="h-4 w-4 mr-1" />
+                          Pause
+                        </>
+                      ) : (
+                        <>
+                          <Play className="h-4 w-4 mr-1" />
+                          Play
+                        </>
+                      )}
+                    </Button>
+                  )}
+                  {onRegenerateAudio && (
+                    <Button
+                      onClick={handleRegenerateAudio}
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-3"
+                      disabled={isGeneratingAudio}
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
+                      {isGeneratingAudio ? 'Generating...' : audioOverviewUrl ? 'Regenerate' : 'Generate'}
+                    </Button>
+                  )}
+                </div>
+              </div>
+              {!audioOverviewUrl && !isGeneratingAudio && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  Generate a 2-minute spoken overview of this meeting
+                </p>
+              )}
+            </div>
           )}
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className={`space-y-3 ${className}`}>
-      <Label htmlFor="overview" className="text-sm font-medium">
-        Meeting Overview
-      </Label>
-      <Textarea
-        id="overview"
-        value={overview}
-        onChange={(e) => {
-          console.log('📝 Overview changed:', e.target.value.length, 'chars');
-          setOverview(e.target.value);
-        }}
-        placeholder="Brief overview paragraph followed by bullet points (e.g., • Key point 1, • Key point 2)"
-        className="min-h-[80px] resize-y"
-      />
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">
-          {wordCount}/80 words {wordCount > 80 && <span className="text-destructive font-semibold">(too long)</span>}
-        </span>
-        <span className={`px-2 py-1 rounded text-xs font-mono ${isSaveDisabled ? 'bg-destructive/10 text-destructive' : 'bg-green-500/10 text-green-600'}`}>
-          {isSaveDisabled ? '❌ Save disabled' : '✅ Can save'}
-        </span>
-      </div>
-      <div className="flex gap-2">
-        <Button
-          onClick={handleSave}
-          disabled={isSaveDisabled}
-          size="sm"
-          className={isSaveDisabled ? 'opacity-50 cursor-not-allowed' : ''}
-        >
-          <Save className="h-3 w-3 mr-1" />
-          {saving ? "Saving..." : "Save"}
-        </Button>
-        <Button
-          variant="outline"
-          onClick={handleCancel}
-          disabled={saving}
-          size="sm"
-        >
-          <X className="h-3 w-3 mr-1" />
-          Cancel
-        </Button>
-      </div>
+      ) : (
+        // EDIT MODE
+        <div className="p-4">
+          <div className="space-y-3">
+            <h3 className="text-base font-semibold text-foreground">
+              Edit Meeting Overview
+            </h3>
+            <Textarea
+              value={overview}
+              onChange={(e) => setOverview(e.target.value)}
+              placeholder="Brief overview paragraph followed by bullet points (e.g., • Key point 1, • Key point 2)"
+              className="min-h-[120px] resize-y"
+            />
+            <div className="flex items-center justify-between text-xs">
+              <span className="text-muted-foreground">
+                {wordCount}/80 words {wordCount > 80 && <span className="text-destructive font-semibold">(too long)</span>}
+              </span>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                onClick={handleSave}
+                disabled={isSaveDisabled}
+                size="sm"
+              >
+                <Save className="h-3 w-3 mr-1" />
+                {saving ? "Saving..." : "Save"}
+              </Button>
+              <Button
+                variant="outline"
+                onClick={handleCancel}
+                disabled={saving}
+                size="sm"
+              >
+                <X className="h-3 w-3 mr-1" />
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

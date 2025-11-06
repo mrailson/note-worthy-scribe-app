@@ -1246,7 +1246,7 @@ const MeetingHistory = () => {
           right_audio_url,
           recording_created_at,
           notes_generation_status,
-          meeting_overviews(overview)
+          meeting_overviews(overview, audio_overview_url, audio_overview_text, audio_overview_duration)
         `, { count: 'exact' })
         .eq('user_id', user.id)
         .neq('meeting_type', 'gp_consultation')
@@ -1318,7 +1318,10 @@ const MeetingHistory = () => {
         transcript: null,
         document_count: documentCounts[meeting.id] || 0,
         documents: [],
-        overview: meeting.meeting_overviews?.overview || null
+        overview: meeting.meeting_overviews?.overview || null,
+        audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
+        audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
+        audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null
       }));
 
       setMeetings(enrichedMeetings);

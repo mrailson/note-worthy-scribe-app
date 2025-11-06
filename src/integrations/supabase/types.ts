@@ -3447,6 +3447,9 @@ export type Database = {
       }
       meeting_overviews: {
         Row: {
+          audio_overview_duration: number | null
+          audio_overview_text: string | null
+          audio_overview_url: string | null
           created_at: string
           created_by: string | null
           id: string
@@ -3455,6 +3458,9 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          audio_overview_duration?: number | null
+          audio_overview_text?: string | null
+          audio_overview_url?: string | null
           created_at?: string
           created_by?: string | null
           id?: string
@@ -3463,6 +3469,9 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          audio_overview_duration?: number | null
+          audio_overview_text?: string | null
+          audio_overview_url?: string | null
           created_at?: string
           created_by?: string | null
           id?: string

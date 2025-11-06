@@ -203,3 +203,6 @@ verify_jwt = true
 
 [functions.deepgram-tts]
 verify_jwt = false
+
+[functions.generate-audio-overview]
+verify_jwt = true

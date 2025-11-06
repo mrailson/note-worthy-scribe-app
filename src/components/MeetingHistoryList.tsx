@@ -108,6 +108,9 @@ interface Meeting {
   summary_exists?: boolean;
   meeting_summary?: string;
   overview?: string | null;
+  audio_overview_url?: string | null;
+  audio_overview_text?: string | null;
+  audio_overview_duration?: number | null;
   transcript?: string | null;
   audio_backup_path?: string | null;
   audio_backup_created_at?: string | null;
@@ -2348,6 +2351,8 @@ export const MeetingHistoryList = ({
               <MeetingOverviewEditor 
                 meetingId={meeting.id}
                 currentOverview={meeting.overview || ""}
+                audioOverviewUrl={meeting.audio_overview_url || undefined}
+                audioOverviewDuration={meeting.audio_overview_duration || undefined}
                 onOverviewChange={(newOverview) => {
                   // Update local state immediately
                   setLocalMeetings(prev => prev.map(m => 
@@ -2355,6 +2360,19 @@ export const MeetingHistoryList = ({
                   ));
                   // Also refresh from database
                   onRefresh?.();
+                }}
+                onRegenerateAudio={async () => {
+                  toast.info('Generating audio overview...');
+                  const { data, error } = await supabase.functions.invoke('generate-audio-overview', {
+                    body: { meetingId: meeting.id }
+                  });
+                  if (error) {
+                    toast.error('Failed to generate audio overview');
+                    console.error('Audio generation error:', error);
+                  } else {
+                    toast.success('Audio overview generated!');
+                    onRefresh?.();
+                  }
                 }}
                 className="mb-3"
               />

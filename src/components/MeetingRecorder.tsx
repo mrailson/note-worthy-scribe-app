@@ -4003,7 +4003,10 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           right_audio_url,
           recording_created_at,
           meeting_overviews (
-            overview
+            overview,
+            audio_overview_url,
+            audio_overview_text,
+            audio_overview_duration
           )
         `)
         .order('created_at', { ascending: false })
@@ -4062,6 +4065,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         summary_exists: !!summaryExists[meeting.id],
         meeting_summary: null,
         overview: meeting.meeting_overviews?.overview || null,
+        audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
+        audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
+        audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null,
         word_count: null,
         document_count: documentCounts[meeting.id] || 0,
         documents: [],
