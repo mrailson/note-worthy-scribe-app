@@ -25,15 +25,14 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get comprehensive complaint data including practice name
+    // Get comprehensive complaint data (fetch practice separately to avoid FK issues)
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
       .select(`
         *,
         complaint_outcomes (*),
         complaint_involved_parties (staff_name, staff_role, response_text),
-        complaint_notes (note, is_internal),
-        gp_practices (practice_name)
+        complaint_notes (note, is_internal)
       `)
       .eq('id', complaintId)
       .single();
@@ -77,8 +76,20 @@ serve(async (req) => {
         .map((n: any) => n.note.slice(0, 300))
         .join(' ');
 
-      // Extract practice name
-      const practiceName = complaint.gp_practices?.practice_name || 'our practice';
+      // Resolve practice name
+      let practiceName = 'our practice';
+      if (complaint.practice_id) {
+        const { data: practice, error: practiceError } = await supabase
+          .from('gp_practices')
+          .select('practice_name')
+          .eq('id', complaint.practice_id)
+          .maybeSingle();
+        if (practiceError) {
+          console.warn('Practice lookup error:', practiceError);
+        } else if (practice?.practice_name) {
+          practiceName = practice.practice_name;
+        }
+      }
       
       const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a clear, professional 1-2 minute spoken summary for practice partners and management to quickly understand this complaint.
 
