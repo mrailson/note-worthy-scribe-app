@@ -93,8 +93,12 @@ serve(async (req) => {
       throw new Error('Text is required');
     }
 
+    // Prepend a short announcer line to absorb initial audio instability
+    const prefix = 'Notewell AI Meeting Summary:';
+    const withPrefix = (typeof text === 'string' && text.trim().startsWith(prefix)) ? text : `${prefix} ${text}`;
+
     // Preprocess text for better TTS pronunciation
-    const processedText = preprocessTextForTTS(text);
+    const processedText = preprocessTextForTTS(withPrefix);
     console.log('Text preprocessed for TTS, original length:', text.length, 'processed length:', processedText.length);
 
     const elevenlabsApiKey = Deno.env.get('ELEVENLABS_API_KEY');
