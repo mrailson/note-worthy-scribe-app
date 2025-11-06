@@ -306,6 +306,7 @@ export const AudioOverviewPlayer = ({
             </div>
           </div>
 
+          <span className="text-sm text-muted-foreground">Speed:</span>
           <Select value={playbackSpeed.toString()} onValueChange={handleSpeedChange}>
             <SelectTrigger className="h-8 w-16 text-xs">
               <SelectValue />
