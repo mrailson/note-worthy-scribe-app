@@ -10,7 +10,7 @@ interface AudioOverviewPlayerProps {
   audioOverviewUrl?: string;
   audioOverviewText?: string;
   audioOverviewDuration?: number;
-  onRegenerateAudio?: (voiceProvider?: string, voiceId?: string) => void;
+  onRegenerateAudio?: (voiceProvider?: string, voiceId?: string, updatedText?: string) => void;
   className?: string;
 }
 
@@ -32,6 +32,8 @@ export const AudioOverviewPlayer = ({
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [isSeeking, setIsSeeking] = useState(false);
+  const [isEditingTranscript, setIsEditingTranscript] = useState(false);
+  const [editedTranscript, setEditedTranscript] = useState(audioOverviewText || "");
   const { voiceConfig } = useVoicePreference();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioObjectUrlRef = useRef<string | null>(null);
@@ -172,12 +174,12 @@ export const AudioOverviewPlayer = ({
     }
   };
 
-  const handleRegenerateAudio = async () => {
+  const handleRegenerateAudio = async (customText?: string) => {
     if (!onRegenerateAudio) return;
     
     setIsGeneratingAudio(true);
     try {
-      await onRegenerateAudio(voiceConfig.provider, voiceConfig.voiceId);
+      await onRegenerateAudio(voiceConfig.provider, voiceConfig.voiceId, customText);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -192,6 +194,26 @@ export const AudioOverviewPlayer = ({
       setIsGeneratingAudio(false);
     }
   };
+
+  const handleSaveTranscript = async () => {
+    if (editedTranscript.trim() !== audioOverviewText?.trim()) {
+      await handleRegenerateAudio(editedTranscript);
+      toast.success('Transcript saved and audio regenerated');
+    }
+    setIsEditingTranscript(false);
+  };
+
+  const handleCancelEdit = () => {
+    setEditedTranscript(audioOverviewText || "");
+    setIsEditingTranscript(false);
+  };
+
+  // Update edited transcript when prop changes
+  useEffect(() => {
+    if (!isEditingTranscript) {
+      setEditedTranscript(audioOverviewText || "");
+    }
+  }, [audioOverviewText, isEditingTranscript]);
 
   useEffect(() => {
     return () => {
@@ -335,7 +357,7 @@ export const AudioOverviewPlayer = ({
       {onRegenerateAudio && (
         <div className="flex justify-end mt-2">
           <Button
-            onClick={handleRegenerateAudio}
+            onClick={() => handleRegenerateAudio()}
             variant="ghost"
             size="sm"
             className="h-8 px-3"
@@ -354,29 +376,70 @@ export const AudioOverviewPlayer = ({
       
       {audioOverviewText && (
         <div className="mt-3">
-          <Button
-            onClick={() => setShowTranscript(!showTranscript)}
-            variant="ghost"
-            size="sm"
-            className="h-8 px-2 text-xs mb-2"
-          >
-            {showTranscript ? (
-              <>
-                <ChevronUp className="h-3 w-3 mr-1" />
-                Hide Transcript
-              </>
-            ) : (
-              <>
-                <ChevronDown className="h-3 w-3 mr-1" />
-                Show Transcript
-              </>
+          <div className="flex items-center gap-2 mb-2">
+            <Button
+              onClick={() => setShowTranscript(!showTranscript)}
+              variant="ghost"
+              size="sm"
+              className="h-8 px-2 text-xs"
+            >
+              {showTranscript ? (
+                <>
+                  <ChevronUp className="h-3 w-3 mr-1" />
+                  Hide Transcript
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3 mr-1" />
+                  Show Transcript
+                </>
+              )}
+            </Button>
+            {showTranscript && !isEditingTranscript && (
+              <Button
+                onClick={() => setIsEditingTranscript(true)}
+                variant="outline"
+                size="sm"
+                className="h-8 px-2 text-xs"
+              >
+                Edit
+              </Button>
             )}
-          </Button>
+          </div>
           {showTranscript && (
             <div className="p-3 bg-muted/30 rounded-md border border-border/50">
-              <p className="text-sm text-muted-foreground leading-relaxed">
-                {audioOverviewText}
-              </p>
+              {isEditingTranscript ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={editedTranscript}
+                    onChange={(e) => setEditedTranscript(e.target.value)}
+                    className="w-full min-h-[150px] p-2 text-sm bg-background border border-border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary"
+                    placeholder="Enter transcript text..."
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button
+                      onClick={handleCancelEdit}
+                      variant="outline"
+                      size="sm"
+                      className="h-8"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSaveTranscript}
+                      size="sm"
+                      className="h-8"
+                      disabled={isGeneratingAudio || !editedTranscript.trim()}
+                    >
+                      {isGeneratingAudio ? 'Regenerating...' : 'Save & Regenerate'}
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                  {audioOverviewText}
+                </p>
+              )}
             </div>
           )}
         </div>
