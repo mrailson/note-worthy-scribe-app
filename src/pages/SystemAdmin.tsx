@@ -55,6 +55,7 @@ import { SystemMonitoringDashboard } from '@/components/SystemMonitoringDashboar
 import { AdminMeetingControls } from '@/components/AdminMeetingControls';
 import { DCB0129Panel } from '@/components/admin/DCB0129Panel';
 import { ConsultationVisibilitySettings } from '@/components/admin/ConsultationVisibilitySettings';
+import { MeetingStatsByUser } from '@/components/admin/MeetingStatsByUser';
 
 
 interface User {
@@ -1860,6 +1861,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 </CardContent>
               </Card>
             </div>
+
+            {/* Meeting Statistics by User */}
+            <MeetingStatsByUser />
           </TabsContent>
 
           {/* User Management Tab */}
