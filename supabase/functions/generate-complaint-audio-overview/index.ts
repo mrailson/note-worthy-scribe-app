@@ -25,14 +25,15 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get comprehensive complaint data
+    // Get comprehensive complaint data including practice name
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
       .select(`
         *,
         complaint_outcomes (*),
         complaint_involved_parties (staff_name, staff_role, response_text),
-        complaint_notes (note, is_internal)
+        complaint_notes (note, is_internal),
+        practices (practice_name)
       `)
       .eq('id', complaintId)
       .single();
@@ -76,11 +77,15 @@ serve(async (req) => {
         .map((n: any) => n.note.slice(0, 300))
         .join(' ');
 
+      // Extract practice name
+      const practiceName = complaint.practices?.practice_name || 'our practice';
+      
       const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a clear, professional 1-2 minute spoken summary for practice partners and management to quickly understand this complaint.
 
 Guidelines:
-- Start with "I would like to brief you on complaint number [number in words] received on [date]" - extract the numeric portion from the reference and say it naturally (e.g., "twenty seven" not "two five zero zero two seven")
-- DO NOT say "Good morning" or other greetings
+- Start with "I'd like to brief you on our ${practiceName} complaint number [just the number in words] received on [date]" - extract ONLY the numeric portion from the reference and say it naturally (e.g., "twenty seven" not "COMP two five zero zero two seven")
+- DO NOT say "Good morning", "Notewell AI Summary", or any other preambles or greetings
+- DO NOT read out the full reference code like "COMP250027" - only say the number portion in words
 - Write in a clear, conversational executive briefing tone
 - Structure: What happened → Investigation findings → Decision → Key learnings → Management considerations
 - Use plain narrative prose without formatting characters (* = # - bullets etc.)

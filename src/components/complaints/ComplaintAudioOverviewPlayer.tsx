@@ -110,14 +110,11 @@ export const ComplaintAudioOverviewPlayer = ({
 
       // Smooth animation frame-based time updates
       const updateTime = () => {
-        if (audioRef.current && !isSeeking) {
+        if (audioRef.current && !isSeeking && audioRef.current.paused === false) {
           setCurrentTime(audioRef.current.currentTime);
-        }
-        if (isPlaying) {
           animationFrameRef.current = requestAnimationFrame(updateTime);
         }
       };
-      animationFrameRef.current = requestAnimationFrame(updateTime);
 
       // Set up audio element with zero volume initially
       audioRef.current.volume = 0;
@@ -148,6 +145,7 @@ export const ComplaintAudioOverviewPlayer = ({
       console.log('▶️ Playing complaint audio');
       await audioRef.current.play();
       setIsPlaying(true);
+      animationFrameRef.current = requestAnimationFrame(updateTime);
       
       // Fade in volume smoothly
       const fadeInVolume = (audio: HTMLAudioElement, targetVolume: number, durationMs: number) => {
