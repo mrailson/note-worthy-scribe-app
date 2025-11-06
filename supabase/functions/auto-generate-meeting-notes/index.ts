@@ -609,13 +609,37 @@ ${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${attendeeWithOrg.length
 
 `;
 
+    // Generate descriptive meeting title FIRST using the transcript so we can use it in the notes
+    let generatedTitle = meeting.title;
+    try {
+      console.log('🏷️ Generating descriptive meeting title before notes...');
+      const { data: titleResult, error: titleError } = await supabase.functions.invoke(
+        'generate-meeting-title',
+        {
+          body: { 
+            transcript: cleanedTranscript,
+            currentTitle: meeting.title
+          }
+        }
+      );
+
+      if (titleError) {
+        console.warn('⚠️ Title generation failed:', titleError.message);
+      } else if (titleResult?.title) {
+        generatedTitle = titleResult.title;
+        console.log('✅ Generated title:', generatedTitle);
+      }
+    } catch (titleError) {
+      console.warn('⚠️ Title generation error, keeping original title:', titleError.message);
+    }
+
     // Format start time in GMT 24-hour format
     const startTime = meeting.start_time ? new Date(meeting.start_time) : new Date(meeting.created_at);
     const hours = String(startTime.getUTCHours()).padStart(2, '0');
     const minutes = String(startTime.getUTCMinutes()).padStart(2, '0');
     const formattedStartTime = `${hours}:${minutes} GMT`;
 
-    const userPrompt = `Meeting Title: ${meeting.title}
+    const userPrompt = `Meeting Title: ${generatedTitle}
 Meeting Date: ${formattedDate}
 Recording Start Time: ${formattedStartTime}
 Duration: ${meeting.duration_minutes || 'Not specified'} minutes
@@ -783,7 +807,7 @@ ${cleanedTranscript}`;
         'generate-meeting-overview',
         {
           body: { 
-            meetingTitle: meeting.title,
+            meetingTitle: generatedTitle, // Use the generated title
             meetingNotes: generatedNotes
           }
         }
@@ -797,30 +821,6 @@ ${cleanedTranscript}`;
       }
     } catch (overviewError) {
       console.warn('⚠️ AI overview generation error, using extracted overview:', overviewError.message);
-    }
-
-    // Generate descriptive meeting title using the transcript
-    let generatedTitle = meeting.title;
-    try {
-      console.log('🏷️ Generating descriptive meeting title...');
-      const { data: titleResult, error: titleError } = await supabase.functions.invoke(
-        'generate-meeting-title',
-        {
-          body: { 
-            transcript: cleanedTranscript,
-            currentTitle: meeting.title
-          }
-        }
-      );
-
-      if (titleError) {
-        console.warn('⚠️ Title generation failed:', titleError.message);
-      } else if (titleResult?.title) {
-        generatedTitle = titleResult.title;
-        console.log('✅ Generated title:', generatedTitle);
-      }
-    } catch (titleError) {
-      console.warn('⚠️ Title generation error, keeping original title:', titleError.message);
     }
 
     // Update meeting with completion status, word count, AI overview, and generated title
