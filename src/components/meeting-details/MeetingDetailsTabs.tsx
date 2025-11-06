@@ -11,7 +11,7 @@ interface MeetingDetailsTabsProps {
   audioOverviewText?: string;
   audioOverviewDuration?: number;
   onOverviewChange: (overview: string) => void;
-  onRegenerateAudio?: (voiceProvider?: string, voiceId?: string) => void;
+  onRegenerateAudio?: (voiceProvider?: string, voiceId?: string, updatedText?: string) => void;
   onDocumentRemoved?: () => void;
   className?: string;
 }

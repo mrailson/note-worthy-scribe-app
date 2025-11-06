@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { meetingId, voiceProvider = 'deepgram', voiceId } = await req.json();
+    const { meetingId, voiceProvider = 'deepgram', voiceId, overrideText } = await req.json();
     
     if (!meetingId) {
       throw new Error('meetingId is required');
@@ -64,19 +64,26 @@ serve(async (req) => {
 
     const meetingNotes = summaries?.[0]?.summary || '';
     
-    if (!transcript && !meetingNotes) {
-      throw new Error('No transcript or summary available for this meeting');
-    }
+    let narrative: string;
+    
+    // Use overrideText if provided, otherwise generate with AI
+    if (overrideText && overrideText.trim()) {
+      console.log('Using provided override text for audio generation');
+      narrative = overrideText.trim();
+    } else {
+      if (!transcript && !meetingNotes) {
+        throw new Error('No transcript or summary available for this meeting');
+      }
 
-    console.log('Generating informal narrative with Lovable AI...');
+      console.log('Generating informal narrative with Lovable AI...');
 
-    // Generate informal narrative using Lovable AI
-    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableApiKey) {
-      throw new Error('LOVABLE_API_KEY not configured');
-    }
+      // Generate informal narrative using Lovable AI
+      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+      if (!lovableApiKey) {
+        throw new Error('LOVABLE_API_KEY not configured');
+      }
 
-    const systemPrompt = `Create a 2-minute spoken overview of this meeting as if you're briefing a GP partner who couldn't attend.
+      const systemPrompt = `Create a 2-minute spoken overview of this meeting as if you're briefing a GP partner who couldn't attend.
 
 Guidelines:
 - Write in a clear, professional conversational tone
@@ -90,36 +97,37 @@ Guidelines:
 - Be informative and concise, like a colleague catching up another colleague
 - Include specific details about outcomes and next steps when relevant`;
 
-    const userPrompt = `Meeting Title: ${meeting.title}
+      const userPrompt = `Meeting Title: ${meeting.title}
 
 ${meetingNotes ? `Meeting Notes:\n${meetingNotes.slice(0, 3000)}\n\n` : ''}
 ${transcript ? `Meeting Transcript:\n${transcript.slice(0, 4000)}` : ''}
 
 Create an informal 2-minute audio overview of this meeting.`;
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-      }),
-    });
+      const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${lovableApiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'google/gemini-2.5-flash',
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userPrompt }
+          ],
+        }),
+      });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('Lovable AI error:', errorText);
-      throw new Error('Failed to generate narrative');
+      if (!aiResponse.ok) {
+        const errorText = await aiResponse.text();
+        console.error('Lovable AI error:', errorText);
+        throw new Error('Failed to generate narrative');
+      }
+
+      const aiData = await aiResponse.json();
+      narrative = aiData.choices[0].message.content;
     }
-
-    const aiData = await aiResponse.json();
-    const narrative = aiData.choices[0].message.content;
     
     console.log('Generated narrative length:', narrative.length);
 

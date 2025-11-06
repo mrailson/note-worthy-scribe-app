@@ -2412,11 +2412,12 @@ export const MeetingHistoryList = ({
                   ));
                   onRefresh?.();
                 }}
-                onRegenerateAudio={async (voiceProvider?: string, voiceId?: string) => {
+                onRegenerateAudio={async (voiceProvider?: string, voiceId?: string, updatedText?: string) => {
                   toast.info('Generating audio overview...');
                   const body: any = { meetingId: meeting.id };
                   if (voiceProvider) body.voiceProvider = voiceProvider;
                   if (voiceId) body.voiceId = voiceId;
+                  if (updatedText) body.overrideText = updatedText;
                   
                   const { data, error } = await supabase.functions.invoke('generate-audio-overview', {
                     body
