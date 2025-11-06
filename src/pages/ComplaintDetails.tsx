@@ -3939,7 +3939,7 @@ I am committed to ensuring that all patients receive the care and service they d
               </div>
               
               {/* Word count */}
-              <div className="border-t pt-2 mt-2 px-3 pb-2">
+              <div className="border-t pt-1 mt-1 px-3 pb-1">
                 <p className="text-xs text-muted-foreground">
                   Word count: {editedAcknowledgementContent.replace(/<[^>]*>/g, '').trim().split(/\s+/).filter(word => word.length > 0).length}
                 </p>
