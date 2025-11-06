@@ -2197,7 +2197,34 @@ ${transcriptToUse}`;
         // Save to meetings table so it persists when returning to the meeting
         await saveNoteStyleToDatabase(3, sanitised);
         
-        toast.success('Meeting notes regenerated successfully');
+        // Fetch all updated content from auto-generate-meeting-notes (title, overview, styles)
+        const { data: updatedMeeting, error: updateError } = await supabase
+          .from('meetings')
+          .select('title, notes_style_2, notes_style_4')
+          .eq('id', meeting.id)
+          .single();
+        
+        if (updateError) {
+          console.error('❌ Error fetching updated meeting data:', updateError);
+        } else if (updatedMeeting) {
+          // Check if meeting title was updated
+          if (updatedMeeting.title && updatedMeeting.title !== meeting.title) {
+            console.log('📝 Meeting title updated:', updatedMeeting.title);
+            toast.success('Meeting title updated with AI-generated name');
+          }
+          
+          // Update other style notes if they were regenerated
+          if (updatedMeeting.notes_style_2) {
+            setNotesStyle2(updatedMeeting.notes_style_2);
+            console.log('📝 Brief notes updated');
+          }
+          if (updatedMeeting.notes_style_4) {
+            setNotesStyle4(updatedMeeting.notes_style_4);
+            console.log('📝 Executive summary updated');
+          }
+        }
+        
+        toast.success('Notes, overview & gallery regenerated successfully');
       } else {
         console.error('❌ Timeout waiting for notes generation');
         toast.error('Note generation timed out. Please try again.');
@@ -3207,7 +3234,7 @@ ${transcriptToUse}`;
                                           </Button>
                                         </TooltipTrigger>
                                         <TooltipContent>
-                                          <p>Regenerate Meeting Notes</p>
+                                          <p>Regenerate notes, overview & gallery</p>
                                         </TooltipContent>
                                       </Tooltip>
                                     </TooltipProvider>
