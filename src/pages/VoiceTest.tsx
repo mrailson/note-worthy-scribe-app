@@ -110,11 +110,14 @@ export default function VoiceTest() {
     if (audioRef.current) {
       console.log('⏹️ Stopping current audio');
       audioRef.current.pause();
+      audioRef.current.src = ''; // Clear source to stop any loading
+      audioRef.current.load(); // Reset the audio element
       audioRef.current = null;
     }
 
-    // Create new audio element
-    audioRef.current = new Audio(blobUrl);
+    // Create new audio element with a slight delay to avoid race conditions
+    setTimeout(() => {
+      audioRef.current = new Audio(blobUrl);
     
     audioRef.current.addEventListener('loadedmetadata', () => {
       console.log('✅ Audio metadata loaded, duration:', audioRef.current?.duration);
@@ -136,17 +139,18 @@ export default function VoiceTest() {
       setPlayingVoice(null);
     });
 
-    console.log('▶️ Starting playback...');
-    audioRef.current.play()
-      .then(() => {
-        console.log('✅ Playback started successfully');
-        setPlayingVoice(voiceId);
-      })
-      .catch((err) => {
-        console.error('❌ Play promise rejected:', err);
-        toast.error(`Playback failed: ${err.message}`);
-        setPlayingVoice(null);
-      });
+      console.log('▶️ Starting playback...');
+      audioRef.current.play()
+        .then(() => {
+          console.log('✅ Playback started successfully');
+          setPlayingVoice(voiceId);
+        })
+        .catch((err) => {
+          console.error('❌ Play promise rejected:', err);
+          toast.error(`Playback failed: ${err.message}`);
+          setPlayingVoice(null);
+        });
+    }, 50); // Small delay to ensure cleanup completes
   };
 
   const stopAudio = () => {
