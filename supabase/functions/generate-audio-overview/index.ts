@@ -132,22 +132,16 @@ Create an informal 2-minute audio overview of this meeting.`;
       ttsBody.voiceId = voiceId;
     }
     
-    const ttsResponse = await fetch(`${supabaseUrl}/functions/v1/${ttsFunction}`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${supabaseKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(ttsBody),
+    const { data: ttsData, error: ttsError } = await supabase.functions.invoke(ttsFunction, {
+      body: ttsBody,
     });
 
-    if (!ttsResponse.ok) {
-      const ttsError = await ttsResponse.text();
+    if (ttsError) {
       console.error('TTS error:', ttsError);
-      throw new Error('Failed to convert to audio');
+      throw new Error(`Failed to convert to audio: ${ttsError.message}`);
     }
 
-    const { audioContent, wasTruncated, processedLength } = await ttsResponse.json();
+    const { audioContent, wasTruncated, processedLength } = ttsData;
     
     if (wasTruncated) {
       console.log('Audio was truncated from', narrative.length, 'to', processedLength, 'characters');
