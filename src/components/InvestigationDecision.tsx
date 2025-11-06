@@ -64,6 +64,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
   const [savingOutcomeLetter, setSavingOutcomeLetter] = useState(false);
   const scrollAreaRef = React.useRef<HTMLDivElement>(null);
   const [existingOutcome, setExistingOutcome] = useState<any>(null);
+  const [letterStyle, setLetterStyle] = useState<string>('professional');
 
   useEffect(() => {
     fetchInvestigationDecision();
@@ -340,7 +341,7 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
     }
   };
 
-  const generateOutcomeLetter = async () => {
+  const generateOutcomeLetter = async (style?: string) => {
     if (!decision) return;
 
     setGeneratingOutcomeLetter(true);
@@ -349,7 +350,10 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
         body: {
           complaintId,
           outcomeType: decision.decision_type,
-          outcomeSummary: decision.decision_reasoning
+          outcomeSummary: decision.decision_reasoning,
+          questionnaireData: {
+            tone: style || letterStyle
+          }
         }
       });
 
@@ -706,16 +710,59 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
                           {outcomeLetter.length} characters.
                         </p>
                       </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="letter-style">Regenerate with Different Style</Label>
+                        <div className="flex gap-2">
+                          <Select value={letterStyle} onValueChange={setLetterStyle}>
+                            <SelectTrigger className="flex-1">
+                              <SelectValue placeholder="Select letter style" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="professional">Professional & Balanced</SelectItem>
+                              <SelectItem value="empathetic">Warm & Empathetic</SelectItem>
+                              <SelectItem value="apologetic">Apologetic</SelectItem>
+                              <SelectItem value="factual">Strictly Factual</SelectItem>
+                              <SelectItem value="firm">Firm but Fair</SelectItem>
+                              <SelectItem value="strong">Strong & Assertive (Vexatious)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Button 
+                            variant="outline"
+                            onClick={() => generateOutcomeLetter(letterStyle)}
+                            disabled={disabled || generatingOutcomeLetter}
+                          >
+                            {generatingOutcomeLetter ? 'Regenerating...' : 'Regenerate'}
+                          </Button>
+                        </div>
+                      </div>
                     </div>
                   ) : (
-                    <Button 
-                      onClick={generateOutcomeLetter}
-                      disabled={disabled || generatingOutcomeLetter}
-                      className="w-full"
-                    >
-                      <FileText className="h-4 w-4 mr-2" />
-                      {generatingOutcomeLetter ? 'Generating Letter...' : 'Create Outcome Letter'}
-                    </Button>
+                    <div className="space-y-3">
+                      <div>
+                        <Label htmlFor="letter-style-initial">Letter Style</Label>
+                        <Select value={letterStyle} onValueChange={setLetterStyle}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Select letter style" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="professional">Professional & Balanced</SelectItem>
+                            <SelectItem value="empathetic">Warm & Empathetic</SelectItem>
+                            <SelectItem value="apologetic">Apologetic</SelectItem>
+                            <SelectItem value="factual">Strictly Factual</SelectItem>
+                            <SelectItem value="firm">Firm but Fair</SelectItem>
+                            <SelectItem value="strong">Strong & Assertive (Vexatious)</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <Button 
+                        onClick={() => generateOutcomeLetter()}
+                        disabled={disabled || generatingOutcomeLetter}
+                        className="w-full"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        {generatingOutcomeLetter ? 'Generating Letter...' : 'Create Outcome Letter'}
+                      </Button>
+                    </div>
                   )}
                 </div>
 
