@@ -859,31 +859,6 @@ export const ComplaintOutcomeQuestionnaire = ({
         {step === 2 && (
           <div className="space-y-6">
             <div>
-              <Label className="text-sm font-semibold mb-2 block">
-                Letter Tone
-              </Label>
-              <Select value={data.tone} onValueChange={(value: any) => setData({ ...data, tone: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="professional">Professional (Default)</SelectItem>
-                  <SelectItem value="empathetic">Empathetic</SelectItem>
-                  <SelectItem value="apologetic">Apologetic</SelectItem>
-                  <SelectItem value="factual">Factual</SelectItem>
-                  <SelectItem value="strong">Strong (Vexatious)</SelectItem>
-                  <SelectItem value="firm">Firm (Vexatious)</SelectItem>
-                </SelectContent>
-              </Select>
-              {(data.tone === 'strong' || data.tone === 'firm') && (
-                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  This tone will automatically mark the complaint as vexatious
-                </p>
-              )}
-            </div>
-
-            <div>
               <div className="flex items-center justify-between mb-2">
                 <Label className="text-sm font-semibold">
                   Brief Summary of Key Findings * (Max 150 chars)
@@ -1186,6 +1161,31 @@ export const ComplaintOutcomeQuestionnaire = ({
                   <SelectItem value="not_upheld">Complaint Not Upheld</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div>
+              <Label className="text-sm font-semibold mb-2 block">
+                Letter Tone
+              </Label>
+              <Select value={data.tone} onValueChange={(value: any) => setData({ ...data, tone: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="professional">Professional (Default)</SelectItem>
+                  <SelectItem value="empathetic">Empathetic</SelectItem>
+                  <SelectItem value="apologetic">Apologetic</SelectItem>
+                  <SelectItem value="factual">Factual</SelectItem>
+                  <SelectItem value="strong">Strong (Vexatious)</SelectItem>
+                  <SelectItem value="firm">Firm (Vexatious)</SelectItem>
+                </SelectContent>
+              </Select>
+              {(data.tone === 'strong' || data.tone === 'firm') && (
+                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                  <AlertCircle className="h-3 w-3" />
+                  This tone will automatically mark the complaint as vexatious
+                </p>
+              )}
             </div>
 
             {/* Professional Judgement Confirmation */}
