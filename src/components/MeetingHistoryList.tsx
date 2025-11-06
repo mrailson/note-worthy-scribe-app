@@ -525,6 +525,14 @@ export const MeetingHistoryList = ({
     return minutesRecording > 1;
   };
 
+  // Compute word count from available text if not provided by backend
+  const computeWordCount = (m: Meeting) => {
+    const source = [m.transcript, m.meeting_summary, m.overview, m.audio_overview_text]
+      .find((s) => typeof s === 'string' && (s as string).trim().length > 0) as string | undefined;
+    if (!source) return 0;
+    return source.trim().split(/\s+/).filter(w => w.length > 0).length;
+  };
+
   // Function to generate signed URLs for audio files
   const generateSignedUrls = async (meetingId: string, meeting: Meeting) => {
     if (audioUrls[meetingId]) return; // Already generated
@@ -1784,35 +1792,26 @@ export const MeetingHistoryList = ({
                         <span>•</span>
                         <FileText className="h-3 w-3 flex-shrink-0" />
                         <span className="truncate">
-                          {meeting.word_count && meeting.word_count > 0 ? (
-                            <>
-                              {meeting.word_count >= 1000 
-                                ? `${(meeting.word_count / 1000).toFixed(1)}K words`
-                                : `${meeting.word_count} words`}
-                              {meeting.status === 'recording' && (
-                                <span className="text-green-600 font-medium"> (Recording Now)</span>
-                              )}
-                              {isStuckMeeting(meeting) && (
-                                <Badge variant="outline" className="ml-2 text-orange-600 border-orange-400">
-                                  <AlertCircle className="h-3 w-3 mr-1" />
-                                  Recovery in progress
-                                </Badge>
-                              )}
-                            </>
-                          ) : (
-                            <>
-                              N/A words
-                              {meeting.status === 'recording' && (
-                                <span className="text-green-600 font-medium"> (Recording Now)</span>
-                              )}
-                              {isStuckMeeting(meeting) && (
-                                <Badge variant="outline" className="ml-2 text-orange-600 border-orange-400">
-                                  <AlertCircle className="h-3 w-3 mr-1" />
-                                  Recovery in progress
-                                </Badge>
-                              )}
-                            </>
-                          )}
+                          {(() => {
+                            const wc = (meeting.word_count && meeting.word_count > 0)
+                              ? meeting.word_count
+                              : computeWordCount(meeting);
+                            const display = wc >= 1000 ? `${(wc / 1000).toFixed(1)}K words` : `${wc} words`;
+                            return (
+                              <>
+                                {display}
+                                {meeting.status === 'recording' && (
+                                  <span className="text-green-600 font-medium"> (Recording Now)</span>
+                                )}
+                                {isStuckMeeting(meeting) && (
+                                  <Badge variant="outline" className="ml-2 text-orange-600 border-orange-400">
+                                    <AlertCircle className="h-3 w-3 mr-1" />
+                                    Recovery in progress
+                                  </Badge>
+                                )}
+                              </>
+                            );
+                          })()}
                         </span>
                       </>
                       
