@@ -79,6 +79,8 @@ serve(async (req) => {
       const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a clear, professional 1-2 minute spoken summary for practice partners and management to quickly understand this complaint.
 
 Guidelines:
+- Start with "I would like to brief you on complaint number [number in words] received on [date]" - extract the numeric portion from the reference and say it naturally (e.g., "twenty seven" not "two five zero zero two seven")
+- DO NOT say "Good morning" or other greetings
 - Write in a clear, conversational executive briefing tone
 - Structure: What happened → Investigation findings → Decision → Key learnings → Management considerations
 - Use plain narrative prose without formatting characters (* = # - bullets etc.)
