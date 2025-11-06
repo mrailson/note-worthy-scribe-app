@@ -66,26 +66,37 @@ export default function VoiceTest() {
       }
 
       if (!data?.audioContent) {
+        console.error('❌ No audio content in response:', data);
         throw new Error('No audio content returned');
       }
 
+      console.log('✅ Audio received, base64 length:', data.audioContent.length);
+
       // Convert base64 to blob URL
-      const binaryString = atob(data.audioContent);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
+      try {
+        const binaryString = atob(data.audioContent);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'audio/mpeg' });
+        const blobUrl = URL.createObjectURL(blob);
+        
+        console.log('✅ Blob created:', blob.size, 'bytes, type:', blob.type);
+        console.log('✅ Blob URL:', blobUrl);
+
+        // Cache the blob URL
+        setAudioCache(prev => ({ ...prev, [voice.id]: blobUrl }));
+
+        // Play the audio
+        playAudio(voice.id, blobUrl);
+      } catch (conversionError: any) {
+        console.error('❌ Error converting audio:', conversionError);
+        throw new Error(`Audio conversion failed: ${conversionError.message}`);
       }
-      const blob = new Blob([bytes], { type: 'audio/mpeg' });
-      const blobUrl = URL.createObjectURL(blob);
-
-      // Cache the blob URL
-      setAudioCache(prev => ({ ...prev, [voice.id]: blobUrl }));
-
-      // Play the audio
-      playAudio(voice.id, blobUrl);
 
     } catch (error: any) {
-      console.error('Error generating audio:', error);
+      console.error('❌ Error generating audio:', error);
       toast.error(`Failed to generate ${voice.name}: ${error.message}`);
     } finally {
       setLoadingVoice(null);
@@ -93,25 +104,49 @@ export default function VoiceTest() {
   };
 
   const playAudio = (voiceId: string, blobUrl: string) => {
+    console.log('▶️ Attempting to play audio for voice:', voiceId, 'URL:', blobUrl);
+    
     // Stop current audio if playing
     if (audioRef.current) {
+      console.log('⏹️ Stopping current audio');
       audioRef.current.pause();
       audioRef.current = null;
     }
 
     // Create new audio element
     audioRef.current = new Audio(blobUrl);
+    
+    audioRef.current.addEventListener('loadedmetadata', () => {
+      console.log('✅ Audio metadata loaded, duration:', audioRef.current?.duration);
+    });
+    
+    audioRef.current.addEventListener('canplay', () => {
+      console.log('✅ Audio can play');
+    });
+    
     audioRef.current.addEventListener('ended', () => {
+      console.log('✅ Audio playback ended');
       setPlayingVoice(null);
     });
+    
     audioRef.current.addEventListener('error', (e) => {
-      console.error('Audio playback error:', e);
-      toast.error('Failed to play audio');
+      console.error('❌ Audio playback error:', e);
+      console.error('❌ Audio error details:', audioRef.current?.error);
+      toast.error(`Failed to play ${voiceId}: ${audioRef.current?.error?.message || 'Unknown error'}`);
       setPlayingVoice(null);
     });
 
-    audioRef.current.play();
-    setPlayingVoice(voiceId);
+    console.log('▶️ Starting playback...');
+    audioRef.current.play()
+      .then(() => {
+        console.log('✅ Playback started successfully');
+        setPlayingVoice(voiceId);
+      })
+      .catch((err) => {
+        console.error('❌ Play promise rejected:', err);
+        toast.error(`Playback failed: ${err.message}`);
+        setPlayingVoice(null);
+      });
   };
 
   const stopAudio = () => {
