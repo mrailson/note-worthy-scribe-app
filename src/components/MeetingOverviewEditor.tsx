@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { renderMinutesMarkdown } from "@/lib/minutesRenderer";
+import { useVoicePreference } from '@/hooks/useVoicePreference';
 
 interface MeetingOverviewEditorProps {
   meetingId: string;
@@ -38,9 +39,7 @@ export const MeetingOverviewEditor = ({
     return saved ? parseFloat(saved) : 1.25;
   });
   const [showTranscript, setShowTranscript] = useState(false);
-  const [selectedVoice, setSelectedVoice] = useState<string>(() => {
-    return localStorage.getItem('audioVoiceSelection') || 'deepgram-arcas';
-  });
+  const { voiceConfig } = useVoicePreference();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioObjectUrlRef = useRef<string | null>(null);
   const sourceUrlRef = useRef<string | null>(null);
@@ -203,9 +202,8 @@ export const MeetingOverviewEditor = ({
     
     setIsGeneratingAudio(true);
     try {
-      // Parse voice selection to get provider and voiceId
-      const [provider, voiceId] = selectedVoice.split('-');
-      await onRegenerateAudio(provider, voiceId);
+      // Use voice preference from settings
+      await onRegenerateAudio(voiceConfig.provider, voiceConfig.voiceId);
       // Stop any currently playing audio
       if (audioRef.current) {
         audioRef.current.pause();
@@ -221,11 +219,6 @@ export const MeetingOverviewEditor = ({
     } finally {
       setIsGeneratingAudio(false);
     }
-  };
-
-  const handleVoiceChange = (voice: string) => {
-    setSelectedVoice(voice);
-    localStorage.setItem('audioVoiceSelection', voice);
   };
 
   // Cleanup audio on unmount
@@ -332,24 +325,6 @@ export const MeetingOverviewEditor = ({
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {onRegenerateAudio && (
-                    <Select value={selectedVoice} onValueChange={handleVoiceChange}>
-                      <SelectTrigger className="h-8 w-48 text-xs">
-                        <SelectValue placeholder="Select voice" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="deepgram-arcas">Deepgram - British Male (Arcas)</SelectItem>
-                        <SelectItem value="deepgram-orion">Deepgram - British Male (Orion)</SelectItem>
-                        <SelectItem value="deepgram-luna">Deepgram - British Female (Luna)</SelectItem>
-                        <SelectItem value="deepgram-stella">Deepgram - British Female (Stella)</SelectItem>
-                        <SelectItem value="elevenlabs-JBFqnCBsd6RMkjVDRZzb">ElevenLabs - George (British Male)</SelectItem>
-                        <SelectItem value="elevenlabs-XB0fDUnXU5powFXDhCwa">ElevenLabs - Charlotte (British Female)</SelectItem>
-                        <SelectItem value="elevenlabs-Xb7hH8MSUJpSbSDYk0k2">ElevenLabs - Alice (British Female)</SelectItem>
-                        <SelectItem value="elevenlabs-N2lVS1w4EtoT3dr4eOWO">ElevenLabs - Callum (British Male)</SelectItem>
-                        <SelectItem value="elevenlabs-IKne3meq5aSn9XLyUdCD">ElevenLabs - Charlie (British Male)</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  )}
                   {audioOverviewUrl && (
                     <>
                       <Select value={playbackSpeed.toString()} onValueChange={handleSpeedChange}>
