@@ -417,7 +417,7 @@ export function EmailMeetingMinutesModal({
           
           // Handle section headers (ALL CAPS lines)
           if (line.length > 0 && line === line.toUpperCase() && line.length < 100 && !line.match(/^\d/)) {
-            html += `<h2 style="color: #1a1a1a; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${line}</h2>\n`;
+            html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${line}</h2>\n`;
             i++;
             continue;
           }
@@ -441,7 +441,7 @@ export function EmailMeetingMinutesModal({
             const itemText = line.replace(/^\d+\.\s*/, '');
             const numberMatch = line.match(/^(\d+)\.\s/);
             const number = numberMatch ? numberMatch[1] : '';
-            html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;"><strong>${number}. ${itemText}</strong></p>\n`;
+            html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #2563EB; font-size: 14px;"><strong>${number}. ${itemText}</strong></p>\n`;
             i++;
             continue;
           }
