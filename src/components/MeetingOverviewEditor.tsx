@@ -36,7 +36,7 @@ export const MeetingOverviewEditor = ({
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [playbackSpeed, setPlaybackSpeed] = useState<number>(() => {
     const saved = localStorage.getItem('audioPlaybackSpeed');
-    return saved ? parseFloat(saved) : 1.25;
+    return saved ? parseFloat(saved) : 1;
   });
   const [showTranscript, setShowTranscript] = useState(false);
   const { voiceConfig } = useVoicePreference();
