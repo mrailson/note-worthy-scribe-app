@@ -33,7 +33,10 @@ export const MeetingOverviewEditor = ({
   const [saving, setSaving] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [playbackSpeed, setPlaybackSpeed] = useState<number>(1);
+  const [playbackSpeed, setPlaybackSpeed] = useState<number>(() => {
+    const saved = localStorage.getItem('audioPlaybackSpeed');
+    return saved ? parseFloat(saved) : 1.25;
+  });
   const [showTranscript, setShowTranscript] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioObjectUrlRef = useRef<string | null>(null);
@@ -258,6 +261,7 @@ export const MeetingOverviewEditor = ({
   const handleSpeedChange = (speed: string) => {
     const speedValue = parseFloat(speed);
     setPlaybackSpeed(speedValue);
+    localStorage.setItem('audioPlaybackSpeed', speed);
     if (audioRef.current) {
       audioRef.current.playbackRate = speedValue;
     }
