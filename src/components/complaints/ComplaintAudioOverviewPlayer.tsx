@@ -40,6 +40,7 @@ export const ComplaintAudioOverviewPlayer = ({
   const audioObjectUrlRef = useRef<string | null>(null);
   const sourceUrlRef = useRef<string | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const [isBuffering, setIsBuffering] = useState(false);
 
   const handlePlayAudio = async () => {
     if (!audioOverviewUrl) {
@@ -56,32 +57,11 @@ export const ComplaintAudioOverviewPlayer = ({
         return;
       }
 
-      if (sourceUrlRef.current !== audioOverviewUrl || !audioObjectUrlRef.current) {
-        console.log('⬇️ Downloading audio to blob URL due to CSP');
-         const res = await fetch(audioOverviewUrl, { cache: 'no-store' });
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        const blob = await res.blob();
-        if (!blob.type.startsWith('audio/')) {
-          console.warn('Unexpected MIME type:', blob.type);
-        }
-        if (audioObjectUrlRef.current) {
-          URL.revokeObjectURL(audioObjectUrlRef.current);
-        }
-        audioObjectUrlRef.current = URL.createObjectURL(blob);
-        sourceUrlRef.current = audioOverviewUrl;
-        console.log('✅ Blob URL ready');
-      }
-
-      if (audioRef.current) {
-        audioRef.current.pause();
-        audioRef.current.removeEventListener('ended', () => {});
-        audioRef.current.removeEventListener('error', () => {});
-        audioRef.current = null;
-      }
-
-      audioRef.current = new Audio();
-      audioRef.current.preload = 'auto';
-      audioRef.current.playbackRate = playbackSpeed;
+      // Audio should already be preloaded, just play it
+      if (audioRef.current && audioRef.current.readyState >= 3) {
+        console.log('▶️ Playing preloaded audio');
+        audioRef.current.currentTime = 0;
+        audioRef.current.playbackRate = playbackSpeed;
       
       audioRef.current.addEventListener('ended', () => {
         console.log('✅ Audio playback ended');
@@ -108,60 +88,19 @@ export const ComplaintAudioOverviewPlayer = ({
         }
       });
 
-      // Smooth animation frame-based time updates
-      const updateTime = () => {
-        if (audioRef.current && !isSeeking && audioRef.current.paused === false) {
-          setCurrentTime(audioRef.current.currentTime);
-          animationFrameRef.current = requestAnimationFrame(updateTime);
-        }
-      };
-
-      // Set up audio element with zero volume initially
-      audioRef.current.volume = 0;
-
-      await new Promise<void>((resolve, reject) => {
-        const onCanPlayThrough = () => {
-          audioRef.current?.removeEventListener('canplaythrough', onCanPlayThrough);
-          audioRef.current?.removeEventListener('error', onError);
-          resolve();
-        };
-        
-        const onError = (e: Event) => {
-          audioRef.current?.removeEventListener('canplaythrough', onCanPlayThrough);
-          audioRef.current?.removeEventListener('error', onError);
-          reject(new Error('Failed to load audio'));
-        };
-
-        audioRef.current?.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
-        audioRef.current?.addEventListener('error', onError, { once: true });
-        
-        if (audioRef.current) {
-          audioRef.current.src = audioObjectUrlRef.current!;
-          audioRef.current.load();
-        }
-      });
-
-      // Start playback at zero volume
-      console.log('▶️ Playing complaint audio');
-      await audioRef.current.play();
-      setIsPlaying(true);
-      animationFrameRef.current = requestAnimationFrame(updateTime);
-      
-      // Fade in volume smoothly
-      const fadeInVolume = (audio: HTMLAudioElement, targetVolume: number, durationMs: number) => {
-        const startVolume = 0;
-        const startTime = Date.now();
-        const fadeInterval = setInterval(() => {
-          const elapsed = Date.now() - startTime;
-          if (elapsed >= durationMs) {
-            audio.volume = targetVolume;
-            clearInterval(fadeInterval);
-          } else {
-            audio.volume = startVolume + (targetVolume - startVolume) * (elapsed / durationMs);
+        const updateTime = () => {
+          if (audioRef.current && !isSeeking && audioRef.current.paused === false) {
+            setCurrentTime(audioRef.current.currentTime);
+            animationFrameRef.current = requestAnimationFrame(updateTime);
           }
-        }, 20);
-      };
-      fadeInVolume(audioRef.current, 1, 400);
+        };
+        
+        await audioRef.current.play();
+        setIsPlaying(true);
+        animationFrameRef.current = requestAnimationFrame(updateTime);
+      } else {
+        toast.error('Audio is still loading, please wait...');
+      }
     } catch (error: any) {
       console.error('❌ Play error:', error);
       toast.error(`Playback error: ${error.message}`);
@@ -202,6 +141,81 @@ export const ComplaintAudioOverviewPlayer = ({
     setEditedTranscript(audioOverviewText || "");
     setIsEditingTranscript(false);
   };
+
+  // Preload audio in the background when URL changes
+  useEffect(() => {
+    const preloadAudio = async () => {
+      if (!audioOverviewUrl) return;
+      
+      try {
+        setIsBuffering(true);
+        console.log('🔄 Preloading audio in background...');
+        
+        // Download and create blob URL if needed
+        if (sourceUrlRef.current !== audioOverviewUrl || !audioObjectUrlRef.current) {
+          const res = await fetch(audioOverviewUrl, { cache: 'no-store' });
+          if (!res.ok) throw new Error(`HTTP ${res.status}`);
+          const blob = await res.blob();
+          
+          if (audioObjectUrlRef.current) {
+            URL.revokeObjectURL(audioObjectUrlRef.current);
+          }
+          audioObjectUrlRef.current = URL.createObjectURL(blob);
+          sourceUrlRef.current = audioOverviewUrl;
+        }
+
+        // Clean up existing audio
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.removeEventListener('ended', () => {});
+          audioRef.current.removeEventListener('error', () => {});
+          audioRef.current = null;
+        }
+
+        // Create and preload new audio
+        audioRef.current = new Audio();
+        audioRef.current.preload = 'auto';
+        audioRef.current.playbackRate = playbackSpeed;
+        audioRef.current.src = audioObjectUrlRef.current;
+        
+        audioRef.current.addEventListener('ended', () => {
+          setIsPlaying(false);
+          setCurrentTime(0);
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+        });
+        
+        audioRef.current.addEventListener('error', (e) => {
+          console.error('❌ Audio preload error:', e);
+          setIsBuffering(false);
+        });
+
+        audioRef.current.addEventListener('loadedmetadata', () => {
+          if (audioRef.current) {
+            setDuration(audioRef.current.duration);
+          }
+        });
+
+        // Wait for audio to be buffered
+        await new Promise<void>((resolve) => {
+          const onCanPlayThrough = () => {
+            console.log('✅ Audio preloaded and ready');
+            setIsBuffering(false);
+            resolve();
+          };
+          audioRef.current?.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
+        });
+
+        audioRef.current.load();
+      } catch (error) {
+        console.error('❌ Preload error:', error);
+        setIsBuffering(false);
+      }
+    };
+
+    preloadAudio();
+  }, [audioOverviewUrl, playbackSpeed]);
 
   // Update edited transcript when prop changes
   useEffect(() => {
@@ -291,8 +305,11 @@ export const ComplaintAudioOverviewPlayer = ({
             variant="ghost"
             size="sm"
             className="h-9 w-9 p-0 shrink-0"
+            disabled={isBuffering}
           >
-            {isPlaying ? (
+            {isBuffering ? (
+              <RefreshCw className="h-4 w-4 animate-spin" />
+            ) : isPlaying ? (
               <Pause className="h-4 w-4" />
             ) : (
               <Play className="h-4 w-4" />
