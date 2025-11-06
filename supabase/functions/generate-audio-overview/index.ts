@@ -179,21 +179,45 @@ Create an informal 2-minute audio overview of this meeting.`;
 
     // Save to database
     console.log('Saving audio overview metadata to database...');
-    
-    const { error: updateError } = await supabase
-      .from('meeting_overviews')
-      .upsert({
-        meeting_id: meetingId,
-        audio_overview_url: audioUrl,
-        audio_overview_text: narrative,
-        audio_overview_duration: estimatedDuration,
-        updated_at: new Date().toISOString(),
-      }, {
-        onConflict: 'meeting_id'
-      });
 
-    if (updateError) {
-      console.error('Database update error:', updateError);
+    // Check if overview record exists to avoid NOT NULL constraint issues on overview
+    const { data: existingOverview } = await supabase
+      .from('meeting_overviews')
+      .select('id')
+      .eq('meeting_id', meetingId)
+      .maybeSingle();
+
+    let dbError = null as any;
+
+    if (existingOverview?.id) {
+      const { error } = await supabase
+        .from('meeting_overviews')
+        .update({
+          audio_overview_url: audioUrl,
+          audio_overview_text: narrative,
+          audio_overview_duration: estimatedDuration,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('meeting_id', meetingId);
+      dbError = error;
+    } else {
+      const fallbackOverview = (meetingNotes || transcript)?.slice(0, 600) || '';
+      const { error } = await supabase
+        .from('meeting_overviews')
+        .insert({
+          meeting_id: meetingId,
+          overview: fallbackOverview, // required NOT NULL
+          audio_overview_url: audioUrl,
+          audio_overview_text: narrative,
+          audio_overview_duration: estimatedDuration,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      dbError = error;
+    }
+
+    if (dbError) {
+      console.error('Database update error:', dbError);
       throw new Error('Failed to save audio overview metadata');
     }
 
