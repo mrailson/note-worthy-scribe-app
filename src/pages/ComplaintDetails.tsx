@@ -3684,7 +3684,7 @@ I am committed to ensuring that all patients receive the care and service they d
 
       {/* Acknowledgement Letter Modal */}
       <Dialog open={showAcknowledgementModal} onOpenChange={(open) => !open && handleCloseAcknowledgementModal()}>
-        <DialogContent className={`p-0 flex flex-col overflow-hidden ${isFullscreen ? 'max-w-[98vw] w-[98vw] h-[95vh]' : 'max-w-5xl w-[85vw] h-[80vh]'}`}>
+        <DialogContent className={`p-0 flex flex-col overflow-hidden ${isFullscreen ? 'max-w-[98vw] w-[98vw] h-[98vh]' : 'max-w-5xl w-[85vw] h-[88vh]'}`}>
           <div className="flex flex-col h-full overflow-hidden">
             <DialogHeader className="flex-shrink-0 p-4 pr-14 border-b">
               <div className="flex items-start justify-between gap-4">
