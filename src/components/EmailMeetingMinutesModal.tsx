@@ -9,9 +9,7 @@ import { Mail, Send, Loader2 } from "lucide-react";
 import { useUserProfile } from "@/hooks/useUserProfile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { generateWordDocument } from "@/utils/documentGenerators";
 import { format } from "date-fns";
-import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle, ShadingType, Packer } from "docx";
 
 interface MeetingAttendee {
   id: string;
@@ -237,10 +235,73 @@ export function EmailMeetingMinutesModal({
 
     setIsSending(true);
     try {
-      // Generate Word document attachment
+      // Generate NHS-styled Word document attachment (same as Standard Minutes tab)
       let wordAttachment = null;
       try {
-        const blob = await generateWordDocument(meetingNotes, meetingTitle, false);
+        const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
+        const { parseContentToDocxElements, stripTranscriptSection } = await import('@/utils/generateMeetingNotesDocx');
+        const { buildNHSStyles, buildNumbering, NHS_COLORS, FONTS } = await import('@/utils/wordTheme');
+        
+        // Strip transcript sections
+        const cleanedContent = stripTranscriptSection(meetingNotes);
+        
+        // Clean the title
+        const cleanTitle = meetingTitle.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+        
+        // Build document children
+        const children: any[] = [];
+        
+        // Title
+        children.push(
+          new Paragraph({
+            children: [new TextRun({
+              text: cleanTitle,
+              bold: true,
+              size: FONTS.size.title,
+              color: NHS_COLORS.headingBlue,
+              font: FONTS.default,
+            })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 240 },
+          })
+        );
+        
+        // Parse and add content
+        const contentElements = await parseContentToDocxElements(cleanedContent);
+        children.push(...contentElements);
+        
+        // Footer
+        const now = new Date();
+        const dateStr = now.toLocaleDateString('en-GB');
+        const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+        
+        children.push(
+          new Paragraph({
+            children: [new TextRun({
+              text: `Generated on ${dateStr} ${timeStr}`,
+              italics: true,
+              size: FONTS.size.footer,
+              color: NHS_COLORS.textLightGrey,
+              font: FONTS.default,
+            })],
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 480 },
+          })
+        );
+        
+        // Create document with NHS theme
+        const styles = buildNHSStyles();
+        const numbering = buildNumbering();
+        
+        const doc = new Document({
+          styles: styles,
+          numbering: numbering,
+          sections: [{
+            children,
+          }],
+        });
+        
+        const blob = await Packer.toBlob(doc);
         const reader = new FileReader();
         const base64Promise = new Promise<string>((resolve) => {
           reader.onloadend = () => {
@@ -261,26 +322,53 @@ export function EmailMeetingMinutesModal({
         // Continue without attachment
       }
 
+      // Strip duplicate meeting details blocks from notes
+      const stripDuplicateBlocks = (text: string): string => {
+        if (!text) return text;
+        
+        let cleaned = text;
+        
+        // Remove standalone "MEETING NOTES" headings (with/without markdown)
+        cleaned = cleaned.replace(/^#*\s*MEETING\s*NOTES\s*$/gim, '');
+        
+        // Remove standalone "MEETING DETAILS" headings (with/without markdown)
+        cleaned = cleaned.replace(/^#{0,2}\s*MEETING\s*DETAILS\s*$/gim, '');
+        
+        // Remove "Meeting Title:" lines (with optional bullets and markdown bold)
+        cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Meeting\s*Title:\*?\*?.*$/gim, '');
+        
+        // Remove "Date:" lines
+        cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Date:\*?\*?.*$/gim, '');
+        
+        // Remove "Time:" lines
+        cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Time:\*?\*?.*$/gim, '');
+        
+        // Remove "Location:" lines
+        cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Location:\*?\*?.*$/gim, '');
+        
+        // Clean up excessive blank lines
+        cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+        
+        return cleaned;
+      };
+
       // Helper function to convert markdown and format to HTML with proper structure
       const convertToStyledHTML = (text: string): string => {
+        // First strip duplicate blocks
+        const cleanedText = stripDuplicateBlocks(text);
         // Strip bold markers
-        let cleanedText = text.replace(/\*\*/g, '');
-        
-        // Remove any MEETING DETAILS sections from the notes (we add this separately at the top)
-        cleanedText = cleanedText
-          .replace(/(?:^|\n)MEETING DETAILS[\s\S]*?(?=(\n[A-Z][A-Z\s]{2,}(?:\n|$))|$)/g, '\n')
-          .trim();
+        let processedText = cleanedText.replace(/\*\*/g, '');
         
         // Remove transcript sections
-        const transcriptIndex = cleanedText.indexOf('MEETING TRANSCRIPT FOR REFERENCE:');
+        const transcriptIndex = processedText.indexOf('MEETING TRANSCRIPT FOR REFERENCE:');
         if (transcriptIndex !== -1) {
-          cleanedText = cleanedText.substring(0, transcriptIndex).trim();
+          processedText = processedText.substring(0, transcriptIndex).trim();
         }
-        cleanedText = cleanedText.replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '');
-        cleanedText = cleanedText.replace(/\n*Transcript:[\s\S]*$/i, '');
-        cleanedText = cleanedText.replace(/\n*Full Transcript:[\s\S]*$/i, '');
+        processedText = processedText.replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '');
+        processedText = processedText.replace(/\n*Transcript:[\s\S]*$/i, '');
+        processedText = processedText.replace(/\n*Full Transcript:[\s\S]*$/i, '');
         
-        const lines = cleanedText.split('\n');
+        const lines = processedText.split('\n');
         let html = '';
         let i = 0;
         
@@ -390,18 +478,10 @@ export function EmailMeetingMinutesModal({
         return;
       }
 
-      // Build meeting details section
-      const meetingDetailsHTML = `
-        <h2 style="color: #1a1a1a; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">MEETING DETAILS</h2>
-        <p style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;"><strong>Meeting Title:</strong> ${meetingTitle}</p>
-        ${meetingDate ? `<p style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;"><strong>Date:</strong> ${meetingDate}</p>` : ''}
-        ${meetingDateTime ? `<p style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;"><strong>Time:</strong> ${meetingDateTime.split(' at ')[1]}</p>` : ''}
-      `;
-
       const emailData = {
         to_email: uniqueRecipients.join(', '),
         subject: subject.trim(),
-        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;"><div style="margin-bottom: 20px;"><p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">${emailBody.replace(/\n/g, '<br>')}</p></div><div style="border-top: 3px solid #0066cc; padding-top: 20px;"><h1 style="color: #0066cc; font-size: 18px; font-weight: bold; margin: 0 0 16px 0; font-family: Arial, sans-serif;">MEETING NOTES</h1>${meetingDetailsHTML}<div style="margin-top: 16px;">${formattedNotes}</div></div></div>`,
+        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;"><div style="margin-bottom: 20px;"><p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">${emailBody.replace(/\n/g, '<br>')}</p></div><hr style="border: none; border-top: 3px solid #0066cc; margin: 20px 0;" /><div style="margin-top: 20px;">${formattedNotes}</div></div>`,
         template_type: 'meeting_minutes',
         from_name: 'GP Tools - Meeting Minutes',
         reply_to: 'noreply@gp-tools.nhs.uk',

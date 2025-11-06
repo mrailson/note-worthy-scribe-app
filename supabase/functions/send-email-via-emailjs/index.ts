@@ -448,7 +448,14 @@ const handler = async (req: Request): Promise<Response> => {
       
       templateParams.message = cleanMessage;
       
-      console.log("Cleaned message snippet:", cleanMessage.substring(0, 200));
+      console.log("ai_generated_content cleaned snippet:", cleanMessage.substring(0, 200));
+    }
+    
+    // Clean meeting_minutes emails too
+    if (emailData.template_type === 'meeting_minutes' && templateParams.message) {
+      const cleanedMessage = stripDuplicateBlocks(String(templateParams.message));
+      templateParams.message = cleanedMessage;
+      console.log("meeting_minutes cleaned snippet:", cleanedMessage.substring(0, 200));
     }
     
     // Universal cleanup: remove markdown heading hashes from any message (plain text or HTML)
