@@ -354,7 +354,7 @@ export const AudioOverviewPlayer = ({
         </div>
       )}
 
-      {onRegenerateAudio && (
+      {onRegenerateAudio && !audioOverviewUrl && (
         <div className="flex justify-end mt-2">
           <Button
             onClick={() => handleRegenerateAudio()}
@@ -364,7 +364,7 @@ export const AudioOverviewPlayer = ({
             disabled={isGeneratingAudio}
           >
             <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
-            {isGeneratingAudio ? 'Generating...' : audioOverviewUrl ? 'Regenerate' : 'Generate'}
+            {isGeneratingAudio ? 'Generating...' : 'Generate'}
           </Button>
         </div>
       )}
