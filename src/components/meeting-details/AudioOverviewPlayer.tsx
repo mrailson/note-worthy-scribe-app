@@ -29,6 +29,8 @@ export const AudioOverviewPlayer = ({
     return saved ? parseFloat(saved) : 1;
   });
   const [showTranscript, setShowTranscript] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
   const { voiceConfig } = useVoicePreference();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioObjectUrlRef = useRef<string | null>(null);
@@ -79,6 +81,7 @@ export const AudioOverviewPlayer = ({
       audioRef.current.addEventListener('ended', () => {
         console.log('✅ Audio playback ended');
         setIsPlaying(false);
+        setCurrentTime(0);
         // Resume microphones after playback completes
         import('@/utils/AudioFocusManager').then(({ audioFocusManager }) => {
           audioFocusManager.resumeAll();
@@ -94,6 +97,18 @@ export const AudioOverviewPlayer = ({
         import('@/utils/AudioFocusManager').then(({ audioFocusManager }) => {
           audioFocusManager.resumeAll();
         });
+      });
+
+      audioRef.current.addEventListener('timeupdate', () => {
+        if (audioRef.current) {
+          setCurrentTime(audioRef.current.currentTime);
+        }
+      });
+
+      audioRef.current.addEventListener('loadedmetadata', () => {
+        if (audioRef.current) {
+          setDuration(audioRef.current.duration);
+        }
       });
 
       // AUDIO CUTOUT FIX: Pause microphones, play silent pre-roll, then start audio
@@ -216,78 +231,95 @@ export const AudioOverviewPlayer = ({
   const formatDuration = (seconds?: number) => {
     if (!seconds) return '0:00';
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const handleSeek = (value: number[]) => {
+    const newTime = value[0];
+    setCurrentTime(newTime);
+    if (audioRef.current) {
+      audioRef.current.currentTime = newTime;
+    }
+  };
+
+  const totalDuration = duration || audioOverviewDuration || 0;
+
   return (
     <div className={className}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="flex items-center gap-2">
-          {audioOverviewDuration && (
-            <span className="text-sm text-muted-foreground">
-              Duration: {formatDuration(audioOverviewDuration)}
-            </span>
-          )}
-        </div>
-        <div className="flex items-center gap-2">
-          {audioOverviewUrl && (
-            <>
-              <Select value={playbackSpeed.toString()} onValueChange={handleSpeedChange}>
-                <SelectTrigger className="h-8 w-20 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0.75">0.75×</SelectItem>
-                  <SelectItem value="1">1×</SelectItem>
-                  <SelectItem value="1.25">1.25×</SelectItem>
-                  <SelectItem value="1.5">1.5×</SelectItem>
-                  <SelectItem value="1.75">1.75×</SelectItem>
-                  <SelectItem value="2">2×</SelectItem>
-                </SelectContent>
-              </Select>
-              <Button
-                onClick={handlePlayAudio}
-                variant="outline"
-                size="sm"
-                className="h-8 px-3"
-              >
-                {isPlaying ? (
-                  <>
-                    <Pause className="h-4 w-4 mr-1" />
-                    Pause
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 mr-1" />
-                    Play
-                  </>
-                )}
-              </Button>
-              <Button
-                onClick={handleDownloadAudio}
-                variant="outline"
-                size="sm"
-                className="h-8 px-3"
-              >
-                <Download className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-          {onRegenerateAudio && (
+      <div className="flex items-center justify-end gap-2 mb-3">
+        {audioOverviewUrl && (
+          <>
+            <Select value={playbackSpeed.toString()} onValueChange={handleSpeedChange}>
+              <SelectTrigger className="h-8 w-20 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0.75">0.75×</SelectItem>
+                <SelectItem value="1">1×</SelectItem>
+                <SelectItem value="1.25">1.25×</SelectItem>
+                <SelectItem value="1.5">1.5×</SelectItem>
+                <SelectItem value="1.75">1.75×</SelectItem>
+                <SelectItem value="2">2×</SelectItem>
+              </SelectContent>
+            </Select>
             <Button
-              onClick={handleRegenerateAudio}
-              variant="ghost"
+              onClick={handleDownloadAudio}
+              variant="outline"
               size="sm"
               className="h-8 px-3"
-              disabled={isGeneratingAudio}
             >
-              <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
-              {isGeneratingAudio ? 'Generating...' : audioOverviewUrl ? 'Regenerate' : 'Generate'}
+              <Download className="h-4 w-4" />
             </Button>
-          )}
-        </div>
+          </>
+        )}
+        {onRegenerateAudio && (
+          <Button
+            onClick={handleRegenerateAudio}
+            variant="ghost"
+            size="sm"
+            className="h-8 px-3"
+            disabled={isGeneratingAudio}
+          >
+            <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
+            {isGeneratingAudio ? 'Generating...' : audioOverviewUrl ? 'Regenerate' : 'Generate'}
+          </Button>
+        )}
       </div>
+
+      {audioOverviewUrl && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handlePlayAudio}
+              variant="ghost"
+              size="sm"
+              className="h-10 w-10 p-0 shrink-0"
+            >
+              {isPlaying ? (
+                <Pause className="h-5 w-5" />
+              ) : (
+                <Play className="h-5 w-5" />
+              )}
+            </Button>
+            
+            <div className="flex-1 space-y-1">
+              <input
+                type="range"
+                min="0"
+                max={totalDuration}
+                value={currentTime}
+                onChange={(e) => handleSeek([parseFloat(e.target.value)])}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-primary [&::-moz-range-thumb]:w-3 [&::-moz-range-thumb]:h-3 [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:bg-primary [&::-moz-range-thumb]:border-0"
+              />
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>{formatDuration(currentTime)}</span>
+                <span>{formatDuration(totalDuration)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       {!audioOverviewUrl && !isGeneratingAudio && (
         <p className="text-sm text-muted-foreground">
           Generate a 2-minute spoken overview of this meeting
