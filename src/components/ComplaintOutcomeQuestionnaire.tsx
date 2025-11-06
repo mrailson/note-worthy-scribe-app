@@ -69,7 +69,7 @@ export const ComplaintOutcomeQuestionnaire = ({
     return saved !== null ? JSON.parse(saved) : true;
   });
   const [data, setData] = useState<QuestionnaireData>({
-    investigation_complete: false,
+    investigation_complete: true,
     outcome_type: undefined,
     tone: 'professional',
     key_findings: '',
@@ -705,23 +705,6 @@ export const ComplaintOutcomeQuestionnaire = ({
               </TabsList>
 
               <TabsContent value="investigation" className="space-y-4 mt-4">
-                <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-                  <h3 className="font-semibold text-blue-900 mb-3">Confirm Investigation Complete</h3>
-                  
-                  <div className="flex items-start space-x-2">
-                    <Checkbox
-                      id="investigation_complete"
-                      checked={data.investigation_complete}
-                      onCheckedChange={(checked) =>
-                        setData({ ...data, investigation_complete: checked as boolean })
-                      }
-                    />
-                    <Label htmlFor="investigation_complete" className="text-sm font-normal cursor-pointer">
-                      Investigation has been completed and all parties have been consulted *
-                    </Label>
-                  </div>
-                </div>
-
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded text-sm">
                   <p className="text-blue-900">
                     <strong>Note:</strong> The outcome will be determined at the end after AI analysis of all investigation details.
@@ -840,15 +823,6 @@ export const ComplaintOutcomeQuestionnaire = ({
                       Items marked with auto-confirmation have been verified based on complaint data.
                     </p>
                   </div>
-                  
-                  {!data.investigation_complete && (
-                    <div className="p-3 bg-blue-50 border border-blue-300 rounded text-sm">
-                      <p className="text-blue-900">
-                        <strong>Reminder:</strong> Before proceeding to the next step, please switch to the "Investigation Validation" tab 
-                        and complete the required fields (investigation checkbox and outcome type).
-                      </p>
-                    </div>
-                  )}
                 </div>
               </TabsContent>
             </Tabs>
