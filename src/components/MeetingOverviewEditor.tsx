@@ -33,6 +33,8 @@ export const MeetingOverviewEditor = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioObjectUrlRef = useRef<string | null>(null);
+  const sourceUrlRef = useRef<string | null>(null);
 
   // Sync local state with prop changes
   useEffect(() => {
@@ -126,41 +128,63 @@ export const MeetingOverviewEditor = ({
     setIsEditing(false);
   };
 
-  const handlePlayAudio = () => {
+  const handlePlayAudio = async () => {
     if (!audioOverviewUrl) {
       console.log('❌ No audio URL available');
       toast.error('No audio URL available');
       return;
     }
 
-    console.log('🎵 Attempting to play audio:', audioOverviewUrl);
+    try {
+      // Prepare blob URL to bypass CSP (media-src 'self' blob:)
+      if (sourceUrlRef.current !== audioOverviewUrl || !audioObjectUrlRef.current) {
+        console.log('⬇️ Downloading audio to blob URL due to CSP');
+        const res = await fetch(audioOverviewUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (!blob.type.startsWith('audio/')) {
+          console.warn('Unexpected MIME type:', blob.type);
+        }
+        if (audioObjectUrlRef.current) {
+          URL.revokeObjectURL(audioObjectUrlRef.current);
+        }
+        audioObjectUrlRef.current = URL.createObjectURL(blob);
+        sourceUrlRef.current = audioOverviewUrl;
+        console.log('✅ Blob URL ready');
+      }
 
-    if (!audioRef.current) {
-      audioRef.current = new Audio(audioOverviewUrl);
-      audioRef.current.addEventListener('ended', () => {
-        console.log('✅ Audio playback ended');
-        setIsPlaying(false);
-      });
-      audioRef.current.addEventListener('error', (e) => {
-        console.error('❌ Audio playback error:', e);
-        console.error('Audio URL:', audioOverviewUrl);
-        toast.error('Failed to play audio - check console for details');
-        setIsPlaying(false);
-      });
-    }
+      if (!audioRef.current) {
+        audioRef.current = new Audio(audioObjectUrlRef.current!);
+        audioRef.current.addEventListener('ended', () => {
+          console.log('✅ Audio playback ended');
+          setIsPlaying(false);
+        });
+        audioRef.current.addEventListener('error', (e) => {
+          console.error('❌ Audio playback error:', e);
+          console.error('Audio URL (blob):', audioObjectUrlRef.current);
+          toast.error('Failed to play audio - check console for details');
+          setIsPlaying(false);
+        });
+      } else {
+        // If player exists but source changed, reload
+        if (audioObjectUrlRef.current && audioRef.current.src !== audioObjectUrlRef.current) {
+          audioRef.current.src = audioObjectUrlRef.current;
+        }
+      }
 
-    if (isPlaying) {
-      console.log('⏸️ Pausing audio');
-      audioRef.current.pause();
+      if (isPlaying) {
+        console.log('⏸️ Pausing audio');
+        audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        console.log('▶️ Playing audio');
+        await audioRef.current.play();
+        setIsPlaying(true);
+      }
+    } catch (error: any) {
+      console.error('❌ Play error:', error);
+      toast.error(`Playback error: ${error.message}`);
       setIsPlaying(false);
-    } else {
-      console.log('▶️ Playing audio');
-      audioRef.current.play().catch(error => {
-        console.error('❌ Play error:', error);
-        toast.error(`Playback error: ${error.message}`);
-        setIsPlaying(false);
-      });
-      setIsPlaying(true);
     }
   };
 
@@ -175,6 +199,12 @@ export const MeetingOverviewEditor = ({
         audioRef.current.pause();
         audioRef.current = null;
       }
+      // Revoke previous blob URL so next play fetches fresh audio
+      if (audioObjectUrlRef.current) {
+        URL.revokeObjectURL(audioObjectUrlRef.current);
+        audioObjectUrlRef.current = null;
+      }
+      sourceUrlRef.current = null;
       setIsPlaying(false);
     } finally {
       setIsGeneratingAudio(false);
@@ -188,6 +218,11 @@ export const MeetingOverviewEditor = ({
         audioRef.current.pause();
         audioRef.current = null;
       }
+      if (audioObjectUrlRef.current) {
+        URL.revokeObjectURL(audioObjectUrlRef.current);
+        audioObjectUrlRef.current = null;
+      }
+      sourceUrlRef.current = null;
     };
   }, []);
 
