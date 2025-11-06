@@ -32,7 +32,7 @@ serve(async (req) => {
         *,
         complaint_outcomes (*),
         complaint_involved_parties (staff_name, staff_role, response_text),
-        complaint_notes (note_text, is_internal)
+        complaint_notes (note, is_internal)
       `)
       .eq('id', complaintId)
       .single();
@@ -73,7 +73,7 @@ serve(async (req) => {
       // Gather internal notes
       const internalNotes = (complaint.complaint_notes || [])
         .filter((n: any) => n.is_internal)
-        .map((n: any) => n.note_text.slice(0, 300))
+        .map((n: any) => n.note.slice(0, 300))
         .join(' ');
 
       const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a clear, professional 1-2 minute spoken summary for practice partners and management to quickly understand this complaint.
