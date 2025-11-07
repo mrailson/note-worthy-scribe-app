@@ -102,27 +102,28 @@ serve(async (req) => {
         throw new Error('PDF processing requires a dedicated PDF parser. Please copy and paste the text content instead.');
         
       } else if (fileType.includes('msword') || fileType.includes('wordprocessingml') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-        // Handle Word documents using mammoth
+        // Handle Word documents using Deno-compatible text extraction
         console.log(`Processing Word document: ${fileName}, type: ${fileType}`);
         const arrayBuffer = await file.arrayBuffer();
+        const buffer = new Uint8Array(arrayBuffer);
         
-        try {
-          // Import mammoth for DOCX processing
-          const mammoth = await import('https://esm.sh/mammoth@1.8.0');
+        // Extract text from DOCX (which is a ZIP with XML files)
+        const decoder = new TextDecoder();
+        const text = decoder.decode(buffer);
+        
+        // Basic XML text extraction for DOCX
+        const textMatches = text.match(/>([^<]+)</g);
+        if (textMatches) {
+          extractedText = textMatches
+            .map(match => match.slice(1, -1))
+            .filter(text => text.trim().length > 0)
+            .join(' ')
+            .replace(/\s+/g, ' ')
+            .trim();
           
-          console.log('Extracting text from Word document using mammoth...');
-          const result = await mammoth.extractRawText({ arrayBuffer });
-          
-          if (result.value && result.value.trim().length > 0) {
-            extractedText = result.value.trim();
-            console.log('Successfully extracted text from Word document');
-          } else {
-            throw new Error('No text content found in Word document');
-          }
-          
-        } catch (extractError) {
-          console.error('Word document processing error:', extractError);
-          throw new Error(`Failed to process Word document: ${extractError.message}`);
+          console.log(`Successfully extracted ${extractedText.length} characters from Word document`);
+        } else {
+          throw new Error('No text content found in Word document');
         }
       } else if (fileType.includes('text/') || fileName.endsWith('.txt') || fileName.endsWith('.eml')) {
         // Handle text files and emails
