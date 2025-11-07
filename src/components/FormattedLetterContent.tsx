@@ -231,7 +231,7 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
                     trimmedLine.toLowerCase().includes('yours faithfully') ||
                     trimmedLine.toLowerCase().includes('kind regards')) {
                   return (
-                    <p key={index} className="text-gray-800 mb-4">
+                    <p key={index} className="text-gray-800 mb-8">
                       {formatTextWithBold(trimmedLine)}
                     </p>
                   );
