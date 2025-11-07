@@ -975,8 +975,15 @@ export const ComplaintOutcomeQuestionnaire = ({
                       AI Suggested Outcome & Analysis
                     </Label>
                     {aiAnalysisComplete && !isAnalyzing && (
-                      <span title="AI analysis complete" className="inline-flex">
+                      <span title="AI analysis complete" className="inline-flex items-center gap-1">
                         <CheckCircle className="h-4 w-4 text-green-600 ml-1" />
+                        {aiSuggestedOutcome && (
+                          <span className="inline-flex items-center justify-center w-5 h-5 text-xs font-bold text-slate-700 bg-slate-200 rounded-full border border-slate-300">
+                            {aiSuggestedOutcome === 'upheld' ? 'U' : 
+                             aiSuggestedOutcome === 'partially_upheld' ? 'P' : 
+                             'N'}
+                          </span>
+                        )}
                       </span>
                     )}
                   </div>
