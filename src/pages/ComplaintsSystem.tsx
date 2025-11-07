@@ -3458,18 +3458,18 @@ const ComplaintsSystem = () => {
 
           {/* Success Modal */}
          <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-           <DialogContent className="sm:max-w-md">
-             <DialogHeader>
-               <DialogTitle className="flex items-center gap-2">
-                 <CheckCircle className="h-5 w-5 text-green-600" />
+           <DialogContent className="sm:max-w-md p-8">
+             <DialogHeader className="space-y-4">
+               <DialogTitle className="flex items-center gap-2 text-xl">
+                 <CheckCircle className="h-6 w-6 text-green-600" />
                  New Complaint Created
                </DialogTitle>
-               <DialogDescription>
+               <DialogDescription className="text-base px-2">
                  Your complaint has been successfully submitted and assigned reference number:
                </DialogDescription>
              </DialogHeader>
-             <div className="flex flex-col items-center space-y-4 py-4">
-               <div className="text-2xl font-bold text-primary">
+             <div className="flex flex-col items-center space-y-6 py-6 px-4">
+               <div className="text-3xl font-bold text-primary tracking-wide">
                  {newComplaintRef}
                </div>
                <Button 
@@ -3477,7 +3477,8 @@ const ComplaintsSystem = () => {
                    setShowSuccessModal(false);
                    setCurrentTab("dashboard");
                  }}
-                 className="w-full"
+                 className="w-full mt-2"
+                 size="lg"
                >
                  Go to Dashboard
                </Button>
