@@ -42,12 +42,31 @@ serve(async (req) => {
       throw new Error('Unable to load complaint details');
     }
 
-    // Check if complaint is closed and has outcome
-    if (complaint.status !== 'closed' || !complaint.complaint_outcomes || complaint.complaint_outcomes.length === 0) {
-      throw new Error('Complaint must be closed with an outcome to generate audio overview');
+    // Check if complaint has outcome
+    if (!complaint.complaint_outcomes || complaint.complaint_outcomes.length === 0) {
+      throw new Error('Complaint must have an outcome to generate audio overview');
     }
 
     const outcome = complaint.complaint_outcomes[0];
+    
+    // Auto-close complaint if it has an outcome but isn't closed
+    if (complaint.status !== 'closed') {
+      console.log('Auto-closing complaint with outcome...');
+      const { error: closeError } = await supabase
+        .from('complaints')
+        .update({ 
+          status: 'closed',
+          closed_at: new Date().toISOString()
+        })
+        .eq('id', complaintId);
+      
+      if (closeError) {
+        console.warn('Failed to auto-close complaint:', closeError);
+        // Continue anyway - outcome exists
+      } else {
+        console.log('Complaint auto-closed successfully');
+      }
+    }
     
     let narrative: string;
     
