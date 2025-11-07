@@ -944,9 +944,14 @@ export const ComplaintOutcomeQuestionnaire = ({
             {enableAiAnalysis && (
               <>
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Sparkles className="h-5 w-5 text-blue-600" />
-                    <h3 className="font-semibold text-blue-900">AI Outcome Analysis</h3>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="h-5 w-5 text-blue-600" />
+                      <h3 className="font-semibold text-blue-900">AI Outcome Analysis</h3>
+                    </div>
+                    <Button size="sm" variant="secondary" onClick={analyzeComplaintOutcome} disabled={isAnalyzing} className="ml-2">
+                      {isAnalyzing ? 'Generating…' : 'Regenerate'}
+                    </Button>
                   </div>
 
                   {isAnalyzing ? (
