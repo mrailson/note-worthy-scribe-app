@@ -243,7 +243,7 @@ const ComplaintDetails = () => {
         setOutcomeLetterSentAt(outcomeData.sent_at);
         
         // Fetch the questionnaire data used to generate this outcome
-        const { data: questionnaireData } = await supabase
+        const { data: questionnaireData, error: questionnaireError } = await supabase
           .from('complaint_outcome_questionnaires')
           .select('*')
           .eq('complaint_id', complaintId)
@@ -251,13 +251,30 @@ const ComplaintDetails = () => {
           .limit(1)
           .maybeSingle();
         
+        if (questionnaireError) {
+          console.error('Error fetching questionnaire data:', questionnaireError);
+        }
+        
         if (questionnaireData) {
           // Fetch the user profile for the person who created the questionnaire
-          const { data: profileData } = await supabase
-            .from('profiles')
-            .select('full_name')
-            .eq('user_id', questionnaireData.created_by)
-            .single();
+          let createdByName = 'Unknown User';
+          try {
+            const { data: profileData, error: profileError } = await supabase
+              .from('profiles')
+              .select('full_name')
+              .eq('user_id', questionnaireData.created_by)
+              .maybeSingle();
+            
+            if (profileError) {
+              console.error('Error fetching profile for questionnaire creator:', profileError);
+            }
+            
+            if (profileData?.full_name) {
+              createdByName = profileData.full_name;
+            }
+          } catch (error) {
+            console.error('Failed to fetch profile:', error);
+          }
           
           const questionnaireContent = typeof questionnaireData.questionnaire_data === 'object' 
             ? questionnaireData.questionnaire_data as Record<string, any>
@@ -265,14 +282,22 @@ const ComplaintDetails = () => {
           
           setOutcomeQuestionnaireData({
             ...questionnaireContent,
-            created_by_name: profileData?.full_name || 'Unknown User',
+            created_by_name: createdByName,
             created_at: questionnaireData.created_at
+          });
+          
+          console.log('✅ Loaded questionnaire data for outcome:', {
+            complaintId,
+            hasData: !!questionnaireContent,
+            createdBy: createdByName
           });
           
           // Load AI analysis if it exists in the questionnaire data
           if (questionnaireContent.ai_analysis && typeof questionnaireContent.ai_analysis === 'string') {
             setAiAnalysis(questionnaireContent.ai_analysis);
           }
+        } else {
+          console.warn('⚠️ No questionnaire data found for complaint:', complaintId);
         }
         
         // If there's outcome data but no investigation method set yet, 
