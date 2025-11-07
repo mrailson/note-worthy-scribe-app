@@ -92,6 +92,11 @@ const renderBodyLines = (bodyLines: string[]): string => {
   bodyLines.forEach((line) => {
     const trimmedLine = line.trim();
     
+    // Skip standalone reference number lines
+    if (/^Reference Number:\s*COMP\d+$/i.test(trimmedLine)) {
+      return;
+    }
+    
     // Handle "Dear" line with enhanced styling
     if (trimmedLine.toLowerCase().startsWith('dear ')) {
       html += `<p style="margin: 0 0 28px 0; font-size: 17px; font-weight: 600; color: #111827; line-height: 1.5;">${formatTextWithBold(trimmedLine)}</p>`;
