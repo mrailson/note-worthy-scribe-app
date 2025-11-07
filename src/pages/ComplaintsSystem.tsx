@@ -70,7 +70,7 @@ import {
   Copy
 } from "lucide-react";
 import { format } from "date-fns";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
 import { createLetterDocument } from "@/utils/letterFormatter";
@@ -287,7 +287,7 @@ const ComplaintsSystem = () => {
           setIsEditingLetter(false);
           setShowLetterModal(true);
         } else {
-          toast.error('No acknowledgement letter found for this complaint');
+          showToast.error('No acknowledgement letter found for this complaint', { section: 'complaints' });
         }
       } else {
         const { data: outcomes, error } = await supabase
@@ -314,12 +314,12 @@ const ComplaintsSystem = () => {
           });
         } else {
           console.log('No outcome found, showing error toast');
-          toast.error('No outcome letter found for this complaint');
+          showToast.error('No outcome letter found for this complaint', { section: 'complaints' });
         }
       }
     } catch (error) {
       console.error('Error fetching letter:', error);
-      toast.error('Failed to load letter');
+      showToast.error('Failed to load letter', { section: 'complaints' });
     }
   };
 
@@ -510,7 +510,7 @@ const ComplaintsSystem = () => {
       setComplaints(mappedComplaints);
     } catch (error) {
       console.error('Error fetching complaints:', error);
-      toast.error("Failed to fetch complaints");
+      showToast.error("Failed to fetch complaints", { section: 'complaints' });
     } finally {
       setLoading(false);
     }
@@ -522,7 +522,7 @@ const ComplaintsSystem = () => {
 
     // Validation: require consent only when submitting on behalf of someone else
     if (formData.complaint_on_behalf && !formData.consent_given) {
-      toast.error("Consent is required when submitting on behalf of someone else.");
+      showToast.error("Consent is required when submitting on behalf of someone else.", { section: 'complaints' });
       document.getElementById('consent_given')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
@@ -624,7 +624,7 @@ const ComplaintsSystem = () => {
       }
     } catch (error) {
       console.error('Error submitting complaint:', error);
-      toast.error("Failed to submit complaint");
+      showToast.error("Failed to submit complaint", { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -653,7 +653,7 @@ const ComplaintsSystem = () => {
       complaint_on_behalf: importedData.complaint_on_behalf ?? prev.complaint_on_behalf,
     }));
     setShowImportModal(false);
-    toast.success("Complaint data imported successfully!");
+    showToast.success("Complaint data imported successfully!", { section: 'complaints' });
   };
 
   const handleGenerateAcknowledgement = async (complaintId: string) => {
@@ -670,12 +670,12 @@ const ComplaintsSystem = () => {
         setAcknowledgementLetter(data.acknowledgementLetter);
       }
 
-      toast.success('Acknowledgement letter generated successfully');
+      showToast.success('Acknowledgement letter generated successfully', { section: 'complaints' });
       fetchComplaints(); // Refresh to show updated status
       loadLettersStatus(); // Refresh letters status
     } catch (error) {
       console.error('Error generating acknowledgement:', error);
-      toast.error('Failed to generate acknowledgement letter');
+      showToast.error('Failed to generate acknowledgement letter', { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -684,7 +684,7 @@ const ComplaintsSystem = () => {
 
   const handleSendStaffNotifications = async (complaintId: string) => {
     if (involvedParties.length === 0) {
-      toast.error('Please add at least one staff member to notify');
+      showToast.error('Please add at least one staff member to notify', { section: 'complaints' });
       return;
     }
 
@@ -699,12 +699,12 @@ const ComplaintsSystem = () => {
 
       if (error) throw error;
 
-      toast.success('Notifications sent to staff members');
+      showToast.success('Notifications sent to staff members', { section: 'complaints' });
       setInvolvedParties([]);
       fetchComplaints();
     } catch (error) {
       console.error('Error sending notifications:', error);
-      toast.error('Failed to send staff notifications');
+      showToast.error('Failed to send staff notifications', { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -712,7 +712,7 @@ const ComplaintsSystem = () => {
 
   const handleGenerateOutcomeLetter = async (complaintId: string) => {
     if (!outcomeType || !outcomeSummary) {
-      toast.error('Please select outcome type and provide summary');
+      showToast.error('Please select outcome type and provide summary', { section: 'complaints' });
       return;
     }
 
@@ -766,11 +766,11 @@ const ComplaintsSystem = () => {
 
       setOutcomeLetter(letterData.outcomeLetter);
       setShowOutcomeLetter(true);
-      toast.success('Outcome letter generated and complaint closed');
+      showToast.success('Outcome letter generated and complaint closed', { section: 'complaints' });
       fetchComplaints();
     } catch (error) {
       console.error('Error generating outcome letter:', error);
-      toast.error('Failed to generate outcome letter');
+      showToast.error('Failed to generate outcome letter', { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -792,11 +792,11 @@ const ComplaintsSystem = () => {
 
       if (error) throw error;
 
-      toast.success('Outcome letter saved successfully');
+      showToast.success('Outcome letter saved successfully', { section: 'complaints' });
       setEditingOutcome(false);
     } catch (error) {
       console.error('Error saving outcome letter:', error);
-      toast.error('Failed to save outcome letter');
+      showToast.error('Failed to save outcome letter', { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -880,7 +880,7 @@ const ComplaintsSystem = () => {
       setComplianceAuditLogs(complianceLogs || []);
     } catch (error) {
       console.error('Error fetching audit logs:', error);
-      toast.error('Failed to fetch audit logs');
+      showToast.error('Failed to fetch audit logs', { section: 'complaints' });
     } finally {
       setAuditLoading(false);
     }
@@ -892,7 +892,7 @@ const ComplaintsSystem = () => {
       const logs = filteredAuditLogs;
       
       if (logs.length === 0) {
-        toast.error('No audit logs to export');
+        showToast.error('No audit logs to export', { section: 'complaints' });
         return;
       }
 
@@ -943,10 +943,10 @@ const ComplaintsSystem = () => {
       a.click();
       URL.revokeObjectURL(url);
       
-      toast.success('Audit log exported to Word successfully');
+      showToast.success('Audit log exported to Word successfully', { section: 'complaints' });
     } catch (error) {
       console.error('Error exporting audit log:', error);
-      toast.error('Failed to export audit log');
+      showToast.error('Failed to export audit log', { section: 'complaints' });
     }
   };
 
@@ -1004,7 +1004,7 @@ const ComplaintsSystem = () => {
 
   const addInvolvedParty = () => {
     if (!newParty.staffName || !newParty.staffEmail) {
-      toast.error('Please provide staff name and email');
+      showToast.error('Please provide staff name and email', { section: 'complaints' });
       return;
     }
 
@@ -1114,10 +1114,10 @@ const ComplaintsSystem = () => {
         await fetchAuditLogs(selectedComplaint.id);
       }
       
-      toast.success('Compliance check updated');
+      showToast.success('Compliance check updated', { section: 'complaints' });
     } catch (error) {
       console.error('Error updating compliance check:', error);
-      toast.error('Failed to update compliance check');
+      showToast.error('Failed to update compliance check', { section: 'complaints' });
     }
   };
 
@@ -1131,10 +1131,10 @@ const ComplaintsSystem = () => {
       if (error) throw error;
 
       setAiAnalysis(data.analysis);
-      toast.success('AI analysis completed');
+      showToast.success('AI analysis completed', { section: 'complaints' });
     } catch (error) {
       console.error('Error analyzing outcome:', error);
-      toast.error('Failed to analyze complaint outcome');
+      showToast.error('Failed to analyze complaint outcome', { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -1185,12 +1185,12 @@ const ComplaintsSystem = () => {
       // Remove from local state
       setComplaints(prev => prev.filter(c => c.id !== complaintId));
       
-      toast.success(`Complaint ${complaintToDelete.reference_number} has been permanently deleted`);
+      showToast.success(`Complaint ${complaintToDelete.reference_number} has been permanently deleted`, { section: 'complaints' });
       setShowDeleteConfirm(false);
       setComplaintToDelete(null);
     } catch (error) {
       console.error('Error deleting complaint:', error);
-      toast.error('Failed to delete complaint. Please try again.');
+      showToast.error('Failed to delete complaint. Please try again.', { section: 'complaints' });
     } finally {
       setDeleting(false);
     }
@@ -2762,10 +2762,10 @@ const ComplaintsSystem = () => {
                                     a.download = `acknowledgement-letter-${selectedComplaint.reference_number}.docx`;
                                     a.click();
                                     URL.revokeObjectURL(url);
-                                    toast.success('Letter downloaded successfully');
+                                    showToast.success('Letter downloaded successfully', { section: 'complaints' });
                                   } catch (error) {
                                     console.error('Error downloading letter:', error);
-                                    toast.error('Failed to download letter');
+                                    showToast.error('Failed to download letter', { section: 'complaints' });
                                   }
                                 }}
                               >
@@ -3076,10 +3076,10 @@ const ComplaintsSystem = () => {
                                     a.download = `outcome-letter-${selectedComplaint.reference_number}.docx`;
                                     a.click();
                                     URL.revokeObjectURL(url);
-                                    toast.success('Letter downloaded successfully');
+                                    showToast.success('Letter downloaded successfully', { section: 'complaints' });
                                   } catch (error) {
                                     console.error('Error downloading letter:', error);
-                                    toast.error('Failed to download letter');
+                                    showToast.error('Failed to download letter', { section: 'complaints' });
                                   }
                                 }}
                               >
@@ -3520,7 +3520,7 @@ const ComplaintsSystem = () => {
                           onClick={() => {
                             setModalLetterContent(editedLetterContent);
                             setIsEditingLetter(false);
-                            toast.success('Letter updated successfully');
+                            showToast.success('Letter updated successfully', { section: 'complaints' });
                           }}
                         >
                           <Save className="h-4 w-4 mr-2" />
@@ -3554,7 +3554,7 @@ const ComplaintsSystem = () => {
                       variant="outline"
                       onClick={() => {
                         navigator.clipboard.writeText(isEditingLetter ? editedLetterContent : modalLetterContent);
-                        toast.success('Letter copied to clipboard');
+                        showToast.success('Letter copied to clipboard', { section: 'complaints' });
                       }}
                     >
                       <Copy className="h-4 w-4 mr-2" />
@@ -3578,10 +3578,10 @@ const ComplaintsSystem = () => {
                           a.download = `${letterType}-letter-${viewingLetterComplaint.reference_number}.docx`;
                           a.click();
                           URL.revokeObjectURL(url);
-                          toast.success('Letter downloaded successfully');
+                          showToast.success('Letter downloaded successfully', { section: 'complaints' });
                         } catch (error) {
                           console.error('Error generating DOCX:', error);
-                          toast.error('Failed to generate document');
+                          showToast.error('Failed to generate document', { section: 'complaints' });
                         }
                       }}
                     >
