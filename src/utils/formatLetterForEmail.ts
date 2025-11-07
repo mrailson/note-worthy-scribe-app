@@ -133,23 +133,7 @@ export const formatLetterForEmail = (letterContent: string, logoUrl?: string | n
     `;
   }
   
-  // Private & Confidential with enhanced styling
-  html += `
-    <div style="text-align: center; margin-bottom: 32px; padding: 12px; background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%); border-radius: 8px; border: 2px solid #dc2626;">
-      <p style="margin: 0; font-size: 13px; font-weight: 700; color: #991b1b; text-transform: uppercase; letter-spacing: 0.1em;">
-        🔒 Private & Confidential
-      </p>
-    </div>
-  `;
   
-  // Addressee section with better formatting
-  if (sections.addresseeSection.length > 0) {
-    html += `<div style="margin-bottom: 28px; padding-left: 8px; border-left: 3px solid #3b82f6;">`;
-    sections.addresseeSection.forEach(line => {
-      html += `<p style="margin: 2px 0; color: #1f2937; font-size: 14px; line-height: 1.3;">${formatTextWithBold(line)}</p>`;
-    });
-    html += `</div>`;
-  }
   
   // Body
   if (sections.bodyLines.length > 0) {
