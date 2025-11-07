@@ -4211,6 +4211,7 @@ I am committed to ensuring that all patients receive the care and service they d
             reference_number: complaint.reference_number,
             complaint_description: complaint.complaint_description,
             category: complaint.category,
+            patient_name: complaint.patient_name,
           }}
           onSuccess={() => {
             fetchComplaintDetails();

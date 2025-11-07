@@ -44,6 +44,7 @@ interface ComplaintOutcomeQuestionnaireProps {
     reference_number: string;
     complaint_description: string;
     category: string;
+    patient_name?: string;
     created_at?: string;
     acknowledged_at?: string;
   };
@@ -86,7 +87,7 @@ export const ComplaintOutcomeQuestionnaire = ({
     additional_context: string;
   } | null>(null);
   const [isDemoLoading, setIsDemoLoading] = useState(false);
-  const [demoSource, setDemoSource] = useState<'direct' | 'fallback' | null>(null);
+  const [demoSource, setDemoSource] = useState<'direct' | 'category-based' | null>(null);
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
@@ -181,51 +182,57 @@ export const ComplaintOutcomeQuestionnaire = ({
           return;
         }
         
-        // Step 2: No direct match - try category fallback
-        if (complaintData.category) {
-          console.log('🔄 No direct match, trying category fallback for:', complaintData.category);
+        // Step 2: No direct match - check if this is a demo complaint by patient name
+        const isDemoComplaint = complaintData.patient_name && 
+          complaintData.patient_name.toLowerCase().includes('james robert williams');
+        
+        if (isDemoComplaint && complaintData.category) {
+          console.log('🎭 Demo complaint detected: James Robert Williams');
+          console.log('📊 Loading demo response for category:', complaintData.category);
           
-          // Find a complaint in the same category that has demo data
-          const { data: fallbackComplaint, error: fallbackError } = await supabase
-            .from('complaints')
-            .select('reference_number')
-            .eq('category', complaintData.category as any)
-            .in('reference_number', [
-              'COMP250001', 'COMP250002', 'COMP250003', 'COMP250004', 'COMP250005',
-              'COMP250006', 'COMP250007', 'COMP250008', 'COMP250009', 'COMP250010',
-              'COMP250011', 'COMP250012', 'COMP250013', 'COMP250014', 'COMP250015',
-              'COMP250016', 'COMP250017', 'COMP250018', 'COMP250019', 'COMP250020'
-            ])
-            .limit(1)
-            .maybeSingle();
+          // Fetch all demo responses
+          const { data: allDemoResponses, error: demoError } = await supabase
+            .from('complaint_demo_responses')
+            .select('complaint_reference, key_findings, actions_taken, improvements_made, additional_context');
           
-          if (fallbackError) {
-            console.error('❌ Error in category fallback:', fallbackError);
+          if (demoError) {
+            console.error('❌ Error fetching demo responses:', demoError);
           }
           
-          if (fallbackComplaint) {
-            // Fetch demo response for fallback complaint
-            const { data: fallbackResponse, error: fallbackResponseError } = await supabase
-              .from('complaint_demo_responses')
-              .select('key_findings, actions_taken, improvements_made, additional_context')
-              .eq('complaint_reference', fallbackComplaint.reference_number)
+          if (allDemoResponses && allDemoResponses.length > 0) {
+            // Find a complaint reference that matches this category
+            const demoReferenceNumbers = allDemoResponses.map(r => r.complaint_reference);
+            
+            const { data: matchingComplaint, error: matchError } = await supabase
+              .from('complaints')
+              .select('reference_number, category')
+              .eq('category', complaintData.category as any)
+              .in('reference_number', demoReferenceNumbers)
+              .limit(1)
               .maybeSingle();
             
-            if (fallbackResponseError) {
-              console.error('❌ Error fetching fallback response:', fallbackResponseError);
+            if (matchError) {
+              console.error('❌ Error finding matching complaint:', matchError);
             }
             
-            if (fallbackResponse) {
-              console.log('✅ Category fallback found:', fallbackComplaint.reference_number);
-              console.log('📊 Fallback content lengths:', {
-                key_findings: fallbackResponse.key_findings?.length,
-                actions_taken: fallbackResponse.actions_taken?.length,
-                improvements_made: fallbackResponse.improvements_made?.length,
-                additional_context: fallbackResponse.additional_context?.length
-              });
-              setDemoResponse(fallbackResponse);
-              setDemoSource('fallback');
-              return;
+            if (matchingComplaint) {
+              // Find the demo response for this matched complaint
+              const demoResponse = allDemoResponses.find(
+                r => r.complaint_reference === matchingComplaint.reference_number
+              );
+              
+              if (demoResponse) {
+                console.log('✅ Demo response loaded from:', matchingComplaint.reference_number);
+                console.log('📊 Demo content lengths:', {
+                  key_findings: demoResponse.key_findings?.length,
+                  actions_taken: demoResponse.actions_taken?.length,
+                  improvements_made: demoResponse.improvements_made?.length,
+                  additional_context: demoResponse.additional_context?.length
+                });
+                setDemoResponse(demoResponse);
+                setDemoSource('category-based');
+                return;
+              }
             }
           }
         }
@@ -272,8 +279,8 @@ export const ComplaintOutcomeQuestionnaire = ({
     
     setData(prevData => ({ ...prevData, [field]: content }));
     
-    const sourceInfo = demoSource === 'fallback' 
-      ? ' (from similar complaint in same category)' 
+    const sourceInfo = demoSource === 'category-based' 
+      ? ' (demo complaint - category matched)' 
       : '';
     
     console.log(`✨ Loaded demo content for ${field}: ${content.length} chars${sourceInfo}`);
