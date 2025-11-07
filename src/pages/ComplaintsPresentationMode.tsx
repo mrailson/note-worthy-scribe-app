@@ -4,16 +4,14 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { TitleSlide } from '@/components/complaints-presentation/TitleSlide';
 import { ChallengeSlide } from '@/components/complaints-presentation/ChallengeSlide';
-import { SolutionSlide } from '@/components/complaints-presentation/SolutionSlide';
 import { WorkflowSlide } from '@/components/complaints-presentation/WorkflowSlide';
 import { CallToActionSlide } from '@/components/complaints-presentation/CallToActionSlide';
 
 const SLIDES = [
   { id: 1, component: TitleSlide },
   { id: 2, component: ChallengeSlide },
-  { id: 3, component: SolutionSlide },
-  { id: 4, component: WorkflowSlide },
-  { id: 5, component: CallToActionSlide },
+  { id: 3, component: WorkflowSlide },
+  { id: 4, component: CallToActionSlide },
 ];
 
 const ComplaintsPresentationMode = () => {
