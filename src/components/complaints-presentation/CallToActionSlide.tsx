@@ -1,8 +1,13 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
+import { Button } from '@/components/ui/button';
 import complaintPage1 from '@/assets/complaint-page-1.jpg';
 import complaintPage2 from '@/assets/complaint-page-2.jpg';
 
 export const CallToActionSlide = () => {
+  const navigate = useNavigate();
+
   return (
     <div className="h-full flex flex-col bg-background relative">
       {/* Main Content */}
@@ -27,12 +32,22 @@ export const CallToActionSlide = () => {
                 className="w-full h-auto object-contain"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in" style={{ animationDelay: '0.3s' }}>
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in relative" style={{ animationDelay: '0.3s' }}>
               <img 
                 src={complaintPage2} 
                 alt="Complaint Letter Page 2" 
                 className="w-full h-auto object-contain"
               />
+              <div className="absolute bottom-4 left-0 right-0 flex justify-center">
+                <Button
+                  onClick={() => navigate('/complaints')}
+                  size="lg"
+                  className="bg-[#003087] hover:bg-[#005EB8] text-white font-bold px-8 py-6 text-lg shadow-xl"
+                >
+                  Open Complaint System
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </div>
 
