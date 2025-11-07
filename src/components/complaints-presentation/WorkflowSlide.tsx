@@ -89,24 +89,24 @@ export const WorkflowSlide = () => {
               </ul>
             </Card>
 
-            <Card className="p-6 border-2 border-orange-500/20 bg-orange-50 dark:bg-orange-950/20 animate-fade-in" style={{ animationDelay: '0.4s' }}>
+            <Card className="p-6 border-2 border-[#003087]/20 bg-[#003087]/5 animate-fade-in" style={{ animationDelay: '0.4s' }}>
               <div className="flex items-center gap-3 mb-4">
-                <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/40 flex items-center justify-center">
-                  <BarChart3 className="w-5 h-5 text-orange-600 dark:text-orange-400" />
+                <div className="w-10 h-10 rounded-full bg-[#003087]/10 flex items-center justify-center">
+                  <BarChart3 className="w-5 h-5 text-[#003087]" />
                 </div>
                 <h2 className="text-xl font-bold">4. CQC-Ready Compliance Reporting</h2>
               </div>
               <ul className="space-y-3">
                 <li className="flex items-start gap-2">
-                  <Award className="w-4 h-4 text-orange-600 dark:text-orange-400 mt-1 flex-shrink-0" />
+                  <Award className="w-4 h-4 text-[#003087] mt-1 flex-shrink-0" />
                   <span className="text-sm">Maps every complaint to the 15 CQC fundamental standards</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <TrendingUp className="w-4 h-4 text-orange-600 dark:text-orange-400 mt-1 flex-shrink-0" />
+                  <TrendingUp className="w-4 h-4 text-[#003087] mt-1 flex-shrink-0" />
                   <span className="text-sm">Demonstrates learning outcomes and service improvements</span>
                 </li>
                 <li className="flex items-start gap-2">
-                  <CheckCircle className="w-4 h-4 text-orange-600 dark:text-orange-400 mt-1 flex-shrink-0" />
+                  <CheckCircle className="w-4 h-4 text-[#003087] mt-1 flex-shrink-0" />
                   <span className="text-sm">Evidence of fair, thorough investigation processes</span>
                 </li>
               </ul>
