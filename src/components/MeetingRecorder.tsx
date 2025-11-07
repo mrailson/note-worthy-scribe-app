@@ -45,7 +45,7 @@ import { RealtimeMeetingDashboard } from "@/components/meeting-dashboard/Realtim
 import { ChunkSaveStatus } from "@/components/ChunkSaveStatus";
 import { MeetingImporter } from "@/components/meeting-dashboard/MeetingImporter";
 import { RecordingContextDialog, MeetingContext } from "@/components/meeting/RecordingContextDialog";
-import StandaloneTranscriptionViewer from "@/components/standalone/StandaloneTranscriptionViewer";
+import { PostMeetingActionsModal } from "@/components/PostMeetingActionsModal";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -119,6 +119,12 @@ export const MeetingRecorder = ({
   const [isStoppingRecording, setIsStoppingRecording] = useState(false);
   const [stopRecordingStep, setStopRecordingStep] = useState<string>('');
   const [duration, setDuration] = useState(0);
+  
+  // Post-meeting actions modal state
+  const [showPostMeetingActions, setShowPostMeetingActions] = useState(false);
+  const [lastCompletedMeetingId, setLastCompletedMeetingId] = useState<string | null>(null);
+  const [lastCompletedMeetingTitle, setLastCompletedMeetingTitle] = useState<string>('');
+  const [lastCompletedMeetingDuration, setLastCompletedMeetingDuration] = useState<string>('');
   const [transcript, setTranscript] = useState("");
   const [realtimeTranscripts, setRealtimeTranscripts] = useState<TranscriptData[]>([]);
   const [chunkCounter, setChunkCounter] = useState(0);
@@ -3864,15 +3870,29 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         } catch (error) {
           console.error('⚠️ Background processing error:', error);
           // Don't fail the main save process for background errors
-        } finally {
           // Always reset, even if background processing fails
           setStopRecordingStep('Complete!');
           
           console.log('🔄 Resetting recording state');
+          
+          // Format duration for display (MM:SS format)
+          const minutes = Math.floor(duration / 60);
+          const seconds = duration % 60;
+          const formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          
+          // Store meeting details for post-meeting modal
+          setLastCompletedMeetingId(savedMeeting.id);
+          setLastCompletedMeetingTitle(savedMeeting.title);
+          setLastCompletedMeetingDuration(formattedDuration);
+          
           await resetMeeting();
           setIsStoppingRecording(false);
           stopInProgressRef.current = false;
-          console.log('✅ Recording state reset');
+          
+          // Show post-meeting actions modal
+          setShowPostMeetingActions(true);
+          
+          console.log('✅ Recording state reset - showing post-meeting modal');
         }
       };
 
@@ -5400,6 +5420,22 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           }}
         />
       )}
+      
+      {/* Post-Meeting Actions Modal */}
+      <PostMeetingActionsModal
+        isOpen={showPostMeetingActions}
+        onOpenChange={setShowPostMeetingActions}
+        meetingId={lastCompletedMeetingId || ''}
+        meetingTitle={lastCompletedMeetingTitle}
+        meetingDuration={lastCompletedMeetingDuration}
+        onStartNewMeeting={() => {
+          setShowPostMeetingActions(false);
+          setLastCompletedMeetingId(null);
+          setLastCompletedMeetingTitle('');
+          setLastCompletedMeetingDuration('');
+          // User is now ready to record again - recording state is already reset
+        }}
+      />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
     </div>
