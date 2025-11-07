@@ -11,51 +11,44 @@ export const CallToActionSlide = () => {
   return (
     <div className="h-full flex flex-col bg-background relative">
       {/* Main Content */}
-      <div className="flex-1 flex items-center px-16 py-12">
-        <div className="max-w-7xl w-full space-y-6 animate-fade-in">
+      <div className="flex-1 flex items-center px-16 py-6">
+        <div className="max-w-7xl w-full space-y-3 animate-fade-in">
           {/* Title */}
-          <div className="space-y-4">
-            <h1 className="text-6xl font-bold text-[#003087] leading-tight">
+          <div className="space-y-2">
+            <h1 className="text-5xl font-bold text-[#003087] leading-tight">
               Demonstration Complaint
             </h1>
-            <p className="text-2xl text-foreground">
+            <p className="text-xl text-foreground">
               Example of a modern, detailed complaint we'll process through the system
             </p>
           </div>
 
           {/* Two complaint pages side by side */}
-          <div className="grid grid-cols-2 gap-6 pt-4">
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in" style={{ animationDelay: '0.2s' }}>
+          <div className="grid grid-cols-2 gap-6">
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in max-h-[calc(100vh-280px)]" style={{ animationDelay: '0.2s' }}>
               <img 
                 src={complaintPage1} 
                 alt="Complaint Letter Page 1" 
-                className="w-full h-auto object-contain"
+                className="w-full h-full object-contain"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in relative" style={{ animationDelay: '0.3s' }}>
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in relative max-h-[calc(100vh-280px)]" style={{ animationDelay: '0.3s' }}>
               <img 
                 src={complaintPage2} 
                 alt="Complaint Letter Page 2" 
-                className="w-full h-auto object-contain"
+                className="w-full h-full object-contain"
               />
               <div className="absolute bottom-4 left-0 right-0 flex justify-center">
                 <Button
                   onClick={() => navigate('/complaints')}
                   size="lg"
-                  className="bg-[#003087] hover:bg-[#005EB8] text-white font-bold px-8 py-6 text-lg shadow-xl"
+                  className="bg-[#003087] hover:bg-[#005EB8] text-white font-bold px-8 py-4 text-base shadow-xl"
                 >
                   Open Complaint System
                   <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
               </div>
             </div>
-          </div>
-
-          {/* Key details callout */}
-          <div className="pt-2 animate-fade-in" style={{ animationDelay: '0.4s' }}>
-            <p className="text-lg text-foreground">
-              <span className="font-semibold">Subject:</span> Repeated Appointment Cancellations and Poor Communication
-            </p>
           </div>
         </div>
       </div>
