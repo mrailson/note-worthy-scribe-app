@@ -4523,13 +4523,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     updateMeetingSettings(newSettings);
   };
 
-  // TEST HELPER: Quick way to test post-meeting modal without recording
-  const handleTestPostMeetingModal = () => {
-    setLastCompletedMeetingId('test-meeting-id-' + Date.now());
-    setLastCompletedMeetingTitle('Test Meeting - ' + new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
-    setLastCompletedMeetingDuration('05:30');
-    setShowPostMeetingActions(true);
-  };
               
   return (
     <div className="space-y-6">
@@ -4627,16 +4620,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                        >
                          <Mic className="h-5 w-5 mr-2" />
                          Start Recording
-                       </Button>
-                       
-                       {/* Test Button for Post-Meeting Modal */}
-                       <Button
-                         onClick={handleTestPostMeetingModal}
-                         variant="outline"
-                         size="sm"
-                         className="text-xs opacity-60 hover:opacity-100"
-                       >
-                         Test Post-Meeting Modal
                        </Button>
                      </div>
                   ) : (
