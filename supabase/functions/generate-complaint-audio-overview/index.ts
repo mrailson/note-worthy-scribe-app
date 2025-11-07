@@ -91,22 +91,20 @@ serve(async (req) => {
         }
       }
       
-      const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a clear, professional 1-2 minute spoken summary for practice partners and management to quickly understand this complaint.
+      const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a concise, focused spoken summary under 1 minute for practice management.
 
 Guidelines:
-- Start with "I'd like to brief you on our ${practiceName} complaint number [just the number in words] received on [date]" - extract ONLY the numeric portion from the reference and say it naturally (e.g., "twenty seven" not "COMP two five zero zero two seven")
-- DO NOT say "Good morning", "Notewell AI Summary", or any other preambles or greetings
-- DO NOT read out the full reference code like "COMP250027" - only say the number portion in words
-- Write in a clear, conversational executive briefing tone
-- Structure: What happened → Investigation findings → Decision → Key learnings → Management considerations
+- Start with "Complaint number [number in words] from [date]" - extract ONLY the numeric portion from the reference (e.g., "twenty seven" not "COMP two five zero zero two seven")
+- DO NOT say "Good morning", "Notewell AI Summary", or any preambles
+- DO NOT read out the full reference code
+- VERY BRIEFLY mention complaint particulars (one sentence maximum)
+- PRIMARILY FOCUS on: key learnings identified, specific actions taken, and ongoing improvements to consider
+- Emphasise alignment with NHS best practice and CQC expectations
 - Use plain narrative prose without formatting characters (* = # - bullets etc.)
 - NO stage directions, sound effects, or script notations
-- Target 160-320 words for 1-2 minutes speaking time
+- Target 120-150 words maximum for under 1 minute speaking time
 - British English spelling and phrasing throughout
-- Be factual and balanced, acknowledging both patient concerns and practice perspective
-- Highlight specific actions taken and improvements made
-- Include relevant compliance or governance points
-- Make it digestible - partners need the essence, not every detail`;
+- Structure: Brief particulars → Key learnings → Actions taken → Recommended improvements for CQC compliance`;
 
       const userPrompt = `Complaint Reference: ${complaint.reference_number}
 Patient: ${complaint.patient_name}
@@ -123,7 +121,7 @@ ${internalNotes ? `Investigation Notes:\n${internalNotes.slice(0, 600)}\n\n` : '
 Outcome: ${outcome.outcome_type}
 ${outcome.outcome_summary ? `\nOutcome Summary:\n${outcome.outcome_summary.slice(0, 800)}` : ''}
 
-Create a 1-2 minute executive audio briefing of this complaint for practice management. Focus on the key points they need to know: what happened, what we found, what we decided, what we learned, and what they should consider going forward.`;
+Create an under-1-minute executive audio briefing. Briefly mention the complaint particulars in one sentence, then focus primarily on: the key learnings identified from this complaint, specific actions taken in response, and ongoing improvements the practice should consider in line with NHS best practice and CQC regulatory expectations. Keep it concise and actionable for practice management.`;
 
       const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
