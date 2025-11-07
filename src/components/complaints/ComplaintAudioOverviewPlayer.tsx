@@ -327,6 +327,11 @@ export const ComplaintAudioOverviewPlayer = ({
             />
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{formatDuration(currentTime)}</span>
+              {isBuffering ? (
+                <span className="text-primary animate-pulse">⏳ Loading audio...</span>
+              ) : audioRef.current?.readyState >= 3 ? (
+                <span className="text-green-600">✓ Ready</span>
+              ) : null}
               <span>{formatDuration(totalDuration)}</span>
             </div>
           </div>
