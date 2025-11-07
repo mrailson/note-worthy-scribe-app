@@ -32,24 +32,58 @@ export default function ComplaintResponse() {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [token, setToken] = useState<string | null>(null);
+
+  // Find token from route params, query string, or hash (to support various email client behaviours)
+  const getEffectiveToken = (): string | null => {
+    if (accessToken) return accessToken;
+    try {
+      const url = new URL(window.location.href);
+      const qsToken = url.searchParams.get('accessToken') || url.searchParams.get('token') || url.searchParams.get('t');
+      if (qsToken) return qsToken;
+      if (url.hash) {
+        const hashParams = new URLSearchParams(url.hash.replace(/^#/, ''));
+        const hashToken = hashParams.get('accessToken') || hashParams.get('token') || hashParams.get('t');
+        if (hashToken) return hashToken;
+      }
+    } catch (e) {
+      console.warn('Unable to parse URL for token', e);
+    }
+    return null;
+  };
 
   useEffect(() => {
+    const t = getEffectiveToken();
+    setToken(t);
     fetchComplaintDetails();
   }, [accessToken]);
 
   const fetchComplaintDetails = async () => {
     try {
-      console.log('Fetching complaint with access token:', accessToken);
-      
-      if (!accessToken) {
+      const effective = accessToken || getEffectiveToken();
+      console.log('Fetching complaint with access token:', effective);
+
+      if (!effective) {
         setError('Invalid access link - no token provided');
         setLoading(false);
         return;
       }
 
+      // Timeout safeguard to avoid infinite loading on some mobile browsers
+      let timedOut = false;
+      const timeoutId = setTimeout(() => {
+        timedOut = true;
+        setError('This link is taking longer than expected to load. Please try again or request a new link.');
+        setLoading(false);
+      }, 12000);
+
       const { data, error } = await supabase.rpc('get_complaint_for_external_access', {
-        access_token_param: accessToken
+        access_token_param: effective
       });
+
+      if (!timedOut) {
+        clearTimeout(timeoutId);
+      }
 
       console.log('RPC Response:', { data, error });
 
@@ -83,8 +117,13 @@ export default function ComplaintResponse() {
 
     setSubmitting(true);
     try {
+      if (!token) {
+        toast.error('Invalid access link - missing token');
+        setSubmitting(false);
+        return;
+      }
       const { data, error } = await supabase.rpc('submit_external_response', {
-        access_token_param: accessToken,
+        access_token_param: token,
         response_text_param: response
       });
 
