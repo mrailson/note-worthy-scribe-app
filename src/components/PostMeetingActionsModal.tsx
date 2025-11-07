@@ -168,6 +168,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       toast.info('Meeting notes are still being generated. Please wait a moment.');
       return;
     }
+    
+    // Don't navigate for test meetings
+    if (meetingId.startsWith('test-meeting-id-')) {
+      toast.info('Test meetings cannot be viewed. Please record a real meeting.');
+      return;
+    }
+    
     onOpenChange(false);
     navigate(`/meeting-summary?id=${meetingId}`);
   };
