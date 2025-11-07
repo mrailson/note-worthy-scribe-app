@@ -986,7 +986,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               </>
             )}
 
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
               <Label className="text-sm font-semibold mb-2 block">
                 Your Final Decision *
               </Label>
@@ -1009,7 +1009,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               </Select>
             </div>
 
-            <div className="bg-white p-4 rounded-lg border border-slate-200">
+            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
               <Label className="text-sm font-semibold mb-2 block">
                 Letter Tone
               </Label>
