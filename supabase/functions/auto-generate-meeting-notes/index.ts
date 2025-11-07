@@ -771,7 +771,8 @@ ${cleanedTranscript}`;
     }
 
     // Extract overview from the generated notes (first section after "EXECUTIVE SUMMARY")
-    const overviewMatch = generatedNotes.match(/\*\*EXECUTIVE SUMMARY\*\*\s*\n(.*?)(?=\n\*\*|$)/s);
+    // Match both markdown heading and bold format
+    const overviewMatch = generatedNotes.match(/(?:\*\*EXECUTIVE SUMMARY\*\*|# EXECUTIVE SUMMARY)\s*\n(.*?)(?=\n(?:#|\*\*)|$)/s);
     const overview = overviewMatch ? overviewMatch[1].trim() : 'Overview not available';
 
     // Save or update notes in database - handle forceRegenerate properly
@@ -807,6 +808,7 @@ ${cleanedTranscript}`;
         'generate-meeting-overview',
         {
           body: { 
+            meetingId: meetingId,
             meetingTitle: generatedTitle, // Use the generated title
             meetingNotes: generatedNotes
           }
