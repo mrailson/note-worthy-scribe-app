@@ -1,5 +1,6 @@
 import React from 'react';
 import { Shield, Award, Bot } from 'lucide-react';
+import bluePCNLogo from '@/assets/blue-pcn-logo.png';
 
 export const TitleSlide = () => {
   return (
@@ -37,13 +38,18 @@ export const TitleSlide = () => {
           </div>
         </div>
 
-        <div className="pt-8 border-t border-border/50 mt-8 animate-fade-in" style={{ animationDelay: '0.8s' }}>
-          <p className="text-2xl text-foreground font-bold">
-            Malcolm Railson
-          </p>
-          <p className="text-lg text-muted-foreground font-medium">
-            Digital & Transformation Lead, Blue PCN
-          </p>
+        <div className="pt-10 border-t border-border/50 mt-8 animate-fade-in" style={{ animationDelay: '0.8s' }}>
+          <div className="flex items-center justify-center gap-6">
+            <img src={bluePCNLogo} alt="Blue PCN Logo" className="h-20 w-auto" />
+            <div className="text-left">
+              <p className="text-3xl text-foreground font-bold">
+                Malcolm Railson
+              </p>
+              <p className="text-xl text-muted-foreground font-medium">
+                Digital & Transformation Lead, Blue PCN
+              </p>
+            </div>
+          </div>
         </div>
       </div>
 
