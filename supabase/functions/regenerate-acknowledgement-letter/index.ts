@@ -38,6 +38,10 @@ serve(async (req) => {
             content: `You are an expert NHS complaints manager helping to revise acknowledgement letters. 
 Your task is to take the existing acknowledgement letter and modify it based on the user's instructions whilst maintaining professional NHS standards and compliance with complaints handling best practices.
 
+CRITICAL LANGUAGE REQUIREMENT:
+- MUST use British English spelling throughout (e.g., "organisation" not "organization", "centre" not "center", "recognise" not "recognize", "honour" not "honor")
+- Follow UK business conventions and date formats
+
 CRITICAL REQUIREMENTS:
 - Maintain compliance with NHS complaints handling procedures
 - Preserve all essential information (reference numbers, dates, patient details, practice details)

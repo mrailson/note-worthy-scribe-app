@@ -132,6 +132,10 @@ serve(async (req) => {
 6. Provides contact information for queries
 7. Is empathetic and professional
 
+CRITICAL LANGUAGE REQUIREMENT:
+- MUST use British English spelling throughout (e.g., "organisation" not "organization", "centre" not "center", "recognise" not "recognize")
+- Follow UK business conventions and date formats
+
 IMPORTANT FORMATTING REQUIREMENTS:
 - Start with the practice logo/letterhead (if provided via logo URL)
 - Include the date in format "DD Month YYYY"
