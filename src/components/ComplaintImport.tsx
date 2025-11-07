@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera } from 'lucide-react';
+import { Upload, FileText, Image, Mail, Download, Loader2, CheckCircle, AlertCircle, Camera, X } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
@@ -38,7 +38,7 @@ interface ComplaintImportProps {
 export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracted, onClose }) => {
   const deviceInfo = useDeviceInfo();
   const [textContent, setTextContent] = useState('');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [processing, setProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState<ComplaintData | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
@@ -53,22 +53,28 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   }, [extractedData]);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Check file size (max 10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        showToast.error('File size must be less than 10MB', { section: 'complaints' });
+    const files = Array.from(event.target.files || []);
+    if (files.length > 0) {
+      const maxSize = 20 * 1024 * 1024; // 20MB per file
+      const invalidFiles = files.filter(f => f.size > maxSize);
+      
+      if (invalidFiles.length > 0) {
+        showToast.error(`${invalidFiles.length} file(s) exceed 20MB limit`, { section: 'complaints' });
         return;
       }
       
-      setSelectedFile(file);
-      showToast.success(`Selected: ${file.name}`, { section: 'complaints' });
+      setSelectedFiles(files);
+      showToast.success(`Selected: ${files.length} file(s)`, { section: 'complaints' });
     }
   };
 
+  const removeFile = (index: number) => {
+    setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
   const handleImport = async (source: 'file' | 'text') => {
-    if (source === 'file' && !selectedFile) {
-      showToast.error('Please select a file to import', { section: 'complaints' });
+    if (source === 'file' && selectedFiles.length === 0) {
+      showToast.error('Please select at least one file to import', { section: 'complaints' });
       return;
     }
     
@@ -82,8 +88,10 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     try {
       const formData = new FormData();
       
-      if (source === 'file' && selectedFile) {
-        formData.append('file', selectedFile);
+      if (source === 'file' && selectedFiles.length > 0) {
+        selectedFiles.forEach(file => {
+          formData.append('files', file);
+        });
       } else {
         formData.append('textContent', textContent);
       }
@@ -272,14 +280,14 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
             <AlertDescription>
               {deviceInfo.isIPhone ? (
                 <>
-                  <strong>Take a photo</strong> of the complaint letter or paste text.
-                  AI extracts patient details and incident information automatically.
+                  <strong>Take photos</strong> of complaint letters or paste text.
+                  AI extracts patient details and incident information automatically. Multiple files supported.
                 </>
               ) : (
                 <>
                   Supported formats: Images (JPG, PNG), Text files, Email content. 
                   <strong>For Word documents and PDFs:</strong> Please copy the text content and paste it in the Text/Email tab for best results.
-                  AI will automatically extract patient details, incident information, and complaint specifics.
+                  AI will automatically extract patient details, incident information, and complaint specifics. <strong>Multiple files can be uploaded at once.</strong>
                 </>
               )}
             </AlertDescription>
@@ -333,6 +341,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                   onChange={handleFileSelect}
                   className="hidden"
                   id="file-upload"
+                  multiple
                 />
                 <label htmlFor="file-upload" className="cursor-pointer">
                   <div className={cn(
@@ -340,7 +349,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                     deviceInfo.isIPhone && "py-4"
                   )}>
                     <div className="flex justify-center">
-                      {selectedFile ? (
+                      {selectedFiles.length > 0 ? (
                         <CheckCircle className={cn(
                           "text-green-500",
                           deviceInfo.isIPhone ? "h-16 w-16" : "h-12 w-12"
@@ -356,11 +365,11 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                         "font-medium",
                         deviceInfo.isIPhone ? "text-base" : "text-lg"
                       )}>
-                        {selectedFile 
-                          ? selectedFile.name 
+                        {selectedFiles.length > 0
+                          ? `${selectedFiles.length} file(s) selected` 
                           : deviceInfo.isIPhone 
-                            ? 'Take Photo or Choose File'
-                            : 'Choose a file to upload'
+                            ? 'Take Photo or Choose Files'
+                            : 'Choose file(s) to upload'
                         }
                       </p>
                       <p className={cn(
@@ -368,8 +377,8 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                         deviceInfo.isIPhone ? "text-xs" : "text-sm"
                       )}>
                         {deviceInfo.isIPhone 
-                          ? 'Photos, PDFs, or text files up to 10MB'
-                          : 'PDF, Word, Image, Text, or Email files up to 10MB'
+                          ? 'Photos, PDFs, or text files up to 20MB each'
+                          : 'PDF, Word, Image, Text, or Email files up to 20MB each. Multiple files supported.'
                         }
                       </p>
                     </div>
@@ -377,34 +386,46 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                 </label>
               </div>
               
-              {selectedFile && (
-                <div className={cn(
-                  "flex items-center justify-between bg-gray-50 rounded-lg",
-                  deviceInfo.isIPhone ? "p-4 flex-col gap-3" : "p-3"
-                )}>
-                  <div className={cn(
-                    "flex items-center gap-2",
-                    deviceInfo.isIPhone && "w-full"
-                  )}>
-                    <FileText className="h-4 w-4 flex-shrink-0" />
-                    <span className={cn(
-                      "truncate flex-1",
-                      deviceInfo.isIPhone ? "text-sm" : "text-sm"
-                    )}>{selectedFile.name}</span>
-                    <Badge variant="secondary" className="flex-shrink-0">
-                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                    </Badge>
-                  </div>
+              {selectedFiles.length > 0 && (
+                <div className="space-y-2">
+                  {selectedFiles.map((file, index) => (
+                    <div key={index} className={cn(
+                      "flex items-center justify-between bg-gray-50 rounded-lg",
+                      deviceInfo.isIPhone ? "p-4" : "p-3"
+                    )}>
+                      <div className={cn(
+                        "flex items-center gap-2 flex-1 min-w-0",
+                        deviceInfo.isIPhone && "w-full"
+                      )}>
+                        <FileText className="h-4 w-4 flex-shrink-0" />
+                        <span className={cn(
+                          "truncate",
+                          deviceInfo.isIPhone ? "text-sm" : "text-sm"
+                        )}>{file.name}</span>
+                        <Badge variant="secondary" className="flex-shrink-0 text-xs">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </Badge>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFile(index)}
+                        className="flex-shrink-0 ml-2"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
                   <Button 
                     size={deviceInfo.isIPhone ? "default" : "sm"}
                     onClick={() => handleImport('file')}
                     disabled={processing}
-                    className={cn(deviceInfo.isIPhone && "w-full min-h-[48px]")}
+                    className={cn("w-full", deviceInfo.isIPhone && "min-h-[48px]")}
                   >
                     {processing ? (
                       <>
                         <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                        Processing...
+                        Processing {selectedFiles.length} file(s)...
                       </>
                     ) : (
                       <>

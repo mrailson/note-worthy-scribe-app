@@ -36,108 +36,108 @@ serve(async (req) => {
     }
 
     const formData = await req.formData();
-    const file = formData.get('file') as File;
+    const files = formData.getAll('files') as File[];
     const textContent = formData.get('textContent') as string;
 
     let extractedText = '';
 
-    if (file) {
-      const fileType = file.type;
-      const fileName = file.name.toLowerCase();
+    if (files && files.length > 0) {
+      console.log(`Processing ${files.length} file(s)`);
       
-      console.log(`Processing file: ${file.name}, type: ${fileType}`);
+      const textParts: string[] = [];
+      
+      for (const file of files) {
+        const fileType = file.type;
+        const fileName = file.name.toLowerCase();
+        
+        console.log(`Processing file: ${file.name}, type: ${fileType}`);
+        let fileText = '';
 
-      if (fileType.includes('image/') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
-        // Handle image files with OCR using OpenAI Vision
-        const arrayBuffer = await file.arrayBuffer();
-        const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-        
-        const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${openaiApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'gpt-4.1-2025-04-14',
-            messages: [
-              {
-                role: 'user',
-                content: [
-                  {
-                    type: 'text',
-                    text: 'Please extract all text content from this image. This appears to be a medical complaint or correspondence. Extract all visible text accurately.'
-                  },
-                  {
-                    type: 'image_url',
-                    image_url: {
-                      url: `data:${fileType};base64,${base64}`
-                    }
-                  }
-                ]
-              }
-            ],
-            max_tokens: 2000
-          }),
-        });
-
-        if (!imageAnalysisResponse.ok) {
-          throw new Error('Failed to process image with OCR');
-        }
-
-        const imageData = await imageAnalysisResponse.json();
-        extractedText = imageData.choices[0].message.content;
-        
-      } else if (fileType.includes('pdf') || fileName.endsWith('.pdf')) {
-        // Handle PDF files
-        const arrayBuffer = await file.arrayBuffer();
-        const uint8Array = new Uint8Array(arrayBuffer);
-        
-        // For PDF processing, we'll use a simpler approach by sending to OpenAI
-        // In a production environment, you might want to use a dedicated PDF parsing library
-        const base64 = btoa(String.fromCharCode(...uint8Array));
-        
-        // Since OpenAI doesn't directly support PDF, we'll extract text another way
-        // For now, we'll ask the user to copy/paste the PDF content
-        throw new Error('PDF processing requires a dedicated PDF parser. Please copy and paste the text content instead.');
-        
-      } else if (fileType.includes('msword') || fileType.includes('wordprocessingml') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-        // Handle Word documents using Deno-compatible text extraction
-        console.log(`Processing Word document: ${fileName}, type: ${fileType}`);
-        const arrayBuffer = await file.arrayBuffer();
-        const buffer = new Uint8Array(arrayBuffer);
-        
-        // Extract text from DOCX (which is a ZIP with XML files)
-        const decoder = new TextDecoder();
-        const text = decoder.decode(buffer);
-        
-        // Basic XML text extraction for DOCX
-        const textMatches = text.match(/>([^<]+)</g);
-        if (textMatches) {
-          extractedText = textMatches
-            .map(match => match.slice(1, -1))
-            .filter(text => text.trim().length > 0)
-            .join(' ')
-            .replace(/\s+/g, ' ')
-            .trim();
+        if (fileType.includes('image/') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
+          // Handle image files with OCR using OpenAI Vision
+          const arrayBuffer = await file.arrayBuffer();
+          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
           
-          console.log(`Successfully extracted ${extractedText.length} characters from Word document`);
+          const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openaiApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4.1-2025-04-14',
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'Please extract all text content from this image. This appears to be a medical complaint or correspondence. Extract all visible text accurately.'
+                    },
+                    {
+                      type: 'image_url',
+                      image_url: {
+                        url: `data:${fileType};base64,${base64}`
+                      }
+                    }
+                  ]
+                }
+              ],
+              max_tokens: 2000
+            }),
+          });
+
+          if (!imageAnalysisResponse.ok) {
+            throw new Error(`Failed to process image ${file.name} with OCR`);
+          }
+
+          const imageData = await imageAnalysisResponse.json();
+          fileText = imageData.choices[0].message.content;
+          
+        } else if (fileType.includes('msword') || fileType.includes('wordprocessingml') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
+          // Handle Word documents using Deno-compatible text extraction
+          const arrayBuffer = await file.arrayBuffer();
+          const buffer = new Uint8Array(arrayBuffer);
+          
+          // Extract text from DOCX (which is a ZIP with XML files)
+          const decoder = new TextDecoder();
+          const text = decoder.decode(buffer);
+          
+          // Basic XML text extraction for DOCX
+          const textMatches = text.match(/>([^<]+)</g);
+          if (textMatches) {
+            fileText = textMatches
+              .map(match => match.slice(1, -1))
+              .filter(text => text.trim().length > 0)
+              .join(' ')
+              .replace(/\s+/g, ' ')
+              .trim();
+            
+            console.log(`Successfully extracted ${fileText.length} characters from ${file.name}`);
+          } else {
+            throw new Error(`No text content found in ${file.name}`);
+          }
+        } else if (fileType.includes('text/') || fileName.endsWith('.txt') || fileName.endsWith('.eml')) {
+          // Handle text files and emails
+          fileText = await file.text();
         } else {
-          throw new Error('No text content found in Word document');
+          throw new Error(`Unsupported file type: ${fileType} for file ${file.name}. Please use PDF, Word, image, or text files.`);
         }
-      } else if (fileType.includes('text/') || fileName.endsWith('.txt') || fileName.endsWith('.eml')) {
-        // Handle text files and emails
-        extractedText = await file.text();
-      } else {
-        throw new Error(`Unsupported file type: ${fileType}. Please use PDF, Word, image, or text files.`);
+        
+        if (fileText) {
+          textParts.push(`\n\n--- Content from ${file.name} ---\n${fileText}`);
+        }
       }
+      
+      extractedText = textParts.join('\n');
+      
     } else if (textContent) {
       extractedText = textContent;
     } else {
-      throw new Error('No file or text content provided');
+      throw new Error('No files or text content provided');
     }
 
-    console.log('Extracted text length:', extractedText.length);
+    console.log('Total extracted text length:', extractedText.length);
 
     // Use AI to extract structured complaint data
     const systemPrompt = `You are an expert NHS complaints processor. Extract structured complaint information from the provided text and return it as a JSON object.
