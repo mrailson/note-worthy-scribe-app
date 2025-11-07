@@ -955,14 +955,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                         <div className="flex items-center gap-2">
                           <Sparkles className="h-4 w-4 text-blue-600" />
                           <span className="font-medium text-sm">AI Guidance: Suggested Outcome (For Reference Only)</span>
-                        </div>
-                        <Button size="sm" variant="secondary" onClick={analyzeComplaintOutcome} disabled={isAnalyzing} className="ml-2">
-                          {isAnalyzing ? 'Generating…' : 'Regenerate'}
-                        </Button>
-                      </div>
-                      {aiSuggestedOutcome && (
-                        <div className="bg-white p-3 rounded border border-blue-200">
-                          <div className="flex items-center gap-2">
+                          {aiSuggestedOutcome && (
                             <Badge 
                               variant={
                                 aiSuggestedOutcome === 'upheld' ? 'destructive' : 
@@ -975,9 +968,12 @@ export const ComplaintOutcomeQuestionnaire = ({
                                aiSuggestedOutcome === 'partially_upheld' ? 'Partially Upheld' : 
                                'Not Upheld'}
                             </Badge>
-                          </div>
+                          )}
                         </div>
-                      )}
+                        <Button size="sm" variant="secondary" onClick={analyzeComplaintOutcome} disabled={isAnalyzing}>
+                          {isAnalyzing ? 'Generating…' : 'Regenerate'}
+                        </Button>
+                      </div>
 
                       {aiAnalysisText && (
                         <div className="bg-white p-4 rounded border border-blue-200 max-h-[400px] overflow-y-auto">
