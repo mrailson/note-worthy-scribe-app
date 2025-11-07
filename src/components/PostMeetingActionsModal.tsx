@@ -9,10 +9,13 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Mail, PlayCircle, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { FileText, Download, Mail, PlayCircle, Loader2, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
+import { EmailMeetingMinutesModal } from '@/components/EmailMeetingMinutesModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import ReactMarkdown from 'react-markdown';
 
 interface PostMeetingActionsModalProps {
   isOpen: boolean;
@@ -21,7 +24,6 @@ interface PostMeetingActionsModalProps {
   meetingTitle: string;
   meetingDuration: string;
   onStartNewMeeting: () => void;
-  onEmailNotes?: (meetingId: string, meetingTitle: string, notes: string) => void;
 }
 
 export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = ({
@@ -31,12 +33,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   meetingTitle,
   meetingDuration,
   onStartNewMeeting,
-  onEmailNotes,
 }) => {
   const navigate = useNavigate();
   const [notesStatus, setNotesStatus] = useState<'generating' | 'completed' | 'error'>('generating');
   const [meetingNotes, setMeetingNotes] = useState<string>('');
   const [meetingData, setMeetingData] = useState<any>(null);
+  const [showNotesView, setShowNotesView] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
   
   const { generateWordDocument, isExporting } = useMeetingExport(
     meetingData,
@@ -166,8 +169,11 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       toast.info('Meeting notes are still being generated. Please wait a moment.');
       return;
     }
-    onOpenChange(false);
-    navigate(`/meeting-summary?id=${meetingId}`);
+    setShowNotesView(true);
+  };
+
+  const handleBackToActions = () => {
+    setShowNotesView(false);
   };
 
   const handleDownload = async () => {
@@ -186,11 +192,11 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   };
 
   const handleEmail = () => {
-    if (onEmailNotes) {
-      onEmailNotes(meetingId, meetingTitle, meetingNotes);
-    } else {
-      toast.info('Email feature not configured');
+    if (notesStatus !== 'completed') {
+      toast.info('Meeting notes are still being generated. Please wait a moment.');
+      return;
     }
+    setShowEmailModal(true);
   };
 
   const handleStartNew = () => {
@@ -225,87 +231,163 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2 text-xl">
-            🎉 Meeting Saved Successfully!
-          </DialogTitle>
-          <DialogDescription className="space-y-2 pt-2">
-            <div className="text-sm">
-              <span className="font-medium text-foreground">Title:</span> {meetingTitle}
-            </div>
-            <div className="text-sm">
-              <span className="font-medium text-foreground">Duration:</span> {meetingDuration}
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-foreground">Status:</span>
-              {getStatusBadge()}
-            </div>
-          </DialogDescription>
-        </DialogHeader>
+    <>
+      <Dialog open={isOpen} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-2xl max-h-[90vh] flex flex-col">
+          {!showNotesView ? (
+            // Action Selection View
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2 text-xl">
+                  🎉 Meeting Saved Successfully!
+                </DialogTitle>
+                <DialogDescription className="space-y-2 pt-2">
+                  <div className="text-sm">
+                    <span className="font-medium text-foreground">Title:</span> {meetingTitle}
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium text-foreground">Duration:</span> {meetingDuration}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-foreground">Status:</span>
+                    {getStatusBadge()}
+                  </div>
+                </DialogDescription>
+              </DialogHeader>
 
-        <div className="space-y-3 pt-4">
-          {/* View Minutes Button */}
-          <Button
-            onClick={handleViewMeeting}
-            disabled={notesStatus !== 'completed'}
-            className="w-full justify-start h-12"
-            size="lg"
-          >
-            <FileText className="h-4 w-4 mr-2" />
-            View Generated Minutes
-          </Button>
+              <div className="space-y-3 pt-4">
+                {/* View Minutes Button */}
+                <Button
+                  onClick={handleViewMeeting}
+                  disabled={notesStatus !== 'completed'}
+                  className="w-full justify-start h-12"
+                  size="lg"
+                >
+                  <FileText className="h-4 w-4 mr-2" />
+                  View Generated Minutes
+                </Button>
 
-          {/* Download and Email Row */}
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              onClick={handleDownload}
-              disabled={isExporting}
-              variant="outline"
-              className="justify-start h-12"
-            >
-              {isExporting ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Download className="h-4 w-4 mr-2" />
-              )}
-              Download
-            </Button>
+                {/* Download and Email Row */}
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    onClick={handleDownload}
+                    disabled={isExporting || notesStatus !== 'completed'}
+                    variant="outline"
+                    className="justify-start h-12"
+                  >
+                    {isExporting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    Download
+                  </Button>
 
-            {onEmailNotes && (
-              <Button
-                onClick={handleEmail}
-                variant="outline"
-                className="justify-start h-12"
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                Email
-              </Button>
-            )}
-          </div>
+                  <Button
+                    onClick={handleEmail}
+                    disabled={notesStatus !== 'completed'}
+                    variant="outline"
+                    className="justify-start h-12"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email
+                  </Button>
+                </div>
 
-          {/* Start New Meeting Button */}
-          <Button
-            onClick={handleStartNew}
-            variant="secondary"
-            className="w-full justify-start h-12"
-            size="lg"
-          >
-            <PlayCircle className="h-4 w-4 mr-2" />
-            Start New Meeting
-          </Button>
+                {/* Start New Meeting Button */}
+                <Button
+                  onClick={handleStartNew}
+                  variant="secondary"
+                  className="w-full justify-start h-12"
+                  size="lg"
+                >
+                  <PlayCircle className="h-4 w-4 mr-2" />
+                  Start New Meeting
+                </Button>
 
-          {/* No Thanks Button */}
-          <Button
-            onClick={() => onOpenChange(false)}
-            variant="ghost"
-            className="w-full text-muted-foreground"
-          >
-            No thanks
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
+                {/* No Thanks Button */}
+                <Button
+                  onClick={() => onOpenChange(false)}
+                  variant="ghost"
+                  className="w-full text-muted-foreground"
+                >
+                  No thanks
+                </Button>
+              </div>
+            </>
+          ) : (
+            // Notes View
+            <>
+              <DialogHeader className="flex-shrink-0">
+                <div className="flex items-center justify-between">
+                  <DialogTitle className="text-xl">Meeting Minutes</DialogTitle>
+                  <Button
+                    onClick={handleBackToActions}
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+                <DialogDescription className="space-y-1 pt-2">
+                  <div className="text-sm font-medium text-foreground">{meetingTitle}</div>
+                  <div className="text-xs text-muted-foreground">Duration: {meetingDuration}</div>
+                </DialogDescription>
+              </DialogHeader>
+
+              <ScrollArea className="flex-1 pr-4">
+                <div className="prose prose-sm max-w-none dark:prose-invert">
+                  <ReactMarkdown>{meetingNotes}</ReactMarkdown>
+                </div>
+              </ScrollArea>
+
+              <div className="flex-shrink-0 pt-4 border-t space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    onClick={handleDownload}
+                    disabled={isExporting}
+                    variant="outline"
+                    size="sm"
+                  >
+                    {isExporting ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Download className="h-4 w-4 mr-2" />
+                    )}
+                    Download
+                  </Button>
+                  <Button
+                    onClick={handleEmail}
+                    variant="outline"
+                    size="sm"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Email
+                  </Button>
+                </div>
+                <Button
+                  onClick={handleBackToActions}
+                  variant="secondary"
+                  className="w-full"
+                  size="sm"
+                >
+                  Back to Options
+                </Button>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Modal */}
+      <EmailMeetingMinutesModal
+        isOpen={showEmailModal}
+        onOpenChange={setShowEmailModal}
+        meetingId={meetingId}
+        meetingTitle={meetingTitle}
+        meetingNotes={meetingNotes}
+      />
+    </>
   );
 };
