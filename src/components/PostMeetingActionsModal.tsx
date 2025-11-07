@@ -198,8 +198,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     }
     
     onOpenChange(false);
-    // Navigate to meeting summary with view parameter to show Claude notes (Standard format)
-    navigate(`/meeting-summary?id=${meetingId}&view=standard`);
+    // Navigate to meeting history with state to open the standard notes view
+    navigate('/meeting-history', { 
+      state: { 
+        viewNotes: meetingId, 
+        openModal: true 
+      } 
+    });
   };
 
   const handleDownload = async () => {
@@ -210,7 +215,8 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     
     try {
       const content = meetingData.overview || meetingData.content || '';
-      await generateWordDocument(content, meetingTitle);
+      const title = meetingData.title || meetingTitle; // Use updated title from database
+      await generateWordDocument(content, title);
       setIsDownloaded(true);
       toast.success('Meeting notes downloaded!');
     } catch (error) {
@@ -463,7 +469,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             <DialogDescription className="space-y-3 pt-2 px-2">
               <div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
                 <span className="font-medium text-foreground">Title:</span>
-                <span className="text-foreground">{meetingTitle}</span>
+                <span className="text-foreground">{meetingData?.title || meetingTitle}</span>
                 
                 <span className="font-medium text-foreground">Duration:</span>
                 <span className="text-foreground">
