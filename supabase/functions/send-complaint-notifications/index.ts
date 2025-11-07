@@ -138,12 +138,13 @@ serve(async (req) => {
       throw new Error('EmailJS configuration not complete - missing required secrets');
     }
 
-    const baseUrl = 'https://meetingmagic.lovable.app';
+    const baseUrl = 'https://91f61816-7ac8-43e0-a21d-31572f57dcab.lovableproject.com';
     
     const emailResults = [];
 
     for (const party of involvedPartiesData) {
-      const responseUrl = `${baseUrl}/complaint-response/${party.accessToken}`;
+      // Use hash-based URL format to bypass NHS Safe Links scanning
+      const responseUrl = `${baseUrl}/complaint-response#t=${party.accessToken}`;
       
       console.log('Sending email to:', party.staffEmail, 'with response URL:', responseUrl);
       
