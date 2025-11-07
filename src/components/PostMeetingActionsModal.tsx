@@ -439,7 +439,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                 Meeting Saved Successfully
               </DialogTitle>
             </div>
-            <DialogDescription className="space-y-3 pt-2">
+            <DialogDescription className="space-y-3 pt-2 px-2">
               <div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
                 <span className="font-medium text-foreground">Title:</span>
                 <span className="text-foreground">{meetingTitle}</span>
@@ -460,7 +460,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 pt-2">
+          <div className="space-y-3 pt-2 px-2">
             {/* View Minutes Button */}
             <Button
               onClick={handleViewMeeting}
