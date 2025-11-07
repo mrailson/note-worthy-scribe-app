@@ -94,9 +94,10 @@ serve(async (req) => {
       const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a concise, focused spoken summary under 1 minute for practice management.
 
 Guidelines:
-- Start with "Complaint number [number in words] from [date]" - extract ONLY the numeric portion from the reference (e.g., "twenty seven" not "COMP two five zero zero two seven")
+- Start with "Complaint number [number in words]" - extract ONLY the numeric portion from the reference (e.g., "thirty-five" not "COMP two five zero zero three five")
 - DO NOT say "Good morning", "Notewell AI Summary", or any preambles
 - DO NOT read out the full reference code
+- DO NOT include the date in the opening line
 - VERY BRIEFLY mention complaint particulars (one sentence maximum)
 - PRIMARILY FOCUS on: key learnings identified, specific actions taken, and ongoing improvements to consider
 - Emphasise alignment with NHS best practice and CQC expectations
