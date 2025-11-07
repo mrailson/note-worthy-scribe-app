@@ -64,10 +64,8 @@ export const ComplaintOutcomeQuestionnaire = ({
   const [aiSuggestedOutcome, setAiSuggestedOutcome] = useState<string>('');
   const [aiAnalysisText, setAiAnalysisText] = useState<string>('');
   const [confirmProfessionalJudgement, setConfirmProfessionalJudgement] = useState<boolean>(false);
-  const [enableAiAnalysis, setEnableAiAnalysis] = useState<boolean>(() => {
-    const saved = localStorage.getItem('complaint-ai-analysis-enabled');
-    return saved !== null ? JSON.parse(saved) : true;
-  });
+  const [enableAiAnalysis, setEnableAiAnalysis] = useState<boolean>(false); // Default to OFF
+  const [aiAnalysisComplete, setAiAnalysisComplete] = useState<boolean>(false); // Track background completion
   const [data, setData] = useState<QuestionnaireData>({
     investigation_complete: true,
     outcome_type: undefined,
@@ -395,6 +393,7 @@ export const ComplaintOutcomeQuestionnaire = ({
     setIsAnalyzing(true);
     setAiSuggestedOutcome('');
     setAiAnalysisText('');
+    setAiAnalysisComplete(false);
 
     try {
       const { data: analysisData, error } = await supabase.functions.invoke(
@@ -418,15 +417,12 @@ export const ComplaintOutcomeQuestionnaire = ({
         } else if (analysisLower.includes('upheld')) {
           setAiSuggestedOutcome('upheld');
         }
+        setAiAnalysisComplete(true);
       }
     } catch (error: any) {
       console.error('AI analysis error:', error);
-      showShadcnToast({
-        title: 'AI Analysis Failed',
-        description: 'Could not generate AI analysis. You can still select an outcome manually.',
-        variant: 'destructive',
-        section: 'complaints'
-      });
+      // Don't show error toast for background analysis
+      setAiAnalysisComplete(true); // Mark as complete even if failed
     } finally {
       setIsAnalyzing(false);
     }
@@ -437,12 +433,12 @@ export const ComplaintOutcomeQuestionnaire = ({
     localStorage.setItem('complaint-ai-analysis-enabled', JSON.stringify(enableAiAnalysis));
   }, [enableAiAnalysis]);
 
-  // Trigger AI analysis when reaching Step 4 (only if enabled)
+  // ALWAYS trigger AI analysis in background when reaching Step 3
   useEffect(() => {
-    if (step === 3 && open && !aiAnalysisText && !isAnalyzing && enableAiAnalysis) {
+    if (step === 3 && open && !aiAnalysisText && !isAnalyzing) {
       analyzeComplaintOutcome();
     }
-  }, [step, open, enableAiAnalysis]);
+  }, [step, open]);
 
   const handleNext = () => {
     if (step === 1) {
@@ -875,11 +871,14 @@ export const ComplaintOutcomeQuestionnaire = ({
                     <Label htmlFor="ai-toggle" className="text-sm font-semibold text-slate-900 cursor-pointer">
                       AI Suggested Outcome & Analysis
                     </Label>
+                    {aiAnalysisComplete && !isAnalyzing && (
+                      <span title="AI analysis complete" className="inline-flex">
+                        <CheckCircle className="h-4 w-4 text-green-600 ml-1" />
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-600">
-                    {enableAiAnalysis 
-                      ? 'AI will analyse the complaint and provide a suggested outcome for reference' 
-                      : 'Make your own decision without AI assistance'}
+                    Toggle to view AI-generated analysis (for guidance only)
                   </p>
                 </div>
                 <Switch
