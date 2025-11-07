@@ -17,7 +17,7 @@ export const TitleSlide = () => {
           </div>
         </div>
 
-        <h1 className="text-6xl font-bold bg-gradient-to-r from-primary via-secondary to-accent bg-clip-text text-transparent animate-fade-in">
+        <h1 className="text-6xl font-bold text-foreground animate-fade-in">
           NHS Complaints Management System
         </h1>
         
