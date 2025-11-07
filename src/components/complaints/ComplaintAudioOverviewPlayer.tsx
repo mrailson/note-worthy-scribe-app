@@ -399,14 +399,28 @@ export const ComplaintAudioOverviewPlayer = ({
               )}
             </Button>
             {showTranscript && !isEditingTranscript && (
-              <Button
-                onClick={() => setIsEditingTranscript(true)}
-                variant="outline"
-                size="sm"
-                className="h-8 px-2 text-xs"
-              >
-                Edit
-              </Button>
+              <>
+                <Button
+                  onClick={() => setIsEditingTranscript(true)}
+                  variant="outline"
+                  size="sm"
+                  className="h-8 px-2 text-xs"
+                >
+                  Edit
+                </Button>
+                {onRegenerateAudio && (
+                  <Button
+                    onClick={() => handleRegenerateAudio()}
+                    variant="outline"
+                    size="sm"
+                    className="h-8 px-2 text-xs"
+                    disabled={isGeneratingAudio}
+                  >
+                    <RefreshCw className={`h-3 w-3 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
+                    Regenerate
+                  </Button>
+                )}
+              </>
             )}
           </div>
           {showTranscript && (
