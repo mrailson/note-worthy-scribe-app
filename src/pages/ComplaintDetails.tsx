@@ -3853,6 +3853,7 @@ I am committed to ensuring that all patients receive the care and service they d
                     complaintId={complaint.id}
                     complaintDescription={complaint.complaint_description}
                     referenceNumber={complaint.reference_number}
+                    onEditClick={!isEditingAcknowledgement ? () => setIsEditingAcknowledgement(true) : undefined}
                   />
                   <Button 
                     variant="outline"
@@ -3930,17 +3931,6 @@ I am committed to ensuring that all patients receive the care and service they d
                         {submitting ? 'Saving...' : 'Save Letter'}
                       </Button>
                     </>
-                  )}
-                  
-                  {!isEditingAcknowledgement && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setIsEditingAcknowledgement(true)}
-                    >
-                      <Edit className="h-4 w-4 mr-1" />
-                      Edit Letter
-                    </Button>
                   )}
                 </div>
               </div>

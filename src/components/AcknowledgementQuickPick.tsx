@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Wand2, Loader2 } from "lucide-react";
+import { Wand2, Loader2, Edit } from "lucide-react";
 
 interface AcknowledgementQuickPickProps {
   currentLetter: string;
@@ -19,6 +19,7 @@ interface AcknowledgementQuickPickProps {
   complaintId: string;
   complaintDescription: string;
   referenceNumber: string;
+  onEditClick?: () => void;
 }
 
 export function AcknowledgementQuickPick({ 
@@ -26,7 +27,8 @@ export function AcknowledgementQuickPick({
   onLetterChange,
   complaintId,
   complaintDescription,
-  referenceNumber
+  referenceNumber,
+  onEditClick
 }: AcknowledgementQuickPickProps) {
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -206,6 +208,17 @@ export function AcknowledgementQuickPick({
             </DropdownMenuItem>
           </DropdownMenuSubContent>
         </DropdownMenuSub>
+
+        {/* Edit Letter option at bottom */}
+        {onEditClick && (
+          <DropdownMenuItem 
+            onClick={onEditClick}
+            className="cursor-pointer"
+          >
+            <Edit className="h-4 w-4 mr-2" />
+            Edit Letter
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );
