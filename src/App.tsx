@@ -20,7 +20,7 @@ import { FridgeTemperatureEntry } from "./components/FridgeTemperatureEntry";
 import ComplaintsSystem from "./pages/ComplaintsSystem";
 import ComplaintDetails from "./pages/ComplaintDetails";
 import ComplaintResponse from "./pages/ComplaintResponse";
-import ComplaintsUserGuide from "./pages/ComplaintsUserGuide";
+import ComplaintsPresentationMode from "./pages/ComplaintsPresentationMode";
 import StaffFeedback from "./pages/StaffFeedback";
 import SharedDrive from "./pages/SharedDrive";
 import Auth from "./pages/Auth";
@@ -82,7 +82,7 @@ const App = () => {
               <Route path="/public/fridge-temp/:id" element={<FridgeTemperatureEntry />} />
               <Route path="/complaints" element={<ComplaintsSystem />} />
               <Route path="/complaints/:id" element={<ComplaintDetails />} />
-              <Route path="/complaints-guide" element={<ComplaintsUserGuide />} />
+              <Route path="/complaints-guide" element={<ComplaintsPresentationMode />} />
               <Route path="/complaint-response/:token" element={<ComplaintResponse />} />
               <Route path="/complaint-response" element={<ComplaintResponse />} />
               <Route path="/staff-feedback" element={<StaffFeedback />} />
