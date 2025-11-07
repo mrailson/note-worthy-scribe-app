@@ -255,9 +255,35 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       const userEmail = profileData?.email || user.email;
       const userName = profileData?.full_name || 'User';
       
-      // Generate Word document blob using docx library directly
+      // Generate NHS-styled Word document using the same utilities as standard minutes email
       const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import('docx');
-      const { saveAs } = await import('file-saver');
+      const { parseContentToDocxElements, stripTranscriptSection } = await import('@/utils/generateMeetingNotesDocx');
+      const { buildNHSStyles, buildNumbering, NHS_COLORS, FONTS } = await import('@/utils/wordTheme');
+      const { renderNHSMarkdown } = await import('@/lib/nhsMarkdownRenderer');
+      
+      // Strip transcript sections
+      const cleanedContent = stripTranscriptSection(meetingNotes);
+      
+      // Clean the title
+      const cleanTitle = meetingTitle.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+      
+      // Build document children
+      const children: any[] = [];
+      
+      // Title
+      children.push(
+        new Paragraph({
+          children: [new TextRun({
+            text: cleanTitle,
+            bold: true,
+            size: FONTS.size.title,
+            color: NHS_COLORS.headingBlue,
+            font: FONTS.default,
+          })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 },
+        })
+      );
       
       const meetingTime = meetingData?.startTime 
         ? new Date(meetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
@@ -267,29 +293,15 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         ? new Date(meetingData.startTime).toLocaleDateString('en-GB')
         : new Date().toLocaleDateString('en-GB');
       
-      // Create document sections
-      const children: any[] = [];
-      
-      // Title
-      children.push(
-        new Paragraph({
-          children: [new TextRun({
-            text: meetingTitle,
-            bold: true,
-            size: 32,
-          })],
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 240 },
-        })
-      );
-      
       // Meeting details
       if (meetingDate || meetingTime) {
         children.push(
           new Paragraph({
             children: [new TextRun({
               text: `Date: ${meetingDate}${meetingTime ? ` at ${meetingTime}` : ''}`,
-              size: 22,
+              size: FONTS.size.body,
+              color: NHS_COLORS.textGrey,
+              font: FONTS.default,
             })],
             spacing: { after: 120 },
           })
@@ -301,7 +313,9 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           new Paragraph({
             children: [new TextRun({
               text: `Duration: ${meetingData.duration}`,
-              size: 22,
+              size: FONTS.size.body,
+              color: NHS_COLORS.textGrey,
+              font: FONTS.default,
             })],
             spacing: { after: 120 },
           })
@@ -313,39 +327,46 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           new Paragraph({
             children: [new TextRun({
               text: `Attendees: ${meetingData.attendees.join(', ')}`,
-              size: 22,
+              size: FONTS.size.body,
+              color: NHS_COLORS.textGrey,
+              font: FONTS.default,
             })],
             spacing: { after: 240 },
           })
         );
       }
       
-      // Meeting notes content
-      const notesParagraphs = meetingNotes.split('\n').filter(line => line.trim());
-      notesParagraphs.forEach(line => {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({
-              text: line.replace(/\*\*/g, ''),
-              size: 22,
-            })],
-            spacing: { after: 120 },
-          })
-        );
-      });
+      // Parse and add content using NHS-styled elements
+      const contentElements = await parseContentToDocxElements(cleanedContent);
+      children.push(...contentElements);
+      
+      // Footer
+      const now = new Date();
+      const dateStr = now.toLocaleDateString('en-GB');
+      const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+      
+      children.push(
+        new Paragraph({
+          children: [new TextRun({
+            text: `Generated on ${dateStr} ${timeStr}`,
+            italics: true,
+            size: FONTS.size.footer,
+            color: NHS_COLORS.textLightGrey,
+            font: FONTS.default,
+          })],
+          alignment: AlignmentType.CENTER,
+          spacing: { before: 480 },
+        })
+      );
+      
+      // Create document with NHS theme
+      const styles = buildNHSStyles();
+      const numbering = buildNumbering();
       
       const doc = new Document({
+        styles: styles,
+        numbering: numbering,
         sections: [{
-          properties: {
-            page: {
-              margin: {
-                top: 1440,
-                right: 1440,
-                bottom: 1440,
-                left: 1440,
-              },
-            },
-          },
           children,
         }],
       });
@@ -364,32 +385,42 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       reader.readAsDataURL(blob);
       const wordBase64 = await base64Promise;
       
-      // Format meeting date for email
+      // Format meeting date and render HTML using NHS markdown renderer
       const niceDate = meetingData.startTime 
         ? new Date(meetingData.startTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
         : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      
+      // Convert meeting notes to styled HTML using the same renderer as standard minutes
+      const renderedNotesHTML = renderNHSMarkdown(meetingNotes, { enableNHSStyling: false, isUserMessage: false });
+      
+      // Add email-specific CSS styling to match the standard minutes appearance
+      const emailCSS = `
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; line-height: 1.6; color: #1f2937; background-color: #ffffff; margin: 0; padding: 20px; }
+          .message-container { max-width: 700px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; }
+          h1 { color: #2563eb; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; margin-top: 1.5rem; }
+          h2 { color: #2563eb; font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; margin-top: 1.25rem; }
+          h3 { color: #2563eb; font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; margin-top: 1rem; }
+          p { margin-bottom: 0.75rem; line-height: 1.6; color: inherit; }
+          strong { font-weight: 600; color: #1f2937; }
+        </style>
+      `;
+      
+      const styledMessage = `${emailCSS}<div class="message-container">
+        <p style="margin-bottom: 16px;">Dear ${userName},</p>
+        <p style="margin-bottom: 16px;">Please find attached the meeting notes for "${meetingTitle}".</p>
+        <hr style="border: none; border-top: 2px solid #e2e8f0; margin: 20px 0;" />
+        ${renderedNotesHTML}
+        <hr style="border: none; border-top: 2px solid #e2e8f0; margin: 20px 0;" />
+        <p style="margin-top: 16px;">Kind regards,<br>${userName}</p>
+      </div>`;
       
       // Send email via edge function
       const { error } = await supabase.functions.invoke('send-email-via-emailjs', {
         body: {
           to_email: userEmail,
           subject: `Meeting Minutes - ${meetingTitle} - ${niceDate}`,
-          message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
-            <div style="margin-bottom: 20px;">
-              <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">
-                Dear ${userName},<br><br>
-                Please find attached the meeting notes for "${meetingTitle}".<br><br>
-                Kind regards,<br>
-                ${userName}
-              </p>
-            </div>
-            <hr style="border: none; border-top: 3px solid #0066cc; margin: 20px 0;" />
-            <div style="margin-top: 20px;">
-              <p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">
-                ${meetingNotes.replace(/\n/g, '<br>')}
-              </p>
-            </div>
-          </div>`,
+          message: styledMessage,
           template_type: 'meeting_minutes',
           from_name: 'GP Tools - Meeting Minutes',
           reply_to: 'noreply@gp-tools.nhs.uk',
