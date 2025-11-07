@@ -502,22 +502,24 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                 onClick={handleEmail}
                 disabled={notesStatus !== 'completed' || isSendingEmail}
                 variant="outline"
-                className="justify-start h-12"
+                className="justify-start h-12 overflow-hidden"
               >
                 {isSendingEmail ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    <span className="text-sm">Sending...</span>
+                    <Loader2 className="h-4 w-4 mr-2 flex-shrink-0 animate-spin" />
+                    <span className="text-sm truncate">Sending...</span>
                   </>
                 ) : emailSentTo ? (
                   <>
-                    <Mail className="h-4 w-4 mr-2" />
-                    <span className="text-xs">Email sent to {emailSentTo}</span>
+                    <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="text-xs truncate" title={`Email sent to ${emailSentTo}`}>
+                      Email sent to {emailSentTo}
+                    </span>
                   </>
                 ) : (
                   <>
-                    <Mail className="h-4 w-4 mr-2" />
-                    <span className="text-sm">Email Notes to me</span>
+                    <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="text-sm truncate">Email Notes to me</span>
                   </>
                 )}
               </Button>
