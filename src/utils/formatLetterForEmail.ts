@@ -16,9 +16,9 @@ const formatTextWithBold = (text: string): string => {
 };
 
 const parseLetter = (content: string): LetterSections => {
-  // Remove logo metadata and markdown image syntax
+  // Remove all HTML comments and markdown image syntax
   const cleanContent = content
-    .replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '')
+    .replace(/<!--.*?-->\s*/gs, '')
     .replace(/!\[.*?\]\(.*?\)/g, '');
   
   const lines = cleanContent.split('\n').filter(line => line.trim());
