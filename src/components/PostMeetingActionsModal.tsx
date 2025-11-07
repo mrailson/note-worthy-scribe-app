@@ -93,7 +93,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 
       const { data, error } = await supabase
         .from('meetings')
-        .select('notes_generation_status, overview, title, start_time, duration_minutes, agenda, participants, word_count')
+        .select('notes_generation_status, overview, notes_style_3, title, start_time, duration_minutes, agenda, participants, word_count')
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -113,6 +113,9 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         // Set transcript length
         setTranscriptLength(data.word_count || 0);
         
+        // Use notes_style_3 (Standard Minutes) if available, fall back to overview
+        const detailedNotes = data.notes_style_3 || data.overview || '';
+        
         // Set meeting data for export
         setMeetingData({
           title: data.title,
@@ -121,12 +124,12 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           attendees: data.participants || [],
           meetingLocation: '',
           overview: data.overview || '',
-          content: data.overview || '',
+          content: detailedNotes,
         });
         
         if (data.notes_generation_status === 'completed') {
           setNotesStatus('completed');
-          setMeetingNotes(data.overview || '');
+          setMeetingNotes(detailedNotes);
         } else if (data.notes_generation_status === 'error' || data.notes_generation_status === 'failed') {
           setNotesStatus('error');
         } else {
