@@ -94,18 +94,19 @@ serve(async (req) => {
       const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a concise, focused spoken summary under 1 minute for practice management.
 
 Guidelines:
-- Start with "Complaint number [number in words]" - extract ONLY the numeric portion from the reference (e.g., "thirty-five" not "COMP two five zero zero three five")
+- Start with "Complaint number [number in words] received on [date in format: 7th Nov] concerns [brief issue]" - extract ONLY the numeric portion from the reference (e.g., "thirty-five" not "COMP two five zero zero three five")
+- Use the complaint submitted date for "received on" date
+- Format date as: 7th Nov, 12th Jan, 23rd Dec (ordinal day + abbreviated month)
 - DO NOT say "Good morning", "Notewell AI Summary", or any preambles
 - DO NOT read out the full reference code
-- DO NOT include the date in the opening line
-- VERY BRIEFLY mention complaint particulars (one sentence maximum)
+- Keep the opening concern description to maximum 5-7 words
 - PRIMARILY FOCUS on: key learnings identified, specific actions taken, and ongoing improvements to consider
 - Emphasise alignment with NHS best practice and CQC expectations
 - Use plain narrative prose without formatting characters (* = # - bullets etc.)
 - NO stage directions, sound effects, or script notations
 - Target 120-150 words maximum for under 1 minute speaking time
 - British English spelling and phrasing throughout
-- Structure: Brief particulars → Key learnings → Actions taken → Recommended improvements for CQC compliance
+- Structure: Brief particulars with date → Key learnings → Actions taken → Recommended improvements for CQC compliance
 
 CRITICAL - DO NOT HALLUCINATE:
 - ONLY use information explicitly provided in the complaint data
@@ -115,6 +116,7 @@ CRITICAL - DO NOT HALLUCINATE:
 - Stick strictly to documented facts - no creative interpretation or elaboration`;
 
       const userPrompt = `Complaint Reference: ${complaint.reference_number}
+Complaint Received Date: ${complaint.submitted_at ? new Date(complaint.submitted_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) : new Date(complaint.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
 Patient: ${complaint.patient_name}
 Category: ${complaint.category}
 Incident Date: ${complaint.incident_date}
@@ -133,7 +135,7 @@ Create an under-1-minute executive audio briefing.
 
 CRITICAL: Only use the information provided above. Do not invent, embellish, or add details not explicitly stated. If actions are described generally (e.g., "staff trained"), keep them general in your summary - do not add fictional specifics like "full audits conducted" or "system reconfigurations completed".
 
-Briefly mention the complaint particulars in one sentence, then focus primarily on: the key learnings identified from this complaint, the specific actions taken in response (ONLY as documented above), and ongoing improvements the practice should consider in line with NHS best practice and CQC regulatory expectations. Keep it concise and actionable for practice management.`;
+Start with "Complaint number [number in words] received on [use the Complaint Received Date above in format like 7th Nov] concerns [brief 5-7 word summary of issue]". Then focus primarily on: the key learnings identified from this complaint, the specific actions taken in response (ONLY as documented above), and ongoing improvements the practice should consider in line with NHS best practice and CQC regulatory expectations. Keep it concise and actionable for practice management.`;
 
       const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
