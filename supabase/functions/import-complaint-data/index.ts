@@ -67,7 +67,16 @@ serve(async (req) => {
         if (fileType.includes('image/') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
           // Handle image files with OCR using OpenAI Vision
           const arrayBuffer = await fileItem.arrayBuffer();
-          const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+          const bytes = new Uint8Array(arrayBuffer);
+          
+          // Convert to base64 in chunks to avoid stack overflow
+          let base64 = '';
+          const chunkSize = 8192;
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.subarray(i, i + chunkSize);
+            base64 += String.fromCharCode.apply(null, Array.from(chunk));
+          }
+          base64 = btoa(base64);
           
           const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
