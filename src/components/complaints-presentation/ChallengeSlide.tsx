@@ -79,7 +79,7 @@ export const ChallengeSlide = () => {
           <div className="pt-4 animate-fade-in" style={{ animationDelay: '0.6s' }}>
             <div className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-destructive/10 text-destructive font-medium text-lg">
               <Shield className="w-5 h-5" />
-              <span>Managing complaints is emotionally demanding and stressful for Practice Managers</span>
+              <span>Practice Managers face the difficult balance of handling complaints empathetically while maintaining professional boundaries - particularly when concerns involve senior colleagues</span>
             </div>
           </div>
         </div>
