@@ -907,23 +907,22 @@ export const ComplaintOutcomeQuestionnaire = ({
                     <div className="space-y-4">
                       {aiSuggestedOutcome && (
                         <div className="bg-white p-3 rounded border border-blue-200">
-                          <div className="flex items-center gap-2 mb-2">
+                          <div className="flex items-center gap-2">
                             <Sparkles className="h-4 w-4 text-blue-600" />
                             <span className="font-medium text-sm">AI Guidance: Suggested Outcome (For Reference Only)</span>
+                            <Badge 
+                              variant={
+                                aiSuggestedOutcome === 'upheld' ? 'destructive' : 
+                                aiSuggestedOutcome === 'partially_upheld' ? 'default' : 
+                                'secondary'
+                              }
+                              className="text-xs"
+                            >
+                              {aiSuggestedOutcome === 'upheld' ? 'Upheld' : 
+                               aiSuggestedOutcome === 'partially_upheld' ? 'Partially Upheld' : 
+                               'Not Upheld'}
+                            </Badge>
                           </div>
-                          <p className="text-xs text-slate-600 mb-2">This is a suggestion only - you are not required to follow this recommendation</p>
-                          <Badge 
-                            variant={
-                              aiSuggestedOutcome === 'upheld' ? 'destructive' : 
-                              aiSuggestedOutcome === 'partially_upheld' ? 'default' : 
-                              'secondary'
-                            }
-                            className="text-xs"
-                          >
-                            {aiSuggestedOutcome === 'upheld' ? 'Upheld' : 
-                             aiSuggestedOutcome === 'partially_upheld' ? 'Partially Upheld' : 
-                             'Not Upheld'}
-                          </Badge>
                         </div>
                       )}
 
