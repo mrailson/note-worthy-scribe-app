@@ -12,7 +12,6 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { FileText, Download, Mail, PlayCircle, Loader2, CheckCircle, AlertCircle, X } from 'lucide-react';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
-import { EmailMeetingMinutesModal } from '@/components/EmailMeetingMinutesModal';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import ReactMarkdown from 'react-markdown';
@@ -39,7 +38,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   const [meetingNotes, setMeetingNotes] = useState<string>('');
   const [meetingData, setMeetingData] = useState<any>(null);
   const [showNotesView, setShowNotesView] = useState(false);
-  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
   
   const { generateWordDocument, isExporting } = useMeetingExport(
     meetingData,
@@ -194,12 +193,192 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     }
   };
 
-  const handleEmail = () => {
+  const handleEmail = async () => {
     if (notesStatus !== 'completed') {
       toast.info('Meeting notes are still being generated. Please wait a moment.');
       return;
     }
-    setShowEmailModal(true);
+    
+    if (!meetingData || !meetingNotes) {
+      toast.error('Meeting data not available');
+      return;
+    }
+    
+    setIsSendingEmail(true);
+    
+    try {
+      // Get user profile for email
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user?.email) {
+        toast.error('User email not found');
+        return;
+      }
+      
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('email, full_name')
+        .eq('user_id', user.id)
+        .single();
+      
+      const userEmail = profileData?.email || user.email;
+      const userName = profileData?.full_name || 'User';
+      
+      // Generate Word document blob using docx library directly
+      const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import('docx');
+      const { saveAs } = await import('file-saver');
+      
+      const meetingTime = meetingData?.startTime 
+        ? new Date(meetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+        : undefined;
+      
+      const meetingDate = meetingData.startTime 
+        ? new Date(meetingData.startTime).toLocaleDateString('en-GB')
+        : new Date().toLocaleDateString('en-GB');
+      
+      // Create document sections
+      const children: any[] = [];
+      
+      // Title
+      children.push(
+        new Paragraph({
+          children: [new TextRun({
+            text: meetingTitle,
+            bold: true,
+            size: 32,
+          })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 },
+        })
+      );
+      
+      // Meeting details
+      if (meetingDate || meetingTime) {
+        children.push(
+          new Paragraph({
+            children: [new TextRun({
+              text: `Date: ${meetingDate}${meetingTime ? ` at ${meetingTime}` : ''}`,
+              size: 22,
+            })],
+            spacing: { after: 120 },
+          })
+        );
+      }
+      
+      if (meetingData.duration) {
+        children.push(
+          new Paragraph({
+            children: [new TextRun({
+              text: `Duration: ${meetingData.duration}`,
+              size: 22,
+            })],
+            spacing: { after: 120 },
+          })
+        );
+      }
+      
+      if (meetingData.attendees && meetingData.attendees.length > 0) {
+        children.push(
+          new Paragraph({
+            children: [new TextRun({
+              text: `Attendees: ${meetingData.attendees.join(', ')}`,
+              size: 22,
+            })],
+            spacing: { after: 240 },
+          })
+        );
+      }
+      
+      // Meeting notes content
+      const notesParagraphs = meetingNotes.split('\n').filter(line => line.trim());
+      notesParagraphs.forEach(line => {
+        children.push(
+          new Paragraph({
+            children: [new TextRun({
+              text: line.replace(/\*\*/g, ''),
+              size: 22,
+            })],
+            spacing: { after: 120 },
+          })
+        );
+      });
+      
+      const doc = new Document({
+        sections: [{
+          properties: {
+            page: {
+              margin: {
+                top: 1440,
+                right: 1440,
+                bottom: 1440,
+                left: 1440,
+              },
+            },
+          },
+          children,
+        }],
+      });
+      
+      const blob = await Packer.toBlob(doc);
+      
+      // Convert blob to base64
+      const reader = new FileReader();
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onload = () => {
+          const base64 = (reader.result as string).split(',')[1];
+          resolve(base64);
+        };
+        reader.onerror = reject;
+      });
+      reader.readAsDataURL(blob);
+      const wordBase64 = await base64Promise;
+      
+      // Format meeting date for email
+      const niceDate = meetingData.startTime 
+        ? new Date(meetingData.startTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+        : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
+      
+      // Send email via edge function
+      const { error } = await supabase.functions.invoke('send-email-via-emailjs', {
+        body: {
+          to_email: userEmail,
+          subject: `Meeting Minutes - ${meetingTitle} - ${niceDate}`,
+          message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
+            <div style="margin-bottom: 20px;">
+              <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">
+                Dear ${userName},<br><br>
+                Please find attached the meeting notes for "${meetingTitle}".<br><br>
+                Kind regards,<br>
+                ${userName}
+              </p>
+            </div>
+            <hr style="border: none; border-top: 3px solid #0066cc; margin: 20px 0;" />
+            <div style="margin-top: 20px;">
+              <p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">
+                ${meetingNotes.replace(/\n/g, '<br>')}
+              </p>
+            </div>
+          </div>`,
+          template_type: 'meeting_minutes',
+          from_name: 'GP Tools - Meeting Minutes',
+          reply_to: 'noreply@gp-tools.nhs.uk',
+          word_attachment: {
+            content: wordBase64,
+            filename: `${meetingTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`,
+          },
+        },
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('Email sent successfully!');
+    } catch (error) {
+      console.error('Email error:', error);
+      toast.error('Failed to send email');
+    } finally {
+      setIsSendingEmail(false);
+    }
   };
 
   const handleStartNew = () => {
@@ -288,11 +467,15 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 
                   <Button
                     onClick={handleEmail}
-                    disabled={notesStatus !== 'completed'}
+                    disabled={notesStatus !== 'completed' || isSendingEmail}
                     variant="outline"
                     className="justify-start h-12"
                   >
-                    <Mail className="h-4 w-4 mr-2" />
+                    {isSendingEmail ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
                     Email
                   </Button>
                 </div>
@@ -362,10 +545,15 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                   </Button>
                   <Button
                     onClick={handleEmail}
+                    disabled={isSendingEmail}
                     variant="outline"
                     size="sm"
                   >
-                    <Mail className="h-4 w-4 mr-2" />
+                    {isSendingEmail ? (
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4 mr-2" />
+                    )}
                     Email
                   </Button>
                 </div>
@@ -382,15 +570,6 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           )}
         </DialogContent>
       </Dialog>
-
-      {/* Email Modal */}
-      <EmailMeetingMinutesModal
-        isOpen={showEmailModal}
-        onOpenChange={setShowEmailModal}
-        meetingId={meetingId}
-        meetingTitle={meetingTitle}
-        meetingNotes={meetingNotes}
-      />
     </>
   );
 };
