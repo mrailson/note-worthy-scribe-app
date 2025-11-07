@@ -57,14 +57,35 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     if (!meetingId || !isOpen) return;
 
     const fetchMeetingStatus = async () => {
+      // Handle test meeting IDs - simulate completed notes
+      if (meetingId.startsWith('test-meeting-id-')) {
+        setNotesStatus('completed');
+        setMeetingNotes('This is a test meeting. The notes generation feature works by processing your recorded meetings and generating comprehensive summaries automatically.');
+        setMeetingData({
+          title: meetingTitle,
+          date: new Date().toLocaleDateString('en-GB'),
+          duration: meetingDuration,
+          attendees: 'Test User',
+          overview: 'This is a test meeting. The notes generation feature works by processing your recorded meetings and generating comprehensive summaries automatically.',
+          content: 'This is a test meeting. The notes generation feature works by processing your recorded meetings and generating comprehensive summaries automatically.',
+        });
+        return;
+      }
+
       const { data, error } = await supabase
         .from('meetings')
         .select('notes_generation_status, overview, title, start_time, duration_minutes, agenda, participants')
         .eq('id', meetingId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         console.error('Error fetching meeting status:', error);
+        setNotesStatus('error');
+        return;
+      }
+
+      if (!data) {
+        console.warn('Meeting not found:', meetingId);
         setNotesStatus('error');
         return;
       }
@@ -93,6 +114,11 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 
     // Initial fetch
     fetchMeetingStatus();
+
+    // Skip real-time subscription for test meetings
+    if (meetingId.startsWith('test-meeting-id-')) {
+      return;
+    }
 
     // Subscribe to real-time updates
     const channel = supabase
