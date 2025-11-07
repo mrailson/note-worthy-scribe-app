@@ -2896,7 +2896,7 @@ I am committed to ensuring that all patients receive the care and service they d
               )}
 
               {/* Executive Audio Summary - Show after outcome */}
-              {existingOutcome && complaint?.status === 'closed' && (
+              {existingOutcome && (
                 <Card className="border-blue-200 bg-blue-50">
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2 text-blue-800">
