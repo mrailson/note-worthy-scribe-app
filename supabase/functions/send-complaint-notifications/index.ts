@@ -247,6 +247,14 @@ serve(async (req) => {
           to_email: party.staffEmail,
           subject: `Complaint Input Request - ${complaint.reference_number}`,
           message: messageContent,
+          // Explicit params for templates – use any of these in EmailJS
+          response_url: responseUrl,
+          safe_link: responseUrl,
+          safe_link_plain: responseUrl,
+          safe_link_html: `<a href="${responseUrl}">Provide Your Response</a>`,
+          reference_number: complaint.reference_number,
+          staff_name: party.staffName,
+          practice_name: practiceDetails?.practice_name || 'Medical Practice',
         },
       };
 
@@ -255,6 +263,7 @@ serve(async (req) => {
       console.log('- Template ID:', emailJsTemplateId);
       console.log('- To Email:', party.staffEmail);
       console.log('- Subject:', emailData.template_params.subject);
+      console.log('- Response URL:', responseUrl);
       console.log('- Message Length:', emailData.template_params.message.length);
       console.log('- Message Preview:', emailData.template_params.message.substring(0, 100) + '...');
 
