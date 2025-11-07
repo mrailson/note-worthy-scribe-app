@@ -34,9 +34,7 @@ export default function ComplaintResponse() {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (accessToken) {
-      fetchComplaintDetails();
-    }
+    fetchComplaintDetails();
   }, [accessToken]);
 
   const fetchComplaintDetails = async () => {
