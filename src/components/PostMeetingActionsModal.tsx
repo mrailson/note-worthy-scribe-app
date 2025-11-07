@@ -36,6 +36,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   const [meetingNotes, setMeetingNotes] = useState<string>('');
   const [meetingData, setMeetingData] = useState<any>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [transcriptLength, setTranscriptLength] = useState<number>(0);
   
   const { generateWordDocument, isExporting } = useMeetingExport(
     meetingData,
@@ -50,6 +51,14 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       transcriberThresholds: { whisper: 0.5, deepgram: 0.5 }
     }
   );
+
+  // Format number in K style (e.g., 4200 -> 4.2K)
+  const formatNumberK = (num: number): string => {
+    if (num >= 1000) {
+      return `${(num / 1000).toFixed(1)}K`;
+    }
+    return num.toString();
+  };
 
   // Subscribe to notes generation status
   useEffect(() => {
@@ -74,7 +83,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 
       const { data, error } = await supabase
         .from('meetings')
-        .select('notes_generation_status, overview, title, start_time, duration_minutes, agenda, participants')
+        .select('notes_generation_status, overview, title, start_time, duration_minutes, agenda, participants, word_count')
         .eq('id', meetingId)
         .maybeSingle();
 
@@ -91,6 +100,9 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       }
 
       if (data) {
+        // Set transcript length
+        setTranscriptLength(data.word_count || 0);
+        
         // Set meeting data for export
         setMeetingData({
           title: data.title,
@@ -433,7 +445,14 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                 <span className="text-foreground">{meetingTitle}</span>
                 
                 <span className="font-medium text-foreground">Duration:</span>
-                <span className="text-foreground">{meetingDuration}</span>
+                <span className="text-foreground">
+                  {meetingDuration}
+                  {transcriptLength > 0 && (
+                    <span className="text-muted-foreground ml-2">
+                      • Transcript: {formatNumberK(transcriptLength)} words
+                    </span>
+                  )}
+                </span>
                 
                 <span className="font-medium text-foreground">Status:</span>
                 <div>{getStatusBadge()}</div>
