@@ -195,10 +195,10 @@ IMPORTANT SIGNATURE FORMATTING:
 - End the letter with a complete signature block that includes:
   1. "Yours sincerely,"
   2. Two blank lines
-  3. ${signatureDetails?.name || '[Signatory Name]'}
+  3. ${signatureDetails?.name || '[Signatory Name]'} (ONLY ONCE - do not repeat the name)
   4. ${signatureDetails?.job_title || 'Practice Manager'}
   5. ${practiceDetails?.practice_name || '[Practice Name]'}
-  6. ${practiceDetails?.address || '[Practice Address]'} (format address on separate lines)
+  6. ${practiceDetails?.address || '[Practice Address]'} (format address on separate lines with minimal spacing)
 
 CRITICAL CONTACT INFORMATION RULES:
 - Never include personal email addresses or direct contact details in the signature
