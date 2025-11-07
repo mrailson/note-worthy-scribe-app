@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Play, Pause, RefreshCw, Download, ChevronDown, ChevronUp } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
-import { toast } from "sonner";
+import { showToast } from '@/utils/toastWrapper';
 import { useVoicePreference } from '@/hooks/useVoicePreference';
 
 interface ComplaintAudioOverviewPlayerProps {
@@ -45,7 +45,7 @@ export const ComplaintAudioOverviewPlayer = ({
   const handlePlayAudio = async () => {
     if (!audioOverviewUrl) {
       console.log('❌ No audio URL available');
-      toast.error('No audio URL available');
+      showToast.error('No audio URL available', { section: 'complaints' });
       return;
     }
 
@@ -75,7 +75,7 @@ export const ComplaintAudioOverviewPlayer = ({
       audioRef.current.addEventListener('error', (e) => {
         console.error('❌ Audio playback error:', e);
         console.error('Audio URL (blob):', audioObjectUrlRef.current);
-        toast.error('Failed to play audio - check console for details');
+        showToast.error('Failed to play audio - check console for details', { section: 'complaints' });
         setIsPlaying(false);
         if (animationFrameRef.current) {
           cancelAnimationFrame(animationFrameRef.current);
@@ -99,11 +99,11 @@ export const ComplaintAudioOverviewPlayer = ({
         setIsPlaying(true);
         animationFrameRef.current = requestAnimationFrame(updateTime);
       } else {
-        toast.error('Audio is still loading, please wait...');
+        showToast.error('Audio is still loading, please wait...', { section: 'complaints' });
       }
     } catch (error: any) {
       console.error('❌ Play error:', error);
-      toast.error(`Playback error: ${error.message}`);
+      showToast.error(`Playback error: ${error.message}`, { section: 'complaints' });
       setIsPlaying(false);
     }
   };
@@ -132,7 +132,7 @@ export const ComplaintAudioOverviewPlayer = ({
   const handleSaveTranscript = async () => {
     if (editedTranscript.trim() !== audioOverviewText?.trim()) {
       await handleRegenerateAudio(editedTranscript);
-      toast.success('Transcript saved and audio regenerated');
+      showToast.success('Transcript saved and audio regenerated', { section: 'complaints' });
     }
     setIsEditingTranscript(false);
   };
@@ -243,7 +243,7 @@ export const ComplaintAudioOverviewPlayer = ({
 
   const handleDownloadAudio = async () => {
     if (!audioOverviewUrl) {
-      toast.error('No audio available to download');
+      showToast.error('No audio available to download', { section: 'complaints' });
       return;
     }
 
@@ -259,10 +259,10 @@ export const ComplaintAudioOverviewPlayer = ({
       a.click();
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
-      toast.success('Audio downloaded');
+      showToast.success('Audio downloaded', { section: 'complaints' });
     } catch (error: any) {
       console.error('❌ Download error:', error);
-      toast.error(`Download failed: ${error.message}`);
+      showToast.error(`Download failed: ${error.message}`, { section: 'complaints' });
     }
   };
 

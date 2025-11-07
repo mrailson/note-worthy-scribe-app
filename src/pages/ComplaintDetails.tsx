@@ -54,7 +54,7 @@ import {
   Headphones
 } from "lucide-react";
 import { format } from "date-fns";
-import { toast } from "sonner";
+import { showToast } from '@/utils/toastWrapper';
 import { createLetterDocument } from "@/utils/letterFormatter";
 import { Document, Packer } from "docx";
 import { InvestigationEvidence } from "@/components/InvestigationEvidence";
@@ -309,7 +309,7 @@ const ComplaintDetails = () => {
 
     } catch (error) {
       console.error('Error fetching complaint details:', error);
-      toast.error("Failed to load complaint details");
+      showToast.error("Failed to load complaint details", { section: 'complaints' });
     } finally {
       setLoading(false);
     }
@@ -721,10 +721,10 @@ const ComplaintDetails = () => {
       // Refresh compliance summary
       fetchComplianceData();
       
-      toast.success("Compliance check updated");
+      showToast.success("Compliance check updated", { section: 'complaints' });
     } catch (error) {
       console.error('Error updating compliance check:', error);
-      toast.error("Failed to update compliance check");
+      showToast.error("Failed to update compliance check", { section: 'complaints' });
     }
   };
 
@@ -734,7 +734,7 @@ const ComplaintDetails = () => {
       const nonCompliantChecks = complianceChecks.filter(check => !check.is_compliant);
 
       if (nonCompliantChecks.length === 0) {
-        toast.success("All items are already completed");
+        showToast.success("All items are already completed", { section: 'complaints' });
         return;
       }
 
@@ -764,10 +764,10 @@ const ComplaintDetails = () => {
       // Refresh compliance summary
       fetchComplianceData();
       
-      toast.success(`Marked ${nonCompliantChecks.length} items as completed`);
+      showToast.success(`Marked ${nonCompliantChecks.length} items as completed`, { section: 'complaints' });
     } catch (error) {
       console.error('Error marking all items as compliant:', error);
-      toast.error("Failed to mark all items as completed");
+      showToast.error("Failed to mark all items as completed", { section: 'complaints' });
     }
   };
 
@@ -783,10 +783,10 @@ const ComplaintDetails = () => {
       if (error) throw error;
 
       setAcknowledgementLetter(data.acknowledgementLetter);
-      toast.success("Acknowledgement letter generated successfully");
+      showToast.success("Acknowledgement letter generated successfully", { section: 'complaints' });
     } catch (error) {
       console.error('Error generating acknowledgement:', error);
-      toast.error("Failed to generate acknowledgement letter");
+      showToast.error("Failed to generate acknowledgement letter", { section: 'complaints' });
     } finally {
       setSubmitting(false);
       setIsGeneratingAcknowledgement(false);
@@ -828,13 +828,14 @@ const ComplaintDetails = () => {
       setAcknowledgementSentToPatient(isSent);
       setAcknowledgementSentAt(now);
       
-      toast.success(isSent 
+      showToast.success(isSent 
         ? "Acknowledgement marked as sent to patient" 
-        : "Acknowledgement send status cleared"
+        : "Acknowledgement send status cleared",
+        { section: 'complaints' }
       );
     } catch (error) {
       console.error('Error updating acknowledgement sent status:', error);
-      toast.error("Failed to update acknowledgement status");
+      showToast.error("Failed to update acknowledgement status", { section: 'complaints' });
     }
   };
 
@@ -848,10 +849,10 @@ const ComplaintDetails = () => {
       if (error) throw error;
 
       setAiAnalysis(data.analysis);
-      toast.success("AI analysis completed");
+      showToast.success("AI analysis completed", { section: 'complaints' });
     } catch (error) {
       console.error('Error analyzing outcome:', error);
-      toast.error("Failed to analyze complaint");
+      showToast.error("Failed to analyze complaint", { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -870,7 +871,7 @@ const ComplaintDetails = () => {
 
   const handleSendStaffNotifications = async (complaintId: string) => {
     if (involvedParties.length === 0) {
-      toast.error("Please add staff members to notify");
+      showToast.error("Please add staff members to notify", { section: 'complaints' });
       return;
     }
 
@@ -885,11 +886,11 @@ const ComplaintDetails = () => {
 
       if (error) throw error;
 
-      toast.success("Staff notifications sent successfully");
+      showToast.success("Staff notifications sent successfully", { section: 'complaints' });
       setInvolvedParties([]);
     } catch (error) {
       console.error('Error sending notifications:', error);
-      toast.error("Failed to send staff notifications");
+      showToast.error("Failed to send staff notifications", { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -908,10 +909,10 @@ const ComplaintDetails = () => {
       if (error) throw error;
 
       setEditingOutcome(false);
-      toast.success("Outcome letter updated successfully");
+      showToast.success("Outcome letter updated successfully", { section: 'complaints' });
     } catch (error) {
       console.error('Error saving outcome letter:', error);
-      toast.error("Failed to save outcome letter");
+      showToast.error("Failed to save outcome letter", { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -919,7 +920,7 @@ const ComplaintDetails = () => {
 
   const handleRegenerateOutcomeLetter = async () => {
     if (!existingOutcome || !complaint) {
-      toast.error("No existing outcome found to regenerate");
+      showToast.error("No existing outcome found to regenerate", { section: 'complaints' });
       return;
     }
 
@@ -953,13 +954,13 @@ const ComplaintDetails = () => {
         }
 
         setOutcomeLetter(data.outcomeLetter);
-        toast.success("Outcome letter regenerated successfully with practice logo included");
+        showToast.success("Outcome letter regenerated successfully with practice logo included", { section: 'complaints' });
       } else {
         throw new Error('No outcome letter received from generator');
       }
     } catch (error) {
       console.error('Error regenerating outcome letter:', error);
-      toast.error("Failed to regenerate outcome letter");
+      showToast.error("Failed to regenerate outcome letter", { section: 'complaints' });
     } finally {
       setIsRegeneratingOutcome(false);
     }
@@ -983,10 +984,10 @@ const ComplaintDetails = () => {
 
       setOutcomeLetterSent(isSent);
       setOutcomeLetterSentAt(now);
-      toast.success(isSent ? "Outcome letter marked as sent" : "Outcome letter marked as not sent");
+      showToast.success(isSent ? "Outcome letter marked as sent" : "Outcome letter marked as not sent", { section: 'complaints' });
     } catch (error) {
       console.error('Error updating outcome letter sent status:', error);
-      toast.error("Failed to update outcome letter status");
+      showToast.error("Failed to update outcome letter status", { section: 'complaints' });
     }
   };
 
@@ -1007,10 +1008,10 @@ const ComplaintDetails = () => {
       document.body.removeChild(link);
       window.URL.revokeObjectURL(url);
       
-      toast.success("Acknowledgement letter downloaded successfully");
+      showToast.success("Acknowledgement letter downloaded successfully", { section: 'complaints' });
     } catch (error) {
       console.error('Error downloading acknowledgement letter:', error);
-      toast.error("Failed to download acknowledgement letter");
+      showToast.error("Failed to download acknowledgement letter", { section: 'complaints' });
     }
   };
 
@@ -1030,13 +1031,13 @@ const ComplaintDetails = () => {
 
     // Check if at least one recipient is selected or provided
     if (!emailToPatient && !bccToUser && manualToList.length === 0 && manualCcList.length === 0) {
-      toast.error("Please provide at least one recipient");
+      showToast.error("Please provide at least one recipient", { section: 'complaints' });
       return;
     }
 
     // Check if patient email is available when patient is selected
     if (emailToPatient && !complaint.patient_contact_email) {
-      toast.error("No patient email address available");
+      showToast.error("No patient email address available", { section: 'complaints' });
       return;
     }
 
@@ -1048,7 +1049,7 @@ const ComplaintDetails = () => {
       .single();
 
     if (bccToUser && !profile?.email) {
-      toast.error("No user email address available");
+      showToast.error("No user email address available", { section: 'complaints' });
       return;
     }
 
@@ -1133,7 +1134,7 @@ const ComplaintDetails = () => {
       }
 
       const allRecipients = [...toRecipients, ...ccRecipients, ...bccRecipients];
-      toast.success(`Acknowledgement letter sent to ${allRecipients.length} recipient(s)`);
+      showToast.success(`Acknowledgement letter sent to ${allRecipients.length} recipient(s)`, { section: 'complaints' });
       setShowAcknowledgementEmailDialog(false);
     } catch (error) {
       console.error('Error sending acknowledgement email:', error);

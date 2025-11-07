@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { Switch } from '@/components/ui/switch';
-import { useToast } from '@/hooks/use-toast';
+import { showShadcnToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { SpeechToText } from '@/components/SpeechToText';
 import { CheckCircle2, AlertCircle, Loader2, CheckCircle, ClipboardCheck, Sparkles } from 'lucide-react';
@@ -57,7 +57,7 @@ export const ComplaintOutcomeQuestionnaire = ({
   complaintData,
   onSuccess,
 }: ComplaintOutcomeQuestionnaireProps) => {
-  const { toast } = useToast();
+  
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -425,10 +425,11 @@ export const ComplaintOutcomeQuestionnaire = ({
       }
     } catch (error: any) {
       console.error('AI analysis error:', error);
-      toast({
+      showShadcnToast({
         title: 'AI Analysis Failed',
         description: 'Could not generate AI analysis. You can still select an outcome manually.',
         variant: 'destructive',
+        section: 'complaints'
       });
     } finally {
       setIsAnalyzing(false);
@@ -457,20 +458,22 @@ export const ComplaintOutcomeQuestionnaire = ({
     if (step === 4) {
       // Ensure outcome is selected before proceeding
       if (!data.outcome_type) {
-        toast({
+        showShadcnToast({
           title: 'Outcome Required',
           description: 'Please select an outcome decision before proceeding.',
           variant: 'destructive',
+          section: 'complaints'
         });
         return;
       }
       
       // Ensure professional judgement confirmation is checked
       if (!confirmProfessionalJudgement) {
-        toast({
+        showShadcnToast({
           title: 'Confirmation Required',
           description: 'Please confirm that you have reviewed all evidence and are making this decision based on your professional judgement.',
           variant: 'destructive',
+          section: 'complaints'
         });
         return;
       }
@@ -486,10 +489,11 @@ export const ComplaintOutcomeQuestionnaire = ({
     
     // Validate outcome type is selected
     if (!data.outcome_type) {
-      toast({
+      showShadcnToast({
         title: 'Outcome Required',
         description: 'Please select an outcome decision (upheld, partially upheld, or not upheld).',
         variant: 'destructive',
+        section: 'complaints'
       });
       return;
     }
@@ -644,9 +648,10 @@ export const ComplaintOutcomeQuestionnaire = ({
             console.error('Background audio generation error:', audioError);
           } else {
             console.log('✓ Audio overview generation started successfully');
-            toast({
+            showShadcnToast({
               title: 'Audio Summary',
               description: 'Generating executive audio summary for management...',
+              section: 'complaints'
             });
           }
         } catch (error) {

@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, CheckCircle, AlertCircle, Mail } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { SimpleBrowserMic } from '@/components/ai4gp/SimpleBrowserMic';
 
 interface ComplaintDetails {
@@ -111,14 +111,14 @@ export default function ComplaintResponse() {
 
   const handleSubmitResponse = async () => {
     if (!response.trim()) {
-      toast.error('Please enter your response');
+      showToast.error('Please enter your response', { section: 'complaints' });
       return;
     }
 
     setSubmitting(true);
     try {
       if (!token) {
-        toast.error('Invalid access link - missing token');
+        showToast.error('Invalid access link - missing token', { section: 'complaints' });
         setSubmitting(false);
         return;
       }
@@ -130,14 +130,14 @@ export default function ComplaintResponse() {
       if (error) throw error;
 
       if (data) {
-        toast.success('Response submitted successfully');
+        showToast.success('Response submitted successfully', { section: 'complaints' });
         await fetchComplaintDetails(); // Refresh to show updated status
       } else {
         throw new Error('Failed to submit response');
       }
     } catch (err) {
       console.error('Error submitting response:', err);
-      toast.error('Failed to submit response');
+      showToast.error('Failed to submit response', { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
