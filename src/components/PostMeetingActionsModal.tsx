@@ -437,6 +437,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             Error generating notes
           </Badge>
         );
+      default:
+        return (
+          <Badge variant="secondary" className="flex items-center gap-1.5">
+            <Loader2 className="h-3 w-3 animate-spin" />
+            Processing...
+          </Badge>
+        );
     }
   };
 
