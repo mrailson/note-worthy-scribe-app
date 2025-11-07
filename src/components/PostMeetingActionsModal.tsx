@@ -399,9 +399,9 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         );
       case 'completed':
         return (
-          <Badge variant="default" className="flex items-center gap-1.5 bg-green-600">
+          <Badge variant="default" className="flex items-center gap-1.5 bg-green-600 w-fit">
             <CheckCircle className="h-3 w-3" />
-            Notes ready!
+            Ready
           </Badge>
         );
       case 'error':
@@ -450,7 +450,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
               size="lg"
             >
               <FileText className="h-5 w-5 mr-3" />
-              View Generated Minutes
+              View Meeting Notes
             </Button>
 
             {/* Download and Email Row */}
