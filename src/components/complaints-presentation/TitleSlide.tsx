@@ -1,51 +1,53 @@
 import React from 'react';
-import { Shield, Award, Bot } from 'lucide-react';
 import bluePCNLogo from '@/assets/blue-pcn-logo.png';
 
 export const TitleSlide = () => {
   return (
-    <div className="h-full flex flex-col items-center justify-center text-center space-y-8 px-8">
-      <div className="space-y-6">
-        <div className="flex justify-center mb-6 animate-fade-in">
-          <div className="px-8 py-4 rounded-full bg-primary/10 text-primary font-bold text-xl flex items-center gap-3">
-            <Bot className="w-6 h-6" />
-            AI-Powered Automation
+    <div className="h-full flex flex-col bg-background relative">
+      {/* Main Content - Left Aligned */}
+      <div className="flex-1 flex items-center px-16 py-12">
+        <div className="max-w-5xl space-y-8 animate-fade-in">
+          {/* Session and Context */}
+          <div className="space-y-2">
+            <p className="text-2xl text-muted-foreground font-medium">
+              ICS Digital, Data and Technology
+            </p>
+            <p className="text-lg text-muted-foreground">
+              Innovation Showcase - Session 1520
+            </p>
           </div>
-        </div>
 
-        <div className="space-y-2 animate-fade-in" style={{ animationDelay: '0.2s' }}>
-          <p className="text-lg text-muted-foreground font-medium">Session 1520</p>
-          <h1 className="text-5xl font-bold text-foreground">
-            Streamlining NHS Complaints Management
-          </h1>
-          <h2 className="text-4xl font-bold text-primary">
-            with AI-Powered NoteWell
-          </h2>
-        </div>
-        
-        <p className="text-xl text-muted-foreground max-w-4xl mx-auto leading-relaxed animate-fade-in" style={{ animationDelay: '0.4s' }}>
-          An intelligent complaints management system that automates NHS complaint workflows for GP practices, 
-          ensuring CQC compliance whilst reducing administrative burden. From acknowledgement to resolution, 
-          NoteWell guides practices through statutory timelines and generates professional responses aligned with NHS procedures.
-        </p>
-
-        <div className="flex flex-wrap justify-center gap-4 pt-6 animate-fade-in" style={{ animationDelay: '0.6s' }}>
-          <div className="px-6 py-3 rounded-full bg-secondary/10 text-secondary font-medium">
-            NHS Protocol Compliant
+          {/* Main Title */}
+          <div className="space-y-4">
+            <h1 className="text-7xl font-bold text-[#003087] leading-tight">
+              Streamlining NHS<br />
+              Complaints Management
+            </h1>
+            <h2 className="text-5xl font-bold text-[#005EB8]">
+              with AI-Powered NoteWell
+            </h2>
           </div>
-          <div className="px-6 py-3 rounded-full bg-accent/10 text-accent font-medium">
-            CQC Ready Reporting
-          </div>
-        </div>
 
-        <div className="pt-10 border-t border-border/50 mt-8 animate-fade-in" style={{ animationDelay: '0.8s' }}>
-          <div className="flex items-center justify-center gap-6">
-            <img src={bluePCNLogo} alt="Blue PCN Logo" className="h-20 w-auto" />
-            <div className="text-left">
-              <p className="text-3xl text-foreground font-bold">
+          {/* Event Details */}
+          <p className="text-3xl font-bold text-[#003087]">
+            14 November 2025, 14:00-16:00
+          </p>
+
+          {/* Description */}
+          <p className="text-xl text-foreground max-w-4xl leading-relaxed">
+            An intelligent complaints management system that automates NHS complaint workflows for GP practices, 
+            ensuring CQC compliance whilst reducing administrative burden. From acknowledgement to resolution, 
+            NoteWell guides practices through statutory timelines and generates professional responses aligned with NHS procedures.
+          </p>
+
+          {/* Presenter Details with Logo */}
+          <div className="flex items-center gap-6 pt-6">
+            <img src={bluePCNLogo} alt="Blue PCN Logo" className="h-16 w-auto" />
+            <div>
+              <p className="text-2xl font-bold text-foreground">
                 Malcolm Railson
               </p>
-              <p className="text-xl text-muted-foreground font-medium">
+              <p className="text-lg text-muted-foreground">
                 Digital & Transformation Lead, Blue PCN
               </p>
             </div>
@@ -53,7 +55,11 @@ export const TitleSlide = () => {
         </div>
       </div>
 
-      <p className="text-sm text-muted-foreground pt-6 animate-fade-in" style={{ animationDelay: '1s' }}>
+      {/* Turquoise Accent Bar at Bottom */}
+      <div className="h-16 bg-gradient-to-r from-[#00A9CE] to-[#00A9CE]" />
+
+      {/* Navigation Hint */}
+      <p className="absolute bottom-20 left-16 text-sm text-muted-foreground">
         Press space or → to continue
       </p>
     </div>
