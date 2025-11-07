@@ -17,6 +17,7 @@ export const useRecordingProtection = ({
   const { toast } = useToast();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [doubleClickProtection, setDoubleClickProtection] = useState(false);
+  const [isPreparingToStop, setIsPreparingToStop] = useState(false);
   const lastClickTimeRef = useRef<number>(0);
   const doubleClickTimeoutRef = useRef<NodeJS.Timeout>();
   const originalTitleRef = useRef<string>('');
@@ -95,7 +96,15 @@ export const useRecordingProtection = ({
     }
   }, [isRecording, toast]);
 
+  // Reset preparing state when dialog is closed without confirming
+  useEffect(() => {
+    if (!showConfirmDialog && isPreparingToStop && isRecording) {
+      setIsPreparingToStop(false);
+    }
+  }, [showConfirmDialog, isPreparingToStop, isRecording]);
+
   const handleStopWithConfirmation = () => {
+    setIsPreparingToStop(true);
     const shouldShowConfirmation = recordingDuration >= 300 || wordCount >= 100; // 5+ minutes or 100+ words
     
     if (shouldShowConfirmation) {
@@ -134,6 +143,7 @@ export const useRecordingProtection = ({
 
   const confirmStopRecording = () => {
     setShowConfirmDialog(false);
+    setIsPreparingToStop(false);
     onStopRecording();
   };
 
@@ -153,5 +163,6 @@ export const useRecordingProtection = ({
     handleDoubleClickProtection,
     confirmStopRecording,
     doubleClickProtection,
+    isPreparingToStop,
   };
 };

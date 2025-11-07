@@ -177,6 +177,7 @@ export const MeetingRecorder = ({
     handleDoubleClickProtection,
     confirmStopRecording,
     doubleClickProtection,
+    isPreparingToStop,
   } = useRecordingProtection({
     isRecording,
     recordingDuration: duration,
@@ -4760,10 +4761,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                           onClick={handleStopWithConfirmation}
                           variant="destructive"
                           size="lg"
+                          disabled={isPreparingToStop}
                           className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                         >
                           <Square className="h-5 w-5 mr-2" />
-                          {isPaused ? "Meeting Paused" : "Stop Recording"}
+                          {isPreparingToStop ? "Finishing meeting recording...please wait" : isPaused ? "Meeting Paused" : "Stop Recording"}
                         </Button>
                        </div>
                     )}
