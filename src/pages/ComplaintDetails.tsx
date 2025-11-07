@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Header } from "@/components/Header";
 import { ViewFullResponseModal } from "@/components/ViewFullResponseModal";
 import { AcknowledgementQuickPick } from "@/components/AcknowledgementQuickPick";
+import { ComplianceCheckCleanupButton } from "@/components/ComplianceCheckCleanupButton";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
@@ -3575,6 +3576,15 @@ I am committed to ensuring that all patients receive the care and service they d
                         <div className="text-3xl font-bold text-orange-600">{complianceSummary.total_items - complianceSummary.compliant_items}</div>
                         <div className="text-sm text-muted-foreground">Items Outstanding</div>
                       </div>
+                    </div>
+                  )}
+
+                  {complianceSummary && complianceSummary.total_items > 15 && (
+                    <div className="mb-6">
+                      <ComplianceCheckCleanupButton 
+                        complaintId={complaintId!} 
+                        onCleanupComplete={fetchComplianceData}
+                      />
                     </div>
                   )}
 

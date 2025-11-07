@@ -20,6 +20,7 @@ import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { ComplaintSignatureSettings } from "@/components/ComplaintSignatureSettings";
 import { ComplaintImport } from "@/components/ComplaintImport";
+import { ComplianceCheckCleanupButton } from "@/components/ComplianceCheckCleanupButton";
 import { 
   maskPatientData, 
   getUserRoleLevel, 
@@ -3214,6 +3215,15 @@ const ComplaintsSystem = () => {
                                 </div>
                               )}
                             </div>
+                          </div>
+                        )}
+
+                        {complianceSummary && complianceSummary.total_items > 15 && selectedComplaint && (
+                          <div className="mb-4">
+                            <ComplianceCheckCleanupButton 
+                              complaintId={selectedComplaint.id} 
+                              onCleanupComplete={() => fetchComplianceData(selectedComplaint.id)}
+                            />
                           </div>
                         )}
 
