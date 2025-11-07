@@ -307,6 +307,25 @@ export default function MeetingSummary() {
     }
   }, [user]);
 
+  // Handle view parameter to open specific section
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const view = params.get('view');
+    
+    if (view === 'standard') {
+      // Open Claude notes panel and scroll to it
+      setIsClaudeMinutesOpen(true);
+      
+      // Scroll to Claude notes section after a short delay
+      setTimeout(() => {
+        const claudeSection = document.querySelector('[data-section="claude-notes"]');
+        if (claudeSection) {
+          claudeSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 300);
+    }
+  }, [location.search]);
+
   const handleDownloadText = (content: string) => {
     const element = document.createElement("a");
     const file = new Blob([content], { type: 'text/plain' });
@@ -335,33 +354,35 @@ export default function MeetingSummary() {
           />
         )}
         
-        <ClaudeNotesPanel
-          meetingData={meetingData}
-          claudeDetailLevel={claudeDetailLevel}
-          setClaudeDetailLevel={setClaudeDetailLevel}
-          claudeNotes={claudeNotes}
-          setClaudeNotes={setClaudeNotes}
-          isClaudeEditing={isClaudeEditing}
-          setIsClaudeEditing={setIsClaudeEditing}
-          isClaudeGenerating={isClaudeGenerating}
-          isClaudeMinutesOpen={isClaudeMinutesOpen}
-          setIsClaudeMinutesOpen={setIsClaudeMinutesOpen}
-          isClaudeFullScreen={isClaudeFullScreen}
-          setIsClaudeFullScreen={setIsClaudeFullScreen}
-          customInstruction={customInstruction}
-          setCustomInstruction={setCustomInstruction}
-          showCustomInstruction={showCustomInstruction}
-          setShowCustomInstruction={setShowCustomInstruction}
-          showFindReplace={showFindReplace}
-          setShowFindReplace={setShowFindReplace}
-          generateClaudeMeetingNotes={generateClaudeMeetingNotes}
-        saveSummaryToDatabase={(content) => saveSummaryToDatabase(meetingData?.id || '', content)}
-          handleCustomInstructionSubmit={handleCustomInstructionSubmit}
-          onCopy={copyToClipboard}
-          onDownloadWord={generateWordDocument}
-          onDownloadPDF={generatePDF}
-          onDownloadText={handleDownloadText}
-        />
+        <div data-section="claude-notes">
+          <ClaudeNotesPanel
+            meetingData={meetingData}
+            claudeDetailLevel={claudeDetailLevel}
+            setClaudeDetailLevel={setClaudeDetailLevel}
+            claudeNotes={claudeNotes}
+            setClaudeNotes={setClaudeNotes}
+            isClaudeEditing={isClaudeEditing}
+            setIsClaudeEditing={setIsClaudeEditing}
+            isClaudeGenerating={isClaudeGenerating}
+            isClaudeMinutesOpen={isClaudeMinutesOpen}
+            setIsClaudeMinutesOpen={setIsClaudeMinutesOpen}
+            isClaudeFullScreen={isClaudeFullScreen}
+            setIsClaudeFullScreen={setIsClaudeFullScreen}
+            customInstruction={customInstruction}
+            setCustomInstruction={setCustomInstruction}
+            showCustomInstruction={showCustomInstruction}
+            setShowCustomInstruction={setShowCustomInstruction}
+            showFindReplace={showFindReplace}
+            setShowFindReplace={setShowFindReplace}
+            generateClaudeMeetingNotes={generateClaudeMeetingNotes}
+          saveSummaryToDatabase={(content) => saveSummaryToDatabase(meetingData?.id || '', content)}
+            handleCustomInstructionSubmit={handleCustomInstructionSubmit}
+            onCopy={copyToClipboard}
+            onDownloadWord={generateWordDocument}
+            onDownloadPDF={generatePDF}
+            onDownloadText={handleDownloadText}
+          />
+        </div>
 
         <TranscriptPanel
           meetingData={meetingData}

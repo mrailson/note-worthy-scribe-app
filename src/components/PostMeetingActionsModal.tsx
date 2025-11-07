@@ -176,7 +176,8 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     }
     
     onOpenChange(false);
-    navigate(`/meeting-summary?id=${meetingId}`);
+    // Navigate to meeting summary with view parameter to show Claude notes (Standard format)
+    navigate(`/meeting-summary?id=${meetingId}&view=standard`);
   };
 
   const handleDownload = async () => {
