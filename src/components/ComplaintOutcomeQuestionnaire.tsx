@@ -998,7 +998,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                 onValueChange={(value: any) => setData({ ...data, outcome_type: value })}
                 disabled={isAnalyzing}
               >
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue placeholder="Select outcome..." />
                 </SelectTrigger>
                 <SelectContent>
@@ -1014,7 +1014,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                 Letter Tone
               </Label>
               <Select value={data.tone} onValueChange={(value: any) => setData({ ...data, tone: value })}>
-                <SelectTrigger>
+                <SelectTrigger className="bg-white">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
