@@ -26,7 +26,7 @@ interface ComplaintDetails {
 }
 
 export default function ComplaintResponse() {
-  const { accessToken } = useParams<{ accessToken: string }>();
+  const { token: routeToken } = useParams<{ token: string }>();
   const [complaint, setComplaint] = useState<ComplaintDetails | null>(null);
   const [response, setResponse] = useState('');
   const [loading, setLoading] = useState(true);
@@ -36,7 +36,7 @@ export default function ComplaintResponse() {
 
   // Find token from route params, query string, or hash (to support various email client behaviours)
   const getEffectiveToken = (): string | null => {
-    if (accessToken) return accessToken;
+    if (routeToken) return routeToken;
     try {
       const url = new URL(window.location.href);
       const qsToken = url.searchParams.get('accessToken') || url.searchParams.get('token') || url.searchParams.get('t');
@@ -56,11 +56,11 @@ export default function ComplaintResponse() {
     const t = getEffectiveToken();
     setToken(t);
     fetchComplaintDetails();
-  }, [accessToken]);
+  }, [routeToken]);
 
   const fetchComplaintDetails = async () => {
     try {
-      const effective = accessToken || getEffectiveToken();
+      const effective = routeToken || getEffectiveToken();
       console.log('Fetching complaint with access token:', effective);
 
       if (!effective) {

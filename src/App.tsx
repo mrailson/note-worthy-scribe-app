@@ -83,6 +83,7 @@ const App = () => {
               <Route path="/complaints/:id" element={<ComplaintDetails />} />
               <Route path="/complaints-guide" element={<ComplaintsUserGuide />} />
               <Route path="/complaint-response/:token" element={<ComplaintResponse />} />
+              <Route path="/complaint-response" element={<ComplaintResponse />} />
               <Route path="/staff-feedback" element={<StaffFeedback />} />
               <Route path="/shared-drive" element={
                 <ProtectedRoute>
