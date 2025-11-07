@@ -3550,9 +3550,6 @@ I am committed to ensuring that all patients receive the care and service they d
                       <CardDescription>Track compliance with NHS England complaints procedures and CQC requirements</CardDescription>
                     </div>
                     <div className="flex items-center gap-2">
-                      <div className="bg-blue-50 px-3 py-1 rounded-md border border-blue-200">
-                        <span className="text-xs text-blue-700 font-medium">📊 Generated Reports:</span>
-                      </div>
                       {complianceChecks.length > 0 && complianceSummary?.compliance_percentage !== 100 && (
                         <Button 
                           variant="outline" 
