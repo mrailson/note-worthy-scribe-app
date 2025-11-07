@@ -3881,10 +3881,9 @@ I am committed to ensuring that all patients receive the care and service they d
               {/* Letter content */}
               <div className="flex-1 overflow-hidden">
                 {!isEditingAcknowledgement ? (
-                  <div className="bg-muted/30 p-4 rounded-lg h-full overflow-y-auto">
+                  <div className="bg-muted/30 p-4 rounded-lg h-full overflow-auto">
                     <div 
-                      className="max-w-none bg-background p-8 rounded shadow-sm origin-top transition-transform duration-300"
-                      style={{ transform: isFullscreen ? 'scale(1.6)' : 'scale(1)' }}
+                      className="max-w-[210mm] mx-auto bg-background p-8 rounded shadow-sm"
                     >
                       <FormattedLetterContent content={acknowledgementLetter} />
                     </div>
@@ -3907,10 +3906,9 @@ I am committed to ensuring that all patients receive the care and service they d
                         </ResizablePanel>
                         <ResizableHandle withHandle />
                         <ResizablePanel defaultSize={50} minSize={30}>
-                          <div className="h-full overflow-y-auto bg-muted/30 p-4">
+                          <div className="h-full overflow-auto bg-muted/30 p-4">
                             <div 
-                              className="bg-background p-8 rounded shadow-sm origin-top transition-transform duration-300"
-                              style={{ transform: isFullscreen ? 'scale(1.6)' : 'scale(1)' }}
+                              className="max-w-[210mm] mx-auto bg-background p-8 rounded shadow-sm"
                             >
                               <FormattedLetterContent content={editedAcknowledgementContent} />
                             </div>
@@ -3933,10 +3931,9 @@ I am committed to ensuring that all patients receive the care and service they d
                     )}
                     
                     {editorMode === 'preview' && (
-                      <div className="flex-1 overflow-y-auto bg-muted/30 p-4 rounded-lg border">
+                      <div className="flex-1 overflow-auto bg-muted/30 p-4 rounded-lg border">
                         <div 
-                          className="bg-background p-6 rounded shadow-sm max-w-4xl mx-auto origin-top transition-transform duration-300"
-                          style={{ transform: isFullscreen ? 'scale(1.6)' : 'scale(1)' }}
+                          className="max-w-[210mm] mx-auto bg-background p-8 rounded shadow-sm"
                         >
                           <FormattedLetterContent content={editedAcknowledgementContent} />
                         </div>
