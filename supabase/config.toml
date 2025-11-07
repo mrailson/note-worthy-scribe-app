@@ -212,3 +212,21 @@ verify_jwt = true
 
 [functions.manage-demo-responses]
 verify_jwt = false
+
+[functions.import-complaint-data]
+verify_jwt = true
+
+[functions.analyze-complaint-outcome]
+verify_jwt = true
+
+[functions.generate-complaint-outcome-letter]
+verify_jwt = true
+
+[functions.upload-to-text]
+verify_jwt = true
+
+[functions.auto-close-inactive-meetings]
+verify_jwt = false
+
+[functions.system-monitoring]
+verify_jwt = false
