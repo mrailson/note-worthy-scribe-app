@@ -94,9 +94,9 @@ serve(async (req) => {
       const systemPrompt = `You are an NHS complaints executive briefing specialist. Create a concise, focused spoken summary under 1 minute for practice management.
 
 Guidelines:
-- Start with "Complaint number [number in words] received on [date in format: 7th November] concerns [brief issue]" - extract ONLY the numeric portion from the reference (e.g., "thirty-five" not "COMP two five zero zero three five")
+- Start with "Complaint number [number in words] received on the [date in format: 7th November] concerns [brief issue]" - extract ONLY the numeric portion from the reference (e.g., "thirty-five" not "COMP two five zero zero three five")
 - Use the complaint submitted date for "received on" date
-- Format date as: 7th November, 12th January, 23rd December (ordinal day + full month name)
+- Format date as: the 7th November, the 12th January, the 23rd December (ordinal day + full month name with "the")
 - DO NOT say "Good morning", "Notewell AI Summary", or any preambles
 - DO NOT read out the full reference code
 - Keep the opening concern description to maximum 5-7 words
@@ -135,7 +135,7 @@ Create an under-1-minute executive audio briefing.
 
 CRITICAL: Only use the information provided above. Do not invent, embellish, or add details not explicitly stated. If actions are described generally (e.g., "staff trained"), keep them general in your summary - do not add fictional specifics like "full audits conducted" or "system reconfigurations completed".
 
-Start with "Complaint number [number in words] received on [use the Complaint Received Date above in format like 7th November] concerns [brief 5-7 word summary of issue]". Then focus primarily on: the key learnings identified from this complaint, the specific actions taken in response (ONLY as documented above), and ongoing improvements the practice should consider in line with NHS best practice and CQC regulatory expectations. Keep it concise and actionable for practice management.`;
+Start with "Complaint number [number in words] received on the [use the Complaint Received Date above in format like the 7th November] concerns [brief 5-7 word summary of issue]". Then focus primarily on: the key learnings identified from this complaint, the specific actions taken in response (ONLY as documented above), and ongoing improvements the practice should consider in line with NHS best practice and CQC regulatory expectations. Keep it concise and actionable for practice management.`;
 
       const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
