@@ -417,34 +417,39 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   return (
     <>
       <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2 text-xl">
-              🎉 Meeting Saved Successfully!
-            </DialogTitle>
-            <DialogDescription className="space-y-2 pt-2">
-              <div className="text-sm">
-                <span className="font-medium text-foreground">Title:</span> {meetingTitle}
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader className="space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="h-12 w-12 rounded-full bg-green-100 dark:bg-green-900/20 flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="h-6 w-6 text-green-600 dark:text-green-500" />
               </div>
-              <div className="text-sm">
-                <span className="font-medium text-foreground">Duration:</span> {meetingDuration}
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-sm font-medium text-foreground">Status:</span>
-                {getStatusBadge()}
+              <DialogTitle className="text-2xl font-semibold">
+                Meeting Saved Successfully
+              </DialogTitle>
+            </div>
+            <DialogDescription className="space-y-3 pt-2">
+              <div className="grid grid-cols-[100px_1fr] gap-y-2 text-sm">
+                <span className="font-medium text-foreground">Title:</span>
+                <span className="text-foreground">{meetingTitle}</span>
+                
+                <span className="font-medium text-foreground">Duration:</span>
+                <span className="text-foreground">{meetingDuration}</span>
+                
+                <span className="font-medium text-foreground">Status:</span>
+                <div>{getStatusBadge()}</div>
               </div>
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3 pt-4">
+          <div className="space-y-3 pt-2">
             {/* View Minutes Button */}
             <Button
               onClick={handleViewMeeting}
               disabled={notesStatus !== 'completed'}
-              className="w-full justify-start h-12"
+              className="w-full justify-start h-12 text-base"
               size="lg"
             >
-              <FileText className="h-4 w-4 mr-2" />
+              <FileText className="h-5 w-5 mr-3" />
               View Generated Minutes
             </Button>
 
@@ -490,13 +495,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
               Start New Meeting
             </Button>
 
-            {/* No Thanks Button */}
+            {/* Close Button */}
             <Button
               onClick={() => onOpenChange(false)}
               variant="ghost"
-              className="w-full text-muted-foreground"
+              className="w-full text-muted-foreground hover:text-foreground"
             >
-              No thanks
+              Close and Return to Notewell AI
             </Button>
           </div>
         </DialogContent>
