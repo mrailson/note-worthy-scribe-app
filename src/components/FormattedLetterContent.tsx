@@ -47,7 +47,9 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
   // Remove the logo metadata comment from content for parsing
   const cleanContent = content
     .replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '')
-    .replace(/!\[.*?\]\(.*?\)/g, ''); // Remove markdown image syntax
+    .replace(/!\[.*?\]\(.*?\)/g, '') // Remove markdown image syntax
+    .replace(/\[.*?Logo\/Letterhead.*?\]/gi, '') // Remove letterhead placeholder text
+    .replace(/```plaintext|```/g, ''); // Remove code block markers
   
   // Parse content into sections
   const lines = cleanContent.split('\n').filter(line => line.trim());
