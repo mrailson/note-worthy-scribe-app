@@ -3867,6 +3867,26 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           signalMeetingHistoryRefresh();
           
           console.log('✅ Background processing completed');
+          
+          // Format duration for display (MM:SS format)
+          const minutes = Math.floor(duration / 60);
+          const seconds = duration % 60;
+          const formattedDuration = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+          
+          // Store meeting details for post-meeting modal
+          setLastCompletedMeetingId(savedMeeting.id);
+          setLastCompletedMeetingTitle(savedMeeting.title);
+          setLastCompletedMeetingDuration(formattedDuration);
+          
+          setStopRecordingStep('Complete!');
+          await resetMeeting();
+          setIsStoppingRecording(false);
+          stopInProgressRef.current = false;
+          
+          // Show post-meeting actions modal
+          setShowPostMeetingActions(true);
+          
+          console.log('✅ Recording state reset - showing post-meeting modal');
         } catch (error) {
           console.error('⚠️ Background processing error:', error);
           // Don't fail the main save process for background errors
