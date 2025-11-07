@@ -848,15 +848,6 @@ export const ComplaintOutcomeQuestionnaire = ({
                 <div>
                   <span className="font-medium">Investigation:</span> ✓ Complete
                 </div>
-                {complianceSummary && (
-                  <div>
-                    <span className="font-medium">CQC Compliance:</span> {complianceSummary.compliant_items}/{complianceSummary.total_items} items ({complianceSummary.compliance_percentage}%)
-                  </div>
-                )}
-                <div>
-                  <span className="font-medium">Tone:</span> {data.tone.charAt(0).toUpperCase() + data.tone.slice(1)}
-                  {(data.tone === 'strong' || data.tone === 'firm') && ' (Vexatious)'}
-                </div>
                 <div>
                   <span className="font-medium">Key Findings:</span> {data.key_findings}
                 </div>
