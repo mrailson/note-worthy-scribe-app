@@ -892,15 +892,6 @@ export const ComplaintOutcomeQuestionnaire = ({
 
             {enableAiAnalysis && (
               <>
-                {/* AI Disclaimer Banner */}
-                <Alert className="bg-amber-50 border-amber-200">
-                  <AlertCircle className="h-5 w-5 text-amber-600" />
-                  <AlertTitle className="text-amber-900 font-semibold">AI GUIDANCE ONLY</AlertTitle>
-                  <AlertDescription className="text-amber-800 text-sm leading-relaxed">
-                    The AI-generated recommendation below is provided as guidance to support your decision-making process. The final decision on whether to uphold, partially uphold, or not uphold this complaint must be made by appropriately qualified staff based on thorough review of all evidence. <strong>Human oversight and professional judgement are essential.</strong>
-                  </AlertDescription>
-                </Alert>
-
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
                   <div className="flex items-center gap-2 mb-3">
                     <Sparkles className="h-5 w-5 text-blue-600" />
