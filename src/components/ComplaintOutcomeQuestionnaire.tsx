@@ -221,17 +221,13 @@ export const ComplaintOutcomeQuestionnaire = ({
       return;
     }
     
-    // Apply character limits when loading (enforcing field constraints)
-    const maxLength = field === 'additional_context' ? 200 : 150;
-    const trimmedContent = content.slice(0, maxLength);
-    
-    setData(prevData => ({ ...prevData, [field]: trimmedContent }));
+    setData(prevData => ({ ...prevData, [field]: content }));
     
     const sourceInfo = demoSource === 'fallback' 
       ? ' (from similar complaint in same category)' 
       : '';
     
-    console.log(`✨ Loaded demo content for ${field}: ${trimmedContent.length} chars${sourceInfo}`);
+    console.log(`✨ Loaded demo content for ${field}: ${content.length} chars${sourceInfo}`);
   };
 
   useEffect(() => {
@@ -692,16 +688,13 @@ export const ComplaintOutcomeQuestionnaire = ({
           <div className="space-y-6">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-semibold">
-                  Brief Summary of Key Findings * (Max 150 chars)
+                <Label className="text-sm font-semibold mb-2">
+                  Brief Summary of Key Findings *
                 </Label>
-                <span className="text-xs text-muted-foreground">
-                  {data.key_findings.length}/150
-                </span>
               </div>
               <Textarea
                 value={data.key_findings}
-                onChange={(e) => setData({ ...data, key_findings: e.target.value.slice(0, 150) })}
+                onChange={(e) => setData({ ...data, key_findings: e.target.value })}
                 placeholder="Summarise the main findings in 2-3 sentences..."
                 rows={3}
                 className="mb-2"
@@ -709,7 +702,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               <div className="flex gap-2">
                 <SpeechToText
                   onTranscription={(text) =>
-                    setData(prevData => ({ ...prevData, key_findings: (prevData.key_findings + ' ' + text).slice(0, 150) }))
+                    setData(prevData => ({ ...prevData, key_findings: prevData.key_findings + ' ' + text }))
                   }
                   className="flex-1"
                 />
@@ -728,17 +721,12 @@ export const ComplaintOutcomeQuestionnaire = ({
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-semibold">
-                  Actions Already Taken or Planned (Max 150 chars, optional)
-                </Label>
-                <span className="text-xs text-muted-foreground">
-                  {data.actions_taken.length}/150
-                </span>
-              </div>
+              <Label className="text-sm font-semibold mb-2">
+                Actions Already Taken or Planned (optional)
+              </Label>
               <Textarea
                 value={data.actions_taken}
-                onChange={(e) => setData({ ...data, actions_taken: e.target.value.slice(0, 150) })}
+                onChange={(e) => setData({ ...data, actions_taken: e.target.value })}
                 placeholder="What actions have been or will be taken?"
                 rows={2}
                 className="mb-2"
@@ -746,7 +734,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               <div className="flex gap-2">
                 <SpeechToText
                   onTranscription={(text) =>
-                    setData(prevData => ({ ...prevData, actions_taken: (prevData.actions_taken + ' ' + text).slice(0, 150) }))
+                    setData(prevData => ({ ...prevData, actions_taken: prevData.actions_taken + ' ' + text }))
                   }
                   className="flex-1"
                 />
@@ -765,17 +753,12 @@ export const ComplaintOutcomeQuestionnaire = ({
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-semibold">
-                  Service Improvements Made (Max 150 chars, optional)
-                </Label>
-                <span className="text-xs text-muted-foreground">
-                  {data.improvements_made.length}/150
-                </span>
-              </div>
+              <Label className="text-sm font-semibold mb-2">
+                Service Improvements Made (optional)
+              </Label>
               <Textarea
                 value={data.improvements_made}
-                onChange={(e) => setData({ ...data, improvements_made: e.target.value.slice(0, 150) })}
+                onChange={(e) => setData({ ...data, improvements_made: e.target.value })}
                 placeholder="What improvements have been made to prevent recurrence?"
                 rows={2}
                 className="mb-2"
@@ -783,7 +766,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               <div className="flex gap-2">
                 <SpeechToText
                   onTranscription={(text) =>
-                    setData(prevData => ({ ...prevData, improvements_made: (prevData.improvements_made + ' ' + text).slice(0, 150) }))
+                    setData(prevData => ({ ...prevData, improvements_made: prevData.improvements_made + ' ' + text }))
                   }
                   className="flex-1"
                 />
@@ -842,17 +825,12 @@ export const ComplaintOutcomeQuestionnaire = ({
             </div>
 
             <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label className="text-sm font-semibold">
-                  Any Additional Context (Max 200 chars, optional)
-                </Label>
-                <span className="text-xs text-muted-foreground">
-                  {data.additional_context.length}/200
-                </span>
-              </div>
+              <Label className="text-sm font-semibold mb-2">
+                Any Additional Context (optional)
+              </Label>
               <Textarea
                 value={data.additional_context}
-                onChange={(e) => setData({ ...data, additional_context: e.target.value.slice(0, 200) })}
+                onChange={(e) => setData({ ...data, additional_context: e.target.value })}
                 placeholder="Any other context or special instructions for the letter..."
                 rows={3}
                 className="mb-2"
@@ -860,7 +838,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               <div className="flex gap-2">
                 <SpeechToText
                   onTranscription={(text) =>
-                    setData(prevData => ({ ...prevData, additional_context: (prevData.additional_context + ' ' + text).slice(0, 200) }))
+                    setData(prevData => ({ ...prevData, additional_context: prevData.additional_context + ' ' + text }))
                   }
                   className="flex-1"
                 />
