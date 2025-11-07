@@ -72,8 +72,8 @@ serve(async (req) => {
             'Authorization': `Bearer ${OPENAI_API_KEY}`,
           },
           body: formData,
-          // Add timeout
-          signal: AbortSignal.timeout(60000), // 60 second timeout
+          // Add timeout (increase to 120s to avoid premature aborts on slow network)
+          signal: AbortSignal.timeout(120000), // 120 second timeout
         });
 
         console.log('📨 SPEECH-TO-TEXT: OpenAI response status:', response.status);
@@ -99,15 +99,20 @@ serve(async (req) => {
           await new Promise(resolve => setTimeout(resolve, delay));
         }
         
-      } catch (error) {
-        console.error(`❌ SPEECH-TO-TEXT: Network error (attempt ${attempt}):`, error);
+      } catch (error: any) {
+        console.error(`❌ SPEECH-TO-TEXT: Network/timeout error (attempt ${attempt}):`, error);
         lastError = error;
-        
-        // Don't retry on timeout or abort errors immediately
-        if (error.name === 'AbortError' || error.name === 'TimeoutError') {
-          break;
+        // For timeout/abort, still retry if attempts remain
+        if (error?.name === 'AbortError' || error?.name === 'TimeoutError') {
+          if (attempt < maxRetries) {
+            const delay = Math.pow(2, attempt - 1) * 1000;
+            console.log(`⏳ SPEECH-TO-TEXT: Timeout/abort - retrying after ${delay}ms...`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            continue; // retry next loop
+          } else {
+            break;
+          }
         }
-        
         if (attempt < maxRetries) {
           const delay = Math.pow(2, attempt - 1) * 1000;
           console.log(`⏳ SPEECH-TO-TEXT: Waiting ${delay}ms before retry...`);
