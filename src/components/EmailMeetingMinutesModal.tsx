@@ -79,12 +79,23 @@ export function EmailMeetingMinutesModal({
     const fetchMeetingData = async () => {
       if (!meetingId) return;
       
+      // Skip database query for test meeting IDs
+      if (meetingId.startsWith('test-meeting-id-')) {
+        const now = new Date();
+        const roundedDate = roundToNearest15Minutes(now);
+        const formattedDateTime = format(roundedDate, "dd-MM-yyyy 'at' HH:mm");
+        setMeetingDateTime(formattedDateTime);
+        const niceDate = formatNiceDate(roundedDate);
+        setMeetingDate(niceDate);
+        return;
+      }
+      
       try {
         const { data, error } = await supabase
           .from('meetings')
           .select('start_time')
           .eq('id', meetingId)
-          .single();
+          .maybeSingle();
         
         if (error) throw error;
         
@@ -176,6 +187,12 @@ export function EmailMeetingMinutesModal({
   useEffect(() => {
     const fetchAttendees = async () => {
       if (!isOpen || !meetingId) return;
+
+      // Skip database query for test meeting IDs
+      if (meetingId.startsWith('test-meeting-id-')) {
+        setMeetingAttendees([]);
+        return;
+      }
 
       try {
         const { data: meetingAttendeesData, error } = await supabase

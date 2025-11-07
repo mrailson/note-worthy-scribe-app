@@ -66,9 +66,10 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         setMeetingNotes('This is a test meeting. The notes generation feature works by processing your recorded meetings and generating comprehensive summaries automatically.');
         setMeetingData({
           title: meetingTitle,
-          date: new Date().toLocaleDateString('en-GB'),
+          startTime: new Date().toISOString(),
           duration: meetingDuration,
-          attendees: 'Test User',
+          attendees: ['Test User'],
+          meetingLocation: 'Test Location',
           overview: 'This is a test meeting. The notes generation feature works by processing your recorded meetings and generating comprehensive summaries automatically.',
           content: 'This is a test meeting. The notes generation feature works by processing your recorded meetings and generating comprehensive summaries automatically.',
         });
@@ -97,9 +98,10 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         // Set meeting data for export
         setMeetingData({
           title: data.title,
-          date: data.start_time ? new Date(data.start_time).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'),
+          startTime: data.start_time,
           duration: data.duration_minutes ? `${data.duration_minutes} minutes` : meetingDuration,
-          attendees: (data.participants || []).join(', '),
+          attendees: data.participants || [],
+          meetingLocation: '',
           overview: data.overview || '',
           content: data.overview || '',
         });
@@ -143,9 +145,10 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             // Update meeting data for export
             setMeetingData({
               title: payload.new.title,
-              date: payload.new.start_time ? new Date(payload.new.start_time).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB'),
+              startTime: payload.new.start_time,
               duration: payload.new.duration_minutes ? `${payload.new.duration_minutes} minutes` : meetingDuration,
-              attendees: (payload.new.participants || []).join(', '),
+              attendees: payload.new.participants || [],
+              meetingLocation: '',
               overview: payload.new.overview || '',
               content: payload.new.overview || '',
             });
