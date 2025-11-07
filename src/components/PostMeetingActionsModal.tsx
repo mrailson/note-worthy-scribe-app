@@ -488,7 +488,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             <Button
               onClick={handleStartNew}
               variant="secondary"
-              className="w-full justify-start h-12"
+              className="w-full justify-center h-12"
               size="lg"
             >
               <PlayCircle className="h-4 w-4 mr-2" />
