@@ -976,7 +976,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                       </div>
 
                       {aiAnalysisText && (
-                        <div className="bg-white p-4 rounded border border-blue-200 max-h-[400px] overflow-y-auto">
+                        <div className="bg-white p-4 rounded border border-blue-200 max-h-[600px] overflow-y-auto">
                           {formatAiAnalysis(aiAnalysisText)}
                         </div>
                       )}
