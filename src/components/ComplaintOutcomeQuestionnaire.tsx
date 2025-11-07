@@ -115,7 +115,11 @@ export const ComplaintOutcomeQuestionnaire = ({
             <div key={idx} className="space-y-2">
               {isHeading && (
                 <h4 className="font-bold text-[#005EB8] text-sm">
-                  {heading.replace(':', '')}
+                  {heading
+                    .replace(/\s*\(\s*\d+\s*(?:-\s*\d+)?\s*[^)]*\)\s*/gi, '')
+                    .replace(/\s*\(\s*(?:bullet|sentences?)\b[^)]*\)\s*/gi, '')
+                    .replace(/\s*:\s*$/, '')
+                    .trim()}
                 </h4>
               )}
               {content.map((line, lineIdx) => {
