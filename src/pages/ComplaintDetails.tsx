@@ -1138,7 +1138,7 @@ const ComplaintDetails = () => {
       setShowAcknowledgementEmailDialog(false);
     } catch (error) {
       console.error('Error sending acknowledgement email:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to send email');
+      showToast.error(error instanceof Error ? error.message : 'Failed to send email', { section: 'complaints' });
     } finally {
       setIsSendingAcknowledgementEmail(false);
     }
@@ -1160,13 +1160,13 @@ const ComplaintDetails = () => {
 
     // Check if at least one recipient is selected or provided
     if (!emailToPatient && !bccToUser && manualToList.length === 0 && manualCcList.length === 0) {
-      toast.error('Please provide at least one recipient');
+      showToast.error('Please provide at least one recipient', { section: 'complaints' });
       return;
     }
 
     // Check if patient email is available when patient is selected
     if (emailToPatient && !complaint.patient_contact_email) {
-      toast.error('No patient email address available');
+      showToast.error('No patient email address available', { section: 'complaints' });
       return;
     }
 
@@ -1178,7 +1178,7 @@ const ComplaintDetails = () => {
       .single();
 
     if (bccToUser && !profile?.email) {
-      toast.error('No user email address available');
+      showToast.error('No user email address available', { section: 'complaints' });
       return;
     }
 
@@ -1256,7 +1256,7 @@ const ComplaintDetails = () => {
       }
 
       const allRecipients = [...toRecipients, ...ccRecipients, ...bccRecipients];
-      toast.success(`Outcome letter sent to ${allRecipients.length} recipient(s)`);
+      showToast.success(`Outcome letter sent to ${allRecipients.length} recipient(s)`, { section: 'complaints' });
       setShowOutcomeEmailDialog(false);
       
       // Update the sent_at timestamp in the database
@@ -1276,7 +1276,7 @@ const ComplaintDetails = () => {
       }
     } catch (error) {
       console.error('Error sending outcome email:', error);
-      toast.error(error instanceof Error ? error.message : 'Failed to send email');
+      showToast.error(error instanceof Error ? error.message : 'Failed to send email', { section: 'complaints' });
     } finally {
       setIsSendingOutcomeEmail(false);
     }
@@ -1323,10 +1323,10 @@ const ComplaintDetails = () => {
 
       setAcknowledgementLetter(contentToSave);
       setIsEditingAcknowledgement(false);
-      toast.success("Acknowledgement letter updated successfully");
+      showToast.success("Acknowledgement letter updated successfully", { section: 'complaints' });
     } catch (error) {
       console.error('Error saving acknowledgement letter:', error);
-      toast.error("Failed to save acknowledgement letter");
+      showToast.error("Failed to save acknowledgement letter", { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -1350,10 +1350,10 @@ const ComplaintDetails = () => {
 
       // Refresh to get new audio data
       await fetchComplaintDetails();
-      toast.success('Audio overview generated successfully');
+      showToast.success('Audio overview generated successfully', { section: 'complaints' });
     } catch (error: any) {
       console.error('Error generating audio:', error);
-      toast.error(`Failed to generate audio: ${error.message}`);
+      showToast.error(`Failed to generate audio: ${error.message}`, { section: 'complaints' });
     } finally {
       setIsGeneratingAudio(false);
     }
@@ -1390,11 +1390,11 @@ const ComplaintDetails = () => {
 
         if (updateError) throw updateError;
 
-        toast.success('Outcome letter regenerated with AI');
+        showToast.success('Outcome letter regenerated with AI', { section: 'complaints' });
       }
     } catch (error) {
       console.error('Error regenerating outcome letter with AI:', error);
-      toast.error('Failed to regenerate outcome letter');
+      showToast.error('Failed to regenerate outcome letter', { section: 'complaints' });
     } finally {
       setIsRegeneratingWithAI(false);
     }
@@ -1503,7 +1503,7 @@ const ComplaintDetails = () => {
       editorApi.insertText(placeholder);
       editorApi.focus();
     } else {
-      toast.error('Editor not ready');
+      showToast.error('Editor not ready', { section: 'complaints' });
     }
   };
 
@@ -1677,7 +1677,7 @@ const ComplaintDetails = () => {
 
   const handleSendInputRequests = async () => {
     if (selectedStaff.length === 0) {
-      toast.error("Please select staff members to request input from");
+      showToast.error("Please select staff members to request input from", { section: 'complaints' });
       return;
     }
 
@@ -1687,7 +1687,7 @@ const ComplaintDetails = () => {
     );
     
     if (hasExistingRequests) {
-      toast.error("Input requests have already been sent for some of the selected staff. Check the tracking section below.");
+      showToast.error("Input requests have already been sent for some of the selected staff. Check the tracking section below.", { section: 'complaints' });
       return;
     }
 
@@ -1703,7 +1703,7 @@ const ComplaintDetails = () => {
         }));
 
       if (involvedParties.length === 0) {
-        toast.error("Please ensure all selected staff have email addresses");
+        showToast.error("Please ensure all selected staff have email addresses", { section: 'complaints' });
         return;
       }
 
@@ -1730,7 +1730,7 @@ const ComplaintDetails = () => {
       
       if (failedEmails.length > 0) {
         console.error('Failed emails:', failedEmails);
-        toast.error(`${failedEmails.length} emails failed to send. Check console for details.`);
+        showToast.error(`${failedEmails.length} emails failed to send. Check console for details.`, { section: 'complaints' });
       }
 
       const successfulEmails = emailResults.filter((result: any) => result.status === 'sent');
@@ -1752,9 +1752,9 @@ const ComplaintDetails = () => {
       setInputRequests(newInputRequests);
       
       if (successfulEmails.length === involvedParties.length) {
-        toast.success(`Input requests sent to ${successfulEmails.length} staff members`);
+        showToast.success(`Input requests sent to ${successfulEmails.length} staff members`, { section: 'complaints' });
       } else {
-        toast.success(`${successfulEmails.length} of ${involvedParties.length} emails sent successfully`);
+        showToast.success(`${successfulEmails.length} of ${involvedParties.length} emails sent successfully`, { section: 'complaints' });
       }
       
       // Log the activity
@@ -1762,7 +1762,7 @@ const ComplaintDetails = () => {
       
     } catch (error) {
       console.error('Error sending input requests:', error);
-      toast.error("Failed to send input requests: " + error.message);
+      showToast.error("Failed to send input requests: " + error.message, { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -1781,11 +1781,11 @@ const ComplaintDetails = () => {
 
       // Clear local state
       setInputRequests([]);
-      toast.success("Input requests cleared. You can now send new requests.");
+      showToast.success("Input requests cleared. You can now send new requests.", { section: 'complaints' });
       
     } catch (error) {
       console.error('Error clearing input requests:', error);
-      toast.error("Failed to clear input requests");
+      showToast.error("Failed to clear input requests", { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -1858,11 +1858,11 @@ I am committed to ensuring that all patients receive the care and service they d
           : request
       ));
 
-      toast.success(`Test reply generated for ${staffName}`);
+      showToast.success(`Test reply generated for ${staffName}`, { section: 'complaints' });
       
     } catch (error) {
       console.error('Error generating test reply:', error);
-      toast.error("Failed to generate test reply");
+      showToast.error("Failed to generate test reply", { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -1887,11 +1887,11 @@ I am committed to ensuring that all patients receive the care and service they d
       if (error) throw error;
 
       setWorkflowSettings(settings);
-      toast.success("Workflow settings saved");
+      showToast.success("Workflow settings saved", { section: 'complaints' });
       
     } catch (error) {
       console.error('Error saving workflow settings:', error);
-      toast.error("Failed to save workflow settings");
+      showToast.error("Failed to save workflow settings", { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -1910,11 +1910,11 @@ I am committed to ensuring that all patients receive the care and service they d
 
       if (error) throw error;
 
-      toast.success("Complaint deleted successfully");
+      showToast.success("Complaint deleted successfully", { section: 'complaints' });
       navigate('/complaints');
     } catch (error) {
       console.error('Error deleting complaint:', error);
-      toast.error("Failed to delete complaint");
+      showToast.error("Failed to delete complaint", { section: 'complaints' });
     } finally {
       setIsDeleting(false);
       setShowDeleteDialog(false);
@@ -2705,10 +2705,10 @@ I am committed to ensuring that all patients receive the care and service they d
                                 document.body.removeChild(link);
                                 window.URL.revokeObjectURL(url);
                                 
-                                toast.success("Outcome letter downloaded successfully");
+                                showToast.success("Outcome letter downloaded successfully", { section: 'complaints' });
                               } catch (error) {
                                 console.error('Error downloading outcome letter:', error);
-                                toast.error("Failed to download outcome letter");
+                                showToast.error("Failed to download outcome letter", { section: 'complaints' });
                               }
                             }}
                             className="border-green-600 text-green-700 hover:bg-green-100"
@@ -2947,10 +2947,10 @@ I am committed to ensuring that all patients receive the care and service they d
                               a.download = `Outcome_Letter_${complaint?.reference_number || 'OUTCOME'}.docx`;
                               a.click();
                               URL.revokeObjectURL(url);
-                              toast.success('Outcome letter downloaded');
+                              showToast.success('Outcome letter downloaded', { section: 'complaints' });
                             } catch (error) {
                               console.error('Error downloading outcome letter:', error);
-                              toast.error('Failed to download outcome letter');
+                              showToast.error('Failed to download outcome letter', { section: 'complaints' });
                             }
                           }}
                         >
@@ -2968,7 +2968,7 @@ I am committed to ensuring that all patients receive the care and service they d
                         </Button>
                         <Button onClick={() => {
                           navigator.clipboard.writeText(outcomeLetter);
-                          toast.success('Letter copied to clipboard');
+                          showToast.success('Letter copied to clipboard', { section: 'complaints' });
                         }}>
                           Copy to Clipboard
                         </Button>
@@ -3720,10 +3720,10 @@ I am committed to ensuring that all patients receive the care and service they d
                     onClick={async () => {
                       try {
                         await handleDownloadAcknowledgementLetter();
-                        toast.success('Letter downloaded');
+                        showToast.success('Letter downloaded', { section: 'complaints' });
                       } catch (error) {
                         console.error('Download failed:', error);
-                        toast.error(`Download failed: ${error.message}`);
+                        showToast.error(`Download failed: ${error.message}`, { section: 'complaints' });
                       }
                     }}
                   >
@@ -3928,7 +3928,7 @@ I am committed to ensuring that all patients receive the care and service they d
                               onApply={(updatedText) => {
                                 setEditedAcknowledgementContent(updatedText);
                                 setHasUnsavedChanges(true);
-                                toast.success('Replacements applied');
+                                showToast.success('Replacements applied', { section: 'complaints' });
                               }}
                             />
                           </div>
@@ -4187,7 +4187,7 @@ I am committed to ensuring that all patients receive the care and service they d
           }}
           onSuccess={() => {
             fetchComplaintDetails();
-            toast.success('Outcome letter created successfully!');
+            showToast.success('Outcome letter created successfully!', { section: 'complaints' });
           }}
         />
       )}
