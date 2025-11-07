@@ -944,16 +944,6 @@ export const ComplaintOutcomeQuestionnaire = ({
             {enableAiAnalysis && (
               <>
                 <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2">
-                      <Sparkles className="h-5 w-5 text-blue-600" />
-                      <h3 className="font-semibold text-blue-900">AI Outcome Analysis</h3>
-                    </div>
-                    <Button size="sm" variant="secondary" onClick={analyzeComplaintOutcome} disabled={isAnalyzing} className="ml-2">
-                      {isAnalyzing ? 'Generating…' : 'Regenerate'}
-                    </Button>
-                  </div>
-
                   {isAnalyzing ? (
                     <div className="flex flex-col items-center justify-center py-8 space-y-4">
                       <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -961,11 +951,18 @@ export const ComplaintOutcomeQuestionnaire = ({
                     </div>
                   ) : (
                     <div className="space-y-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-blue-600" />
+                          <span className="font-medium text-sm">AI Guidance: Suggested Outcome (For Reference Only)</span>
+                        </div>
+                        <Button size="sm" variant="secondary" onClick={analyzeComplaintOutcome} disabled={isAnalyzing} className="ml-2">
+                          {isAnalyzing ? 'Generating…' : 'Regenerate'}
+                        </Button>
+                      </div>
                       {aiSuggestedOutcome && (
                         <div className="bg-white p-3 rounded border border-blue-200">
                           <div className="flex items-center gap-2">
-                            <Sparkles className="h-4 w-4 text-blue-600" />
-                            <span className="font-medium text-sm">AI Guidance: Suggested Outcome (For Reference Only)</span>
                             <Badge 
                               variant={
                                 aiSuggestedOutcome === 'upheld' ? 'destructive' : 
