@@ -3883,7 +3883,7 @@ I am committed to ensuring that all patients receive the care and service they d
                 {!isEditingAcknowledgement ? (
                   <div className="bg-muted/30 p-4 rounded-lg h-full overflow-auto">
                     <div 
-                      className={`mx-auto bg-background p-8 rounded shadow-sm ${isFullscreen ? 'max-w-[92vw]' : 'max-w-5xl'}`}
+                      className={`mx-auto bg-background p-8 rounded shadow-sm ${isFullscreen ? 'max-w-[92vw]' : 'max-w-[72vw]'}`}
                     >
                       <FormattedLetterContent content={acknowledgementLetter} />
                     </div>
@@ -3908,7 +3908,7 @@ I am committed to ensuring that all patients receive the care and service they d
                         <ResizablePanel defaultSize={50} minSize={30}>
                           <div className="h-full overflow-auto bg-muted/30 p-4">
                             <div 
-                              className={`mx-auto bg-background p-8 rounded shadow-sm ${isFullscreen ? 'max-w-[85vw]' : 'max-w-4xl'}`}
+                              className={`mx-auto bg-background p-8 rounded shadow-sm ${isFullscreen ? 'max-w-[85vw]' : 'max-w-[68vw]'}`}
                             >
                               <FormattedLetterContent content={editedAcknowledgementContent} />
                             </div>
@@ -3933,7 +3933,7 @@ I am committed to ensuring that all patients receive the care and service they d
                     {editorMode === 'preview' && (
                       <div className="flex-1 overflow-auto bg-muted/30 p-4 rounded-lg border">
                         <div 
-                          className={`mx-auto bg-background p-8 rounded shadow-sm ${isFullscreen ? 'max-w-[92vw]' : 'max-w-5xl'}`}
+                          className={`mx-auto bg-background p-8 rounded shadow-sm ${isFullscreen ? 'max-w-[92vw]' : 'max-w-[72vw]'}`}
                         >
                           <FormattedLetterContent content={editedAcknowledgementContent} />
                         </div>
