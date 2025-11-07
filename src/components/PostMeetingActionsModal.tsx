@@ -38,6 +38,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [transcriptLength, setTranscriptLength] = useState<number>(0);
   const [emailSentTo, setEmailSentTo] = useState<string>('');
+  const [isDownloaded, setIsDownloaded] = useState(false);
   
   const { generateWordDocument, isExporting } = useMeetingExport(
     meetingData,
@@ -61,10 +62,11 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     return num.toString();
   };
 
-  // Reset email sent state when modal opens/closes
+  // Reset email sent state and download state when modal opens/closes
   useEffect(() => {
     if (!isOpen) {
       setEmailSentTo('');
+      setIsDownloaded(false);
     }
   }, [isOpen]);
 
@@ -209,6 +211,8 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     try {
       const content = meetingData.overview || meetingData.content || '';
       await generateWordDocument(content, meetingTitle);
+      setIsDownloaded(true);
+      toast.success('Meeting notes downloaded!');
     } catch (error) {
       console.error('Download error:', error);
       toast.error('Failed to download meeting notes');
@@ -488,14 +492,24 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                 onClick={handleDownload}
                 disabled={isExporting || notesStatus !== 'completed'}
                 variant="outline"
-                className="justify-start h-12"
+                className="justify-start h-12 overflow-hidden"
               >
                 {isExporting ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 flex-shrink-0 animate-spin" />
+                    <span className="text-sm truncate">Downloading...</span>
+                  </>
+                ) : isDownloaded ? (
+                  <>
+                    <Download className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="text-xs truncate">Meeting Notes Downloaded</span>
+                  </>
                 ) : (
-                  <Download className="h-4 w-4 mr-2" />
+                  <>
+                    <Download className="h-4 w-4 mr-2 flex-shrink-0" />
+                    <span className="text-sm truncate">Download Notes (Word Docx)</span>
+                  </>
                 )}
-                <span className="text-sm">Download Notes (Word Docx)</span>
               </Button>
 
               <Button
