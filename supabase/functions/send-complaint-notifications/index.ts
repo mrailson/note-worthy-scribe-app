@@ -76,6 +76,19 @@ serve(async (req) => {
       console.log('Found practice details:', practiceDetails?.practice_name);
     }
 
+    // Fetch acknowledgement letter if it exists
+    const { data: acknowledgement } = await supabase
+      .from('complaint_acknowledgements')
+      .select('acknowledgement_text, created_at')
+      .eq('complaint_id', complaintId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+    
+    if (acknowledgement) {
+      console.log('Found acknowledgement letter for complaint');
+    }
+
     // Insert involved parties and get their access tokens
     const involvedPartiesData = [];
     
@@ -180,6 +193,21 @@ serve(async (req) => {
       <p style="color: #374151; line-height: 1.6; margin: 0; white-space: pre-wrap;">${complaint.complaint_description}</p>
     </div>
   </div>
+
+  ${acknowledgement ? `
+  <div style="background-color: #f0fdf4; border-left: 4px solid #10b981; padding: 20px; margin: 25px 0;">
+    <h2 style="color: #065f46; font-size: 18px; margin: 0 0 15px 0; font-weight: bold;">✅ Acknowledgement Sent to Patient</h2>
+    <p style="color: #374151; font-size: 14px; margin: 0 0 10px 0;">
+      <strong>Sent:</strong> ${new Date(acknowledgement.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+    </p>
+    <div style="background-color: #ffffff; padding: 15px; border-radius: 6px; border: 1px solid #86efac; max-height: 300px; overflow-y: auto;">
+      ${acknowledgement.acknowledgement_text}
+    </div>
+    <p style="color: #059669; font-size: 13px; margin: 10px 0 0 0; font-style: italic;">
+      ℹ️ This acknowledgement letter has been sent to the patient. Your response should build upon this communication.
+    </p>
+  </div>
+  ` : ''}
 
   <div style="text-align: center; margin: 30px 0;">
     <a href="${responseUrl}" 
