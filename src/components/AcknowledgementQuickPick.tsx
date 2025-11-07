@@ -120,7 +120,7 @@ export function AcknowledgementQuickPick({
           ) : (
             <>
               <Wand2 className="h-4 w-4 mr-1" />
-              Quick Pick
+              Quick Edit
             </>
           )}
         </Button>
