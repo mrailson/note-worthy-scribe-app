@@ -243,6 +243,7 @@ const ComplaintDetails = () => {
         setOutcomeLetterSentAt(outcomeData.sent_at);
         
         // Fetch the questionnaire data used to generate this outcome
+        console.log('🔍 Fetching questionnaire data for complaint:', complaintId);
         const { data: questionnaireData, error: questionnaireError } = await supabase
           .from('complaint_outcome_questionnaires')
           .select('*')
@@ -252,8 +253,14 @@ const ComplaintDetails = () => {
           .maybeSingle();
         
         if (questionnaireError) {
-          console.error('Error fetching questionnaire data:', questionnaireError);
+          console.error('❌ Error fetching questionnaire data:', questionnaireError);
         }
+        
+        console.log('📊 Questionnaire query result:', { 
+          hasData: !!questionnaireData, 
+          data: questionnaireData,
+          error: questionnaireError 
+        });
         
         if (questionnaireData) {
           // Fetch the user profile for the person who created the questionnaire
@@ -289,7 +296,8 @@ const ComplaintDetails = () => {
           console.log('✅ Loaded questionnaire data for outcome:', {
             complaintId,
             hasData: !!questionnaireContent,
-            createdBy: createdByName
+            createdBy: createdByName,
+            keys: Object.keys(questionnaireContent)
           });
           
           // Load AI analysis if it exists in the questionnaire data
