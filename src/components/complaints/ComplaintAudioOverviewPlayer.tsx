@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { showToast } from '@/utils/toastWrapper';
 import { useVoicePreference } from '@/hooks/useVoicePreference';
+import { playoutSilentPreRoll, fadeInVolume } from '@/utils/AudioFocusManager';
 
 interface ComplaintAudioOverviewPlayerProps {
   complaintId: string;
@@ -40,7 +41,9 @@ export const ComplaintAudioOverviewPlayer = ({
   const audioObjectUrlRef = useRef<string | null>(null);
   const sourceUrlRef = useRef<string | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const didWarmUpRef = useRef(false);
   const [isBuffering, setIsBuffering] = useState(false);
+  const [bufferedEnd, setBufferedEnd] = useState(0);
 
   const handlePlayAudio = async () => {
     if (!audioOverviewUrl) {
@@ -60,33 +63,40 @@ export const ComplaintAudioOverviewPlayer = ({
       // Audio should already be preloaded, just play it
       if (audioRef.current && audioRef.current.readyState >= 3) {
         console.log('▶️ Playing preloaded audio');
+        
+        // Warm up audio device on first play to prevent cut-offs
+        if (!didWarmUpRef.current) {
+          await playoutSilentPreRoll(300);
+          didWarmUpRef.current = true;
+        }
+        
         audioRef.current.currentTime = 0;
         audioRef.current.playbackRate = playbackSpeed;
       
-      audioRef.current.addEventListener('ended', () => {
-        console.log('✅ Audio playback ended');
-        setIsPlaying(false);
-        setCurrentTime(0);
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-      });
-      
-      audioRef.current.addEventListener('error', (e) => {
-        console.error('❌ Audio playback error:', e);
-        console.error('Audio URL (blob):', audioObjectUrlRef.current);
-        showToast.error('Failed to play audio - check console for details', { section: 'complaints' });
-        setIsPlaying(false);
-        if (animationFrameRef.current) {
-          cancelAnimationFrame(animationFrameRef.current);
-        }
-      });
+        audioRef.current.addEventListener('ended', () => {
+          console.log('✅ Audio playback ended');
+          setIsPlaying(false);
+          setCurrentTime(0);
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+        });
+        
+        audioRef.current.addEventListener('error', (e) => {
+          console.error('❌ Audio playback error:', e);
+          console.error('Audio URL (blob):', audioObjectUrlRef.current);
+          showToast.error('Failed to play audio - check console for details', { section: 'complaints' });
+          setIsPlaying(false);
+          if (animationFrameRef.current) {
+            cancelAnimationFrame(animationFrameRef.current);
+          }
+        });
 
-      audioRef.current.addEventListener('loadedmetadata', () => {
-        if (audioRef.current) {
-          setDuration(audioRef.current.duration);
-        }
-      });
+        audioRef.current.addEventListener('loadedmetadata', () => {
+          if (audioRef.current) {
+            setDuration(audioRef.current.duration);
+          }
+        });
 
         const updateTime = () => {
           if (audioRef.current && !isSeeking && audioRef.current.paused === false) {
@@ -95,7 +105,11 @@ export const ComplaintAudioOverviewPlayer = ({
           }
         };
         
+        // Start silent and fade in to prevent initial glitches
+        audioRef.current.volume = 0;
         await audioRef.current.play();
+        fadeInVolume(audioRef.current, 1, 500);
+        
         setIsPlaying(true);
         animationFrameRef.current = requestAnimationFrame(updateTime);
       } else {
@@ -142,6 +156,16 @@ export const ComplaintAudioOverviewPlayer = ({
     setIsEditingTranscript(false);
   };
 
+  // Update buffered progress
+  const updateBuffered = () => {
+    const a = audioRef.current;
+    if (!a || !a.duration || !isFinite(a.duration)) return;
+    const br = a.buffered;
+    if (br && br.length) {
+      setBufferedEnd(br.end(br.length - 1));
+    }
+  };
+
   // Preload audio in the background when URL changes
   useEffect(() => {
     const preloadAudio = async () => {
@@ -149,6 +173,7 @@ export const ComplaintAudioOverviewPlayer = ({
       
       try {
         setIsBuffering(true);
+        setBufferedEnd(0);
         console.log('🔄 Preloading audio in background...');
         
         // Download and create blob URL if needed
@@ -169,6 +194,9 @@ export const ComplaintAudioOverviewPlayer = ({
           audioRef.current.pause();
           audioRef.current.removeEventListener('ended', () => {});
           audioRef.current.removeEventListener('error', () => {});
+          audioRef.current.removeEventListener('progress', updateBuffered);
+          audioRef.current.removeEventListener('loadedmetadata', updateBuffered);
+          audioRef.current.removeEventListener('canplaythrough', updateBuffered);
           audioRef.current = null;
         }
 
@@ -194,20 +222,23 @@ export const ComplaintAudioOverviewPlayer = ({
         audioRef.current.addEventListener('loadedmetadata', () => {
           if (audioRef.current) {
             setDuration(audioRef.current.duration);
+            updateBuffered();
           }
         });
+
+        audioRef.current.addEventListener('progress', updateBuffered);
+        audioRef.current.addEventListener('canplaythrough', updateBuffered);
 
         // Wait for audio to be buffered
         await new Promise<void>((resolve) => {
           const onCanPlayThrough = () => {
             console.log('✅ Audio preloaded and ready');
+            updateBuffered();
             setIsBuffering(false);
             resolve();
           };
           audioRef.current?.addEventListener('canplaythrough', onCanPlayThrough, { once: true });
         });
-
-        audioRef.current.load();
       } catch (error) {
         console.error('❌ Preload error:', error);
         setIsBuffering(false);
@@ -317,19 +348,28 @@ export const ComplaintAudioOverviewPlayer = ({
           </Button>
           
           <div className="flex-1 max-w-[50%] space-y-1">
-            <Slider
-              value={[currentTime]}
-              max={totalDuration}
-              step={0.01}
-              onValueChange={handleSeek}
-              onValueCommit={handleSeekEnd}
-              className="w-full"
-            />
+            <div className="relative w-full">
+              {/* Buffered progress indicator */}
+              <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-2.5 rounded-full bg-secondary/30 border border-border/30 pointer-events-none">
+                <div
+                  className="h-full rounded-full bg-primary/20 transition-[width] duration-200"
+                  style={{ width: `${Math.max(0, Math.min(100, totalDuration ? (bufferedEnd / totalDuration) * 100 : 0))}%` }}
+                />
+              </div>
+              <Slider
+                value={[currentTime]}
+                max={totalDuration}
+                step={0.01}
+                onValueChange={handleSeek}
+                onValueCommit={handleSeekEnd}
+                className={`relative w-full ${isBuffering ? 'opacity-50 pointer-events-none' : ''}`}
+              />
+            </div>
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>{formatDuration(currentTime)}</span>
               {isBuffering ? (
                 <span className="text-primary animate-pulse">⏳ Loading audio...</span>
-              ) : audioRef.current?.readyState >= 3 ? (
+              ) : audioRef.current?.readyState >= 3 && bufferedEnd >= totalDuration * 0.95 ? (
                 <span className="text-green-600">✓ Ready</span>
               ) : null}
               <span>{formatDuration(totalDuration)}</span>
