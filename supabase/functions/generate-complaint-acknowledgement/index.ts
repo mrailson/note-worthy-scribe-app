@@ -315,6 +315,7 @@ CRITICAL CONTACT INFORMATION RULES:
         complaint_id: complaintId,
         acknowledgement_letter: acknowledgementLetter,
         sent_by: currentUser.id,
+        sent_at: null, // Explicitly set to null - should only be set when manually marked as sent
       });
 
     if (insertError) {
