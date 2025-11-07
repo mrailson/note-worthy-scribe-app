@@ -3238,7 +3238,26 @@ const ComplaintsSystem = () => {
                         )}
 
                         <div className="space-y-3">
-                          {complianceChecks.map((check) => (
+                          {(() => {
+                            // Deduplicate compliance checks - keep only one per item
+                            const uniqueChecksMap = new Map<string, typeof complianceChecks[0]>();
+                            
+                            complianceChecks.forEach(check => {
+                              const key = (check.compliance_item || '').trim().toLowerCase();
+                              const existing = uniqueChecksMap.get(key);
+                              
+                              if (!existing) {
+                                uniqueChecksMap.set(key, check);
+                              } else {
+                                // Prefer compliant over non-compliant
+                                if (check.is_compliant && !existing.is_compliant) {
+                                  uniqueChecksMap.set(key, check);
+                                }
+                              }
+                            });
+                            
+                            return Array.from(uniqueChecksMap.values());
+                          })().map((check) => (
                             <div key={check.id} className="border rounded-lg p-3 hover:bg-gray-50 transition-colors">
                               <div className="flex items-start gap-3">
                                 <div className="flex items-center gap-3 flex-1">
