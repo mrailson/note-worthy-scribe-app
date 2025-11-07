@@ -6,7 +6,6 @@ import { TitleSlide } from '@/components/complaints-presentation/TitleSlide';
 import { ChallengeSlide } from '@/components/complaints-presentation/ChallengeSlide';
 import { SolutionSlide } from '@/components/complaints-presentation/SolutionSlide';
 import { WorkflowSlide } from '@/components/complaints-presentation/WorkflowSlide';
-import { CQCStandardsSlide } from '@/components/complaints-presentation/CQCStandardsSlide';
 import { CallToActionSlide } from '@/components/complaints-presentation/CallToActionSlide';
 
 const SLIDES = [
@@ -14,8 +13,7 @@ const SLIDES = [
   { id: 2, component: ChallengeSlide },
   { id: 3, component: SolutionSlide },
   { id: 4, component: WorkflowSlide },
-  { id: 5, component: CQCStandardsSlide },
-  { id: 6, component: CallToActionSlide },
+  { id: 5, component: CallToActionSlide },
 ];
 
 const ComplaintsPresentationMode = () => {
