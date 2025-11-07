@@ -120,17 +120,46 @@ serve(async (req) => {
           const buffer = new Uint8Array(arrayBuffer);
           
           // Extract text from DOCX (which is a ZIP with XML files)
-          const decoder = new TextDecoder();
+          const decoder = new TextDecoder('utf-8', { fatal: false });
           const text = decoder.decode(buffer);
           
-          // Basic XML text extraction for DOCX
-          const textMatches = text.match(/>([^<]+)</g);
-          if (textMatches) {
-            fileText = textMatches
-              .map(match => match.slice(1, -1))
-              .filter(text => text.trim().length > 0)
+          // Improved XML text extraction for DOCX
+          // Look for text within <w:t> tags (Word text elements)
+          const wordTextMatches = text.match(/<w:t[^>]*>([^<]+)<\/w:t>/g);
+          const paragraphMatches = text.match(/>([^<]{3,})</g); // Backup: get text between tags (min 3 chars)
+          
+          let extractedParts: string[] = [];
+          
+          if (wordTextMatches && wordTextMatches.length > 0) {
+            // Extract from proper Word text tags
+            extractedParts = wordTextMatches.map(match => {
+              const textMatch = match.match(/<w:t[^>]*>([^<]+)<\/w:t>/);
+              return textMatch ? textMatch[1] : '';
+            }).filter(t => t.trim().length > 0);
+          } else if (paragraphMatches && paragraphMatches.length > 0) {
+            // Fallback to paragraph extraction
+            extractedParts = paragraphMatches
+              .map(match => match.slice(1, -1).trim())
+              .filter(text => {
+                // Filter out XML tags and attributes
+                return text.length > 2 && 
+                       !text.startsWith('<?') && 
+                       !text.startsWith('<!') &&
+                       !/^[a-z]+:/.test(text) && // Remove namespace prefixes
+                       !/^(xmlns|mc:|w:|r:)/.test(text); // Remove XML attributes
+              });
+          }
+          
+          if (extractedParts.length > 0) {
+            // Join with spaces and clean up
+            fileText = extractedParts
               .join(' ')
               .replace(/\s+/g, ' ')
+              .replace(/&amp;/g, '&')
+              .replace(/&lt;/g, '<')
+              .replace(/&gt;/g, '>')
+              .replace(/&quot;/g, '"')
+              .replace(/&#\d+;/g, ' ')
               .trim();
             
             console.log(`Successfully extracted ${fileText.length} characters from ${fileItem.name}`);
@@ -162,6 +191,8 @@ serve(async (req) => {
 
     // Use AI to extract structured complaint data
     const systemPrompt = `You are an expert NHS complaints processor. Extract structured complaint information from the provided text and return it as a JSON object.
+
+IMPORTANT: The text may contain XML artifacts, formatting noise, or be partially garbled from document conversion. Focus on finding the actual complaint content and patient information. Be flexible and look for patterns rather than exact matches.
 
 Return ONLY a valid JSON object with these fields (use null for missing information):
 {
@@ -197,10 +228,13 @@ CRITICAL: Category Selection Rules (prioritize by severity - highest to lowest):
 If multiple complaint categories apply, ALWAYS select the most serious category from the hierarchy above.
 
 Important:
+- The text may be messy with XML tags, namespaces, or formatting artifacts - ignore these and focus on readable content
+- Look for common field markers: "Name:", "Patient:", "Date of Birth:", "DOB:", "Email:", "Phone:", "Tel:", "Address:", etc.
 - Extract dates carefully and convert to YYYY-MM-DD format
 - If text appears to be an email, extract the complaint content from the body
 - Infer priority based on severity of the complaint
 - ALWAYS choose the most serious applicable category when multiple issues are present
+- Be flexible with formatting - the information might not be perfectly structured
 - Return valid JSON only, no additional text or explanation`;
 
     const userPrompt = `Extract complaint information from this text:\n\n${extractedText}`;
