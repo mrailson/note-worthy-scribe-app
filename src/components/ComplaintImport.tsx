@@ -96,11 +96,27 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
         formData.append('textContent', textContent);
       }
 
-      const { data, error } = await supabase.functions.invoke('import-complaint-data', {
-        body: formData,
-      });
+      // Use direct fetch for better FormData handling
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/import-complaint-data`,
+        {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${session?.access_token || import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          },
+          body: formData,
+        }
+      );
 
-      if (error) throw error;
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Import error response:', errorText);
+        throw new Error(`Server error: ${response.status}`);
+      }
+
+      const data = await response.json();
 
       if (data.success) {
         setExtractedData(data.complaintData);

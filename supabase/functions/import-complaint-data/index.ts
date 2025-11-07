@@ -36,26 +36,37 @@ serve(async (req) => {
     }
 
     const formData = await req.formData();
+    
+    // Log what we received for debugging
+    console.log('FormData entries:');
+    for (const [key, value] of formData.entries()) {
+      console.log(`  ${key}:`, value instanceof File ? `File(${value.name})` : value);
+    }
+    
     const files = formData.getAll('files') as File[];
+    const file = formData.get('file') as File; // Also check for single file (backwards compatibility)
     const textContent = formData.get('textContent') as string;
 
     let extractedText = '';
 
-    if (files && files.length > 0) {
-      console.log(`Processing ${files.length} file(s)`);
+    // Handle both single file and multiple files
+    const filesToProcess = files.length > 0 ? files : (file ? [file] : []);
+
+    if (filesToProcess.length > 0) {
+      console.log(`Processing ${filesToProcess.length} file(s)`);
       
       const textParts: string[] = [];
       
-      for (const file of files) {
-        const fileType = file.type;
-        const fileName = file.name.toLowerCase();
+      for (const fileItem of filesToProcess) {
+        const fileType = fileItem.type;
+        const fileName = fileItem.name.toLowerCase();
         
-        console.log(`Processing file: ${file.name}, type: ${fileType}`);
+        console.log(`Processing file: ${fileItem.name}, type: ${fileType}`);
         let fileText = '';
 
         if (fileType.includes('image/') || fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') || fileName.endsWith('.png')) {
           // Handle image files with OCR using OpenAI Vision
-          const arrayBuffer = await file.arrayBuffer();
+          const arrayBuffer = await fileItem.arrayBuffer();
           const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
           
           const imageAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
@@ -88,7 +99,7 @@ serve(async (req) => {
           });
 
           if (!imageAnalysisResponse.ok) {
-            throw new Error(`Failed to process image ${file.name} with OCR`);
+            throw new Error(`Failed to process image ${fileItem.name} with OCR`);
           }
 
           const imageData = await imageAnalysisResponse.json();
@@ -96,7 +107,7 @@ serve(async (req) => {
           
         } else if (fileType.includes('msword') || fileType.includes('wordprocessingml') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
           // Handle Word documents using Deno-compatible text extraction
-          const arrayBuffer = await file.arrayBuffer();
+          const arrayBuffer = await fileItem.arrayBuffer();
           const buffer = new Uint8Array(arrayBuffer);
           
           // Extract text from DOCX (which is a ZIP with XML files)
@@ -113,19 +124,19 @@ serve(async (req) => {
               .replace(/\s+/g, ' ')
               .trim();
             
-            console.log(`Successfully extracted ${fileText.length} characters from ${file.name}`);
+            console.log(`Successfully extracted ${fileText.length} characters from ${fileItem.name}`);
           } else {
-            throw new Error(`No text content found in ${file.name}`);
+            throw new Error(`No text content found in ${fileItem.name}`);
           }
         } else if (fileType.includes('text/') || fileName.endsWith('.txt') || fileName.endsWith('.eml')) {
           // Handle text files and emails
-          fileText = await file.text();
+          fileText = await fileItem.text();
         } else {
-          throw new Error(`Unsupported file type: ${fileType} for file ${file.name}. Please use PDF, Word, image, or text files.`);
+          throw new Error(`Unsupported file type: ${fileType} for file ${fileItem.name}. Please use PDF, Word, image, or text files.`);
         }
         
         if (fileText) {
-          textParts.push(`\n\n--- Content from ${file.name} ---\n${fileText}`);
+          textParts.push(`\n\n--- Content from ${fileItem.name} ---\n${fileText}`);
         }
       }
       
@@ -134,6 +145,7 @@ serve(async (req) => {
     } else if (textContent) {
       extractedText = textContent;
     } else {
+      console.error('No files or text content received. FormData keys:', Array.from(formData.keys()));
       throw new Error('No files or text content provided');
     }
 
