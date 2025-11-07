@@ -480,7 +480,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                 ) : (
                   <Mail className="h-4 w-4 mr-2" />
                 )}
-                Email
+                <span className="text-sm">Email Notes to me</span>
               </Button>
             </div>
 
