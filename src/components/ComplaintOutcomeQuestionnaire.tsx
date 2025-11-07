@@ -1002,30 +1002,6 @@ export const ComplaintOutcomeQuestionnaire = ({
               </Select>
             </div>
 
-            <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">
-              <Label className="text-sm font-semibold mb-2 block">
-                Letter Tone
-              </Label>
-              <Select value={data.tone} onValueChange={(value: any) => setData({ ...data, tone: value })}>
-                <SelectTrigger className="bg-white">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="professional">Professional (Default)</SelectItem>
-                  <SelectItem value="empathetic">Empathetic</SelectItem>
-                  <SelectItem value="apologetic">Apologetic</SelectItem>
-                  <SelectItem value="factual">Factual</SelectItem>
-                  <SelectItem value="strong">Strong (Vexatious)</SelectItem>
-                  <SelectItem value="firm">Firm (Vexatious)</SelectItem>
-                </SelectContent>
-              </Select>
-              {(data.tone === 'strong' || data.tone === 'firm') && (
-                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-                  <AlertCircle className="h-3 w-3" />
-                  This tone will automatically mark the complaint as vexatious
-                </p>
-              )}
-            </div>
 
             {/* Professional Judgement Confirmation */}
             <div className="bg-amber-50 border border-amber-200 p-4 rounded-lg">
