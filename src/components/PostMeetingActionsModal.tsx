@@ -466,7 +466,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                 ) : (
                   <Download className="h-4 w-4 mr-2" />
                 )}
-                Download
+                <span className="text-sm">Download Notes (Word Docx)</span>
               </Button>
 
               <Button
