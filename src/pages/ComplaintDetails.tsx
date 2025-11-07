@@ -345,16 +345,15 @@ const ComplaintDetails = () => {
       }
 
       // Fetch review conversations
-      const { data: reviewData } = await supabase
+      const { data: reviewData, error: reviewError } = await supabase
         .from('complaint_review_conversations')
-        .select(`
-          *,
-          created_by_profile:created_by(full_name, email)
-        `)
+        .select('*')
         .eq('complaint_id', complaintId)
         .order('created_at', { ascending: false });
 
-      if (reviewData) {
+      if (reviewError) {
+        console.error('Error fetching review conversations:', reviewError);
+      } else if (reviewData) {
         setReviewConversations(reviewData);
       }
 
@@ -2962,7 +2961,7 @@ I am committed to ensuring that all patients receive the care and service they d
                     <ComplaintReviewNote
                       key={conversation.id}
                       conversation={conversation}
-                      reviewerName={conversation.created_by_profile?.full_name || 'Unknown User'}
+                      reviewerName="System User"
                     />
                   ))}
                 </div>
