@@ -153,9 +153,9 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
 
         {/* Addressee */}
         {addresseeSection.length > 0 && (
-          <div className="space-y-0">
+          <div className="space-y-1">
             {addresseeSection.map((line, index) => (
-              <p key={index} className="text-gray-800 leading-tight">
+              <p key={index} className="text-gray-800">
                 {formatTextWithBold(line)}
               </p>
             ))}
@@ -220,9 +220,9 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
         {/* Signature Section */}
         {signatureSection.length > 0 && (
           <div className="mt-8 pt-6 border-t border-gray-200">
-            <div className="space-y-3">
+            <div className="space-y-2">
               {signatureSection.map((line, index) => {
-                const trimmedLine = line.trim();
+                const trimmedLine = line.trim().replace(/```plaintext|```/g, '').trim();
                 
                 // Handle closing line
                 if (trimmedLine.toLowerCase().includes('yours sincerely') || 
@@ -248,7 +248,7 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
                 
                 // Handle title, qualifications, practice name, etc.
                 return (
-                  <p key={index} className="text-gray-600 text-sm leading-tight">
+                  <p key={index} className="text-gray-600 text-sm leading-tight mb-0">
                     {formatTextWithBold(trimmedLine)}
                   </p>
                 );
