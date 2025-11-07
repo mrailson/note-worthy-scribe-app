@@ -37,6 +37,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   const [meetingData, setMeetingData] = useState<any>(null);
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [transcriptLength, setTranscriptLength] = useState<number>(0);
+  const [emailSentTo, setEmailSentTo] = useState<string>('');
   
   const { generateWordDocument, isExporting } = useMeetingExport(
     meetingData,
@@ -59,6 +60,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     }
     return num.toString();
   };
+
+  // Reset email sent state when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setEmailSentTo('');
+    }
+  }, [isOpen]);
 
   // Subscribe to notes generation status
   useEffect(() => {
@@ -386,7 +394,9 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         throw error;
       }
       
-      toast.success('Email sent successfully!');
+      // Store the email address and show success
+      setEmailSentTo(userEmail);
+      toast.success(`Email sent to ${userEmail}!`);
     } catch (error) {
       console.error('Email error:', error);
       toast.error('Failed to send email');
@@ -495,11 +505,21 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                 className="justify-start h-12"
               >
                 {isSendingEmail ? (
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <span className="text-sm">Sending...</span>
+                  </>
+                ) : emailSentTo ? (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    <span className="text-xs">Email sent to {emailSentTo}</span>
+                  </>
                 ) : (
-                  <Mail className="h-4 w-4 mr-2" />
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    <span className="text-sm">Email Notes to me</span>
+                  </>
                 )}
-                <span className="text-sm">Email Notes to me</span>
               </Button>
             </div>
 
