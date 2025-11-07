@@ -173,6 +173,11 @@ const ComplaintsSystem = () => {
   // Success modal states
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [newComplaintRef, setNewComplaintRef] = useState("");
+  const [newComplaintData, setNewComplaintData] = useState<{
+    title: string;
+    description: string;
+    created_at: string;
+  } | null>(null);
   
   // Tab state
   const [currentTab, setCurrentTab] = useState("dashboard");
@@ -578,6 +583,11 @@ const ComplaintsSystem = () => {
 
       // Show success modal and store reference
       setNewComplaintRef(data.reference_number);
+      setNewComplaintData({
+        title: data.complaint_title,
+        description: data.complaint_description,
+        created_at: data.created_at
+      });
       setShowSuccessModal(true);
 
       // Reset form
@@ -3458,7 +3468,7 @@ const ComplaintsSystem = () => {
 
           {/* Success Modal */}
          <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
-           <DialogContent className="sm:max-w-md p-8">
+           <DialogContent className="sm:max-w-2xl p-8">
              <DialogHeader className="space-y-4">
                <DialogTitle className="flex items-center gap-2 text-xl">
                  <CheckCircle className="h-6 w-6 text-green-600" />
@@ -3468,10 +3478,56 @@ const ComplaintsSystem = () => {
                  Your complaint has been successfully submitted and assigned reference number:
                </DialogDescription>
              </DialogHeader>
-             <div className="flex flex-col items-center space-y-6 py-6 px-4">
-               <div className="text-3xl font-bold text-primary tracking-wide">
-                 {newComplaintRef}
+             <div className="flex flex-col space-y-6 py-6 px-4">
+               <div className="text-center">
+                 <div className="text-3xl font-bold text-primary tracking-wide mb-6">
+                   {newComplaintRef}
+                 </div>
                </div>
+
+               {newComplaintData && (
+                 <div className="space-y-4 border-t pt-6">
+                   <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                     <div>
+                       <h4 className="text-sm font-semibold text-muted-foreground mb-1">Complaint Title</h4>
+                       <p className="text-sm font-medium">{newComplaintData.title}</p>
+                     </div>
+                     <div>
+                       <h4 className="text-sm font-semibold text-muted-foreground mb-1">Brief Summary</h4>
+                       <p className="text-sm line-clamp-2">{newComplaintData.description}</p>
+                     </div>
+                   </div>
+
+                   <div className="grid grid-cols-2 gap-4">
+                     <div className="bg-blue-50 dark:bg-blue-950/30 rounded-lg p-4 border border-blue-200 dark:border-blue-900">
+                       <h4 className="text-xs font-semibold text-blue-700 dark:text-blue-400 mb-1">Acknowledgement Due By</h4>
+                       <p className="text-sm font-bold text-blue-900 dark:text-blue-200">
+                         {(() => {
+                           const createdDate = new Date(newComplaintData.created_at);
+                           const dueDate = new Date(createdDate);
+                           dueDate.setDate(dueDate.getDate() + 3);
+                           return dueDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                         })()}
+                       </p>
+                       <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">3 working days</p>
+                     </div>
+
+                     <div className="bg-amber-50 dark:bg-amber-950/30 rounded-lg p-4 border border-amber-200 dark:border-amber-900">
+                       <h4 className="text-xs font-semibold text-amber-700 dark:text-amber-400 mb-1">Outcome Deadline</h4>
+                       <p className="text-sm font-bold text-amber-900 dark:text-amber-200">
+                         {(() => {
+                           const createdDate = new Date(newComplaintData.created_at);
+                           const deadlineDate = new Date(createdDate);
+                           deadlineDate.setDate(deadlineDate.getDate() + 20);
+                           return deadlineDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+                         })()}
+                       </p>
+                       <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">20 working days</p>
+                     </div>
+                   </div>
+                 </div>
+               )}
+
                <Button 
                  onClick={() => {
                    setShowSuccessModal(false);
