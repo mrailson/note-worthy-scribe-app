@@ -41,22 +41,37 @@ export default function ComplaintResponse() {
 
   const fetchComplaintDetails = async () => {
     try {
+      console.log('Fetching complaint with access token:', accessToken);
+      
+      if (!accessToken) {
+        setError('Invalid access link - no token provided');
+        setLoading(false);
+        return;
+      }
+
       const { data, error } = await supabase.rpc('get_complaint_for_external_access', {
         access_token_param: accessToken
       });
 
-      if (error) throw error;
+      console.log('RPC Response:', { data, error });
+
+      if (error) {
+        console.error('RPC Error:', error);
+        throw error;
+      }
 
       if (data && data.length > 0) {
         const complaintData = data[0];
+        console.log('Complaint data loaded:', complaintData);
         setComplaint(complaintData);
         setResponse(complaintData.response_text || '');
       } else {
-        setError('Complaint not found or access denied');
+        console.warn('No complaint data returned');
+        setError('Complaint not found or access link has expired. Please check your email for a valid link.');
       }
     } catch (err) {
       console.error('Error fetching complaint:', err);
-      setError('Failed to load complaint details');
+      setError(`Failed to load complaint details: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setLoading(false);
     }
