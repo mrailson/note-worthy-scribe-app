@@ -730,6 +730,8 @@ export const ComplaintOutcomeQuestionnaire = ({
 
         <Progress value={progress} className="mb-4" />
 
+        <div className="px-6 sm:px-10">
+
         {/* Step 1: Letter Details */}
         {step === 1 && (
           <div className="space-y-6">
@@ -1091,6 +1093,7 @@ export const ComplaintOutcomeQuestionnaire = ({
               )}
             </Button>
           )}
+        </div>
         </div>
       </DialogContent>
     </Dialog>
