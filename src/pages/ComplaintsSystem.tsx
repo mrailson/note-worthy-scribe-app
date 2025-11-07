@@ -3200,7 +3200,17 @@ const ComplaintsSystem = () => {
                         {complianceSummary && (
                           <div className="mb-4 p-3 bg-gray-50 rounded-lg">
                             <div className="text-sm text-muted-foreground">
-                              <strong>Progress:</strong> {complianceSummary.compliant_items} of {complianceSummary.total_items} items completed
+                              <strong>Progress:</strong> {complianceChecks && complianceChecks.length > 0 ? (() => {
+                                const keys = new Set(complianceChecks.map(c => (c.compliance_item || '').trim().toLowerCase()));
+                                const map = new Map<string, boolean>();
+                                for (const c of complianceChecks) {
+                                  const k = (c.compliance_item || '').trim().toLowerCase();
+                                  map.set(k, (map.get(k) || false) || !!c.is_compliant);
+                                }
+                                const completed = Array.from(map.values()).filter(Boolean).length;
+                                const total = keys.size;
+                                return <>{completed} of {total} items completed</>;
+                              })() : <>{complianceSummary.compliant_items} of {complianceSummary.total_items} items completed</>}
                               {complianceSummary.outstanding_items && complianceSummary.outstanding_items.length > 0 && (
                                 <div className="mt-2">
                                   <strong>Outstanding items:</strong>
@@ -3218,7 +3228,7 @@ const ComplaintsSystem = () => {
                           </div>
                         )}
 
-                        {complianceSummary && complianceSummary.total_items > 15 && selectedComplaint && (
+                        {selectedComplaint && complianceChecks && new Set(complianceChecks.map(c => (c.compliance_item || '').trim().toLowerCase())).size < complianceChecks.length && (
                           <div className="mb-4">
                             <ComplianceCheckCleanupButton 
                               complaintId={selectedComplaint.id} 

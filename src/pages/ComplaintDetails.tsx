@@ -3566,7 +3566,38 @@ I am committed to ensuring that all patients receive the care and service they d
                   </div>
                 </CardHeader>
                 <CardContent>
-                  {complianceSummary && (
+                  {complianceChecks && complianceChecks.length > 0 ? (
+                    <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg mb-6">
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-green-600">
+                          {(() => {
+                            const map = new Map<string, boolean>();
+                            for (const c of complianceChecks) {
+                              const key = (c.compliance_item || '').trim().toLowerCase();
+                              map.set(key, (map.get(key) || false) || !!c.is_compliant);
+                            }
+                            return Array.from(map.values()).filter(Boolean).length;
+                          })()}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Items Complete</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-3xl font-bold text-orange-600">
+                          {(() => {
+                            const keys = new Set(complianceChecks.map(c => (c.compliance_item || '').trim().toLowerCase()));
+                            const map = new Map<string, boolean>();
+                            for (const c of complianceChecks) {
+                              const key = (c.compliance_item || '').trim().toLowerCase();
+                              map.set(key, (map.get(key) || false) || !!c.is_compliant);
+                            }
+                            const completed = Array.from(map.values()).filter(Boolean).length;
+                            return keys.size - completed;
+                          })()}
+                        </div>
+                        <div className="text-sm text-muted-foreground">Items Outstanding</div>
+                      </div>
+                    </div>
+                  ) : (complianceSummary && (
                     <div className="grid grid-cols-2 gap-4 p-4 bg-gray-50 rounded-lg mb-6">
                       <div className="text-center">
                         <div className="text-3xl font-bold text-green-600">{complianceSummary.compliant_items}</div>
@@ -3577,9 +3608,9 @@ I am committed to ensuring that all patients receive the care and service they d
                         <div className="text-sm text-muted-foreground">Items Outstanding</div>
                       </div>
                     </div>
-                  )}
+                  ))}
 
-                  {complianceSummary && complianceSummary.total_items > 15 && (
+                  {complianceChecks && new Set(complianceChecks.map(c => (c.compliance_item || '').trim().toLowerCase())).size < complianceChecks.length && (
                     <div className="mb-6">
                       <ComplianceCheckCleanupButton 
                         complaintId={complaintId!} 

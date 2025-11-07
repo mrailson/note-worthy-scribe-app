@@ -20,59 +20,76 @@ export async function cleanupDuplicateComplianceChecks(complaintId: string) {
 
     console.log(`Found ${allChecks.length} compliance checks`);
 
-    // Separate numbered checks (with pattern like "(1) ", "(2) ", etc.) from unnumbered
-    const numberedChecks = allChecks.filter(check => 
-      /^\(\d+\)/.test(check.compliance_item)
-    );
-    
-    const unnumberedChecks = allChecks.filter(check => 
-      !/^\(\d+\)/.test(check.compliance_item)
-    );
-
-    console.log(`Numbered checks: ${numberedChecks.length}, Unnumbered checks: ${unnumberedChecks.length}`);
-
-    // If we have both numbered and unnumbered (duplicates), delete the unnumbered ones
-    if (numberedChecks.length > 0 && unnumberedChecks.length > 0) {
-      const idsToDelete = unnumberedChecks.map(check => check.id);
-      
-      const { error: deleteError } = await supabase
-        .from('complaint_compliance_checks')
-        .delete()
-        .in('id', idsToDelete);
-
-      if (deleteError) throw deleteError;
-
-      return {
-        success: true,
-        message: `Removed ${unnumberedChecks.length} duplicate checks. ${numberedChecks.length} checks remain.`,
-        deleted: unnumberedChecks.length,
-        remaining: numberedChecks.length
-      };
-    }
-
-    // If we only have unnumbered checks (old format), we should reinitialize
-    if (numberedChecks.length === 0 && unnumberedChecks.length > 0) {
-      // Delete all old checks
+    // If all checks are in old unnumbered format, reinitialise to new numbered format
+    const allUnnumbered = allChecks.every(check => !/^\(\d+\)/.test(check.compliance_item || ''));
+    if (allUnnumbered) {
       const { error: deleteError } = await supabase
         .from('complaint_compliance_checks')
         .delete()
         .eq('complaint_id', complaintId);
-
       if (deleteError) throw deleteError;
 
-      // Reinitialize with new numbered format
       const { error: initError } = await supabase
         .rpc('initialize_complaint_compliance', { p_complaint_id: complaintId });
-
       if (initError) throw initError;
 
       return {
         success: true,
-        message: 'Reinitialized compliance checks with numbered format (15 items)',
-        deleted: unnumberedChecks.length,
+        message: 'Reinitialised compliance checks with numbered format (15 items)',
+        deleted: allChecks.length,
         remaining: 15
       };
     }
+
+    // Group by item text and remove exact-duplicate items, keeping the best record
+    const groups = allChecks.reduce((acc: Record<string, any[]>, check: any) => {
+      const key = (check.compliance_item || '').trim();
+      acc[key] = acc[key] || [];
+      acc[key].push(check);
+      return acc;
+    }, {});
+
+    const duplicateGroups = Object.entries(groups).filter(([, arr]) => (arr as any[]).length > 1);
+
+    if (duplicateGroups.length > 0) {
+      const idsToDelete: string[] = [];
+
+      duplicateGroups.forEach(([, arr]) => {
+        const sorted = (arr as any[]).sort((a, b) => {
+          const aComp = a.is_compliant ? 1 : 0;
+          const bComp = b.is_compliant ? 1 : 0;
+          if (bComp !== aComp) return bComp - aComp;
+          const aTime = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const bTime = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return bTime - aTime;
+        });
+        // keep first, delete the rest
+        sorted.slice(1).forEach((c: any) => idsToDelete.push(c.id));
+      });
+
+      if (idsToDelete.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('complaint_compliance_checks')
+          .delete()
+          .in('id', idsToDelete);
+
+        if (deleteError) throw deleteError;
+
+        return {
+          success: true,
+          message: `Removed ${idsToDelete.length} duplicate checks. ${Object.keys(groups).length} unique checks remain.`,
+          deleted: idsToDelete.length,
+          remaining: Object.keys(groups).length
+        };
+      }
+    }
+
+    return {
+      success: true,
+      message: `No duplicates found. Total unique checks: ${Object.keys(groups).length}`,
+      deleted: 0,
+      remaining: Object.keys(groups).length
+    };
 
     return {
       success: true,
