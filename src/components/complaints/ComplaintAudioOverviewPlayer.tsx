@@ -422,6 +422,15 @@ export const ComplaintAudioOverviewPlayer = ({
         </p>
       )}
       
+      {/* AI Review Conversation button - shown after audio is generated */}
+      {audioOverviewUrl && (
+        <div className="mt-4 pt-4 border-t">
+          <p className="text-sm text-muted-foreground mb-2">
+            Want a thorough review? Start a voice conversation with our AI assistant to critically discuss this complaint.
+          </p>
+        </div>
+      )}
+      
       {audioOverviewText && (
         <div className="mt-3">
           <div className="flex items-center gap-2 mb-2">

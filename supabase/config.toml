@@ -230,3 +230,9 @@ verify_jwt = false
 
 [functions.system-monitoring]
 verify_jwt = false
+
+[functions.complaint-review-agent]
+verify_jwt = true
+
+[functions.process-review-conversation]
+verify_jwt = true

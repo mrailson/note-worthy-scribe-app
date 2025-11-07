@@ -76,6 +76,8 @@ import { AIEditLetterDialog } from "@/components/AIEditLetterDialog";
 import { ManualAcknowledgementGenerator } from "@/components/ManualAcknowledgementGenerator";
 import { EnhancedAuditLogViewer } from "@/components/EnhancedAuditLogViewer";
 import { ComplaintAudioOverviewPlayer } from "@/components/complaints/ComplaintAudioOverviewPlayer";
+import { ComplaintReviewConversation } from "@/components/complaints/ComplaintReviewConversation";
+import { ComplaintReviewNote } from "@/components/complaints/ComplaintReviewNote";
 
 
 interface Complaint {
@@ -190,6 +192,7 @@ const ComplaintDetails = () => {
   const [acknowledgementSentAt, setAcknowledgementSentAt] = useState<string | null>(null);
   const [audioOverview, setAudioOverview] = useState<any>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
+  const [reviewConversations, setReviewConversations] = useState<any[]>([]);
 
 
   // Define all functions before useEffect
@@ -339,6 +342,20 @@ const ComplaintDetails = () => {
 
       if (audioData) {
         setAudioOverview(audioData);
+      }
+
+      // Fetch review conversations
+      const { data: reviewData } = await supabase
+        .from('complaint_review_conversations')
+        .select(`
+          *,
+          created_by_profile:created_by(full_name, email)
+        `)
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false });
+
+      if (reviewData) {
+        setReviewConversations(reviewData);
       }
 
     } catch (error) {
@@ -2915,7 +2932,7 @@ I am committed to ensuring that all patients receive the care and service they d
                       AI-generated audio briefing for management and partners
                     </CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
                     <ComplaintAudioOverviewPlayer
                       complaintId={complaint.id}
                       audioOverviewUrl={audioOverview?.audio_overview_url}
@@ -2923,8 +2940,32 @@ I am committed to ensuring that all patients receive the care and service they d
                       audioOverviewDuration={audioOverview?.audio_overview_duration}
                       onRegenerateAudio={handleRegenerateComplaintAudio}
                     />
+                    
+                    {/* AI Review Conversation - Only show if audio exists */}
+                    {audioOverview?.audio_overview_url && (
+                      <ComplaintReviewConversation
+                        complaintId={complaint.id}
+                        onReviewComplete={() => {
+                          // Refetch review conversations after completion
+                          fetchComplaintDetails();
+                        }}
+                      />
+                    )}
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Review Conversation Notes - Show any existing reviews */}
+              {reviewConversations.length > 0 && (
+                <div className="space-y-4">
+                  {reviewConversations.map((conversation) => (
+                    <ComplaintReviewNote
+                      key={conversation.id}
+                      conversation={conversation}
+                      reviewerName={conversation.created_by_profile?.full_name || 'Unknown User'}
+                    />
+                  ))}
+                </div>
               )}
 
               {/* Outcome Letter Dialog */}

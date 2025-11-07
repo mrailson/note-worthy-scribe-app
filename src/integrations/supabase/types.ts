@@ -1304,6 +1304,62 @@ export type Database = {
           },
         ]
       }
+      complaint_review_conversations: {
+        Row: {
+          challenges_identified: Json | null
+          complaint_id: string
+          conversation_duration: number | null
+          conversation_ended_at: string | null
+          conversation_started_at: string | null
+          conversation_summary: string | null
+          conversation_transcript: string | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          recommendations: Json | null
+          responses_given: Json | null
+          updated_at: string | null
+        }
+        Insert: {
+          challenges_identified?: Json | null
+          complaint_id: string
+          conversation_duration?: number | null
+          conversation_ended_at?: string | null
+          conversation_started_at?: string | null
+          conversation_summary?: string | null
+          conversation_transcript?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          recommendations?: Json | null
+          responses_given?: Json | null
+          updated_at?: string | null
+        }
+        Update: {
+          challenges_identified?: Json | null
+          complaint_id?: string
+          conversation_duration?: number | null
+          conversation_ended_at?: string | null
+          conversation_started_at?: string | null
+          conversation_summary?: string | null
+          conversation_transcript?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          recommendations?: Json | null
+          responses_given?: Json | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "complaint_review_conversations_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       complaint_signatures: {
         Row: {
           created_at: string
