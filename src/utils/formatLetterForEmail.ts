@@ -124,14 +124,6 @@ export const formatLetterForEmail = (letterContent: string, logoUrl?: string | n
   // Main content section
   html += `<div style="padding: 40px 32px;">`;
   
-  // Date
-  if (sections.dateSection) {
-    html += `
-      <div style="text-align: right; margin-bottom: 32px;">
-        <p style="margin: 0; font-size: 15px; font-weight: 700; color: #1e3a8a;">${sections.dateSection}</p>
-      </div>
-    `;
-  }
   
   
   
@@ -179,8 +171,14 @@ export const formatLetterForEmail = (letterContent: string, logoUrl?: string | n
         }
       }
       
-      // Title, qualifications, practice name, address - with tighter spacing
-      html += `<p style="margin: 0 0 2px 0; color: #4b5563; font-size: 13px; line-height: 1.4;">${formatTextWithBold(trimmedLine)}</p>`;
+      // Title, qualifications, practice name - with tighter spacing (skip address lines)
+      const isAddressLine = trimmedLine.match(/^\d+\s+.*(street|road|lane|avenue|close)/i) || 
+                            trimmedLine.match(/^(northampton|london|birmingham|manchester|leeds)/i) ||
+                            trimmedLine.match(/^[A-Z]{1,2}\d{1,2}\s*\d[A-Z]{2}$/i); // UK postcode pattern
+      
+      if (!isAddressLine) {
+        html += `<p style="margin: 0 0 2px 0; color: #4b5563; font-size: 13px; line-height: 1.4;">${formatTextWithBold(trimmedLine)}</p>`;
+      }
     });
     
     html += `</div>`;
