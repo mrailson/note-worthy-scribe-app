@@ -153,9 +153,9 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
 
         {/* Addressee */}
         {addresseeSection.length > 0 && (
-          <div className="space-y-1">
+          <div className="space-y-0">
             {addresseeSection.map((line, index) => (
-              <p key={index} className="text-gray-800">
+              <p key={index} className="text-gray-800 leading-tight">
                 {formatTextWithBold(line)}
               </p>
             ))}
@@ -248,7 +248,7 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
                 
                 // Handle title, qualifications, practice name, etc.
                 return (
-                  <p key={index} className="text-gray-600 text-sm leading-relaxed">
+                  <p key={index} className="text-gray-600 text-sm leading-tight">
                     {formatTextWithBold(trimmedLine)}
                   </p>
                 );
@@ -267,7 +267,7 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
               {headerLines[0].replace(/\*\*/g, '')}
             </h3>
             {headerLines.slice(1).map((line, index) => (
-              <p key={index} className="text-sm text-gray-600 leading-relaxed">
+              <p key={index} className="text-sm text-gray-600 leading-tight">
                 {formatTextWithBold(line)}
               </p>
             ))}
