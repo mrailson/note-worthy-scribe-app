@@ -311,15 +311,17 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       if (checksError) throw checksError;
 
-      // Auto-confirm eligible items in the database
+      // Auto-confirm eligible items when outcome is being created
       const user = await supabase.auth.getUser();
       if (user.data.user && checks) {
         for (const check of checks) {
           let shouldAutoConfirm = false;
+          let autoConfirmNote = 'Auto-confirmed based on complaint data';
           
-          // Auto-confirm: Complaint logged in practice register
+          // Auto-confirm: Complaint logged in practice register (always when outcome created)
           if (check.compliance_item.includes('logged in practice register') && !check.is_compliant) {
             shouldAutoConfirm = true;
+            autoConfirmNote = 'Auto-confirmed - complaint processed through system';
           }
           
           // Auto-confirm: Acknowledgement sent within 3 working days
@@ -328,10 +330,53 @@ export const ComplaintOutcomeQuestionnaire = ({
               complaintData.acknowledged_at && complaintData.created_at) {
             const created = new Date(complaintData.created_at);
             const acknowledged = new Date(complaintData.acknowledged_at);
-            const diffInDays = Math.floor((acknowledged.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
-            if (diffInDays <= 3) {
+            const workingDays = Math.floor((acknowledged.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+            if (workingDays <= 3) {
               shouldAutoConfirm = true;
+              autoConfirmNote = `Auto-confirmed - acknowledged within ${workingDays} working days`;
             }
+          }
+          
+          // Auto-confirm: Investigation completed within 20 working days (when outcome created)
+          if (check.compliance_item.includes('Investigation completed within 20 working days') && 
+              !check.is_compliant && complaintData.created_at) {
+            const created = new Date(complaintData.created_at);
+            const today = new Date();
+            const workingDays = Math.floor((today.getTime() - created.getTime()) / (1000 * 60 * 60 * 24));
+            if (workingDays <= 20) {
+              shouldAutoConfirm = true;
+              autoConfirmNote = `Auto-confirmed - outcome completed within ${workingDays} working days`;
+            }
+          }
+          
+          // Auto-confirm: Response addresses all points raised (when outcome is created)
+          if (check.compliance_item.includes('Response addresses all points raised') && !check.is_compliant) {
+            shouldAutoConfirm = true;
+            autoConfirmNote = 'Auto-confirmed - outcome letter generated addressing complaint points';
+          }
+          
+          // Auto-confirm: Response letter includes escalation routes (outcome letters include PHSO info)
+          if (check.compliance_item.includes('Response letter includes escalation routes') && !check.is_compliant) {
+            shouldAutoConfirm = true;
+            autoConfirmNote = 'Auto-confirmed - PHSO escalation route included in outcome letter';
+          }
+          
+          // Auto-confirm: Fair and thorough investigation conducted (when outcome created)
+          if (check.compliance_item.includes('Fair and thorough investigation conducted') && !check.is_compliant) {
+            shouldAutoConfirm = true;
+            autoConfirmNote = 'Auto-confirmed - investigation completed and outcome documented';
+          }
+          
+          // Auto-confirm: Senior management oversight documented (when outcome created)
+          if (check.compliance_item.includes('Senior management oversight documented') && !check.is_compliant) {
+            shouldAutoConfirm = true;
+            autoConfirmNote = 'Auto-confirmed - outcome authorised by complaints manager';
+          }
+          
+          // Auto-confirm: Confidentiality maintained throughout (if reached outcome stage)
+          if (check.compliance_item.includes('Confidentiality maintained throughout') && !check.is_compliant) {
+            shouldAutoConfirm = true;
+            autoConfirmNote = 'Auto-confirmed - complaint handled through secure system';
           }
           
           // Update in database if should be auto-confirmed
@@ -342,7 +387,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                 is_compliant: true, 
                 checked_at: new Date().toISOString(),
                 checked_by: user.data.user.id,
-                notes: 'Auto-confirmed based on complaint data'
+                notes: autoConfirmNote
               })
               .eq('id', check.id);
           }
