@@ -494,7 +494,7 @@ const ComplaintsSystem = () => {
         .from('complaints')
         .select(`
           *,
-          complaint_outcomes(outcome_letter),
+          complaint_outcomes(outcome_letter, outcome_type),
           gp_practices(name)
         `)
         .order('created_at', { ascending: false });
@@ -1240,6 +1240,23 @@ const ComplaintsSystem = () => {
     return option?.label || status;
   };
 
+  const getStatusDisplayLabel = (complaint: Complaint) => {
+    const statusLabel = getStatusLabel(complaint.status);
+    
+    // If closed and has outcome type, append it
+    if (complaint.status === 'closed' && (complaint as any).complaint_outcomes?.[0]?.outcome_type) {
+      const outcomeType = (complaint as any).complaint_outcomes[0].outcome_type;
+      // Capitalize first letter of each word
+      const formattedOutcome = outcomeType
+        .split('_')
+        .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+      return `${statusLabel} - ${formattedOutcome}`;
+    }
+    
+    return statusLabel;
+  };
+
   const getPriorityLabel = (priority: string) => {
     const option = priorityOptions.find(opt => opt.value === priority);
     return option?.label || priority;
@@ -1688,7 +1705,7 @@ const ComplaintsSystem = () => {
                               ) : (
                                 getStatusIcon(complaint.status)
                               )}
-                              <span className="ml-1">{getStatusLabel(complaint.status)}</span>
+                              <span className="ml-1">{getStatusDisplayLabel(complaint)}</span>
                             </Badge>
                             {isOverdue(complaint) && (
                               <Badge variant="destructive">Overdue</Badge>
@@ -1968,7 +1985,7 @@ const ComplaintsSystem = () => {
                                 ) : (
                                   getStatusIcon(complaint.status)
                                 )}
-                                <span className="ml-1">{getStatusLabel(complaint.status)}</span>
+                                <span className="ml-1">{getStatusDisplayLabel(complaint)}</span>
                               </Badge>
                             </div>
                           </div>
