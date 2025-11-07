@@ -93,6 +93,53 @@ export const ComplaintOutcomeQuestionnaire = ({
 
   const complaintReference = complaintData.reference_number || '';
 
+  // Format AI analysis with NHS styling
+  const formatAiAnalysis = (text: string) => {
+    if (!text) return null;
+    
+    const sections = text.split('\n\n');
+    
+    return (
+      <div className="space-y-4">
+        {sections.map((section, idx) => {
+          const lines = section.split('\n').filter(line => line.trim());
+          if (lines.length === 0) return null;
+          
+          const heading = lines[0];
+          const content = lines.slice(1);
+          
+          // Check if this is a heading line (contains uppercase or ends with :)
+          const isHeading = heading.includes(':') || heading === heading.toUpperCase();
+          
+          return (
+            <div key={idx} className="space-y-2">
+              {isHeading && (
+                <h4 className="font-bold text-[#005EB8] text-sm">
+                  {heading.replace(':', '')}
+                </h4>
+              )}
+              {content.map((line, lineIdx) => {
+                if (line.startsWith('•') || line.startsWith('-')) {
+                  return (
+                    <div key={lineIdx} className="flex gap-2 text-sm text-slate-700 ml-4">
+                      <span className="text-[#005EB8] font-bold">•</span>
+                      <span>{line.replace(/^[•-]\s*/, '')}</span>
+                    </div>
+                  );
+                }
+                return (
+                  <p key={lineIdx} className="text-sm text-slate-700 leading-relaxed">
+                    {line}
+                  </p>
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
   // Fetch demo response from database for this complaint with category fallback
   useEffect(() => {
     const fetchDemoResponse = async () => {
@@ -927,10 +974,8 @@ export const ComplaintOutcomeQuestionnaire = ({
                       )}
 
                       {aiAnalysisText && (
-                        <div className="bg-white p-4 rounded border border-blue-200 max-h-[300px] overflow-y-auto">
-                          <div className="text-sm text-slate-700 whitespace-pre-wrap font-sans leading-relaxed">
-                            {aiAnalysisText.replace(/\*\*/g, '').replace(/##/g, '')}
-                          </div>
+                        <div className="bg-white p-4 rounded border border-blue-200 max-h-[400px] overflow-y-auto">
+                          {formatAiAnalysis(aiAnalysisText)}
                         </div>
                       )}
                     </div>

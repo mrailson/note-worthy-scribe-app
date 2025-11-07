@@ -109,20 +109,20 @@ Your response must be under 400 words and structured exactly as:
 
 SUGGESTED OUTCOME (GUIDANCE ONLY): [upheld/partially_upheld/not_upheld]
 
-KEY FINDINGS (2-3 bullet points maximum):
+KEY FINDINGS:
 • [Finding 1 - stated constructively using advisory language]
 • [Finding 2 - stated constructively using advisory language]
 
-REASONING (3-4 sentences):
+REASONING:
 [MUST start with "Based on the evidence provided, this SUGGESTS..." or similar conditional phrasing.
 Then explain, referencing BOTH patient concerns AND the practice's documented response/actions.
 Acknowledge any positive steps taken. Frame issues as opportunities for improvement.
 Use ONLY advisory language throughout - NEVER definitive statements]
 
-COMPLIANCE CONSIDERATIONS (2 sentences):
+COMPLIANCE CONSIDERATIONS:
 [How this aligns with NHS/CQC standards - focus on continuous improvement and learning]
 
-LEARNING POINTS (2 bullet points):
+LEARNING POINTS:
 • [Constructive, forward-looking suggestion 1]
 • [Constructive, forward-looking suggestion 2]
 
