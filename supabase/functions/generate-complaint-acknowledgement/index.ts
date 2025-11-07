@@ -132,9 +132,23 @@ serve(async (req) => {
 6. Provides contact information for queries
 7. Is empathetic and professional
 
-CRITICAL LANGUAGE REQUIREMENT:
-- MUST use British English spelling throughout (e.g., "organisation" not "organization", "centre" not "center", "recognise" not "recognize")
+CRITICAL LANGUAGE REQUIREMENT - BRITISH ENGLISH ONLY:
+- MUST use British English spelling throughout
+- Common examples to ALWAYS use British spelling:
+  * "organisation" NOT "organization"
+  * "centre" NOT "center"
+  * "recognise" NOT "recognize"
+  * "apologise" NOT "apologize"
+  * "realise" NOT "realize"
+  * "behaviour" NOT "behavior"
+  * "honour" NOT "honor"
+  * "favour" NOT "favor"
+  * "colour" NOT "color"
+  * "programme" NOT "program" (except computer programs)
+  * "licence" (noun) NOT "license" (noun)
+  * "practise" (verb) NOT "practice" (verb)
 - Follow UK business conventions and date formats
+- Double-check every word ending in -ize/-ise, -or/-our, -er/-re
 
 IMPORTANT FORMATTING REQUIREMENTS:
 - Start with the practice logo/letterhead (if provided via logo URL)

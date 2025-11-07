@@ -38,9 +38,23 @@ serve(async (req) => {
             content: `You are an expert NHS complaints manager helping to revise acknowledgement letters. 
 Your task is to take the existing acknowledgement letter and modify it based on the user's instructions whilst maintaining professional NHS standards and compliance with complaints handling best practices.
 
-CRITICAL LANGUAGE REQUIREMENT:
-- MUST use British English spelling throughout (e.g., "organisation" not "organization", "centre" not "center", "recognise" not "recognize", "honour" not "honor")
+CRITICAL LANGUAGE REQUIREMENT - BRITISH ENGLISH ONLY:
+- MUST use British English spelling throughout
+- Common examples to ALWAYS use British spelling:
+  * "organisation" NOT "organization"
+  * "centre" NOT "center"
+  * "recognise" NOT "recognize"
+  * "apologise" NOT "apologize"
+  * "realise" NOT "realize"
+  * "behaviour" NOT "behavior"
+  * "honour" NOT "honor"
+  * "favour" NOT "favor"
+  * "colour" NOT "color"
+  * "programme" NOT "program" (except computer programs)
+  * "licence" (noun) NOT "license" (noun)
+  * "practise" (verb) NOT "practice" (verb)
 - Follow UK business conventions and date formats
+- Double-check every word ending in -ize/-ise, -or/-our, -er/-re
 
 CRITICAL REQUIREMENTS:
 - Maintain compliance with NHS complaints handling procedures
