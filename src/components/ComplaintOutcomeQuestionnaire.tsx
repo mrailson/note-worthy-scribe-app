@@ -296,7 +296,7 @@ export const ComplaintOutcomeQuestionnaire = ({
     try {
       // Initialize compliance checks if they don't exist
       const { error: initError } = await supabase
-        .rpc('initialize_complaint_compliance', { complaint_id_param: complaintId });
+        .rpc('initialize_complaint_compliance', { p_complaint_id: complaintId });
 
       if (initError) {
         console.error('Error initializing compliance:', initError);
@@ -406,11 +406,18 @@ export const ComplaintOutcomeQuestionnaire = ({
 
       // Get compliance summary
       const { data: summary, error: summaryError } = await supabase
-        .rpc('get_complaint_compliance_summary', { complaint_id_param: complaintId });
+        .rpc('get_complaint_compliance_summary', { p_complaint_id: complaintId });
 
       if (summaryError) throw summaryError;
       if (summary && summary.length > 0) {
-        setComplianceSummary(summary[0]);
+        // Map the response to match the expected structure
+        const summaryData = summary[0];
+        setComplianceSummary({
+          total_items: Number(summaryData.total_checks),
+          compliant_items: Number(summaryData.completed_checks),
+          compliance_percentage: Number(summaryData.compliance_percentage),
+          outstanding_items: []
+        });
       }
     } catch (error) {
       console.error('Error fetching compliance data:', error);

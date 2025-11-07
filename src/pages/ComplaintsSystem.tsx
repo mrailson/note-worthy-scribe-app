@@ -1019,7 +1019,7 @@ const ComplaintsSystem = () => {
   const initializeComplianceChecklist = async (complaintId: string) => {
     try {
       const { error } = await supabase.rpc('initialize_complaint_compliance', {
-        complaint_id_param: complaintId
+        p_complaint_id: complaintId
       });
       if (error) throw error;
     } catch (error) {
@@ -1041,12 +1041,19 @@ const ComplaintsSystem = () => {
 
       // Fetch compliance summary
       const { data: summaryData, error: summaryError } = await supabase.rpc('get_complaint_compliance_summary', {
-        complaint_id_param: complaintId
+        p_complaint_id: complaintId
       });
 
       if (summaryError) throw summaryError;
       if (summaryData && summaryData.length > 0) {
-        setComplianceSummary(summaryData[0]);
+        // Map the response to match the expected state structure
+        const summary = summaryData[0];
+        setComplianceSummary({
+          total_items: Number(summary.total_checks),
+          compliant_items: Number(summary.completed_checks),
+          compliance_percentage: Number(summary.compliance_percentage),
+          outstanding_items: [] // Can be calculated from checksData if needed
+        });
       }
     } catch (error) {
       console.error('Error fetching compliance data:', error);

@@ -6237,12 +6237,12 @@ export type Database = {
         Returns: string
       }
       get_complaint_compliance_summary: {
-        Args: { complaint_id_param: string }
+        Args: { p_complaint_id: string }
         Returns: {
+          complaint_id: string
+          completed_checks: number
           compliance_percentage: number
-          compliant_items: number
-          outstanding_items: string[]
-          total_items: number
+          total_checks: number
         }[]
       }
       get_complaint_for_external_access: {
@@ -6477,7 +6477,7 @@ export type Database = {
       }
       icn_norm: { Args: { input_name: string }; Returns: string }
       initialize_complaint_compliance: {
-        Args: { complaint_id_param: string }
+        Args: { p_complaint_id: string }
         Returns: undefined
       }
       is_pcn_manager: { Args: { _user_id?: string }; Returns: boolean }
