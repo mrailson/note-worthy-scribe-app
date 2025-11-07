@@ -12,7 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { FileText, Download, Mail, PlayCircle, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from "@/utils/toastWrapper";
 
 interface PostMeetingActionsModalProps {
   isOpen: boolean;
@@ -171,10 +171,10 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
               content: payload.new.overview || '',
             });
             
-            toast.success('Meeting notes are ready!');
+            showToast.success('Meeting notes are ready!', { section: 'meeting_manager' });
           } else if (payload.new.notes_generation_status === 'error' || payload.new.notes_generation_status === 'failed') {
             setNotesStatus('error');
-            toast.error('Failed to generate meeting notes');
+            showToast.error('Failed to generate meeting notes', { section: 'meeting_manager' });
           }
         }
       )
@@ -187,13 +187,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 
   const handleViewMeeting = () => {
     if (notesStatus !== 'completed') {
-      toast.info('Meeting notes are still being generated. Please wait a moment.');
+      showToast.info('Meeting notes are still being generated. Please wait a moment.', { section: 'meeting_manager' });
       return;
     }
     
     // Don't navigate for test meetings
     if (meetingId.startsWith('test-meeting-id-')) {
-      toast.info('Test meetings cannot be viewed. Please record a real meeting.');
+      showToast.info('Test meetings cannot be viewed. Please record a real meeting.', { section: 'meeting_manager' });
       return;
     }
     
@@ -209,7 +209,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
 
   const handleDownload = async () => {
     if (!meetingData) {
-      toast.error('Meeting data not loaded yet');
+      showToast.error('Meeting data not loaded yet', { section: 'meeting_manager' });
       return;
     }
     
@@ -218,21 +218,21 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       const title = meetingData.title || meetingTitle; // Use updated title from database
       await generateWordDocument(content, title);
       setIsDownloaded(true);
-      toast.success('Meeting notes downloaded!');
+      showToast.success('Meeting notes downloaded!', { section: 'meeting_manager' });
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download meeting notes');
+      showToast.error('Failed to download meeting notes', { section: 'meeting_manager' });
     }
   };
 
   const handleEmail = async () => {
     if (notesStatus !== 'completed') {
-      toast.info('Meeting notes are still being generated. Please wait a moment.');
+      showToast.info('Meeting notes are still being generated. Please wait a moment.', { section: 'meeting_manager' });
       return;
     }
     
     if (!meetingData || !meetingNotes) {
-      toast.error('Meeting data not available');
+      showToast.error('Meeting data not available', { section: 'meeting_manager' });
       return;
     }
     
@@ -242,7 +242,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       // Get user profile for email
       const { data: { user } } = await supabase.auth.getUser();
       if (!user?.email) {
-        toast.error('User email not found');
+        showToast.error('User email not found', { section: 'meeting_manager' });
         return;
       }
       
@@ -406,10 +406,10 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       
       // Store the email address and show success
       setEmailSentTo(userEmail);
-      toast.success(`Email sent to ${userEmail}!`);
+      showToast.success(`Email sent to ${userEmail}!`, { section: 'meeting_manager' });
     } catch (error) {
       console.error('Email error:', error);
-      toast.error('Failed to send email');
+      showToast.error('Failed to send email', { section: 'meeting_manager' });
     } finally {
       setIsSendingEmail(false);
     }

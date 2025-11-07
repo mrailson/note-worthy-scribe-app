@@ -12,7 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { toast } from "sonner";
+
 import { showToast } from "@/utils/toastWrapper";
 import {
   AlertDialog,
@@ -647,14 +647,14 @@ export const MeetingRecorder = ({
     setLastAutoCleanTime(new Date());
 
     try {
-      toast.loading('Auto cleaning transcript...', { id: 'auto-clean' });
+      showToast.info('Auto cleaning transcript...', { section: 'meeting_manager', id: 'auto-clean', duration: Infinity });
       
       const cleanedTranscript = await cleanLargeTranscript(
         transcript,
         meetingSettings.title,
         (done, total) => {
           if (total > 1) {
-            toast.loading(`Auto cleaning transcript... ${done}/${total} chunks`, { id: 'auto-clean' });
+            showToast.info(`Auto cleaning transcript... ${done}/${total} chunks`, { section: 'meeting_manager', id: 'auto-clean', duration: Infinity });
           }
         }
       );
@@ -668,7 +668,7 @@ export const MeetingRecorder = ({
         showToast.success('Transcript auto-cleaned successfully', { section: 'meeting_manager', id: 'auto-clean' });
         console.log('✅ Auto Deep Clean completed');
       } else {
-        toast.dismiss('auto-clean');
+        showToast.dismiss('auto-clean');
         console.log('📋 Auto Deep Clean - no changes needed');
       }
     } catch (error) {
@@ -3301,7 +3301,8 @@ export const MeetingRecorder = ({
       }, 0);
       
       // Show toast for short meeting (deduped)
-      toast.info('Meeting was too short to save (minimum 100 words required)', {
+      showToast.info('Meeting was too short to save (minimum 100 words required)', {
+        section: 'meeting_manager',
         id: 'short_meeting_notice',
         duration: 4000,
       });
@@ -3740,7 +3741,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       console.log('🚨 MEETING UPDATED IN DATABASE:', savedMeeting.id);
       
       // Show success toast
-      toast.success('Meeting has been saved and is available in Meeting History tab', {
+      showToast.success('Meeting has been saved and is available in Meeting History tab', {
+        section: 'meeting_manager',
         duration: 5000,
       });
 
@@ -5398,7 +5400,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             <MeetingImporter
               onMeetingCreated={(meetingId) => {
                 setImportDialogOpen(false);
-                toast.success('Meeting imported successfully!');
+                showToast.success('Meeting imported successfully!', { section: 'meeting_manager' });
                 loadMeetingHistory();
                 
                 // Optionally open the newly created meeting

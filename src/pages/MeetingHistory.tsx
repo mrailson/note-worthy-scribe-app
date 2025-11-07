@@ -45,7 +45,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 
 interface Meeting {
   id: string;
@@ -220,7 +220,7 @@ const MeetingHistory = () => {
     
     // Block operation during recording to prevent interference
     if (!isResourceOperationSafe()) {
-      toast.error("Cannot view notes while recording is active. This prevents audio interference.");
+      showToast.error("Cannot view notes while recording is active. This prevents audio interference.", { section: 'meeting_manager' });
       return;
     }
     
@@ -244,7 +244,7 @@ const MeetingHistory = () => {
       
       if (!meeting) {
         console.error('❌ No meeting found for id:', meetingId);
-        toast.error("Meeting not found or you don't have access to it");
+        showToast.error("Meeting not found or you don't have access to it", { section: 'meeting_manager' });
         return;
       }
       
@@ -306,7 +306,7 @@ const MeetingHistory = () => {
        // Validate meeting ID format before setting state
        if (!meeting?.id || typeof meeting.id !== 'string' || meeting.id.length !== 36) {
          console.error('❌ Invalid meeting ID format:', meeting?.id);
-         toast.error('Invalid meeting data - please refresh and try again');
+         showToast.error('Invalid meeting data - please refresh and try again', { section: 'meeting_manager' });
          return;
        }
        
@@ -333,7 +333,7 @@ const MeetingHistory = () => {
     } catch (error: any) {
       console.error("❌ Error Loading Meeting:", error);
       console.error("❌ Error details:", error.message, error.code, error.details);
-      toast.error(`Failed to load meeting notes: ${error.message}`);
+      showToast.error(`Failed to load meeting notes: ${error.message}`, { section: 'meeting_manager' });
     }
   };
 
@@ -365,14 +365,14 @@ const MeetingHistory = () => {
 
       if (error) {
         console.error('❌ Notes generation failed:', error);
-        toast.error('Failed to generate notes automatically');
+        showToast.error('Failed to generate notes automatically', { section: 'meeting_manager' });
       } else {
         console.log('🎉 Notes generation started successfully');
-        toast.success('Notes are being generated in the background');
+        showToast.success('Notes are being generated in the background', { section: 'meeting_manager' });
       }
     } catch (error: any) {
       console.error('❌ Error triggering notes generation:', error);
-      toast.error('Failed to start notes generation');
+      showToast.error('Failed to start notes generation', { section: 'meeting_manager' });
     }
   };
 
@@ -514,7 +514,7 @@ const MeetingHistory = () => {
 
   const handleEmailNotes = async () => {
     if (!selectedMeeting || !meetingSummary) {
-      toast.error('No meeting notes available to email');
+      showToast.error('No meeting notes available to email', { section: 'meeting_manager' });
       return;
     }
     
@@ -529,10 +529,10 @@ const MeetingHistory = () => {
       });
 
       if (error) throw error;
-      toast.success(`Meeting notes sent to ${user?.email}`);
+      showToast.success(`Meeting notes sent to ${user?.email}`, { section: 'meeting_manager' });
     } catch (error: any) {
       console.error("Error emailing notes:", error.message);
-      toast.error(`Failed to send email: ${error.message}`);
+      showToast.error(`Failed to send email: ${error.message}`, { section: 'meeting_manager' });
     }
   };
 
@@ -544,7 +544,7 @@ const MeetingHistory = () => {
 
     // Block operation during recording to prevent interference
     if (!isResourceOperationSafe()) {
-      toast.error("Cannot view transcript while recording is active. This prevents audio interference.");
+      showToast.error("Cannot view transcript while recording is active. This prevents audio interference.", { section: 'meeting_manager' });
       return;
     }
 
@@ -573,7 +573,7 @@ const MeetingHistory = () => {
       
       if (!meeting) {
         console.error('❌ No meeting found for transcript view:', meetingId);
-        toast.error("Meeting not found or you don't have access to it");
+        showToast.error("Meeting not found or you don't have access to it", { section: 'meeting_manager' });
         return;
       }
 
@@ -625,7 +625,7 @@ const MeetingHistory = () => {
       
     } catch (error: any) {
       console.error("❌ Error loading transcript:", error);
-      toast.error(`Failed to load transcript: ${error.message}`);
+      showToast.error(`Failed to load transcript: ${error.message}`, { section: 'meeting_manager' });
     }
   };
 
@@ -1034,7 +1034,7 @@ const MeetingHistory = () => {
           console.log('🔄 New meeting inserted, refreshing meeting history...', payload);
           // Refresh meetings when a new meeting is added
           fetchMeetings(currentPage);
-          toast.success('New meeting detected - refreshing list');
+          showToast.success('New meeting detected - refreshing list', { section: 'meeting_manager' });
         }
       )
       .on(
@@ -1065,7 +1065,7 @@ const MeetingHistory = () => {
           // Show toast for notes completion
           if (payload.new.notes_generation_status === 'completed' && 
               payload.old.notes_generation_status !== 'completed') {
-            toast.success('Meeting notes have been generated!');
+            showToast.success('Meeting notes have been generated!', { section: 'meeting_manager' });
           }
         }
       )
@@ -1330,7 +1330,7 @@ const MeetingHistory = () => {
       
     } catch (error: any) {
       console.error("❌ Error loading meetings:", error.message, error);
-      toast.error("Failed to load meetings");
+      showToast.error("Failed to load meetings", { section: 'meeting_manager' });
     } finally {
       console.log('✅ fetchMeetings completed - Setting loading to false');
       setLoading(false);
@@ -1515,7 +1515,7 @@ const MeetingHistory = () => {
   // Merge meetings handler
   const handleMergeMeetings = async () => {
     if (selectedMeetings.length < 2) {
-      toast.error("Please select at least 2 meetings to merge");
+      showToast.error("Please select at least 2 meetings to merge", { section: 'meeting_manager' });
       return;
     }
 
@@ -1528,8 +1528,9 @@ const MeetingHistory = () => {
 
       if (error) throw error;
 
-      toast.success(
-        `Successfully merged ${data.deletedMeetings + 1} meetings. New notes are being generated.`
+      showToast.success(
+        `Successfully merged ${data.deletedMeetings + 1} meetings. New notes are being generated.`,
+        { section: 'meeting_manager' }
       );
 
       // Reset multi-select state
@@ -1546,7 +1547,7 @@ const MeetingHistory = () => {
 
     } catch (error: any) {
       console.error('❌ Error merging meetings:', error);
-      toast.error(`Failed to merge meetings: ${error.message}`);
+      showToast.error(`Failed to merge meetings: ${error.message}`, { section: 'meeting_manager' });
     }
   };
 
@@ -1730,7 +1731,7 @@ const MeetingHistory = () => {
                onClick={async () => {
                  console.log('🔄 Manual refresh requested');
                  fetchMeetings(currentPage);
-                 toast.success('Refreshing meeting list...');
+                 showToast.success('Refreshing meeting list...', { section: 'meeting_manager' });
                  
                  // Generate missing overviews after refreshing
                  setTimeout(async () => {
@@ -1742,7 +1743,7 @@ const MeetingHistory = () => {
                      
                      if (meetingsNeedingOverviews.length > 0) {
                        console.log(`🎯 Found ${meetingsNeedingOverviews.length} meetings needing overviews`);
-                       toast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`);
+                       showToast.info(`Generating overviews for ${meetingsNeedingOverviews.length} meetings...`, { section: 'meeting_manager' });
                        
                        let successCount = 0;
                        for (const meeting of meetingsNeedingOverviews) {
@@ -1783,7 +1784,7 @@ const MeetingHistory = () => {
                        }
                        
                        if (successCount > 0) {
-                         toast.success(`Generated ${successCount} new overviews`);
+                         showToast.success(`Generated ${successCount} new overviews`, { section: 'meeting_manager' });
                          fetchMeetings(currentPage);
                        }
                      }
@@ -2469,7 +2470,7 @@ const MeetingHistory = () => {
               <MeetingImporter
                 onMeetingCreated={(meetingId) => {
                   setImportDialogOpen(false);
-                  toast.success('Meeting imported successfully!');
+                  showToast.success('Meeting imported successfully!', { section: 'meeting_manager' });
                   fetchMeetings(currentPage);
                   
                   // Optionally open the newly created meeting
