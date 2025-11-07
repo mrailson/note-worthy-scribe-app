@@ -45,6 +45,7 @@ import { ResetPassword } from "./components/ResetPassword";
 import { ProtectedRoute } from "./components/ProtectedRoute";
 import GPSoapUI from "./components/GPSoapUI";
 import Turkey2025 from "./pages/Turkey2025";
+import EnhancedAccess from "./pages/EnhancedAccess";
 
 const App = () => {
   useSessionActivity();
@@ -98,6 +99,11 @@ const App = () => {
               <Route path="/ai4pm" element={
                 <ProtectedRoute requiredModule="enhanced_access">
                   <AI4PMService />
+                </ProtectedRoute>
+              } />
+              <Route path="/enhanced-access" element={
+                <ProtectedRoute requiredModule="enhanced_access">
+                  <EnhancedAccess />
                 </ProtectedRoute>
               } />
               <Route path="/cqc-compliance" element={
