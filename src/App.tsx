@@ -95,6 +95,31 @@ const App = () => {
               <Route path="/patient-language" element={<PatientLanguageSelection />} />
               <Route path="/gp-genie" element={<GPGenie />} />
               <Route path="/new-recorder" element={<NewRecorder />} />
+              <Route path="/ai4pm" element={
+                <ProtectedRoute requiredModule="enhanced_access">
+                  <AI4PMService />
+                </ProtectedRoute>
+              } />
+              <Route path="/cqc-compliance" element={
+                <ProtectedRoute requiredModule="enhanced_access">
+                  <CQCCompliance />
+                </ProtectedRoute>
+              } />
+              <Route path="/compliance/documentation" element={
+                <ProtectedRoute requiredModule="enhanced_access">
+                  <ComplianceDocumentation />
+                </ProtectedRoute>
+              } />
+              <Route path="/compliance/security" element={
+                <ProtectedRoute requiredModule="enhanced_access">
+                  <SecurityCompliance />
+                </ProtectedRoute>
+              } />
+              <Route path="/cso-report" element={
+                <ProtectedRoute requiredModule="enhanced_access">
+                  <CSOReport />
+                </ProtectedRoute>
+              } />
               <Route path="/feedback" element={<PracticeManagerFeedback />} />
               <Route path="/feedback/results" element={<FeedbackResults />} />
               <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
