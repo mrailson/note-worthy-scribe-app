@@ -2837,12 +2837,6 @@ I am committed to ensuring that all patients receive the care and service they d
                                 <span className="text-green-900">{outcomeQuestionnaireData.fair_consideration ? 'Yes - CQC compliant' : 'No'}</span>
                               </div>
                             )}
-                            {outcomeQuestionnaireData.tone && (
-                              <div className="flex items-start gap-2">
-                                <span className="font-medium text-green-700 min-w-[200px]">Letter tone:</span>
-                                <span className="text-green-900 capitalize">{outcomeQuestionnaireData.tone}</span>
-                              </div>
-                            )}
                             {outcomeQuestionnaireData.is_vexatious && (
                               <div className="flex items-start gap-2">
                                 <span className="font-medium text-green-700 min-w-[200px]">Vexatious complaint:</span>
