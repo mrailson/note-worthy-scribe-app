@@ -62,6 +62,7 @@ import { exportComplaintReportToWord } from "@/utils/exportComplaintReport";
 import { InvestigationEvidence } from "@/components/InvestigationEvidence";
 import { InvestigationFindings } from "@/components/InvestigationFindings";
 import { InvestigationDecisionAndLearning } from "@/components/InvestigationDecisionAndLearning";
+import { InvestigationEvidenceTab } from "@/components/InvestigationEvidenceTab";
 import { calculateDaysUntilDeadline, calculateWorkingDays } from "@/utils/workingDays";
 import { logComplaintViewWithMetadata } from "@/utils/auditLogger";
 
@@ -2206,9 +2207,10 @@ I am committed to ensuring that all patients receive the care and service they d
 
           {/* Complaint Workflow Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4">
+            <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="details">Details</TabsTrigger>
               <TabsTrigger value="workflow">Workflow</TabsTrigger>
+              <TabsTrigger value="investigation">Investigation Evidence</TabsTrigger>
               <TabsTrigger value="compliance">Compliance</TabsTrigger>
               <TabsTrigger value="audit">Audit Log</TabsTrigger>
             </TabsList>
@@ -3361,6 +3363,11 @@ I am committed to ensuring that all patients receive the care and service they d
                 </Collapsible>
               )}
 
+            </TabsContent>
+
+            {/* Investigation Evidence Tab */}
+            <TabsContent value="investigation" className="space-y-6">
+              <InvestigationEvidenceTab complaintId={complaint.id} disabled={complaint.status === 'closed'} />
             </TabsContent>
 
             {/* Compliance Tab */}
