@@ -206,10 +206,6 @@ export function ComplaintReviewConversation({
 
       {!conversationStarted ? (
         <div className="flex flex-col items-center gap-4 py-6">
-          <p className="text-sm text-muted-foreground text-centre max-w-md">
-            Start a 1-5 minute voice conversation with an AI assistant to thoroughly review this complaint.
-            The AI will ask probing questions and help identify areas for improvement.
-          </p>
           <Button
             onClick={handleStartConversation}
             disabled={isInitializing}
