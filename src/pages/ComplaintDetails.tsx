@@ -58,6 +58,7 @@ import { format } from "date-fns";
 import { showToast } from '@/utils/toastWrapper';
 import { createLetterDocument } from "@/utils/letterFormatter";
 import { Document, Packer } from "docx";
+import { exportComplaintReportToWord } from "@/utils/exportComplaintReport";
 import { InvestigationEvidence } from "@/components/InvestigationEvidence";
 import { InvestigationFindings } from "@/components/InvestigationFindings";
 import { InvestigationDecisionAndLearning } from "@/components/InvestigationDecisionAndLearning";
@@ -2419,37 +2420,56 @@ I am committed to ensuring that all patients receive the care and service they d
                           )}
                           {getStatusLabel(complaint.status)}
                         </Badge>
-                        {audioOverview?.audio_overview_text && (
+                        {complaint.status === 'closed' && (
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-7 px-2 gap-1"
                             onClick={async () => {
                               try {
-                                const doc = await createLetterDocument(
-                                  audioOverview.audio_overview_text,
-                                  'summary',
-                                  complaint.reference_number
-                                );
+                                showToast.info('Generating complaint report...', { section: 'complaints' });
+                                
+                                // Calculate working days to acknowledge
+                                let workingDaysToAcknowledge: number | undefined;
+                                if (complaint.submitted_at && complaint.acknowledged_at) {
+                                  workingDaysToAcknowledge = calculateWorkingDays(
+                                    complaint.submitted_at,
+                                    complaint.acknowledged_at
+                                  );
+                                }
 
-                                const blob = await Packer.toBlob(doc);
-                                const url = URL.createObjectURL(blob);
-                                const a = document.createElement('a');
-                                a.href = url;
-                                a.download = `Executive_Summary_${complaint.reference_number}.docx`;
-                                document.body.appendChild(a);
-                                a.click();
-                                document.body.removeChild(a);
-                                URL.revokeObjectURL(url);
-                                showToast.success('Executive Summary downloaded', { section: 'complaints' });
+                                // Prepare evidence files list
+                                const evidenceFiles = complaintDocuments.map(doc => ({
+                                  name: doc.file_name,
+                                  type: doc.file_type || 'Unknown'
+                                }));
+
+                                await exportComplaintReportToWord({
+                                  complaint,
+                                  audioOverview: audioOverview?.audio_overview_text,
+                                  investigationMethod,
+                                  involvedParties: involvedParties as any,
+                                  investigationSummary: existingOutcome?.investigation_summary,
+                                  findingsText: existingOutcome?.findings_text,
+                                  outcome: existingOutcome ? {
+                                    outcome_type: existingOutcome.outcome_type,
+                                    outcome_summary: existingOutcome.outcome_summary
+                                  } : undefined,
+                                  outcomeLetter,
+                                  acknowledgementLetter,
+                                  evidenceFiles,
+                                  workingDaysToAcknowledge
+                                });
+
+                                showToast.success('Complaint report downloaded', { section: 'complaints' });
                               } catch (error) {
-                                console.error('Error downloading summary:', error);
-                                showToast.error('Failed to download summary', { section: 'complaints' });
+                                console.error('Error downloading report:', error);
+                                showToast.error('Failed to download complaint report', { section: 'complaints' });
                               }
                             }}
                           >
                             <Download className="h-3 w-3" />
-                            <span className="text-xs">Download Summary</span>
+                            <span className="text-xs">Download Full Report</span>
                           </Button>
                         )}
                       </div>
