@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { FileText, Upload, Download, Trash2, Mic, Play, Pause, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -56,6 +57,13 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     fileName: '',
     text: '',
     confidence: null
+  });
+  const [deleteConfirmation, setDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    file: EvidenceFile | null;
+  }>({
+    isOpen: false,
+    file: null
   });
 
   useEffect(() => {
@@ -278,10 +286,18 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     }
   };
 
-  const deleteFile = async (file: EvidenceFile) => {
-    if (!confirm(`Are you sure you want to delete "${file.file_name}"? This action cannot be undone.`)) {
-      return;
-    }
+  const confirmDeleteFile = (file: EvidenceFile) => {
+    setDeleteConfirmation({
+      isOpen: true,
+      file: file
+    });
+  };
+
+  const deleteFile = async () => {
+    const file = deleteConfirmation.file;
+    if (!file) return;
+
+    setDeleteConfirmation({ isOpen: false, file: null });
 
     try {
       console.log('Attempting to delete evidence file:', file.id, file.file_name);
@@ -342,6 +358,31 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
 
   return (
     <>
+      <AlertDialog open={deleteConfirmation.isOpen} onOpenChange={(open) => !open && setDeleteConfirmation({ isOpen: false, file: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Evidence File?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>You are about to permanently delete:</p>
+              <p className="font-semibold text-foreground">{deleteConfirmation.file?.file_name}</p>
+              <p>This will:</p>
+              <ul className="list-disc list-inside space-y-1 text-muted-foreground">
+                <li>Remove the file from investigation evidence</li>
+                <li>Delete any associated audio transcripts</li>
+                <li>Remove the file from secure storage</li>
+              </ul>
+              <p className="font-semibold text-destructive mt-3">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteFile} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete File
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={transcriptionModal.isOpen} onOpenChange={(open) => setTranscriptionModal(prev => ({ ...prev, isOpen: open }))}>
         <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
@@ -488,7 +529,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => deleteFile(file)}
+                          onClick={() => confirmDeleteFile(file)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
