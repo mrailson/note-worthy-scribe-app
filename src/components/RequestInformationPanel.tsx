@@ -325,7 +325,15 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
                     <div className="flex-1 min-w-0">
                       {party.response_submitted_at ? (
                         <div>
-                          <div className="text-sm font-medium text-muted-foreground mb-2">Response:</div>
+                          <div className="text-sm font-medium text-muted-foreground mb-2">
+                            Response received on {new Date(party.response_submitted_at).toLocaleDateString('en-GB', { 
+                              day: 'numeric', 
+                              month: 'long', 
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit'
+                            })}:
+                          </div>
                           <div className="p-3 bg-background rounded border text-sm whitespace-pre-wrap">
                             {party.response_text}
                           </div>
