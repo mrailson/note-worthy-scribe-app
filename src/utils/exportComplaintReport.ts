@@ -684,12 +684,25 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
   sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
 
   sections.push(createHeading("Complaint Classification", HeadingLevel.HEADING_2));
+  
+  // Helper to capitalize staff names
+  const capitalizeStaffNames = (names: string[] | null): string => {
+    if (!names || names.length === 0) return "None";
+    return names
+      .map(name => 
+        name.split(' ')
+          .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+          .join(' ')
+      )
+      .join(", ");
+  };
+  
   sections.push(
     createMetadataTable([
       { label: "Category", value: complaint.category },
       { label: "Priority", value: complaint.priority.charAt(0).toUpperCase() + complaint.priority.slice(1).toLowerCase() },
       { label: "Location/Service", value: complaint.location_service || "Not specified" },
-      { label: "Staff Mentioned", value: complaint.staff_mentioned?.join(", ") || "None" },
+      { label: "Staff Mentioned", value: capitalizeStaffNames(complaint.staff_mentioned) },
     ])
   );
 
