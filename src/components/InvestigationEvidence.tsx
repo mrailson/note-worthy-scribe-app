@@ -279,27 +279,45 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   };
 
   const deleteFile = async (file: EvidenceFile) => {
+    if (!confirm(`Are you sure you want to delete "${file.file_name}"? This action cannot be undone.`)) {
+      return;
+    }
+
     try {
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('communication-files')
-        .remove([file.file_path]);
+      console.log('Attempting to delete evidence file:', file.id, file.file_name);
 
-      if (storageError) throw storageError;
-
-      // Delete from database
-      const { error } = await supabase
+      // Delete from database first (this will trigger audit logging)
+      const { error: dbError } = await supabase
         .from('complaint_investigation_evidence')
         .delete()
         .eq('id', file.id);
 
-      if (error) throw error;
+      if (dbError) {
+        console.error('Database delete error:', dbError);
+        throw new Error(`Database error: ${dbError.message}`);
+      }
+
+      // Then delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('communication-files')
+        .remove([file.file_path]);
+
+      if (storageError) {
+        console.error('Storage delete error:', storageError);
+        // Don't throw - file is already deleted from DB, just warn
+        toast.error('File deleted from database but storage cleanup failed');
+        setEvidenceFiles(prev => prev.filter(f => f.id !== file.id));
+        return;
+      }
 
       setEvidenceFiles(prev => prev.filter(f => f.id !== file.id));
-      toast.success('Evidence file deleted');
+      toast.success('Evidence file deleted successfully');
+      
+      console.log('Evidence file deleted successfully:', file.file_name);
     } catch (error) {
-      console.error('Error deleting file:', error);
-      toast.error('Failed to delete file');
+      console.error('Error deleting evidence file:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to delete file';
+      toast.error(errorMessage);
     }
   };
 
