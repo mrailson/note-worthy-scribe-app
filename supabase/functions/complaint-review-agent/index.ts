@@ -43,8 +43,6 @@ serve(async (req) => {
       .select(`
         *,
         complaint_outcomes (*),
-        complaint_investigation_findings (*),
-        complaint_investigation_decisions (*),
         complaint_responses (*)
       `)
       .eq('id', complaintId)
@@ -59,8 +57,6 @@ serve(async (req) => {
 
     // Build context from complaint data
     const outcomeInfo = complaint.complaint_outcomes?.[0];
-    const findings = complaint.complaint_investigation_findings || [];
-    const decisions = complaint.complaint_investigation_decisions || [];
     const responses = complaint.complaint_responses || [];
 
     // Create a comprehensive context prompt
@@ -80,14 +76,6 @@ ${outcomeInfo ? `OUTCOME:
 - Type: ${outcomeInfo.outcome_type}
 - Summary: ${outcomeInfo.outcome_summary}
 - Decision Date: ${new Date(outcomeInfo.decided_at).toLocaleDateString('en-GB')}
-` : ''}
-
-${findings.length > 0 ? `INVESTIGATION FINDINGS:
-${findings.map((f: any) => `- ${f.finding_description}`).join('\n')}
-` : ''}
-
-${decisions.length > 0 ? `INVESTIGATION DECISIONS:
-${decisions.map((d: any) => `- ${d.decision_summary}`).join('\n')}
 ` : ''}
 
 ${responses.length > 0 ? `STAFF RESPONSES:
