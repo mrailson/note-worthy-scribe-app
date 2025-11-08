@@ -2412,12 +2412,47 @@ I am committed to ensuring that all patients receive the care and service they d
                     </div>
                     <div>
                       <Label className="font-medium">Status</Label>
-                      <Badge variant={complaint.status === 'closed' ? 'default' : complaint.status === 'submitted' ? 'secondary' : 'outline'}>
-                        {complaint.status === 'under_review' && acknowledgementSentToPatient && (
-                          <Mail className="h-3 w-3 mr-1" />
+                      <div className="flex items-center gap-2">
+                        <Badge variant={complaint.status === 'closed' ? 'default' : complaint.status === 'submitted' ? 'secondary' : 'outline'}>
+                          {complaint.status === 'under_review' && acknowledgementSentToPatient && (
+                            <Mail className="h-3 w-3 mr-1" />
+                          )}
+                          {getStatusLabel(complaint.status)}
+                        </Badge>
+                        {outcomeLetter && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 px-2 gap-1"
+                            onClick={async () => {
+                              try {
+                                const doc = await createLetterDocument(
+                                  outcomeLetter,
+                                  'outcome',
+                                  complaint.reference_number
+                                );
+
+                                const blob = await Packer.toBlob(doc);
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `Complaint_Report_${complaint.reference_number}.docx`;
+                                document.body.appendChild(a);
+                                a.click();
+                                document.body.removeChild(a);
+                                URL.revokeObjectURL(url);
+                                showToast.success('Report downloaded', { section: 'complaints' });
+                              } catch (error) {
+                                console.error('Error downloading report:', error);
+                                showToast.error('Failed to download report', { section: 'complaints' });
+                              }
+                            }}
+                          >
+                            <Download className="h-3 w-3" />
+                            <span className="text-xs">Download Report</span>
+                          </Button>
                         )}
-                        {getStatusLabel(complaint.status)}
-                      </Badge>
+                      </div>
                     </div>
                   </div>
                   <div>
