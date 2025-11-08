@@ -224,7 +224,15 @@ CRITICAL CONTACT INFORMATION RULES:
 - ${practiceDetails?.email ? `The practice email is: ${practiceDetails.email} - include this EXACT email address in the letter` : 'Include a generic practice email'}
 - ${practiceDetails?.phone ? `The practice phone number is: ${practiceDetails.phone} - include this EXACT phone number in the letter` : 'Indicate phone number is available upon request'}
 - DO NOT use placeholders like "[Practice Phone Number]" or "[Practice Email Address]"
-- Use the ACTUAL values provided in the Practice Details section above`;
+- Use the ACTUAL values provided in the Practice Details section above
+
+FORMATTING THE CONTACT DETAILS:
+- Format contact details as a clean list without bullet points or dashes
+- Use bold labels followed by the value, properly aligned
+- Format as: **Phone**: [phone number] on one line
+- Format as: **Email**: [email address] on the next line
+- Ensure consistent spacing and alignment between label and value
+- Do not indent or use bullet points for these contact details`;
 
     console.log('Making OpenAI API request...');
     
