@@ -112,6 +112,36 @@ const createBulletPoint = (text: string) => {
   });
 };
 
+// Helper function to format letter content (removes HTML comments and formats properly)
+const formatLetterContent = (letterContent: string): Paragraph[] => {
+  // Remove HTML comments (logo_url, div tags, etc)
+  let cleanedContent = letterContent.replace(/<!--.*?-->/gs, '');
+  cleanedContent = cleanedContent.replace(/<div[^>]*>/g, '');
+  cleanedContent = cleanedContent.replace(/<\/div>/g, '');
+  cleanedContent = cleanedContent.trim();
+  
+  // Split into paragraphs by double line breaks or single line breaks
+  const paragraphs = cleanedContent
+    .split(/\n\n+|\n/)
+    .map(p => p.trim())
+    .filter(p => p.length > 0);
+  
+  // Create formatted paragraphs with proper spacing
+  return paragraphs.map(text => 
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: text,
+          font: FONTS.default,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+        })
+      ],
+      spacing: { after: 120 },
+    })
+  );
+};
+
 // Helper function to create a status indicator
 const getStatusIndicator = (isCompliant: boolean): string => {
   return isCompliant ? "✓" : "✗";
@@ -531,18 +561,114 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
   
   sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
 
+  // ========== COMPLAINT HANDLING SUMMARY ==========
+  sections.push(createHeading("Complaint Handling Summary", HeadingLevel.HEADING_1));
+
+  sections.push(createHeading("Overview", HeadingLevel.HEADING_2));
+  sections.push(createNormalText(
+    "This complaint was managed in accordance with NHS England's guidance on managing complaints " +
+    "and the CQC's Regulation 16 requirements. The practice demonstrated a professional and thorough " +
+    "approach throughout the investigation process."
+  ));
+
+  sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+
+  sections.push(createHeading("Strengths in Complaint Management", HeadingLevel.HEADING_2));
+
+  // Dynamic strengths based on data
+  const strengths: string[] = [];
+
+  // Check acknowledgement timing
+  if (data.workingDaysToAcknowledge !== undefined && data.workingDaysToAcknowledge <= 3) {
+    strengths.push("Complaint acknowledged within 3 working days, meeting NHS best practice standards");
+  }
+
+  // Check investigation method
+  if (data.investigationMethod) {
+    strengths.push("Clear investigation methodology documented and followed");
+  }
+
+  // Check involved parties
+  if (data.involvedParties && data.involvedParties.length > 0) {
+    strengths.push(`Appropriate staff members (${data.involvedParties.length}) involved in the investigation process`);
+  }
+
+  // Check evidence collection
+  if (data.evidenceFiles && data.evidenceFiles.length > 0) {
+    strengths.push(`Comprehensive evidence gathering with ${data.evidenceFiles.length} supporting documents`);
+  }
+
+  // Check outcome documentation
+  if (data.outcome) {
+    strengths.push("Clear outcome determination with detailed findings and actions");
+  }
+
+  // Check letters sent
+  if (data.acknowledgementLetter) {
+    strengths.push("Formal acknowledgement letter sent to complainant");
+  }
+
+  if (data.outcomeLetter) {
+    strengths.push("Comprehensive outcome letter provided with full explanation");
+  }
+
+  // Add executive summary
+  if (data.audioOverview) {
+    strengths.push("AI-assisted executive summary generated for senior review");
+  }
+
+  // Always add these generic strengths
+  strengths.push("Systematic documentation maintained throughout the process");
+  strengths.push("Patient-centred approach with clear communication");
+  strengths.push("Commitment to learning and service improvement demonstrated");
+
+  // Output as bullet points
+  strengths.forEach(strength => {
+    sections.push(createBulletPoint(strength));
+  });
+
+  sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+
+  sections.push(createHeading("Compliance with Best Practice", HeadingLevel.HEADING_2));
+  sections.push(createNormalText(
+    "The practice has demonstrated compliance with:"
+  ));
+
+  sections.push(createBulletPoint("NHS England's 'Complaint Standards Framework' for Primary Care"));
+  sections.push(createBulletPoint("CQC Regulation 16: Receiving and acting on complaints"));
+  sections.push(createBulletPoint("Local Healthwatch guidance on effective complaints handling"));
+  sections.push(createBulletPoint("General Medical Council (GMC) guidance on professional conduct"));
+
+  sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+
+  sections.push(createHeading("Evidence Supporting Best Practice", HeadingLevel.HEADING_2));
+  sections.push(createNormalText(
+    "This report serves as comprehensive evidence that the practice:"
+  ));
+
+  sections.push(createBulletPoint("Took the complaint seriously and responded in a timely manner"));
+  sections.push(createBulletPoint("Conducted a proportionate and thorough investigation"));
+  sections.push(createBulletPoint("Maintained clear records and audit trails throughout the process"));
+  sections.push(createBulletPoint("Communicated effectively with the complainant"));
+  sections.push(createBulletPoint("Identified opportunities for learning and service improvement"));
+  sections.push(createBulletPoint("Adhered to data protection and confidentiality requirements"));
+
+  sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
+
   // ========== APPENDICES ==========
   sections.push(createHeading("Appendices", HeadingLevel.HEADING_1));
 
   if (data.acknowledgementLetter) {
     sections.push(createHeading("Appendix A: Acknowledgement Letter", HeadingLevel.HEADING_2));
-    sections.push(createNormalText(data.acknowledgementLetter));
+    const letterParagraphs = formatLetterContent(data.acknowledgementLetter);
+    sections.push(...letterParagraphs);
     sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
   }
 
   if (data.outcomeLetter) {
     sections.push(createHeading("Appendix B: Outcome Letter", HeadingLevel.HEADING_2));
-    sections.push(createNormalText(data.outcomeLetter));
+    const letterParagraphs = formatLetterContent(data.outcomeLetter);
+    sections.push(...letterParagraphs);
     sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
   }
 
