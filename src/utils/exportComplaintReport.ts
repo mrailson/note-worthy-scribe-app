@@ -205,7 +205,10 @@ const parseMarkdownContent = (content: string): Paragraph[] => {
       } else {
         // Normal paragraph
         // Ensure proper spacing after full stops, question marks, and exclamation marks
-        let text = line.replace(/([.!?])([A-Z])/g, '$1 $2');
+        // Handle cases where there's no space after punctuation before a capital letter OR another sentence
+        let text = line
+          .replace(/([.!?])([A-Z])/g, '$1 $2')  // Add space before capital letter
+          .replace(/([.!?])(\s*)([a-z])/g, '$1 $3'); // Keep lowercase after punctuation
         
         // Remove duplicate sentences within this line only
         const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
