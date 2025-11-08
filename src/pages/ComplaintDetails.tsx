@@ -2485,67 +2485,6 @@ const ComplaintDetails = () => {
                 </Card>
               )}
 
-              {/* Executive Audio Summary - Show after outcome */}
-              {existingOutcome && (
-                <Collapsible open={showAudioSummarySection} onOpenChange={setShowAudioSummarySection}>
-                  <Card className="border-blue-200 bg-blue-50">
-                    <CardHeader>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
-                          <div className="text-left">
-                            <CardTitle className="flex items-center gap-2 text-blue-800">
-                              <Headphones className="h-5 w-5" />
-                              Executive Audio Summary
-                            </CardTitle>
-                            <CardDescription className="text-blue-700">
-                              AI-generated audio briefing for management and partners
-                            </CardDescription>
-                          </div>
-                          {showAudioSummarySection ? (
-                            <ChevronUp className="h-5 w-5 text-blue-800" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 text-blue-800" />
-                          )}
-                        </Button>
-                      </CollapsibleTrigger>
-                    </CardHeader>
-                    <CollapsibleContent>
-                      <CardContent className="space-y-4">
-                        <ComplaintAudioOverviewPlayer
-                          complaintId={complaint.id}
-                          audioOverviewUrl={audioOverview?.audio_overview_url}
-                          audioOverviewText={audioOverview?.audio_overview_text}
-                          audioOverviewDuration={audioOverview?.audio_overview_duration}
-                          onRegenerateAudio={handleRegenerateComplaintAudio}
-                        />
-                        
-                        {/* AI Critical Friend Complaint Review - Only show if audio exists */}
-                        {audioOverview?.audio_overview_url && (
-                          <ComplaintReviewConversation
-                            complaintId={complaint.id}
-                            reviewConversations={reviewConversations}
-                            onReviewComplete={() => {
-                              // Refetch review conversations after completion
-                              fetchComplaintDetails();
-                            }}
-                            onRegenerateSummary={(conversationId, newSummary) => {
-                              // Update the conversation in the local state
-                              setReviewConversations(prev => 
-                                prev.map(c => 
-                                  c.id === conversationId 
-                                    ? { ...c, conversation_summary: newSummary }
-                                    : c
-                                )
-                              );
-                            }}
-                          />
-                        )}
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              )}
-
               {/* Outcome Letter Dialog */}
               <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
                 <DialogContent className="max-w-6xl max-h-[98vh] overflow-hidden">
@@ -2673,6 +2612,67 @@ const ComplaintDetails = () => {
 
             {/* Compliance Tab */}
             <TabsContent value="compliance" className="space-y-6">
+              {/* Executive Audio Summary */}
+              {existingOutcome && (
+                <Collapsible open={showAudioSummarySection} onOpenChange={setShowAudioSummarySection}>
+                  <Card className="border-blue-200 bg-blue-50">
+                    <CardHeader>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
+                          <div className="text-left">
+                            <CardTitle className="flex items-center gap-2 text-blue-800">
+                              <Headphones className="h-5 w-5" />
+                              Executive Audio Summary
+                            </CardTitle>
+                            <CardDescription className="text-blue-700">
+                              AI-generated audio briefing for management and partners
+                            </CardDescription>
+                          </div>
+                          {showAudioSummarySection ? (
+                            <ChevronUp className="h-5 w-5 text-blue-800" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-blue-800" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="space-y-4">
+                        <ComplaintAudioOverviewPlayer
+                          complaintId={complaint.id}
+                          audioOverviewUrl={audioOverview?.audio_overview_url}
+                          audioOverviewText={audioOverview?.audio_overview_text}
+                          audioOverviewDuration={audioOverview?.audio_overview_duration}
+                          onRegenerateAudio={handleRegenerateComplaintAudio}
+                        />
+                        
+                        {/* AI Critical Friend Complaint Review - Only show if audio exists */}
+                        {audioOverview?.audio_overview_url && (
+                          <ComplaintReviewConversation
+                            complaintId={complaint.id}
+                            reviewConversations={reviewConversations}
+                            onReviewComplete={() => {
+                              // Refetch review conversations after completion
+                              fetchComplaintDetails();
+                            }}
+                            onRegenerateSummary={(conversationId, newSummary) => {
+                              // Update the conversation in the local state
+                              setReviewConversations(prev => 
+                                prev.map(c => 
+                                  c.id === conversationId 
+                                    ? { ...c, conversation_summary: newSummary }
+                                    : c
+                                )
+                              );
+                            }}
+                          />
+                        )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
+              )}
+
               <Card>
                 <CardHeader>
                   <div className="flex items-center justify-between">
