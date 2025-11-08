@@ -2171,6 +2171,14 @@ const ComplaintDetails = () => {
                         <div className="flex flex-col gap-2">
                           <div className="flex items-center gap-2">
                             <Badge variant="default">Letter Generated</Badge>
+                            <button
+                              onClick={() => handleGenerateAcknowledgement(complaint.id)}
+                              disabled={submitting}
+                              className="text-muted-foreground hover:text-primary transition-colors disabled:opacity-50"
+                              title="Regenerate acknowledgement letter"
+                            >
+                              <RefreshCw className={`h-3 w-3 ${submitting ? 'animate-spin' : ''}`} />
+                            </button>
                             {acknowledgementSentToPatient && (
                               <Badge variant="default" className="bg-green-600">
                                 <CheckCircle className="h-3 w-3 mr-1" />
@@ -2286,13 +2294,23 @@ const ComplaintDetails = () => {
                     <div className="space-y-4">
                       <div className="flex items-center justify-between">
                         <div className="flex flex-col gap-2">
-                          <Badge variant="default" className="bg-green-600 text-white">
-                            Outcome: {
-                              existingOutcome.outcome_type === 'upheld' ? 'Complaint Upheld' :
-                              existingOutcome.outcome_type === 'partially_upheld' ? 'Complaint Partially Upheld' :
-                              'Complaint Not Upheld'
-                            }
-                          </Badge>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="default" className="bg-green-600 text-white">
+                              Outcome: {
+                                existingOutcome.outcome_type === 'upheld' ? 'Complaint Upheld' :
+                                existingOutcome.outcome_type === 'partially_upheld' ? 'Complaint Partially Upheld' :
+                                'Complaint Not Upheld'
+                              }
+                            </Badge>
+                            <button
+                              onClick={handleRegenerateOutcomeLetter}
+                              disabled={isRegeneratingOutcome}
+                              className="text-green-700 hover:text-green-900 transition-colors disabled:opacity-50"
+                              title="Regenerate outcome letter"
+                            >
+                              <RefreshCw className={`h-3 w-3 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
+                            </button>
+                          </div>
                           {existingOutcome.decided_at && (
                             <div className="text-sm text-green-700">
                               Decided: {format(new Date(existingOutcome.decided_at), 'dd/MM/yyyy HH:mm')}
