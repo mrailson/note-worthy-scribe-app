@@ -119,8 +119,10 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       const data = await response.json();
 
       if (data.success) {
-        setExtractedData(data.complaintData);
-        showToast.success('Data extracted successfully! Review and confirm the details.', { section: 'complaints' });
+        // Directly populate form fields without preview step
+        onDataExtracted(data.complaintData);
+        onClose();
+        showToast.success('Complaint data imported successfully!', { section: 'complaints' });
       } else {
         throw new Error(data.error || 'Failed to process import');
       }
