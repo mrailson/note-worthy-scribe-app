@@ -166,13 +166,33 @@ const parseMarkdownContent = (content: string): Paragraph[] => {
     if (currentParagraphLines.length > 0) {
       // Join lines with proper spacing after sentences
       let combinedText = currentParagraphLines.join(' ');
+      
       // Ensure proper spacing after full stops, question marks, and exclamation marks
       combinedText = combinedText.replace(/([.!?])([A-Z])/g, '$1 $2');
-      const children = parseInlineMarkdown(combinedText);
-      paragraphs.push(new Paragraph({
-        children,
-        spacing: { after: 120 },
-      }));
+      
+      // Remove duplicate sentences (common issue with AI-generated content)
+      // Split by sentence-ending punctuation followed by space and capital letter
+      const sentences = combinedText.split(/(?<=[.!?])\s+(?=[A-Z])/);
+      const uniqueSentences: string[] = [];
+      const seenSentences = new Set<string>();
+      
+      sentences.forEach(sentence => {
+        const normalizedSentence = sentence.trim().toLowerCase();
+        if (!seenSentences.has(normalizedSentence) && normalizedSentence.length > 0) {
+          seenSentences.add(normalizedSentence);
+          uniqueSentences.push(sentence.trim());
+        }
+      });
+      
+      combinedText = uniqueSentences.join(' ');
+      
+      if (combinedText.length > 0) {
+        const children = parseInlineMarkdown(combinedText);
+        paragraphs.push(new Paragraph({
+          children,
+          spacing: { after: 120 },
+        }));
+      }
       currentParagraphLines = [];
     }
   };
