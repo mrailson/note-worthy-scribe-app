@@ -75,7 +75,7 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
         .from('complaint_involved_parties')
         .select('*')
         .eq('complaint_id', complaintId)
-        .order('request_sent_at', { ascending: false });
+        .order('response_requested_at', { ascending: false });
 
       if (error) throw error;
       setParties(data || []);
