@@ -1248,37 +1248,19 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
   if (data.aiReview) {
     sections.push(createHeading("Appendix C: AI Critical Friend Complaint Review", HeadingLevel.HEADING_2));
     
-    // Review metadata
+    // Review metadata - compact version
     const reviewDate = data.aiReview.conversation_started_at 
       ? format(new Date(data.aiReview.conversation_started_at), "dd/MM/yyyy HH:mm")
-      : "Not recorded";
-    
-    const reviewDuration = data.aiReview.conversation_duration 
-      ? `${Math.floor(data.aiReview.conversation_duration / 60)}m ${data.aiReview.conversation_duration % 60}s`
       : "Not recorded";
     
     sections.push(
       createMetadataTable([
         { label: "Review Date", value: reviewDate },
         { label: "Reviewer", value: "Notewell AI Critical Friend Review Agent" },
-        { label: "Review Duration", value: reviewDuration },
       ])
     );
     
     sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
-    
-    // Overview paragraph
-    sections.push(createHeading("Overview", HeadingLevel.HEADING_3));
-    sections.push(createNormalText(
-      "An independent AI-assisted critical review was conducted to evaluate the complaint handling process. " +
-      "This review provides an objective assessment of the investigation, identifies any potential issues, " +
-      "and validates the thoroughness of the complaint management approach."
-    ));
-    
-    sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
-    
-    // Executive summary from the AI review
-    sections.push(createHeading("Review Summary", HeadingLevel.HEADING_3));
     
     // Parse markdown content properly
     const summaryParagraphs = parseMarkdownContent(data.aiReview.conversation_summary);
@@ -1286,35 +1268,7 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
     
     sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
     
-    // Key challenges identified
-    if (data.aiReview.challenges_identified && data.aiReview.challenges_identified.length > 0) {
-      sections.push(createHeading("Challenges Identified", HeadingLevel.HEADING_3));
-      
-      const challengeHeaders = ["Severity", "Challenge"];
-      const challengeRows = data.aiReview.challenges_identified.map((challenge) => [
-        challenge.severity || "Not specified",
-        challenge.challenge,
-      ]);
-      
-      sections.push(createDataTable(challengeHeaders, challengeRows));
-      sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
-    }
-    
-    // Recommendations
-    if (data.aiReview.recommendations && data.aiReview.recommendations.length > 0) {
-      sections.push(createHeading("Recommendations", HeadingLevel.HEADING_3));
-      
-      const recHeaders = ["Priority", "Recommendation"];
-      const recRows = data.aiReview.recommendations.map((rec) => [
-        rec.priority || "Not specified",
-        rec.recommendation,
-      ]);
-      
-      sections.push(createDataTable(recHeaders, recRows));
-      sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
-    }
-    
-    // Validation statement
+    // Validation statement - featured prominently
     sections.push(createHeading("Review Validation", HeadingLevel.HEADING_3));
     sections.push(createNormalText(
       "This independent review validates that the complaint was handled professionally and thoroughly. " +
