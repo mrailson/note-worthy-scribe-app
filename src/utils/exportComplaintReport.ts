@@ -80,6 +80,17 @@ interface ReportData {
   aiReview?: AIReviewData;
 }
 
+// Helper function to format outcome type
+const formatOutcomeType = (outcomeType: string): string => {
+  const typeMap: { [key: string]: string } = {
+    'upheld': 'Upheld',
+    'partially_upheld': 'Partially Upheld',
+    'not_upheld': 'Not Upheld',
+    'rejected': 'Not Upheld'
+  };
+  return typeMap[outcomeType] || outcomeType;
+};
+
 // Helper function to create headings
 const createHeading = (text: string, level: typeof HeadingLevel[keyof typeof HeadingLevel] = HeadingLevel.HEADING_1) => {
   return new Paragraph({
@@ -555,7 +566,7 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
     
     sections.push(
       createMetadataTable([
-        { label: "Outcome Type", value: data.outcome.outcome_type },
+        { label: "Outcome Type", value: formatOutcomeType(data.outcome.outcome_type) },
         { label: "Date Closed", value: complaint.closed_at ? format(new Date(complaint.closed_at), "dd/MM/yyyy") : "Not yet closed" },
       ])
     );
