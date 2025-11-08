@@ -118,6 +118,10 @@ const formatLetterContent = (letterContent: string): Paragraph[] => {
   let cleanedContent = letterContent.replace(/<!--.*?-->/gs, '');
   cleanedContent = cleanedContent.replace(/<div[^>]*>/g, '');
   cleanedContent = cleanedContent.replace(/<\/div>/g, '');
+  
+  // Remove markdown image syntax: ![alt](url)
+  cleanedContent = cleanedContent.replace(/!\[.*?\]\(.*?\)/g, '');
+  
   cleanedContent = cleanedContent.trim();
   
   // Split into paragraphs by double line breaks or single line breaks
@@ -126,20 +130,63 @@ const formatLetterContent = (letterContent: string): Paragraph[] => {
     .map(p => p.trim())
     .filter(p => p.length > 0);
   
-  // Create formatted paragraphs with proper spacing
-  return paragraphs.map(text => 
-    new Paragraph({
-      children: [
-        new TextRun({
-          text: text,
+  // Create formatted paragraphs with proper spacing, handling bold markdown
+  return paragraphs.map(text => {
+    const children: TextRun[] = [];
+    
+    // Parse for bold text (**text**)
+    const boldRegex = /\*\*(.*?)\*\*/g;
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = boldRegex.exec(text)) !== null) {
+      // Add normal text before the bold
+      if (match.index > lastIndex) {
+        children.push(new TextRun({
+          text: text.substring(lastIndex, match.index),
           font: FONTS.default,
           size: FONTS.size.body,
           color: NHS_COLORS.textGrey,
-        })
-      ],
+        }));
+      }
+      
+      // Add bold text
+      children.push(new TextRun({
+        text: match[1],
+        font: FONTS.default,
+        size: FONTS.size.body,
+        color: NHS_COLORS.textGrey,
+        bold: true,
+      }));
+      
+      lastIndex = boldRegex.lastIndex;
+    }
+    
+    // Add remaining normal text
+    if (lastIndex < text.length) {
+      children.push(new TextRun({
+        text: text.substring(lastIndex),
+        font: FONTS.default,
+        size: FONTS.size.body,
+        color: NHS_COLORS.textGrey,
+      }));
+    }
+    
+    // If no bold text was found, just use the whole text
+    if (children.length === 0) {
+      children.push(new TextRun({
+        text: text,
+        font: FONTS.default,
+        size: FONTS.size.body,
+        color: NHS_COLORS.textGrey,
+      }));
+    }
+    
+    return new Paragraph({
+      children,
       spacing: { after: 120 },
-    })
-  );
+    });
+  });
 };
 
 // Helper function to create a status indicator
