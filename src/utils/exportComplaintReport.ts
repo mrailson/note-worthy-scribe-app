@@ -693,20 +693,64 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
         tableHeader: true,
         children: [
           new TableCell({
-            children: [new Paragraph({ text: "Milestone", style: "TableHeader" })],
-            shading: { fill: NHS_COLORS.tableHeaderBg },
+            children: [new Paragraph({ 
+              children: [
+                new TextRun({
+                  text: "Milestone",
+                  bold: true,
+                  font: FONTS.default,
+                  size: FONTS.size.body,
+                  color: "FFFFFF",
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+            })],
+            shading: { fill: "60A5FA" },
           }),
           new TableCell({
-            children: [new Paragraph({ text: "Deadline", style: "TableHeader" })],
-            shading: { fill: NHS_COLORS.tableHeaderBg },
+            children: [new Paragraph({ 
+              children: [
+                new TextRun({
+                  text: "Deadline",
+                  bold: true,
+                  font: FONTS.default,
+                  size: FONTS.size.body,
+                  color: "FFFFFF",
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+            })],
+            shading: { fill: "60A5FA" },
           }),
           new TableCell({
-            children: [new Paragraph({ text: "Actual Date", style: "TableHeader" })],
-            shading: { fill: NHS_COLORS.tableHeaderBg },
+            children: [new Paragraph({ 
+              children: [
+                new TextRun({
+                  text: "Actual Date",
+                  bold: true,
+                  font: FONTS.default,
+                  size: FONTS.size.body,
+                  color: "FFFFFF",
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+            })],
+            shading: { fill: "60A5FA" },
           }),
           new TableCell({
-            children: [new Paragraph({ text: "Status", style: "TableHeader" })],
-            shading: { fill: NHS_COLORS.tableHeaderBg },
+            children: [new Paragraph({ 
+              children: [
+                new TextRun({
+                  text: "Status",
+                  bold: true,
+                  font: FONTS.default,
+                  size: FONTS.size.body,
+                  color: "FFFFFF",
+                }),
+              ],
+              alignment: AlignmentType.CENTER,
+            })],
+            shading: { fill: "60A5FA" },
           }),
         ],
       }),
