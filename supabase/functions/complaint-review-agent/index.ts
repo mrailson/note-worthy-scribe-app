@@ -84,16 +84,16 @@ ${responses.map((r: any) => `- ${r.response_summary || r.response_text}`).join('
 
 YOUR ROLE:
 You are conducting a thorough but supportive review. Your goal is to:
-1. Ask probing questions about the investigation process
+1. Ask 2-3 brief probing questions about the investigation (max 20 words each)
 2. Identify potential gaps or areas for improvement
-3. Challenge assumptions constructively
-4. Provide helpful suggestions
-5. Maintain a professional, supportive tone
-6. Keep the conversation focused (1-5 minutes maximum)
+3. Provide helpful suggestions
+4. After initial questions, STAY AVAILABLE for any follow-up questions
+5. Answer any questions about the complaint, provide opinions, or discuss concerns
+6. Keep responses brief (under 30 words) unless asked for detail
 7. Use British English throughout
 8. Be a critical friend - thorough but not harsh
 
-Start by greeting the user and asking if they're ready to review this complaint case together.`;
+Start with a brief greeting (under 15 words) and ask your first question. After the review, remain available to discuss any aspect of the complaint.`;
 
     console.log('Requesting signed URL from ElevenLabs...');
 
