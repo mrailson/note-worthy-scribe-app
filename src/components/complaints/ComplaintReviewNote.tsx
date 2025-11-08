@@ -226,25 +226,6 @@ export function ComplaintReviewNote({
           </div>
         </div>
 
-        {/* Separator */}
-        <div className="border-t border-nhs-blue/20" />
-
-        {/* Summary statistics */}
-        <div className="grid grid-cols-3 gap-4 p-4 bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg border border-nhs-blue/10">
-          <div className="text-center">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Challenges Identified</div>
-            <div className="text-2xl font-bold text-nhs-blue">{conversation.challenges_identified.length}</div>
-          </div>
-          <div className="text-center border-x border-nhs-blue/10">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Responses Given</div>
-            <div className="text-2xl font-bold text-nhs-blue">{conversation.responses_given.length}</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Recommendations</div>
-            <div className="text-2xl font-bold text-nhs-blue">{conversation.recommendations.length}</div>
-          </div>
-        </div>
-
         {/* Detailed conversation record - Collapsed by default */}
         <div className="border-t border-nhs-blue/20 pt-5 space-y-3">
           <Button
