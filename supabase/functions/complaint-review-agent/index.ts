@@ -95,9 +95,9 @@ You are conducting a thorough but supportive review. Your goal is to:
 
 Start by greeting the user and asking if they're ready to review this complaint case together.`;
 
-    console.log('Requesting signed URL from ElevenLabs (conversations/get-signed-url)...');
+    console.log('Requesting signed URL from ElevenLabs...');
 
-    const endpoint = `https://api.elevenlabs.io/v1/convai/conversations/get-signed-url?agent_id=agent_01jwzgk9paex28dtw4f3jk2zw7`;
+    const endpoint = `https://api.elevenlabs.io/v1/convai/get-signed-url?agent_id=agent_01jwzgk9paex28dtw4f3jk2zw7`;
 
     const agentResponse = await fetch(endpoint, {
       method: 'GET',
