@@ -13,7 +13,7 @@ export const TitleSlide = () => {
               ICS Digital, Data and Technology
             </p>
             <p className="text-lg text-muted-foreground">
-              Innovation Showcase - Session 1520
+              Innovation Showcase - Session 15:20
             </p>
           </div>
 
