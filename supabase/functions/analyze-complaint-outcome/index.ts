@@ -37,7 +37,7 @@ serve(async (req) => {
     );
 
     // Fetch complaint base details first (avoid failing embeds)
-    const baseSelect = `id, reference_number, category, priority, complaint_title, complaint_description, incident_date, location_service, staff_mentioned, complaint_on_behalf, consent_given`;
+    const baseSelect = `id, reference_number, category, priority, complaint_title, complaint_description, incident_date, location_service, staff_mentioned, complaint_on_behalf, consent_given, created_at, submitted_at, acknowledged_at, closed_at`;
 
     let { data: complaint, error: complaintError } = await supabase
       .from('complaints')
@@ -158,6 +158,35 @@ ${additionalContext || 'Not documented'}
 ` 
       : '';
 
+    // Calculate working days for timeline compliance
+    const calculateWorkingDays = (startDate: Date, endDate: Date): number => {
+      let count = 0;
+      const current = new Date(startDate);
+      while (current <= endDate) {
+        const day = current.getDay();
+        if (day !== 0 && day !== 6) count++; // Exclude weekends
+        current.setDate(current.getDate() + 1);
+      }
+      return count;
+    };
+
+    const submittedDate = complaint.submitted_at || complaint.created_at;
+    const ackWorkingDays = complaint.acknowledged_at 
+      ? calculateWorkingDays(new Date(submittedDate), new Date(complaint.acknowledged_at))
+      : null;
+    const closedWorkingDays = complaint.closed_at 
+      ? calculateWorkingDays(new Date(submittedDate), new Date(complaint.closed_at))
+      : null;
+
+    const timelineSection = `
+TIMELINE COMPLIANCE:
+- Complaint Received: ${new Date(submittedDate).toLocaleDateString('en-GB')}
+- Acknowledgement: ${complaint.acknowledged_at ? new Date(complaint.acknowledged_at).toLocaleDateString('en-GB') : 'Not yet acknowledged'} ${ackWorkingDays !== null ? `(${ackWorkingDays} working days - target: 3)` : ''}
+- Closed: ${complaint.closed_at ? new Date(complaint.closed_at).toLocaleDateString('en-GB') : 'Not yet closed'} ${closedWorkingDays !== null ? `(${closedWorkingDays} working days - target: 20)` : ''}
+- Acknowledgement Deadline Met: ${ackWorkingDays !== null ? (ackWorkingDays <= 3 ? 'Yes ✓' : 'No - Missed') : 'Pending'}
+- Investigation Deadline Met: ${closedWorkingDays !== null ? (closedWorkingDays <= 20 ? 'Yes ✓' : 'No - Missed') : 'Pending'}
+`;
+
     const userPrompt = `Analyze this NHS complaint and recommend an outcome:
 
 COMPLAINT DETAILS:
@@ -169,7 +198,7 @@ Description: ${complaint.complaint_description}
 Incident Date: ${complaint.incident_date}
 Location/Service: ${complaint.location_service || 'Not specified'}
 Staff Mentioned: ${complaint.staff_mentioned?.join(', ') || 'None specifically mentioned'}
-${practiceInvestigationSection}
+${timelineSection}${practiceInvestigationSection}
 STAFF RESPONSES:
 ${staffResponses}
 
