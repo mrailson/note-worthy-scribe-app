@@ -127,7 +127,10 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       toast.success('Evidence file uploaded successfully');
     } catch (error) {
       console.error('Error uploading file:', error);
-      toast.error('Failed to upload evidence file');
+      const message = error && typeof error === 'object' && 'message' in (error as any)
+        ? String((error as any).message)
+        : JSON.stringify(error);
+      toast.error(`Upload failed: ${message}`);
     } finally {
       setUploading(false);
     }
