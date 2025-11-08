@@ -12,6 +12,7 @@ import {
   BorderStyle,
   VerticalAlign,
   convertInchesToTwip,
+  ExternalHyperlink,
 } from "docx";
 import { saveAs } from "file-saver";
 import { format } from "date-fns";
@@ -632,11 +633,37 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
   sections.push(createHeading("Complaint Handling Summary", HeadingLevel.HEADING_1));
 
   sections.push(createHeading("Overview", HeadingLevel.HEADING_2));
-  sections.push(createNormalText(
-    "This complaint was managed in accordance with NHS England's guidance on managing complaints " +
-    "and the CQC's Regulation 16 requirements. The practice demonstrated a professional and thorough " +
-    "approach throughout the investigation process."
-  ));
+  sections.push(
+    new Paragraph({
+      children: [
+        new TextRun({
+          text: "This complaint was managed in accordance with NHS England's guidance on managing complaints and the ",
+          font: FONTS.default,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+        }),
+        new ExternalHyperlink({
+          children: [
+            new TextRun({
+              text: "CQC's Regulation 16 requirements",
+              font: FONTS.default,
+              size: FONTS.size.body,
+              color: NHS_COLORS.nhsBlue,
+              underline: {},
+            }),
+          ],
+          link: "https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-16",
+        }),
+        new TextRun({
+          text: ". The practice demonstrated a professional and thorough approach throughout the investigation process.",
+          font: FONTS.default,
+          size: FONTS.size.body,
+          color: NHS_COLORS.textGrey,
+        }),
+      ],
+      spacing: { after: 120 },
+    })
+  );
 
   sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
 
