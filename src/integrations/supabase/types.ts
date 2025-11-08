@@ -6592,27 +6592,17 @@ export type Database = {
         }
         Returns: undefined
       }
-      log_complaint_document_action:
-        | {
-            Args: {
-              p_action_type: string
-              p_complaint_id: string
-              p_document_id?: string
-              p_document_name: string
-              p_ip_address?: string
-              p_user_agent?: string
-            }
-            Returns: undefined
-          }
-        | {
-            Args: {
-              p_action_type: string
-              p_complaint_id: string
-              p_document_id?: string
-              p_document_name: string
-            }
-            Returns: string
-          }
+      log_complaint_document_action: {
+        Args: {
+          p_action_type: string
+          p_complaint_id: string
+          p_document_id?: string
+          p_document_name: string
+          p_ip_address?: string
+          p_user_agent?: string
+        }
+        Returns: undefined
+      }
       log_complaint_view:
         | {
             Args: {
