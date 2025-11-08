@@ -2997,6 +2997,16 @@ I am committed to ensuring that all patients receive the care and service they d
                               key={conversation.id}
                               conversation={conversation}
                               reviewerName="System User"
+                              onRegenerate={(newSummary) => {
+                                // Update the conversation in the local state
+                                setReviewConversations(prev => 
+                                  prev.map(c => 
+                                    c.id === conversation.id 
+                                      ? { ...c, conversation_summary: newSummary }
+                                      : c
+                                  )
+                                );
+                              }}
                             />
                           ))}
                         </div>

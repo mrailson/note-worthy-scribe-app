@@ -1,9 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Download, ChevronDown, ChevronUp, Clock, User } from 'lucide-react';
+import { Download, ChevronDown, ChevronUp, Clock, User, RefreshCw } from 'lucide-react';
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 interface ComplaintReviewNoteProps {
   conversation: {
@@ -15,20 +17,25 @@ interface ComplaintReviewNoteProps {
     recommendations: any[];
     conversation_duration: number;
     conversation_started_at: string;
+    conversation_ended_at: string;
     created_at: string;
     created_by: string;
+    complaint_id: string;
   };
   reviewerName?: string;
+  onRegenerate?: (newSummary: string) => void;
 }
 
 export function ComplaintReviewNote({
   conversation,
   reviewerName = 'System User',
+  onRegenerate,
 }: ComplaintReviewNoteProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [showChallenges, setShowChallenges] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
+  const [isRegenerating, setIsRegenerating] = useState(false);
 
   const formatDuration = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -61,6 +68,50 @@ export function ComplaintReviewNote({
       case 'medium': return 'default';
       case 'low': return 'secondary';
       default: return 'outline';
+    }
+  };
+
+  const handleRegenerate = async () => {
+    setIsRegenerating(true);
+    try {
+      toast.info('Regenerating executive summary with updated compliance focus...');
+      
+      const { data, error } = await supabase.functions.invoke('process-review-conversation', {
+        body: {
+          complaintId: conversation.complaint_id,
+          transcript: conversation.conversation_transcript,
+          challenges: conversation.challenges_identified,
+          responses: conversation.responses_given,
+          recommendations: conversation.recommendations,
+          duration: conversation.conversation_duration,
+          startedAt: conversation.conversation_started_at,
+          endedAt: conversation.conversation_ended_at,
+        },
+      });
+
+      if (error) throw error;
+
+      // Update the conversation in the database
+      const { error: updateError } = await supabase
+        .from('complaint_review_conversations')
+        .update({ conversation_summary: data.review_note })
+        .eq('id', conversation.id);
+
+      if (updateError) throw updateError;
+
+      toast.success('Executive summary regenerated successfully');
+      
+      if (onRegenerate) {
+        onRegenerate(data.review_note);
+      } else {
+        // Reload the page to show the new summary
+        window.location.reload();
+      }
+    } catch (error: any) {
+      console.error('Error regenerating summary:', error);
+      toast.error('Failed to regenerate summary: ' + (error.message || 'Unknown error'));
+    } finally {
+      setIsRegenerating(false);
     }
   };
 
@@ -127,14 +178,25 @@ export function ComplaintReviewNote({
               <Badge variant="outline">{formatDuration(conversation.conversation_duration)}</Badge>
             </div>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleDownloadPDF}
-          >
-            <Download className="h-4 w-4 mr-1" />
-            Download PDF
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleRegenerate}
+              disabled={isRegenerating}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isRegenerating ? 'animate-spin' : ''}`} />
+              Regenerate
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleDownloadPDF}
+            >
+              <Download className="h-4 w-4 mr-1" />
+              Download PDF
+            </Button>
+          </div>
         </div>
       </CardHeader>
       <CardContent className="space-y-6">
