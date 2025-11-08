@@ -2959,57 +2959,23 @@ I am committed to ensuring that all patients receive the care and service they d
                         {audioOverview?.audio_overview_url && (
                           <ComplaintReviewConversation
                             complaintId={complaint.id}
+                            reviewConversations={reviewConversations}
                             onReviewComplete={() => {
                               // Refetch review conversations after completion
                               fetchComplaintDetails();
                             }}
+                            onRegenerateSummary={(conversationId, newSummary) => {
+                              // Update the conversation in the local state
+                              setReviewConversations(prev => 
+                                prev.map(c => 
+                                  c.id === conversationId 
+                                    ? { ...c, conversation_summary: newSummary }
+                                    : c
+                                )
+                              );
+                            }}
                           />
                         )}
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              )}
-
-              {/* Review Conversation Notes - Show any existing reviews */}
-              {reviewConversations.length > 0 && (
-                <Collapsible open={showReviewNotesSection} onOpenChange={setShowReviewNotesSection}>
-                  <Card>
-                    <CardHeader>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
-                          <CardTitle className="text-left">
-                            AI Critical Friend Complaint Review Records ({reviewConversations.length})
-                          </CardTitle>
-                          {showReviewNotesSection ? (
-                            <ChevronUp className="h-5 w-5" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5" />
-                          )}
-                        </Button>
-                      </CollapsibleTrigger>
-                    </CardHeader>
-                    <CollapsibleContent>
-                      <CardContent>
-                        <div className="space-y-4">
-                          {reviewConversations.map((conversation) => (
-                            <ComplaintReviewNote
-                              key={conversation.id}
-                              conversation={conversation}
-                              reviewerName="System User"
-                              onRegenerate={(newSummary) => {
-                                // Update the conversation in the local state
-                                setReviewConversations(prev => 
-                                  prev.map(c => 
-                                    c.id === conversation.id 
-                                      ? { ...c, conversation_summary: newSummary }
-                                      : c
-                                  )
-                                );
-                              }}
-                            />
-                          ))}
-                        </div>
                       </CardContent>
                     </CollapsibleContent>
                   </Card>

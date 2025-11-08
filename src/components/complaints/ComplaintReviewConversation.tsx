@@ -1,19 +1,25 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useConversation } from '@11labs/react';
-import { Mic, MicOff, Phone, PhoneOff, Loader2, Clock } from 'lucide-react';
+import { Mic, MicOff, Phone, PhoneOff, Loader2, Clock, ChevronDown, ChevronUp } from 'lucide-react';
 import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ComplaintReviewNote } from './ComplaintReviewNote';
 
 interface ComplaintReviewConversationProps {
   complaintId: string;
   onReviewComplete?: () => void;
+  reviewConversations?: any[];
+  onRegenerateSummary?: (conversationId: string, newSummary: string) => void;
 }
 
 export function ComplaintReviewConversation({
   complaintId,
   onReviewComplete,
+  reviewConversations = [],
+  onRegenerateSummary,
 }: ComplaintReviewConversationProps) {
   const [isInitializing, setIsInitializing] = useState(false);
   const [conversationStarted, setConversationStarted] = useState(false);
@@ -22,6 +28,7 @@ export function ComplaintReviewConversation({
   const [responses, setResponses] = useState<any[]>([]);
   const [recommendations, setRecommendations] = useState<any[]>([]);
   const [transcript, setTranscript] = useState<string>('');
+  const [showReviewRecords, setShowReviewRecords] = useState(false);
   const startTimeRef = useRef<Date | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -269,6 +276,45 @@ export function ComplaintReviewConversation({
             The conversation will be transcribed and analysed to generate a comprehensive review note.
           </p>
         </div>
+      )}
+
+      {/* Review Records Section - Collapsed by default */}
+      {reviewConversations.length > 0 && (
+        <Collapsible open={showReviewRecords} onOpenChange={setShowReviewRecords}>
+          <div className="border-t pt-4">
+            <CollapsibleTrigger asChild>
+              <Button 
+                variant="ghost" 
+                className="w-full justify-between p-0 h-auto hover:bg-transparent"
+              >
+                <span className="text-sm font-semibold">
+                  Review Records ({reviewConversations.length})
+                </span>
+                {showReviewRecords ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <div className="space-y-4 mt-4">
+                {reviewConversations.map((conversation) => (
+                  <ComplaintReviewNote
+                    key={conversation.id}
+                    conversation={conversation}
+                    reviewerName="System User"
+                    onRegenerate={(newSummary) => {
+                      if (onRegenerateSummary) {
+                        onRegenerateSummary(conversation.id, newSummary);
+                      }
+                    }}
+                  />
+                ))}
+              </div>
+            </CollapsibleContent>
+          </div>
+        </Collapsible>
       )}
     </Card>
   );
