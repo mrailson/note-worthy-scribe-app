@@ -122,22 +122,34 @@ export default function ComplaintResponse() {
         setSubmitting(false);
         return;
       }
+      
+      console.log('Submitting response with token:', token);
       const { data, error } = await supabase.rpc('submit_external_response', {
         access_token_param: token,
         response_text_param: response
       });
 
-      if (error) throw error;
+      console.log('Submit response result:', { data, error });
 
-      if (data) {
+      if (error) {
+        console.error('Submit error details:', error);
+        throw new Error(error.message || 'Failed to submit response');
+      }
+
+      if (data === false) {
+        throw new Error('This link has expired or is invalid. Please request a new link from the practice.');
+      }
+
+      if (data === true) {
         showToast.success('Response submitted successfully', { section: 'complaints' });
         await fetchComplaintDetails(); // Refresh to show updated status
       } else {
-        throw new Error('Failed to submit response');
+        throw new Error('Unexpected response from server');
       }
     } catch (err) {
       console.error('Error submitting response:', err);
-      showToast.error('Failed to submit response', { section: 'complaints' });
+      const errorMessage = err instanceof Error ? err.message : 'Failed to submit response';
+      showToast.error(errorMessage, { section: 'complaints' });
     } finally {
       setSubmitting(false);
     }
@@ -208,6 +220,16 @@ export default function ComplaintResponse() {
               <CheckCircle className="h-4 w-4 text-green-600" />
               <AlertDescription className="text-green-800">
                 Your response has been submitted successfully. Thank you for your cooperation.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {!complaint.response_submitted && (
+            <Alert className="border-amber-200 bg-amber-50">
+              <AlertCircle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                <strong>Action Required:</strong> Please provide your response to this complaint. 
+                This link expires 14 days after it was sent to you.
               </AlertDescription>
             </Alert>
           )}
