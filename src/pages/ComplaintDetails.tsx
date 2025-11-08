@@ -1639,7 +1639,7 @@ const ComplaintDetails = () => {
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-5">
               <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="workflow">Workflow</TabsTrigger>
+              <TabsTrigger value="workflow">Correspondence</TabsTrigger>
               <TabsTrigger value="investigation">Investigation Evidence</TabsTrigger>
               <TabsTrigger value="compliance">Compliance</TabsTrigger>
               <TabsTrigger value="audit">Audit Log</TabsTrigger>
