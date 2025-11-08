@@ -1385,8 +1385,8 @@ const ComplaintsSystem = () => {
                 className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300"
               >
                 <BookOpen className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Overview & Help</span>
-                <span className="sm:hidden">Overview</span>
+                <span className="hidden sm:inline">Intro Slides</span>
+                <span className="sm:hidden">Intro</span>
               </Button>
             </div>
           </div>
