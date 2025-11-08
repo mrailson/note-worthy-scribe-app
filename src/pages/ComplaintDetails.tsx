@@ -3380,7 +3380,7 @@ I am committed to ensuring that all patients receive the care and service they d
 
             {/* Investigation Evidence Tab */}
             <TabsContent value="investigation" className="space-y-6">
-              <InvestigationEvidenceTab complaintId={complaint.id} disabled={complaint.status === 'closed'} />
+              <InvestigationEvidenceTab complaintId={complaint.id} />
             </TabsContent>
 
             {/* Compliance Tab */}
