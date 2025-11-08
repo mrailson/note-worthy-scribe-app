@@ -99,19 +99,23 @@ Start by greeting the user and asking if they're ready to review this complaint 
 
     // Get signed URL for the pre-configured agent
     const agentResponse = await fetch(
-      `https://api.elevenlabs.io/v1/convai/conversation/get_signed_url?agent_id=agent_01jwzgk9paex28dtw4f3jk2zw7`,
+      'https://api.elevenlabs.io/v1/convai/conversation/get_signed_url',
       {
-        method: 'GET',
+        method: 'POST',
         headers: {
           'xi-api-key': XI_API_KEY,
+          'Content-Type': 'application/json',
         },
+        body: JSON.stringify({
+          agent_id: 'agent_01jwzgk9paex28dtw4f3jk2zw7',
+        }),
       }
     );
 
     if (!agentResponse.ok) {
       const errorText = await agentResponse.text();
       console.error('ElevenLabs API error:', agentResponse.status, errorText);
-      throw new Error(`ElevenLabs API error: ${agentResponse.status}`);
+      throw new Error(`ElevenLabs API error: ${agentResponse.status} - ${errorText}`);
     }
 
     const agentData = await agentResponse.json();
