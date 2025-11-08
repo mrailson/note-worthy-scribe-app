@@ -71,6 +71,10 @@ export const ChallengeSlide = () => {
                   <span className="text-[#003087] mt-1">•</span>
                   <span>Increased scrutiny from CQC and regulatory bodies</span>
                 </li>
+                <li className="flex items-start gap-3">
+                  <span className="text-[#003087] mt-1">•</span>
+                  <span>Patients increasingly involve advocacy groups, MPs, and councillors using publicly available information</span>
+                </li>
               </ul>
             </Card>
           </div>
