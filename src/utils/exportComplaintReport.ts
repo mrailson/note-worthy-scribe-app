@@ -728,7 +728,28 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
     "The practice has demonstrated compliance with:"
   ));
 
-  sections.push(createBulletPoint("NHS England's 'Complaint Standards Framework' for Primary Care"));
+  sections.push(
+    new Paragraph({
+      children: [
+        new ExternalHyperlink({
+          children: [
+            new TextRun({
+              text: "NHS England's 'Complaint Standards Framework' for Primary Care",
+              font: FONTS.default,
+              size: FONTS.size.body,
+              color: NHS_COLORS.nhsBlue,
+              underline: {},
+            }),
+          ],
+          link: "https://www.england.nhs.uk/long-read/nhs-england-complaints-policy/",
+        }),
+      ],
+      bullet: {
+        level: 0,
+      },
+      spacing: { after: 60 },
+    })
+  );
   sections.push(createBulletPoint("CQC Regulation 16: Receiving and acting on complaints"));
   sections.push(createBulletPoint("Local Healthwatch guidance on effective complaints handling"));
   sections.push(createBulletPoint("General Medical Council (GMC) guidance on professional conduct"));
