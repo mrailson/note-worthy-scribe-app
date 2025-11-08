@@ -66,7 +66,7 @@ serve(async (req) => {
     const [
       { data: questionnaires },
       { data: evidence },
-      { data: responses },
+      { data: staffResponses },
       { data: outcomes }
     ] = await Promise.all([
       supabase.from('complaint_outcome_questionnaires')
@@ -113,8 +113,8 @@ Practice Investigation Findings:
       ? evidence.map((e: any) => `- ${e.evidence_type}: ${e.file_name} (${e.description || 'No description'})`).join('\n')
       : 'No supporting evidence uploaded';
 
-    const responsesInfo = responses && responses.length > 0
-      ? responses.map((r: any) => `
+    const responsesInfo = staffResponses && staffResponses.length > 0
+      ? staffResponses.map((r: any) => `
 Response from ${r.responder_name || 'Unknown'} (${r.responder_role || 'Unknown role'}):
 Date: ${r.response_date ? new Date(r.response_date).toLocaleDateString('en-GB') : 'Not dated'}
 Summary: ${r.response_summary || r.response_text || 'No summary'}
