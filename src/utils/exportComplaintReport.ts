@@ -89,7 +89,19 @@ const formatOutcomeType = (outcomeType: string): string => {
     'not_upheld': 'Not Upheld',
     'rejected': 'Not Upheld'
   };
-  return typeMap[outcomeType] || outcomeType;
+  return typeMap[outcomeType.toLowerCase()] || outcomeType;
+};
+
+// Helper function to format status with outcome
+const formatStatusWithOutcome = (status: string, outcome?: OutcomeData): string => {
+  const formattedStatus = status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+  
+  if (status.toLowerCase() === 'closed' && outcome?.outcome_type) {
+    const formattedOutcome = formatOutcomeType(outcome.outcome_type);
+    return `${formattedStatus} - ${formattedOutcome}`;
+  }
+  
+  return formattedStatus;
 };
 
 // Helper function to create headings
@@ -539,7 +551,7 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
   sections.push(
     createMetadataTable([
       { label: "Reference Number", value: complaint.reference_number },
-      { label: "Status", value: complaint.status.toUpperCase() },
+      { label: "Status & Outcome", value: formatStatusWithOutcome(complaint.status, data.outcome) },
       { label: "Report Date", value: reportDate },
       { label: "Classification", value: "NHS OFFICIAL-SENSITIVE" },
     ])
