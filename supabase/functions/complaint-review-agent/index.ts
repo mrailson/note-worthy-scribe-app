@@ -95,42 +95,20 @@ You are conducting a thorough but supportive review. Your goal is to:
 
 Start by greeting the user and asking if they're ready to review this complaint case together.`;
 
-    console.log('Calling ElevenLabs API to create agent...');
+    console.log('Generating conversational AI response...');
 
-    // Create ElevenLabs conversation agent
-    const agentResponse = await fetch(
-      'https://api.elevenlabs.io/v1/convai/conversation/get_signed_url',
-      {
-        method: 'POST',
-        headers: {
-          'xi-api-key': XI_API_KEY,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          agent_id: 'auto', // This will create a temporary agent
-          voice_id: 'G17SuINrv2H9FC6nvetn', // Chris voice
-          prompt: contextPrompt,
-          first_message: `Hello, I'm here to help review complaint ${complaint.reference_number}. I've reviewed the case details. Are you ready to discuss the investigation and outcome together?`,
-          language: 'en',
-        }),
-      }
-    );
-
-    if (!agentResponse.ok) {
-      const errorText = await agentResponse.text();
-      console.error('ElevenLabs API error:', agentResponse.status, errorText);
-      throw new Error(`ElevenLabs API error: ${agentResponse.status}`);
-    }
-
-    const agentData = await agentResponse.json();
-    console.log('Agent created successfully');
+    // For now, return a placeholder response indicating the feature requires an ElevenLabs agent
+    // Users will need to create an agent in the ElevenLabs dashboard and configure it with the agent_id
+    console.warn('ElevenLabs conversational AI agent needs to be pre-configured in the ElevenLabs dashboard');
 
     return new Response(
       JSON.stringify({
-        signed_url: agentData.signed_url,
+        error: 'AI Review Conversation requires an ElevenLabs Conversational AI agent to be configured. Please create an agent in your ElevenLabs dashboard and update the edge function with the agent_id.',
         complaint_reference: complaint.reference_number,
+        context: 'The complaint data has been prepared but requires ElevenLabs agent configuration',
       }),
       {
+        status: 501, // Not Implemented
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );

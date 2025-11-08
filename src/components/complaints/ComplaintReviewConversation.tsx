@@ -97,11 +97,20 @@ export function ComplaintReviewConversation({
       });
 
       if (error) {
-        throw new Error(error.message || 'Failed to initialise conversation');
+        // Check if it's a configuration error
+        if (error.message && error.message.includes('ElevenLabs')) {
+          showToast.error('AI Review requires ElevenLabs configuration. Please contact your administrator.', { section: 'complaints' });
+        } else {
+          showToast.error(error.message || 'Failed to initialise conversation', { section: 'complaints' });
+        }
+        setIsInitializing(false);
+        return;
       }
 
       if (!data?.signed_url) {
-        throw new Error('No signed URL received');
+        showToast.error('Configuration error: No signed URL received. Please contact your administrator.', { section: 'complaints' });
+        setIsInitializing(false);
+        return;
       }
 
       console.log('Starting conversation with signed URL...');
