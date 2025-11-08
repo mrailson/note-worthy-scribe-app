@@ -71,7 +71,7 @@ import RichTextEditor, { EditorCommands } from "@/components/RichTextEditor";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import FindReplacePanel from "@/components/FindReplacePanel";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Maximize2, Minimize2, FileEdit, Eye as EyeIcon, Columns } from "lucide-react";
+import { Maximize2, Minimize2, FileEdit, Eye as EyeIcon, Columns, ChevronUp } from "lucide-react";
 import { AIEditLetterDialog } from "@/components/AIEditLetterDialog";
 import { ManualAcknowledgementGenerator } from "@/components/ManualAcknowledgementGenerator";
 import { EnhancedAuditLogViewer } from "@/components/EnhancedAuditLogViewer";
@@ -193,6 +193,8 @@ const ComplaintDetails = () => {
   const [audioOverview, setAudioOverview] = useState<any>(null);
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [reviewConversations, setReviewConversations] = useState<any[]>([]);
+  const [showAudioSummarySection, setShowAudioSummarySection] = useState(false);
+  const [showReviewNotesSection, setShowReviewNotesSection] = useState(false);
 
 
   // Define all functions before useEffect
@@ -2921,50 +2923,87 @@ I am committed to ensuring that all patients receive the care and service they d
 
               {/* Executive Audio Summary - Show after outcome */}
               {existingOutcome && (
-                <Card className="border-blue-200 bg-blue-50">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2 text-blue-800">
-                      <Headphones className="h-5 w-5" />
-                      Executive Audio Summary
-                    </CardTitle>
-                    <CardDescription className="text-blue-700">
-                      AI-generated audio briefing for management and partners
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <ComplaintAudioOverviewPlayer
-                      complaintId={complaint.id}
-                      audioOverviewUrl={audioOverview?.audio_overview_url}
-                      audioOverviewText={audioOverview?.audio_overview_text}
-                      audioOverviewDuration={audioOverview?.audio_overview_duration}
-                      onRegenerateAudio={handleRegenerateComplaintAudio}
-                    />
-                    
-                    {/* AI Review Conversation - Only show if audio exists */}
-                    {audioOverview?.audio_overview_url && (
-                      <ComplaintReviewConversation
-                        complaintId={complaint.id}
-                        onReviewComplete={() => {
-                          // Refetch review conversations after completion
-                          fetchComplaintDetails();
-                        }}
-                      />
-                    )}
-                  </CardContent>
-                </Card>
+                <Collapsible open={showAudioSummarySection} onOpenChange={setShowAudioSummarySection}>
+                  <Card className="border-blue-200 bg-blue-50">
+                    <CardHeader>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
+                          <div className="text-left">
+                            <CardTitle className="flex items-center gap-2 text-blue-800">
+                              <Headphones className="h-5 w-5" />
+                              Executive Audio Summary
+                            </CardTitle>
+                            <CardDescription className="text-blue-700">
+                              AI-generated audio briefing for management and partners
+                            </CardDescription>
+                          </div>
+                          {showAudioSummarySection ? (
+                            <ChevronUp className="h-5 w-5 text-blue-800" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5 text-blue-800" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent className="space-y-4">
+                        <ComplaintAudioOverviewPlayer
+                          complaintId={complaint.id}
+                          audioOverviewUrl={audioOverview?.audio_overview_url}
+                          audioOverviewText={audioOverview?.audio_overview_text}
+                          audioOverviewDuration={audioOverview?.audio_overview_duration}
+                          onRegenerateAudio={handleRegenerateComplaintAudio}
+                        />
+                        
+                        {/* AI Review Conversation - Only show if audio exists */}
+                        {audioOverview?.audio_overview_url && (
+                          <ComplaintReviewConversation
+                            complaintId={complaint.id}
+                            onReviewComplete={() => {
+                              // Refetch review conversations after completion
+                              fetchComplaintDetails();
+                            }}
+                          />
+                        )}
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               )}
 
               {/* Review Conversation Notes - Show any existing reviews */}
               {reviewConversations.length > 0 && (
-                <div className="space-y-4">
-                  {reviewConversations.map((conversation) => (
-                    <ComplaintReviewNote
-                      key={conversation.id}
-                      conversation={conversation}
-                      reviewerName="System User"
-                    />
-                  ))}
-                </div>
+                <Collapsible open={showReviewNotesSection} onOpenChange={setShowReviewNotesSection}>
+                  <Card>
+                    <CardHeader>
+                      <CollapsibleTrigger asChild>
+                        <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
+                          <CardTitle className="text-left">
+                            AI Review Conversation Records ({reviewConversations.length})
+                          </CardTitle>
+                          {showReviewNotesSection ? (
+                            <ChevronUp className="h-5 w-5" />
+                          ) : (
+                            <ChevronDown className="h-5 w-5" />
+                          )}
+                        </Button>
+                      </CollapsibleTrigger>
+                    </CardHeader>
+                    <CollapsibleContent>
+                      <CardContent>
+                        <div className="space-y-4">
+                          {reviewConversations.map((conversation) => (
+                            <ComplaintReviewNote
+                              key={conversation.id}
+                              conversation={conversation}
+                              reviewerName="System User"
+                            />
+                          ))}
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Card>
+                </Collapsible>
               )}
 
               {/* Outcome Letter Dialog */}
