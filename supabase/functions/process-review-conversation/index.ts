@@ -47,39 +47,132 @@ serve(async (req) => {
       throw new Error('Unauthorised');
     }
 
+    // Fetch comprehensive complaint details
+    console.log('Fetching complaint details...');
+    const { data: complaint, error: complaintError } = await supabase
+      .from('complaints')
+      .select(`
+        *,
+        complaint_questionnaires (*),
+        complaint_evidence (*),
+        complaint_responses (*),
+        complaint_outcomes (*)
+      `)
+      .eq('id', complaintId)
+      .single();
+
+    if (complaintError) {
+      console.error('Error fetching complaint:', complaintError);
+      throw new Error('Failed to fetch complaint details');
+    }
+
+    console.log('Complaint details fetched successfully');
+
+    // Build comprehensive context
+    const timelineInfo = `
+- Date Received: ${complaint.date_received ? new Date(complaint.date_received).toLocaleDateString('en-GB') : 'Not recorded'}
+- Acknowledgement Date: ${complaint.acknowledgement_date ? new Date(complaint.acknowledgement_date).toLocaleDateString('en-GB') : 'Not recorded'}
+- Response Due Date: ${complaint.response_due_date ? new Date(complaint.response_due_date).toLocaleDateString('en-GB') : 'Not recorded'}
+- Date Responded: ${complaint.date_responded ? new Date(complaint.date_responded).toLocaleDateString('en-GB') : 'Not yet responded'}
+- Days to Respond: ${complaint.days_to_respond || 'Calculating...'}
+- Status: ${complaint.status}
+- Severity: ${complaint.severity || 'Not specified'}`;
+
+    const questionnaireInfo = complaint.complaint_questionnaires && complaint.complaint_questionnaires.length > 0
+      ? complaint.complaint_questionnaires.map((q: any) => `
+Practice Investigation Findings:
+- Staff Involved: ${q.staff_involved || 'Not specified'}
+- Actions Taken: ${q.actions_taken || 'Not specified'}
+- Learning Points: ${q.learning_points || 'Not specified'}
+- Follow-up Required: ${q.follow_up_required ? 'Yes' : 'No'}
+- Completed By: ${q.completed_by || 'Not specified'}
+- Completed Date: ${q.completed_at ? new Date(q.completed_at).toLocaleDateString('en-GB') : 'Not completed'}
+`).join('\n')
+      : 'No questionnaire data available';
+
+    const evidenceInfo = complaint.complaint_evidence && complaint.complaint_evidence.length > 0
+      ? complaint.complaint_evidence.map((e: any) => `- ${e.evidence_type}: ${e.file_name} (${e.description || 'No description'})`).join('\n')
+      : 'No supporting evidence uploaded';
+
+    const responsesInfo = complaint.complaint_responses && complaint.complaint_responses.length > 0
+      ? complaint.complaint_responses.map((r: any) => `
+Response from ${r.responder_name || 'Unknown'} (${r.responder_role || 'Unknown role'}):
+Date: ${r.response_date ? new Date(r.response_date).toLocaleDateString('en-GB') : 'Not dated'}
+Summary: ${r.response_summary || r.response_text || 'No summary'}
+`).join('\n')
+      : 'No staff responses recorded';
+
+    const outcomeInfo = complaint.complaint_outcomes && complaint.complaint_outcomes.length > 0
+      ? complaint.complaint_outcomes[0]
+      : null;
+
     // Generate comprehensive review note using Lovable AI
-    const systemPrompt = `You are an NHS governance expert. Generate a professional, comprehensive review note from this complaint review conversation. Use British English spelling and terminology.
+    const systemPrompt = `You are an NHS governance and CQC compliance expert. Generate a professional, supportive compliance review that demonstrates the practice's efforts to meet CQC and NHS complaint management requirements.
+
+This report should be suitable for CQC inspections and demonstrate:
+- Compliance with NHS Complaint Standards
+- Adherence to CQC regulations on complaint handling
+- Thorough investigation and learning culture
+- Patient-centred approach
+- Appropriate timelines and documentation
 
 The note should include:
-1. Executive Summary (2-3 sentences)
-2. Key Challenges Identified (bullet points with severity indicators)
-3. Responses & Justifications (what was explained)
-4. AI Recommendations (constructive suggestions with priority levels)
-5. Learning Points (areas for improvement)
-6. Overall Assessment (balanced, supportive critique)
+1. **Executive Summary** - Highlight compliance achievements and process strengths (2-3 sentences)
+2. **Complaint Handling Process Review** - Evidence of proper procedures followed
+3. **Timeline Compliance** - Assessment of response times against NHS standards
+4. **Investigation Quality** - Depth and thoroughness of investigation
+5. **Evidence & Documentation** - Quality of supporting evidence gathered
+6. **Key Strengths Identified** - What the practice did well
+7. **Areas of Excellence** - Practices that exceed minimum standards
+8. **Recommendations for Enhancement** - Constructive suggestions with CQC alignment
+9. **Learning & Improvement Culture** - Evidence of reflective practice
+10. **CQC/NHS Compliance Statement** - Overall assessment of regulatory compliance
 
-Format the output in clear markdown with proper headings and structure.`;
+Use British English. Format in clear markdown. Be supportive and balanced while maintaining professional objectivity.`;
 
-    const userPrompt = `Please analyse this complaint review conversation and generate a professional review note:
+    const userPrompt = `Please analyse this complaint review and generate a comprehensive compliance-focused review that supports the practice's efforts and demonstrates regulatory adherence:
 
-CONVERSATION TRANSCRIPT:
-${transcript}
+COMPLAINT DETAILS:
+- Reference: ${complaint.reference_number}
+- Type: ${complaint.complaint_type || 'Not specified'}
+- Description: ${complaint.complaint_description || 'No description'}
 
-CHALLENGES IDENTIFIED:
+TIMELINE INFORMATION:
+${timelineInfo}
+
+PRACTICE INVESTIGATION:
+${questionnaireInfo}
+
+SUPPORTING EVIDENCE:
+${evidenceInfo}
+
+STAFF RESPONSES:
+${responsesInfo}
+
+${outcomeInfo ? `OUTCOME RECORDED:
+- Type: ${outcomeInfo.outcome_type}
+- Summary: ${outcomeInfo.outcome_summary}
+- Decided: ${outcomeInfo.decided_at ? new Date(outcomeInfo.decided_at).toLocaleDateString('en-GB') : 'Not dated'}
+` : ''}
+
+AI REVIEW CONVERSATION:
+Transcript: ${transcript}
+
+Challenges Identified:
 ${JSON.stringify(challenges, null, 2)}
 
-RESPONSES GIVEN:
+Responses Given:
 ${JSON.stringify(responses, null, 2)}
 
-RECOMMENDATIONS:
+Recommendations:
 ${JSON.stringify(recommendations, null, 2)}
 
-CONVERSATION METADATA:
+Conversation Metadata:
 - Duration: ${Math.floor(duration / 60)} minutes ${duration % 60} seconds
 - Started: ${new Date(startedAt).toLocaleString('en-GB')}
 - Ended: ${new Date(endedAt).toLocaleString('en-GB')}
 
-Generate a comprehensive but concise review note that will serve as evidence of a thorough review process.`;
+Generate a comprehensive, supportive compliance review that demonstrates the practice's adherence to CQC and NHS complaint management requirements. This should be suitable for inspection evidence and show the practice acted reasonably and professionally.`;
 
     console.log('Calling Lovable AI to generate review note...');
 
