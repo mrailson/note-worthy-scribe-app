@@ -1213,7 +1213,7 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
     sections.push(
       createMetadataTable([
         { label: "Review Date", value: reviewDate },
-        { label: "Reviewer", value: data.aiReview.created_by || "System User" },
+        { label: "Reviewer", value: "Notewell AI Critical Friends Review Agent" },
         { label: "Review Duration", value: reviewDuration },
       ])
     );
