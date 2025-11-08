@@ -132,8 +132,8 @@ export default function ComplaintResponse() {
       console.log('Submit response result:', { data, error });
 
       if (error) {
-        console.error('Submit error details:', error);
-        throw new Error(error.message || 'Failed to submit response');
+        console.error('Submit error details:', JSON.stringify(error, null, 2));
+        throw new Error(error.message || error.hint || 'Failed to submit response');
       }
 
       if (data === false) {
