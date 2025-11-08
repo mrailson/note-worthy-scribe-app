@@ -372,7 +372,10 @@ CRITICAL: Never include personal email addresses or direct contact details in th
     }
 
     const data = await response.json();
-    let outcomeLetter = data.choices[0].message.content;
+    let outcomeLetter = data.choices[0].message.content
+      .replace(/```[\s\S]*?$/g, '') // Remove markdown code blocks at the end
+      .replace(/```/g, '') // Remove any stray backticks
+      .trim();
     
     // Add logo URL as HTML comment if available
     if (practiceDetails?.logo_url || practiceDetails?.practice_logo_url) {

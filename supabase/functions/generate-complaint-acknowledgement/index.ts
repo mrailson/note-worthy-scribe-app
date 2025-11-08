@@ -284,7 +284,10 @@ FORMATTING THE CONTACT DETAILS:
     }
 
     const data = await response.json();
-    let acknowledgementLetter = data.choices[0].message.content;
+    let acknowledgementLetter = data.choices[0].message.content
+      .replace(/```[\s\S]*?$/g, '') // Remove markdown code blocks at the end
+      .replace(/```/g, '') // Remove any stray backticks
+      .trim();
     
     // Add practice logo URL to the letter content as HTML comment for Word export
     console.log('Checking for logo URLs:', {
