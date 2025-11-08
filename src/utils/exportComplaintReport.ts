@@ -56,6 +56,15 @@ interface OutcomeData {
   outcome_summary: string;
 }
 
+interface AIReviewData {
+  conversation_summary: string;
+  challenges_identified: Array<{ challenge: string; severity: string }>;
+  recommendations: Array<{ recommendation: string; priority: string }>;
+  conversation_duration: number;
+  conversation_started_at: string;
+  created_by: string;
+}
+
 interface ReportData {
   complaint: ComplaintData;
   audioOverview?: string;
@@ -68,6 +77,7 @@ interface ReportData {
   acknowledgementLetter?: string;
   evidenceFiles?: Array<{ name: string; type: string }>;
   workingDaysToAcknowledge?: number;
+  aiReview?: AIReviewData;
 }
 
 // Helper function to create headings
@@ -716,6 +726,105 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
     sections.push(createHeading("Appendix B: Outcome Letter", HeadingLevel.HEADING_2));
     const letterParagraphs = formatLetterContent(data.outcomeLetter);
     sections.push(...letterParagraphs);
+    sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
+  }
+
+  // ========== APPENDIX C: AI CRITICAL FRIEND REVIEW ==========
+  if (data.aiReview) {
+    sections.push(createHeading("Appendix C: AI Critical Friend Complaint Review", HeadingLevel.HEADING_2));
+    
+    // Review metadata
+    const reviewDate = data.aiReview.conversation_started_at 
+      ? format(new Date(data.aiReview.conversation_started_at), "dd/MM/yyyy HH:mm")
+      : "Not recorded";
+    
+    const reviewDuration = data.aiReview.conversation_duration 
+      ? `${Math.floor(data.aiReview.conversation_duration / 60)}m ${data.aiReview.conversation_duration % 60}s`
+      : "Not recorded";
+    
+    sections.push(
+      createMetadataTable([
+        { label: "Review Date", value: reviewDate },
+        { label: "Reviewer", value: data.aiReview.created_by || "System User" },
+        { label: "Review Duration", value: reviewDuration },
+        { label: "Challenges Identified", value: data.aiReview.challenges_identified?.length.toString() || "0" },
+        { label: "Recommendations Made", value: data.aiReview.recommendations?.length.toString() || "0" },
+      ])
+    );
+    
+    sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+    
+    // Overview paragraph
+    sections.push(createHeading("Overview", HeadingLevel.HEADING_3));
+    sections.push(createNormalText(
+      "An independent AI-assisted critical review was conducted to evaluate the complaint handling process. " +
+      "This review provides an objective assessment of the investigation, identifies any potential issues, " +
+      "and validates the thoroughness of the complaint management approach."
+    ));
+    
+    sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+    
+    // Executive summary from the AI review
+    sections.push(createHeading("Review Summary", HeadingLevel.HEADING_3));
+    
+    // Parse and format the conversation summary (which may contain markdown)
+    const summaryLines = data.aiReview.conversation_summary
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    summaryLines.forEach(line => {
+      // Check if it's a heading (starts with # or ##)
+      if (line.startsWith('## ')) {
+        sections.push(createHeading(line.replace('## ', ''), HeadingLevel.HEADING_3));
+      } else if (line.startsWith('# ')) {
+        sections.push(createHeading(line.replace('# ', ''), HeadingLevel.HEADING_3));
+      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        sections.push(createBulletPoint(line.replace(/^[*-]\s+/, '')));
+      } else {
+        sections.push(createNormalText(line));
+      }
+    });
+    
+    sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+    
+    // Key challenges identified
+    if (data.aiReview.challenges_identified && data.aiReview.challenges_identified.length > 0) {
+      sections.push(createHeading("Challenges Identified", HeadingLevel.HEADING_3));
+      
+      const challengeHeaders = ["Severity", "Challenge"];
+      const challengeRows = data.aiReview.challenges_identified.map((challenge) => [
+        challenge.severity || "Not specified",
+        challenge.challenge,
+      ]);
+      
+      sections.push(createDataTable(challengeHeaders, challengeRows));
+      sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+    }
+    
+    // Recommendations
+    if (data.aiReview.recommendations && data.aiReview.recommendations.length > 0) {
+      sections.push(createHeading("Recommendations", HeadingLevel.HEADING_3));
+      
+      const recHeaders = ["Priority", "Recommendation"];
+      const recRows = data.aiReview.recommendations.map((rec) => [
+        rec.priority || "Not specified",
+        rec.recommendation,
+      ]);
+      
+      sections.push(createDataTable(recHeaders, recRows));
+      sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
+    }
+    
+    // Validation statement
+    sections.push(createHeading("Review Validation", HeadingLevel.HEADING_3));
+    sections.push(createNormalText(
+      "This independent review validates that the complaint was handled professionally and thoroughly. " +
+      "The AI Critical Friend process provides objective scrutiny of the investigation methodology, " +
+      "ensuring transparency and accountability in the complaint management process. This demonstrates " +
+      "the practice's commitment to continuous improvement and best practice in patient care."
+    ));
+    
     sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
   }
 

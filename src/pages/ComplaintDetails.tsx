@@ -2087,6 +2087,17 @@ I am committed to ensuring that all patients receive the care and service they d
                             type: doc.file_type || 'Unknown'
                           }));
 
+                          // Get the most recent AI review if available
+                          const latestReview = reviewConversations.length > 0 ? reviewConversations[0] : null;
+                          const aiReview = latestReview ? {
+                            conversation_summary: latestReview.conversation_summary,
+                            challenges_identified: latestReview.challenges_identified || [],
+                            recommendations: latestReview.recommendations || [],
+                            conversation_duration: latestReview.conversation_duration || 0,
+                            conversation_started_at: latestReview.conversation_started_at,
+                            created_by: latestReview.created_by || 'System User',
+                          } : undefined;
+
                           await exportComplaintReportToWord({
                             complaint,
                             audioOverview: audioOverview?.audio_overview_text,
@@ -2101,7 +2112,8 @@ I am committed to ensuring that all patients receive the care and service they d
                             outcomeLetter,
                             acknowledgementLetter,
                             evidenceFiles,
-                            workingDaysToAcknowledge
+                            workingDaysToAcknowledge,
+                            aiReview,
                           });
 
                           showToast.success('Complaint report downloaded', { section: 'complaints' });
@@ -2493,6 +2505,17 @@ I am committed to ensuring that all patients receive the care and service they d
                                   type: doc.file_type || 'Unknown'
                                 }));
 
+                                // Get the most recent AI review if available
+                                const latestReview = reviewConversations.length > 0 ? reviewConversations[0] : null;
+                                const aiReview = latestReview ? {
+                                  conversation_summary: latestReview.conversation_summary,
+                                  challenges_identified: latestReview.challenges_identified || [],
+                                  recommendations: latestReview.recommendations || [],
+                                  conversation_duration: latestReview.conversation_duration || 0,
+                                  conversation_started_at: latestReview.conversation_started_at,
+                                  created_by: latestReview.created_by || 'System User',
+                                } : undefined;
+
                                 await exportComplaintReportToWord({
                                   complaint,
                                   audioOverview: audioOverview?.audio_overview_text,
@@ -2507,7 +2530,8 @@ I am committed to ensuring that all patients receive the care and service they d
                                   outcomeLetter,
                                   acknowledgementLetter,
                                   evidenceFiles,
-                                  workingDaysToAcknowledge
+                                  workingDaysToAcknowledge,
+                                  aiReview,
                                 });
 
                                 showToast.success('Complaint report downloaded', { section: 'complaints' });
