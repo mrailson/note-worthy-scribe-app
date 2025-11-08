@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Send, UserPlus, Eye, Clock, CheckCircle, AlertCircle, Trash2, Mail, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, UserPlus, Clock, CheckCircle, AlertCircle, Trash2, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -41,19 +41,6 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
     notes: ''
   });
   const [sending, setSending] = useState(false);
-  const [expandedResponses, setExpandedResponses] = useState<Set<string>>(new Set());
-
-  const toggleResponseExpanded = (partyId: string) => {
-    setExpandedResponses(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(partyId)) {
-        newSet.delete(partyId);
-      } else {
-        newSet.add(partyId);
-      }
-      return newSet;
-    });
-  };
 
   useEffect(() => {
     fetchInvolvedParties();
@@ -297,7 +284,6 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
         ) : (
           <div className="space-y-3">
             {parties.map((party) => {
-              const isExpanded = expandedResponses.has(party.id);
               return (
                 <div key={party.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colours">
                   <div className="flex items-start gap-4">
@@ -339,27 +325,8 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
                     <div className="flex-1 min-w-0">
                       {party.response_submitted_at ? (
                         <div>
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-sm font-medium text-muted-foreground">Response:</span>
-                            <Button 
-                              size="sm" 
-                              variant="ghost"
-                              onClick={() => toggleResponseExpanded(party.id)}
-                            >
-                              {isExpanded ? (
-                                <>
-                                  <ChevronUp className="h-4 w-4 mr-1" />
-                                  Show Less
-                                </>
-                              ) : (
-                                <>
-                                  <ChevronDown className="h-4 w-4 mr-1" />
-                                  Show More
-                                </>
-                              )}
-                            </Button>
-                          </div>
-                          <div className={`p-3 bg-background rounded border text-sm whitespace-pre-wrap ${isExpanded ? '' : 'line-clamp-3'}`}>
+                          <div className="text-sm font-medium text-muted-foreground mb-2">Response:</div>
+                          <div className="p-3 bg-background rounded border text-sm whitespace-pre-wrap">
                             {party.response_text}
                           </div>
                         </div>
