@@ -43,7 +43,7 @@ export const CallToActionSlide = () => {
         </div>
       </div>
 
-      {/* Turquoise Accent Bar at Bottom */}
+      {/* Turquoise Accent Bar at Bottom with Button */}
       <div className="h-16 bg-gradient-to-r from-[#00A9CE] to-[#00A9CE] flex items-center justify-center">
         <Button
           onClick={() => navigate('/complaints')}
@@ -54,11 +54,6 @@ export const CallToActionSlide = () => {
           <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
-
-      {/* Navigation Hint */}
-      <p className="absolute bottom-20 left-16 text-sm text-muted-foreground">
-        Press space or → to continue
-      </p>
     </div>
   );
 };

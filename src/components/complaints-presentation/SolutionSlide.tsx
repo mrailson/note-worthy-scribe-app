@@ -75,11 +75,6 @@ export const SolutionSlide = () => {
 
       {/* Turquoise Accent Bar at Bottom */}
       <div className="h-16 bg-gradient-to-r from-[#00A9CE] to-[#00A9CE]" />
-
-      {/* Navigation Hint */}
-      <p className="absolute bottom-20 left-16 text-sm text-muted-foreground">
-        Press space or → to continue
-      </p>
     </div>
   );
 };
