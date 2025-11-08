@@ -1061,57 +1061,39 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
 
   sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
 
-  sections.push(createHeading("Strengths in Complaint Management", HeadingLevel.HEADING_2));
+  sections.push(createHeading("Key Strengths in Complaint Management", HeadingLevel.HEADING_2));
 
-  // Dynamic strengths based on data
+  // Dynamic strengths - prioritise top 3 most important
   const strengths: string[] = [];
 
-  // Check acknowledgement timing
+  // Priority 1: Timeline compliance (most critical for CQC)
   if (data.workingDaysToAcknowledge !== undefined && data.workingDaysToAcknowledge <= 3) {
     strengths.push("Complaint acknowledged within 3 working days, meeting NHS best practice standards");
   }
 
-  // Check investigation method
-  if (data.investigationMethod) {
+  // Priority 2: Thorough investigation process
+  if (data.investigationMethod && data.involvedParties && data.involvedParties.length > 0) {
+    strengths.push(`Thorough investigation methodology with ${data.involvedParties.length} staff members involved and comprehensive evidence gathering`);
+  } else if (data.investigationMethod) {
     strengths.push("Clear investigation methodology documented and followed");
-  }
-
-  // Check involved parties
-  if (data.involvedParties && data.involvedParties.length > 0) {
+  } else if (data.involvedParties && data.involvedParties.length > 0) {
     strengths.push(`Appropriate staff members (${data.involvedParties.length}) involved in the investigation process`);
   }
 
-  // Check evidence collection
-  if (data.evidenceFiles && data.evidenceFiles.length > 0) {
-    strengths.push(`Comprehensive evidence gathering with ${data.evidenceFiles.length} supporting documents`);
-  }
-
-  // Check outcome documentation
-  if (data.outcome) {
+  // Priority 3: Complete documentation and outcome
+  if (data.outcomeLetter && data.outcome) {
+    strengths.push("Comprehensive outcome letter and clear resolution provided with full explanation");
+  } else if (data.outcomeLetter) {
+    strengths.push("Comprehensive outcome letter provided with full explanation");
+  } else if (data.outcome) {
     strengths.push("Clear outcome determination with detailed findings and actions");
   }
 
-  // Check letters sent
-  if (data.acknowledgementLetter) {
-    strengths.push("Formal acknowledgement letter sent to complainant");
-  }
-
-  if (data.outcomeLetter) {
-    strengths.push("Comprehensive outcome letter provided with full explanation");
-  }
-
-  // Add executive summary
-  if (data.audioOverview) {
-    strengths.push("AI-assisted executive summary generated for senior review");
-  }
-
-  // Always add these generic strengths
-  strengths.push("Systematic documentation maintained throughout the process");
-  strengths.push("Patient-centred approach with clear communication");
-  strengths.push("Commitment to learning and service improvement demonstrated");
+  // Limit to maximum 3 strengths
+  const topStrengths = strengths.slice(0, 3);
 
   // Output as bullet points
-  strengths.forEach(strength => {
+  topStrengths.forEach(strength => {
     sections.push(createBulletPoint(strength));
   });
 
