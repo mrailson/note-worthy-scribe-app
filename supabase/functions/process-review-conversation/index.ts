@@ -53,13 +53,13 @@ serve(async (req) => {
       .from('complaints')
       .select(`
         *,
-        complaint_questionnaires (*),
+        complaint_outcome_questionnaires (*),
         complaint_evidence (*),
         complaint_responses (*),
         complaint_outcomes (*)
       `)
       .eq('id', complaintId)
-      .single();
+      .maybeSingle();
 
     if (complaintError) {
       console.error('Error fetching complaint:', complaintError);
@@ -78,8 +78,8 @@ serve(async (req) => {
 - Status: ${complaint.status}
 - Severity: ${complaint.severity || 'Not specified'}`;
 
-    const questionnaireInfo = complaint.complaint_questionnaires && complaint.complaint_questionnaires.length > 0
-      ? complaint.complaint_questionnaires.map((q: any) => `
+    const questionnaireInfo = complaint.complaint_outcome_questionnaires && complaint.complaint_outcome_questionnaires.length > 0
+      ? complaint.complaint_outcome_questionnaires.map((q: any) => `
 Practice Investigation Findings:
 - Staff Involved: ${q.staff_involved || 'Not specified'}
 - Actions Taken: ${q.actions_taken || 'Not specified'}
