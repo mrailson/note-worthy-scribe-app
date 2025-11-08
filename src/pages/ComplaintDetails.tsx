@@ -3212,6 +3212,27 @@ I am committed to ensuring that all patients receive the care and service they d
                 isRegenerating={isRegeneratingWithAI}
               />
               
+              {/* Direct link to outcome letter creation */}
+              {acknowledgementLetter && !existingOutcome && (
+                <Card className="border-blue-200 bg-blue-50">
+                  <CardContent className="pt-6">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h3 className="font-semibold text-blue-900">Ready to Create Outcome Letter?</h3>
+                        <p className="text-sm text-blue-700 mt-1">Skip directly to creating the final complaint outcome letter for the patient</p>
+                      </div>
+                      <Button
+                        onClick={() => setShowQuestionnaireModal(true)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        Create Outcome Letter
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {acknowledgementLetter && (
                 <Collapsible open={isWorkflowOpen} onOpenChange={setIsWorkflowOpen}>
                   <Card>
@@ -3266,466 +3287,27 @@ I am committed to ensuring that all patients receive the care and service they d
                       </div>
                     </div>
 
-                    {/* Input Tracking Section - Hidden when Direct Investigation is selected */}
-                    {investigationMethod !== "direct-investigation" && (
-                      <div className="space-y-3">
-                        <Label className="text-sm font-medium">Input Status Tracking</Label>
-                        <div className="space-y-2">
-                          <div className="text-sm text-muted-foreground">
-                            Track the status of input requests sent to staff members:
-                          </div>
-                          
-                          <div className="space-y-2 p-3 bg-gray-50 rounded border">
-                            {inputRequests.length === 0 ? (
-                              <div className="text-sm text-muted-foreground text-center py-4">
-                                {investigationMethod === "input-required" 
-                                  ? "No staff input requests sent yet. Select staff members and click 'Send Input Requests'."
-                                  : "No staff input requests sent yet. Select investigation method and staff members above."
-                                }
-                              </div>
-                            ) : (
-                              <div className="space-y-3">
-                                {inputRequests.map((request) => {
-                                  const sentDate = new Date(request.sentAt);
-                                  const daysSinceRequest = Math.floor((new Date().getTime() - sentDate.getTime()) / (1000 * 60 * 60 * 24));
-                                  const responseDeadline = new Date(sentDate.getTime() + (10 * 24 * 60 * 60 * 1000)); // 10 days deadline
-                                  const daysLeft = Math.floor((responseDeadline.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                                  const isOverdue = daysLeft < 0;
-                                  
-                                  return (
-                                    <div key={request.id} className="border rounded-lg p-4 bg-white">
-                                      <div className="flex items-start justify-between">
-                                        <div className="flex-1">
-                                          <div className="flex items-center gap-2 mb-2">
-                                            <span className="font-medium text-foreground">{request.staffName}</span>
-                                            <Badge 
-                                              variant={
-                                                request.responseReceived 
-                                                  ? "default" 
-                                                  : isOverdue 
-                                                    ? "destructive" 
-                                                    : "secondary"
-                                              }
-                                            >
-                                              {request.responseReceived 
-                                                ? "Response Received" 
-                                                : isOverdue 
-                                                  ? `Overdue (${Math.abs(daysLeft)} days)` 
-                                                  : `${daysLeft} days left`
-                                              }
-                                            </Badge>
-                                            {request.isTestResponse && (
-                                              <Badge variant="outline" className="text-xs">
-                                                Test Response
-                                              </Badge>
-                                            )}
-                                          </div>
-                                          
-                                          <div className="text-sm text-muted-foreground space-y-1">
-                                            <p>Email: {request.staffEmail}</p>
-                                            <p>Request sent: {format(sentDate, 'dd/MM/yyyy HH:mm')} ({daysSinceRequest} days ago)</p>
-                                            {!request.responseReceived && (
-                                              <p className={isOverdue ? "text-red-600 font-medium" : ""}>
-                                                Response due: {format(responseDeadline, 'dd/MM/yyyy')}
-                                                {isOverdue && " (OVERDUE)"}
-                                              </p>
-                                            )}
-                                            {request.responseReceived && request.responseReceivedAt && (
-                                              <p className="text-green-600">
-                                                Response received: {format(new Date(request.responseReceivedAt), 'dd/MM/yyyy HH:mm')}
-                                              </p>
-                                            )}
-                                          </div>
+                    <InvestigationWorkflow
+                      complaintId={complaintId!}
+                      investigationMethod={investigationMethod}
+                      inputRequests={inputRequests}
+                      involvedParties={involvedParties}
+                      submitting={submitting}
+                      onMethodChange={handleInvestigationMethodChange}
+                      onSaveSettings={handleSaveWorkflowSettings}
+                      onAddParty={addInvolvedParty}
+                      onDeleteParty={deleteInvolvedParty}
+                      onSendRequests={handleSendInputRequests}
+                      onTestReply={handleTestReply}
+                      newParty={newParty}
+                      onNewPartyChange={setNewParty}
+                    />
 
-                                          {/* Show response details if available */}
-                                          {request.responseReceived && request.responseText && (
-                                            <div className="mt-3 p-3 bg-gray-50 rounded border-l-4 border-blue-500">
-                                              <h5 className="text-sm font-medium text-foreground mb-2">Response:</h5>
-                                              <div className="text-sm text-muted-foreground max-h-32 overflow-y-auto">
-                                                {request.responseText.length > 200 
-                                                  ? `${request.responseText.substring(0, 200)}...` 
-                                                  : request.responseText
-                                                }
-                                              </div>
-                                              {request.responseText.length > 200 && (
-                                                <ViewFullResponseModal 
-                                                  responseText={request.responseText}
-                                                  staffName={request.staffName}
-                                                />
-                                              )}
-                                            </div>
-                                          )}
-                                        </div>
-                                        
-                                        <div className="flex flex-col items-end gap-2 ml-4">
-                                          {/* Status indicator */}
-                                          <div className="flex items-center gap-1">
-                                            {request.responseReceived ? (
-                                              <CheckCircle className="h-4 w-4 text-green-500" />
-                                            ) : isOverdue ? (
-                                              <AlertTriangle className="h-4 w-4 text-red-500" />
-                                            ) : (
-                                              <Clock className="h-4 w-4 text-yellow-500" />
-                                            )}
-                                          </div>
-                                          
-                                          {/* Test Reply button for pending requests */}
-                                          {!request.responseReceived && (
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => handleTestReply(request.id, request.staffName)}
-                                              disabled={submitting}
-                                              className="text-xs"
-                                            >
-                                              Test Reply
-                                            </Button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Save Settings Button - Always visible when investigation method is selected but not input-required */}
-                    {investigationMethod && investigationMethod !== "input-required" && (
-                      <div className="flex justify-end pt-4">
-                        <Button 
-                          variant="outline"
-                          onClick={handleSaveWorkflowSettings}
-                          disabled={submitting || !investigationMethod}
-                        >
-                          <Save className="h-4 w-4 mr-2" />
-                          {submitting ? 'Saving...' : 'Save Settings'}
-                        </Button>
-                      </div>
-                    )}
-
-                    {/* Direct Investigation Section */}
-                    {investigationMethod === "direct-investigation" && (
-                      <div className="space-y-6 p-4 bg-green-50 rounded-lg border border-green-200">
-                        <div className="flex items-center gap-2 mb-4">
-                          <Search className="h-4 w-4 text-green-600" />
-                          <Label className="text-sm font-medium text-green-900">Direct Investigation</Label>
-                        </div>
-                        <p className="text-sm text-green-800 mb-4">
-                          Conduct your investigation directly using the tools below to gather evidence, document findings, and make decisions.
-                        </p>
-
-                        <div className="space-y-6">
-                          <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
-                          <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
-                          <InvestigationDecisionAndLearning complaintId={complaint.id} disabled={submitting} />
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Suggested Staff Input Section */}
-                    {investigationMethod === "input-required" && (
-                      <div className="space-y-3 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                        <div className="flex items-center gap-2">
-                          <Users className="h-4 w-4 text-blue-600" />
-                          <Label className="text-sm font-medium text-blue-900">Staff Selection</Label>
-                        </div>
-                        <p className="text-sm text-blue-800">
-                          Select staff members who need to provide input for the investigation:
-                        </p>
-                        
-                        {selectedStaff.length > 0 && (
-                          <div className="space-y-2">
-                            {selectedStaff.map((staff, index) => (
-                              <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
-                                <div className="flex items-center space-x-2 flex-1">
-                                  <input 
-                                    type="checkbox" 
-                                    className="rounded" 
-                                    defaultChecked={staff.suggested}
-                                    onChange={(e) => handleStaffSelection(index, e.target.checked)}
-                                  />
-                                    <div className="flex flex-col flex-1">
-                                      <span className="text-sm font-medium">{staff.name}</span>
-                                      {staff.email ? (
-                                        editingStaffIndex === index ? (
-                                          // Edit mode
-                                          <div className="flex items-center gap-2 mt-1">
-                                            <Input
-                                              type="email"
-                                              placeholder="Enter email address"
-                                              value={editingStaffIndex === index ? editingEmailValue : staff.email}
-                                              onChange={(e) => {
-                                                const newValue = e.target.value;
-                                                setEditingEmailValue(newValue);
-                                                
-                                                // Clear any existing timeout
-                                                if (emailUpdateTimeout.current) {
-                                                  clearTimeout(emailUpdateTimeout.current);
-                                                }
-                                                
-                                                // Set a new timeout to update the main state after user stops typing
-                                                emailUpdateTimeout.current = setTimeout(() => {
-                                                  const updatedStaff = [...selectedStaff];
-                                                  updatedStaff[index].email = newValue;
-                                                  setSelectedStaff(updatedStaff);
-                                                }, 500); // 500ms delay
-                                              }}
-                                              onKeyDown={(e) => {
-                                                if (e.key === 'Enter') {
-                                                  e.preventDefault();
-                                                  // Clear timeout and immediately save
-                                                  if (emailUpdateTimeout.current) {
-                                                    clearTimeout(emailUpdateTimeout.current);
-                                                  }
-                                                  const updatedStaff = [...selectedStaff];
-                                                  updatedStaff[index].email = editingEmailValue;
-                                                  setSelectedStaff(updatedStaff);
-                                                  setEditingStaffIndex(null);
-                                                }
-                                              }}
-                                              className="text-xs h-6 w-60"
-                                              maxLength={50}
-                                              autoFocus
-                                            />
-                                            <Button
-                                              variant="outline"
-                                              size="sm"
-                                              onClick={() => {
-                                                // Clear timeout and immediately save
-                                                if (emailUpdateTimeout.current) {
-                                                  clearTimeout(emailUpdateTimeout.current);
-                                                }
-                                                const updatedStaff = [...selectedStaff];
-                                                updatedStaff[index].email = editingEmailValue;
-                                                setSelectedStaff(updatedStaff);
-                                                setEditingStaffIndex(null);
-                                              }}
-                                              className="text-xs h-6"
-                                            >
-                                              Save
-                                            </Button>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => {
-                                                // Clear timeout and cancel editing
-                                                if (emailUpdateTimeout.current) {
-                                                  clearTimeout(emailUpdateTimeout.current);
-                                                }
-                                                setEditingStaffIndex(null);
-                                                setEditingEmailValue('');
-                                              }}
-                                              className="text-xs h-6"
-                                            >
-                                              Cancel
-                                            </Button>
-                                          </div>
-                                        ) : (
-                                          // Display mode
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-xs text-muted-foreground">{staff.email}</span>
-                                            <Button
-                                              variant="ghost"
-                                              size="sm"
-                                              onClick={() => {
-                                                setEditingEmailValue(staff.email);
-                                                setEditingStaffIndex(index);
-                                              }}
-                                              className="text-xs h-5 px-2"
-                                            >
-                                              <Edit className="h-3 w-3" />
-                                            </Button>
-                                          </div>
-                                        )
-                                      ) : (
-                                        // No email - initial entry mode
-                                        <div className="flex items-center gap-2 mt-1">
-                                          <Input
-                                            type="email"
-                                            placeholder="Enter email address"
-                                            value={staff.email}
-                                            onChange={(e) => {
-                                              const newValue = e.target.value;
-                                              
-                                              // Clear any existing timeout
-                                              if (emailUpdateTimeout.current) {
-                                                clearTimeout(emailUpdateTimeout.current);
-                                              }
-                                              
-                                              // Set a new timeout to update the main state after user stops typing
-                                              emailUpdateTimeout.current = setTimeout(() => {
-                                                const updatedStaff = [...selectedStaff];
-                                                updatedStaff[index].email = newValue;
-                                                setSelectedStaff(updatedStaff);
-                                              }, 500); // 500ms delay
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter') {
-                                                e.preventDefault();
-                                                // Don't auto-save, wait for user to click save
-                                              }
-                                            }}
-                                            className="text-xs h-6 w-60"
-                                            maxLength={50}
-                                          />
-                                          <span className="text-xs text-red-500">Email required</span>
-                                        </div>
-                                      )}
-                                  </div>
-                                  <Badge variant="outline" className="text-xs">
-                                    {staff.type === 'mentioned' ? 'Mentioned' : 
-                                     staff.type === 'category-based' ? 'Suggested' : 'Added'}
-                                  </Badge>
-                                </div>
-                                <div className="flex gap-2">
-                                  <Button 
-                                    variant="default" 
-                                    size="sm" 
-                                    onClick={() => {
-                                      const feedbackUrl = `/staff-feedback?complaintId=${complaintId}&staffName=${encodeURIComponent(staff.name)}&staffEmail=${encodeURIComponent(staff.email)}&staffRole=${encodeURIComponent(staff.role || '')}`;
-                                      window.open(feedbackUrl, '_blank');
-                                    }}
-                                    className="text-xs"
-                                  >
-                                    Respond
-                                  </Button>
-                                  <Button 
-                                    variant="ghost" 
-                                    size="sm" 
-                                    onClick={() => handleRemoveStaff(index)}
-                                    className="text-xs text-red-600 hover:text-red-700"
-                                  >
-                                    Remove
-                                  </Button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        {/* Add Additional Staff */}
-                        <div className="pt-2 space-y-2">
-                          <Label className="text-xs font-medium text-blue-900">Add Additional Staff:</Label>
-                          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
-                            <Input
-                              placeholder="Staff name"
-                              value={additionalStaff.name}
-                              onChange={(e) => setAdditionalStaff(prev => ({...prev, name: e.target.value}))}
-                              className="text-sm"
-                            />
-                            <Input
-                              type="email"
-                              placeholder="Email address"
-                              value={additionalStaff.email}
-                              onChange={(e) => setAdditionalStaff(prev => ({...prev, email: e.target.value}))}
-                              className="text-sm"
-                            />
-                            <Input
-                              placeholder="Role (optional)"
-                              value={additionalStaff.role}
-                              onChange={(e) => setAdditionalStaff(prev => ({...prev, role: e.target.value}))}
-                              className="text-sm"
-                            />
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
-                              onClick={handleAddAdditionalStaff}
-                              disabled={!additionalStaff.name || !additionalStaff.email}
-                            >
-                              <Plus className="h-4 w-4 mr-1" />
-                              Add
-                            </Button>
-                          </div>
-                        </div>
-                        
-                        {/* Action Buttons for Input Required */}
-                        <div className="flex gap-2 pt-4 border-t border-blue-200">
-                          <Button 
-                            className="flex-1"
-                            onClick={handleSendInputRequests}
-                            disabled={submitting || selectedStaff.length === 0 || selectedStaff.some(staff => 
-                              inputRequests.some(request => request.staffName === staff.name && request.staffEmail === staff.email)
-                            )}
-                          >
-                            <Send className="h-4 w-4 mr-2" />
-                            {selectedStaff.some(staff => 
-                              inputRequests.some(request => request.staffName === staff.name && request.staffEmail === staff.email)
-                            ) ? 'Requests Already Sent' : submitting ? 'Sending...' : 'Send Input Requests'}
-                          </Button>
-                          {selectedStaff.some(staff => 
-                            inputRequests.some(request => request.staffName === staff.name && request.staffEmail === staff.email)
-                          ) && (
-                            <Button 
-                              variant="destructive"
-                              size="sm"
-                              onClick={handleClearInputRequests}
-                              disabled={submitting}
-                            >
-                              <X className="h-4 w-4 mr-1" />
-                              Clear Requests
-                            </Button>
-                          )}
-                          <Button 
-                            variant="outline"
-                            onClick={handleSaveWorkflowSettings}
-                            disabled={submitting}
-                          >
-                            <Save className="h-4 w-4 mr-2" />
-                            {submitting ? 'Saving...' : 'Save Settings'}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Outcome Section for Input Required - Show when all responses received */}
-                    {investigationMethod === "input-required" && inputRequests.length > 0 && 
-                     inputRequests.every(request => request.responseReceived) && (
-                      <div className="space-y-6 p-4 bg-green-50 rounded-lg border border-green-200 mt-6">
-                        <div className="flex items-center gap-2 mb-4">
-                          <CheckCircle className="h-4 w-4 text-green-600" />
-                          <Label className="text-sm font-medium text-green-900">Investigation & Decision</Label>
-                        </div>
-                        <p className="text-sm text-green-800 mb-4">
-                          All staff responses have been received. You can now review the evidence, document your findings, and make a decision on the complaint.
-                        </p>
-
-                         <div className="space-y-6">
-                           <InvestigationEvidence complaintId={complaint.id} disabled={submitting} />
-                           <InvestigationFindings complaintId={complaint.id} disabled={submitting} />
-                           <InvestigationDecisionAndLearning complaintId={complaint.id} disabled={submitting} />
-                           
-                         </div>
-                      </div>
-                     )}
-                       </CardContent>
+                    <InvestigationFindings complaintId={complaintId!} disabled={complaint?.status === 'closed'} />
+                      </CardContent>
                     </CollapsibleContent>
                   </Card>
                 </Collapsible>
-              )}
-
-              {/* Direct link to outcome letter creation */}
-              {acknowledgementLetter && !existingOutcome && (
-                <Card className="border-blue-200 bg-blue-50">
-                  <CardContent className="pt-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h3 className="font-semibold text-blue-900">Ready to Create Outcome Letter?</h3>
-                        <p className="text-sm text-blue-700 mt-1">Skip directly to creating the final complaint outcome letter for the patient</p>
-                      </div>
-                      <Button
-                        onClick={() => setShowQuestionnaireModal(true)}
-                        className="bg-blue-600 hover:bg-blue-700"
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Create Outcome Letter
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
               )}
 
             </TabsContent>
