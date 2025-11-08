@@ -646,23 +646,126 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
   // Key dates summary
   sections.push(createHeading("Key Dates", HeadingLevel.HEADING_2));
   
-  const keyDatesData = [
-    { label: "Incident Date", value: complaint.incident_date ? format(new Date(complaint.incident_date), "dd/MM/yyyy") : "Not recorded" },
-    { label: "Complaint Submitted", value: format(submittedDateObj, "dd/MM/yyyy") },
-    { label: "Acknowledgement Deadline", value: format(ackDeadline, "dd/MM/yyyy") + " (3 working days)" },
-    { label: "Acknowledged", value: complaint.acknowledged_at ? format(new Date(complaint.acknowledged_at), "dd/MM/yyyy") + " - " + ackMet : "Not acknowledged" },
-    { label: "Outcome Deadline", value: format(outcomeDeadline, "dd/MM/yyyy") + " (20 working days)" },
-    { label: "Closed", value: complaint.closed_at ? format(new Date(complaint.closed_at), "dd/MM/yyyy") + " - " + outcomeMet : "Still open" },
-  ];
+  // Build narrative timeline
+  let narrative = "";
   
-  if (data.workingDaysToAcknowledge !== undefined) {
-    keyDatesData.push({
-      label: "Working Days to Acknowledge",
-      value: `${data.workingDaysToAcknowledge} days ${data.workingDaysToAcknowledge <= 3 ? "✓" : "⚠"}`,
-    });
+  // Add incident date if available
+  if (complaint.incident_date) {
+    narrative += `This complaint relates to an incident that occurred on ${format(new Date(complaint.incident_date), "dd/MM/yyyy")}. `;
   }
-
-  sections.push(createMetadataTable(keyDatesData));
+  
+  // Core timeline narrative
+  narrative += `The complaint was received on ${format(submittedDateObj, "dd/MM/yyyy")} and required acknowledgement within 3 working days (by ${format(ackDeadline, "dd/MM/yyyy")}). `;
+  
+  if (complaint.acknowledged_at) {
+    const ackDateFormatted = format(new Date(complaint.acknowledged_at), "dd/MM/yyyy");
+    narrative += `The complaint was acknowledged on ${ackDateFormatted}${ackDeadlineMet ? ", meeting the deadline" : ", however the deadline was missed"}. `;
+  } else {
+    narrative += `The complaint has not yet been acknowledged. `;
+  }
+  
+  narrative += `Under NHS guidelines, a final outcome was required within 20 working days (by ${format(outcomeDeadline, "dd/MM/yyyy")}). `;
+  
+  if (complaint.closed_at) {
+    const closedDateFormatted = format(new Date(complaint.closed_at), "dd/MM/yyyy");
+    narrative += `The case was closed on ${closedDateFormatted}${outcomeDeadlineMet ? ", meeting the outcome deadline" : ", however the outcome deadline was missed"}.`;
+  } else {
+    narrative += `The case remains under review.`;
+  }
+  
+  sections.push(createNormalText(narrative));
+  sections.push(new Paragraph({ text: "", spacing: { after: 160 } }));
+  
+  // Compliance Summary Table
+  const complianceTable = new Table({
+    width: { size: 100, type: WidthType.PERCENTAGE },
+    borders: {
+      top: { style: BorderStyle.SINGLE, size: 1, color: NHS_COLORS.nhsBlue },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: NHS_COLORS.nhsBlue },
+      left: { style: BorderStyle.SINGLE, size: 1, color: NHS_COLORS.nhsBlue },
+      right: { style: BorderStyle.SINGLE, size: 1, color: NHS_COLORS.nhsBlue },
+      insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+      insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+    },
+    rows: [
+      // Header row
+      new TableRow({
+        tableHeader: true,
+        children: [
+          new TableCell({
+            children: [new Paragraph({ text: "Milestone", style: "TableHeader" })],
+            shading: { fill: NHS_COLORS.tableHeaderBg },
+          }),
+          new TableCell({
+            children: [new Paragraph({ text: "Deadline", style: "TableHeader" })],
+            shading: { fill: NHS_COLORS.tableHeaderBg },
+          }),
+          new TableCell({
+            children: [new Paragraph({ text: "Actual Date", style: "TableHeader" })],
+            shading: { fill: NHS_COLORS.tableHeaderBg },
+          }),
+          new TableCell({
+            children: [new Paragraph({ text: "Status", style: "TableHeader" })],
+            shading: { fill: NHS_COLORS.tableHeaderBg },
+          }),
+        ],
+      }),
+      // Acknowledgement row
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ text: "Acknowledgement", style: "TableText" })],
+          }),
+          new TableCell({
+            children: [new Paragraph({ 
+              text: format(ackDeadline, "dd/MM/yyyy") + " (3 working days)", 
+              style: "TableText" 
+            })],
+          }),
+          new TableCell({
+            children: [new Paragraph({ 
+              text: complaint.acknowledged_at ? format(new Date(complaint.acknowledged_at), "dd/MM/yyyy") : "Not acknowledged", 
+              style: "TableText" 
+            })],
+          }),
+          new TableCell({
+            children: [new Paragraph({ 
+              text: complaint.acknowledged_at ? (ackDeadlineMet ? "✓ Met" : "⚠ Missed") : "-", 
+              style: "TableText" 
+            })],
+          }),
+        ],
+      }),
+      // Final Outcome row
+      new TableRow({
+        children: [
+          new TableCell({
+            children: [new Paragraph({ text: "Final Outcome", style: "TableText" })],
+          }),
+          new TableCell({
+            children: [new Paragraph({ 
+              text: format(outcomeDeadline, "dd/MM/yyyy") + " (20 working days)", 
+              style: "TableText" 
+            })],
+          }),
+          new TableCell({
+            children: [new Paragraph({ 
+              text: complaint.closed_at ? format(new Date(complaint.closed_at), "dd/MM/yyyy") : "Still open", 
+              style: "TableText" 
+            })],
+          }),
+          new TableCell({
+            children: [new Paragraph({ 
+              text: complaint.closed_at ? (outcomeDeadlineMet ? "✓ Met" : "⚠ Missed") : "-", 
+              style: "TableText" 
+            })],
+          }),
+        ],
+      }),
+    ],
+  });
+  
+  sections.push(complianceTable);
   sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
 
   // ========== COMPLAINT DETAILS ==========
