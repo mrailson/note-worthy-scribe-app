@@ -2419,7 +2419,7 @@ I am committed to ensuring that all patients receive the care and service they d
                           )}
                           {getStatusLabel(complaint.status)}
                         </Badge>
-                        {outcomeLetter && (
+                        {audioOverview?.audio_overview_text && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -2427,8 +2427,8 @@ I am committed to ensuring that all patients receive the care and service they d
                             onClick={async () => {
                               try {
                                 const doc = await createLetterDocument(
-                                  outcomeLetter,
-                                  'outcome',
+                                  audioOverview.audio_overview_text,
+                                  'summary',
                                   complaint.reference_number
                                 );
 
@@ -2436,20 +2436,20 @@ I am committed to ensuring that all patients receive the care and service they d
                                 const url = URL.createObjectURL(blob);
                                 const a = document.createElement('a');
                                 a.href = url;
-                                a.download = `Complaint_Report_${complaint.reference_number}.docx`;
+                                a.download = `Executive_Summary_${complaint.reference_number}.docx`;
                                 document.body.appendChild(a);
                                 a.click();
                                 document.body.removeChild(a);
                                 URL.revokeObjectURL(url);
-                                showToast.success('Report downloaded', { section: 'complaints' });
+                                showToast.success('Executive Summary downloaded', { section: 'complaints' });
                               } catch (error) {
-                                console.error('Error downloading report:', error);
-                                showToast.error('Failed to download report', { section: 'complaints' });
+                                console.error('Error downloading summary:', error);
+                                showToast.error('Failed to download summary', { section: 'complaints' });
                               }
                             }}
                           >
                             <Download className="h-3 w-3" />
-                            <span className="text-xs">Download Report</span>
+                            <span className="text-xs">Download Summary</span>
                           </Button>
                         )}
                       </div>
