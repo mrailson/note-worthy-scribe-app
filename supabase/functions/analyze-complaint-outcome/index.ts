@@ -62,7 +62,12 @@ serve(async (req) => {
     }
 
     // Related data fetched separately to avoid join permission issues
-    const [{ data: notes }, { data: parties }, { data: questionnaire }] = await Promise.all([
+    const [
+      { data: notes }, 
+      { data: parties }, 
+      { data: questionnaire },
+      { data: outcome }
+    ] = await Promise.all([
       supabase.from('complaint_notes')
         .select('note, is_internal, created_at')
         .eq('complaint_id', complaint.id)
@@ -73,6 +78,12 @@ serve(async (req) => {
         .order('response_submitted_at', { ascending: true }),
       supabase.from('complaint_outcome_questionnaires')
         .select('questionnaire_data')
+        .eq('complaint_id', complaint.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle(),
+      supabase.from('complaint_outcomes')
+        .select('created_at, decided_at, sent_at')
         .eq('complaint_id', complaint.id)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -187,12 +198,20 @@ ${additionalContext || 'Not documented'}
       ? calculateWorkingDays(new Date(submittedDate), new Date(complaint.closed_at))
       : null;
 
+    // Determine response date from outcomes (sent_at preferred, then decided_at, then created_at)
+    const responseDateStr = (outcome?.sent_at || outcome?.decided_at || outcome?.created_at) as string | null;
+    const responseWorkingDays = responseDateStr 
+      ? calculateWorkingDays(new Date(submittedDate), new Date(responseDateStr))
+      : null;
+
     const timelineSection = `
 TIMELINE COMPLIANCE:
 - Complaint Received: ${new Date(submittedDate).toLocaleDateString('en-GB')}
 - Acknowledgement: ${complaint.acknowledged_at ? new Date(complaint.acknowledged_at).toLocaleDateString('en-GB') : 'Not yet acknowledged'} ${ackWorkingDays !== null ? `(${ackWorkingDays} working days - target: 3)` : ''}
+- Response Issued: ${responseDateStr ? new Date(responseDateStr).toLocaleDateString('en-GB') : 'Not yet responded'} ${responseWorkingDays !== null ? `(${responseWorkingDays} working days - target: 20)` : ''}
 - Closed: ${complaint.closed_at ? new Date(complaint.closed_at).toLocaleDateString('en-GB') : 'Not yet closed'} ${closedWorkingDays !== null ? `(${closedWorkingDays} working days - target: 20)` : ''}
 - Acknowledgement Deadline Met: ${ackWorkingDays !== null ? (ackWorkingDays <= 3 ? 'Yes ✓' : 'No - Missed') : 'Pending'}
+- Response Deadline Met: ${responseWorkingDays !== null ? (responseWorkingDays <= 20 ? 'Yes ✓' : 'No - Missed') : 'Pending'}
 - Investigation Deadline Met: ${closedWorkingDays !== null ? (closedWorkingDays <= 20 ? 'Yes ✓' : 'No - Missed') : 'Pending'}
 `;
 
