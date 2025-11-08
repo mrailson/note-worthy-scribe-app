@@ -193,23 +193,10 @@ export function ComplaintReviewConversation({
             Discuss and critically review this complaint with an AI assistant
           </p>
         </div>
-        {conversationStarted && (
-          <div className="flex items-center gap-2 text-sm">
-            <Clock className="h-4 w-4" />
-            <span className="font-mono">{formatTime(elapsedTime)}</span>
-            {elapsedTime >= 300 && (
-              <span className="text-orange-500 text-xs">(Time limit reached)</span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {!conversationStarted ? (
-        <div className="flex flex-col items-center gap-4 py-6">
+        {!conversationStarted ? (
           <Button
             onClick={handleStartConversation}
             disabled={isInitializing}
-            size="lg"
             className="gap-2"
           >
             {isInitializing ? (
@@ -224,8 +211,18 @@ export function ComplaintReviewConversation({
               </>
             )}
           </Button>
-        </div>
-      ) : (
+        ) : (
+          <div className="flex items-center gap-2 text-sm">
+            <Clock className="h-4 w-4" />
+            <span className="font-mono">{formatTime(elapsedTime)}</span>
+            {elapsedTime >= 300 && (
+              <span className="text-orange-500 text-xs">(Time limit reached)</span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {conversationStarted && (
         <div className="space-y-4">
           {/* Connection status */}
           <div className="flex items-centre justify-between p-3 bg-green-500/10 border border-green-500/20 rounded-lg">
