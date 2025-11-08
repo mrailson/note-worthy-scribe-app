@@ -150,7 +150,7 @@ const createBulletPoint = (text: string) => {
 const parseMarkdownContent = (content: string): Paragraph[] => {
   if (!content) return [];
   
-  // Clean up content
+  // Clean up content and normalize line breaks
   let cleanedContent = content.trim();
   
   // Split into lines
@@ -160,19 +160,39 @@ const parseMarkdownContent = (content: string): Paragraph[] => {
     .filter(line => line.length > 0);
   
   const paragraphs: Paragraph[] = [];
+  let currentParagraphLines: string[] = [];
+  
+  const flushParagraph = () => {
+    if (currentParagraphLines.length > 0) {
+      // Join lines with proper spacing after sentences
+      let combinedText = currentParagraphLines.join(' ');
+      // Ensure proper spacing after full stops, question marks, and exclamation marks
+      combinedText = combinedText.replace(/([.!?])([A-Z])/g, '$1 $2');
+      const children = parseInlineMarkdown(combinedText);
+      paragraphs.push(new Paragraph({
+        children,
+        spacing: { after: 120 },
+      }));
+      currentParagraphLines = [];
+    }
+  };
   
   lines.forEach(line => {
     // Check for headings (### or ## or #) and strip them
     if (line.startsWith('###')) {
+      flushParagraph();
       const headingText = line.replace(/^###\s*/, '').replace(/\*\*/g, '');
       paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_3));
     } else if (line.startsWith('##')) {
+      flushParagraph();
       const headingText = line.replace(/^##\s*/, '').replace(/\*\*/g, '');
       paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_2));
     } else if (line.startsWith('#')) {
+      flushParagraph();
       const headingText = line.replace(/^#\s*/, '').replace(/\*\*/g, '');
       paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_2));
     } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      flushParagraph();
       // Bullet point
       const bulletText = line.replace(/^[*-]\s+/, '');
       const children = parseInlineMarkdown(bulletText);
@@ -182,14 +202,13 @@ const parseMarkdownContent = (content: string): Paragraph[] => {
         spacing: { after: 60 },
       }));
     } else {
-      // Normal paragraph - parse inline markdown
-      const children = parseInlineMarkdown(line);
-      paragraphs.push(new Paragraph({
-        children,
-        spacing: { after: 120 },
-      }));
+      // Normal text - accumulate into current paragraph
+      currentParagraphLines.push(line);
     }
   });
+  
+  // Flush any remaining paragraph
+  flushParagraph();
   
   return paragraphs;
 };
