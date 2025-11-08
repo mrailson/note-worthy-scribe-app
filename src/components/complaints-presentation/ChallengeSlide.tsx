@@ -73,7 +73,7 @@ export const ChallengeSlide = () => {
                 </li>
                 <li className="flex items-start gap-3">
                   <span className="text-[#003087] mt-1">•</span>
-                  <span>Patients increasingly involve advocacy groups, MPs, and councillors using publicly available information</span>
+                  <span>Patients, empowered by publicly available information, increasingly involve advocacy groups, MPs, and councillors</span>
                 </li>
               </ul>
             </Card>
