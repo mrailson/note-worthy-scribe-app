@@ -1008,7 +1008,15 @@ export type Database = {
           uploaded_at?: string
           uploaded_by?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "complaint_investigation_evidence_complaint_id_fkey"
+            columns: ["complaint_id"]
+            isOneToOne: false
+            referencedRelation: "complaints"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       complaint_investigation_findings: {
         Row: {
