@@ -299,17 +299,21 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
             {parties.map((party) => {
               const isExpanded = expandedResponses.has(party.id);
               return (
-                <div key={party.id} className="border rounded-lg overflow-hidden">
-                  <div className="flex items-start justify-between p-4 hover:bg-muted/50 transition-colours">
-                    <div className="flex-1">
+                <div key={party.id} className="border rounded-lg p-4 hover:bg-muted/50 transition-colours">
+                  <div className="flex items-start gap-4">
+                    {/* Left side - Staff info */}
+                    <div className="flex-shrink-0 w-64">
                       <div className="flex items-centre gap-2 mb-1">
                         <span className="font-medium">{party.staff_name}</span>
                         {getStatusBadge(party)}
                       </div>
                       <div className="text-sm text-muted-foreground">
-                        {party.staff_role} • {party.staff_email}
+                        {party.staff_role}
                       </div>
-                      <div className="text-xs text-muted-foreground mt-1">
+                      <div className="text-sm text-muted-foreground">
+                        {party.staff_email}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-2">
                         Requested: {new Date(party.response_requested_at).toLocaleDateString('en-GB', { 
                           day: 'numeric', 
                           month: 'short', 
@@ -330,48 +334,52 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
                         </div>
                       )}
                     </div>
-                    <div className="flex items-centre gap-2 ml-4">
-                      {party.response_submitted_at && (
-                        <Button 
-                          size="sm" 
-                          variant="ghost"
-                          onClick={() => toggleResponseExpanded(party.id)}
-                        >
-                          {isExpanded ? (
-                            <>
-                              <ChevronUp className="h-4 w-4 mr-1" />
-                              Hide Response
-                            </>
-                          ) : (
-                            <>
-                              <ChevronDown className="h-4 w-4 mr-1" />
-                              Show Response
-                            </>
+
+                    {/* Right side - Response or action buttons */}
+                    <div className="flex-1 min-w-0">
+                      {party.response_submitted_at ? (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-muted-foreground">Response:</span>
+                            <Button 
+                              size="sm" 
+                              variant="ghost"
+                              onClick={() => toggleResponseExpanded(party.id)}
+                            >
+                              {isExpanded ? (
+                                <>
+                                  <ChevronUp className="h-4 w-4 mr-1" />
+                                  Show Less
+                                </>
+                              ) : (
+                                <>
+                                  <ChevronDown className="h-4 w-4 mr-1" />
+                                  Show More
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                          <div className={`p-3 bg-background rounded border text-sm whitespace-pre-wrap ${isExpanded ? '' : 'line-clamp-3'}`}>
+                            {party.response_text}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          {!disabled && (
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleDeleteRequest(party.id)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete Request
+                            </Button>
                           )}
-                        </Button>
-                      )}
-                      {!disabled && !party.response_submitted_at && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDeleteRequest(party.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        </div>
                       )}
                     </div>
                   </div>
-                  
-                  {party.response_submitted_at && isExpanded && (
-                    <div className="px-4 pb-4 pt-0 border-t bg-muted/30">
-                      <div className="text-sm font-medium text-muted-foreground mb-2 mt-3">
-                        Response:
-                      </div>
-                      <div className="p-4 bg-background rounded-lg whitespace-pre-wrap text-sm border">
-                        {party.response_text}
-                      </div>
-                    </div>
-                  )}
                 </div>
               );
             })}
