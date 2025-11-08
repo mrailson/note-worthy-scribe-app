@@ -134,6 +134,150 @@ const createBulletPoint = (text: string) => {
   });
 };
 
+// Helper function to parse markdown content and return formatted paragraphs
+const parseMarkdownContent = (content: string): Paragraph[] => {
+  if (!content) return [];
+  
+  // Clean up content
+  let cleanedContent = content.trim();
+  
+  // Split into lines
+  const lines = cleanedContent
+    .split('\n')
+    .map(line => line.trim())
+    .filter(line => line.length > 0);
+  
+  const paragraphs: Paragraph[] = [];
+  
+  lines.forEach(line => {
+    // Check for headings (### or ## or #) and strip them
+    if (line.startsWith('###')) {
+      const headingText = line.replace(/^###\s*/, '').replace(/\*\*/g, '');
+      paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_3));
+    } else if (line.startsWith('##')) {
+      const headingText = line.replace(/^##\s*/, '').replace(/\*\*/g, '');
+      paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_2));
+    } else if (line.startsWith('#')) {
+      const headingText = line.replace(/^#\s*/, '').replace(/\*\*/g, '');
+      paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_2));
+    } else if (line.startsWith('- ') || line.startsWith('* ')) {
+      // Bullet point
+      const bulletText = line.replace(/^[*-]\s+/, '');
+      const children = parseInlineMarkdown(bulletText);
+      paragraphs.push(new Paragraph({
+        children,
+        bullet: { level: 0 },
+        spacing: { after: 60 },
+      }));
+    } else {
+      // Normal paragraph - parse inline markdown
+      const children = parseInlineMarkdown(line);
+      paragraphs.push(new Paragraph({
+        children,
+        spacing: { after: 120 },
+      }));
+    }
+  });
+  
+  return paragraphs;
+};
+
+// Helper function to parse inline markdown (bold, italic) within text
+const parseInlineMarkdown = (text: string): TextRun[] => {
+  const children: TextRun[] = [];
+  
+  // Remove any remaining markdown heading markers at the start
+  text = text.replace(/^#+\s*/, '');
+  
+  // Parse for bold (**text**) first, then handle remaining single * for italic
+  // We need to be careful to match bold before italic
+  const boldRegex = /\*\*([^*]+?)\*\*/g;
+  const parts: Array<{ text: string; bold?: boolean; italic?: boolean }> = [];
+  let lastIndex = 0;
+  let match;
+  
+  // First pass: extract bold text
+  while ((match = boldRegex.exec(text)) !== null) {
+    // Add normal text before bold
+    if (match.index > lastIndex) {
+      parts.push({ text: text.substring(lastIndex, match.index) });
+    }
+    // Add bold text
+    parts.push({ text: match[1], bold: true });
+    lastIndex = boldRegex.lastIndex;
+  }
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push({ text: text.substring(lastIndex) });
+  }
+  
+  // If no bold text was found, just add the whole text
+  if (parts.length === 0) {
+    parts.push({ text: text });
+  }
+  
+  // Second pass: handle italic in non-bold parts
+  const finalParts: Array<{ text: string; bold?: boolean; italic?: boolean }> = [];
+  parts.forEach(part => {
+    if (part.bold) {
+      // Keep bold as is
+      finalParts.push(part);
+    } else {
+      // Check for italic in this part
+      const italicRegex = /\*([^*]+?)\*/g;
+      let italicLastIndex = 0;
+      let italicMatch;
+      
+      while ((italicMatch = italicRegex.exec(part.text)) !== null) {
+        // Add normal text before italic
+        if (italicMatch.index > italicLastIndex) {
+          finalParts.push({ text: part.text.substring(italicLastIndex, italicMatch.index) });
+        }
+        // Add italic text
+        finalParts.push({ text: italicMatch[1], italic: true });
+        italicLastIndex = italicRegex.lastIndex;
+      }
+      
+      // Add remaining text
+      if (italicLastIndex < part.text.length) {
+        finalParts.push({ text: part.text.substring(italicLastIndex) });
+      }
+      
+      // If no italic found, keep original
+      if (italicLastIndex === 0) {
+        finalParts.push(part);
+      }
+    }
+  });
+  
+  // Convert to TextRuns
+  finalParts.forEach(part => {
+    if (part.text) {
+      children.push(new TextRun({
+        text: part.text,
+        font: FONTS.default,
+        size: FONTS.size.body,
+        color: NHS_COLORS.textGrey,
+        bold: part.bold,
+        italics: part.italic,
+      }));
+    }
+  });
+  
+  // If nothing was created, add the original text
+  if (children.length === 0) {
+    children.push(new TextRun({
+      text: text,
+      font: FONTS.default,
+      size: FONTS.size.body,
+      color: NHS_COLORS.textGrey,
+    }));
+  }
+  
+  return children;
+};
+
 // Helper function to format letter content (removes HTML comments and formats properly)
 const formatLetterContent = (letterContent: string): Paragraph[] => {
   // Remove HTML comments (logo_url, div tags, etc)
@@ -407,7 +551,9 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
   sections.push(createHeading("Executive Summary", HeadingLevel.HEADING_1));
 
   if (data.audioOverview) {
-    sections.push(createNormalText(data.audioOverview));
+    // Parse markdown content properly
+    const overviewParagraphs = parseMarkdownContent(data.audioOverview);
+    sections.push(...overviewParagraphs);
   } else {
     sections.push(createNormalText("No executive summary available."));
   }
@@ -888,24 +1034,9 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
     // Executive summary from the AI review
     sections.push(createHeading("Review Summary", HeadingLevel.HEADING_3));
     
-    // Parse and format the conversation summary (which may contain markdown)
-    const summaryLines = data.aiReview.conversation_summary
-      .split('\n')
-      .map(line => line.trim())
-      .filter(line => line.length > 0);
-    
-    summaryLines.forEach(line => {
-      // Check if it's a heading (starts with # or ##)
-      if (line.startsWith('## ')) {
-        sections.push(createHeading(line.replace('## ', ''), HeadingLevel.HEADING_3));
-      } else if (line.startsWith('# ')) {
-        sections.push(createHeading(line.replace('# ', ''), HeadingLevel.HEADING_3));
-      } else if (line.startsWith('- ') || line.startsWith('* ')) {
-        sections.push(createBulletPoint(line.replace(/^[*-]\s+/, '')));
-      } else {
-        sections.push(createNormalText(line));
-      }
-    });
+    // Parse markdown content properly
+    const summaryParagraphs = parseMarkdownContent(data.aiReview.conversation_summary);
+    sections.push(...summaryParagraphs);
     
     sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
     
