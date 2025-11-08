@@ -51,22 +51,41 @@ serve(async (req) => {
     console.log('Fetching complaint details...');
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
-      .select(`
-        *,
-        complaint_outcome_questionnaires (*),
-        complaint_evidence (*),
-        complaint_responses (*),
-        complaint_outcomes (*)
-      `)
+      .select('*')
       .eq('id', complaintId)
       .maybeSingle();
 
-    if (complaintError) {
+    if (complaintError || !complaint) {
       console.error('Error fetching complaint:', complaintError);
       throw new Error('Failed to fetch complaint details');
     }
 
     console.log('Complaint details fetched successfully');
+
+    // Fetch related data separately to avoid relationship issues
+    const [
+      { data: questionnaires },
+      { data: evidence },
+      { data: responses },
+      { data: outcomes }
+    ] = await Promise.all([
+      supabase.from('complaint_outcome_questionnaires')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false }),
+      supabase.from('complaint_evidence')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false }),
+      supabase.from('complaint_responses')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('response_date', { ascending: false }),
+      supabase.from('complaint_outcomes')
+        .select('*')
+        .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false })
+    ]);
 
     // Build comprehensive context
     const timelineInfo = `
@@ -78,8 +97,8 @@ serve(async (req) => {
 - Status: ${complaint.status}
 - Severity: ${complaint.severity || 'Not specified'}`;
 
-    const questionnaireInfo = complaint.complaint_outcome_questionnaires && complaint.complaint_outcome_questionnaires.length > 0
-      ? complaint.complaint_outcome_questionnaires.map((q: any) => `
+    const questionnaireInfo = questionnaires && questionnaires.length > 0
+      ? questionnaires.map((q: any) => `
 Practice Investigation Findings:
 - Staff Involved: ${q.staff_involved || 'Not specified'}
 - Actions Taken: ${q.actions_taken || 'Not specified'}
@@ -90,20 +109,20 @@ Practice Investigation Findings:
 `).join('\n')
       : 'No questionnaire data available';
 
-    const evidenceInfo = complaint.complaint_evidence && complaint.complaint_evidence.length > 0
-      ? complaint.complaint_evidence.map((e: any) => `- ${e.evidence_type}: ${e.file_name} (${e.description || 'No description'})`).join('\n')
+    const evidenceInfo = evidence && evidence.length > 0
+      ? evidence.map((e: any) => `- ${e.evidence_type}: ${e.file_name} (${e.description || 'No description'})`).join('\n')
       : 'No supporting evidence uploaded';
 
-    const responsesInfo = complaint.complaint_responses && complaint.complaint_responses.length > 0
-      ? complaint.complaint_responses.map((r: any) => `
+    const responsesInfo = responses && responses.length > 0
+      ? responses.map((r: any) => `
 Response from ${r.responder_name || 'Unknown'} (${r.responder_role || 'Unknown role'}):
 Date: ${r.response_date ? new Date(r.response_date).toLocaleDateString('en-GB') : 'Not dated'}
 Summary: ${r.response_summary || r.response_text || 'No summary'}
 `).join('\n')
       : 'No staff responses recorded';
 
-    const outcomeInfo = complaint.complaint_outcomes && complaint.complaint_outcomes.length > 0
-      ? complaint.complaint_outcomes[0]
+    const outcomeInfo = outcomes && outcomes.length > 0
+      ? outcomes[0]
       : null;
 
     // Generate comprehensive review note using Lovable AI
