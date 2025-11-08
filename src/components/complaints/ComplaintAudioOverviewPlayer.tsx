@@ -447,7 +447,7 @@ export const ComplaintAudioOverviewPlayer = ({
       {audioOverviewUrl && (
         <div className="mt-4 pt-4 border-t">
           <p className="text-sm text-muted-foreground mb-2">
-            Want a thorough review? Start a voice conversation with our AI assistant to critically discuss this complaint.
+            Need an objective review? Chat with our AI assistant to get constructive feedback on this complaint handling and identify areas for improvement.
           </p>
         </div>
       )}
