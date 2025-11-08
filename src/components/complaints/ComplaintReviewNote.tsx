@@ -137,43 +137,61 @@ export function ComplaintReviewNote({
           </Button>
         </div>
       </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Executive Summary - Always visible */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold text-base">Executive Summary</h3>
-            <Badge variant="secondary" className="text-xs">Audio Review</Badge>
+      <CardContent className="space-y-6">
+        {/* Executive Summary - Always visible with NHS Blue styling */}
+        <div className="space-y-4">
+          <div className="flex items-center gap-3">
+            <h3 className="text-xl font-bold text-nhs-blue tracking-tight">Executive Summary</h3>
+            <Badge variant="secondary" className="text-xs font-medium">Audio Review</Badge>
           </div>
-          <div className="prose prose-sm max-w-none bg-primary/5 p-4 rounded-lg border border-primary/10">
-            <ReactMarkdown>{conversation.conversation_summary}</ReactMarkdown>
+          <div className="bg-gradient-to-br from-nhs-blue/5 to-nhs-blue-light/5 p-6 rounded-lg border-l-4 border-nhs-blue shadow-sm">
+            <div className="prose prose-sm max-w-none">
+              <ReactMarkdown
+                components={{
+                  h1: ({node, ...props}) => <h1 className="text-lg font-bold text-nhs-blue mb-3 mt-4 first:mt-0" {...props} />,
+                  h2: ({node, ...props}) => <h2 className="text-base font-bold text-nhs-blue mb-2 mt-3" {...props} />,
+                  h3: ({node, ...props}) => <h3 className="text-sm font-semibold text-nhs-blue mb-2 mt-3" {...props} />,
+                  p: ({node, ...props}) => <p className="text-foreground leading-relaxed mb-3 last:mb-0" {...props} />,
+                  ul: ({node, ...props}) => <ul className="space-y-1 mb-3" {...props} />,
+                  ol: ({node, ...props}) => <ol className="space-y-1 mb-3" {...props} />,
+                  li: ({node, ...props}) => <li className="text-foreground leading-relaxed" {...props} />,
+                  strong: ({node, ...props}) => <strong className="font-semibold text-nhs-blue" {...props} />,
+                }}
+              >
+                {conversation.conversation_summary}
+              </ReactMarkdown>
+            </div>
           </div>
         </div>
 
+        {/* Separator */}
+        <div className="border-t border-nhs-blue/20" />
+
         {/* Summary statistics */}
-        <div className="grid grid-cols-3 gap-4 p-3 bg-muted/30 rounded-lg">
-          <div>
-            <div className="text-xs text-muted-foreground">Challenges Identified</div>
-            <div className="text-2xl font-bold">{conversation.challenges_identified.length}</div>
+        <div className="grid grid-cols-3 gap-4 p-4 bg-gradient-to-br from-muted/40 to-muted/20 rounded-lg border border-nhs-blue/10">
+          <div className="text-center">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Challenges Identified</div>
+            <div className="text-2xl font-bold text-nhs-blue">{conversation.challenges_identified.length}</div>
           </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Responses Given</div>
-            <div className="text-2xl font-bold">{conversation.responses_given.length}</div>
+          <div className="text-center border-x border-nhs-blue/10">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Responses Given</div>
+            <div className="text-2xl font-bold text-nhs-blue">{conversation.responses_given.length}</div>
           </div>
-          <div>
-            <div className="text-xs text-muted-foreground">Recommendations</div>
-            <div className="text-2xl font-bold">{conversation.recommendations.length}</div>
+          <div className="text-center">
+            <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Recommendations</div>
+            <div className="text-2xl font-bold text-nhs-blue">{conversation.recommendations.length}</div>
           </div>
         </div>
 
         {/* Detailed conversation record - Collapsed by default */}
-        <div className="border-t pt-4 space-y-3">
+        <div className="border-t border-nhs-blue/20 pt-5 space-y-3">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => setShowDetails(!showDetails)}
-            className="w-full justify-between"
+            className="w-full justify-between hover:bg-nhs-blue/5"
           >
-            <span className="font-semibold">Detailed Conversation Record</span>
+            <span className="font-semibold text-nhs-blue">Detailed Conversation Record</span>
             {showDetails ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
