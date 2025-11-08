@@ -137,7 +137,12 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   };
 
   const transcribeAudio = async (audioFile: EvidenceFile) => {
-    if (!audioFile.file_type?.startsWith('audio/')) {
+    // Check if it's an audio file by MIME type or evidence type
+    const isAudioFile = audioFile.file_type?.startsWith('audio/') || 
+                        audioFile.evidence_type === 'audio' ||
+                        /\.(mp3|wav|m4a|ogg|webm)$/i.test(audioFile.file_name);
+    
+    if (!isAudioFile) {
       toast.error('Selected file is not an audio file');
       return;
     }
@@ -193,10 +198,14 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         console.log('Small file converted to base64');
       }
 
-      // Call the transcription service
+      // Call the transcription service with file type information
       const { data: transcriptionData, error: transcriptionError } = await supabase.functions
         .invoke('speech-to-text', {
-          body: { audio: base64Audio }
+          body: { 
+            audio: base64Audio,
+            mimeType: audioFile.file_type,
+            fileName: audioFile.file_name
+          }
         });
 
       if (transcriptionError) throw transcriptionError;
@@ -381,7 +390,9 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                       )}
                     </div>
                     <div className="flex items-center gap-2">
-                      {file.evidence_type === 'audio' && (
+                      {(file.evidence_type === 'audio' || 
+                        file.file_type?.startsWith('audio/') ||
+                        /\.(mp3|wav|m4a|ogg|webm)$/i.test(file.file_name)) && (
                         <Button
                           size="sm"
                           variant="outline"

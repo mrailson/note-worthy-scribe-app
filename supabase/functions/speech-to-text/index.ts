@@ -25,14 +25,17 @@ serve(async (req) => {
     }
 
     console.log('📥 SPEECH-TO-TEXT: Parsing request body...');
-    const { audio } = await req.json();
+    const { audio, mimeType, fileName } = await req.json();
     
     if (!audio) {
       console.error('❌ SPEECH-TO-TEXT: No audio data provided');
       throw new Error('No audio data provided');
     }
 
-    console.log('📊 SPEECH-TO-TEXT: Audio data received, size:', audio.length, 'characters');
+    console.log('📊 SPEECH-TO-TEXT: Audio data received');
+    console.log('   - Size:', audio.length, 'characters');
+    console.log('   - MIME type:', mimeType || 'not provided');
+    console.log('   - File name:', fileName || 'not provided');
 
     // Convert base64 to binary
     console.log('🔄 SPEECH-TO-TEXT: Converting base64 to audio file...');
@@ -44,16 +47,53 @@ serve(async (req) => {
 
     console.log('📦 SPEECH-TO-TEXT: Created audio buffer, size:', bytes.length, 'bytes');
 
+    // Determine the correct MIME type and file extension
+    let detectedMimeType = mimeType || 'audio/wav';
+    let fileExtension = 'wav';
+    
+    // Map MIME types to file extensions
+    if (detectedMimeType.includes('mp3') || detectedMimeType.includes('mpeg')) {
+      detectedMimeType = 'audio/mpeg';
+      fileExtension = 'mp3';
+    } else if (detectedMimeType.includes('wav')) {
+      detectedMimeType = 'audio/wav';
+      fileExtension = 'wav';
+    } else if (detectedMimeType.includes('m4a')) {
+      detectedMimeType = 'audio/m4a';
+      fileExtension = 'm4a';
+    } else if (detectedMimeType.includes('ogg')) {
+      detectedMimeType = 'audio/ogg';
+      fileExtension = 'ogg';
+    } else if (detectedMimeType.includes('webm')) {
+      detectedMimeType = 'audio/webm';
+      fileExtension = 'webm';
+    }
+    
+    // If we have a fileName, try to extract extension from it
+    if (fileName) {
+      const fileNameExt = fileName.split('.').pop()?.toLowerCase();
+      if (fileNameExt === 'mp3' || fileNameExt === 'wav' || fileNameExt === 'm4a' || fileNameExt === 'ogg' || fileNameExt === 'webm') {
+        fileExtension = fileNameExt;
+        if (fileNameExt === 'mp3') detectedMimeType = 'audio/mpeg';
+        else if (fileNameExt === 'wav') detectedMimeType = 'audio/wav';
+        else if (fileNameExt === 'm4a') detectedMimeType = 'audio/m4a';
+        else if (fileNameExt === 'ogg') detectedMimeType = 'audio/ogg';
+        else if (fileNameExt === 'webm') detectedMimeType = 'audio/webm';
+      }
+    }
+    
+    console.log('🎵 SPEECH-TO-TEXT: Using audio format:', detectedMimeType, 'with extension:', fileExtension);
+
     // Create form data for OpenAI API
     const formData = new FormData();
-    const audioBlob = new Blob([bytes], { type: 'audio/webm' });
-    formData.append('file', audioBlob, 'audio.webm');
+    const audioBlob = new Blob([bytes], { type: detectedMimeType });
+    formData.append('file', audioBlob, `audio.${fileExtension}`);
     formData.append('model', 'whisper-1');
     formData.append('language', 'en');
     formData.append('response_format', 'verbose_json');
     // Anti-hallucination parameters
     formData.append('temperature', '0');
-    formData.append('prompt', 'This is a medical meeting recording with healthcare professionals discussing patient care and clinical matters.'); // Context helps prevent hallucinations
+    formData.append('prompt', 'This is a recording that may contain medical or healthcare-related discussions. Please transcribe accurately.');
 
     console.log('📡 SPEECH-TO-TEXT: Sending request to OpenAI Whisper API...');
     
