@@ -2044,7 +2044,7 @@ I am committed to ensuring that all patients receive the care and service they d
               className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 shrink-0"
             >
               <BookOpen className="h-4 w-4 mr-2" />
-              User Guide
+              Overview
             </Button>
           </div>
 
