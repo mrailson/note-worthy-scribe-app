@@ -399,6 +399,27 @@ export const ComplaintAudioOverviewPlayer = ({
           >
             <Download className="h-4 w-4" />
           </Button>
+
+          {audioOverviewText && (
+            <Button
+              onClick={() => setShowTranscript(!showTranscript)}
+              variant="outline"
+              size="sm"
+              className="h-8 px-2 gap-1"
+            >
+              {showTranscript ? (
+                <>
+                  <ChevronUp className="h-3 w-3" />
+                  Hide Transcript
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-3 w-3" />
+                  Show Transcript
+                </>
+              )}
+            </Button>
+          )}
         </div>
       )}
 
@@ -431,28 +452,10 @@ export const ComplaintAudioOverviewPlayer = ({
         </div>
       )}
       
-      {audioOverviewText && (
+      {audioOverviewText && showTranscript && (
         <div className="mt-3">
           <div className="flex items-center gap-2 mb-2">
-            <Button
-              onClick={() => setShowTranscript(!showTranscript)}
-              variant="ghost"
-              size="sm"
-              className="h-8 px-2 text-xs"
-            >
-              {showTranscript ? (
-                <>
-                  <ChevronUp className="h-3 w-3 mr-1" />
-                  Hide Transcript
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-3 w-3 mr-1" />
-                  Show Transcript
-                </>
-              )}
-            </Button>
-            {showTranscript && !isEditingTranscript && (
+            {!isEditingTranscript && (
               <>
                 <Button
                   onClick={() => setIsEditingTranscript(true)}
@@ -477,8 +480,7 @@ export const ComplaintAudioOverviewPlayer = ({
               </>
             )}
           </div>
-          {showTranscript && (
-            <div className="p-3 bg-muted/30 rounded-md border border-border/50">
+          <div className="p-3 bg-muted/30 rounded-md border border-border/50">
               {isEditingTranscript ? (
                 <div className="space-y-2">
                   <textarea
@@ -512,7 +514,6 @@ export const ComplaintAudioOverviewPlayer = ({
                 </p>
               )}
             </div>
-          )}
         </div>
       )}
     </div>
