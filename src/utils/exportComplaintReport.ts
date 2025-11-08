@@ -601,22 +601,7 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
 
   sections.push(new Paragraph({ text: "", spacing: { after: 480 } }));
 
-  // ========== EXECUTIVE SUMMARY ==========
-  sections.push(createHeading("Executive Summary", HeadingLevel.HEADING_1));
-
-  if (data.audioOverview) {
-    // Parse markdown content properly
-    const overviewParagraphs = parseMarkdownContent(data.audioOverview);
-    sections.push(...overviewParagraphs);
-  } else {
-    sections.push(createNormalText("No executive summary available."));
-  }
-
-  sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
-
-  // Key dates summary
-  sections.push(createHeading("Key Dates", HeadingLevel.HEADING_2));
-  
+  // ========== CALCULATE DEADLINES AND COMPLIANCE (REUSED THROUGHOUT) ==========
   // Use created_at as fallback for submitted_at
   const submittedDate = complaint.submitted_at || complaint.created_at;
   const submittedDateObj = new Date(submittedDate);
@@ -644,6 +629,22 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
     outcomeDeadlineMet = closedDate <= outcomeDeadline;
     outcomeMet = outcomeDeadlineMet ? "✓ Met" : "⚠ Missed";
   }
+
+  // ========== EXECUTIVE SUMMARY ==========
+  sections.push(createHeading("Executive Summary", HeadingLevel.HEADING_1));
+
+  if (data.audioOverview) {
+    // Parse markdown content properly
+    const overviewParagraphs = parseMarkdownContent(data.audioOverview);
+    sections.push(...overviewParagraphs);
+  } else {
+    sections.push(createNormalText("No executive summary available."));
+  }
+
+  sections.push(new Paragraph({ text: "", spacing: { after: 240 } }));
+
+  // Key dates summary
+  sections.push(createHeading("Key Dates", HeadingLevel.HEADING_2));
   
   const keyDatesData = [
     { label: "Incident Date", value: complaint.incident_date ? format(new Date(complaint.incident_date), "dd/MM/yyyy") : "Not recorded" },
@@ -811,7 +812,7 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
   // ========== NHS COMPLAINTS STANDARDS COMPLIANCE ==========
   sections.push(createHeading("NHS Complaints Standards Compliance", HeadingLevel.HEADING_1));
   
-  const acknowledgedOnTime = data.workingDaysToAcknowledge ? data.workingDaysToAcknowledge <= 3 : false;
+  const acknowledgedOnTime = ackDeadlineMet;
   const investigationCompleted = !!complaint.closed_at;
   const outcomeLetterSent = !!data.outcomeLetter;
   
@@ -820,7 +821,7 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
     [
       "Acknowledgement within 3 working days",
       getStatusIndicator(acknowledgedOnTime),
-      acknowledgedOnTime ? `Acknowledged in ${data.workingDaysToAcknowledge} working days` : "Not met",
+      acknowledgedOnTime ? `Acknowledged on time - ${ackMet}` : "Not met - deadline missed",
     ],
     [
       "Investigation completed",
