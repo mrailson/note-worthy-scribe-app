@@ -2060,12 +2060,61 @@ I am committed to ensuring that all patients receive the care and service they d
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><strong>Patient:</strong> {complaint.patient_name}</div>
                 <div><strong>Category:</strong> {getCategoryLabel(complaint.category)}</div>
-                <div><strong>Priority:</strong> {getPriorityLabel(complaint.priority)}</div>
                 <div><strong>Status:</strong> 
                   {complaint.status === 'under_review' && acknowledgementSentToPatient && (
                     <Mail className="h-3 w-3 inline ml-1 mr-1" />
                   )}
                   {getStatusLabel(complaint.status)}
+                  {complaint.status === 'closed' && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="ml-2 h-7 px-2 gap-1 align-middle"
+                      onClick={async () => {
+                        try {
+                          showToast.info('Generating complaint report...', { section: 'complaints' });
+
+                          let workingDaysToAcknowledge: number | undefined;
+                          if (complaint.submitted_at && complaint.acknowledged_at) {
+                            workingDaysToAcknowledge = calculateWorkingDays(
+                              complaint.submitted_at,
+                              complaint.acknowledged_at
+                            );
+                          }
+
+                          const evidenceFiles = complaintDocuments.map(doc => ({
+                            name: doc.file_name,
+                            type: doc.file_type || 'Unknown'
+                          }));
+
+                          await exportComplaintReportToWord({
+                            complaint,
+                            audioOverview: audioOverview?.audio_overview_text,
+                            investigationMethod,
+                            involvedParties: involvedParties as any,
+                            investigationSummary: existingOutcome?.investigation_summary,
+                            findingsText: existingOutcome?.findings_text,
+                            outcome: existingOutcome ? {
+                              outcome_type: existingOutcome.outcome_type,
+                              outcome_summary: existingOutcome.outcome_summary
+                            } : undefined,
+                            outcomeLetter,
+                            acknowledgementLetter,
+                            evidenceFiles,
+                            workingDaysToAcknowledge
+                          });
+
+                          showToast.success('Complaint report downloaded', { section: 'complaints' });
+                        } catch (error) {
+                          console.error('Error downloading report:', error);
+                          showToast.error('Failed to download complaint report', { section: 'complaints' });
+                        }
+                      }}
+                    >
+                      <Download className="h-3 w-3" />
+                      <span className="text-xs">Download Full Report</span>
+                    </Button>
+                  )}
                 </div>
                 <div><strong>Incident Date:</strong> {format(new Date(complaint.incident_date), 'dd/MM/yyyy')}</div>
                 {complaint.response_due_date && (
