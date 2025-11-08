@@ -198,6 +198,7 @@ const ComplaintsSystem = () => {
   // Delete confirmation states
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [complaintToDelete, setComplaintToDelete] = useState<Complaint | null>(null);
+  const [userPracticeId, setUserPracticeId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [auditActionFilter, setAuditActionFilter] = useState("all");
   const [auditLoading, setAuditLoading] = useState(false);
@@ -430,6 +431,7 @@ const ComplaintsSystem = () => {
     if (user) {
       fetchComplaints();
       fetchUserRole();
+      fetchUserPractice();
     }
   }, [user]);
 
@@ -453,6 +455,22 @@ const ComplaintsSystem = () => {
     } catch (error) {
       console.error('Error in fetchUserRole:', error);
       setUserRole('standard');
+    }
+  };
+
+  const fetchUserPractice = async () => {
+    if (!user?.id) return;
+    
+    try {
+      const { data: practiceIds } = await supabase.rpc('get_user_practice_ids', {
+        p_user_id: user.id
+      });
+      
+      if (practiceIds && practiceIds.length > 0) {
+        setUserPracticeId(practiceIds[0]);
+      }
+    } catch (error) {
+      console.error('Error fetching user practice:', error);
     }
   };
 
@@ -560,7 +578,7 @@ const ComplaintsSystem = () => {
         consent_given: formData.consent_given,
         consent_details: formData.consent_details || null,
         complaint_on_behalf: formData.complaint_on_behalf,
-        practice_id: null, // System admins don't need a specific practice_id
+        practice_id: userPracticeId,
         created_by: user.id,
         status: 'submitted' as any,
       };
