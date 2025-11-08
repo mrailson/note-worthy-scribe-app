@@ -153,82 +153,67 @@ const parseMarkdownContent = (content: string): Paragraph[] => {
   // Clean up content and normalize line breaks
   let cleanedContent = content.trim();
   
-  // Split into lines
-  const lines = cleanedContent
-    .split('\n')
-    .map(line => line.trim())
-    .filter(line => line.length > 0);
+  // Split by double newlines to preserve paragraph breaks
+  const blocks = cleanedContent.split(/\n\n+/);
   
   const paragraphs: Paragraph[] = [];
-  let currentParagraphLines: string[] = [];
   
-  const flushParagraph = () => {
-    if (currentParagraphLines.length > 0) {
-      // Join lines with proper spacing after sentences
-      let combinedText = currentParagraphLines.join(' ');
-      
-      // Ensure proper spacing after full stops, question marks, and exclamation marks
-      combinedText = combinedText.replace(/([.!?])([A-Z])/g, '$1 $2');
-      
-      // Remove duplicate sentences (common issue with AI-generated content)
-      // Split by sentence-ending punctuation followed by space and capital letter
-      const sentences = combinedText.split(/(?<=[.!?])\s+(?=[A-Z])/);
-      const uniqueSentences: string[] = [];
-      const seenSentences = new Set<string>();
-      
-      sentences.forEach(sentence => {
-        const normalizedSentence = sentence.trim().toLowerCase();
-        if (!seenSentences.has(normalizedSentence) && normalizedSentence.length > 0) {
-          seenSentences.add(normalizedSentence);
-          uniqueSentences.push(sentence.trim());
-        }
-      });
-      
-      combinedText = uniqueSentences.join(' ');
-      
-      if (combinedText.length > 0) {
-        const children = parseInlineMarkdown(combinedText);
+  blocks.forEach(block => {
+    const lines = block
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.length > 0);
+    
+    lines.forEach(line => {
+      // Check for headings (### or ## or #) and strip them
+      if (line.startsWith('###')) {
+        const headingText = line.replace(/^###\s*/, '').replace(/\*\*/g, '');
+        paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_3));
+      } else if (line.startsWith('##')) {
+        const headingText = line.replace(/^##\s*/, '').replace(/\*\*/g, '');
+        paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_2));
+      } else if (line.startsWith('#')) {
+        const headingText = line.replace(/^#\s*/, '').replace(/\*\*/g, '');
+        paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_2));
+      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        // Bullet point
+        const bulletText = line.replace(/^[*-]\s+/, '');
+        const children = parseInlineMarkdown(bulletText);
         paragraphs.push(new Paragraph({
           children,
-          spacing: { after: 120 },
+          bullet: { level: 0 },
+          spacing: { after: 60 },
         }));
+      } else {
+        // Normal paragraph
+        // Ensure proper spacing after full stops, question marks, and exclamation marks
+        let text = line.replace(/([.!?])([A-Z])/g, '$1 $2');
+        
+        // Remove duplicate sentences within this line only
+        const sentences = text.split(/(?<=[.!?])\s+(?=[A-Z])/);
+        const uniqueSentences: string[] = [];
+        const seenSentences = new Set<string>();
+        
+        sentences.forEach(sentence => {
+          const normalizedSentence = sentence.trim().toLowerCase();
+          if (!seenSentences.has(normalizedSentence) && normalizedSentence.length > 0) {
+            seenSentences.add(normalizedSentence);
+            uniqueSentences.push(sentence.trim());
+          }
+        });
+        
+        text = uniqueSentences.join(' ');
+        
+        if (text.length > 0) {
+          const children = parseInlineMarkdown(text);
+          paragraphs.push(new Paragraph({
+            children,
+            spacing: { after: 120 },
+          }));
+        }
       }
-      currentParagraphLines = [];
-    }
-  };
-  
-  lines.forEach(line => {
-    // Check for headings (### or ## or #) and strip them
-    if (line.startsWith('###')) {
-      flushParagraph();
-      const headingText = line.replace(/^###\s*/, '').replace(/\*\*/g, '');
-      paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_3));
-    } else if (line.startsWith('##')) {
-      flushParagraph();
-      const headingText = line.replace(/^##\s*/, '').replace(/\*\*/g, '');
-      paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_2));
-    } else if (line.startsWith('#')) {
-      flushParagraph();
-      const headingText = line.replace(/^#\s*/, '').replace(/\*\*/g, '');
-      paragraphs.push(createHeading(headingText, HeadingLevel.HEADING_2));
-    } else if (line.startsWith('- ') || line.startsWith('* ')) {
-      flushParagraph();
-      // Bullet point
-      const bulletText = line.replace(/^[*-]\s+/, '');
-      const children = parseInlineMarkdown(bulletText);
-      paragraphs.push(new Paragraph({
-        children,
-        bullet: { level: 0 },
-        spacing: { after: 60 },
-      }));
-    } else {
-      // Normal text - accumulate into current paragraph
-      currentParagraphLines.push(line);
-    }
+    });
   });
-  
-  // Flush any remaining paragraph
-  flushParagraph();
   
   return paragraphs;
 };
