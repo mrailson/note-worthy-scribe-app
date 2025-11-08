@@ -94,6 +94,14 @@ TONE GUIDELINES:
 - NEVER say "the complaint IS upheld/not upheld" as a definitive statement
 - ALWAYS use conditional/advisory language: "suggests", "indicates", "could support", "would recommend", "appears to"
 - Use ONLY advisory language throughout - NEVER definitive statements
+- NEVER claim dates or information are "missing" or "not recorded" if they ARE provided in the prompt
+- NEVER say there is a "lack of recorded dates" when dates ARE clearly shown in TIMELINE COMPLIANCE section
+
+⚠️ CRITICAL TIMELINE ANALYSIS RULES:
+- The TIMELINE COMPLIANCE section shows ALL recorded dates - use these dates in your analysis
+- If dates ARE shown in TIMELINE COMPLIANCE, acknowledge them and assess compliance
+- Do NOT claim dates are missing when they are clearly provided
+- Focus on whether deadlines were MET, not whether dates exist
 
 Provide a BRIEF, FOCUSED analysis in plain text format (NO markdown, NO asterisks, NO special formatting).
 
@@ -102,7 +110,7 @@ Your response must be under 200 words and structured exactly as:
 SUGGESTED OUTCOME (GUIDANCE ONLY): [upheld/partially_upheld/not_upheld]
 
 VALIDATION SUMMARY:
-[2-3 sentences confirming the complaint was handled professionally and thoroughly. Focus on what was done well. Use advisory language: "appears to", "suggests", "demonstrates"]
+[2-3 sentences confirming the complaint was handled professionally and thoroughly. Acknowledge timeline compliance if dates show deadlines were met. Focus on what was done well. Use advisory language: "appears to", "suggests", "demonstrates"]
 
 KEY IMPROVEMENT AREAS:
 • [Brief, actionable improvement 1 - maximum 15 words]
@@ -110,7 +118,7 @@ KEY IMPROVEMENT AREAS:
 • [Optional: Brief improvement 3 - maximum 15 words]
 
 COMPLIANCE NOTE:
-[Single sentence on NHS/CQC standards alignment - focus on good practice demonstrated]
+[Single sentence on NHS/CQC standards alignment - focus on good practice demonstrated and timeline compliance]
 
 ⚠️ CRITICAL RULES:
 - NO markdown formatting (no **, ##, etc.)
@@ -120,6 +128,7 @@ COMPLIANCE NOTE:
 - Maximum 3 improvement points
 - Base analysis ONLY on provided information
 - Use ONLY advisory language - never definitive statements
+- NEVER claim information is missing when it IS provided in the prompt
 
 DISCLAIMER: This analysis is provided as guidance to support decision-making. It should not be relied upon as the sole basis for determining complaint outcomes. Human oversight and professional judgement are essential.`;
 
