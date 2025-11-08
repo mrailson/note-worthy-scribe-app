@@ -25,6 +25,9 @@ export function ComplaintReviewNote({
   conversation,
   reviewerName = 'System User',
 }: ComplaintReviewNoteProps) {
+  const [showDetails, setShowDetails] = useState(false);
+  const [showChallenges, setShowChallenges] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
   const [showTranscript, setShowTranscript] = useState(false);
 
   const formatDuration = (seconds: number) => {
@@ -135,6 +138,17 @@ export function ComplaintReviewNote({
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
+        {/* Executive Summary - Always visible */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold text-base">Executive Summary</h3>
+            <Badge variant="secondary" className="text-xs">Audio Review</Badge>
+          </div>
+          <div className="prose prose-sm max-w-none bg-primary/5 p-4 rounded-lg border border-primary/10">
+            <ReactMarkdown>{conversation.conversation_summary}</ReactMarkdown>
+          </div>
+        </div>
+
         {/* Summary statistics */}
         <div className="grid grid-cols-3 gap-4 p-3 bg-muted/30 rounded-lg">
           <div>
@@ -151,65 +165,109 @@ export function ComplaintReviewNote({
           </div>
         </div>
 
-        {/* Review note content */}
-        <div className="prose prose-sm max-w-none">
-          <ReactMarkdown>{conversation.conversation_summary}</ReactMarkdown>
-        </div>
-
-        {/* Challenges with severity badges */}
-        {conversation.challenges_identified.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="font-semibold text-sm">Challenges Identified:</h4>
-            <ul className="space-y-1">
-              {conversation.challenges_identified.map((challenge: any, idx: number) => (
-                <li key={idx} className="text-sm flex items-start gap-2">
-                  <Badge variant={getSeverityColor(challenge.severity)} className="mt-0.5">
-                    {challenge.severity}
-                  </Badge>
-                  <span>{challenge.challenge}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Recommendations with priority badges */}
-        {conversation.recommendations.length > 0 && (
-          <div className="space-y-2">
-            <h4 className="font-semibold text-sm">Recommendations:</h4>
-            <ul className="space-y-1">
-              {conversation.recommendations.map((rec: any, idx: number) => (
-                <li key={idx} className="text-sm flex items-start gap-2">
-                  <Badge variant={getPriorityColor(rec.priority)} className="mt-0.5">
-                    {rec.priority}
-                  </Badge>
-                  <span>{rec.recommendation}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {/* Transcript toggle */}
-        <div className="border-t pt-4">
+        {/* Detailed conversation record - Collapsed by default */}
+        <div className="border-t pt-4 space-y-3">
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => setShowTranscript(!showTranscript)}
+            onClick={() => setShowDetails(!showDetails)}
             className="w-full justify-between"
           >
-            <span>Conversation Transcript</span>
-            {showTranscript ? (
+            <span className="font-semibold">Detailed Conversation Record</span>
+            {showDetails ? (
               <ChevronUp className="h-4 w-4" />
             ) : (
               <ChevronDown className="h-4 w-4" />
             )}
           </Button>
-          {showTranscript && (
-            <div className="mt-3 p-3 bg-muted/30 rounded-lg max-h-96 overflow-y-auto">
-              <pre className="text-xs whitespace-pre-wrap font-mono">
-                {conversation.conversation_transcript}
-              </pre>
+
+          {showDetails && (
+            <div className="space-y-4 pl-2">
+              {/* Challenges section - Collapsible */}
+              {conversation.challenges_identified.length > 0 && (
+                <div className="space-y-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowChallenges(!showChallenges)}
+                    className="w-full justify-between px-0"
+                  >
+                    <span className="font-semibold text-sm">Challenges Identified ({conversation.challenges_identified.length})</span>
+                    {showChallenges ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                  {showChallenges && (
+                    <ul className="space-y-2 pl-2">
+                      {conversation.challenges_identified.map((challenge: any, idx: number) => (
+                        <li key={idx} className="text-sm flex items-start gap-2">
+                          <Badge variant={getSeverityColor(challenge.severity)} className="mt-0.5">
+                            {challenge.severity}
+                          </Badge>
+                          <span>{challenge.challenge}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* Recommendations section - Collapsible */}
+              {conversation.recommendations.length > 0 && (
+                <div className="space-y-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowRecommendations(!showRecommendations)}
+                    className="w-full justify-between px-0"
+                  >
+                    <span className="font-semibold text-sm">Recommendations ({conversation.recommendations.length})</span>
+                    {showRecommendations ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                  {showRecommendations && (
+                    <ul className="space-y-2 pl-2">
+                      {conversation.recommendations.map((rec: any, idx: number) => (
+                        <li key={idx} className="text-sm flex items-start gap-2">
+                          <Badge variant={getPriorityColor(rec.priority)} className="mt-0.5">
+                            {rec.priority}
+                          </Badge>
+                          <span>{rec.recommendation}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              )}
+
+              {/* Transcript section - Collapsible */}
+              <div className="space-y-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowTranscript(!showTranscript)}
+                  className="w-full justify-between px-0"
+                >
+                  <span className="font-semibold text-sm">Full Conversation Transcript</span>
+                  {showTranscript ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+                {showTranscript && (
+                  <div className="p-3 bg-muted/30 rounded-lg max-h-96 overflow-y-auto">
+                    <pre className="text-xs whitespace-pre-wrap font-mono">
+                      {conversation.conversation_transcript}
+                    </pre>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
