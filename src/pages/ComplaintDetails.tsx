@@ -2245,15 +2245,6 @@ const ComplaintDetails = () => {
                             <Download className="h-4 w-4 mr-1" />
                             Download
                           </Button>
-                          <Button 
-                            variant="outline"
-                            size="sm"
-                            onClick={() => handleGenerateAcknowledgement(complaint.id)}
-                            disabled={submitting}
-                          >
-                            <RefreshCw className={`h-4 w-4 mr-1 ${submitting ? 'animate-spin' : ''}`} />
-                            {submitting ? 'Regenerating...' : 'Regenerate Letter'}
-                          </Button>
                         </div>
                       </div>
                     </div>
@@ -2356,16 +2347,6 @@ const ComplaintDetails = () => {
                           >
                             <Download className="h-4 w-4 mr-1" />
                             Download
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleRegenerateOutcomeLetter}
-                            disabled={isRegeneratingOutcome}
-                            className="border-green-600 text-green-700 hover:bg-green-100"
-                          >
-                            <RefreshCw className={`h-4 w-4 mr-1 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
-                            {isRegeneratingOutcome ? 'Regenerating...' : 'Regenerate Letter'}
                           </Button>
                           {aiAnalysis && (
                             <Button
