@@ -40,7 +40,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   const [evidenceFiles, setEvidenceFiles] = useState<EvidenceFile[]>([]);
   const [audioTranscripts, setAudioTranscripts] = useState<AudioTranscript[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [evidenceType, setEvidenceType] = useState<string>('');
+  const [evidenceType, setEvidenceType] = useState<string>('other');
   const [description, setDescription] = useState('');
   const [uploading, setUploading] = useState(false);
   const [transcribing, setTranscribing] = useState<string | null>(null);
@@ -84,8 +84,8 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   };
 
   const handleFileUpload = async () => {
-    if (!selectedFile || !evidenceType) {
-      toast.error('Please select a file and evidence type');
+    if (!selectedFile) {
+      toast.error('Please select a file');
       return;
     }
 
@@ -121,7 +121,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
 
       setEvidenceFiles(prev => [data, ...prev]);
       setSelectedFile(null);
-      setEvidenceType('');
+      setEvidenceType('other');
       setDescription('');
       
       toast.success('Evidence file uploaded successfully');
@@ -347,7 +347,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
 
               <Button
                 onClick={handleFileUpload}
-                disabled={disabled || uploading || !selectedFile || !evidenceType}
+                disabled={disabled || uploading || !selectedFile}
                 className="w-full"
               >
                 <Upload className="h-4 w-4 mr-2" />
