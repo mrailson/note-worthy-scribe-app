@@ -2955,7 +2955,7 @@ I am committed to ensuring that all patients receive the care and service they d
                           onRegenerateAudio={handleRegenerateComplaintAudio}
                         />
                         
-                        {/* AI Critical Friend Review - Only show if audio exists */}
+                        {/* AI Critical Friend Complaint Review - Only show if audio exists */}
                         {audioOverview?.audio_overview_url && (
                           <ComplaintReviewConversation
                             complaintId={complaint.id}
@@ -2979,7 +2979,7 @@ I am committed to ensuring that all patients receive the care and service they d
                       <CollapsibleTrigger asChild>
                         <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
                           <CardTitle className="text-left">
-                            AI Critical Friend Review Records ({reviewConversations.length})
+                            AI Critical Friend Complaint Review Records ({reviewConversations.length})
                           </CardTitle>
                           {showReviewNotesSection ? (
                             <ChevronUp className="h-5 w-5" />

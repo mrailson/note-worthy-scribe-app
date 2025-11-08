@@ -165,7 +165,7 @@ export function ComplaintReviewNote({
       <CardHeader>
         <div className="flex items-start justify-between">
           <div>
-            <CardTitle className="text-lg">AI Critical Friend Review Record</CardTitle>
+            <CardTitle className="text-lg">AI Critical Friend Complaint Review Record</CardTitle>
             <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
               <div className="flex items-center gap-1">
                 <Clock className="h-3 w-3" />

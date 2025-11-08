@@ -188,7 +188,7 @@ export function ComplaintReviewConversation({
     <Card className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold">AI Critical Friend Review</h3>
+          <h3 className="text-lg font-semibold">AI Critical Friend Complaint Review</h3>
           <p className="text-sm text-muted-foreground">
             Discuss and critically review this complaint with an AI assistant
           </p>
@@ -207,7 +207,7 @@ export function ComplaintReviewConversation({
             ) : (
               <>
                 <Mic className="h-5 w-5" />
-                Start AI Critical Friend Review
+                Start AI Critical Friend Complaint Review
               </>
             )}
           </Button>

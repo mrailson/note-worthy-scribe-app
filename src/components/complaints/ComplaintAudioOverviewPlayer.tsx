@@ -422,7 +422,7 @@ export const ComplaintAudioOverviewPlayer = ({
         </p>
       )}
       
-      {/* AI Critical Friend Review button - shown after audio is generated */}
+      {/* AI Critical Friend Complaint Review button - shown after audio is generated */}
       {audioOverviewUrl && (
         <div className="mt-4 pt-4 border-t">
           <p className="text-sm text-muted-foreground mb-2">
