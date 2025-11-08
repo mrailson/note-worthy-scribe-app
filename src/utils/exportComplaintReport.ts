@@ -686,7 +686,7 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
   sections.push(
     createMetadataTable([
       { label: "Category", value: complaint.category },
-      { label: "Priority", value: complaint.priority },
+      { label: "Priority", value: complaint.priority.charAt(0).toUpperCase() + complaint.priority.slice(1).toLowerCase() },
       { label: "Location/Service", value: complaint.location_service || "Not specified" },
       { label: "Staff Mentioned", value: complaint.staff_mentioned?.join(", ") || "None" },
     ])
