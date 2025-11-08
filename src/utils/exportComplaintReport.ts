@@ -829,9 +829,9 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
       investigationCompleted ? "Complaint closed" : "Investigation ongoing",
     ],
     [
-      "Outcome letter sent",
-      getStatusIndicator(outcomeLetterSent),
-      outcomeLetterSent ? "Letter generated" : "Not yet sent",
+      "Outcome letter sent within 20 Working Days",
+      getStatusIndicator(outcomeLetterSent && outcomeDeadlineMet),
+      outcomeLetterSent ? (outcomeDeadlineMet ? "Letter sent on time" : "Letter sent but deadline missed") : "Not yet sent",
     ],
     [
       "Proportionate investigation",
@@ -1099,8 +1099,6 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
         { label: "Review Date", value: reviewDate },
         { label: "Reviewer", value: data.aiReview.created_by || "System User" },
         { label: "Review Duration", value: reviewDuration },
-        { label: "Challenges Identified", value: data.aiReview.challenges_identified?.length.toString() || "0" },
-        { label: "Recommendations Made", value: data.aiReview.recommendations?.length.toString() || "0" },
       ])
     );
     
