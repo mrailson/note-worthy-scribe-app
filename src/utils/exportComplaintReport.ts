@@ -750,9 +750,72 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
       spacing: { after: 60 },
     })
   );
-  sections.push(createBulletPoint("CQC Regulation 16: Receiving and acting on complaints"));
-  sections.push(createBulletPoint("Local Healthwatch guidance on effective complaints handling"));
-  sections.push(createBulletPoint("General Medical Council (GMC) guidance on professional conduct"));
+  sections.push(
+    new Paragraph({
+      children: [
+        new ExternalHyperlink({
+          children: [
+            new TextRun({
+              text: "CQC Regulation 16: Receiving and acting on complaints",
+              font: FONTS.default,
+              size: FONTS.size.body,
+              color: NHS_COLORS.nhsBlue,
+              underline: {},
+            }),
+          ],
+          link: "https://www.cqc.org.uk/guidance-regulation/providers/regulations-service-providers-and-managers/health-social-care-act/regulation-16",
+        }),
+      ],
+      bullet: {
+        level: 0,
+      },
+      spacing: { after: 60 },
+    })
+  );
+  sections.push(
+    new Paragraph({
+      children: [
+        new ExternalHyperlink({
+          children: [
+            new TextRun({
+              text: "Local Healthwatch guidance on effective complaints handling",
+              font: FONTS.default,
+              size: FONTS.size.body,
+              color: NHS_COLORS.nhsBlue,
+              underline: {},
+            }),
+          ],
+          link: "https://www.healthwatchwestnorthants.com/help-making-complaint",
+        }),
+      ],
+      bullet: {
+        level: 0,
+      },
+      spacing: { after: 60 },
+    })
+  );
+  sections.push(
+    new Paragraph({
+      children: [
+        new ExternalHyperlink({
+          children: [
+            new TextRun({
+              text: "General Medical Council (GMC) guidance on professional conduct",
+              font: FONTS.default,
+              size: FONTS.size.body,
+              color: NHS_COLORS.nhsBlue,
+              underline: {},
+            }),
+          ],
+          link: "https://www.gmc-uk.org/professional-standards/the-professional-standards",
+        }),
+      ],
+      bullet: {
+        level: 0,
+      },
+      spacing: { after: 60 },
+    })
+  );
 
   sections.push(new Paragraph({ text: "", spacing: { after: 120 } }));
 
