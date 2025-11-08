@@ -3287,21 +3287,72 @@ I am committed to ensuring that all patients receive the care and service they d
                       </div>
                     </div>
 
-                    <InvestigationWorkflow
-                      complaintId={complaintId!}
-                      investigationMethod={investigationMethod}
-                      inputRequests={inputRequests}
-                      involvedParties={involvedParties}
-                      submitting={submitting}
-                      onMethodChange={handleInvestigationMethodChange}
-                      onSaveSettings={handleSaveWorkflowSettings}
-                      onAddParty={addInvolvedParty}
-                      onDeleteParty={deleteInvolvedParty}
-                      onSendRequests={handleSendInputRequests}
-                      onTestReply={handleTestReply}
-                      newParty={newParty}
-                      onNewPartyChange={setNewParty}
-                    />
+                    {investigationMethod === "input-required" && (
+                      <div className="space-y-4 mt-4">
+                        <div className="flex gap-2">
+                          <Input
+                            placeholder="Staff Name"
+                            value={newParty.staffName}
+                            onChange={(e) => setNewParty({ ...newParty, staffName: e.target.value })}
+                          />
+                          <Input
+                            placeholder="Role"
+                            value={newParty.staffRole}
+                            onChange={(e) => setNewParty({ ...newParty, staffRole: e.target.value })}
+                          />
+                          <Input
+                            placeholder="Email"
+                            type="email"
+                            value={newParty.staffEmail}
+                            onChange={(e) => setNewParty({ ...newParty, staffEmail: e.target.value })}
+                          />
+                          <Button onClick={addInvolvedParty} disabled={submitting}>
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+
+                        {involvedParties.length > 0 && (
+                          <div className="space-y-2">
+                            <Label className="text-sm font-medium">Involved Parties</Label>
+                            {involvedParties.map((party, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 border rounded">
+                                <div className="flex-1">
+                                  <div className="font-medium">{party.staffName}</div>
+                                  <div className="text-sm text-muted-foreground">{party.staffRole} • {party.staffEmail}</div>
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => removeInvolvedParty(index)}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex gap-2">
+                          <Button
+                            onClick={handleSaveWorkflowSettings}
+                            disabled={submitting}
+                            className="flex-1"
+                          >
+                            {submitting ? 'Saving...' : 'Save Investigation Settings'}
+                          </Button>
+                          {involvedParties.length > 0 && (
+                            <Button
+                              onClick={handleSendInputRequests}
+                              disabled={submitting}
+                              variant="default"
+                            >
+                              <Send className="h-4 w-4 mr-2" />
+                              Send Input Requests
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    )}
 
                     <InvestigationFindings complaintId={complaintId!} disabled={complaint?.status === 'closed'} />
                       </CardContent>

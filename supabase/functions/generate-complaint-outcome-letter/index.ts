@@ -146,6 +146,12 @@ Tone: ${questionnaireData.tone === 'professional' ? 'Professional and balanced' 
 6. Provides contact information for queries
 7. Is empathetic, professional, and clear${toneInstruction}
 
+⚠️ CRITICAL - BRITISH ENGLISH ONLY:
+- Use ONLY British English spellings throughout (e.g., "apologise" NOT "apologize", "recognise" NOT "recognize", "organisation" NOT "organization")
+- Use British date formats: DD Month YYYY (e.g., "15 January 2025")
+- Use British terminology and phrasing
+- Double-check all spellings to ensure they follow British English conventions
+
 ⚠️ CRITICAL - NO FABRICATION RULES:
 - DO NOT invent, fabricate, or assume ANY events, medical details, or circumstances not explicitly provided below
 - DO NOT add specific medical conditions, emergencies, or clinical details unless stated in the complaint description or investigation findings
