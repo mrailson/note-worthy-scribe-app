@@ -6286,6 +6286,14 @@ export type Database = {
           word_count: number
         }[]
       }
+      fix_complaint_status_inconsistencies: {
+        Args: never
+        Returns: {
+          new_status: string
+          old_status: string
+          reference_number: string
+        }[]
+      }
       generate_complaint_reference: { Args: never; Returns: string }
       generate_incident_reference: { Args: never; Returns: string }
       get_combined_transcript: {
