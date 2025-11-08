@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { FileText, Upload, Download, Trash2, Mic, Play, Pause, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -45,6 +46,17 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   const [uploading, setUploading] = useState(false);
   const [transcribing, setTranscribing] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('files');
+  const [transcriptionModal, setTranscriptionModal] = useState<{
+    isOpen: boolean;
+    fileName: string;
+    text: string;
+    confidence: number | null;
+  }>({
+    isOpen: false,
+    fileName: '',
+    text: '',
+    confidence: null
+  });
 
   useEffect(() => {
     fetchEvidenceFiles();
@@ -226,6 +238,15 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       if (error) throw error;
 
       setAudioTranscripts(prev => [data, ...prev]);
+      
+      // Show transcription in modal
+      setTranscriptionModal({
+        isOpen: true,
+        fileName: audioFile.file_name,
+        text: transcriptionData.text,
+        confidence: transcriptionData.confidence || null
+      });
+      
       toast.success('Audio transcribed successfully');
     } catch (error) {
       console.error('Error transcribing audio:', error);
@@ -302,14 +323,53 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Investigation Evidence
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
+    <>
+      <Dialog open={transcriptionModal.isOpen} onOpenChange={(open) => setTranscriptionModal(prev => ({ ...prev, isOpen: open }))}>
+        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Volume2 className="h-5 w-5" />
+              Audio Transcription
+            </DialogTitle>
+            <DialogDescription>
+              Transcription for: {transcriptionModal.fileName}
+              {transcriptionModal.confidence && (
+                <span className="ml-2 text-sm">
+                  • Confidence: {Math.round(transcriptionModal.confidence * 100)}%
+                </span>
+              )}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="bg-muted p-4 rounded-lg">
+              <p className="text-sm whitespace-pre-wrap">{transcriptionModal.text}</p>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  navigator.clipboard.writeText(transcriptionModal.text);
+                  toast.success('Transcription copied to clipboard');
+                }}
+              >
+                Copy to Clipboard
+              </Button>
+              <Button onClick={() => setTranscriptionModal(prev => ({ ...prev, isOpen: false }))}>
+                Close
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Investigation Evidence
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="files">Evidence Files</TabsTrigger>
@@ -459,5 +519,6 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         </Tabs>
       </CardContent>
     </Card>
+    </>
   );
 }
