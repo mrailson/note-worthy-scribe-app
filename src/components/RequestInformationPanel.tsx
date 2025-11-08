@@ -7,7 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Send, UserPlus, Eye, Clock, CheckCircle, AlertCircle, Trash2, Mail } from 'lucide-react';
+import { Send, UserPlus, Eye, Clock, CheckCircle, AlertCircle, Trash2, Mail, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -41,8 +41,19 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
     notes: ''
   });
   const [sending, setSending] = useState(false);
-  const [selectedResponse, setSelectedResponse] = useState<InvolvedParty | null>(null);
-  const [showResponseModal, setShowResponseModal] = useState(false);
+  const [expandedResponses, setExpandedResponses] = useState<Set<string>>(new Set());
+
+  const toggleResponseExpanded = (partyId: string) => {
+    setExpandedResponses(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(partyId)) {
+        newSet.delete(partyId);
+      } else {
+        newSet.add(partyId);
+      }
+      return newSet;
+    });
+  };
 
   useEffect(() => {
     fetchInvolvedParties();
@@ -148,11 +159,6 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
       console.error('Error deleting request:', error);
       toast.error('Failed to delete request');
     }
-  };
-
-  const handleViewResponse = (party: InvolvedParty) => {
-    setSelectedResponse(party);
-    setShowResponseModal(true);
   };
 
   const getStatusBadge = (party: InvolvedParty) => {
@@ -290,91 +296,89 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
           </div>
         ) : (
           <div className="space-y-3">
-            {parties.map((party) => (
-              <div key={party.id} className="flex items-start justify-between p-4 border rounded-lg hover:bg-muted/50 transition-colours">
-                <div className="flex-1">
-                  <div className="flex items-centre gap-2 mb-1">
-                    <span className="font-medium">{party.staff_name}</span>
-                    {getStatusBadge(party)}
+            {parties.map((party) => {
+              const isExpanded = expandedResponses.has(party.id);
+              return (
+                <div key={party.id} className="border rounded-lg overflow-hidden">
+                  <div className="flex items-start justify-between p-4 hover:bg-muted/50 transition-colours">
+                    <div className="flex-1">
+                      <div className="flex items-centre gap-2 mb-1">
+                        <span className="font-medium">{party.staff_name}</span>
+                        {getStatusBadge(party)}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {party.staff_role} • {party.staff_email}
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        Requested: {new Date(party.response_requested_at).toLocaleDateString('en-GB', { 
+                          day: 'numeric', 
+                          month: 'short', 
+                          year: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </div>
+                      {party.response_submitted_at && (
+                        <div className="text-xs text-green-600 mt-1">
+                          Responded: {new Date(party.response_submitted_at).toLocaleDateString('en-GB', { 
+                            day: 'numeric', 
+                            month: 'short', 
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </div>
+                      )}
+                    </div>
+                    <div className="flex items-centre gap-2 ml-4">
+                      {party.response_submitted_at && (
+                        <Button 
+                          size="sm" 
+                          variant="ghost"
+                          onClick={() => toggleResponseExpanded(party.id)}
+                        >
+                          {isExpanded ? (
+                            <>
+                              <ChevronUp className="h-4 w-4 mr-1" />
+                              Hide Response
+                            </>
+                          ) : (
+                            <>
+                              <ChevronDown className="h-4 w-4 mr-1" />
+                              Show Response
+                            </>
+                          )}
+                        </Button>
+                      )}
+                      {!disabled && !party.response_submitted_at && (
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDeleteRequest(party.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    {party.staff_role} • {party.staff_email}
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-1">
-                    Requested: {new Date(party.response_requested_at).toLocaleDateString('en-GB', { 
-                      day: 'numeric', 
-                      month: 'short', 
-                      year: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </div>
-                  {party.response_submitted_at && (
-                    <div className="text-xs text-green-600 mt-1">
-                      Responded: {new Date(party.response_submitted_at).toLocaleDateString('en-GB', { 
-                        day: 'numeric', 
-                        month: 'short', 
-                        year: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
+                  
+                  {party.response_submitted_at && isExpanded && (
+                    <div className="px-4 pb-4 pt-0 border-t bg-muted/30">
+                      <div className="text-sm font-medium text-muted-foreground mb-2 mt-3">
+                        Response:
+                      </div>
+                      <div className="p-4 bg-background rounded-lg whitespace-pre-wrap text-sm border">
+                        {party.response_text}
+                      </div>
                     </div>
                   )}
                 </div>
-                <div className="flex items-centre gap-2 ml-4">
-                  {party.response_submitted_at && (
-                    <Button 
-                      size="sm" 
-                      variant="outline"
-                      onClick={() => handleViewResponse(party)}
-                    >
-                      <Eye className="h-4 w-4 mr-1" />
-                      View Response
-                    </Button>
-                  )}
-                  {!disabled && !party.response_submitted_at && (
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => handleDeleteRequest(party.id)}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </CardContent>
 
-      {/* Response Modal */}
-      {selectedResponse && (
-        <Dialog open={showResponseModal} onOpenChange={setShowResponseModal}>
-          <DialogContent className="max-w-3xl">
-            <DialogHeader>
-              <DialogTitle>
-                Response from {selectedResponse.staff_name}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="mt-4">
-              <div className="text-sm text-muted-foreground mb-2">
-                {selectedResponse.staff_role} • Responded on{' '}
-                {new Date(selectedResponse.response_submitted_at || '').toLocaleDateString('en-GB', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                  hour: '2-digit',
-                  minute: '2-digit'
-                })}
-              </div>
-              <div className="p-4 bg-muted/50 rounded-lg whitespace-pre-wrap text-sm">
-                {selectedResponse.response_text}
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
     </Card>
   );
 }
