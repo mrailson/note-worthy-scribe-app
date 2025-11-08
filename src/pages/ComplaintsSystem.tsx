@@ -110,6 +110,10 @@ interface Complaint {
   gp_practices?: {
     name: string;
   };
+  complaint_outcomes?: Array<{
+    outcome_letter: string;
+    outcome_type: string;
+  }>;
 }
 
 interface ComplaintFormData {
@@ -1262,8 +1266,8 @@ const ComplaintsSystem = () => {
     const statusLabel = getStatusLabel(complaint.status);
     
     // If closed and has outcome type, append it
-    if (complaint.status === 'closed' && (complaint as any).complaint_outcomes?.[0]?.outcome_type) {
-      const outcomeType = (complaint as any).complaint_outcomes[0].outcome_type;
+    if (complaint.status === 'closed' && complaint.complaint_outcomes?.[0]?.outcome_type) {
+      const outcomeType = complaint.complaint_outcomes[0].outcome_type;
       // Capitalize first letter of each word
       const formattedOutcome = outcomeType
         .split('_')
