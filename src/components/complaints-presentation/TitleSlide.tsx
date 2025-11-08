@@ -19,9 +19,8 @@ export const TitleSlide = () => {
 
           {/* Main Title */}
           <div className="space-y-4">
-            <h1 className="text-7xl font-bold text-[#003087] leading-tight">
-              Streamlining NHS<br />
-              Complaints Management
+            <h1 className="text-5xl font-bold text-[#003087] leading-tight">
+              Streamlining NHS Complaints Management
             </h1>
             <h2 className="text-5xl font-bold text-[#005EB8]">
               with AI-Powered NoteWell
