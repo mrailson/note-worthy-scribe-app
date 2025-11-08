@@ -128,8 +128,6 @@ const ComplaintDetails = () => {
   const [previousComplaintsCount, setPreviousComplaintsCount] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState("workflow");
-  const [involvedParties, setInvolvedParties] = useState<Array<{staffName: string; staffEmail: string; staffRole: string}>>([]);
-  const [newParty, setNewParty] = useState({staffName: '', staffEmail: '', staffRole: ''});
   const [outcomeType, setOutcomeType] = useState('');
   const [outcomeSummary, setOutcomeSummary] = useState('');
   const [existingOutcome, setExistingOutcome] = useState<any>(null);
@@ -165,17 +163,6 @@ const ComplaintDetails = () => {
   const [isRegeneratingOutcome, setIsRegeneratingOutcome] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [showOutstandingOnly, setShowOutstandingOnly] = useState(false);
-  
-  // Investigation workflow state
-  const [investigationMethod, setInvestigationMethod] = useState("");
-  const [selectedStaff, setSelectedStaff] = useState<Array<{name: string; email: string; role: string; suggested: boolean; type: string}>>([]);
-  const [additionalStaff, setAdditionalStaff] = useState({name: '', email: '', role: ''});
-  const [inputRequests, setInputRequests] = useState<Array<{id: string; staffName: string; staffEmail: string; status: string; sentAt: string; responseReceived: boolean; responseReceivedAt?: string; responseText?: string; isTestResponse?: boolean}>>([]);
-  const [workflowSettings, setWorkflowSettings] = useState<any>(null);
-  const [editingStaffIndex, setEditingStaffIndex] = useState<number | null>(null);
-  const [editingEmailValue, setEditingEmailValue] = useState<string>('');
-  const [isWorkflowOpen, setIsWorkflowOpen] = useState(false);
-  const emailUpdateTimeout = useRef<NodeJS.Timeout | null>(null);
   const [showQuestionnaireModal, setShowQuestionnaireModal] = useState(false);
   const [questionnaireHistory, setQuestionnaireHistory] = useState<any[]>([]);
   const [outcomeQuestionnaireData, setOutcomeQuestionnaireData] = useState<any>(null);
@@ -446,112 +433,6 @@ const ComplaintDetails = () => {
     }
   };
 
-  const fetchStaffResponses = async () => {
-    if (!user || !complaintId) return;
-    try {
-      const { data: parties, error } = await supabase
-        .from('complaint_involved_parties')
-        .select('*')
-        .eq('complaint_id', complaintId);
-
-      if (error) throw error;
-
-      // Also fetch staff_responses and merge
-      const { data: staffResp, error: staffRespError } = await supabase
-        .from('staff_responses')
-        .select('*')
-        .eq('complaint_id', complaintId);
-
-      if (staffRespError) {
-        console.warn('Could not load staff_responses:', staffRespError);
-      }
-
-      const byEmail = new Map<string, any>();
-      const byName = new Map<string, any>();
-      (staffResp || []).forEach(r => {
-        if (r.staff_email) byEmail.set(String(r.staff_email).toLowerCase(), r);
-        if (r.staff_name) byName.set(String(r.staff_name).toLowerCase(), r);
-      });
-
-      let requests: Array<any> = [];
-
-      if (parties && parties.length > 0) {
-        requests = parties.map(party => {
-          // Debug: Log what we're getting from the database
-          console.log('Staff response data from DB:', {
-            staffName: party.staff_name,
-            staffEmail: party.staff_email,
-            response_submitted_at: party.response_submitted_at,
-            response_text: party.response_text
-          });
-
-          const resp =
-            (party.staff_email && byEmail.get(String(party.staff_email).toLowerCase())) ||
-            (party.staff_name && byName.get(String(party.staff_name).toLowerCase()));
-
-          const responseSubmittedAt = party.response_submitted_at || resp?.responded_at || null;
-          const responseText = party.response_text || resp?.response_text || undefined;
-
-          return {
-            id: party.id,
-            staffName: party.staff_name,
-            staffEmail: party.staff_email,
-            status: responseSubmittedAt ? 'completed' : 'pending',
-            sentAt: party.response_requested_at,
-            responseReceived: !!responseSubmittedAt,
-            responseReceivedAt: responseSubmittedAt,
-            responseText: responseText,
-            isTestResponse: !!responseText
-          };
-        });
-      }
-
-      // Include any staff_responses not already present in involved parties
-      const existingKeys = new Set(requests.map(r => String(r.staffEmail || r.staffName || '').toLowerCase()));
-      (staffResp || []).forEach(r => {
-        const key = String(r.staff_email || r.staff_name || '').toLowerCase();
-        if (key && !existingKeys.has(key)) {
-          requests.push({
-            id: r.id,
-            staffName: r.staff_name,
-            staffEmail: r.staff_email,
-            status: 'completed',
-            sentAt: r.responded_at,
-            responseReceived: true,
-            responseReceivedAt: r.responded_at,
-            responseText: r.response_text,
-            isTestResponse: false
-          });
-        }
-      });
-
-      console.log('Processed input requests (merged):', requests);
-      setInputRequests(requests);
-
-      // Also update selectedStaff if needed
-      const staffList = (parties || []).map(party => ({
-        name: party.staff_name,
-        email: party.staff_email,
-        role: party.staff_role || '',
-        suggested: false,
-        type: 'added'
-      }));
-
-      if (selectedStaff.length === 0) {
-        setSelectedStaff(staffList);
-      }
-
-      // Automatically set investigation method to "input-required" if there are existing input requests
-      if (requests.length > 0 && !investigationMethod) {
-        setInvestigationMethod("input-required");
-        console.log('Auto-restored investigation method to "input-required" based on existing input requests');
-      }
-
-      console.log('Loaded staff responses:', requests);
-    } catch (error) {
-      console.error('Error fetching staff responses:', error);
-    }
-  };
 
   const fetchComplaintDocuments = async () => {
     if (!user || !complaintId) return;
@@ -626,7 +507,6 @@ const ComplaintDetails = () => {
       fetchComplianceData();
       fetchAuditLogs();
       fetchComplaintDocuments();
-      fetchStaffResponses(); // Add this to load staff responses
       logComplaintView(); // Log the view
     }
   }, [user, complaintId]);
@@ -664,42 +544,7 @@ const ComplaintDetails = () => {
     };
   }, [user, complaintId]);
 
-  // Set up real-time listener for staff responses changes
-  useEffect(() => {
-    if (!user || !complaintId) return;
 
-    const channel = supabase
-      .channel('staff-responses-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'staff_responses',
-          filter: `complaint_id=eq.${complaintId}`
-        },
-        (payload) => {
-          console.log('Staff responses database change detected:', payload);
-          setTimeout(() => {
-            fetchStaffResponses();
-          }, 800);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, complaintId]);
-
-  // Cleanup email timeout on unmount
-  useEffect(() => {
-    return () => {
-      if (emailUpdateTimeout.current) {
-        clearTimeout(emailUpdateTimeout.current);
-      }
-    };
-  }, []);
 
   // Countdown effect for acknowledgement generation
   useEffect(() => {
@@ -932,43 +777,6 @@ const ComplaintDetails = () => {
     }
   };
 
-  const addInvolvedParty = () => {
-    if (newParty.staffName && newParty.staffEmail) {
-      setInvolvedParties([...involvedParties, { ...newParty }]);
-      setNewParty({staffName: '', staffEmail: '', staffRole: ''});
-    }
-  };
-
-  const removeInvolvedParty = (index: number) => {
-    setInvolvedParties(involvedParties.filter((_, i) => i !== index));
-  };
-
-  const handleSendStaffNotifications = async (complaintId: string) => {
-    if (involvedParties.length === 0) {
-      showToast.error("Please add staff members to notify", { section: 'complaints' });
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('send-complaint-notifications', {
-        body: { 
-          complaintId,
-          involvedParties 
-        }
-      });
-
-      if (error) throw error;
-
-      showToast.success("Staff notifications sent successfully", { section: 'complaints' });
-      setInvolvedParties([]);
-    } catch (error) {
-      console.error('Error sending notifications:', error);
-      showToast.error("Failed to send staff notifications", { section: 'complaints' });
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleSaveOutcomeLetter = async () => {
     if (!existingOutcome) return;
@@ -1581,395 +1389,6 @@ const ComplaintDetails = () => {
     }
   };
 
-  // Investigation workflow functions
-  const handleInvestigationMethodChange = async (method: string) => {
-    setInvestigationMethod(method);
-    
-    // Auto-populate suggested staff based on complaint details
-    if (method === "input-required") {
-      const suggestions: Array<{name: string; email: string; role: string; suggested: boolean; type: string}> = [];
-      
-      // Get practice ID for fetching defaults
-      let practiceId: string | null = null;
-      if (complaint?.practice_id) {
-        practiceId = complaint.practice_id;
-      } else {
-        // Try to get from user roles if not on complaint
-        const { data: practiceData } = await supabase
-          .from('user_roles')
-          .select('practice_id')
-          .eq('user_id', complaint?.created_by)
-          .limit(1)
-          .maybeSingle();
-        practiceId = practiceData?.practice_id || null;
-      }
-      
-      // Add mentioned staff with default email lookups
-      if (complaint?.staff_mentioned) {
-        for (const staff of complaint.staff_mentioned) {
-          // For demo purposes, only add Emma Thompson and auto-populate email
-          if (staff !== 'Emma Thompson') {
-            continue; // Skip all other staff members
-          }
-          
-          let defaultEmail = 'malcolm.railson@nhs.net'; // Auto-populate for demo
-          let defaultRole = 'Receptionist';
-          
-          // Still try to get default contact but use demo email as fallback
-          if (practiceId) {
-            const { data: defaultContact } = await supabase
-              .rpc('get_default_staff_contact', {
-                p_practice_id: practiceId,
-                p_staff_role: staff,
-                p_staff_name: staff
-              });
-            
-            if (defaultContact && defaultContact.length > 0) {
-              // Use demo email instead of default contact for Emma Thompson
-              defaultRole = staff;
-            }
-          }
-          
-          suggestions.push({
-            name: staff,
-            email: defaultEmail,
-            role: defaultRole,
-            suggested: true,
-            type: 'mentioned'
-          });
-        }
-      }
-      
-      // Add category-based suggestions with default emails
-      if (complaint?.category === 'Appointments & Access') {
-        let receptionEmail = '';
-        if (practiceId) {
-          const { data: defaultContact } = await supabase
-            .rpc('get_default_staff_contact', {
-              p_practice_id: practiceId,
-              p_staff_role: 'Receptionist'
-            });
-          
-          if (defaultContact && defaultContact.length > 0) {
-            receptionEmail = defaultContact[0].default_email;
-          }
-        }
-        
-        suggestions.push({
-          name: 'Reception Team',
-          email: receptionEmail,
-          role: 'Reception',
-          suggested: true,
-          type: 'category-based'
-        });
-      }
-      
-      if (complaint?.category === 'Clinical Care & Treatment') {
-        let clinicianEmail = '';
-        if (practiceId) {
-          const { data: defaultContact } = await supabase
-            .rpc('get_default_staff_contact', {
-              p_practice_id: practiceId,
-              p_staff_role: 'Practice Nurse'
-            });
-          
-          if (defaultContact && defaultContact.length > 0) {
-            clinicianEmail = defaultContact[0].default_email;
-          }
-        }
-        
-        suggestions.push({
-          name: 'Treating Clinician',
-          email: clinicianEmail,
-          role: 'Clinician',
-          suggested: true,
-          type: 'category-based'
-        });
-      }
-      
-      setSelectedStaff(suggestions);
-    } else {
-      setSelectedStaff([]);
-    }
-  };
-
-  const handleStaffSelection = (index: number, selected: boolean) => {
-    setSelectedStaff(prev => 
-      prev.map((staff, i) => 
-        i === index ? { ...staff, selected } : staff
-      )
-    );
-  };
-
-  const handleAddAdditionalStaff = async () => {
-    if (additionalStaff.name && additionalStaff.email) {
-      // Check if we should auto-populate email from defaults
-      let emailToUse = additionalStaff.email;
-      
-      if (!emailToUse && additionalStaff.role) {
-        // Try to get default email for this role
-        let practiceId: string | null = null;
-        if (complaint?.practice_id) {
-          practiceId = complaint.practice_id;
-        } else {
-          const { data: practiceData } = await supabase
-            .from('user_roles')
-            .select('practice_id')
-            .eq('user_id', complaint?.created_by)
-            .limit(1)
-            .maybeSingle();
-          practiceId = practiceData?.practice_id || null;
-        }
-        
-        if (practiceId) {
-          const { data: defaultContact } = await supabase
-            .rpc('get_default_staff_contact', {
-              p_practice_id: practiceId,
-              p_staff_role: additionalStaff.role
-            });
-          
-          if (defaultContact && defaultContact.length > 0) {
-            emailToUse = defaultContact[0].default_email;
-          }
-        }
-      }
-      
-      setSelectedStaff(prev => [...prev, {
-        name: additionalStaff.name,
-        email: emailToUse,
-        role: additionalStaff.role || 'Staff Member',
-        suggested: false,
-        type: 'additional'
-      }]);
-      setAdditionalStaff({name: '', email: '', role: ''});
-    }
-  };
-
-  const handleRemoveStaff = (index: number) => {
-    setSelectedStaff(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleSendInputRequests = async () => {
-    if (selectedStaff.length === 0) {
-      showToast.error("Please select staff members to request input from", { section: 'complaints' });
-      return;
-    }
-
-    // Check if requests have already been sent for currently selected staff
-    const hasExistingRequests = selectedStaff.some(staff => 
-      inputRequests.some(request => request.staffName === staff.name && request.staffEmail === staff.email)
-    );
-    
-    if (hasExistingRequests) {
-      showToast.error("Input requests have already been sent for some of the selected staff. Check the tracking section below.", { section: 'complaints' });
-      return;
-    }
-
-    setSubmitting(true);
-    try {
-      // Prepare the data for the edge function
-      const involvedParties = selectedStaff
-        .filter(staff => staff.email) // Only include staff with email addresses
-        .map(staff => ({
-          staffName: staff.name,
-          staffEmail: staff.email,
-          staffRole: staff.role
-        }));
-
-      if (involvedParties.length === 0) {
-        showToast.error("Please ensure all selected staff have email addresses", { section: 'complaints' });
-        return;
-      }
-
-      // Call the edge function with the correct data structure
-      const { data, error } = await supabase.functions.invoke('send-complaint-notifications', {
-        body: {
-          complaintId: complaint?.id,
-          involvedParties: involvedParties
-        }
-      });
-
-      console.log('Edge function response:', { data, error });
-
-      if (error) throw error;
-
-      // Check if emails were actually sent
-      if (data?.error) {
-        throw new Error(data.error);
-      }
-
-      // Check email results
-      const emailResults = data?.emailResults || [];
-      const failedEmails = emailResults.filter((result: any) => result.status === 'failed');
-      
-      if (failedEmails.length > 0) {
-        console.error('Failed emails:', failedEmails);
-        showToast.error(`${failedEmails.length} emails failed to send. Check console for details.`, { section: 'complaints' });
-      }
-
-      const successfulEmails = emailResults.filter((result: any) => result.status === 'sent');
-      
-      if (successfulEmails.length === 0) {
-        throw new Error('No emails were sent successfully. Please check EmailJS configuration.');
-      }
-
-      // Update local state with sent requests - but don't mark as completed yet
-      const newInputRequests = involvedParties.map(party => ({
-        id: Math.random().toString(36).substr(2, 9), // temporary ID
-        staffName: party.staffName,
-        staffEmail: party.staffEmail,
-        status: 'pending', // Always start as pending, not 'Sent'
-        sentAt: new Date().toISOString(),
-        responseReceived: false
-      }));
-
-      setInputRequests(newInputRequests);
-      
-      if (successfulEmails.length === involvedParties.length) {
-        showToast.success(`Input requests sent to ${successfulEmails.length} staff members`, { section: 'complaints' });
-      } else {
-        showToast.success(`${successfulEmails.length} of ${involvedParties.length} emails sent successfully`, { section: 'complaints' });
-      }
-      
-      // Log the activity
-      console.log('Email results:', emailResults);
-      
-    } catch (error) {
-      console.error('Error sending input requests:', error);
-      showToast.error("Failed to send input requests: " + error.message, { section: 'complaints' });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleClearInputRequests = async () => {
-    setSubmitting(true);
-    try {
-      // Clear any existing complaint_involved_parties records for this complaint
-      const { error } = await supabase
-        .from('complaint_involved_parties')
-        .delete()
-        .eq('complaint_id', complaint?.id);
-
-      if (error) throw error;
-
-      // Clear local state
-      setInputRequests([]);
-      showToast.success("Input requests cleared. You can now send new requests.", { section: 'complaints' });
-      
-    } catch (error) {
-      console.error('Error clearing input requests:', error);
-      showToast.error("Failed to clear input requests", { section: 'complaints' });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleTestReply = async (requestId: string, staffName: string) => {
-    setSubmitting(true);
-    try {
-      // Generate a realistic test response based on the complaint category
-      const testResponses = {
-        "Communication Issues": `I want to sincerely apologize for the breach of confidentiality that occurred. As the receptionist involved, I acknowledge that I should not have discussed the patient's test results in a public area where other patients could overhear.
-
-I understand the importance of maintaining patient confidentiality at all times, and I take full responsibility for this error in judgment. This incident occurred during a particularly busy period, but I recognize that this is not an excuse for compromising patient privacy.
-
-I have already taken steps to ensure this doesn't happen again by:
-- Reviewing the practice's confidentiality policies
-- Requesting additional training on GDPR and patient confidentiality
-- Implementing a personal checklist to ensure all patient discussions occur in private areas
-
-I deeply regret the distress this has caused to the patient and understand the impact this has had on their trust in our practice. I am committed to maintaining the highest standards of confidentiality going forward.`,
-        
-        "Clinical Care & Treatment": `Thank you for bringing this matter to my attention. I have carefully reviewed the patient's care and the circumstances surrounding this complaint.
-
-After thorough consideration of the case notes and treatment decisions made, I want to provide my perspective on the clinical care provided. The treatment plan was developed based on the patient's presenting symptoms and clinical history available at the time.
-
-I acknowledge that the patient's experience did not meet their expectations, and I sincerely apologize for any distress caused. Following this complaint, I have:
-- Reviewed the latest clinical guidelines for this condition
-- Discussed the case with colleagues for peer review
-- Identified areas where communication could have been clearer
-
-I am committed to learning from this experience and ensuring that all patients receive the highest standard of care and communication.`,
-        
-        "default": `Thank you for the opportunity to provide my input regarding this complaint. I have carefully considered the concerns raised and want to address them thoroughly.
-
-I sincerely apologize for any part I played in the patient's unsatisfactory experience. Patient care and satisfaction are our top priorities, and I regret that we fell short of the standards expected.
-
-After reflection, I have identified several areas for improvement and have taken the following actions:
-- Reviewed relevant policies and procedures
-- Sought additional guidance from senior colleagues
-- Implemented changes to prevent similar issues in the future
-
-I am committed to ensuring that all patients receive the care and service they deserve.`
-      };
-
-      const response = testResponses[complaint?.category as keyof typeof testResponses] || testResponses.default;
-
-      // Update the complaint_involved_parties record with the test response
-      const { error } = await supabase
-        .from('complaint_involved_parties')
-        .update({
-          response_text: response,
-          response_submitted_at: new Date().toISOString()
-        })
-        .eq('complaint_id', complaint?.id)
-        .eq('staff_name', staffName);
-
-      if (error) throw error;
-
-      // Update local state to mark as completed
-      setInputRequests(prev => prev.map(request => 
-        request.id === requestId 
-          ? { 
-              ...request, 
-              responseReceived: true, 
-              status: 'completed',
-              responseReceivedAt: new Date().toISOString(),
-              responseText: response,
-              isTestResponse: true
-            }
-          : request
-      ));
-
-      showToast.success(`Test reply generated for ${staffName}`, { section: 'complaints' });
-      
-    } catch (error) {
-      console.error('Error generating test reply:', error);
-      showToast.error("Failed to generate test reply", { section: 'complaints' });
-    } finally {
-      setSubmitting(false);
-    }
-  };
-  const handleSaveWorkflowSettings = async () => {
-    setSubmitting(true);
-    try {
-      const settings = {
-        investigation_method: investigationMethod,
-        selected_staff: selectedStaff,
-        input_requests: inputRequests
-      };
-
-      // Save to complaint record or a separate workflow settings table
-      const { error } = await supabase
-        .from('complaints')
-        .update({
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', complaint?.id);
-
-      if (error) throw error;
-
-      setWorkflowSettings(settings);
-      showToast.success("Workflow settings saved", { section: 'complaints' });
-      
-    } catch (error) {
-      console.error('Error saving workflow settings:', error);
-      showToast.error("Failed to save workflow settings", { section: 'complaints' });
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
   const handleDeleteComplaint = async () => {
     if (!complaint || !user) return;
@@ -2115,8 +1534,6 @@ I am committed to ensuring that all patients receive the care and service they d
                           await exportComplaintReportToWord({
                             complaint,
                             audioOverview: audioOverview?.audio_overview_text,
-                            investigationMethod,
-                            involvedParties: involvedParties as any,
                             investigationSummary: existingOutcome?.investigation_summary,
                             findingsText: existingOutcome?.findings_text,
                             outcome: existingOutcome ? {
@@ -2534,12 +1951,10 @@ I am committed to ensuring that all patients receive the care and service they d
                                   created_by: latestReview.created_by || 'System User',
                                 } : undefined;
 
-                                await exportComplaintReportToWord({
-                                  complaint,
-                                  audioOverview: audioOverview?.audio_overview_text,
-                                  investigationMethod,
-                                  involvedParties: involvedParties as any,
-                                  investigationSummary: existingOutcome?.investigation_summary,
+                          await exportComplaintReportToWord({
+                            complaint,
+                            audioOverview: audioOverview?.audio_overview_text,
+                            investigationSummary: existingOutcome?.investigation_summary,
                                   findingsText: existingOutcome?.findings_text,
                                   outcome: existingOutcome ? {
                                     outcome_type: existingOutcome.outcome_type,
@@ -3248,133 +2663,6 @@ I am committed to ensuring that all patients receive the care and service they d
                 </Card>
               )}
 
-              {acknowledgementLetter && (
-                <Collapsible open={isWorkflowOpen} onOpenChange={setIsWorkflowOpen}>
-                  <Card>
-                    <CardHeader>
-                      <CollapsibleTrigger className="flex items-center justify-between w-full hover:no-underline">
-                        <div className="flex items-center gap-2">
-                          <Brain className="h-5 w-5" />
-                          <div>
-                            <CardTitle className="text-left">
-                              Detailed Investigation Workflow{" "}
-                              <span className="text-xs font-normal text-muted-foreground">(For Complex/Detailed Complaints requiring evidence and feedback from multiple areas)</span>
-                            </CardTitle>
-                            <CardDescription className="text-left">
-                              Determine how the complaint will be investigated and who needs to provide input
-                            </CardDescription>
-                          </div>
-                        </div>
-                        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200 data-[state=open]:rotate-180" />
-                      </CollapsibleTrigger>
-                    </CardHeader>
-                    <CollapsibleContent>
-                      <CardContent className="space-y-4">
-                    <div className="space-y-3">
-                      <Label className="text-sm font-medium">Investigation Method</Label>
-                      <div className="space-y-2">
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            id="direct-investigation"
-                            name="investigation-method"
-                            className="rounded"
-                            checked={investigationMethod === "direct-investigation"}
-                            onChange={() => handleInvestigationMethodChange("direct-investigation")}
-                          />
-                          <Label htmlFor="direct-investigation" className="text-sm cursor-pointer">
-                            Direct Investigation - I will investigate this complaint directly
-                          </Label>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <input
-                            type="radio"
-                            id="input-required"
-                            name="investigation-method"
-                            className="rounded"
-                            checked={investigationMethod === "input-required"}
-                            onChange={() => handleInvestigationMethodChange("input-required")}
-                          />
-                          <Label htmlFor="input-required" className="text-sm cursor-pointer">
-                            Input Required - Request responses from involved parties
-                          </Label>
-                        </div>
-                      </div>
-                    </div>
-
-                    {investigationMethod === "input-required" && (
-                      <div className="space-y-4 mt-4">
-                        <div className="flex gap-2">
-                          <Input
-                            placeholder="Staff Name"
-                            value={newParty.staffName}
-                            onChange={(e) => setNewParty({ ...newParty, staffName: e.target.value })}
-                          />
-                          <Input
-                            placeholder="Role"
-                            value={newParty.staffRole}
-                            onChange={(e) => setNewParty({ ...newParty, staffRole: e.target.value })}
-                          />
-                          <Input
-                            placeholder="Email"
-                            type="email"
-                            value={newParty.staffEmail}
-                            onChange={(e) => setNewParty({ ...newParty, staffEmail: e.target.value })}
-                          />
-                          <Button onClick={addInvolvedParty} disabled={submitting}>
-                            <Plus className="h-4 w-4" />
-                          </Button>
-                        </div>
-
-                        {involvedParties.length > 0 && (
-                          <div className="space-y-2">
-                            <Label className="text-sm font-medium">Involved Parties</Label>
-                            {involvedParties.map((party, index) => (
-                              <div key={index} className="flex items-center justify-between p-3 border rounded">
-                                <div className="flex-1">
-                                  <div className="font-medium">{party.staffName}</div>
-                                  <div className="text-sm text-muted-foreground">{party.staffRole} • {party.staffEmail}</div>
-                                </div>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => removeInvolvedParty(index)}
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-
-                        <div className="flex gap-2">
-                          <Button
-                            onClick={handleSaveWorkflowSettings}
-                            disabled={submitting}
-                            className="flex-1"
-                          >
-                            {submitting ? 'Saving...' : 'Save Investigation Settings'}
-                          </Button>
-                          {involvedParties.length > 0 && (
-                            <Button
-                              onClick={handleSendInputRequests}
-                              disabled={submitting}
-                              variant="default"
-                            >
-                              <Send className="h-4 w-4 mr-2" />
-                              Send Input Requests
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    <InvestigationFindings complaintId={complaintId!} disabled={complaint?.status === 'closed'} />
-                      </CardContent>
-                    </CollapsibleContent>
-                  </Card>
-                </Collapsible>
-              )}
 
             </TabsContent>
 
@@ -3410,8 +2698,6 @@ I am committed to ensuring that all patients receive the care and service they d
                           await exportComplaintReportToWord({
                             complaint,
                             audioOverview: audioOverview?.audio_overview_text,
-                            investigationMethod,
-                            involvedParties: involvedParties as any,
                             investigationSummary: existingOutcome?.investigation_summary,
                             findingsText: existingOutcome?.findings_text,
                             outcome: existingOutcome ? {
