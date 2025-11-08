@@ -31,6 +31,7 @@ interface ComplaintData {
   acknowledged_at: string | null;
   response_due_date: string | null;
   closed_at: string | null;
+  created_at: string;
   category: string;
   subcategory: string | null;
   priority: string;
@@ -102,6 +103,23 @@ const formatStatusWithOutcome = (status: string, outcome?: OutcomeData): string 
   }
   
   return formattedStatus;
+};
+
+// Helper function to add working days (excluding weekends)
+const addWorkingDays = (startDate: Date, days: number): Date => {
+  let currentDate = new Date(startDate);
+  let addedDays = 0;
+  
+  while (addedDays < days) {
+    currentDate.setDate(currentDate.getDate() + 1);
+    // Skip weekends (Saturday = 6, Sunday = 0)
+    const dayOfWeek = currentDate.getDay();
+    if (dayOfWeek !== 0 && dayOfWeek !== 6) {
+      addedDays++;
+    }
+  }
+  
+  return currentDate;
 };
 
 // Helper function to create headings
@@ -598,12 +616,42 @@ export const exportComplaintReportToWord = async (data: ReportData) => {
 
   // Key dates summary
   sections.push(createHeading("Key Dates", HeadingLevel.HEADING_2));
+  
+  // Use created_at as fallback for submitted_at
+  const submittedDate = complaint.submitted_at || complaint.created_at;
+  const submittedDateObj = new Date(submittedDate);
+  
+  // Calculate acknowledgement deadline (3 working days)
+  const ackDeadline = addWorkingDays(submittedDateObj, 3);
+  
+  // Calculate outcome deadline (20 working days from submission)
+  const outcomeDeadline = addWorkingDays(submittedDateObj, 20);
+  
+  // Check if acknowledgement was met
+  let ackMet = "Not acknowledged";
+  let ackDeadlineMet = false;
+  if (complaint.acknowledged_at) {
+    const ackDate = new Date(complaint.acknowledged_at);
+    ackDeadlineMet = ackDate <= ackDeadline;
+    ackMet = ackDeadlineMet ? "✓ Met" : "⚠ Missed";
+  }
+  
+  // Check if outcome deadline was met
+  let outcomeMet = "Not closed";
+  let outcomeDeadlineMet = false;
+  if (complaint.closed_at) {
+    const closedDate = new Date(complaint.closed_at);
+    outcomeDeadlineMet = closedDate <= outcomeDeadline;
+    outcomeMet = outcomeDeadlineMet ? "✓ Met" : "⚠ Missed";
+  }
+  
   const keyDatesData = [
     { label: "Incident Date", value: complaint.incident_date ? format(new Date(complaint.incident_date), "dd/MM/yyyy") : "Not recorded" },
-    { label: "Complaint Submitted", value: complaint.submitted_at ? format(new Date(complaint.submitted_at), "dd/MM/yyyy") : "Not recorded" },
-    { label: "Acknowledged", value: complaint.acknowledged_at ? format(new Date(complaint.acknowledged_at), "dd/MM/yyyy") : "Not acknowledged" },
-    { label: "Response Due", value: complaint.response_due_date ? format(new Date(complaint.response_due_date), "dd/MM/yyyy") : "Not set" },
-    { label: "Closed", value: complaint.closed_at ? format(new Date(complaint.closed_at), "dd/MM/yyyy") : "Still open" },
+    { label: "Complaint Submitted", value: format(submittedDateObj, "dd/MM/yyyy") },
+    { label: "Acknowledgement Deadline", value: format(ackDeadline, "dd/MM/yyyy") + " (3 working days)" },
+    { label: "Acknowledged", value: complaint.acknowledged_at ? format(new Date(complaint.acknowledged_at), "dd/MM/yyyy") + " - " + ackMet : "Not acknowledged" },
+    { label: "Outcome Deadline", value: format(outcomeDeadline, "dd/MM/yyyy") + " (20 working days)" },
+    { label: "Closed", value: complaint.closed_at ? format(new Date(complaint.closed_at), "dd/MM/yyyy") + " - " + outcomeMet : "Still open" },
   ];
   
   if (data.workingDaysToAcknowledge !== undefined) {
