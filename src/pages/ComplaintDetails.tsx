@@ -225,15 +225,28 @@ const ComplaintDetails = () => {
       const twelveMonthsAgo = new Date();
       twelveMonthsAgo.setMonth(twelveMonthsAgo.getMonth() - 12);
       
-      const { count: prevComplaintsCount } = await supabase
-        .from('complaints')
-        .select('*', { count: 'exact', head: true })
-        .eq('patient_name', data.patient_name)
-        .eq('practice_id', data.practice_id)
-        .neq('id', complaintId)
-        .gte('created_at', twelveMonthsAgo.toISOString());
-      
-      setPreviousComplaintsCount(prevComplaintsCount || 0);
+      let prevComplaintsCount = 0;
+      {
+        // Build query safely when practice_id can be null
+        const base = supabase
+          .from('complaints')
+          .select('*', { count: 'exact', head: true })
+          .eq('patient_name', data.patient_name)
+          .neq('id', complaintId)
+          .gte('created_at', twelveMonthsAgo.toISOString());
+
+        const { count, error: prevErr } = data.practice_id
+          ? await base.eq('practice_id', data.practice_id)
+          : await base.is('practice_id', null);
+
+        if (prevErr) {
+          console.error('Error counting previous complaints:', prevErr);
+        } else {
+          prevComplaintsCount = count || 0;
+        }
+      }
+
+      setPreviousComplaintsCount(prevComplaintsCount);
 
       // Fetch existing outcome if available
       const { data: outcomeData } = await supabase
