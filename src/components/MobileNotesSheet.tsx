@@ -330,45 +330,59 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   const formatContent = (content: string) => {
     if (!content) return '';
     
-    // First, handle tables before other markdown parsing
-    let processedContent = content;
+    // Normalize line breaks first
+    let processedContent = content.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
     
-    // Parse markdown tables with more flexible regex
-    const tableRegex = /\|(.+?)\|[\r\n]+\|([\s\-:]+)\|[\r\n]+((?:\|.+?\|[\r\n]*)+)/g;
+    // Parse markdown tables with flexible regex that handles various formats
+    const tableRegex = /(\|[^\n]+\|)\n(\|[\s\-:]+\|)\n((?:\|[^\n]+\|\n?)+)/g;
+    
     processedContent = processedContent.replace(tableRegex, (match, headerRow, separatorRow, bodyRows) => {
       // Parse headers
-      const headers = headerRow.split('|')
+      const headers = headerRow
+        .split('|')
         .map((h: string) => h.trim())
-        .filter((h: string) => h);
+        .filter((h: string) => h.length > 0);
+      
+      // If no valid headers, return original
+      if (headers.length === 0) return match;
       
       // Parse body rows
-      const rows = bodyRows.trim().split(/[\r\n]+/)
+      const rows = bodyRows
+        .trim()
+        .split('\n')
         .map((row: string) => 
           row.split('|')
             .map((cell: string) => cell.trim())
-            .filter((cell: string) => cell)
+            .filter((cell: string) => cell.length > 0)
         )
         .filter((row: string[]) => row.length > 0);
       
-      // Build HTML table with enhanced mobile-friendly styling
-      let tableHtml = '<div class="overflow-x-auto my-4 -mx-4 px-4" style="scrollbar-width: thin; -webkit-overflow-scrolling: touch;">';
-      tableHtml += '<table style="width: 100%; min-width: 500px; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; background: white;">';
+      // Build mobile-optimized table
+      let tableHtml = '<div style="overflow-x: auto; margin: 16px 0; -webkit-overflow-scrolling: touch; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">';
+      tableHtml += '<table style="width: 100%; min-width: 400px; border-collapse: collapse; font-size: 13px; background: white;">';
       
-      // Add header with better styling
-      tableHtml += '<thead style="background: #f8fafc; position: sticky; top: 0; z-index: 1;"><tr>';
+      // Header
+      tableHtml += '<thead><tr style="background: #005EB8; color: white;">';
       headers.forEach((header: string) => {
-        tableHtml += `<th style="border: 1px solid #e2e8f0; padding: 10px 12px; text-align: left; font-weight: 600; color: #1e293b; white-space: nowrap;">${header}</th>`;
+        tableHtml += `<th style="border: 1px solid #ddd; padding: 12px 10px; text-align: left; font-weight: 600; white-space: nowrap;">${header}</th>`;
       });
       tableHtml += '</tr></thead>';
       
-      // Add body with striped rows
+      // Body
       tableHtml += '<tbody>';
       rows.forEach((row: string[], index: number) => {
         const bgColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
-        tableHtml += `<tr style="background: ${bgColor};">`;
-        row.forEach((cell: string) => {
-          tableHtml += `<td style="border: 1px solid #e2e8f0; padding: 10px 12px; color: #334155; white-space: nowrap;">${cell}</td>`;
+        tableHtml += `<tr style="background: ${bgColor}; border-bottom: 1px solid #e2e8f0;">`;
+        row.forEach((cell: string, cellIndex: number) => {
+          // Ensure we don't have more cells than headers
+          if (cellIndex < headers.length) {
+            tableHtml += `<td style="border: 1px solid #e2e8f0; padding: 10px; color: #334155;">${cell}</td>`;
+          }
         });
+        // Fill missing cells if row is shorter than headers
+        for (let i = row.length; i < headers.length; i++) {
+          tableHtml += `<td style="border: 1px solid #e2e8f0; padding: 10px; color: #94a3b8;">-</td>`;
+        }
         tableHtml += '</tr>';
       });
       tableHtml += '</tbody></table></div>';
