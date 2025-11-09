@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useLocation, useNavigate } from "react-router-dom";
+import { useSearchParams, useLocation, useNavigate, Link } from "react-router-dom";
 import { SEO } from "@/components/SEO";
 import { Header } from "@/components/Header";
 import { MaintenanceBanner } from "@/components/MaintenanceBanner";
@@ -11,11 +11,14 @@ import { MeetingSummary } from "@/components/MeetingSummary";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
+import { Building2 } from "lucide-react";
 
 const Index = () => {
   const { user, loading, hasModuleAccess } = useAuth();
+  const isMobile = useIsMobile();
   
   // Enable meeting auto-close service (runs every 5 minutes)
   useMeetingAutoClose({ enabled: !!user, intervalMinutes: 5 });
@@ -273,6 +276,16 @@ const Index = () => {
           />
         </div>
 
+        {/* Discreet floating icon for Executive Overview - mobile only */}
+        {isMobile && user && (
+          <Link
+            to="/executive-overview"
+            className="fixed bottom-20 right-4 z-40 flex items-center justify-center w-11 h-11 rounded-full bg-background border border-border shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+            aria-label="Executive Overview"
+          >
+            <Building2 className="w-5 h-5 text-primary" />
+          </Link>
+        )}
     </div>
   );
 };
