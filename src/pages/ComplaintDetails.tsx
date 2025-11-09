@@ -2995,9 +2995,24 @@ const ComplaintDetails = () => {
             <DialogHeader className="flex-shrink-0 p-4 pr-14 border-b">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <DialogTitle className="flex items-center gap-2">
-                    <Mail className="h-5 w-5 flex-shrink-0" />
-                    <span className="truncate">Acknowledgement Letter - {complaint?.reference_number}</span>
+                  <DialogTitle className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <Mail className="h-5 w-5 flex-shrink-0" />
+                      <span className="truncate">Acknowledgement Letter - {complaint?.reference_number}</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        await handleGenerateAcknowledgement(complaint.id);
+                      }}
+                      disabled={isGeneratingAcknowledgement}
+                      className="ml-auto mr-[100px]"
+                      title="Regenerate acknowledgement letter with AI"
+                    >
+                      <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAcknowledgement ? 'animate-spin' : ''}`} />
+                      {isGeneratingAcknowledgement ? 'Regenerating...' : 'Regenerate'}
+                    </Button>
                   </DialogTitle>
                   <DialogDescription className="text-xs mt-1">
                     {isEditingAcknowledgement ? 'Edit and format your letter with rich text controls' : 'View, edit, download, or regenerate the acknowledgement letter'}
@@ -3065,14 +3080,13 @@ const ComplaintDetails = () => {
                   <Button 
                     variant="outline"
                     size="sm"
-                    onClick={() => {
-                      handleCloseAcknowledgementModal(true);
-                      handleGenerateAcknowledgement(complaint.id);
+                    onClick={async () => {
+                      await handleGenerateAcknowledgement(complaint.id);
                     }}
-                    disabled={submitting}
+                    disabled={isGeneratingAcknowledgement}
                   >
-                    <RefreshCw className={`h-4 w-4 mr-1 ${submitting ? 'animate-spin' : ''}`} />
-                    {submitting ? 'Regenerating...' : 'Regenerate'}
+                    <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAcknowledgement ? 'animate-spin' : ''}`} />
+                    {isGeneratingAcknowledgement ? 'Regenerating...' : 'Regenerate'}
                   </Button>
                 </div>
 
@@ -3143,7 +3157,24 @@ const ComplaintDetails = () => {
               </div>
               
               {/* Letter content */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-hidden relative">
+                {isGeneratingAcknowledgement && (
+                  <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg animate-fade-in">
+                    <div className="text-center space-y-3">
+                      <div className="relative">
+                        <RefreshCw className="h-12 w-12 text-primary animate-spin mx-auto" />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="h-8 w-8 rounded-full border-2 border-primary/30 animate-ping" />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <p className="text-sm font-medium">Regenerating acknowledgement letter...</p>
+                        <p className="text-xs text-muted-foreground">Please wait while AI creates a new version</p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                <div className={`h-full transition-opacity duration-300 ${isGeneratingAcknowledgement ? 'opacity-30' : 'opacity-100'}`}>
                 {!isEditingAcknowledgement ? (
                   <div className="bg-muted/30 p-4 rounded-lg h-full overflow-auto">
                     <div 
@@ -3229,6 +3260,7 @@ const ComplaintDetails = () => {
                     </Collapsible>
                   </div>
                 )}
+                </div>
               </div>
               
               {/* Word count */}
