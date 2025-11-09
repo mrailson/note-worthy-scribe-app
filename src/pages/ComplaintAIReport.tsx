@@ -63,6 +63,7 @@ export default function ComplaintAIReport() {
         .select(`
           *,
           complaint_outcomes (*),
+          complaint_acknowledgements (*),
           complaint_notes (*),
           complaint_involved_parties (*)
         `)

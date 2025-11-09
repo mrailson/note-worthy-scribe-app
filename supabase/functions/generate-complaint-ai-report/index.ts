@@ -32,6 +32,7 @@ serve(async (req) => {
       .select(`
         *,
         complaint_outcomes (*),
+        complaint_acknowledgements (*),
         complaint_notes (*),
         complaint_involved_parties (*)
       `)
@@ -40,11 +41,13 @@ serve(async (req) => {
 
     if (complaintError) throw complaintError;
 
-    // Calculate timeline compliance
-    const receivedDate = complaint.incident_date ? new Date(complaint.incident_date) : new Date(complaint.created_at);
-    const acknowledgedDate = complaint.acknowledged_date ? new Date(complaint.acknowledged_date) : null;
-    const outcomeDate = complaint.complaint_outcomes?.[0]?.decided_at 
-      ? new Date(complaint.complaint_outcomes[0].decided_at) 
+    // Calculate timeline compliance using correct date fields
+    const receivedDate = complaint.received_at ? new Date(complaint.received_at) : new Date(complaint.created_at);
+    const acknowledgedDate = complaint.complaint_acknowledgements?.[0]?.sent_at 
+      ? new Date(complaint.complaint_acknowledgements[0].sent_at) 
+      : null;
+    const outcomeDate = complaint.complaint_outcomes?.[0]?.sent_at 
+      ? new Date(complaint.complaint_outcomes[0].sent_at) 
       : null;
 
     const daysToAcknowledge = acknowledgedDate 
