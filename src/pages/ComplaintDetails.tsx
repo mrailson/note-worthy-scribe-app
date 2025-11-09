@@ -2503,7 +2503,7 @@ const ComplaintDetails = () => {
                           await handleRegenerateOutcomeLetter();
                         }}
                         disabled={isRegeneratingOutcome}
-                        className="ml-auto"
+                        className="ml-auto mr-[100px]"
                         title="Regenerate outcome letter with AI"
                       >
                         <RefreshCw className={`h-4 w-4 mr-1 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
