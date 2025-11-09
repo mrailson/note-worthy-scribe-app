@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Wand2, Loader2, Edit } from "lucide-react";
+import { Wand2, Loader2, Edit, Sparkles } from "lucide-react";
 
 interface AcknowledgementQuickPickProps {
   currentLetter: string;
@@ -51,7 +51,40 @@ export function AcknowledgementQuickPick({
     }
   };
 
-  const handleQuickPick = async (option: string) => {
+  const presentationStyles: Record<string, { name: string; description: string; styleKey: string }> = {
+    "professional-bullet": {
+      name: "Professional Bullet Points",
+      description: "Clear bullet points with blue highlights",
+      styleKey: "professional-bullet"
+    },
+    "formal-paragraph": {
+      name: "Formal Paragraphs",
+      description: "Traditional paragraph format",
+      styleKey: "formal-paragraph"
+    },
+    "numbered-summary": {
+      name: "Numbered Summary",
+      description: "Numbered lists for easy reference",
+      styleKey: "numbered-summary"
+    },
+    "executive-brief": {
+      name: "Executive Brief",
+      description: "Concise with bold headers",
+      styleKey: "executive-brief"
+    },
+    "detailed-narrative": {
+      name: "Detailed Narrative",
+      description: "Fuller paragraphs with flow",
+      styleKey: "detailed-narrative"
+    },
+    "highlighted-points": {
+      name: "Highlighted Key Points",
+      description: "Visual emphasis on key information",
+      styleKey: "highlighted-points"
+    },
+  };
+
+  const handleQuickPick = async (option: string, styleKey?: string) => {
     if (!currentLetter.trim()) {
       toast.error("No letter content to modify");
       return;
@@ -62,11 +95,7 @@ export function AcknowledgementQuickPick({
     try {
       const instructions = Object.values(quickPickOptions).flatMap(category => 
         Object.entries(category)
-      ).find(([key]) => key === option)?.[1];
-
-      if (!instructions) {
-        throw new Error('Invalid quick pick option');
-      }
+      ).find(([key]) => key === option)?.[1] || option;
 
       const { data, error } = await supabase.functions.invoke('regenerate-acknowledgement-letter', {
         body: {
@@ -74,7 +103,8 @@ export function AcknowledgementQuickPick({
           currentLetter,
           instructions,
           complaintDescription,
-          referenceNumber
+          referenceNumber,
+          ...(styleKey && { style: styleKey }),
         }
       });
 
@@ -206,6 +236,29 @@ export function AcknowledgementQuickPick({
             >
               Simplify Language
             </DropdownMenuItem>
+          </DropdownMenuSubContent>
+        </DropdownMenuSub>
+
+        {/* Presentation Styles */}
+        <DropdownMenuSub>
+          <DropdownMenuSubTrigger>
+            <Sparkles className="mr-2 h-4 w-4" />
+            Try Different Style
+          </DropdownMenuSubTrigger>
+          <DropdownMenuSubContent className="w-64">
+            {Object.entries(presentationStyles).map(([key, style]) => (
+              <DropdownMenuItem 
+                key={key}
+                onClick={() => handleQuickPick(
+                  `Reformat this letter using the ${style.name} presentation style`,
+                  style.styleKey
+                )}
+                className="cursor-pointer flex-col items-start h-auto py-2"
+              >
+                <span className="font-medium">{style.name}</span>
+                <span className="text-xs text-muted-foreground">{style.description}</span>
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuSubContent>
         </DropdownMenuSub>
 

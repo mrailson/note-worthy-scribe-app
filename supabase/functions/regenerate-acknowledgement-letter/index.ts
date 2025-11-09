@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { complaintId, currentLetter, instructions, complaintDescription, referenceNumber } = await req.json();
+    const { complaintId, currentLetter, instructions, complaintDescription, referenceNumber, style } = await req.json();
     
     if (!complaintId || !currentLetter || !instructions) {
       throw new Error('Missing required parameters');
@@ -22,6 +22,49 @@ serve(async (req) => {
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
+
+    // Define style-specific formatting instructions
+    const styleInstructions: Record<string, string> = {
+      'professional-bullet': `FORMAT AS PROFESSIONAL BULLET POINT STYLE:
+- Use a blue left border on the subject line (Re: Acknowledgement...)
+- Present key concerns and investigation points as clear bullet points with • symbols
+- Keep paragraphs concise between bullet sections
+- Use bold for section headers`,
+      
+      'formal-paragraph': `FORMAT AS FORMAL PARAGRAPH STYLE:
+- Use traditional paragraph-based format throughout
+- No bullet points or numbered lists
+- Smooth transitions between paragraphs
+- Professional formal business letter tone`,
+      
+      'numbered-summary': `FORMAT AS NUMBERED SUMMARY STYLE:
+- Use numbered lists (1., 2., 3.) for key points and concerns
+- Clear section headers followed by numbered items
+- Concise point-by-point structure
+- Easy to reference and track`,
+      
+      'executive-brief': `FORMAT AS EXECUTIVE BRIEF STYLE:
+- Concise paragraph style with bold section headers
+- Use **bold text** for key terms and important points
+- Short, direct paragraphs
+- Highlight critical information clearly`,
+      
+      'detailed-narrative': `FORMAT AS DETAILED NARRATIVE STYLE:
+- Fuller, more detailed paragraphs
+- Flowing narrative with smooth transitions
+- Comprehensive explanations
+- Professional storytelling approach`,
+      
+      'highlighted-points': `FORMAT AS HIGHLIGHTED KEY POINTS STYLE:
+- Use text emphasis with **bold** for key concerns
+- Highlight important dates and timelines
+- Visual separation between sections
+- Use indentation for sub-points`
+    };
+
+    const stylePrompt = style && styleInstructions[style] 
+      ? `\n\n${styleInstructions[style]}` 
+      : '';
 
     // Call Lovable AI to regenerate the acknowledgement letter
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -35,7 +78,7 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are an expert NHS complaints manager helping to revise acknowledgement letters. 
+            content: `You are an expert NHS complaints manager helping to revise acknowledgement letters.
 Your task is to take the existing acknowledgement letter and modify it based on the user's instructions whilst maintaining professional NHS standards and compliance with complaints handling best practices.
 
 CRITICAL LANGUAGE REQUIREMENT - BRITISH ENGLISH ONLY:
@@ -73,6 +116,7 @@ NHS BEST PRACTICES FOR ACKNOWLEDGEMENT LETTERS:
 - Provide appropriate contact information
 - Express empathy whilst remaining professional
 - Reassure about thoroughness and impartiality
+${stylePrompt}
 
 Return ONLY the revised letter content without any preamble or explanation.`
           },
