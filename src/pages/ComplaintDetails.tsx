@@ -2488,27 +2488,12 @@ const ComplaintDetails = () => {
               <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
                 <DialogContent className="max-w-6xl max-h-[98vh] overflow-hidden">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-5 w-5" />
-                        Outcome Letter - {complaint?.reference_number}
-                        <span className="text-sm font-normal text-muted-foreground ml-2">
-                          Final outcome letter for this complaint
-                        </span>
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={async () => {
-                          await handleRegenerateOutcomeLetter();
-                        }}
-                        disabled={isRegeneratingOutcome}
-                        className="ml-auto mr-[100px]"
-                        title="Regenerate outcome letter with AI"
-                      >
-                        <RefreshCw className={`h-4 w-4 mr-1 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
-                        {isRegeneratingOutcome ? 'Regenerating...' : 'Regenerate'}
-                      </Button>
+                    <DialogTitle className="flex items-center gap-2">
+                      <FileText className="h-5 w-5" />
+                      Outcome Letter - {complaint?.reference_number}
+                      <span className="text-sm font-normal text-muted-foreground ml-2">
+                        Final outcome letter for this complaint
+                      </span>
                     </DialogTitle>
                   </DialogHeader>
                   
@@ -2995,24 +2980,9 @@ const ComplaintDetails = () => {
             <DialogHeader className="flex-shrink-0 p-4 pr-14 border-b">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
-                  <DialogTitle className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <Mail className="h-5 w-5 flex-shrink-0" />
-                      <span className="truncate">Acknowledgement Letter - {complaint?.reference_number}</span>
-                    </div>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={async () => {
-                        await handleGenerateAcknowledgement(complaint.id);
-                      }}
-                      disabled={isGeneratingAcknowledgement}
-                      className="ml-auto mr-[100px]"
-                      title="Regenerate acknowledgement letter with AI"
-                    >
-                      <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAcknowledgement ? 'animate-spin' : ''}`} />
-                      {isGeneratingAcknowledgement ? 'Regenerating...' : 'Regenerate'}
-                    </Button>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Mail className="h-5 w-5 flex-shrink-0" />
+                    <span className="truncate">Acknowledgement Letter - {complaint?.reference_number}</span>
                   </DialogTitle>
                   <DialogDescription className="text-xs mt-1">
                     {isEditingAcknowledgement ? 'Edit and format your letter with rich text controls' : 'View, edit, download, or regenerate the acknowledgement letter'}
