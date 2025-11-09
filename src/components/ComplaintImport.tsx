@@ -41,6 +41,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [processing, setProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState<ComplaintData | null>(null);
+  const [loadedExample, setLoadedExample] = useState<{number: number, name: string} | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to preview when data is extracted
@@ -70,6 +71,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
 
   const removeFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
+    setLoadedExample(null);
   };
 
   const handleImport = async (source: 'file' | 'text') => {
@@ -150,7 +152,35 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
     }
   };
 
-  const downloadExample = async (exampleNumber: number, exampleName: string) => {
+  const loadExample = async (exampleNumber: number, exampleName: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-example-complaint', {
+        body: { exampleNumber }
+      });
+      
+      if (error) throw error;
+      
+      // Create a virtual File object from the text content
+      const blob = new Blob([data], { type: 'text/plain' });
+      const file = new File([blob], `example-complaint-${exampleNumber}.txt`, {
+        type: 'text/plain',
+        lastModified: Date.now()
+      });
+      
+      // Add to selected files state
+      setSelectedFiles([file]);
+      
+      // Store example details for download link
+      setLoadedExample({ number: exampleNumber, name: exampleName });
+      
+      showToast.success(`Loaded: ${exampleName}`, { section: 'complaints' });
+    } catch (error) {
+      console.error('Load example error:', error);
+      showToast.error('Failed to load example', { section: 'complaints' });
+    }
+  };
+
+  const downloadExampleFile = async (exampleNumber: number, exampleName: string) => {
     try {
       const { data, error } = await supabase.functions.invoke('generate-example-complaint', {
         body: { exampleNumber }
@@ -169,10 +199,10 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
       
-      showToast.success(`Downloaded: ${exampleName}`, { section: 'complaints' });
+      showToast.success('Example file downloaded', { section: 'complaints' });
     } catch (error) {
       console.error('Download error:', error);
-      showToast.error('Failed to download example', { section: 'complaints' });
+      showToast.error('Failed to download', { section: 'complaints' });
     }
   };
 
@@ -215,64 +245,64 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                     </Button>
                   </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-80">
-                  <DropdownMenuItem onClick={() => downloadExample(1, "High Priority - Clinical Care & Staff Attitude")}>
+                  <DropdownMenuItem onClick={() => loadExample(1, "High Priority - Clinical Care & Staff Attitude")}>
                     Example 1: High Priority - Clinical Care & Staff Attitude
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(2, "Medium Priority - Appointment Delays")}>
+                  <DropdownMenuItem onClick={() => loadExample(2, "Medium Priority - Appointment Delays")}>
                     Example 2: Medium Priority - Appointment Delays
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(3, "High Priority - Medication Error")}>
+                  <DropdownMenuItem onClick={() => loadExample(3, "High Priority - Medication Error")}>
                     Example 3: High Priority - Medication Error
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(4, "Low Priority - Facility & Cleanliness")}>
+                  <DropdownMenuItem onClick={() => loadExample(4, "Low Priority - Facility & Cleanliness")}>
                     Example 4: Low Priority - Facility & Cleanliness
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(5, "Medium Priority - Test Results Delay")}>
+                  <DropdownMenuItem onClick={() => loadExample(5, "Medium Priority - Test Results Delay")}>
                     Example 5: Medium Priority - Test Results Delay
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(6, "High Priority - Misdiagnosis Concern")}>
+                  <DropdownMenuItem onClick={() => loadExample(6, "High Priority - Misdiagnosis Concern")}>
                     Example 6: High Priority - Misdiagnosis Concern
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(7, "Medium Priority - Discrimination")}>
+                  <DropdownMenuItem onClick={() => loadExample(7, "Medium Priority - Discrimination")}>
                     Example 7: Medium Priority - Discrimination & Accessibility
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(8, "Low Priority - Administrative Error")}>
+                  <DropdownMenuItem onClick={() => loadExample(8, "Low Priority - Administrative Error")}>
                     Example 8: Low Priority - Administrative Error
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(9, "High Priority - Child Safeguarding")}>
+                  <DropdownMenuItem onClick={() => loadExample(9, "High Priority - Child Safeguarding")}>
                     Example 9: High Priority - Child Safeguarding Concern
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(10, "Medium Priority - Prescription Error")}>
+                  <DropdownMenuItem onClick={() => loadExample(10, "Medium Priority - Prescription Error")}>
                     Example 10: Medium Priority - Prescription Error
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(11, "High Priority - Privacy & Data Breach")}>
+                  <DropdownMenuItem onClick={() => loadExample(11, "High Priority - Privacy & Data Breach")}>
                     Example 11: High Priority - Privacy & Data Breach
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(12, "VEXATIOUS - Unreasonable Demands")} className="text-orange-600 font-semibold">
+                  <DropdownMenuItem onClick={() => loadExample(12, "VEXATIOUS - Unreasonable Demands")} className="text-orange-600 font-semibold">
                     Example 12: VEXATIOUS - Unreasonable Demands
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(13, "VEXATIOUS - Aggressive Communication")} className="text-orange-600 font-semibold">
+                  <DropdownMenuItem onClick={() => loadExample(13, "VEXATIOUS - Aggressive Communication")} className="text-orange-600 font-semibold">
                     Example 13: VEXATIOUS - Aggressive Communication
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(14, "Medium Priority - Mental Health Care Gap")}>
+                  <DropdownMenuItem onClick={() => loadExample(14, "Medium Priority - Mental Health Care Gap")}>
                     Example 14: Medium Priority - Mental Health Care Gap
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(15, "High Priority - Multiple Systems Failures")}>
+                  <DropdownMenuItem onClick={() => loadExample(15, "High Priority - Multiple Systems Failures")}>
                     Example 15: High Priority - Multiple Systems Failures
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(16, "Medium Priority - Communication Breakdown")}>
+                  <DropdownMenuItem onClick={() => loadExample(16, "Medium Priority - Communication Breakdown")}>
                     Example 16: Medium Priority - Communication Breakdown
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(17, "High Priority - Aggressive Staff Behaviour")}>
+                  <DropdownMenuItem onClick={() => loadExample(17, "High Priority - Aggressive Staff Behaviour")}>
                     Example 17: High Priority - Aggressive Staff Behaviour
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(18, "Low Priority - Telephone System Issues")}>
+                  <DropdownMenuItem onClick={() => loadExample(18, "Low Priority - Telephone System Issues")}>
                     Example 18: Low Priority - Telephone System Issues
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(19, "Medium Priority - Prescription Safety Concern")}>
+                  <DropdownMenuItem onClick={() => loadExample(19, "Medium Priority - Prescription Safety Concern")}>
                     Example 19: Medium Priority - Prescription Safety
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => downloadExample(20, "High Priority - Delayed Cancer Diagnosis")}>
+                  <DropdownMenuItem onClick={() => loadExample(20, "High Priority - Delayed Cancer Diagnosis")}>
                     Example 20: High Priority - Delayed Cancer Diagnosis
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -434,6 +464,17 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                       </Button>
                     </div>
                   ))}
+                  {loadedExample && (
+                    <Button
+                      variant="link"
+                      size="sm"
+                      onClick={() => downloadExampleFile(loadedExample.number, loadedExample.name)}
+                      className="text-xs w-full justify-center"
+                    >
+                      <Download className="h-3 w-3 mr-1" />
+                      Download this example as file
+                    </Button>
+                  )}
                   <Button 
                     size={deviceInfo.isIPhone ? "default" : "sm"}
                     onClick={() => handleImport('file')}
