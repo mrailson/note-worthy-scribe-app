@@ -209,31 +209,6 @@ export default function ExecutiveOverview() {
           </div>
         </div>
 
-        {/* Overall Impact Metrics */}
-        <Card className="mb-8 border-2 shadow-lg">
-          <CardHeader className="bg-gradient-to-r from-primary/10 to-purple-600/10">
-            <CardTitle className="text-2xl flex items-centre gap-2">
-              <TrendingUp className="h-6 w-6" />
-              Overall Impact & ROI
-            </CardTitle>
-            <CardDescription>
-              Quantified benefits across all four integrated systems
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pt-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              {overallMetrics.map((metric, index) => (
-                <div key={index} className="text-centre p-4 rounded-lg bg-secondary/20">
-                  <metric.icon className={`h-12 w-12 mx-auto mb-3 ${metric.color}`} />
-                  <div className="text-3xl font-bold mb-1">{metric.value}</div>
-                  <div className="text-sm font-medium mb-1">{metric.label}</div>
-                  <div className="text-xs text-muted-foreground">{metric.description}</div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
         {/* System Details Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-8">
           <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5 h-auto">
