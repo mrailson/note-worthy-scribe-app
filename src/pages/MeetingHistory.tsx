@@ -1622,44 +1622,46 @@ const MeetingHistory = () => {
            </Button>
          </div>
 
-         {/* Stats Cards */}
-         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-           <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-sm hover:shadow-md transition-all duration-300">
-             <CardContent className="p-6">
-               <div className="flex items-center justify-between mb-3">
-                 <p className="text-sm font-inter font-medium text-muted-foreground">Total Meetings</p>
-                 <FileText className="h-5 w-5 text-primary" />
-               </div>
-               <p className="text-4xl font-playfair font-bold text-foreground">{meetings.length}</p>
-             </CardContent>
-           </Card>
-           
-           <Card className="bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20 shadow-sm hover:shadow-md transition-all duration-300">
-             <CardContent className="p-6">
-               <div className="flex items-center justify-between mb-3">
-                 <p className="text-sm font-inter font-medium text-muted-foreground">This Month</p>
-                 <Clock className="h-5 w-5 text-accent" />
-               </div>
-               <p className="text-4xl font-playfair font-bold text-foreground">
-                 {meetings.filter(m => 
-                   new Date(m.created_at).getMonth() === new Date().getMonth()
-                 ).length}
-               </p>
-             </CardContent>
-           </Card>
-           
-           <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20 shadow-sm hover:shadow-md transition-all duration-300">
-             <CardContent className="p-6">
-               <div className="flex items-center justify-between mb-3">
-                 <p className="text-sm font-inter font-medium text-muted-foreground">With Summaries</p>
-                 <FileText className="h-5 w-5 text-success" />
-               </div>
-               <p className="text-4xl font-playfair font-bold text-foreground">
-                 {meetings.filter(m => m.summary_exists).length}
-               </p>
-             </CardContent>
-           </Card>
-         </div>
+          {/* Stats Cards - Hidden on mobile */}
+          {!isMobile && (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+              <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-sm hover:shadow-md transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-inter font-medium text-muted-foreground">Total Meetings</p>
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <p className="text-4xl font-playfair font-bold text-foreground">{meetings.length}</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-accent/5 to-accent/10 border-accent/20 shadow-sm hover:shadow-md transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-inter font-medium text-muted-foreground">This Month</p>
+                    <Clock className="h-5 w-5 text-accent" />
+                  </div>
+                  <p className="text-4xl font-playfair font-bold text-foreground">
+                    {meetings.filter(m => 
+                      new Date(m.created_at).getMonth() === new Date().getMonth()
+                    ).length}
+                  </p>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-gradient-to-br from-success/5 to-success/10 border-success/20 shadow-sm hover:shadow-md transition-all duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between mb-3">
+                    <p className="text-sm font-inter font-medium text-muted-foreground">With Summaries</p>
+                    <FileText className="h-5 w-5 text-success" />
+                  </div>
+                  <p className="text-4xl font-playfair font-bold text-foreground">
+                    {meetings.filter(m => m.summary_exists).length}
+                  </p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
 
          {/* Search Bar */}
          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
@@ -1676,56 +1678,57 @@ const MeetingHistory = () => {
            </div>
          </div>
 
-         {/* Selection Controls and Actions Row */}
-         <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center sm:justify-between p-4 bg-muted/30 rounded-xl border border-border/50">
-           <div className="flex items-center gap-3 flex-wrap">
-             {meetings.length > 0 && (
-               <>
-                 <Button
-                   variant="outline"
-                   size="default"
-                   onClick={() => {
-                     setIsSelectMode(!isSelectMode);
-                     setSelectedMeetings([]);
-                   }}
-                   className="touch-manipulation min-h-[44px] font-inter"
-                 >
-                   {isSelectMode ? (
-                     <>
-                       <Square className="h-4 w-4 mr-2" />
-                       Cancel Selection
-                     </>
-                   ) : (
-                     <>
-                       <CheckSquare className="h-4 w-4 mr-2" />
-                       Select Multiple
-                     </>
-                   )}
-                 </Button>
-                 
-                 {isSelectMode && (
-                   <>
-                     <Button
-                       variant="outline"
-                       size="default"
-                       onClick={handleSelectAll}
-                       className="touch-manipulation min-h-[44px] font-inter"
-                     >
-                       {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
-                     </Button>
-                     
-                     {selectedMeetings.length > 0 && (
-                       <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-inter font-medium">
-                         {selectedMeetings.length} selected
-                       </span>
-                     )}
-                   </>
-                 )}
-               </>
-             )}
-           </div>
+          {/* Selection Controls and Actions Row - Hidden on mobile */}
+          {!isMobile && (
+            <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center sm:justify-between p-4 bg-muted/30 rounded-xl border border-border/50">
+              <div className="flex items-center gap-3 flex-wrap">
+                {meetings.length > 0 && (
+                  <>
+                    <Button
+                      variant="outline"
+                      size="default"
+                      onClick={() => {
+                        setIsSelectMode(!isSelectMode);
+                        setSelectedMeetings([]);
+                      }}
+                      className="touch-manipulation min-h-[44px] font-inter"
+                    >
+                      {isSelectMode ? (
+                        <>
+                          <Square className="h-4 w-4 mr-2" />
+                          Cancel Selection
+                        </>
+                      ) : (
+                        <>
+                          <CheckSquare className="h-4 w-4 mr-2" />
+                          Select Multiple
+                        </>
+                      )}
+                    </Button>
+                    
+                    {isSelectMode && (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="default"
+                          onClick={handleSelectAll}
+                          className="touch-manipulation min-h-[44px] font-inter"
+                        >
+                          {selectedMeetings.length === filteredMeetings.length ? 'Deselect All' : 'Select All'}
+                        </Button>
+                        
+                        {selectedMeetings.length > 0 && (
+                          <span className="inline-flex items-center px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-inter font-medium">
+                            {selectedMeetings.length} selected
+                          </span>
+                        )}
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
 
-           <div className="flex gap-2 flex-wrap">
+              <div className="flex gap-2 flex-wrap">
              {/* Refresh Button */}
              <Button
                variant="outline"
@@ -1836,53 +1839,54 @@ const MeetingHistory = () => {
                </AlertDialog>
              )}
 
-             {meetings.length > 0 && (
-               <AlertDialog>
-                 <AlertDialogTrigger asChild>
-                   <Button 
-                     variant="destructive" 
-                     size="default"
-                     className="touch-manipulation min-h-[44px] font-inter shadow-sm hover:shadow-md transition-all"
-                   >
-                     <Trash2 className="h-4 w-4 mr-2" />
-                     Delete All
-                   </Button>
-                 </AlertDialogTrigger>
-                 <AlertDialogContent className="mx-4 max-w-md font-inter">
-                   <AlertDialogHeader>
-                     <AlertDialogTitle className="font-playfair">Delete All Meetings</AlertDialogTitle>
-                     <AlertDialogDescription>
-                       This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
-                       <br /><br />
-                       To confirm, please type <strong>delete</strong> in the field below:
-                     </AlertDialogDescription>
-                   </AlertDialogHeader>
-                  <Input
-                    placeholder="Type 'delete' to confirm"
-                    value={deleteConfirmation}
-                    onChange={(e) => setDeleteConfirmation(e.target.value)}
-                    className="touch-manipulation min-h-[44px]"
-                  />
-                  <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                    <AlertDialogCancel 
-                      onClick={() => setDeleteConfirmation("")}
-                      className="touch-manipulation min-h-[44px]"
+              {meetings.length > 0 && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button 
+                      variant="destructive" 
+                      size="default"
+                      className="touch-manipulation min-h-[44px] font-inter shadow-sm hover:shadow-md transition-all"
                     >
-                      Cancel
-                    </AlertDialogCancel>
-                    <AlertDialogAction 
-                      onClick={handleDeleteAll}
-                      disabled={deleteConfirmation.toLowerCase() !== 'delete'}
-                      className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
-                    >
-                      Delete All Meetings
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-             )}
-           </div>
-         </div>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Delete All
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent className="mx-4 max-w-md font-inter">
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="font-playfair">Delete All Meetings</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action will permanently delete all {meetings.length} meetings, their transcripts, and summaries. This cannot be undone.
+                        <br /><br />
+                        To confirm, please type <strong>delete</strong> in the field below:
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                   <Input
+                     placeholder="Type 'delete' to confirm"
+                     value={deleteConfirmation}
+                     onChange={(e) => setDeleteConfirmation(e.target.value)}
+                     className="touch-manipulation min-h-[44px]"
+                   />
+                   <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                     <AlertDialogCancel 
+                       onClick={() => setDeleteConfirmation("")}
+                       className="touch-manipulation min-h-[44px]"
+                     >
+                       Cancel
+                     </AlertDialogCancel>
+                     <AlertDialogAction 
+                       onClick={handleDeleteAll}
+                       disabled={deleteConfirmation.toLowerCase() !== 'delete'}
+                       className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
+                     >
+                       Delete All Meetings
+                     </AlertDialogAction>
+                   </AlertDialogFooter>
+                 </AlertDialogContent>
+               </AlertDialog>
+              )}
+            </div>
+          </div>
+          )}
 
 
         {/* Meeting Detail View or Meetings List */}
