@@ -138,7 +138,7 @@ serve(async (req) => {
       throw new Error('EmailJS configuration not complete - missing required secrets');
     }
 
-    const baseUrl = 'https://meetingmagic.lovable.app';
+    const baseUrl = 'https://notewell.dialai.co.uk';
     
     const emailResults = [];
 
