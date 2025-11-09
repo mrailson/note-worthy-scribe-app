@@ -198,13 +198,13 @@ export default function ExecutiveOverview() {
             improve compliance, and enhance patient care across Northamptonshire GP practices
           </p>
           <div className="flex gap-4 justify-centre mb-8">
-            <Button size="lg" onClick={() => navigate('/complaints')}>
+            <Button size="lg" onClick={() => window.location.href = 'mailto:malcolm.railson@nhs.net?subject=Request for Live Demo - Notewell AI Systems'}>
               <Sparkles className="mr-2 h-5 w-5" />
               View Live Demo
             </Button>
-            <Button size="lg" variant="outline">
+            <Button size="lg" variant="outline" onClick={() => window.location.href = 'mailto:malcolm.railson@nhs.net?subject=Request for Full Proposal - Notewell AI Systems'}>
               <FileCheck className="mr-2 h-5 w-5" />
-              Download Full Proposal
+              Request Full Proposal
             </Button>
           </div>
         </div>
@@ -435,15 +435,15 @@ export default function ExecutiveOverview() {
               Let's discuss how this integrated system can benefit Northamptonshire practices
             </p>
             <div className="flex gap-4 justify-centre flex-wrap">
-              <Button size="lg" variant="secondary">
+              <Button size="lg" variant="secondary" onClick={() => window.location.href = 'mailto:malcolm.railson@nhs.net?subject=Schedule a Meeting - Notewell AI Systems'}>
                 <Mail className="mr-2 h-5 w-5" />
                 Schedule a Meeting
               </Button>
-              <Button size="lg" variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white">
+              <Button size="lg" variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white" onClick={() => window.location.href = 'mailto:malcolm.railson@nhs.net?subject=Request for Full Proposal - Notewell AI Systems'}>
                 <FileCheck className="mr-2 h-5 w-5" />
                 Request Detailed Proposal
               </Button>
-              <Button size="lg" variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white" onClick={() => navigate('/complaints')}>
+              <Button size="lg" variant="outline" className="bg-white/10 hover:bg-white/20 text-white border-white" onClick={() => window.location.href = 'mailto:malcolm.railson@nhs.net?subject=Request for Live Demo - Notewell AI Systems'}>
                 <Sparkles className="mr-2 h-5 w-5" />
                 View Live Demonstration
               </Button>
