@@ -46,6 +46,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import GPSoapUI from "./components/GPSoapUI";
 import Turkey2025 from "./pages/Turkey2025";
 import EnhancedAccess from "./pages/EnhancedAccess";
+import ExecutiveOverview from "./pages/ExecutiveOverview";
 
 const App = () => {
   useSessionActivity();
@@ -65,6 +66,7 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/executive-overview" element={<ExecutiveOverview />} />
               <Route path="/ai4gp" element={<AI4GP />} />
               <Route path="/gp-scribe" element={<GPScribe />} />
               <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />

@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -92,6 +92,16 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               >
                 <Home className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
                 <span className="hidden sm:inline">Home</span>
+              </Button>
+              
+              <Button 
+                onClick={() => navigate('/executive-overview')}
+                variant="secondary"
+                size="sm"
+                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+              >
+                <Building2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                <span className="hidden sm:inline">Executive Overview</span>
               </Button>
               
               {!user && (
@@ -366,6 +376,17 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        >
                          <Home className="h-4 w-4 mr-2" />
                          Home
+                       </Button>
+                    </DrawerClose>
+                    
+                    <DrawerClose asChild>
+                       <Button 
+                         variant="ghost" 
+                         className="justify-start"
+                          onClick={() => navigate('/executive-overview')}
+                       >
+                         <Building2 className="h-4 w-4 mr-2" />
+                         Executive Overview
                        </Button>
                     </DrawerClose>
 
