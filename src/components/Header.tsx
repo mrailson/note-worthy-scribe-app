@@ -94,16 +94,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                 <span className="hidden sm:inline">Home</span>
               </Button>
               
-              <Button 
-                onClick={() => navigate('/executive-overview')}
-                variant="secondary"
-                size="sm"
-                className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-              >
-                <Building2 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                <span className="hidden sm:inline">Executive Overview</span>
-              </Button>
-              
               {!user && (
                 <Button 
                   onClick={() => navigate('/security-compliance')}
@@ -332,7 +322,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                              <Mic className="h-4 w-4 mr-2" />
                              Mic and Transcript Lab
                            </DropdownMenuItem>
-                        </DropdownMenuSubContent>
+                           <DropdownMenuItem 
+                             onClick={() => navigate('/executive-overview')}
+                             className="cursor-pointer py-3"
+                           >
+                             <Building2 className="h-4 w-4 mr-2" />
+                             Executive Overview
+                           </DropdownMenuItem>
+                         </DropdownMenuSubContent>
                      </DropdownMenuSub>
                    )}
                    <DropdownMenuSeparator />
@@ -376,17 +373,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        >
                          <Home className="h-4 w-4 mr-2" />
                          Home
-                       </Button>
-                    </DrawerClose>
-                    
-                    <DrawerClose asChild>
-                       <Button 
-                         variant="ghost" 
-                         className="justify-start"
-                          onClick={() => navigate('/executive-overview')}
-                       >
-                         <Building2 className="h-4 w-4 mr-2" />
-                         Executive Overview
                        </Button>
                     </DrawerClose>
 
@@ -607,6 +593,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/transcription-comparison')}>
                                     <Mic className="h-4 w-4 mr-2" />
                                     Mic & Transcript Lab
+                                  </Button>
+                                </DrawerClose>
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/executive-overview')}>
+                                    <Building2 className="h-4 w-4 mr-2" />
+                                    Executive Overview
                                   </Button>
                                 </DrawerClose>
                               </CollapsibleContent>
