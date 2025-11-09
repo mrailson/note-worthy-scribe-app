@@ -486,11 +486,12 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
                   <SelectContent>
                     <SelectItem value="Reception Team">Reception Team</SelectItem>
                     <SelectItem value="GP Partner">GP Partner</SelectItem>
-                    <SelectItem value="GP">GP</SelectItem>
+                    <SelectItem value="GP Salaried">GP Salaried</SelectItem>
+                    <SelectItem value="GP Trainee">GP Trainee</SelectItem>
                     <SelectItem value="Practice Nurse">Practice Nurse</SelectItem>
                     <SelectItem value="Practice Manager">Practice Manager</SelectItem>
-                    <SelectItem value="Healthcare Assistant">Healthcare Assistant</SelectItem>
-                    <SelectItem value="Other Clinician">Other Clinician</SelectItem>
+                    <SelectItem value="ARRS Staff">ARRS Staff</SelectItem>
+                    <SelectItem value="Admin Team">Admin Team</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
@@ -644,11 +645,12 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
                 <SelectContent>
                   <SelectItem value="Reception Team">Reception Team</SelectItem>
                   <SelectItem value="GP Partner">GP Partner</SelectItem>
-                  <SelectItem value="GP">GP</SelectItem>
+                  <SelectItem value="GP Salaried">GP Salaried</SelectItem>
+                  <SelectItem value="GP Trainee">GP Trainee</SelectItem>
                   <SelectItem value="Practice Nurse">Practice Nurse</SelectItem>
                   <SelectItem value="Practice Manager">Practice Manager</SelectItem>
-                  <SelectItem value="Healthcare Assistant">Healthcare Assistant</SelectItem>
-                  <SelectItem value="Other Clinician">Other Clinician</SelectItem>
+                  <SelectItem value="ARRS Staff">ARRS Staff</SelectItem>
+                  <SelectItem value="Admin Team">Admin Team</SelectItem>
                   <SelectItem value="Other">Other</SelectItem>
                 </SelectContent>
               </Select>
@@ -720,11 +722,12 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
                   <SelectContent>
                     <SelectItem value="Reception Team">Reception Team</SelectItem>
                     <SelectItem value="GP Partner">GP Partner</SelectItem>
-                    <SelectItem value="GP">GP</SelectItem>
+                    <SelectItem value="GP Salaried">GP Salaried</SelectItem>
+                    <SelectItem value="GP Trainee">GP Trainee</SelectItem>
                     <SelectItem value="Practice Nurse">Practice Nurse</SelectItem>
                     <SelectItem value="Practice Manager">Practice Manager</SelectItem>
-                    <SelectItem value="Healthcare Assistant">Healthcare Assistant</SelectItem>
-                    <SelectItem value="Other Clinician">Other Clinician</SelectItem>
+                    <SelectItem value="ARRS Staff">ARRS Staff</SelectItem>
+                    <SelectItem value="Admin Team">Admin Team</SelectItem>
                     <SelectItem value="Other">Other</SelectItem>
                   </SelectContent>
                 </Select>
