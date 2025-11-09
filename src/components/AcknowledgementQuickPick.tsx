@@ -31,6 +31,7 @@ export function AcknowledgementQuickPick({
   onEditClick
 }: AcknowledgementQuickPickProps) {
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
 
   const quickPickOptions = {
     tone: {
@@ -90,6 +91,7 @@ export function AcknowledgementQuickPick({
       return;
     }
 
+    setIsOpen(false); // Close dropdown immediately
     setIsProcessing(true);
     
     try {
@@ -137,7 +139,7 @@ export function AcknowledgementQuickPick({
   };
 
   return (
-    <DropdownMenu modal={false}>
+    <DropdownMenu open={isOpen} onOpenChange={setIsOpen} modal={false}>
       <DropdownMenuTrigger asChild>
         <Button 
           variant="outline" 
