@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Mail, Clock, CheckCircle, AlertCircle, Trash2, Users, Plus, Edit } from "lucide-react";
+import { Mail, Clock, CheckCircle, AlertCircle, Trash2, Users, Plus, Edit, Sparkles, Loader2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -73,6 +73,7 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
     role: "",
     phone: "",
   });
+  const [isGeneratingDemo, setIsGeneratingDemo] = useState(false);
 
   useEffect(() => {
     fetchInvolvedParties();
@@ -282,6 +283,42 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
     } catch (error) {
       console.error('Error deleting request:', error);
       toast.error('Failed to delete request');
+    }
+  };
+
+  const handleLoadDemo = async () => {
+    if (!newParty.name || !newParty.role) {
+      toast.error('Please select a name and role first');
+      return;
+    }
+
+    setIsGeneratingDemo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-staff-demo-notes', {
+        body: {
+          complaintId,
+          staffRole: newParty.role,
+          staffName: newParty.name
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.error) {
+        throw new Error(data.error);
+      }
+
+      if (data?.notes) {
+        setNewParty({ ...newParty, notes: data.notes });
+        toast.success(`Demo notes loaded for ${newParty.role}`);
+      } else {
+        throw new Error('No notes generated');
+      }
+    } catch (error) {
+      console.error('Error generating demo notes:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate demo notes');
+    } finally {
+      setIsGeneratingDemo(false);
     }
   };
 
@@ -509,7 +546,29 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="notes">Additional Notes (Optional)</Label>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleLoadDemo}
+                    disabled={isGeneratingDemo || !newParty.name || !newParty.role}
+                    className="h-8 gap-1.5 text-xs"
+                  >
+                    {isGeneratingDemo ? (
+                      <>
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                        Loading...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Load Demo
+                      </>
+                    )}
+                  </Button>
+                </div>
                 <Textarea
                   id="notes"
                   value={newParty.notes}

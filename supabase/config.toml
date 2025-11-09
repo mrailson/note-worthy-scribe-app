@@ -239,3 +239,6 @@ verify_jwt = true
 
 [functions.generate-demo-response]
 verify_jwt = true
+
+[functions.generate-staff-demo-notes]
+verify_jwt = true
