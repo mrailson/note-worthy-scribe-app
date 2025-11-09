@@ -2618,24 +2618,38 @@ const ComplaintDetails = () => {
                 <Collapsible open={showAudioSummarySection} onOpenChange={setShowAudioSummarySection}>
                   <Card className="border-blue-200 bg-blue-50">
                     <CardHeader>
-                      <CollapsibleTrigger asChild>
-                        <Button variant="ghost" className="w-full justify-between p-0 h-auto hover:bg-transparent">
-                          <div className="text-left">
-                            <CardTitle className="flex items-center gap-2 text-blue-800">
-                              <Headphones className="h-5 w-5" />
-                              Executive Audio Summary
-                            </CardTitle>
-                            <CardDescription className="text-blue-700">
-                              AI-generated audio briefing for management and partners
-                            </CardDescription>
-                          </div>
-                          {showAudioSummarySection ? (
-                            <ChevronUp className="h-5 w-5 text-blue-800" />
-                          ) : (
-                            <ChevronDown className="h-5 w-5 text-blue-800" />
-                          )}
+                      <div className="flex items-start justify-between w-full">
+                        <CollapsibleTrigger asChild>
+                          <Button variant="ghost" className="flex-1 justify-between p-0 h-auto hover:bg-transparent">
+                            <div className="text-left">
+                              <CardTitle className="flex items-center gap-2 text-blue-800">
+                                <Headphones className="h-5 w-5" />
+                                Executive Audio Summary
+                              </CardTitle>
+                              <CardDescription className="text-blue-700">
+                                AI-generated audio briefing for management and partners
+                              </CardDescription>
+                            </div>
+                            {showAudioSummarySection ? (
+                              <ChevronUp className="h-5 w-5 text-blue-800" />
+                            ) : (
+                              <ChevronDown className="h-5 w-5 text-blue-800" />
+                            )}
+                          </Button>
+                        </CollapsibleTrigger>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            fetchComplaintDetails();
+                          }}
+                          className="h-8 w-8 p-0 text-blue-600 hover:text-blue-800 hover:bg-blue-100"
+                          title="Refresh audio summary"
+                        >
+                          <RefreshCw className="h-4 w-4" />
                         </Button>
-                      </CollapsibleTrigger>
+                      </div>
                     </CardHeader>
                     <CollapsibleContent>
                       <CardContent className="space-y-4">
