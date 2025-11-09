@@ -1247,6 +1247,7 @@ const MeetingHistory = () => {
           right_audio_url,
           recording_created_at,
           notes_generation_status,
+          notes_style_3,
           meeting_overviews(overview, audio_overview_url, audio_overview_text, audio_overview_duration)
         `, { count: 'exact' })
         .eq('user_id', user.id)
@@ -1316,6 +1317,7 @@ const MeetingHistory = () => {
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id],
         transcript: null,
+        meeting_summary: meeting.notes_style_3 || null,
         document_count: documentCounts[meeting.id] || 0,
         documents: [],
         overview: meeting.meeting_overviews?.overview || null,
