@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { cleanupDuplicateComplianceChecks } from '@/utils/cleanupComplianceChecks';
-import { useToast } from '@/hooks/use-toast';
+import { showShadcnToast } from '@/utils/toastWrapper';
 import {
   Alert,
   AlertDescription,
@@ -20,7 +20,6 @@ export function ComplianceCheckCleanupButton({
 }: ComplianceCheckCleanupButtonProps) {
   const [isCleaningUp, setIsCleaningUp] = useState(false);
   const [result, setResult] = useState<any>(null);
-  const { toast } = useToast();
 
   const handleCleanup = async () => {
     setIsCleaningUp(true);
@@ -31,27 +30,24 @@ export function ComplianceCheckCleanupButton({
       setResult(cleanupResult);
 
       if (cleanupResult.success) {
-        toast({
-          title: 'Cleanup Complete',
-          description: cleanupResult.message,
-        });
-
         if (onCleanupComplete) {
           onCleanupComplete();
         }
       } else {
-        toast({
+        showShadcnToast({
           title: 'Cleanup Failed',
           description: cleanupResult.message,
           variant: 'destructive',
+          section: 'complaints',
         });
       }
     } catch (error) {
       console.error('Cleanup error:', error);
-      toast({
+      showShadcnToast({
         title: 'Error',
         description: error instanceof Error ? error.message : 'Failed to cleanup checks',
         variant: 'destructive',
+        section: 'complaints',
       });
     } finally {
       setIsCleaningUp(false);

@@ -5,7 +5,7 @@ import { Download, ChevronDown, ChevronUp, Clock, User, RefreshCw } from 'lucide
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface ComplaintReviewNoteProps {
   conversation: {
@@ -74,8 +74,6 @@ export function ComplaintReviewNote({
   const handleRegenerate = async () => {
     setIsRegenerating(true);
     try {
-      toast.info('Regenerating executive summary with updated compliance focus...');
-      
       const { data, error } = await supabase.functions.invoke('process-review-conversation', {
         body: {
           complaintId: conversation.complaint_id,
@@ -98,8 +96,6 @@ export function ComplaintReviewNote({
         .eq('id', conversation.id);
 
       if (updateError) throw updateError;
-
-      toast.success('Executive summary regenerated successfully');
       
       if (onRegenerate) {
         onRegenerate(data.review_note);
@@ -109,7 +105,7 @@ export function ComplaintReviewNote({
       }
     } catch (error: any) {
       console.error('Error regenerating summary:', error);
-      toast.error('Failed to regenerate summary: ' + (error.message || 'Unknown error'));
+      showToast.error('Failed to regenerate summary: ' + (error.message || 'Unknown error'), { section: 'complaints' });
     } finally {
       setIsRegenerating(false);
     }
