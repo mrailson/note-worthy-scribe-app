@@ -33,7 +33,7 @@ serve(async (req) => {
         *,
         complaint_outcomes (*),
         complaint_notes (*),
-        involved_parties (*),
+        complaint_involved_parties (*),
         complaint_questionnaires (*)
       `)
       .eq('id', complaintId)
@@ -61,7 +61,7 @@ serve(async (req) => {
       ?.map((note: any) => `- ${note.created_at}: ${note.note_text}`)
       .join('\n') || 'No notes recorded';
 
-    const involvedPartiesContext = complaint.involved_parties
+    const involvedPartiesContext = complaint.complaint_involved_parties
       ?.map((party: any) => `- ${party.name} (${party.role}): ${party.involvement_description || 'No description'}`)
       .join('\n') || 'No involved parties recorded';
 
