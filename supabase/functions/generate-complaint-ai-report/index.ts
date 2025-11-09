@@ -1,0 +1,217 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  try {
+    const { complaintId } = await req.json();
+
+    if (!complaintId) {
+      return new Response(JSON.stringify({ error: 'Missing complaintId' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    );
+
+    // Fetch comprehensive complaint data
+    const { data: complaint, error: complaintError } = await supabase
+      .from('complaints')
+      .select(`
+        *,
+        complaint_outcomes (*),
+        complaint_notes (*),
+        involved_parties (*),
+        complaint_questionnaires (*)
+      `)
+      .eq('id', complaintId)
+      .single();
+
+    if (complaintError) throw complaintError;
+
+    // Calculate timeline compliance
+    const receivedDate = complaint.incident_date ? new Date(complaint.incident_date) : new Date(complaint.created_at);
+    const acknowledgedDate = complaint.acknowledged_date ? new Date(complaint.acknowledged_date) : null;
+    const outcomeDate = complaint.complaint_outcomes?.[0]?.decided_at 
+      ? new Date(complaint.complaint_outcomes[0].decided_at) 
+      : null;
+
+    const daysToAcknowledge = acknowledgedDate 
+      ? Math.floor((acknowledgedDate.getTime() - receivedDate.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    const daysToOutcome = outcomeDate
+      ? Math.floor((outcomeDate.getTime() - receivedDate.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    // Prepare data for AI
+    const notesContext = complaint.complaint_notes
+      ?.map((note: any) => `- ${note.created_at}: ${note.note_text}`)
+      .join('\n') || 'No notes recorded';
+
+    const involvedPartiesContext = complaint.involved_parties
+      ?.map((party: any) => `- ${party.name} (${party.role}): ${party.involvement_description || 'No description'}`)
+      .join('\n') || 'No involved parties recorded';
+
+    const questionnaireContext = complaint.complaint_questionnaires
+      ?.map((q: any) => `Q: ${q.question}\nA: ${q.answer}`)
+      .join('\n\n') || 'No questionnaire responses';
+
+    const systemPrompt = `You are an expert NHS complaints reviewer generating a comprehensive but concise complaint review report. 
+
+Your task is to analyze the complaint data and provide:
+1. A clear overview of what happened and how it was handled
+2. Timeline compliance assessment
+3. Key learnings identified
+4. What the practice did well (be genuine and specific)
+5. Supportive suggestions for quality improvement (not critical, but helpful)
+6. Clear rationale for the outcome decision
+
+IMPORTANT TONE GUIDELINES:
+- Be friendly, supportive, and constructive
+- Highlight strengths genuinely - don't just list generic positives
+- Frame suggestions as opportunities for enhancement, not failures
+- Use "consider" and "could" rather than "should" or "must"
+- Acknowledge the complexity of healthcare delivery
+- Be specific with evidence from the case
+
+Return ONLY valid JSON in this exact structure:
+{
+  "complaintOverview": "2-3 paragraph narrative summary of the complaint and how it was handled",
+  "timelineCompliance": {
+    "acknowledged": {
+      "date": "ISO date or null",
+      "status": "on-time|late|pending",
+      "daysFromReceived": number
+    },
+    "outcome": {
+      "date": "ISO date or null",
+      "status": "on-time|late|pending",
+      "daysFromReceived": number
+    }
+  },
+  "keyLearnings": [
+    {
+      "learning": "Specific learning point",
+      "category": "Communication|Process|Clinical|Documentation|etc",
+      "impact": "high|medium|low"
+    }
+  ],
+  "practiceStrengths": [
+    "Specific thing the practice did well with evidence from the case"
+  ],
+  "improvementSuggestions": [
+    {
+      "suggestion": "Brief actionable suggestion",
+      "rationale": "Why this would help, framed supportively",
+      "priority": "high|medium|low"
+    }
+  ],
+  "outcomeRationale": "Clear explanation of why the outcome decision was appropriate based on the investigation"
+}`;
+
+    const userPrompt = `Analyze this NHS complaint and generate a comprehensive review report:
+
+COMPLAINT DETAILS:
+Reference: ${complaint.reference_number}
+Category: ${complaint.category}
+Priority: ${complaint.priority}
+Patient: ${complaint.patient_name}
+Date Received: ${receivedDate.toLocaleDateString('en-GB')}
+Acknowledged: ${acknowledgedDate ? acknowledgedDate.toLocaleDateString('en-GB') + ` (${daysToAcknowledge} days)` : 'Not yet acknowledged'}
+Outcome Date: ${outcomeDate ? outcomeDate.toLocaleDateString('en-GB') + ` (${daysToOutcome} days)` : 'Not yet completed'}
+
+COMPLAINT DESCRIPTION:
+${complaint.complaint_description}
+
+OUTCOME DECISION:
+Type: ${complaint.complaint_outcomes?.[0]?.outcome_type || 'Not yet decided'}
+Summary: ${complaint.complaint_outcomes?.[0]?.outcome_summary || 'No summary available'}
+
+INVESTIGATION NOTES:
+${notesContext}
+
+INVOLVED PARTIES:
+${involvedPartiesContext}
+
+QUESTIONNAIRE RESPONSES:
+${questionnaireContext}
+
+NHS GUIDELINES:
+- Acknowledgement: Within 3 working days
+- Resolution: Aim for within 35 days, can extend to 6 months with agreement
+
+Generate the report JSON now:`;
+
+    // Call Lovable AI Gateway
+    const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
+    if (!LOVABLE_API_KEY) {
+      throw new Error('LOVABLE_API_KEY not configured');
+    }
+
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt }
+        ],
+        temperature: 0.7,
+      }),
+    });
+
+    if (!aiResponse.ok) {
+      const errorText = await aiResponse.text();
+      console.error('AI Gateway error:', aiResponse.status, errorText);
+      throw new Error(`AI Gateway error: ${aiResponse.status}`);
+    }
+
+    const aiData = await aiResponse.json();
+    const content = aiData.choices[0].message.content;
+    
+    // Parse JSON from response
+    let reportData;
+    try {
+      // Remove any markdown code blocks
+      const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+      reportData = JSON.parse(cleanContent);
+    } catch (parseError) {
+      console.error('Failed to parse AI response:', content);
+      throw new Error('Failed to parse AI response as JSON');
+    }
+
+    return new Response(JSON.stringify(reportData), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+
+  } catch (error) {
+    console.error('Error in generate-complaint-ai-report:', error);
+    return new Response(
+      JSON.stringify({ 
+        error: error instanceof Error ? error.message : 'Unknown error',
+        details: 'Failed to generate AI report'
+      }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
+    );
+  }
+});
