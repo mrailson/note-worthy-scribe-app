@@ -47,6 +47,7 @@ import GPSoapUI from "./components/GPSoapUI";
 import Turkey2025 from "./pages/Turkey2025";
 import EnhancedAccess from "./pages/EnhancedAccess";
 import ExecutiveOverview from "./pages/ExecutiveOverview";
+import LoadDemoTeamData from "./pages/LoadDemoTeamData";
 
 const App = () => {
   useSessionActivity();
@@ -87,6 +88,7 @@ const App = () => {
               <Route path="/complaints-guide" element={<ComplaintsPresentationMode />} />
               <Route path="/complaint-response/:token" element={<ComplaintResponse />} />
               <Route path="/complaint-response" element={<ComplaintResponse />} />
+              <Route path="/load-demo-team" element={<LoadDemoTeamData />} />
               <Route path="/staff-feedback" element={<StaffFeedback />} />
               <Route path="/shared-drive" element={
                 <ProtectedRoute>
