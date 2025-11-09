@@ -64,7 +64,7 @@ export default function ComplaintAIReport() {
           *,
           complaint_outcomes (*),
           complaint_notes (*),
-          involved_parties (*),
+          complaint_involved_parties (*),
           complaint_questionnaires (*)
         `)
         .eq('id', id)
