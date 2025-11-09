@@ -88,12 +88,14 @@ IMPORTANT TONE GUIDELINES:
 - Be specific with evidence from the case
 - Remember: we're looking for improvement, not perfection
 
-IMPROVEMENT SUGGESTIONS REQUIREMENTS:
-- Provide a MAXIMUM of 3 suggestions (only the most important ones)
+IMPROVEMENT SUGGESTIONS REQUIREMENTS (CRITICAL):
+- You MUST provide EXACTLY 3 suggestions or fewer - NEVER MORE THAN 3
+- Select only the most important and impactful suggestions
 - Word each suggestion gently and supportively
 - Frame as possibilities and opportunities, not instructions or demands
 - Use phrases like "It might be helpful to consider...", "One approach could be...", "Teams sometimes find it useful to..."
 - Avoid prescriptive language that could stress or annoy the practice
+- Quality over quantity - better to have 2 excellent suggestions than 4 mediocre ones
 
 Return ONLY valid JSON in this exact structure:
 {
@@ -239,6 +241,12 @@ Generate the report JSON now:`;
       // Remove any markdown code blocks
       const cleanContent = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
       reportData = JSON.parse(cleanContent);
+      
+      // CRITICAL: Enforce maximum of 3 improvement suggestions
+      if (reportData.improvementSuggestions && reportData.improvementSuggestions.length > 3) {
+        console.log(`Trimming ${reportData.improvementSuggestions.length} suggestions down to 3`);
+        reportData.improvementSuggestions = reportData.improvementSuggestions.slice(0, 3);
+      }
     } catch (parseError) {
       console.error('Failed to parse AI response:', content);
       throw new Error('Failed to parse AI response as JSON');
