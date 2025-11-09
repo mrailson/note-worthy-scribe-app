@@ -10,8 +10,9 @@ interface MeetingDetailsTabsProps {
   audioOverviewUrl?: string;
   audioOverviewText?: string;
   audioOverviewDuration?: number;
+  meetingDurationMinutes?: number;
   onOverviewChange: (overview: string) => void;
-  onRegenerateAudio?: (voiceProvider?: string, voiceId?: string, updatedText?: string) => void;
+  onRegenerateAudio?: (voiceProvider?: string, voiceId?: string, updatedText?: string, targetDuration?: number) => void;
   onDocumentRemoved?: () => void;
   className?: string;
 }
@@ -22,6 +23,7 @@ export const MeetingDetailsTabs = ({
   audioOverviewUrl,
   audioOverviewText,
   audioOverviewDuration,
+  meetingDurationMinutes,
   onOverviewChange,
   onRegenerateAudio,
   onDocumentRemoved,
@@ -62,6 +64,7 @@ export const MeetingDetailsTabs = ({
             audioOverviewUrl={audioOverviewUrl}
             audioOverviewText={audioOverviewText}
             audioOverviewDuration={audioOverviewDuration}
+            meetingDurationMinutes={meetingDurationMinutes}
             onRegenerateAudio={onRegenerateAudio}
           />
         </TabsContent>

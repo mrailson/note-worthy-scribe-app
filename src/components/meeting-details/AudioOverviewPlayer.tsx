@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Play, Pause, RefreshCw, Download, ChevronDown, ChevronUp } from "lucide-react";
+import { Play, Pause, RefreshCw, Download, ChevronDown, ChevronUp, Mic } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
@@ -11,7 +11,8 @@ interface AudioOverviewPlayerProps {
   audioOverviewUrl?: string;
   audioOverviewText?: string;
   audioOverviewDuration?: number;
-  onRegenerateAudio?: (voiceProvider?: string, voiceId?: string, updatedText?: string) => void;
+  meetingDurationMinutes?: number;
+  onRegenerateAudio?: (voiceProvider?: string, voiceId?: string, updatedText?: string, targetDuration?: number) => void;
   className?: string;
 }
 
@@ -20,6 +21,7 @@ export const AudioOverviewPlayer = ({
   audioOverviewUrl,
   audioOverviewText,
   audioOverviewDuration,
+  meetingDurationMinutes,
   onRegenerateAudio,
   className = ""
 }: AudioOverviewPlayerProps) => {
@@ -35,6 +37,7 @@ export const AudioOverviewPlayer = ({
   const [isSeeking, setIsSeeking] = useState(false);
   const [isEditingTranscript, setIsEditingTranscript] = useState(false);
   const [editedTranscript, setEditedTranscript] = useState(audioOverviewText || "");
+  const [selectedDuration, setSelectedDuration] = useState<number>(2);
   const { voiceConfig } = useVoicePreference();
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioObjectUrlRef = useRef<string | null>(null);
@@ -129,7 +132,7 @@ export const AudioOverviewPlayer = ({
     
     setIsGeneratingAudio(true);
     try {
-      await onRegenerateAudio(voiceConfig.provider, voiceConfig.voiceId, customText);
+      await onRegenerateAudio(voiceConfig.provider, voiceConfig.voiceId, customText, selectedDuration);
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current = null;
@@ -379,22 +382,45 @@ export const AudioOverviewPlayer = ({
       )}
 
       {onRegenerateAudio && !audioOverviewUrl && (
-        <div className="flex justify-end mt-2">
-          <Button
-            onClick={() => handleRegenerateAudio()}
-            variant="ghost"
-            size="sm"
-            className="h-8 px-3"
-            disabled={isGeneratingAudio}
-          >
-            <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
-            {isGeneratingAudio ? 'Generating...' : 'Generate'}
-          </Button>
+        <div className="space-y-3 mt-2">
+          {meetingDurationMinutes && meetingDurationMinutes >= 45 && (
+            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+              <span className="text-sm font-medium text-muted-foreground">Audio Length:</span>
+              <div className="flex gap-2">
+                {[5, 8, 15].map((duration) => (
+                  <Button
+                    key={duration}
+                    variant={selectedDuration === duration ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedDuration(duration)}
+                    className="min-w-[70px]"
+                  >
+                    {duration} mins
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className="flex justify-end">
+            <Button
+              onClick={() => handleRegenerateAudio()}
+              variant="ghost"
+              size="sm"
+              className="h-8 px-3"
+              disabled={isGeneratingAudio}
+            >
+              <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
+              {isGeneratingAudio ? 'Generating...' : 'Generate'}
+            </Button>
+          </div>
         </div>
       )}
       {!audioOverviewUrl && !isGeneratingAudio && (
         <p className="text-sm text-muted-foreground">
-          Generate a 2-minute spoken overview of this meeting
+          {meetingDurationMinutes && meetingDurationMinutes >= 45 
+            ? `Generate a ${selectedDuration}-minute spoken overview of this meeting`
+            : 'Generate a 2-minute spoken overview of this meeting'
+          }
         </p>
       )}
       

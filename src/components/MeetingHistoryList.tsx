@@ -2406,18 +2406,20 @@ export const MeetingHistoryList = ({
                 audioOverviewUrl={meeting.audio_overview_url || undefined}
                 audioOverviewText={meeting.audio_overview_text || undefined}
                 audioOverviewDuration={meeting.audio_overview_duration || undefined}
+                meetingDurationMinutes={meeting.duration_minutes || undefined}
                 onOverviewChange={(newOverview) => {
                   setLocalMeetings(prev => prev.map(m => 
                     m.id === meeting.id ? { ...m, overview: newOverview } : m
                   ));
                   onRefresh?.();
                 }}
-                onRegenerateAudio={async (voiceProvider?: string, voiceId?: string, updatedText?: string) => {
+                onRegenerateAudio={async (voiceProvider?: string, voiceId?: string, updatedText?: string, targetDuration?: number) => {
                   toast.info('Generating audio overview...');
                   const body: any = { meetingId: meeting.id };
                   if (voiceProvider) body.voiceProvider = voiceProvider;
                   if (voiceId) body.voiceId = voiceId;
                   if (updatedText) body.overrideText = updatedText;
+                  if (targetDuration) body.targetDuration = targetDuration;
                   
                   const { data, error } = await supabase.functions.invoke('generate-audio-overview', {
                     body

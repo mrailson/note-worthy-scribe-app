@@ -12,7 +12,7 @@ serve(async (req) => {
   }
 
   try {
-    const { meetingId, voiceProvider = 'deepgram', voiceId, overrideText } = await req.json();
+    const { meetingId, voiceProvider = 'deepgram', voiceId, overrideText, targetDuration = 2 } = await req.json();
     
     if (!meetingId) {
       throw new Error('meetingId is required');
@@ -83,7 +83,8 @@ serve(async (req) => {
         throw new Error('LOVABLE_API_KEY not configured');
       }
 
-      const systemPrompt = `Create a 2-minute spoken overview of this meeting as if you're briefing a GP partner who couldn't attend.
+      const wordCountTarget = Math.round(targetDuration * 140); // ~140 words per minute for comfortable speaking
+      const systemPrompt = `Create a ${targetDuration}-minute spoken overview of this meeting as if you're briefing a GP partner who couldn't attend.
 
 Guidelines:
 - Write in a clear, professional conversational tone
@@ -92,17 +93,18 @@ Guidelines:
 - NO special characters (* = # - bullets etc.) - they don't read well when spoken
 - NO stage directions, sound effects, or script notations
 - Summarise key decisions, actions, and outcomes in a straightforward manner
-- Target 250-300 words for approximately 2 minutes speaking time
+- Target ${wordCountTarget} words for approximately ${targetDuration} minutes speaking time
 - British English spelling and phrasing
 - Be informative and concise, like a colleague catching up another colleague
-- Include specific details about outcomes and next steps when relevant`;
+- Include specific details about outcomes and next steps when relevant
+- ${targetDuration > 2 ? 'Provide more detailed coverage of key topics and discussions' : 'Keep it concise and focused on main points'}`;
 
       const userPrompt = `Meeting Title: ${meeting.title}
 
 ${meetingNotes ? `Meeting Notes:\n${meetingNotes.slice(0, 3000)}\n\n` : ''}
 ${transcript ? `Meeting Transcript:\n${transcript.slice(0, 4000)}` : ''}
 
-Create an informal 2-minute audio overview of this meeting.`;
+Create an informal ${targetDuration}-minute audio overview of this meeting.`;
 
       const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
