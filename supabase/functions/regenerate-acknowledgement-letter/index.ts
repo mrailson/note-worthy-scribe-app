@@ -14,6 +14,8 @@ serve(async (req) => {
   try {
     const { complaintId, currentLetter, instructions, complaintDescription, referenceNumber, style } = await req.json();
     
+    console.log('Received style parameter:', style);
+    
     if (!complaintId || !currentLetter || !instructions) {
       throw new Error('Missing required parameters');
     }
@@ -63,8 +65,10 @@ serve(async (req) => {
     };
 
     const stylePrompt = style && styleInstructions[style] 
-      ? `\n\n${styleInstructions[style]}` 
+      ? `\n\nCRITICAL FORMATTING REQUIREMENT - YOU MUST FOLLOW THIS STYLE EXACTLY:\n${styleInstructions[style]}\n\nThis formatting style is MANDATORY and must be applied to the entire letter.` 
       : '';
+
+    console.log('Using style prompt:', stylePrompt ? `Style: ${style}` : 'No specific style');
 
     // Call Lovable AI to regenerate the acknowledgement letter
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -117,6 +121,8 @@ NHS BEST PRACTICES FOR ACKNOWLEDGEMENT LETTERS:
 - Express empathy whilst remaining professional
 - Reassure about thoroughness and impartiality
 ${stylePrompt}
+
+${style ? 'REMINDER: Apply the specified formatting style consistently throughout the ENTIRE letter. This is your PRIMARY instruction.' : ''}
 
 Return ONLY the revised letter content without any preamble or explanation.`
           },
