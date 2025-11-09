@@ -333,38 +333,41 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
     // First, handle tables before other markdown parsing
     let processedContent = content;
     
-    // Parse markdown tables
-    const tableRegex = /\|(.+)\|\n\|[\s\-:]+\|\n((?:\|.+\|\n?)+)/g;
-    processedContent = processedContent.replace(tableRegex, (match, headerRow, bodyRows) => {
+    // Parse markdown tables with more flexible regex
+    const tableRegex = /\|(.+?)\|[\r\n]+\|([\s\-:]+)\|[\r\n]+((?:\|.+?\|[\r\n]*)+)/g;
+    processedContent = processedContent.replace(tableRegex, (match, headerRow, separatorRow, bodyRows) => {
       // Parse headers
       const headers = headerRow.split('|')
         .map((h: string) => h.trim())
         .filter((h: string) => h);
       
       // Parse body rows
-      const rows = bodyRows.trim().split('\n')
+      const rows = bodyRows.trim().split(/[\r\n]+/)
         .map((row: string) => 
           row.split('|')
             .map((cell: string) => cell.trim())
             .filter((cell: string) => cell)
-        );
+        )
+        .filter((row: string[]) => row.length > 0);
       
-      // Build HTML table with mobile-friendly styling
-      let tableHtml = '<div class="overflow-x-auto my-4"><table class="min-w-full border-collapse border border-border rounded-lg text-xs">';
+      // Build HTML table with enhanced mobile-friendly styling
+      let tableHtml = '<div class="overflow-x-auto my-4 -mx-4 px-4" style="scrollbar-width: thin; -webkit-overflow-scrolling: touch;">';
+      tableHtml += '<table style="width: 100%; min-width: 500px; border-collapse: collapse; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 12px; background: white;">';
       
-      // Add header
-      tableHtml += '<thead class="bg-muted"><tr>';
+      // Add header with better styling
+      tableHtml += '<thead style="background: #f8fafc; position: sticky; top: 0; z-index: 1;"><tr>';
       headers.forEach((header: string) => {
-        tableHtml += `<th class="border border-border px-2 py-2 text-left font-semibold text-foreground">${header}</th>`;
+        tableHtml += `<th style="border: 1px solid #e2e8f0; padding: 10px 12px; text-align: left; font-weight: 600; color: #1e293b; white-space: nowrap;">${header}</th>`;
       });
       tableHtml += '</tr></thead>';
       
-      // Add body
+      // Add body with striped rows
       tableHtml += '<tbody>';
-      rows.forEach((row: string[]) => {
-        tableHtml += '<tr class="hover:bg-muted/50">';
+      rows.forEach((row: string[], index: number) => {
+        const bgColor = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+        tableHtml += `<tr style="background: ${bgColor};">`;
         row.forEach((cell: string) => {
-          tableHtml += `<td class="border border-border px-2 py-2 text-foreground">${cell}</td>`;
+          tableHtml += `<td style="border: 1px solid #e2e8f0; padding: 10px 12px; color: #334155; white-space: nowrap;">${cell}</td>`;
         });
         tableHtml += '</tr>';
       });
