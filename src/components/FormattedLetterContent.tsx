@@ -128,17 +128,17 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
     <div className="max-w-4xl mx-auto bg-white shadow-lg">
       {/* Practice Logo at Top Center */}
       {practiceLogoUrl && (
-        <div className="p-4 text-center">
+        <div className="p-2 text-center">
           <img 
             src={practiceLogoUrl}
             alt="Practice Logo" 
-            className="h-32 w-auto mx-auto object-contain"
+            className="h-40 w-auto mx-auto object-contain"
           />
         </div>
       )}
 
       {/* Letter Content */}
-      <div className="p-8 pt-4 space-y-6">
+      <div className="p-8 pt-2 space-y-6">
         {/* Date */}
         {dateSection && (
           <div className="text-right">
