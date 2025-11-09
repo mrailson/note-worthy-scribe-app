@@ -2488,18 +2488,49 @@ const ComplaintDetails = () => {
               <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
                 <DialogContent className="max-w-6xl max-h-[98vh] overflow-hidden">
                   <DialogHeader>
-                    <DialogTitle className="flex items-center gap-2">
-                      <FileText className="h-5 w-5" />
-                      Outcome Letter - {complaint?.reference_number}
-                      <span className="text-sm font-normal text-muted-foreground ml-2">
-                        Final outcome letter for this complaint
-                      </span>
+                    <DialogTitle className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Outcome Letter - {complaint?.reference_number}
+                        <span className="text-sm font-normal text-muted-foreground ml-2">
+                          Final outcome letter for this complaint
+                        </span>
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={async () => {
+                          await handleRegenerateOutcomeLetter();
+                        }}
+                        disabled={isRegeneratingOutcome}
+                        className="ml-auto"
+                        title="Regenerate outcome letter with AI"
+                      >
+                        <RefreshCw className={`h-4 w-4 mr-1 ${isRegeneratingOutcome ? 'animate-spin' : ''}`} />
+                        {isRegeneratingOutcome ? 'Regenerating...' : 'Regenerate'}
+                      </Button>
                     </DialogTitle>
                   </DialogHeader>
                   
                   <div className="flex flex-col gap-4 max-h-[82vh]">
-                    <div className="flex-1 overflow-y-auto">
-                      <div className="bg-gray-50 p-2 rounded-lg">
+                    <div className="flex-1 overflow-y-auto relative">
+                      {isRegeneratingOutcome && (
+                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg animate-fade-in">
+                          <div className="text-center space-y-3">
+                            <div className="relative">
+                              <RefreshCw className="h-12 w-12 text-primary animate-spin mx-auto" />
+                              <div className="absolute inset-0 flex items-center justify-center">
+                                <div className="h-8 w-8 rounded-full border-2 border-primary/30 animate-ping" />
+                              </div>
+                            </div>
+                            <div className="space-y-1">
+                              <p className="text-sm font-medium">Regenerating outcome letter...</p>
+                              <p className="text-xs text-muted-foreground">Please wait while AI creates a new version</p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                      <div className={`bg-gray-50 p-2 rounded-lg transition-opacity duration-300 ${isRegeneratingOutcome ? 'opacity-30' : 'opacity-100'}`}>
                         <FormattedLetterContent content={outcomeLetter} />
                       </div>
                     </div>
