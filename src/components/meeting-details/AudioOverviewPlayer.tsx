@@ -381,12 +381,49 @@ export const AudioOverviewPlayer = ({
         </div>
       )}
 
-      {onRegenerateAudio && !audioOverviewUrl && (
-        <div className="space-y-3 mt-2">
-          {meetingDurationMinutes && meetingDurationMinutes >= 45 && (
-            <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-              <span className="text-sm font-medium text-muted-foreground">Audio Length:</span>
-              <div className="flex gap-2">
+      {onRegenerateAudio && (
+        <>
+          {!audioOverviewUrl && (
+            <div className="space-y-3 mt-2">
+              {meetingDurationMinutes && meetingDurationMinutes >= 45 && (
+                <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                  <span className="text-sm font-medium text-muted-foreground">Audio Length:</span>
+                  <div className="flex gap-2">
+                    {[5, 8, 15].map((duration) => (
+                      <Button
+                        key={duration}
+                        variant={selectedDuration === duration ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedDuration(duration)}
+                        className="min-w-[70px]"
+                      >
+                        {duration} mins
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex justify-end">
+                <Button
+                  onClick={() => handleRegenerateAudio()}
+                  variant="ghost"
+                  size="sm"
+                  className="h-8 px-3"
+                  disabled={isGeneratingAudio}
+                >
+                  <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
+                  {isGeneratingAudio ? 'Generating...' : 'Generate'}
+                </Button>
+              </div>
+            </div>
+          )}
+          
+          {audioOverviewUrl && meetingDurationMinutes && meetingDurationMinutes >= 45 && (
+            <div className="mt-3 p-3 bg-muted/30 rounded-lg border border-border/50">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Regenerate with different length:</span>
+              </div>
+              <div className="flex items-center gap-2">
                 {[5, 8, 15].map((duration) => (
                   <Button
                     key={duration}
@@ -398,22 +435,19 @@ export const AudioOverviewPlayer = ({
                     {duration} mins
                   </Button>
                 ))}
+                <Button
+                  onClick={() => handleRegenerateAudio()}
+                  size="sm"
+                  className="ml-auto gap-2"
+                  disabled={isGeneratingAudio}
+                >
+                  <RefreshCw className={`h-4 w-4 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
+                  {isGeneratingAudio ? 'Regenerating...' : 'Regenerate'}
+                </Button>
               </div>
             </div>
           )}
-          <div className="flex justify-end">
-            <Button
-              onClick={() => handleRegenerateAudio()}
-              variant="ghost"
-              size="sm"
-              className="h-8 px-3"
-              disabled={isGeneratingAudio}
-            >
-              <RefreshCw className={`h-4 w-4 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
-              {isGeneratingAudio ? 'Generating...' : 'Generate'}
-            </Button>
-          </div>
-        </div>
+        </>
       )}
       {!audioOverviewUrl && !isGeneratingAudio && (
         <p className="text-sm text-muted-foreground">
