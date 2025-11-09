@@ -29,7 +29,7 @@ serve(async (req) => {
     // Fetch complaint details
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
-      .select('reference, category, patient_name, complaint_date, description, severity')
+      .select('reference_number, category, patient_name, incident_date, complaint_description, priority')
       .eq('id', complaintId)
       .single();
 
@@ -66,11 +66,12 @@ Return ONLY plain text, no formatting.`;
 
     const userPrompt = `Generate realistic notes from the perspective of a ${staffRole} named ${staffName} regarding this complaint:
 
-Complaint Reference: ${complaint.reference}
+Complaint Reference: ${complaint.reference_number}
 Category: ${complaint.category}
 Patient: ${complaint.patient_name}
-Date: ${new Date(complaint.complaint_date).toLocaleDateString('en-GB')}
-Description: ${complaint.description}
+Date: ${new Date(complaint.incident_date).toLocaleDateString('en-GB')}
+Priority: ${complaint.priority}
+Description: ${complaint.complaint_description}
 
 What would this ${staffRole} write when asked to provide their account of the incident?`;
 
