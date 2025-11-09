@@ -21,6 +21,7 @@ import ComplaintsSystem from "./pages/ComplaintsSystem";
 import ComplaintDetails from "./pages/ComplaintDetails";
 import ComplaintResponse from "./pages/ComplaintResponse";
 import ComplaintsPresentationMode from "./pages/ComplaintsPresentationMode";
+import FederationPresentationMode from "./pages/FederationPresentationMode";
 import StaffFeedback from "./pages/StaffFeedback";
 import SharedDrive from "./pages/SharedDrive";
 import Auth from "./pages/Auth";
@@ -86,6 +87,7 @@ const App = () => {
               <Route path="/complaints" element={<ComplaintsSystem />} />
               <Route path="/complaints/:id" element={<ComplaintDetails />} />
               <Route path="/complaints-guide" element={<ComplaintsPresentationMode />} />
+              <Route path="/federation-presentation" element={<FederationPresentationMode />} />
               <Route path="/complaint-response/:token" element={<ComplaintResponse />} />
               <Route path="/complaint-response" element={<ComplaintResponse />} />
               <Route path="/load-demo-team" element={<LoadDemoTeamData />} />

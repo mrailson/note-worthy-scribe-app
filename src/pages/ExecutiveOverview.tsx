@@ -23,7 +23,8 @@ import {
   HeartPulse,
   Building2,
   FileCheck,
-  Mail
+  Mail,
+  Presentation
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
@@ -197,7 +198,11 @@ export default function ExecutiveOverview() {
             An integrated suite of AI-powered systems designed to reduce administrative burden, 
             improve compliance, and enhance patient care across Northamptonshire GP practices
           </p>
-          <div className="flex gap-4 justify-centre mb-8">
+          <div className="flex gap-4 justify-centre mb-8 flex-wrap">
+            <Button size="lg" onClick={() => navigate('/federation-presentation')} variant="default">
+              <Presentation className="mr-2 h-5 w-5" />
+              View Presentation
+            </Button>
             <Button size="lg" onClick={() => window.location.href = 'mailto:malcolm.railson@nhs.net?subject=Request for Live Demo - Notewell AI Systems'}>
               <Sparkles className="mr-2 h-5 w-5" />
               View Live Demo
