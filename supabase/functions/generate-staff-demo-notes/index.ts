@@ -29,7 +29,7 @@ serve(async (req) => {
     // Fetch complaint details
     const { data: complaint, error: complaintError } = await supabase
       .from('complaints')
-      .select('reference_number, category, patient_name, incident_date, complaint_description, priority')
+      .select('*')
       .eq('id', complaintId)
       .single();
 
