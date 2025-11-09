@@ -83,9 +83,17 @@ IMPORTANT TONE GUIDELINES:
 - Be friendly, supportive, and constructive
 - Highlight strengths genuinely - don't just list generic positives
 - Frame suggestions as opportunities for enhancement, not failures
-- Use "consider" and "could" rather than "should" or "must"
+- Use "consider", "might", "could explore" rather than "should" or "must"
 - Acknowledge the complexity of healthcare delivery
 - Be specific with evidence from the case
+- Remember: we're looking for improvement, not perfection
+
+IMPROVEMENT SUGGESTIONS REQUIREMENTS:
+- Provide a MAXIMUM of 3 suggestions (only the most important ones)
+- Word each suggestion gently and supportively
+- Frame as possibilities and opportunities, not instructions or demands
+- Use phrases like "It might be helpful to consider...", "One approach could be...", "Teams sometimes find it useful to..."
+- Avoid prescriptive language that could stress or annoy the practice
 
 Return ONLY valid JSON in this exact structure:
 {
@@ -114,8 +122,8 @@ Return ONLY valid JSON in this exact structure:
   ],
   "improvementSuggestions": [
     {
-      "suggestion": "Brief actionable suggestion",
-      "rationale": "Why this would help, framed supportively",
+      "suggestion": "Brief, gently worded suggestion (maximum 3 total)",
+      "rationale": "Why this might help, framed as an opportunity not a requirement",
       "priority": "high|medium|low"
     }
   ],
