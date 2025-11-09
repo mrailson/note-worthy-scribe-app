@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
-import { Calendar, MapPin, CheckCircle, AlertCircle, Mail } from 'lucide-react';
+import { Calendar, MapPin, CheckCircle, AlertCircle, Mail, Sparkles, Loader2 } from 'lucide-react';
 import { showToast } from '@/utils/toastWrapper';
 import { SimpleBrowserMic } from '@/components/ai4gp/SimpleBrowserMic';
 
@@ -35,6 +35,7 @@ export default function ComplaintResponse() {
   const [token, setToken] = useState<string | null>(null);
   const [manualToken, setManualToken] = useState('');
   const [showManualEntry, setShowManualEntry] = useState(false);
+  const [isGeneratingDemo, setIsGeneratingDemo] = useState(false);
 
   // Find token from route params, query string, or hash (to support various email client behaviours)
   const getEffectiveToken = (): string | null => {
@@ -175,6 +176,35 @@ export default function ComplaintResponse() {
       return;
     }
     fetchComplaintDetails(manualToken.trim());
+  };
+
+  const handleLoadDemo = async () => {
+    if (!complaint) return;
+
+    setIsGeneratingDemo(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-staff-demo-notes', {
+        body: {
+          complaintId: complaint.complaint_id,
+          staffRole: complaint.staff_role,
+          staffName: complaint.staff_name
+        }
+      });
+
+      if (error) throw error;
+
+      if (data?.notes) {
+        setResponse(data.notes);
+        showToast.success(`Demo notes loaded for ${complaint.staff_role}`, { section: 'complaints' });
+      } else {
+        throw new Error('No notes generated');
+      }
+    } catch (err) {
+      console.error('Error generating demo notes:', err);
+      showToast.error('Failed to generate demo notes', { section: 'complaints' });
+    } finally {
+      setIsGeneratingDemo(false);
+    }
   };
 
   if (loading) {
@@ -366,7 +396,7 @@ export default function ComplaintResponse() {
                     className="min-h-[200px]"
                   />
                   {!complaint.response_submitted && (
-                    <div className="flex justify-start">
+                    <div className="flex justify-between items-center">
                       <SimpleBrowserMic
                         onTranscriptUpdate={(text) => {
                           setResponse(prev => prev + (prev ? '\n\n' : '') + text);
@@ -374,6 +404,25 @@ export default function ComplaintResponse() {
                         disabled={complaint.response_submitted}
                         className="text-sm"
                       />
+                      <Button
+                        onClick={handleLoadDemo}
+                        disabled={isGeneratingDemo}
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                      >
+                        {isGeneratingDemo ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="h-4 w-4" />
+                            Load Demo
+                          </>
+                        )}
+                      </Button>
                     </div>
                   )}
                 </div>
