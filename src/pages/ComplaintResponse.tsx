@@ -33,6 +33,8 @@ export default function ComplaintResponse() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [token, setToken] = useState<string | null>(null);
+  const [manualToken, setManualToken] = useState('');
+  const [showManualEntry, setShowManualEntry] = useState(false);
 
   // Find token from route params, query string, or hash (to support various email client behaviours)
   const getEffectiveToken = (): string | null => {
@@ -55,19 +57,28 @@ export default function ComplaintResponse() {
   useEffect(() => {
     const t = getEffectiveToken();
     setToken(t);
-    fetchComplaintDetails();
+    if (t) {
+      fetchComplaintDetails();
+    } else {
+      setLoading(false);
+      setShowManualEntry(true);
+    }
   }, [routeToken]);
 
-  const fetchComplaintDetails = async () => {
+  const fetchComplaintDetails = async (providedToken?: string) => {
     try {
-      const effective = routeToken || getEffectiveToken();
+      const effective = providedToken || routeToken || getEffectiveToken();
       console.log('Fetching complaint with access token:', effective);
 
       if (!effective) {
         setError('Invalid access link - no token provided');
         setLoading(false);
+        setShowManualEntry(true);
         return;
       }
+      
+      setLoading(true);
+      setError('');
 
       // Timeout safeguard to avoid infinite loading on some mobile browsers
       let timedOut = false;
@@ -97,9 +108,12 @@ export default function ComplaintResponse() {
         console.log('Complaint data loaded:', complaintData);
         setComplaint(complaintData);
         setResponse(complaintData.response_text || '');
+        setToken(effective);
+        setShowManualEntry(false);
       } else {
         console.warn('No complaint data returned');
         setError('Complaint not found or access link has expired. Please check your email for a valid link.');
+        setShowManualEntry(true);
       }
     } catch (err) {
       console.error('Error fetching complaint:', err);
@@ -155,6 +169,14 @@ export default function ComplaintResponse() {
     }
   };
 
+  const handleManualTokenSubmit = () => {
+    if (!manualToken.trim()) {
+      showToast.error('Please enter your access code', { section: 'complaints' });
+      return;
+    }
+    fetchComplaintDetails(manualToken.trim());
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -166,15 +188,65 @@ export default function ComplaintResponse() {
     );
   }
 
-  if (error) {
+  if (showManualEntry && !complaint) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
+          <CardHeader>
+            <CardTitle>Access Complaint Response</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {error && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{error}</AlertDescription>
+              </Alert>
+            )}
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>
+                Please enter the access code from your email to view the complaint details.
+              </AlertDescription>
+            </Alert>
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Access Code</label>
+              <Textarea
+                placeholder="Paste your access code here..."
+                value={manualToken}
+                onChange={(e) => setManualToken(e.target.value)}
+                rows={3}
+                className="font-mono"
+              />
+            </div>
+            <Button 
+              onClick={handleManualTokenSubmit}
+              disabled={!manualToken.trim() || loading}
+              className="w-full"
+            >
+              {loading ? 'Loading...' : 'Continue'}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (error && !showManualEntry) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="w-full max-w-md">
+          <CardContent className="pt-6 space-y-4">
             <Alert variant="destructive">
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
+            <Button 
+              onClick={() => setShowManualEntry(true)}
+              variant="outline"
+              className="w-full"
+            >
+              Enter Access Code Manually
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -205,6 +277,14 @@ export default function ComplaintResponse() {
             <p className="text-muted-foreground mt-2">
               Please review the complaint details and provide your response
             </p>
+            {!showManualEntry && (
+              <button
+                onClick={() => setShowManualEntry(true)}
+                className="text-sm text-primary hover:underline mt-2"
+              >
+                Having trouble? Enter access code manually
+              </button>
+            )}
           </div>
 
           <Alert className="border-blue-200 bg-blue-50">

@@ -143,8 +143,8 @@ serve(async (req) => {
     const emailResults = [];
 
     for (const party of involvedPartiesData) {
-      // Use hash-based URL format to bypass NHS Safe Links scanning
-      const responseUrl = `${baseUrl}/complaint-response#t=${party.accessToken}`;
+      // Use path-based URL format for better deliverability
+      const responseUrl = `${baseUrl}/complaint-response/${party.accessToken}`;
       
       console.log('Sending email to:', party.staffEmail, 'with response URL:', responseUrl);
       
@@ -215,6 +215,14 @@ serve(async (req) => {
        style="background-color: #2563eb; color: white; padding: 14px 28px; text-decoration: none; border-radius: 6px; display: inline-block; font-weight: bold; font-size: 16px; box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);">
       🔗 Provide Your Response
     </a>
+    <p style="color: #6b7280; font-size: 13px; margin-top: 15px; word-break: break-all;">
+      Or copy this link: ${responseUrl}
+    </p>
+    <div style="background-color: #f8fafc; border: 1px solid #e5e7eb; border-radius: 6px; padding: 12px; margin-top: 15px; text-align: center;">
+      <p style="color: #374151; font-size: 13px; margin: 0 0 5px 0;">Your one-time access code:</p>
+      <p style="color: #1f2937; font-size: 16px; font-family: monospace; font-weight: bold; margin: 0; background-color: #fef3c7; padding: 8px; border-radius: 3px; display: inline-block;">${party.accessToken}</p>
+      <p style="color: #6b7280; font-size: 12px; margin: 8px 0 0 0; font-style: italic;">Use this code if the link doesn't work</p>
+    </div>
   </div>
 
   <div style="background-color: #fef2f2; border-left: 4px solid #ef4444; padding: 20px; margin: 25px 0;">
