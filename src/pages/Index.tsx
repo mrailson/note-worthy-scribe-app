@@ -280,7 +280,7 @@ const Index = () => {
         {isMobile && user && (
           <Link
             to="/executive-overview"
-            className="fixed bottom-20 right-4 z-40 flex items-center justify-center w-11 h-11 rounded-full bg-background border border-border shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
+            className="fixed bottom-32 right-4 z-40 flex items-center justify-center w-11 h-11 rounded-full bg-background border border-border shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
             aria-label="Executive Overview"
           >
             <Building2 className="w-5 h-5 text-primary" />
