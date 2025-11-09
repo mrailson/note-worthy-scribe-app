@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp, RefreshCw } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { downloadComplaintReport } from '@/utils/downloadComplaintReport';
@@ -44,6 +44,8 @@ export default function ComplaintAIReport() {
   const [loading, setLoading] = useState(true);
   const [reportData, setReportData] = useState<AIReportData | null>(null);
   const [complaint, setComplaint] = useState<any>(null);
+  const [regenerating, setRegenerating] = useState(false);
+  const [generatedAt, setGeneratedAt] = useState<Date>(new Date());
 
   useEffect(() => {
     if (id) {
@@ -79,12 +81,20 @@ export default function ComplaintAIReport() {
 
       if (aiError) throw aiError;
       setReportData(aiReport);
+      setGeneratedAt(new Date());
     } catch (error) {
       console.error('Error loading report:', error);
       toast.error('Failed to load AI report');
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRegenerate = async () => {
+    setRegenerating(true);
+    await loadReportData();
+    setRegenerating(false);
+    toast.success('Report regenerated successfully');
   };
 
   const getStatusIcon = (status: string) => {
@@ -153,10 +163,20 @@ export default function ComplaintAIReport() {
           <ArrowLeft className="mr-2 h-4 w-4" />
           Back to Complaint
         </Button>
-        <Button variant="outline" onClick={handleDownload}>
-          <Download className="mr-2 h-4 w-4" />
-          Download Report
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            variant="outline" 
+            onClick={handleRegenerate}
+            disabled={regenerating}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${regenerating ? 'animate-spin' : ''}`} />
+            Regenerate Report
+          </Button>
+          <Button variant="outline" onClick={handleDownload}>
+            <Download className="mr-2 h-4 w-4" />
+            Download Report
+          </Button>
+        </div>
       </div>
 
       {/* Title Card */}
@@ -169,7 +189,10 @@ export default function ComplaintAIReport() {
                 Reference: <span className="font-semibold text-foreground">{complaint.reference_number}</span>
               </p>
               <p className="text-sm text-muted-foreground mt-1">
-                Generated on {format(new Date(), 'dd MMMM yyyy HH:mm')}
+                Generated on {format(generatedAt, 'dd MMMM yyyy HH:mm')}
+              </p>
+              <p className="text-xs text-muted-foreground/70 mt-1 italic">
+                This report is advisory and requires human review
               </p>
             </div>
             <Badge variant="outline" className="text-lg px-4 py-2">

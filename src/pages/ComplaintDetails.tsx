@@ -2358,9 +2358,18 @@ const ComplaintDetails = () => {
                               className="border-purple-500 text-purple-600 hover:bg-purple-50"
                             >
                               <Sparkles className="h-4 w-4 mr-1" />
-                              AI Report
+                              AI Guidance
                             </Button>
                           )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/complaints/${complaintId}/ai-report`)}
+                            className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                          >
+                            <Brain className="h-4 w-4 mr-1" />
+                            Comprehensive AI Report
+                          </Button>
                         </div>
                       </div>
                       

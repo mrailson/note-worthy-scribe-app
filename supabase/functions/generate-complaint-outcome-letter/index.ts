@@ -382,10 +382,9 @@ CRITICAL: Never include personal email addresses or direct contact details in th
       outcomeLetter = `<!-- logo_url: ${logoUrl} -->\n${outcomeLetter}`;
     }
     
-    // Extract base URL from Supabase URL for the app link
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const baseUrl = supabaseUrl.replace('//', '//').replace('.supabase.co', '.lovableproject.com').replace('//', '//');
-    const reportUrl = `${baseUrl}/#/complaints/${complaintId}/ai-report`;
+    // Get the base URL from the request origin or fallback to environment variable
+    const origin = req.headers.get('origin') || Deno.env.get('FRONTEND_BASE_URL') || '';
+    const reportUrl = `${origin}/complaints/${complaintId}/ai-report`;
     outcomeLetter += `\n\n---\n\n**View Comprehensive Report**: For a detailed review of this complaint including timeline analysis, key learnings, and quality improvement insights, please visit:\n${reportUrl}`;
     
     return new Response(JSON.stringify({
