@@ -128,7 +128,7 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
     <div className="max-w-4xl mx-auto bg-white shadow-lg">
       {/* Practice Logo at Top Center */}
       {practiceLogoUrl && (
-        <div className="p-8 text-center border-b border-gray-100">
+        <div className="p-8 text-center">
           <img 
             src={practiceLogoUrl}
             alt="Practice Logo" 
