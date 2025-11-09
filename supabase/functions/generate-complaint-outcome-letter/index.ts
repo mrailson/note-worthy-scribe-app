@@ -382,6 +382,11 @@ CRITICAL: Never include personal email addresses or direct contact details in th
       outcomeLetter = `<!-- logo_url: ${logoUrl} -->\n${outcomeLetter}`;
     }
     
+    // Add practice address at the end if available
+    if (practiceDetails?.address) {
+      outcomeLetter += `\n\n${practiceDetails.address}`;
+    }
+    
     return new Response(JSON.stringify({
       outcomeLetter,
       usage: data.usage 
