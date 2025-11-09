@@ -78,7 +78,21 @@ export default function ComplaintAIReport() {
         { body: { complaintId: id } }
       );
 
-      if (aiError) throw aiError;
+      if (aiError) {
+        const errorMessage = aiError.message || 'Unknown error';
+        console.error('Error loading report:', aiError);
+        
+        if (errorMessage.includes('Rate limit')) {
+          toast.error('AI service rate limit reached. Please try again in a few moments.');
+        } else if (errorMessage.includes('credits exhausted')) {
+          toast.error('AI credits exhausted. Please add credits in your workspace settings.');
+        } else if (errorMessage.includes('Failed to connect')) {
+          toast.error('Unable to connect to AI service. Please try again in a moment.');
+        } else {
+          toast.error('Failed to generate AI report. Please try again.');
+        }
+        throw aiError;
+      }
       setReportData(aiReport);
       setGeneratedAt(new Date());
     } catch (error) {

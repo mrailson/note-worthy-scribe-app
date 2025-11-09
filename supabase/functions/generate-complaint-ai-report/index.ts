@@ -152,32 +152,71 @@ NHS GUIDELINES:
 
 Generate the report JSON now:`;
 
-    // Call Lovable AI Gateway
+    // Call Lovable AI Gateway with retry logic
     const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
     if (!LOVABLE_API_KEY) {
       throw new Error('LOVABLE_API_KEY not configured');
     }
 
-    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'google/gemini-2.5-flash',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPrompt }
-        ],
-        temperature: 0.7,
-      }),
-    });
+    let aiResponse;
+    let lastError;
+    
+    // Try up to 3 times with exponential backoff
+    for (let attempt = 1; attempt <= 3; attempt++) {
+      try {
+        console.log(`Attempt ${attempt} to call AI Gateway...`);
+        
+        aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userPrompt }
+            ],
+            temperature: 0.7,
+          }),
+        });
 
-    if (!aiResponse.ok) {
-      const errorText = await aiResponse.text();
-      console.error('AI Gateway error:', aiResponse.status, errorText);
-      throw new Error(`AI Gateway error: ${aiResponse.status}`);
+        if (aiResponse.ok) {
+          break; // Success, exit retry loop
+        }
+
+        const errorText = await aiResponse.text();
+        console.error(`AI Gateway error (attempt ${attempt}):`, aiResponse.status, errorText);
+        
+        // Handle specific error codes
+        if (aiResponse.status === 429) {
+          throw new Error('Rate limit exceeded. Please try again later.');
+        }
+        if (aiResponse.status === 402) {
+          throw new Error('Lovable AI credits exhausted. Please add credits in your workspace settings.');
+        }
+        
+        lastError = new Error(`AI Gateway returned ${aiResponse.status}: ${errorText}`);
+        
+        // Wait before retrying (exponential backoff: 1s, 2s, 4s)
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+        }
+      } catch (fetchError) {
+        console.error(`Network error (attempt ${attempt}):`, fetchError);
+        lastError = fetchError;
+        
+        // Wait before retrying
+        if (attempt < 3) {
+          await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt - 1) * 1000));
+        }
+      }
+    }
+
+    // If we got here and aiResponse is still not ok, throw the last error
+    if (!aiResponse || !aiResponse.ok) {
+      throw lastError || new Error('Failed to connect to AI Gateway after 3 attempts');
     }
 
     const aiData = await aiResponse.json();
