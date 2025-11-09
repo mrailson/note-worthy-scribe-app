@@ -2350,25 +2350,14 @@ const ComplaintDetails = () => {
                             <Download className="h-4 w-4 mr-1" />
                             Download
                           </Button>
-                          {aiAnalysis && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setShowAiAnalysisModal(true)}
-                              className="border-purple-500 text-purple-600 hover:bg-purple-50"
-                            >
-                              <Sparkles className="h-4 w-4 mr-1" />
-                              AI Guidance
-                            </Button>
-                          )}
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => navigate(`/complaints/${complaintId}/ai-report`)}
-                            className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                            className="border-purple-500 text-purple-600 hover:bg-purple-50"
                           >
                             <Brain className="h-4 w-4 mr-1" />
-                            Comprehensive AI Report
+                            AI Report
                           </Button>
                         </div>
                       </div>
