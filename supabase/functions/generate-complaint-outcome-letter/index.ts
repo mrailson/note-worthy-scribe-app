@@ -59,33 +59,32 @@ serve(async (req) => {
 
     console.log('Fetching practice details from user profile first');
 
-    const { data: userPractice, error: userPracticeError } = await supabase
+    // First, get the practice_id from user_roles
+    const { data: userRole } = await supabase
       .from('user_roles')
-      .select(`
-        practice_id,
-        practice_details (
-          practice_name,
-          address,
-          phone,
-          email,
-          logo_url,
-          practice_logo_url,
-          footer_text,
-          website,
-          show_page_numbers
-        )
-      `)
+      .select('practice_id')
       .eq('user_id', complaint.created_by)
       .not('practice_id', 'is', null)
       .limit(1)
-      .single();
+      .maybeSingle();
 
-    console.log('User practice query result:', { userPractice, userPracticeError });
+    console.log('User role query result:', { userRole });
 
-    if (userPractice && userPractice.practice_details) {
-      practiceDetails = userPractice.practice_details;
-      console.log('Retrieved practice details from user profile:', practiceDetails);
-    } else if (complaint.practice_id) {
+    // Then fetch practice details separately if we have a practice_id
+    if (userRole?.practice_id) {
+      const { data: practice } = await supabase
+        .from('practice_details')
+        .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
+        .eq('id', userRole.practice_id)
+        .maybeSingle();
+      
+      if (practice) {
+        practiceDetails = practice;
+        console.log('Retrieved practice details from user profile practice_id:', practiceDetails);
+      }
+    }
+    
+    if (!practiceDetails && complaint.practice_id) {
       console.log('Fallback: Fetching practice details for complaint practice_id:', complaint.practice_id);
       const { data: practice } = await supabase
         .from('practice_details')
