@@ -442,7 +442,7 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="request" className="space-y-6 p-1">
+            <TabsContent value="request" className="space-y-6 px-6 py-1">
               {teamMembers.length > 0 && (
                 <div className="space-y-2">
                   <Label htmlFor="quick-select">Quick Select from Team</Label>
@@ -540,7 +540,7 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
               </div>
             </TabsContent>
 
-            <TabsContent value="team" className="space-y-6 p-1">
+            <TabsContent value="team" className="space-y-6 px-6 py-1">
               <div className="flex justify-between items-center">
                 <p className="text-sm text-muted-foreground">
                   Manage your practice team members for quick selection
