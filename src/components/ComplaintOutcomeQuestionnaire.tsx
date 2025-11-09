@@ -87,7 +87,8 @@ export const ComplaintOutcomeQuestionnaire = ({
     additional_context: string;
   } | null>(null);
   const [isDemoLoading, setIsDemoLoading] = useState(false);
-  const [demoSource, setDemoSource] = useState<'direct' | 'category-based' | null>(null);
+  const [demoSource, setDemoSource] = useState<'direct' | 'category-based' | 'ai-generated' | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const totalSteps = 3;
   const progress = (step / totalSteps) * 100;
@@ -264,26 +265,79 @@ export const ComplaintOutcomeQuestionnaire = ({
     };
   };
 
-  const loadDemoReply = (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
+  const loadDemoReply = async (field: 'key_findings' | 'actions_taken' | 'improvements_made' | 'additional_context') => {
     // If still loading, return without action
-    if (isDemoLoading) {
+    if (isDemoLoading || isGenerating) {
       return;
     }
     
     const demoReplies = getDemoReplies();
     const content = demoReplies[field];
     
-    if (!content || content.trim() === '') {
+    // If we have existing demo content, use it
+    if (content && content.trim() !== '') {
+      setData(prevData => ({ ...prevData, [field]: content }));
+      
+      const sourceInfo = demoSource === 'category-based' 
+        ? ' (demo complaint - category matched)' 
+        : demoSource === 'ai-generated'
+        ? ' (AI generated)'
+        : '';
+      
+      console.log(`✨ Loaded demo content for ${field}: ${content.length} chars${sourceInfo}`);
       return;
     }
     
-    setData(prevData => ({ ...prevData, [field]: content }));
+    // No demo content exists - generate it with AI
+    console.log('🤖 No demo response found, generating with AI...');
+    setIsGenerating(true);
     
-    const sourceInfo = demoSource === 'category-based' 
-      ? ' (demo complaint - category matched)' 
-      : '';
-    
-    console.log(`✨ Loaded demo content for ${field}: ${content.length} chars${sourceInfo}`);
+    try {
+      const { data: aiResponse, error } = await supabase.functions.invoke('generate-demo-response', {
+        body: {
+          complaintReference: complaintData.reference_number,
+          complaintDescription: complaintData.complaint_description,
+          category: complaintData.category,
+          patientName: complaintData.patient_name,
+        }
+      });
+      
+      if (error) {
+        console.error('❌ Error generating demo response:', error);
+        showShadcnToast({
+          title: 'Generation Failed',
+          description: 'Failed to generate demo response. Please try again.',
+          variant: 'destructive',
+          section: 'complaints',
+        });
+        return;
+      }
+      
+      if (aiResponse?.success && aiResponse.demoResponse) {
+        console.log('✅ AI generated response:', aiResponse.demoResponse);
+        
+        // Store the generated response
+        setDemoResponse(aiResponse.demoResponse);
+        setDemoSource('ai-generated');
+        
+        // Load the requested field
+        const generatedContent = aiResponse.demoResponse[field];
+        if (generatedContent) {
+          setData(prevData => ({ ...prevData, [field]: generatedContent }));
+          console.log(`✨ Loaded AI-generated content for ${field}: ${generatedContent.length} chars`);
+        }
+      }
+    } catch (error) {
+      console.error('❌ Exception generating demo response:', error);
+      showShadcnToast({
+        title: 'Generation Error',
+        description: error instanceof Error ? error.message : 'Failed to generate response',
+        variant: 'destructive',
+        section: 'complaints',
+      });
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   useEffect(() => {
@@ -820,10 +874,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadDemoReply('key_findings')}
                   className="h-8 w-8 shrink-0"
-                  title={isDemoLoading ? "Loading..." : "Load demo reply"}
-                  disabled={isDemoLoading}
+                  title={isDemoLoading || isGenerating ? "Loading..." : "Load demo reply"}
+                  disabled={isDemoLoading || isGenerating}
                 >
-                  {isDemoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {(isDemoLoading || isGenerating) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -852,10 +906,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadDemoReply('actions_taken')}
                   className="h-8 w-8 shrink-0"
-                  title={isDemoLoading ? "Loading..." : "Load demo reply"}
-                  disabled={isDemoLoading}
+                  title={isDemoLoading || isGenerating ? "Loading..." : "Load demo reply"}
+                  disabled={isDemoLoading || isGenerating}
                 >
-                  {isDemoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {(isDemoLoading || isGenerating) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -884,10 +938,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadDemoReply('improvements_made')}
                   className="h-8 w-8 shrink-0"
-                  title={isDemoLoading ? "Loading..." : "Load demo reply"}
-                  disabled={isDemoLoading}
+                  title={isDemoLoading || isGenerating ? "Loading..." : "Load demo reply"}
+                  disabled={isDemoLoading || isGenerating}
                 >
-                  {isDemoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {(isDemoLoading || isGenerating) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
@@ -947,10 +1001,10 @@ export const ComplaintOutcomeQuestionnaire = ({
                   size="icon"
                   onClick={() => loadDemoReply('additional_context')}
                   className="h-8 w-8 shrink-0"
-                  title={isDemoLoading ? "Loading..." : "Load demo reply"}
-                  disabled={isDemoLoading}
+                  title={isDemoLoading || isGenerating ? "Loading..." : "Load demo reply"}
+                  disabled={isDemoLoading || isGenerating}
                 >
-                  {isDemoLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
+                  {(isDemoLoading || isGenerating) ? <Loader2 className="h-4 w-4 animate-spin" /> : <Sparkles className="h-4 w-4" />}
                 </Button>
               </div>
             </div>
