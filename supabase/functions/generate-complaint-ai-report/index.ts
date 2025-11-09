@@ -33,8 +33,7 @@ serve(async (req) => {
         *,
         complaint_outcomes (*),
         complaint_notes (*),
-        complaint_involved_parties (*),
-        complaint_questionnaires (*)
+        complaint_involved_parties (*)
       `)
       .eq('id', complaintId)
       .single();
@@ -65,9 +64,7 @@ serve(async (req) => {
       ?.map((party: any) => `- ${party.name} (${party.role}): ${party.involvement_description || 'No description'}`)
       .join('\n') || 'No involved parties recorded';
 
-    const questionnaireContext = complaint.complaint_questionnaires
-      ?.map((q: any) => `Q: ${q.question}\nA: ${q.answer}`)
-      .join('\n\n') || 'No questionnaire responses';
+    const questionnaireContext = 'No questionnaire responses';
 
     const systemPrompt = `You are an expert NHS complaints reviewer generating a comprehensive but concise complaint review report. 
 
