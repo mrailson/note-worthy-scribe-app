@@ -3530,7 +3530,7 @@ const ComplaintsSystem = () => {
           {/* Success Modal */}
          <Dialog open={showSuccessModal} onOpenChange={setShowSuccessModal}>
            <DialogContent className="sm:max-w-2xl p-8">
-             <DialogHeader className="space-y-4">
+             <DialogHeader className="space-y-2">
                <DialogTitle className="flex items-center gap-2 text-xl">
                  <CheckCircle className="h-6 w-6 text-green-600" />
                  New Complaint Created
@@ -3539,23 +3539,23 @@ const ComplaintsSystem = () => {
                  Your complaint has been successfully submitted and assigned reference number:
                </DialogDescription>
              </DialogHeader>
-             <div className="flex flex-col space-y-6 py-6 px-4">
+             <div className="flex flex-col space-y-4 py-4 px-4">
                <div className="text-center">
-                 <div className="text-3xl font-bold text-primary tracking-wide mb-6">
+                 <div className="text-3xl font-bold text-primary tracking-wide mb-2">
                    {newComplaintRef}
                  </div>
                </div>
 
                {newComplaintData && (
-                 <div className="space-y-4 border-t pt-6">
-                   <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                 <div className="space-y-3">
+                   <div>
+                     <h4 className="text-sm font-semibold text-muted-foreground mb-1">Complaint Title</h4>
+                     <p className="text-sm font-medium mb-3">{newComplaintData.title}</p>
+                   </div>
+                   <div className="bg-muted/50 rounded-lg p-4">
                      <div>
-                       <h4 className="text-sm font-semibold text-muted-foreground mb-1">Complaint Title</h4>
-                       <p className="text-sm font-medium">{newComplaintData.title}</p>
-                     </div>
-                     <div>
-                       <h4 className="text-sm font-semibold text-muted-foreground mb-1">Brief Summary</h4>
-                       <p className="text-sm line-clamp-2">{newComplaintData.description}</p>
+                       <h4 className="text-sm font-semibold text-muted-foreground mb-2">Brief Summary</h4>
+                       <p className="text-sm line-clamp-6 leading-relaxed">{newComplaintData.description}</p>
                      </div>
                    </div>
 
