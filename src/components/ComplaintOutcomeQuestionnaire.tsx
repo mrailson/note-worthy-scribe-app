@@ -1078,7 +1078,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                               className="text-xs"
                             >
                               {aiSuggestedOutcome === 'upheld' ? 'Upheld' : 
-                               aiSuggestedOutcome === 'partially_upheld' ? 'Partially Upheld' : 
+                               aiSuggestedOutcome === 'partially_upheld' ? 'Partially upheld' : 
                                'Not Upheld'}
                             </Badge>
                           )}
@@ -1116,7 +1116,7 @@ export const ComplaintOutcomeQuestionnaire = ({
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="upheld">Complaint Upheld</SelectItem>
-                  <SelectItem value="partially_upheld">Complaint Partially Upheld</SelectItem>
+                  <SelectItem value="partially_upheld">Complaint Partially upheld</SelectItem>
                   <SelectItem value="not_upheld">Complaint Not Upheld</SelectItem>
                 </SelectContent>
               </Select>

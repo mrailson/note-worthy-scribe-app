@@ -2275,7 +2275,7 @@ const ComplaintDetails = () => {
                       <FileText className="h-5 w-5" />
                       Outcome Letter - Complaint {
                         existingOutcome.outcome_type === 'upheld' ? 'Upheld' :
-                        existingOutcome.outcome_type === 'partially_upheld' ? 'Partially Upheld' :
+                        existingOutcome.outcome_type === 'partially_upheld' ? 'Partially upheld' :
                         'Not Upheld'
                       }
                     </CardTitle>
@@ -2291,7 +2291,7 @@ const ComplaintDetails = () => {
                             <Badge variant="default" className="bg-green-600 text-white">
                               Outcome: {
                                 existingOutcome.outcome_type === 'upheld' ? 'Complaint Upheld' :
-                                existingOutcome.outcome_type === 'partially_upheld' ? 'Complaint Partially Upheld' :
+                                existingOutcome.outcome_type === 'partially_upheld' ? 'Complaint Partially upheld' :
                                 'Complaint Not Upheld'
                               }
                             </Badge>

@@ -1897,7 +1897,7 @@ const ComplaintsSystem = () => {
                         <SelectItem value="in_progress">In Progress</SelectItem>
                         <SelectItem value="upheld">Upheld</SelectItem>
                         <SelectItem value="rejected">Not Upheld</SelectItem>
-                        <SelectItem value="partially_upheld">Partially Upheld</SelectItem>
+                        <SelectItem value="partially_upheld">Partially upheld</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
@@ -3019,7 +3019,7 @@ const ComplaintsSystem = () => {
                             <SelectContent>
                               <SelectItem value="rejected">Complaint Rejected</SelectItem>
                               <SelectItem value="upheld">Complaint Upheld</SelectItem>
-                              <SelectItem value="partially_upheld">Partially Upheld</SelectItem>
+                              <SelectItem value="partially_upheld">Partially upheld</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>

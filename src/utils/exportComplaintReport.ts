@@ -86,7 +86,7 @@ interface ReportData {
 const formatOutcomeType = (outcomeType: string): string => {
   const typeMap: { [key: string]: string } = {
     'upheld': 'Upheld',
-    'partially_upheld': 'Partially Upheld',
+    'partially_upheld': 'Partially upheld',
     'not_upheld': 'Not Upheld',
     'rejected': 'Not Upheld'
   };
