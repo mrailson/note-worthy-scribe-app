@@ -342,6 +342,14 @@ const formatLetterContent = (letterContent: string): Paragraph[] => {
   cleanedContent = cleanedContent.replace(/<div[^>]*>/g, '');
   cleanedContent = cleanedContent.replace(/<\/div>/g, '');
   
+  // Remove all HTML tags including span tags (e.g., <span style="...">text</span>)
+  // This removes the opening tag but keeps the content
+  cleanedContent = cleanedContent.replace(/<span[^>]*>/g, '');
+  cleanedContent = cleanedContent.replace(/<\/span>/g, '');
+  
+  // Remove any other HTML tags
+  cleanedContent = cleanedContent.replace(/<[^>]+>/g, '');
+  
   // Remove markdown image syntax: ![alt](url)
   cleanedContent = cleanedContent.replace(/!\[.*?\]\(.*?\)/g, '');
   
