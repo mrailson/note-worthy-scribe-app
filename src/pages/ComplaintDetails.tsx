@@ -138,6 +138,7 @@ const ComplaintDetails = () => {
   const [showAiAnalysisModal, setShowAiAnalysisModal] = useState(false);
   const [editingOutcome, setEditingOutcome] = useState(false);
   const [acknowledgementLetter, setAcknowledgementLetter] = useState("");
+  const [acknowledgementId, setAcknowledgementId] = useState<string | null>(null);
   const [acknowledgementDate, setAcknowledgementDate] = useState<string | null>(null);
   const [showAcknowledgementLetter, setShowAcknowledgementLetter] = useState(false);
   const [showAcknowledgementModal, setShowAcknowledgementModal] = useState(false);
@@ -323,7 +324,7 @@ const ComplaintDetails = () => {
       // Fetch acknowledgement letter (get the most recent one)
       const { data: ackData } = await supabase
         .from('complaint_acknowledgements')
-        .select('acknowledgement_letter, created_at, sent_at')
+        .select('id, acknowledgement_letter, created_at, sent_at')
         .eq('complaint_id', complaintId)
         .order('created_at', { ascending: false })
         .limit(1)
@@ -331,6 +332,7 @@ const ComplaintDetails = () => {
 
       if (ackData) {
         console.log('Acknowledgement data:', ackData);
+        setAcknowledgementId(ackData.id);
         setAcknowledgementLetter(ackData.acknowledgement_letter);
         setAcknowledgementDate(ackData.created_at);
         setAcknowledgementSentToPatient(!!ackData.sent_at);
@@ -713,19 +715,19 @@ const ComplaintDetails = () => {
   };
 
   const handleMarkAcknowledgementSent = async (isSent: boolean) => {
-    if (!complaintId || !complaint) return;
+    if (!complaintId || !complaint || !acknowledgementId) return;
     
     try {
       const now = isSent ? new Date().toISOString() : null;
       
-      // Update the acknowledgement record
+      // Update the specific acknowledgement record using its ID
       const { error: ackError } = await supabase
         .from('complaint_acknowledgements')
         .update({ 
           sent_at: now,
           sent_by: isSent ? user?.id : null
         })
-        .eq('complaint_id', complaintId);
+        .eq('id', acknowledgementId);
 
       if (ackError) throw ackError;
 
