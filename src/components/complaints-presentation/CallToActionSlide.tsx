@@ -29,19 +29,19 @@ export const CallToActionSlide = () => {
             <ul className="grid grid-cols-2 gap-2 text-sm text-foreground">
               <li className="flex items-start gap-2">
                 <span className="text-[#00A9CE] mt-1">•</span>
-                <span>Multiple failed prescription requests</span>
+                <span>4 appointments cancelled in 3 months</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[#00A9CE] mt-1">•</span>
-                <span>Communication breakdown with reception staff</span>
+                <span>Short notice cancellations (less than 24 hours)</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[#00A9CE] mt-1">•</span>
-                <span>Delay in essential medication access</span>
+                <span>Poor communication from practice</span>
               </li>
               <li className="flex items-start gap-2">
                 <span className="text-[#00A9CE] mt-1">•</span>
-                <span>Impact on patient's health condition</span>
+                <span>Delayed treatment for chronic back pain</span>
               </li>
             </ul>
           </div>
