@@ -485,7 +485,15 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
                         "flex items-center gap-2 flex-1 min-w-0",
                         deviceInfo.isIPhone && "w-full"
                       )}>
-                        <FileText className="h-4 w-4 flex-shrink-0" />
+                        {file.type.startsWith('image/') ? (
+                          <img 
+                            src={URL.createObjectURL(file)} 
+                            alt={file.name}
+                            className="h-12 w-12 object-cover rounded border flex-shrink-0"
+                          />
+                        ) : (
+                          <FileText className="h-4 w-4 flex-shrink-0" />
+                        )}
                         <span className={cn(
                           "truncate",
                           deviceInfo.isIPhone ? "text-sm" : "text-sm"
