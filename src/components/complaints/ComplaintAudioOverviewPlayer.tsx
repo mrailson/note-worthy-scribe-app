@@ -80,9 +80,8 @@ export const ComplaintAudioOverviewPlayer = ({
           didWarmUpRef.current = true;
         }
         
-        // Start from 0.3s to skip problematic initial buffer
-        // This avoids the decoder initialization issues at the very start
-        audioRef.current.currentTime = 0.3;
+        // Ensure we start from the very beginning
+        audioRef.current.currentTime = 0;
         audioRef.current.playbackRate = playbackSpeed;
       
         audioRef.current.addEventListener('ended', async () => {
@@ -121,10 +120,17 @@ export const ComplaintAudioOverviewPlayer = ({
           }
         };
         
-        // Start silent and fade in to prevent initial glitches
+        // Start silent, briefly run, then reset to 0 and fade in
         audioRef.current.volume = 0;
+        audioRef.current.currentTime = 0;
         await audioRef.current.play();
-        fadeInVolume(audioRef.current, 1, 500);
+        // Let the decoder stabilise for a short moment while muted
+        await new Promise((r) => setTimeout(r, 220));
+        // Snap back to the very start to avoid mid-word start
+        const safeStart = Math.max(0, Math.min(0.01, (totalDuration || 1) - 0.001));
+        try { audioRef.current.currentTime = safeStart; } catch (_) {}
+        // Smoothly fade in
+        fadeInVolume(audioRef.current, 1, 700);
         
         setIsPlaying(true);
         animationFrameRef.current = requestAnimationFrame(updateTime);
