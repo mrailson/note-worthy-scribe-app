@@ -648,18 +648,23 @@ const ComplaintsSystem = () => {
         
         // Auto-generate acknowledgement letter in the background
         // This runs asynchronously without blocking the user experience
+        showToast.info('Generating acknowledgement letter...', { section: 'complaints', duration: 3000 });
+        
         supabase.functions.invoke('generate-complaint-acknowledgement', {
           body: { complaintId: data.id }
         }).then(({ data: ackData, error: ackError }) => {
           if (ackError) {
             console.error('Background acknowledgement generation error:', ackError);
+            showToast.error('Failed to generate acknowledgement letter', { section: 'complaints' });
           } else {
             console.log('Acknowledgement letter generated automatically');
+            showToast.success('Acknowledgement letter ready', { section: 'complaints' });
             // Silently refresh the complaints list to show the acknowledgement status
             fetchComplaints();
           }
         }).catch(err => {
           console.error('Failed to generate acknowledgement in background:', err);
+          showToast.error('Failed to generate acknowledgement letter', { section: 'complaints' });
         });
       }
     } catch (error) {

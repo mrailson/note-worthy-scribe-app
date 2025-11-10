@@ -144,6 +144,7 @@ const ComplaintDetails = () => {
   const [showAcknowledgementModal, setShowAcknowledgementModal] = useState(false);
   const [isEditingAcknowledgement, setIsEditingAcknowledgement] = useState(false);
   const [editedAcknowledgementContent, setEditedAcknowledgementContent] = useState("");
+  const [isCheckingAcknowledgement, setIsCheckingAcknowledgement] = useState(false);
   const [editorMode, setEditorMode] = useState<'split' | 'edit' | 'preview'>('split');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -338,6 +339,36 @@ const ComplaintDetails = () => {
         setAcknowledgementSentToPatient(!!ackData.sent_at);
         setAcknowledgementSentAt(ackData.sent_at);
       }
+
+      // Set up real-time subscription for acknowledgement updates
+      const acknowledgementChannel = supabase
+        .channel(`acknowledgement_${complaintId}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'complaint_acknowledgements',
+            filter: `complaint_id=eq.${complaintId}`
+          },
+          (payload) => {
+            console.log('Acknowledgement updated:', payload);
+            if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+              const newData = payload.new as any;
+              setAcknowledgementId(newData.id);
+              setAcknowledgementLetter(newData.acknowledgement_letter);
+              setAcknowledgementDate(newData.created_at);
+              setAcknowledgementSentToPatient(!!newData.sent_at);
+              setAcknowledgementSentAt(newData.sent_at);
+              showToast.success('Acknowledgement letter ready', { section: 'complaints' });
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(acknowledgementChannel);
+      };
 
       // Fetch audio overview if available
       const { data: audioData } = await supabase
@@ -1303,14 +1334,78 @@ const ComplaintDetails = () => {
     return workingDays;
   };
 
-  const handleOpenAcknowledgementModal = () => {
+  // Helper function to check acknowledgement status
+  const checkAcknowledgementStatus = async () => {
+    const { data, error } = await supabase
+      .from('complaint_acknowledgements')
+      .select('id, acknowledgement_letter, created_at, sent_at')
+      .eq('complaint_id', complaintId)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    
+    if (error) {
+      console.error('Error checking acknowledgement status:', error);
+      return { exists: false, hasContent: false, data: null };
+    }
+
+    const hasContent = data?.acknowledgement_letter && 
+                      data.acknowledgement_letter.replace(/<!--.*?-->|\s/g, '').length > 0;
+    
+    return { exists: !!data, hasContent, data };
+  };
+
+  const handleOpenAcknowledgementModal = async () => {
+    // Check if acknowledgement letter has meaningful content
+    const contentWithoutComments = acknowledgementLetter.replace(/<!--.*?-->|\s/g, '');
+    
+    if (!contentWithoutComments || contentWithoutComments.length === 0) {
+      // Letter is empty, check if it's being generated
+      setIsCheckingAcknowledgement(true);
+      showToast.info('Checking acknowledgement status...', { section: 'complaints' });
+      
+      let attempts = 0;
+      const maxAttempts = 15; // 30 seconds (2 seconds per attempt)
+      
+      const pollInterval = setInterval(async () => {
+        attempts++;
+        const status = await checkAcknowledgementStatus();
+        
+        if (status.hasContent && status.data) {
+          // Found the letter!
+          clearInterval(pollInterval);
+          setAcknowledgementId(status.data.id);
+          setAcknowledgementLetter(status.data.acknowledgement_letter);
+          setAcknowledgementDate(status.data.created_at);
+          setAcknowledgementSentToPatient(!!status.data.sent_at);
+          setAcknowledgementSentAt(status.data.sent_at);
+          setIsCheckingAcknowledgement(false);
+          
+          // Now open the modal with the loaded content
+          openModalWithContent(status.data.acknowledgement_letter);
+          return;
+        }
+        
+        if (attempts >= maxAttempts) {
+          // Timeout - show empty state in modal
+          clearInterval(pollInterval);
+          setIsCheckingAcknowledgement(false);
+          showToast.warning('Acknowledgement is still generating. Opening empty view...', { section: 'complaints' });
+          openModalWithContent('');
+        }
+      }, 2000);
+      
+      return;
+    }
+    
+    // Letter exists, open normally
+    openModalWithContent(acknowledgementLetter);
+  };
+
+  const openModalWithContent = (letterContent: string) => {
     // Try to restore draft from localStorage
     const draftKey = `ack_draft_${complaintId}`;
     const savedDraft = localStorage.getItem(draftKey);
-    
-    // Extract and preserve logo URL from acknowledgement letter
-    const logoMatch = acknowledgementLetter.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
-    const logoUrl = logoMatch ? logoMatch[0] : null;
     
     if (savedDraft) {
       try {
@@ -1322,17 +1417,17 @@ const ComplaintDetails = () => {
           // Auto-restore newer draft
           setEditedAcknowledgementContent(draft.content);
         } else {
-          const contentWithoutLogo = acknowledgementLetter.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
+          const contentWithoutLogo = letterContent.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
           setEditedAcknowledgementContent(contentWithoutLogo);
           localStorage.removeItem(draftKey);
         }
       } catch (e) {
-        const contentWithoutLogo = acknowledgementLetter.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
+        const contentWithoutLogo = letterContent.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
         setEditedAcknowledgementContent(contentWithoutLogo);
       }
     } else {
       // Remove logo comment for editing, we'll add it back on save
-      const contentWithoutLogo = acknowledgementLetter.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
+      const contentWithoutLogo = letterContent.replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '');
       setEditedAcknowledgementContent(contentWithoutLogo);
     }
     
@@ -2232,22 +2327,52 @@ const ComplaintDetails = () => {
                           </div>
                         </div>
                         <div className="space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleOpenAcknowledgementModal}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            View Letter
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={handleDownloadAcknowledgementLetter}
-                          >
-                            <Download className="h-4 w-4 mr-1" />
-                            Download
-                          </Button>
+                          {acknowledgementLetter && acknowledgementLetter.replace(/<!--.*?-->|\s/g, '').length > 0 ? (
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleOpenAcknowledgementModal}
+                                disabled={isCheckingAcknowledgement}
+                              >
+                                {isCheckingAcknowledgement ? (
+                                  <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                                ) : (
+                                  <Eye className="h-4 w-4 mr-1" />
+                                )}
+                                View Letter
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={handleDownloadAcknowledgementLetter}
+                              >
+                                <Download className="h-4 w-4 mr-1" />
+                                Download
+                              </Button>
+                            </>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={async () => {
+                                try {
+                                  const { data, error } = await supabase.functions.invoke(
+                                    'generate-complaint-acknowledgement',
+                                    { body: { complaintId: complaint.id } }
+                                  );
+                                  if (error) throw error;
+                                  showToast.success('Acknowledgement generated successfully', { section: 'complaints' });
+                                } catch (error) {
+                                  console.error('Error generating acknowledgement:', error);
+                                  showToast.error('Failed to generate acknowledgement', { section: 'complaints' });
+                                }
+                              }}
+                            >
+                              <Sparkles className="h-4 w-4 mr-1" />
+                              Generate Acknowledgement
+                            </Button>
+                          )}
                         </div>
                       </div>
                     </div>
@@ -3002,7 +3127,48 @@ const ComplaintDetails = () => {
             </DialogHeader>
             
             <div className="flex flex-col gap-2 flex-1 overflow-hidden p-3">
+              {/* Empty state if no content */}
+              {(!editedAcknowledgementContent || editedAcknowledgementContent.replace(/<!--.*?-->|\s/g, '').length === 0) && (
+                <div className="flex flex-col items-centre justify-centre py-12 px-4 text-centre">
+                  <div className="mb-4">
+                    <Loader2 className="h-12 w-12 animate-spin text-muted-foreground mx-auto" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Acknowledgement Letter is Being Generated</h3>
+                  <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+                    The AI is currently generating your acknowledgement letter. This usually takes 5-10 seconds.
+                  </p>
+                  <div className="flex gap-2 justify-centre">
+                    <Button
+                      variant="outline"
+                      onClick={async () => {
+                        try {
+                          const { data, error } = await supabase.functions.invoke(
+                            'generate-complaint-acknowledgement',
+                            { body: { complaintId: complaint.id } }
+                          );
+                          if (error) throw error;
+                          showToast.success('Acknowledgement generated successfully', { section: 'complaints' });
+                        } catch (error) {
+                          console.error('Error generating acknowledgement:', error);
+                          showToast.error('Failed to generate acknowledgement', { section: 'complaints' });
+                        }
+                      }}
+                    >
+                      <Sparkles className="h-4 w-4 mr-2" />
+                      Generate Now
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowAcknowledgementModal(false)}
+                    >
+                      Close
+                    </Button>
+                  </div>
+                </div>
+              )}
+              
               {/* Action bar */}
+              {editedAcknowledgementContent && editedAcknowledgementContent.replace(/<!--.*?-->|\s/g, '').length > 0 && (
               <div className="flex items-center justify-between gap-2 pb-2 border-b flex-shrink-0">
                 <div className="flex gap-2">
                   <Button
@@ -3126,6 +3292,7 @@ const ComplaintDetails = () => {
                   )}
                 </div>
               </div>
+              )}
               
               {/* Letter content */}
               <div className="flex-1 overflow-hidden relative">
