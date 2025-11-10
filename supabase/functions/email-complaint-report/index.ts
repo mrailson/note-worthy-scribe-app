@@ -37,8 +37,16 @@ serve(async (req) => {
       throw new Error('EmailJS credentials not configured');
     }
 
-    // Prepare attachment
-    const attachmentBase64 = btoa(wordDocContent);
+    // Prepare attachment - properly encode UTF-8 to base64
+    const encoder = new TextEncoder();
+    const data = encoder.encode(wordDocContent);
+    // Convert Uint8Array to base64 in chunks to avoid call stack issues
+    let binary = '';
+    const len = data.length;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(data[i]);
+    }
+    const attachmentBase64 = btoa(binary);
     
     // Send email via EmailJS REST API
     const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
