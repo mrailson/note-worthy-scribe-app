@@ -27,7 +27,9 @@ import {
   Globe,
   Shield,
   Lightbulb,
-  Share2
+  Share2,
+  ChevronDown,
+  ChevronRight
 } from "lucide-react";
 
 interface ReportCard {
@@ -253,6 +255,7 @@ export const HierarchicalReports = () => {
   const [activeLevel, setActiveLevel] = useState("practice");
   const [selectedReport, setSelectedReport] = useState<ReportDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPracticesExpanded, setIsPracticesExpanded] = useState(false);
 
   const handleReportClick = (reportId: string) => {
     const reportDetail = mockReportData[reportId];
@@ -370,51 +373,61 @@ export const HierarchicalReports = () => {
               {/* Participating Practices */}
               <Card className="bg-purple-50/50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800">
                 <CardHeader className="pb-3">
-                  <CardTitle className="text-sm flex items-center gap-2">
+                  <button
+                    onClick={() => setIsPracticesExpanded(!isPracticesExpanded)}
+                    className="w-full flex items-center gap-2 hover:opacity-80 transition-opacity"
+                  >
+                    {isPracticesExpanded ? (
+                      <ChevronDown className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    ) : (
+                      <ChevronRight className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    )}
                     <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
-                    Participating Practices
-                  </CardTitle>
+                    <CardTitle className="text-sm">Participating Practices</CardTitle>
+                  </button>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex flex-col gap-2 text-xs">
-                    <div className="flex items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">Springfield Surgery</span>
+                {isPracticesExpanded && (
+                  <CardContent className="animate-accordion-down">
+                    <div className="flex flex-col gap-2 text-xs">
+                      <div className="flex items-center p-2 rounded bg-background/50">
+                        <span className="font-medium">Springfield Surgery</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50">
+                        <span className="font-medium">Towcester Medical Centre</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50 pl-6">
+                        <span className="text-muted-foreground">→ Paulerspury Surgery</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50">
+                        <span className="font-medium">Brackley Medical Centre</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50">
+                        <span className="font-medium">The Parks Medical Practice</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50 pl-6">
+                        <span className="text-muted-foreground">→ Grange Park</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50 pl-6">
+                        <span className="text-muted-foreground">→ Hanslope Surgery</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50 pl-6">
+                        <span className="text-muted-foreground">→ Roade Medical Centre</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50">
+                        <span className="font-medium">Denton Village Surgery</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50">
+                        <span className="font-medium">Bugbrooke Surgery</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50">
+                        <span className="font-medium">The Brook Health Centre</span>
+                      </div>
+                      <div className="flex items-center p-2 rounded bg-background/50 pl-6">
+                        <span className="text-muted-foreground">→ Silverstone Surgery</span>
+                      </div>
                     </div>
-                    <div className="flex items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">Towcester Medical Centre</span>
-                    </div>
-                    <div className="flex items-center p-2 rounded bg-background/50 pl-6">
-                      <span className="text-muted-foreground">→ Paulerspury Surgery</span>
-                    </div>
-                    <div className="flex items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">Brackley Medical Centre</span>
-                    </div>
-                    <div className="flex items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">The Parks Medical Practice</span>
-                    </div>
-                    <div className="flex items-center p-2 rounded bg-background/50 pl-6">
-                      <span className="text-muted-foreground">→ Grange Park</span>
-                    </div>
-                    <div className="flex items-center p-2 rounded bg-background/50 pl-6">
-                      <span className="text-muted-foreground">→ Hanslope Surgery</span>
-                    </div>
-                    <div className="flex items-center p-2 rounded bg-background/50 pl-6">
-                      <span className="text-muted-foreground">→ Roade Medical Centre</span>
-                    </div>
-                    <div className="flex items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">Denton Village Surgery</span>
-                    </div>
-                    <div className="flex items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">Bugbrooke Surgery</span>
-                    </div>
-                    <div className="flex items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">The Brook Health Centre</span>
-                    </div>
-                    <div className="flex items-center p-2 rounded bg-background/50 pl-6">
-                      <span className="text-muted-foreground">→ Silverstone Surgery</span>
-                    </div>
-                  </div>
-                </CardContent>
+                  </CardContent>
+                )}
               </Card>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
