@@ -564,15 +564,15 @@ export const preDeploymentChecklist: ChecklistItem[] = [
   },
   {
     item: "Clinical Safety Case completed",
-    status: "OUTSTANDING",
+    status: "PARTIAL",
     owner: "CSO",
-    targetDate: "Before deployment"
+    targetDate: "Ready for review once CSO appointed"
   },
   {
     item: "Hazard Log approved",
-    status: "OUTSTANDING",
+    status: "PARTIAL",
     owner: "CSO",
-    targetDate: "Before deployment"
+    targetDate: "Ready for review once CSO appointed"
   },
   {
     item: "DPIA completed and signed",
