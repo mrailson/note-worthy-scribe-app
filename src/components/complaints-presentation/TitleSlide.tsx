@@ -41,7 +41,7 @@ export const TitleSlide = () => {
 
           {/* Presenter Details with Logo */}
           <div className="flex items-center gap-6 pt-6">
-            <img src={bluePCNLogo} alt="Blue PCN Logo" className="h-16 w-auto" />
+            <img src={bluePCNLogo} alt="Blue PCN Logo" className="h-auto w-auto" style={{ height: '89.6px' }} />
             <div>
               <p className="text-2xl font-bold text-foreground">
                 Malcolm Railson
