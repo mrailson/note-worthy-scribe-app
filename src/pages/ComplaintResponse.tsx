@@ -9,7 +9,7 @@ import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, CheckCircle, AlertCircle, Mail, Sparkles, Loader2 } from 'lucide-react';
 import { showToast } from '@/utils/toastWrapper';
 import { ComplaintMicRecorder } from '@/components/complaints/ComplaintMicRecorder';
-
+import { ComplaintMicRecorderV2 } from '@/components/complaints/ComplaintMicRecorderV2';
 interface ComplaintDetails {
   complaint_id: string;
   reference_number: string;
@@ -36,7 +36,7 @@ export default function ComplaintResponse() {
   const [manualToken, setManualToken] = useState('');
   const [showManualEntry, setShowManualEntry] = useState(false);
   const [isGeneratingDemo, setIsGeneratingDemo] = useState(false);
-
+  const [micEngine, setMicEngine] = useState<'worklet' | 'legacy'>('worklet');
   // Find token from route params, query string, or hash (to support various email client behaviours)
   const getEffectiveToken = (): string | null => {
     if (routeToken) return routeToken;
@@ -397,16 +397,45 @@ export default function ComplaintResponse() {
                   />
                   {!complaint.response_submitted && (
                     <div className="flex justify-between items-center">
-                      <ComplaintMicRecorder
-                        onTranscriptUpdate={(text) => {
-                          setResponse(prev => {
-                            const spacer = prev && !prev.endsWith(' ') && !text.startsWith(' ') ? ' ' : '';
-                            return (prev || '') + spacer + text;
-                          });
-                        }}
-                        disabled={complaint.response_submitted}
-                        className="text-sm"
-                      />
+                      <div className="flex items-center gap-3">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">Mic</span>
+                          <select
+                            value={micEngine}
+                            onChange={(e) => setMicEngine(e.target.value as 'worklet' | 'legacy')}
+                            className="h-8 rounded-md border px-2 text-sm bg-background"
+                            aria-label="Select microphone engine"
+                          >
+                            <option value="worklet">New mic (AudioWorklet)</option>
+                            <option value="legacy">Legacy mic</option>
+                          </select>
+                        </div>
+
+                        {micEngine === 'worklet' ? (
+                          <ComplaintMicRecorderV2
+                            onTranscriptUpdate={(text) => {
+                              setResponse(prev => {
+                                const spacer = prev && !prev.endsWith(' ') && !text.startsWith(' ') ? ' ' : '';
+                                return (prev || '') + spacer + text;
+                              });
+                            }}
+                            disabled={complaint.response_submitted}
+                            className="text-sm"
+                          />
+                        ) : (
+                          <ComplaintMicRecorder
+                            onTranscriptUpdate={(text) => {
+                              setResponse(prev => {
+                                const spacer = prev && !prev.endsWith(' ') && !text.startsWith(' ') ? ' ' : '';
+                                return (prev || '') + spacer + text;
+                              });
+                            }}
+                            disabled={complaint.response_submitted}
+                            className="text-sm"
+                          />
+                        )}
+                      </div>
+
                       <Button
                         onClick={handleLoadDemo}
                         disabled={isGeneratingDemo}
