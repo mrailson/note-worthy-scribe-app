@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp, RefreshCw, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { downloadComplaintReport } from '@/utils/downloadComplaintReport';
@@ -45,6 +45,7 @@ export default function ComplaintAIReport() {
   const [reportData, setReportData] = useState<AIReportData | null>(null);
   const [complaint, setComplaint] = useState<any>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const [emailSending, setEmailSending] = useState(false);
   const [generatedAt, setGeneratedAt] = useState<Date>(new Date());
 
   useEffect(() => {
@@ -133,6 +134,35 @@ export default function ComplaintAIReport() {
     }
   };
 
+  const handleEmailReport = async () => {
+    if (!reportData || !complaint) return;
+    
+    try {
+      setEmailSending(true);
+      
+      const { error } = await supabase.functions.invoke('email-complaint-report', {
+        body: {
+          complaintId: id,
+          reportData,
+          complaint
+        }
+      });
+
+      if (error) {
+        console.error('Email error:', error);
+        toast.error('Failed to send email report');
+        return;
+      }
+
+      toast.success('Report emailed to GP Partners successfully');
+    } catch (error) {
+      console.error('Email error:', error);
+      toast.error('Failed to send email report');
+    } finally {
+      setEmailSending(false);
+    }
+  };
+
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case 'high':
@@ -185,6 +215,14 @@ export default function ComplaintAIReport() {
           >
             <RefreshCw className={`mr-2 h-4 w-4 ${regenerating ? 'animate-spin' : ''}`} />
             Regenerate Report
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={handleEmailReport}
+            disabled={emailSending}
+          >
+            <Mail className={`mr-2 h-4 w-4 ${emailSending ? 'animate-pulse' : ''}`} />
+            {emailSending ? 'Sending...' : 'Email to GP Partners'}
           </Button>
           <Button variant="outline" onClick={handleDownload}>
             <Download className="mr-2 h-4 w-4" />
