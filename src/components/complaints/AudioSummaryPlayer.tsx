@@ -84,6 +84,12 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
         audioRef.current.pause();
         setIsPlaying(false);
       } else {
+        // Check if audio is ready to play
+        if (audioRef.current.readyState < 3) {
+          toast.info('Audio is still loading, please wait...');
+          return;
+        }
+
         try {
           // Warm up audio device to prevent glitches
           await playoutSilentPreRoll(200);
@@ -100,6 +106,7 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
         } catch (error) {
           console.error('Audio playback error:', error);
           toast.error('Audio playback failed. Please try again.');
+          setIsPlaying(false);
         }
       }
     }
