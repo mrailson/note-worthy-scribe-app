@@ -203,6 +203,11 @@ export default function ComplaintAIReport() {
                 Reference: <span className="font-semibold text-foreground">{complaint.reference_number}</span>
               </p>
               <p className="text-sm text-muted-foreground mt-1">
+                Received: <span className="font-semibold text-foreground">
+                  {format(new Date(complaint.received_at || complaint.created_at), 'dd MMMM yyyy')}
+                </span>
+              </p>
+              <p className="text-sm text-muted-foreground mt-1">
                 Generated on {format(generatedAt, 'dd MMMM yyyy HH:mm')}
               </p>
               <p className="text-xs text-muted-foreground/70 mt-1 italic">
