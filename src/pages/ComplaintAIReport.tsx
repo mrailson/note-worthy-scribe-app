@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp, RefreshCw, Mail } from 'lucide-react';
+import { AudioSummaryPlayer } from '@/components/complaints/AudioSummaryPlayer';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { downloadComplaintReport } from '@/utils/downloadComplaintReport';
@@ -568,10 +569,13 @@ NHS Complaints Management System
       {/* Timeline Compliance */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <div className="h-8 w-1 bg-primary rounded-full" />
-            Timeline & Compliance
-          </CardTitle>
+          <div className="flex items-center justify-between gap-4">
+            <CardTitle className="flex items-center gap-2">
+              <div className="h-8 w-1 bg-primary rounded-full" />
+              Timeline & Compliance
+            </CardTitle>
+            <AudioSummaryPlayer />
+          </div>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-6">
