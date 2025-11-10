@@ -264,6 +264,10 @@ const CSOReport = () => {
                       <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
                       <span>Scalable cloud infrastructure with automatic backups</span>
                     </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
+                      <span>Secure navigation and documentation access controls</span>
+                    </li>
                   </ul>
                 </div>
 
@@ -303,7 +307,7 @@ const CSOReport = () => {
 
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4">
                 <p className="text-sm font-medium">
-                  <strong>Recommendation:</strong> System may proceed to controlled deployment within max 10 practice pilot (max 5 for first month), subject to completion of critical requirements within 90 days. Full NHS rollout should not proceed until GREEN rating achieved.
+                  <strong>Recommendation:</strong> System may proceed to controlled deployment within max 10 practice pilot (max 5 for first month), subject to completion of critical requirements within 90 days. Full NHS rollout should not proceed until GREEN rating achieved. Recent improvements to system navigation and documentation access have strengthened security posture.
                 </p>
               </div>
             </CardContent>
@@ -493,17 +497,18 @@ const CSOReport = () => {
               </div>
 
               <div className="mt-6 space-y-4">
-                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg p-4">
+                <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900 rounded-lg p-4">
                   <div className="flex items-start gap-3">
-                    <XCircle className="w-5 h-5 text-red-700 dark:text-red-500 flex-shrink-0 mt-0.5" />
+                    <AlertTriangle className="w-5 h-5 text-orange-700 dark:text-orange-500 flex-shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="font-semibold text-red-900 dark:text-red-300 mb-1">Critical Security Actions</h4>
-                      <ul className="text-sm text-red-800 dark:text-red-400 space-y-1 mt-2">
-                        <li>• Address all 29 outstanding security warnings before production deployment</li>
+                      <h4 className="font-semibold text-orange-900 dark:text-orange-300 mb-1">Critical Security Actions</h4>
+                      <ul className="text-sm text-orange-800 dark:text-orange-400 space-y-1 mt-2">
+                        <li>• Complete comprehensive security audit and address all identified warnings</li>
                         <li>• Implement security scanning as part of CI/CD pipeline</li>
                         <li>• Conduct penetration testing (minimum annual schedule)</li>
                         <li>• Establish vulnerability disclosure process</li>
                         <li>• Develop and test security incident response plan</li>
+                        <li>• Document and verify all system navigation and access control paths</li>
                       </ul>
                     </div>
                   </div>
