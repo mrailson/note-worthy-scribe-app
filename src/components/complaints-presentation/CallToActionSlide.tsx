@@ -1,12 +1,13 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowRight } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import complaintPage1 from '@/assets/complaint-page-1.jpg';
 import complaintPage2 from '@/assets/complaint-page-2.jpg';
 
 export const CallToActionSlide = () => {
   const navigate = useNavigate();
+  const [isExpanded, setIsExpanded] = useState(false);
 
   return (
     <div className="h-full flex flex-col bg-background relative">
@@ -23,27 +24,42 @@ export const CallToActionSlide = () => {
             </p>
           </div>
 
-          {/* Key Components */}
-          <div className="bg-[#003087]/5 rounded-lg p-4 border border-[#003087]/20 animate-fade-in" style={{ animationDelay: '0.1s' }}>
-            <h3 className="text-lg font-semibold text-[#003087] mb-2">Key Components:</h3>
-            <ul className="grid grid-cols-2 gap-2 text-sm text-foreground">
-              <li className="flex items-start gap-2">
-                <span className="text-[#00A9CE] mt-1">•</span>
-                <span>4 appointments cancelled in 3 months</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#00A9CE] mt-1">•</span>
-                <span>Short notice cancellations (less than 24 hours)</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#00A9CE] mt-1">•</span>
-                <span>Poor communication from practice</span>
-              </li>
-              <li className="flex items-start gap-2">
-                <span className="text-[#00A9CE] mt-1">•</span>
-                <span>Delayed treatment for chronic back pain</span>
-              </li>
-            </ul>
+          {/* Key Components - Collapsible */}
+          <div className="bg-[#003087]/5 rounded-lg border border-[#003087]/20 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <button
+              onClick={() => setIsExpanded(!isExpanded)}
+              className="w-full p-4 flex items-center justify-between hover:bg-[#003087]/10 transition-colors rounded-lg"
+            >
+              <h3 className="text-lg font-semibold text-[#003087]">Key Components</h3>
+              {isExpanded ? (
+                <ChevronDown className="h-5 w-5 text-[#003087]" />
+              ) : (
+                <ChevronRight className="h-5 w-5 text-[#003087]" />
+              )}
+            </button>
+            
+            {isExpanded && (
+              <div className="px-4 pb-4 animate-fade-in">
+                <ul className="grid grid-cols-2 gap-2 text-sm text-foreground">
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#00A9CE] mt-1">•</span>
+                    <span>4 appointments cancelled in 3 months</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#00A9CE] mt-1">•</span>
+                    <span>Short notice cancellations (less than 24 hours)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#00A9CE] mt-1">•</span>
+                    <span>Poor communication from practice</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#00A9CE] mt-1">•</span>
+                    <span>Delayed treatment for chronic back pain</span>
+                  </li>
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Two complaint pages side by side */}
