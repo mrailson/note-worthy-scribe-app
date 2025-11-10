@@ -30,12 +30,21 @@ export const MeetingStatsByUser = () => {
     try {
       setLoading(true);
       
+      console.log('[MeetingStatsByUser] Starting fetch...');
+      
       // Query meetings directly
-      const { data: meetings } = await supabase
+      const { data: meetings, error: meetingsError } = await supabase
         .from('meetings')
         .select('user_id, status, created_at');
       
-      if (meetings) {
+      if (meetingsError) {
+        console.error('[MeetingStatsByUser] Error fetching meetings:', meetingsError);
+        return;
+      }
+      
+      console.log(`[MeetingStatsByUser] Fetched ${meetings?.length || 0} meetings`);
+      
+      if (meetings && meetings.length > 0) {
         // Group by user
         const userStats: Record<string, any> = {};
         meetings.forEach(m => {
@@ -62,24 +71,46 @@ export const MeetingStatsByUser = () => {
           }
         });
 
-        // Fetch user details
-        const { data: authData } = await supabase.auth.admin.listUsers();
+        const uniqueUserIds = Object.keys(userStats);
+        console.log(`[MeetingStatsByUser] Found ${uniqueUserIds.length} unique users with meetings`);
+
+        // Fetch user details from profiles table
+        const { data: profiles, error: profilesError } = await supabase
+          .from('profiles')
+          .select('id, email, full_name')
+          .in('id', uniqueUserIds);
+        
+        if (profilesError) {
+          console.error('[MeetingStatsByUser] Error fetching profiles:', profilesError);
+        }
+        
+        console.log(`[MeetingStatsByUser] Fetched ${profiles?.length || 0} profiles`);
         
         const enrichedStats: UserMeetingStats[] = Object.values(userStats).map((stat: any) => {
-          const user = authData?.users?.find((u: any) => u.id === stat.user_id);
+          const profile = profiles?.find((p: any) => p.id === stat.user_id);
           return {
             ...stat,
-            email: user?.email || 'Unknown',
-            full_name: user?.user_metadata?.full_name || user?.user_metadata?.name || null
+            email: profile?.email || 'Unknown',
+            full_name: profile?.full_name || null
           };
         });
 
-        enrichedStats.sort((a, b) => b.meeting_count - a.meeting_count);
-        setStats(enrichedStats);
-        setTotalMeetings(enrichedStats.reduce((sum, s) => sum + s.meeting_count, 0));
+        // Filter to only show users with 1 or more meetings (already implicit, but being explicit)
+        const filteredStats = enrichedStats.filter(s => s.meeting_count >= 1);
+        
+        filteredStats.sort((a, b) => b.meeting_count - a.meeting_count);
+        
+        console.log(`[MeetingStatsByUser] Final stats for ${filteredStats.length} users:`, filteredStats);
+        
+        setStats(filteredStats);
+        setTotalMeetings(filteredStats.reduce((sum, s) => sum + s.meeting_count, 0));
+      } else {
+        console.log('[MeetingStatsByUser] No meetings found');
+        setStats([]);
+        setTotalMeetings(0);
       }
     } catch (error) {
-      console.error('Error fetching meeting stats:', error);
+      console.error('[MeetingStatsByUser] Error fetching meeting stats:', error);
     } finally {
       setLoading(false);
     }
