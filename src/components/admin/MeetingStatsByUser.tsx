@@ -127,7 +127,8 @@ export const MeetingStatsByUser = () => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
+                  <TableHead>User Name</TableHead>
+                  <TableHead>Email</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-right">Completed</TableHead>
                   <TableHead className="text-right">Recording</TableHead>
@@ -138,15 +139,11 @@ export const MeetingStatsByUser = () => {
               <TableBody>
                 {stats.map((stat) => (
                   <TableRow key={stat.user_id}>
-                    <TableCell>
-                      <div className="flex flex-col">
-                        <span className="font-medium">
-                          {stat.full_name || 'Unnamed User'}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          {stat.email}
-                        </span>
-                      </div>
+                    <TableCell className="font-medium">
+                      {stat.full_name || 'Unnamed User'}
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {stat.email}
                     </TableCell>
                     <TableCell className="text-right">
                       <Badge variant="secondary">{stat.meeting_count}</Badge>
