@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, MapPin, CheckCircle, AlertCircle, Mail, Sparkles, Loader2 } from 'lucide-react';
 import { showToast } from '@/utils/toastWrapper';
-import { SimpleBrowserMic } from '@/components/ai4gp/SimpleBrowserMic';
+import { ComplaintMicRecorder } from '@/components/complaints/ComplaintMicRecorder';
 
 interface ComplaintDetails {
   complaint_id: string;
@@ -397,7 +397,7 @@ export default function ComplaintResponse() {
                   />
                   {!complaint.response_submitted && (
                     <div className="flex justify-between items-center">
-                      <SimpleBrowserMic
+                      <ComplaintMicRecorder
                         onTranscriptUpdate={(text) => {
                           setResponse(prev => prev + (prev ? '\n\n' : '') + text);
                         }}
