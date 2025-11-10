@@ -538,7 +538,7 @@ NHS Complaints Management System
       {/* Title Card */}
       <Card className="border-primary/20 bg-gradient-to-br from-background to-primary/5">
         <CardHeader>
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-4">
             <div>
               <CardTitle className="text-3xl mb-2">Complaint Review Report</CardTitle>
               <p className="text-muted-foreground">
@@ -566,9 +566,17 @@ NHS Complaints Management System
                 This report is advisory and requires human review
               </p>
             </div>
-            <Badge variant="outline" className="text-lg px-4 py-2">
-              {complaint.category}
-            </Badge>
+            <div className="flex flex-col items-end gap-3">
+              <Badge variant="outline" className="text-lg px-4 py-2">
+                {complaint.category}
+              </Badge>
+              <ComplaintAudioOverviewPlayer
+                complaintId={id as string}
+                audioOverviewUrl={audioOverview?.audio_overview_url}
+                audioOverviewText={audioOverview?.audio_overview_text}
+                audioOverviewDuration={audioOverview?.audio_overview_duration}
+              />
+            </div>
           </div>
         </CardHeader>
       </Card>
@@ -591,18 +599,10 @@ NHS Complaints Management System
       {/* Timeline Compliance */}
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between gap-4">
-            <CardTitle className="flex items-center gap-2">
-              <div className="h-8 w-1 bg-primary rounded-full" />
-              Timeline & Compliance
-            </CardTitle>
-            <ComplaintAudioOverviewPlayer
-              complaintId={id as string}
-              audioOverviewUrl={audioOverview?.audio_overview_url}
-              audioOverviewText={audioOverview?.audio_overview_text}
-              audioOverviewDuration={audioOverview?.audio_overview_duration}
-            />
-          </div>
+          <CardTitle className="flex items-center gap-2">
+            <div className="h-8 w-1 bg-primary rounded-full" />
+            Timeline & Compliance
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid md:grid-cols-2 gap-6">
