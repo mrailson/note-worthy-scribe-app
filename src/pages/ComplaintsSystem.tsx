@@ -21,6 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ComplaintSignatureSettings } from "@/components/ComplaintSignatureSettings";
 import { ComplaintImport } from "@/components/ComplaintImport";
 import { ComplianceCheckCleanupButton } from "@/components/ComplianceCheckCleanupButton";
+import { HierarchicalReports } from "@/components/complaints/HierarchicalReports";
 import { 
   maskPatientData, 
   getUserRoleLevel, 
@@ -2595,40 +2596,7 @@ const ComplaintsSystem = () => {
 
           {/* Reports Tab */}
           <TabsContent value="reports" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Complaints Reports & Analytics</CardTitle>
-                <CardDescription>Generate reports for CQC, ICB and internal quality improvement</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  <Button variant="outline" className="h-20 flex flex-col gap-2">
-                    <Download className="h-5 w-5" />
-                    <span>Monthly Summary</span>
-                  </Button>
-                  <Button variant="outline" className="h-20 flex flex-col gap-2">
-                    <FileText className="h-5 w-5" />
-                    <span>Annual Report</span>
-                  </Button>
-                  <Button variant="outline" className="h-20 flex flex-col gap-2">
-                    <Users className="h-5 w-5" />
-                    <span>Staff Analysis</span>
-                  </Button>
-                  <Button variant="outline" className="h-20 flex flex-col gap-2">
-                    <Building className="h-5 w-5" />
-                    <span>Category Trends</span>
-                  </Button>
-                  <Button variant="outline" className="h-20 flex flex-col gap-2">
-                    <Clock className="h-5 w-5" />
-                    <span>Response Times</span>
-                  </Button>
-                  <Button variant="outline" className="h-20 flex flex-col gap-2">
-                    <AlertCircle className="h-5 w-5" />
-                    <span>Escalations Report</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            <HierarchicalReports />
           </TabsContent>
 
 
