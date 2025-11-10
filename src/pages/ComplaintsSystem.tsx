@@ -69,7 +69,8 @@ import {
   Upload,
   Shield,
   Save,
-  Copy
+  Copy,
+  FlaskConical
 } from "lucide-react";
 import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
@@ -1656,7 +1657,8 @@ const ComplaintsSystem = () => {
                           <div className="flex items-center gap-2">
                             <p className="text-lg font-semibold">{complaint.reference_number}</p>
                             {isSimulatedComplaint(complaint) && (
-                              <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600 border-blue-300">
+                              <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-300 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-700">
+                                <FlaskConical className="h-3 w-3 mr-1" />
                                 Simulated
                               </Badge>
                             )}
