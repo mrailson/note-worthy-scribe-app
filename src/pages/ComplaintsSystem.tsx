@@ -80,6 +80,11 @@ import { cn } from "@/lib/utils";
 import { calculateDaysUntilDeadline, addWorkingDays, calculateWorkingDays } from "@/utils/workingDays";
 import { logComplaintViewWithMetadata } from "@/utils/auditLogger";
 
+// Helper to identify simulated/example complaints
+const isSimulatedComplaint = (complaint: Complaint): boolean => {
+  return complaint.patient_name?.toLowerCase().includes('james robert williams') || false;
+};
+
 interface Complaint {
   id: string;
   reference_number: string;
@@ -1648,7 +1653,14 @@ const ComplaintsSystem = () => {
                     return (
                       <div key={complaint.id} className="flex items-center justify-between border-b pb-3">
                         <div className="flex-1">
-                          <p className="text-lg font-semibold">{complaint.reference_number}</p>
+                          <div className="flex items-center gap-2">
+                            <p className="text-lg font-semibold">{complaint.reference_number}</p>
+                            {isSimulatedComplaint(complaint) && (
+                              <Badge variant="outline" className="text-xs bg-blue-500/10 text-blue-600 border-blue-300">
+                                Simulated
+                              </Badge>
+                            )}
+                          </div>
                           <p className="text-base text-muted-foreground">{complaint.complaint_title}</p>
                         </div>
                         <div className="grid items-center gap-3 grid-cols-[110px_230px_100px_180px_auto] w-[780px]">
