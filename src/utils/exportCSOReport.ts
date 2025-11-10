@@ -364,7 +364,7 @@ export const exportCSOReportToWord = async () => {
           new Paragraph({
             children: [
               new TextRun({ text: "System Safety Classification: ", bold: true }),
-              new TextRun({ text: "Class IIa Medical Device Software (under UK MDR 2002)" }),
+              new TextRun({ text: "Class I Medical Device Software (under UK MDR 2002)" }),
             ],
             spacing: { after: 200 },
           }),

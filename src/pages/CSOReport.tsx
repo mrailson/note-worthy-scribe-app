@@ -710,7 +710,7 @@ const CSOReport = () => {
                 <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                   <div>
                     <span className="font-semibold">System Safety Classification:</span>
-                    <p className="text-sm text-muted-foreground mt-1">Class IIa Medical Device Software (under UK MDR 2002)</p>
+                    <p className="text-sm text-muted-foreground mt-1">Class I Medical Device Software (under UK MDR 2002)</p>
                   </div>
                   <div>
                     <span className="font-semibold">Overall Safety Rating:</span>
