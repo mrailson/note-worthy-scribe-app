@@ -64,14 +64,14 @@ export const CallToActionSlide = () => {
 
           {/* Two complaint pages side by side */}
           <div className="grid grid-cols-2 gap-6">
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in max-h-[calc(100vh-280px)]" style={{ animationDelay: '0.2s' }}>
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in max-h-[calc((100vh-280px)*0.85)]" style={{ animationDelay: '0.2s' }}>
               <img 
                 src={complaintPage1} 
                 alt="Complaint Letter Page 1" 
                 className="w-full h-full object-contain"
               />
             </div>
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in relative max-h-[calc(100vh-280px)]" style={{ animationDelay: '0.3s' }}>
+            <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in relative max-h-[calc((100vh-280px)*0.85)]" style={{ animationDelay: '0.3s' }}>
               <img 
                 src={complaintPage2} 
                 alt="Complaint Letter Page 2" 
