@@ -549,6 +549,16 @@ NHS Complaints Management System
                   {format(new Date(complaint.received_at || complaint.created_at), 'dd MMMM yyyy')}
                 </span>
               </p>
+              {complaint.complaint_outcomes?.[0]?.outcome_type && (
+                <p className="text-sm text-muted-foreground mt-1">
+                  Status: <span className="font-semibold text-foreground">
+                    {complaint.complaint_outcomes[0].outcome_type
+                      .split('_')
+                      .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1))
+                      .join(' ')}
+                  </span>
+                </p>
+              )}
               <p className="text-sm text-muted-foreground mt-1">
                 Generated on {format(generatedAt, 'dd MMMM yyyy HH:mm')}
               </p>
