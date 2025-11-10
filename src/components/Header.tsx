@@ -35,6 +35,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const [managementOpen, setManagementOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [hideGPClinical, setHideGPClinical] = useState(false);
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -58,6 +59,18 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
 
         if (!profileError && profileData?.shared_drive_visible !== undefined) {
           setSharedDriveVisible(profileData.shared_drive_visible);
+        }
+
+        // Load AI4GP preferences to control menu visibility
+        const { data: settings, error: settingsError } = await supabase
+          .from('user_settings')
+          .select('setting_value')
+          .eq('user_id', user.id)
+          .eq('setting_key', 'ai4gp_preferences');
+
+        if (!settingsError && settings && settings.length > 0) {
+          const prefs: any = settings[0].setting_value;
+          setHideGPClinical(!!prefs?.hideGPClinical);
         }
       } catch (error) {
         console.error('Error checking user permissions:', error);
@@ -107,19 +120,36 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               )}
             
             {user && (
-               <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button 
-                    variant="secondary"
-                    size="sm"
-                    className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
-                    onClick={() => refreshUserModules()}
-                  >
-                    <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
-                    <span className="hidden sm:inline">Select Service</span>
-                    <ChevronDown className="h-3 w-3 ml-1" />
-                  </Button>
-                </DropdownMenuTrigger>
+                <DropdownMenu>
+                 <DropdownMenuTrigger asChild>
+                   <Button 
+                     variant="secondary"
+                     size="sm"
+                     className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
+                     onClick={async () => {
+                       try {
+                         await refreshUserModules();
+                         if (user?.id) {
+                           const { data: settings } = await supabase
+                             .from('user_settings')
+                             .select('setting_value')
+                             .eq('user_id', user.id)
+                             .eq('setting_key', 'ai4gp_preferences');
+                           if (settings && settings.length > 0) {
+                             const prefs: any = settings[0].setting_value;
+                             setHideGPClinical(!!prefs?.hideGPClinical);
+                           }
+                         }
+                       } catch (e) {
+                         console.error('Failed to refresh service menu prefs', e);
+                       }
+                     }}
+                   >
+                     <Grid3X3 className="h-3 w-3 sm:h-4 sm:w-4 sm:mr-2" />
+                     <span className="hidden sm:inline">Select Service</span>
+                     <ChevronDown className="h-3 w-3 ml-1" />
+                   </Button>
+                 </DropdownMenuTrigger>
                  <DropdownMenuContent 
                    align="end" 
                    className="bg-background border border-border shadow-lg w-48 z-50"

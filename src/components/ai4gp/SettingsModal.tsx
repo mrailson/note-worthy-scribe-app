@@ -536,7 +536,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <Switch
                   id="hide-gp-clinical"
                   checked={hideGPClinical}
-                  onCheckedChange={onHideGPClinicalChange}
+                  onCheckedChange={(checked) => {
+                    onHideGPClinicalChange(checked);
+                    onSaveSettings?.();
+                  }}
                 />
               </div>
               
