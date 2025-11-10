@@ -49,6 +49,7 @@ export default function ComplaintAIReport() {
   const [regenerating, setRegenerating] = useState(false);
   const [emailSending, setEmailSending] = useState(false);
   const [generatedAt, setGeneratedAt] = useState<Date>(new Date());
+  const [audioOverview, setAudioOverview] = useState<any>(null);
 
   useEffect(() => {
     if (id) {
@@ -75,6 +76,17 @@ export default function ComplaintAIReport() {
 
       if (complaintError) throw complaintError;
       setComplaint(complaintData);
+
+      // Fetch audio overview if available
+      const { data: audioData } = await supabase
+        .from('complaint_audio_overviews')
+        .select('*')
+        .eq('complaint_id', id)
+        .maybeSingle();
+
+      if (audioData) {
+        setAudioOverview(audioData);
+      }
 
       // Generate AI report
       const { data: aiReport, error: aiError } = await supabase.functions.invoke(
@@ -574,7 +586,10 @@ NHS Complaints Management System
               <div className="h-8 w-1 bg-primary rounded-full" />
               Timeline & Compliance
             </CardTitle>
-            <AudioSummaryPlayer />
+            <AudioSummaryPlayer 
+              audioUrl={audioOverview?.audio_overview_url}
+              duration={audioOverview?.audio_overview_duration || 180}
+            />
           </div>
         </CardHeader>
         <CardContent>
