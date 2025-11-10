@@ -255,7 +255,8 @@ export const HierarchicalReports = () => {
   const [activeLevel, setActiveLevel] = useState("practice");
   const [selectedReport, setSelectedReport] = useState<ReportDetail | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [isNeighbourhoodExpanded, setIsNeighbourhoodExpanded] = useState(false);
+  const [isRuralEastSouthExpanded, setIsRuralEastSouthExpanded] = useState(false);
+  const [isWellingboroughExpanded, setIsWellingboroughExpanded] = useState(false);
 
   const handleReportClick = (reportId: string) => {
     const reportDetail = mockReportData[reportId];
@@ -364,10 +365,10 @@ export const HierarchicalReports = () => {
               <Card className="bg-purple-50/50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800">
                 <CardHeader className="pb-3">
                   <button
-                    onClick={() => setIsNeighbourhoodExpanded(!isNeighbourhoodExpanded)}
+                    onClick={() => setIsRuralEastSouthExpanded(!isRuralEastSouthExpanded)}
                     className="w-full flex items-center gap-3 hover:opacity-80 transition-opacity"
                   >
-                    {isNeighbourhoodExpanded ? (
+                    {isRuralEastSouthExpanded ? (
                       <ChevronDown className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
                     ) : (
                       <ChevronRight className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
@@ -382,7 +383,7 @@ export const HierarchicalReports = () => {
                   </button>
                 </CardHeader>
                 
-                {isNeighbourhoodExpanded && (
+                {isRuralEastSouthExpanded && (
                   <CardContent className="space-y-4 animate-accordion-down">
                     {/* Participating Practices */}
                     <Card className="bg-background border-purple-200 dark:border-purple-700">
@@ -441,6 +442,91 @@ export const HierarchicalReports = () => {
                         <div className="mt-4 pt-3 border-t border-purple-200 dark:border-purple-700 flex items-center justify-between font-semibold text-sm">
                           <span>Total</span>
                           <span>88,938</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </CardContent>
+                )}
+              </Card>
+
+              {/* Wellingborough */}
+              <Card className="bg-purple-50/50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800">
+                <CardHeader className="pb-3">
+                  <button
+                    onClick={() => setIsWellingboroughExpanded(!isWellingboroughExpanded)}
+                    className="w-full flex items-center gap-3 hover:opacity-80 transition-opacity"
+                  >
+                    {isWellingboroughExpanded ? (
+                      <ChevronDown className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                    ) : (
+                      <ChevronRight className="h-5 w-5 text-purple-600 dark:text-purple-400 flex-shrink-0" />
+                    )}
+                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
+                      <Layers className="h-5 w-5 text-purple-600 dark:text-purple-400" />
+                    </div>
+                    <div className="flex-1 text-left">
+                      <h3 className="font-semibold text-lg">Wellingborough</h3>
+                      <p className="text-sm text-muted-foreground">Cross-PCN insights and collaboration opportunities across your neighbourhood</p>
+                    </div>
+                  </button>
+                </CardHeader>
+                
+                {isWellingboroughExpanded && (
+                  <CardContent className="space-y-4 animate-accordion-down">
+                    {/* Participating Practices */}
+                    <Card className="bg-background border-purple-200 dark:border-purple-700">
+                      <CardHeader className="pb-3">
+                        <CardTitle className="text-sm flex items-center gap-2">
+                          <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                          Participating Practices
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="flex flex-col gap-2 text-xs">
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+                            <span className="font-medium">Abbey Medical Centre</span>
+                            <span className="text-muted-foreground">TBC</span>
+                          </div>
+                          <div className="flex items-center p-2 rounded bg-muted/50 pl-6">
+                            <span className="text-muted-foreground">→ Broad Street Surgery, Earls Barton</span>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+                            <span className="font-medium">Albany House Medical Centre</span>
+                            <span className="text-muted-foreground">TBC</span>
+                          </div>
+                          <div className="flex items-center p-2 rounded bg-muted/50 pl-6">
+                            <span className="text-muted-foreground">→ Wollaston</span>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+                            <span className="font-medium">Dr Pasquali – Irchester Surgery</span>
+                            <span className="text-muted-foreground">TBC</span>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+                            <span className="font-medium">Earls Barton Medical Centre</span>
+                            <span className="text-muted-foreground">TBC</span>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+                            <span className="font-medium">Queensway Medical Centre</span>
+                            <span className="text-muted-foreground">TBC</span>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+                            <span className="font-medium">Summerlee Medical Centre</span>
+                            <span className="text-muted-foreground">TBC</span>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+                            <span className="font-medium">The Redwell Medical Centre</span>
+                            <span className="text-muted-foreground">TBC</span>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+                            <span className="font-medium">Woodsend Medical Centre</span>
+                            <span className="text-muted-foreground">TBC</span>
+                          </div>
+                          <div className="flex items-center p-2 rounded bg-muted/50 pl-6">
+                            <span className="text-muted-foreground">→ Bozeat Surgery</span>
+                          </div>
+                          <div className="flex items-center p-2 rounded bg-muted/50 pl-6">
+                            <span className="text-muted-foreground">→ Wollaston Surgery</span>
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
