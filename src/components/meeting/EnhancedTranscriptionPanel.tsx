@@ -86,6 +86,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const audioRef = React.useRef<HTMLAudioElement | null>(null);
   const audioCtxRef = React.useRef<AudioContext | null>(null);
   const sourceRef = React.useRef<AudioBufferSourceNode | null>(null);
+  const gainRef = React.useRef<GainNode | null>(null);
   
   // Fetch chunks with timestamp extraction and calculate stats
   useEffect(() => {
@@ -389,6 +390,12 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i);
       }
+      
+      // AUDIO CUTOUT FIX: Pause other audio sources and play silent pre-roll
+      const { audioFocusManager, playoutSilentPreRoll } = await import('@/utils/AudioFocusManager');
+      await audioFocusManager.pauseAll('transcript_tts_playback');
+      await playoutSilentPreRoll(500);
+      
       // Decode with Web Audio for glitch-free start
       const arrayBuffer = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
       const AudioCtx = (window as any).AudioContext || (window as any).webkitAudioContext;
@@ -398,12 +405,21 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
       const buffer: AudioBuffer = await ctx.decodeAudioData(arrayBuffer as ArrayBuffer);
       const source = ctx.createBufferSource();
       source.buffer = buffer;
-      source.connect(ctx.destination);
-      source.onended = () => {
+      
+      // Add gain node for fade-in
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.7);
+      gainRef.current = gain;
+      
+      source.connect(gain).connect(ctx.destination);
+      source.onended = async () => {
         setIsPlaying(false);
         try { ctx.close(); } catch {}
         audioCtxRef.current = null;
         sourceRef.current = null;
+        gainRef.current = null;
+        await audioFocusManager.resumeAll();
       };
 
       sourceRef.current = source;
@@ -417,10 +433,14 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
       const errorMessage = error?.message || 'Failed to generate speech';
       toast.error(errorMessage);
       setIsPlaying(false);
+      
+      // Resume other audio on error
+      const { audioFocusManager } = await import('@/utils/AudioFocusManager');
+      await audioFocusManager.resumeAll();
     }
   };
 
-  const stopTranscript = () => {
+  const stopTranscript = async () => {
     // Stop HTMLAudio fallback if any
     if (audioRef.current) {
       try { audioRef.current.pause(); } catch {}
@@ -429,11 +449,17 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     // Stop WebAudio playback
     try { sourceRef.current?.stop(); } catch {}
     sourceRef.current = null;
+    gainRef.current = null;
     if (audioCtxRef.current) {
       try { audioCtxRef.current.close(); } catch {}
       audioCtxRef.current = null;
     }
     setIsPlaying(false);
+    
+    // Resume other audio sources
+    const { audioFocusManager } = await import('@/utils/AudioFocusManager');
+    await audioFocusManager.resumeAll();
+    
     toast.info('Playback stopped');
   };
 
