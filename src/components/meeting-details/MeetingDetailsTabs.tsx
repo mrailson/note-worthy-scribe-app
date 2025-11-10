@@ -40,7 +40,7 @@ export const MeetingDetailsTabs = ({
           </TabsTrigger>
           <TabsTrigger value="audio" className="flex items-center gap-2 py-2">
             <Headphones className="h-4 w-4" />
-            <span className="hidden sm:inline">Audio Quick Summary</span>
+            <span className="hidden sm:inline">Audio Summary</span>
             <span className="sm:hidden">Audio</span>
           </TabsTrigger>
           <TabsTrigger value="documents" className="flex items-center gap-2 py-2">
