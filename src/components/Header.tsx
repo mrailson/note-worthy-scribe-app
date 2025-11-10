@@ -267,13 +267,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                      <Settings className="h-4 w-4 mr-2" />
                      User Settings
                    </DropdownMenuItem>
-                   <DropdownMenuItem 
-                     onClick={() => navigate('/cso')}
-                     className="cursor-pointer py-3"
-                   >
-                     <Shield className="h-4 w-4 mr-2" />
-                     CSO Report
-                   </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/cso-report')}
+                      className="cursor-pointer py-3"
+                    >
+                      <Shield className="h-4 w-4 mr-2" />
+                      CSO Report
+                    </DropdownMenuItem>
                     <DropdownMenuItem 
                       onClick={() => navigate('/attendees')}
                       className="cursor-pointer py-3"
@@ -622,7 +622,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             </DrawerClose>
 
                             <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/cso')}>
+                              <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/cso-report')}>
                                 <Shield className="h-4 w-4 mr-2" />
                                 CSO Report
                               </Button>
