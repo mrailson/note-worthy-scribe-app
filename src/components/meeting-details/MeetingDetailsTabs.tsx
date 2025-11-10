@@ -1,8 +1,11 @@
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { FileText, Headphones, FileDown } from "lucide-react";
 import { TextOverviewEditor } from "./TextOverviewEditor";
 import { AudioOverviewPlayer } from "./AudioOverviewPlayer";
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MeetingDetailsTabsProps {
   meetingId: string;
@@ -29,6 +32,31 @@ export const MeetingDetailsTabs = ({
   onDocumentRemoved,
   className = ""
 }: MeetingDetailsTabsProps) => {
+  const [documentCount, setDocumentCount] = useState<number>(0);
+
+  // Fetch document count
+  useEffect(() => {
+    const fetchDocumentCount = async () => {
+      try {
+        const { count, error } = await supabase
+          .from('meeting_documents')
+          .select('*', { count: 'exact', head: true })
+          .eq('meeting_id', meetingId);
+
+        if (error) {
+          console.error('Error fetching document count:', error);
+          return;
+        }
+
+        setDocumentCount(count || 0);
+      } catch (error) {
+        console.error('Error fetching document count:', error);
+      }
+    };
+
+    fetchDocumentCount();
+  }, [meetingId, onDocumentRemoved]);
+
   return (
     <div className={`bg-card border border-border rounded-lg ${className}`}>
       <Tabs defaultValue="overview" className="w-full">
@@ -47,6 +75,11 @@ export const MeetingDetailsTabs = ({
             <FileDown className="h-4 w-4" />
             <span className="hidden sm:inline">Documents</span>
             <span className="sm:hidden">Docs</span>
+            {documentCount > 0 && (
+              <Badge variant="secondary" className="ml-1 h-5 min-w-5 px-1.5 text-xs">
+                {documentCount}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
