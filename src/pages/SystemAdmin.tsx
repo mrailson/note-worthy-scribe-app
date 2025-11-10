@@ -3624,9 +3624,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           <TabsContent value="monitoring" className="space-y-6">
             <SystemMonitoringDashboard />
             
-            {/* Meeting Auto-Close Service */}
-            <AdminMeetingControls />
-            
             {/* Database Maintenance Section */}
             <Card>
               <CardHeader>
