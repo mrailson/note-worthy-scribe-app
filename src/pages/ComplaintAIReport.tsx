@@ -9,6 +9,7 @@ import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, Thum
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { downloadComplaintReport } from '@/utils/downloadComplaintReport';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType } from 'docx';
 
 interface AIReportData {
   complaintOverview: string;
@@ -146,14 +147,8 @@ export default function ComplaintAIReport() {
       // Generate HTML message
       const htmlMessage = generateEmailHTML(reportData, complaint);
       
-      // Convert to base64 for attachment
-      const encoder = new TextEncoder();
-      const data = encoder.encode(wordDocContent);
-      let binary = '';
-      for (let i = 0; i < data.length; i++) {
-        binary += String.fromCharCode(data[i]);
-      }
-      const base64Content = btoa(binary);
+      // Generate proper DOCX as base64
+      const base64Content = await generateComplaintDocxBase64(reportData, complaint);
       
       const receivedDate = complaint.received_at || complaint.created_at;
       
@@ -369,6 +364,94 @@ NHS Complaints Management System
 
 </div>
 `;
+  };
+
+  const generateComplaintDocxBase64 = async (reportData: AIReportData, complaint: any): Promise<string> => {
+    const received = format(new Date(complaint.received_at || complaint.created_at), 'dd MMMM yyyy');
+
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          new Paragraph({
+            text: 'Complaint Review Report',
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 300 },
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: `Reference: ${complaint.reference_number}`, bold: true, size: 24 })],
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+          }),
+          new Paragraph({
+            text: `Received: ${received}`,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            text: `Generated: ${format(new Date(), 'dd MMMM yyyy HH:mm')}`,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+          }),
+
+          new Paragraph({ text: 'Complaint Overview', heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 } }),
+          new Paragraph({ text: reportData.complaintOverview, spacing: { after: 300 } }),
+
+          new Paragraph({ text: 'Timeline & Compliance', heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 } }),
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: [
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Milestone', bold: true })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Date', bold: true })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Days', bold: true })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Status', bold: true })] })] }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph('Acknowledgement')] }),
+                  new TableCell({ children: [new Paragraph(reportData.timelineCompliance.acknowledged.date ? format(new Date(reportData.timelineCompliance.acknowledged.date), 'dd MMM yyyy') : 'Not yet acknowledged')] }),
+                  new TableCell({ children: [new Paragraph(String(reportData.timelineCompliance.acknowledged.daysFromReceived))] }),
+                  new TableCell({ children: [new Paragraph(reportData.timelineCompliance.acknowledged.status === 'on-time' ? '✓ On time' : '⚠ Late')] }),
+                ],
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph('Outcome Letter')] }),
+                  new TableCell({ children: [new Paragraph(reportData.timelineCompliance.outcome.date ? format(new Date(reportData.timelineCompliance.outcome.date), 'dd MMM yyyy') : 'Not yet completed')] }),
+                  new TableCell({ children: [new Paragraph(String(reportData.timelineCompliance.outcome.daysFromReceived))] }),
+                  new TableCell({ children: [new Paragraph(reportData.timelineCompliance.outcome.status === 'on-time' ? '✓ On time' : reportData.timelineCompliance.outcome.status === 'late' ? '⚠ Late' : '⏳ In progress')] }),
+                ],
+              }),
+            ],
+          }),
+
+          new Paragraph({ text: 'Key Learnings Identified', heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 } }),
+          ...reportData.keyLearnings.flatMap((learning, index) => [
+            new Paragraph({
+              children: [new TextRun({ text: `${index + 1}. `, bold: true }), new TextRun({ text: learning.learning })],
+              spacing: { after: 80 },
+            }),
+            new Paragraph({ children: [new TextRun({ text: `   Category: ${learning.category} | Impact: ${learning.impact}`, italics: true })], spacing: { after: 140 } }),
+          ]),
+
+          new Paragraph({ text: 'What the Practice Did Well', heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 } }),
+          ...reportData.practiceStrengths.map((s) => new Paragraph({ children: [new TextRun({ text: `✓ ${s}` })], spacing: { after: 120 } })),
+
+          new Paragraph({ text: 'Supportive Quality Improvement Suggestions', heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 } }),
+          ...reportData.improvementSuggestions.map((s, i) => new Paragraph({ children: [new TextRun({ text: `${i + 1}. ${s.suggestion} [${s.priority} priority]`, bold: true })], spacing: { after: 60 } })),
+          ...reportData.improvementSuggestions.map((s) => new Paragraph({ text: `   ${s.rationale}`, spacing: { after: 160 } })),
+
+          new Paragraph({ text: 'Outcome Decision Rationale', heading: HeadingLevel.HEADING_2, spacing: { before: 300, after: 120 } }),
+          new Paragraph({ text: reportData.outcomeRationale, spacing: { after: 200 } }),
+        ],
+      }],
+    });
+
+    return await Packer.toBase64String(doc);
   };
 
   const getPriorityColor = (priority: string) => {
