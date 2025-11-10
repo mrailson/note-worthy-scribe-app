@@ -2,9 +2,14 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { ReportDetail } from "@/data/mockReportData";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Download, Share2, Database, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Download, Share2, Database, TrendingUp, TrendingDown, Minus, Mail, X } from "lucide-react";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { useToast } from "@/hooks/use-toast";
+import { jsPDF } from "jspdf";
+import { useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface ReportDetailModalProps {
   report: ReportDetail | null;
@@ -30,6 +35,9 @@ const levelColors = {
 
 export function ReportDetailModal({ report, isOpen, onClose }: ReportDetailModalProps) {
   const { toast } = useToast();
+  const [shareModalOpen, setShareModalOpen] = useState(false);
+  const [shareEmail, setShareEmail] = useState("");
+  const [shareMessage, setShareMessage] = useState("");
 
   if (!report) return null;
 
@@ -67,17 +75,118 @@ export function ReportDetailModal({ report, isOpen, onClose }: ReportDetailModal
   const colorClasses = getLevelColorClasses();
 
   const handleDownload = () => {
-    toast({
-      title: "Download Started",
-      description: `Downloading ${report.title} report...`,
-    });
+    try {
+      const pdf = new jsPDF();
+      const pageWidth = pdf.internal.pageSize.getWidth();
+      const margin = 20;
+      let yPosition = margin;
+
+      // Title
+      pdf.setFontSize(20);
+      pdf.setFont("helvetica", "bold");
+      pdf.text(report.title, margin, yPosition);
+      yPosition += 15;
+
+      // Level badge
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(`Level: ${report.level}`, margin, yPosition);
+      yPosition += 10;
+
+      // Report metadata
+      pdf.setFontSize(9);
+      pdf.setTextColor(100);
+      pdf.text(`Report Period: ${report.reportPeriod} | Generated: ${report.generatedDate}`, margin, yPosition);
+      yPosition += 15;
+
+      // Hero metric
+      pdf.setFontSize(32);
+      pdf.setFont("helvetica", "bold");
+      pdf.setTextColor(0);
+      pdf.text(report.heroMetric.value, margin, yPosition);
+      yPosition += 10;
+      
+      pdf.setFontSize(12);
+      pdf.setFont("helvetica", "normal");
+      pdf.text(report.heroMetric.label, margin, yPosition);
+      yPosition += 15;
+
+      // Key insight
+      pdf.setFontSize(14);
+      pdf.setFont("helvetica", "bold");
+      pdf.text("Key Insight", margin, yPosition);
+      yPosition += 8;
+      
+      pdf.setFontSize(10);
+      pdf.setFont("helvetica", "normal");
+      const insightLines = pdf.splitTextToSize(report.keyInsight, pageWidth - 2 * margin);
+      pdf.text(insightLines, margin, yPosition);
+      yPosition += insightLines.length * 7 + 10;
+
+      // Sections
+      report.sections.forEach((section) => {
+        if (yPosition > 250) {
+          pdf.addPage();
+          yPosition = margin;
+        }
+
+        pdf.setFontSize(14);
+        pdf.setFont("helvetica", "bold");
+        pdf.text(section.title, margin, yPosition);
+        yPosition += 8;
+
+        pdf.setFontSize(10);
+        pdf.setFont("helvetica", "normal");
+        section.content.forEach((item) => {
+          const lines = pdf.splitTextToSize(`• ${item}`, pageWidth - 2 * margin - 5);
+          if (yPosition + lines.length * 5 > 280) {
+            pdf.addPage();
+            yPosition = margin;
+          }
+          pdf.text(lines, margin + 5, yPosition);
+          yPosition += lines.length * 5 + 3;
+        });
+        yPosition += 5;
+      });
+
+      pdf.save(`${report.title.replace(/\s+/g, '_')}_Report.pdf`);
+      
+      toast({
+        title: "Download Complete",
+        description: `${report.title} report downloaded successfully`,
+      });
+    } catch (error) {
+      toast({
+        title: "Download Failed",
+        description: "There was an error generating the PDF",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleShare = () => {
+    setShareModalOpen(true);
+  };
+
+  const handleSendEmail = () => {
+    if (!shareEmail) {
+      toast({
+        title: "Email Required",
+        description: "Please enter an email address",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Simulate email sending
     toast({
-      title: "Share Link Copied",
-      description: "Report link copied to clipboard",
+      title: "Report Shared",
+      description: `Report sent to ${shareEmail}`,
     });
+    
+    setShareModalOpen(false);
+    setShareEmail("");
+    setShareMessage("");
   };
 
   const handleViewData = () => {
@@ -160,8 +269,9 @@ export function ReportDetailModal({ report, isOpen, onClose }: ReportDetailModal
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <>
+      <Dialog open={isOpen} onOpenChange={onClose}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className={`flex items-center gap-3 pb-4 border-b-4 ${colorClasses.border}`}>
             <div className={`px-3 py-1 rounded-full ${colorClasses.badge} text-sm font-semibold`}>
@@ -252,5 +362,71 @@ export function ReportDetailModal({ report, isOpen, onClose }: ReportDetailModal
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* Share Email Modal */}
+    <Dialog open={shareModalOpen} onOpenChange={setShareModalOpen}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Mail className="h-5 w-5" />
+            Share Report via Email
+          </DialogTitle>
+          <DialogDescription>
+            Send this report to colleagues or stakeholders
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-4 mt-4">
+          <div className="space-y-2">
+            <Label htmlFor="email">Recipient Email Address *</Label>
+            <Input
+              id="email"
+              type="email"
+              placeholder="colleague@example.com"
+              value={shareEmail}
+              onChange={(e) => setShareEmail(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="message">Optional Message</Label>
+            <Textarea
+              id="message"
+              placeholder="Add a personal message..."
+              value={shareMessage}
+              onChange={(e) => setShareMessage(e.target.value)}
+              rows={4}
+            />
+          </div>
+
+          <div className="bg-muted/50 p-3 rounded-lg">
+            <p className="text-sm text-muted-foreground">
+              <strong>Report:</strong> {report.title}
+            </p>
+            <p className="text-xs text-muted-foreground mt-1">
+              {report.reportPeriod} | {report.level}
+            </p>
+          </div>
+
+          <div className="flex gap-2 pt-2">
+            <Button onClick={handleSendEmail} className="flex-1">
+              <Mail className="h-4 w-4 mr-2" />
+              Send Email
+            </Button>
+            <Button 
+              onClick={() => {
+                setShareModalOpen(false);
+                setShareEmail("");
+                setShareMessage("");
+              }} 
+              variant="outline"
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+    </>
   );
 }
