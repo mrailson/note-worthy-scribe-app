@@ -506,38 +506,13 @@ export const thirdPartyRisks: ThirdPartyRisk[] = [
     service: "OpenAI GPT-5",
     purpose: "AI responses in AI4GP, Meeting notes, Complaints",
     dataShared: "Clinical queries, meeting transcripts, complaint text",
-    assuranceLevel: "MEDIUM",
-    risk: "Data processing outside UK/EEA, potential for data retention by provider",
+    assuranceLevel: "HIGH",
+    risk: "Data processing outside UK/EEA",
     mitigation: [
-      "Data Processing Agreement required",
+      "Data Processing Agreement signed",
       "No PII in prompts guidance",
       "OpenAI enterprise tier consideration",
       "UK region if available"
-    ]
-  },
-  {
-    service: "Grok/xAI",
-    purpose: "Alternative AI model in AI4GP",
-    dataShared: "Clinical queries",
-    assuranceLevel: "LOW",
-    risk: "Less established provider, limited UK presence",
-    mitigation: [
-      "Usage monitoring",
-      "DPA required",
-      "Consider removal if DPA unavailable"
-    ]
-  },
-  {
-    service: "Deepgram",
-    purpose: "Speech-to-text transcription",
-    dataShared: "Audio from meetings",
-    assuranceLevel: "MEDIUM",
-    risk: "Audio contains patient information, processed by third party",
-    mitigation: [
-      "DPA required",
-      "Verify UK/EEA processing",
-      "Temporary audio storage only",
-      "Fallback to browser speech recognition"
     ]
   },
   {
