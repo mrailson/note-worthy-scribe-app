@@ -96,7 +96,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
               
               {!user && (
                 <Button 
-                  onClick={() => navigate('/security-compliance')}
+                  onClick={() => navigate('/compliance/security')}
                   variant="secondary"
                   size="sm"
                   className="bg-white/20 hover:bg-white/30 text-white border-white/30 text-xs sm:text-sm px-2 sm:px-4"
@@ -309,7 +309,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Admin Dashboard
                           </DropdownMenuItem>
                            <DropdownMenuItem 
-                             onClick={() => navigate('/security-compliance')}
+                             onClick={() => navigate('/compliance/security')}
                              className="cursor-pointer py-3"
                            >
                              <BookOpen className="h-4 w-4 mr-2" />
@@ -381,7 +381,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         <Button 
                           variant="default" 
                           className="justify-start bg-primary text-primary-foreground"
-                          onClick={() => navigate('/security-compliance')}
+                          onClick={() => navigate('/compliance/security')}
                         >
                           <Shield className="h-4 w-4 mr-2" />
                           Security & Compliance
@@ -584,7 +584,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   </Button>
                                 </DrawerClose>
                                 <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/security-compliance')}>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/compliance/security')}>
                                     <BookOpen className="h-4 w-4 mr-2" />
                                     Security Docs
                                   </Button>

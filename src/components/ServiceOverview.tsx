@@ -225,7 +225,7 @@ export const ServiceOverview = () => {
                 </div>
                 <div className="text-center">
                   <Button 
-                    onClick={() => navigate('/security-compliance')}
+                    onClick={() => navigate('/compliance/security')}
                     variant="outline" 
                     size="sm"
                     className="gap-2"
