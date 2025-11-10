@@ -16,7 +16,7 @@ export const CallToActionSlide = () => {
           {/* Title */}
           <div className="space-y-2">
             <h1 className="text-5xl font-bold text-[#003087] leading-tight">
-              Demonstration Complaint
+              Simulated Example Complaint
             </h1>
             <p className="text-xl text-foreground">
               Example of a modern, detailed complaint we'll process through the system
