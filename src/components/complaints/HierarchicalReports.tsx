@@ -2,6 +2,8 @@ import { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ReportDetailModal } from "./ReportDetailModal";
+import { mockReportData, ReportDetail } from "@/data/mockReportData";
 import { 
   Building2, 
   Network, 
@@ -32,76 +34,84 @@ interface ReportCard {
   title: string;
   description: string;
   icon: typeof Building2;
+  reportId: string;
 }
 
 const PracticeReports: ReportCard[] = [
   {
-    title: "Monthly Summary",
+    title: "Complaints Overview",
     description: "Practice-specific complaint volumes, categories, and response times",
-    icon: Calendar
-  },
-  {
-    title: "Staff Analysis",
-    description: "Which staff members are mentioned in complaints",
-    icon: Users
-  },
-  {
-    title: "Category Trends",
-    description: "Breakdown of complaint types at practice level",
-    icon: TrendingUp
+    icon: Calendar,
+    reportId: "complaints-overview"
   },
   {
     title: "Response Times",
     description: "How quickly the practice responds to complaints",
-    icon: Clock
+    icon: Clock,
+    reportId: "response-times"
   },
   {
-    title: "Escalations Report",
-    description: "Complaints that were escalated from the practice",
-    icon: AlertCircle
-  },
-  {
-    title: "Patient Satisfaction",
+    title: "Satisfaction Scores",
     description: "Post-resolution feedback scores",
-    icon: Award
+    icon: Award,
+    reportId: "satisfaction-scores"
   },
   {
-    title: "Quarterly Performance",
-    description: "CQC-ready quarterly statistics",
-    icon: BarChart3
+    title: "Trends Analysis",
+    description: "Breakdown of complaint types at practice level",
+    icon: TrendingUp,
+    reportId: "trends-analysis"
+  },
+  {
+    title: "Staff Training Needs",
+    description: "Which staff members need additional training",
+    icon: Users,
+    reportId: "staff-training"
+  },
+  {
+    title: "Patient Feedback Summary",
+    description: "Overall patient feedback and recommendations",
+    icon: FileText,
+    reportId: "patient-feedback"
   }
 ];
 
 const PCNReports: ReportCard[] = [
   {
-    title: "PCN-Wide Summary",
+    title: "PCN Complaints Summary",
     description: "Combined statistics from all member practices",
-    icon: Network
+    icon: Network,
+    reportId: "pcn-complaints"
   },
   {
-    title: "Practice Comparison",
+    title: "Shared Services Performance",
+    description: "Performance of shared PCN services",
+    icon: Target,
+    reportId: "shared-services"
+  },
+  {
+    title: "Collaboration Metrics",
+    description: "How practices work together across the network",
+    icon: Lightbulb,
+    reportId: "collaboration-metrics"
+  },
+  {
+    title: "Cross-Practice Comparisons",
     description: "Benchmarking between practices in the PCN",
-    icon: Target
+    icon: BarChart3,
+    reportId: "cross-practice"
   },
   {
-    title: "PCN Trends Analysis",
-    description: "Patterns across the network over time",
-    icon: TrendingUp
-  },
-  {
-    title: "Shared Learning Report",
-    description: "Common issues identified across practices",
-    icon: Lightbulb
-  },
-  {
-    title: "Resource Allocation",
+    title: "Resource Sharing",
     description: "Where PCN support might be needed",
-    icon: PieChart
+    icon: PieChart,
+    reportId: "resource-sharing"
   },
   {
-    title: "Best Practice Showcase",
+    title: "Quality Improvement",
     description: "Highlighting practices with excellent complaint handling",
-    icon: Award
+    icon: Award,
+    reportId: "quality-improvement"
   }
 ];
 
@@ -109,84 +119,87 @@ const NeighbourhoodsReports: ReportCard[] = [
   {
     title: "Neighbourhood Dashboard",
     description: "Overview of all PCNs in the neighbourhood",
-    icon: Layers
+    icon: Layers,
+    reportId: "neighbourhood-dashboard"
   },
   {
     title: "Cross-PCN Themes",
     description: "Systemic issues affecting multiple PCNs",
-    icon: Share2
-  },
-  {
-    title: "Geographic Hotspots",
-    description: "Area-specific complaint patterns",
-    icon: Map
+    icon: Share2,
+    reportId: "cross-pcn-themes"
   },
   {
     title: "Population Health Insights",
     description: "How complaints relate to local demographics",
-    icon: Activity
+    icon: Activity,
+    reportId: "population-health"
   },
   {
     title: "Service Gap Analysis",
     description: "Unmet needs identified through complaints",
-    icon: Target
+    icon: Target,
+    reportId: "service-gap-analysis"
   },
   {
-    title: "Collaboration Opportunities",
-    description: "Where neighbourhoods can work together",
-    icon: Users
+    title: "Quality Patterns",
+    description: "Quality indicators across the neighbourhood",
+    icon: CheckCircle2,
+    reportId: "quality-patterns"
   },
   {
-    title: "Neighbourhood Annual Report",
-    description: "Year-on-year trends for strategic planning",
-    icon: Calendar
+    title: "Resource Allocation",
+    description: "Where neighbourhood resources might be needed",
+    icon: DollarSign,
+    reportId: "resource-allocation"
   }
 ];
 
 const ICBReports: ReportCard[] = [
   {
-    title: "ICB Executive Summary",
+    title: "ICB Complaints Overview",
     description: "High-level metrics for board meetings",
-    icon: Building
+    icon: Building,
+    reportId: "icb-overview"
   },
   {
-    title: "Regional Benchmarking",
-    description: "How this ICB compares to others nationally",
-    icon: Globe
+    title: "System Performance",
+    description: "How this ICB performs across all services",
+    icon: TrendingUp,
+    reportId: "system-performance"
   },
   {
-    title: "Strategic Themes",
+    title: "Strategic Priorities",
     description: "System-wide issues requiring ICB intervention",
-    icon: Target
+    icon: Target,
+    reportId: "strategic-priorities"
   },
   {
-    title: "Financial Impact Analysis",
+    title: "Regional Comparisons",
+    description: "How this ICB compares to others nationally",
+    icon: Globe,
+    reportId: "regional-comparisons"
+  },
+  {
+    title: "Policy Impact Analysis",
+    description: "How policies affect complaint handling",
+    icon: Shield,
+    reportId: "policy-impact"
+  },
+  {
+    title: "Financial Analysis",
     description: "Costs associated with complaint handling",
-    icon: DollarSign
-  },
-  {
-    title: "Quality Improvement Metrics",
-    description: "How complaints drive service improvements",
-    icon: TrendingUp
-  },
-  {
-    title: "Regulatory Compliance",
-    description: "CQC, NHS England reporting requirements",
-    icon: Shield
-  },
-  {
-    title: "Annual Governance Report",
-    description: "Comprehensive year-end analysis for ICB board",
-    icon: CheckCircle2
+    icon: DollarSign,
+    reportId: "financial-analysis"
   }
 ];
 
 interface ReportCardProps {
   report: ReportCard;
   levelColor: "blue" | "green" | "purple" | "slate";
+  onClick: () => void;
 }
 
-const ReportCardComponent = ({ report, levelColor }: ReportCardProps) => {
+const ReportCardComponent = ({ report, levelColor, onClick }: ReportCardProps) => {
   const Icon = report.icon;
   
   const colorClasses = {
@@ -221,7 +234,8 @@ const ReportCardComponent = ({ report, levelColor }: ReportCardProps) => {
   return (
     <Button 
       variant="outline" 
-      className={`h-auto flex flex-col gap-3 p-4 ${colors.border} ${colors.bg} transition-all group`}
+      onClick={onClick}
+      className={`h-auto flex flex-col gap-3 p-4 ${colors.border} ${colors.bg} transition-all group cursor-pointer`}
     >
       <div className={`p-3 rounded-lg ${colors.iconBg} group-hover:scale-110 transition-transform`}>
         <Icon className={`h-6 w-6 ${colors.iconColor}`} />
@@ -237,9 +251,20 @@ const ReportCardComponent = ({ report, levelColor }: ReportCardProps) => {
 
 export const HierarchicalReports = () => {
   const [activeLevel, setActiveLevel] = useState("practice");
+  const [selectedReport, setSelectedReport] = useState<ReportDetail | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleReportClick = (reportId: string) => {
+    const reportDetail = mockReportData[reportId];
+    if (reportDetail) {
+      setSelectedReport(reportDetail);
+      setIsModalOpen(true);
+    }
+  };
 
   return (
-    <Card>
+    <>
+      <Card>
       <CardHeader>
         <CardTitle>Complaints Reports & Analytics</CardTitle>
         <CardDescription>
@@ -293,7 +318,12 @@ export const HierarchicalReports = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {PracticeReports.map((report) => (
-                  <ReportCardComponent key={report.title} report={report} levelColor="blue" />
+                  <ReportCardComponent 
+                    key={report.title} 
+                    report={report} 
+                    levelColor="blue" 
+                    onClick={() => handleReportClick(report.reportId)}
+                  />
                 ))}
               </div>
             </div>
@@ -313,7 +343,12 @@ export const HierarchicalReports = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {PCNReports.map((report) => (
-                  <ReportCardComponent key={report.title} report={report} levelColor="green" />
+                  <ReportCardComponent 
+                    key={report.title} 
+                    report={report} 
+                    levelColor="green" 
+                    onClick={() => handleReportClick(report.reportId)}
+                  />
                 ))}
               </div>
             </div>
@@ -384,7 +419,12 @@ export const HierarchicalReports = () => {
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                 {NeighbourhoodsReports.map((report) => (
-                  <ReportCardComponent key={report.title} report={report} levelColor="purple" />
+                  <ReportCardComponent 
+                    key={report.title} 
+                    report={report} 
+                    levelColor="purple" 
+                    onClick={() => handleReportClick(report.reportId)}
+                  />
                 ))}
               </div>
             </div>
@@ -404,7 +444,12 @@ export const HierarchicalReports = () => {
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {ICBReports.map((report) => (
-                  <ReportCardComponent key={report.title} report={report} levelColor="slate" />
+                  <ReportCardComponent 
+                    key={report.title} 
+                    report={report} 
+                    levelColor="slate" 
+                    onClick={() => handleReportClick(report.reportId)}
+                  />
                 ))}
               </div>
             </div>
@@ -412,5 +457,11 @@ export const HierarchicalReports = () => {
         </Tabs>
       </CardContent>
     </Card>
+    <ReportDetailModal
+      report={selectedReport}
+      isOpen={isModalOpen}
+      onClose={() => setIsModalOpen(false)}
+    />
+    </>
   );
 };
