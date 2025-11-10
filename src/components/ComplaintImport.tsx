@@ -42,6 +42,7 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   const [processing, setProcessing] = useState(false);
   const [extractedData, setExtractedData] = useState<ComplaintData | null>(null);
   const [loadedExample, setLoadedExample] = useState<{number: number, name: string} | null>(null);
+  const [hiddenTextFile, setHiddenTextFile] = useState<File | null>(null);
   const previewRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll to preview when data is extracted
@@ -72,6 +73,11 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
   const removeFile = (index: number) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));
     setLoadedExample(null);
+    
+    // Clear hidden text file when all files are removed
+    if (selectedFiles.length === 1) {
+      setHiddenTextFile(null);
+    }
   };
 
   const handleImport = async (source: 'file' | 'text') => {
@@ -91,9 +97,14 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       const formData = new FormData();
       
       if (source === 'file' && selectedFiles.length > 0) {
-        selectedFiles.forEach(file => {
-          formData.append('files', file);
-        });
+        // If Example 2 is loaded and we have a hidden text file, use that for processing
+        if (hiddenTextFile) {
+          formData.append('files', hiddenTextFile);
+        } else {
+          selectedFiles.forEach(file => {
+            formData.append('files', file);
+          });
+        }
       } else {
         formData.append('textContent', textContent);
       }
@@ -160,20 +171,46 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       
       if (error) throw error;
       
-      // Create a virtual File object from the text content
-      const blob = new Blob([data], { type: 'text/plain' });
-      const file = new File([blob], `example-complaint-${exampleNumber}.txt`, {
-        type: 'text/plain',
-        lastModified: Date.now()
-      });
-      
-      // Add to selected files state
-      setSelectedFiles([file]);
-      
-      // Store example details for download link
-      setLoadedExample({ number: exampleNumber, name: exampleName });
-      
-      showToast.success(`Loaded: ${exampleName}`, { section: 'complaints' });
+      // Special handling for Example 2 - show image instead of text file for demo
+      if (exampleNumber === 2) {
+        // Fetch the complaint letter demo image
+        const imgModule = await import('@/assets/complaint-letter-demo.png');
+        const imgResponse = await fetch(imgModule.default);
+        const imgBlob = await imgResponse.blob();
+        
+        // Create a File object that looks like an uploaded image
+        const imageFile = new File([imgBlob], 'complaint-letter-pages.png', {
+          type: 'image/png',
+          lastModified: Date.now()
+        });
+        
+        // Store the text content separately for extraction
+        const textBlob = new Blob([data], { type: 'text/plain' });
+        const textFile = new File([textBlob], `example-complaint-${exampleNumber}.txt`, {
+          type: 'text/plain',
+          lastModified: Date.now()
+        });
+        
+        // Show image file to user, but keep text file hidden for processing
+        setSelectedFiles([imageFile]);
+        setHiddenTextFile(textFile);
+        
+        setLoadedExample({ number: exampleNumber, name: exampleName });
+        showToast.success(`Loaded: ${exampleName}`, { section: 'complaints' });
+      } else {
+        // Normal behavior for all other examples
+        const blob = new Blob([data], { type: 'text/plain' });
+        const file = new File([blob], `example-complaint-${exampleNumber}.txt`, {
+          type: 'text/plain',
+          lastModified: Date.now()
+        });
+        
+        setSelectedFiles([file]);
+        setHiddenTextFile(null);
+        
+        setLoadedExample({ number: exampleNumber, name: exampleName });
+        showToast.success(`Loaded: ${exampleName}`, { section: 'complaints' });
+      }
     } catch (error) {
       console.error('Load example error:', error);
       showToast.error('Failed to load example', { section: 'complaints' });
