@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { BarChart3, Calendar, Clock, Users } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 interface UserMeetingStats {
   user_id: string;
