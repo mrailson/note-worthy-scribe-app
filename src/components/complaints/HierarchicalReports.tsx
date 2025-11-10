@@ -389,20 +389,24 @@ export const HierarchicalReports = () => {
                 {isPracticesExpanded && (
                   <CardContent className="animate-accordion-down">
                     <div className="flex flex-col gap-2 text-xs">
-                      <div className="flex items-center p-2 rounded bg-background/50">
+                      <div className="flex items-center justify-between p-2 rounded bg-background/50">
                         <span className="font-medium">Springfield Surgery</span>
+                        <span className="text-muted-foreground">12,649</span>
                       </div>
-                      <div className="flex items-center p-2 rounded bg-background/50">
+                      <div className="flex items-center justify-between p-2 rounded bg-background/50">
                         <span className="font-medium">Towcester Medical Centre</span>
+                        <span className="text-muted-foreground">11,439</span>
                       </div>
                       <div className="flex items-center p-2 rounded bg-background/50 pl-6">
                         <span className="text-muted-foreground">→ Paulerspury Surgery</span>
                       </div>
-                      <div className="flex items-center p-2 rounded bg-background/50">
+                      <div className="flex items-center justify-between p-2 rounded bg-background/50">
                         <span className="font-medium">Brackley Medical Centre</span>
+                        <span className="text-muted-foreground">16,128</span>
                       </div>
-                      <div className="flex items-center p-2 rounded bg-background/50">
+                      <div className="flex items-center justify-between p-2 rounded bg-background/50">
                         <span className="font-medium">The Parks Medical Practice</span>
+                        <span className="text-muted-foreground">22,689</span>
                       </div>
                       <div className="flex items-center p-2 rounded bg-background/50 pl-6">
                         <span className="text-muted-foreground">→ Grange Park</span>
@@ -413,18 +417,25 @@ export const HierarchicalReports = () => {
                       <div className="flex items-center p-2 rounded bg-background/50 pl-6">
                         <span className="text-muted-foreground">→ Roade Medical Centre</span>
                       </div>
-                      <div className="flex items-center p-2 rounded bg-background/50">
+                      <div className="flex items-center justify-between p-2 rounded bg-background/50">
                         <span className="font-medium">Denton Village Surgery</span>
+                        <span className="text-muted-foreground">6,277</span>
                       </div>
-                      <div className="flex items-center p-2 rounded bg-background/50">
+                      <div className="flex items-center justify-between p-2 rounded bg-background/50">
                         <span className="font-medium">Bugbrooke Surgery</span>
+                        <span className="text-muted-foreground">10,773</span>
                       </div>
-                      <div className="flex items-center p-2 rounded bg-background/50">
+                      <div className="flex items-center justify-between p-2 rounded bg-background/50">
                         <span className="font-medium">The Brook Health Centre</span>
+                        <span className="text-muted-foreground">8,983</span>
                       </div>
                       <div className="flex items-center p-2 rounded bg-background/50 pl-6">
                         <span className="text-muted-foreground">→ Silverstone Surgery</span>
                       </div>
+                    </div>
+                    <div className="mt-4 pt-3 border-t border-purple-200 dark:border-purple-800 flex items-center justify-between font-semibold text-sm">
+                      <span>Total</span>
+                      <span>88,938</span>
                     </div>
                   </CardContent>
                 )}
