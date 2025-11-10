@@ -1,5 +1,5 @@
 import React from 'react';
-import bluePCNLogo from '@/assets/blue-pcn-logo-updated.png';
+import bluePCNLogo from '@/assets/blue-pcn-logo-grey.png';
 
 export const TitleSlide = () => {
   return (
