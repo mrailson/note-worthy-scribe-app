@@ -4,6 +4,7 @@ import { Slider } from '@/components/ui/slider';
 import { Play, Pause } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { playoutSilentPreRoll, fadeInVolume } from '@/utils/AudioFocusManager';
 
 interface AudioSummaryPlayerProps {
   audioUrl?: string;
@@ -70,7 +71,7 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
     };
   }, [audioUrl]);
 
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
     if (!audioUrl) {
       toast.info('Audio Summary Demo', {
         description: 'This is a demonstration feature. In production, AI-generated audio summaries would play here.',
@@ -81,13 +82,26 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
-        audioRef.current.play().catch((error) => {
+        try {
+          // Warm up audio device to prevent glitches
+          await playoutSilentPreRoll(200);
+          
+          // Start with volume at 0
+          audioRef.current.volume = 0;
+          
+          // Start playback
+          await audioRef.current.play();
+          setIsPlaying(true);
+          
+          // Fade in smoothly to prevent audio glitches
+          fadeInVolume(audioRef.current, 1.0, 300);
+        } catch (error) {
           console.error('Audio playback error:', error);
           toast.error('Audio playback failed. Please try again.');
-        });
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
