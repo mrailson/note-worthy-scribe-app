@@ -140,11 +140,34 @@ export default function ComplaintAIReport() {
     try {
       setEmailSending(true);
       
-      const { error } = await supabase.functions.invoke('email-complaint-report', {
+      // Generate Word document content
+      const wordDocContent = generateWordDocContent(reportData, complaint);
+      
+      // Generate HTML message
+      const htmlMessage = generateEmailHTML(reportData, complaint);
+      
+      // Convert to base64 for attachment
+      const encoder = new TextEncoder();
+      const data = encoder.encode(wordDocContent);
+      let binary = '';
+      for (let i = 0; i < data.length; i++) {
+        binary += String.fromCharCode(data[i]);
+      }
+      const base64Content = btoa(binary);
+      
+      const receivedDate = complaint.received_at || complaint.created_at;
+      
+      const { error } = await supabase.functions.invoke('send-email-via-emailjs', {
         body: {
-          complaintId: id,
-          reportData,
-          complaint
+          template_type: 'ai_generated_content',
+          to_email: 'malcolm.railson@nhs.net',
+          subject: `Complaint Review Report - ${complaint.reference_number}`,
+          message: htmlMessage,
+          word_attachment: {
+            content: base64Content,
+            filename: `Complaint_Report_${complaint.reference_number}_${format(new Date(), 'yyyy-MM-dd')}.txt`,
+            type: 'text/plain'
+          }
         }
       });
 
@@ -161,6 +184,191 @@ export default function ComplaintAIReport() {
     } finally {
       setEmailSending(false);
     }
+  };
+  
+  const generateWordDocContent = (reportData: AIReportData, complaint: any): string => {
+    const formatDate = (dateStr: string | null) => {
+      if (!dateStr) return 'Not yet completed';
+      return format(new Date(dateStr), 'dd MMMM yyyy');
+    };
+
+    const receivedDate = complaint.received_at || complaint.created_at;
+
+    return `COMPLAINT REVIEW REPORT
+======================
+
+Reference: ${complaint.reference_number}
+Category: ${complaint.category}
+Received: ${formatDate(receivedDate)}
+Generated: ${format(new Date(), 'dd MMMM yyyy HH:mm')}
+
+This report is advisory and requires human review
+
+---
+
+COMPLAINT OVERVIEW
+==================
+
+${reportData.complaintOverview}
+
+---
+
+TIMELINE & COMPLIANCE
+=====================
+
+Acknowledgement:
+  Date: ${formatDate(reportData.timelineCompliance.acknowledged.date)}
+  Days from Receipt: ${reportData.timelineCompliance.acknowledged.daysFromReceived}
+  Status: ${reportData.timelineCompliance.acknowledged.status}
+
+Outcome Letter:
+  Date: ${formatDate(reportData.timelineCompliance.outcome.date)}
+  Days from Receipt: ${reportData.timelineCompliance.outcome.daysFromReceived}
+  Status: ${reportData.timelineCompliance.outcome.status}
+
+---
+
+KEY LEARNINGS IDENTIFIED
+========================
+
+${reportData.keyLearnings.map((learning, index) => `
+${index + 1}. ${learning.learning}
+   Category: ${learning.category} | Impact: ${learning.impact}
+`).join('\n')}
+
+---
+
+WHAT THE PRACTICE DID WELL
+===========================
+
+${reportData.practiceStrengths.map((strength) => `✓ ${strength}`).join('\n')}
+
+---
+
+SUPPORTIVE QUALITY IMPROVEMENT SUGGESTIONS
+===========================================
+
+These suggestions are provided to support continuous improvement, not as criticism.
+
+${reportData.improvementSuggestions.map((suggestion, index) => `
+${index + 1}. ${suggestion.suggestion} [${suggestion.priority} priority]
+   ${suggestion.rationale}
+`).join('\n')}
+
+---
+
+OUTCOME DECISION RATIONALE
+===========================
+
+${reportData.outcomeRationale}
+
+---
+
+NHS Complaints Management System
+`;
+  };
+  
+  const generateEmailHTML = (reportData: AIReportData, complaint: any): string => {
+    const formatDate = (dateStr: string | null) => {
+      if (!dateStr) return 'Not yet completed';
+      return format(new Date(dateStr), 'dd MMMM yyyy');
+    };
+
+    const getStatusBadge = (status: string) => {
+      const colors = {
+        'on-time': 'background: #10b981; color: white;',
+        'late': 'background: #f59e0b; color: white;',
+        'pending': 'background: #6b7280; color: white;'
+      };
+      return `<span style="padding: 4px 12px; border-radius: 4px; font-size: 12px; ${colors[status as keyof typeof colors] || colors.pending}">${status}</span>`;
+    };
+
+    const receivedDate = complaint.received_at || complaint.created_at;
+
+    return `
+<div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+  
+  <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 40px 30px; border-radius: 8px; margin-bottom: 30px; text-align: center;">
+    <h1 style="margin: 0 0 10px 0; font-size: 32px;">Complaint Review Report</h1>
+    <p style="margin: 5px 0; font-size: 18px;">Reference: <strong>${complaint.reference_number}</strong></p>
+    <p style="margin: 5px 0; font-size: 14px;">Received: ${formatDate(receivedDate)}</p>
+    <p style="margin: 5px 0; font-size: 14px;">Category: ${complaint.category}</p>
+  </div>
+
+  <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <h2 style="color: #667eea; margin-top: 0;">Complaint Overview</h2>
+    <p style="line-height: 1.8;">${reportData.complaintOverview}</p>
+  </div>
+
+  <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <h2 style="color: #667eea; margin-top: 0;">Timeline & Compliance</h2>
+    
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+      <thead>
+        <tr style="background-color: #f3f4f6;">
+          <th style="padding: 12px; text-align: left;">Milestone</th>
+          <th style="padding: 12px; text-align: left;">Date</th>
+          <th style="padding: 12px; text-align: left;">Days</th>
+          <th style="padding: 12px; text-align: left;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding: 12px;">Acknowledgement</td>
+          <td style="padding: 12px;">${formatDate(reportData.timelineCompliance.acknowledged.date)}</td>
+          <td style="padding: 12px;">${reportData.timelineCompliance.acknowledged.daysFromReceived}</td>
+          <td style="padding: 12px;">${getStatusBadge(reportData.timelineCompliance.acknowledged.status)}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px;">Outcome Letter</td>
+          <td style="padding: 12px;">${formatDate(reportData.timelineCompliance.outcome.date)}</td>
+          <td style="padding: 12px;">${reportData.timelineCompliance.outcome.daysFromReceived}</td>
+          <td style="padding: 12px;">${getStatusBadge(reportData.timelineCompliance.outcome.status)}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  ${reportData.keyLearnings.length > 0 ? `
+  <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <h2 style="color: #667eea; margin-top: 0;">Key Learnings</h2>
+    ${reportData.keyLearnings.map((learning, index) => `
+      <div style="margin-bottom: 15px; padding: 15px; background: #f9fafb; border-radius: 6px;">
+        <p style="margin: 0 0 8px 0; font-weight: 600;">${index + 1}. ${learning.learning}</p>
+        <p style="margin: 0; font-size: 14px; color: #6b7280;">Category: ${learning.category} | Impact: ${learning.impact}</p>
+      </div>
+    `).join('')}
+  </div>
+  ` : ''}
+
+  ${reportData.practiceStrengths.length > 0 ? `
+  <div style="background: #ecfdf5; padding: 25px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #10b981;">
+    <h2 style="color: #059669; margin-top: 0;">What the Practice Did Well</h2>
+    <ul>
+      ${reportData.practiceStrengths.map((strength) => `<li style="margin-bottom: 12px;">${strength}</li>`).join('')}
+    </ul>
+  </div>
+  ` : ''}
+
+  ${reportData.improvementSuggestions.length > 0 ? `
+  <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <h2 style="color: #667eea; margin-top: 0;">Improvement Suggestions</h2>
+    ${reportData.improvementSuggestions.map((suggestion, index) => `
+      <div style="margin-bottom: 20px; padding: 15px; background: #fef9f3; border-radius: 6px;">
+        <p style="margin: 0 0 8px 0; font-weight: 600;">${index + 1}. ${suggestion.suggestion}</p>
+        <p style="margin: 0; font-size: 14px; color: #6b7280;">${suggestion.rationale}</p>
+      </div>
+    `).join('')}
+  </div>
+  ` : ''}
+
+  <div style="background: white; padding: 25px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+    <h2 style="color: #667eea; margin-top: 0;">Outcome Decision Rationale</h2>
+    <p style="line-height: 1.8;">${reportData.outcomeRationale}</p>
+  </div>
+
+</div>
+`;
   };
 
   const getPriorityColor = (priority: string) => {
