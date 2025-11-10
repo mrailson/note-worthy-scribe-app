@@ -3,7 +3,7 @@ import bluePCNLogo from '@/assets/blue-pcn-logo-updated.png';
 
 export const TitleSlide = () => {
   return (
-    <div className="h-full flex flex-col relative" style={{ backgroundColor: '#EDE8E0' }}>
+    <div className="h-full flex flex-col bg-background relative">
       {/* Main Content - Left Aligned */}
       <div className="flex-1 flex items-center px-16 py-12">
         <div className="max-w-5xl space-y-8 animate-fade-in">
