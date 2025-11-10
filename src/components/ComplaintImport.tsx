@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import complaintDemoImg from '@/assets/complaint-letter-demo.png';
 
 interface ComplaintData {
   patient_name?: string;
@@ -171,15 +172,17 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       
       if (error) throw error;
       
-      // Special handling for Example 2 - show image instead of text file for demo
+      // Special handling for Example 2 - show two images instead of a text file for demo
       if (exampleNumber === 2) {
-        // Fetch the complaint letter demo image
-        const imgModule = await import('@/assets/complaint-letter-demo.png');
-        const imgResponse = await fetch(imgModule.default);
+        const imgResponse = await fetch(complaintDemoImg);
         const imgBlob = await imgResponse.blob();
         
-        // Create a File object that looks like an uploaded image
-        const imageFile = new File([imgBlob], 'complaint-letter-pages.png', {
+        // Create two File objects to mimic two page images
+        const imageFile1 = new File([imgBlob], 'complaint-letter-page-1.png', {
+          type: 'image/png',
+          lastModified: Date.now()
+        });
+        const imageFile2 = new File([imgBlob], 'complaint-letter-page-2.png', {
           type: 'image/png',
           lastModified: Date.now()
         });
@@ -191,8 +194,8 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
           lastModified: Date.now()
         });
         
-        // Show image file to user, but keep text file hidden for processing
-        setSelectedFiles([imageFile]);
+        // Show image files to user, but keep text file hidden for processing
+        setSelectedFiles([imageFile1, imageFile2]);
         setHiddenTextFile(textFile);
         
         setLoadedExample({ number: exampleNumber, name: exampleName });
