@@ -4,7 +4,7 @@ import { Slider } from '@/components/ui/slider';
 import { Play, Pause } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import { toast } from 'sonner';
-import { playoutSilentPreRoll, fadeInVolume } from '@/utils/AudioFocusManager';
+import { playoutSilentPreRoll, fadeInVolume, audioFocusManager } from '@/utils/AudioFocusManager';
 
 interface AudioSummaryPlayerProps {
   audioUrl?: string;
@@ -19,6 +19,24 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
   const audioRef = useRef<HTMLAudioElement>(null);
   const objectUrlRef = useRef<string | null>(null);
   const sourceUrlRef = useRef<string | null>(null);
+  const [bufferedEnd, setBufferedEnd] = useState(0);
+
+  // Helper to prime the audio decoder by micro-seeking
+  const primeAudioStart = async (audio: HTMLAudioElement): Promise<void> => {
+    return new Promise((resolve) => {
+      const handleFirstSeek = () => {
+        audio.removeEventListener('seeked', handleFirstSeek);
+        audio.currentTime = 0.00;
+        const handleSecondSeek = () => {
+          audio.removeEventListener('seeked', handleSecondSeek);
+          resolve();
+        };
+        audio.addEventListener('seeked', handleSecondSeek, { once: true });
+      };
+      audio.addEventListener('seeked', handleFirstSeek, { once: true });
+      audio.currentTime = 0.05;
+    });
+  };
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -33,6 +51,7 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
     const preload = async () => {
       try {
         setIsBuffering(true);
+        setBufferedEnd(0);
         const res = await fetch(audioUrl, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const blob = await res.blob();
@@ -44,14 +63,39 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
         if (audioRef.current && objectUrlRef.current) {
           audioRef.current.src = objectUrlRef.current;
           audioRef.current.load();
+          
           audioRef.current.onloadedmetadata = () => {
             if (audioRef.current?.duration && isFinite(audioRef.current.duration)) {
               setEffectiveDuration(audioRef.current.duration);
             }
           };
+          
           audioRef.current.onerror = () => {
             toast.error('Unable to load audio summary');
+            setIsBuffering(false);
           };
+
+          audioRef.current.onprogress = () => {
+            if (audioRef.current?.buffered.length) {
+              setBufferedEnd(audioRef.current.buffered.end(audioRef.current.buffered.length - 1));
+            }
+          };
+          
+          // Wait for canplaythrough and prime decoder
+          await new Promise<void>(async (resolve) => {
+            const onReady = async () => {
+              if (audioRef.current && !aborted) {
+                try {
+                  await primeAudioStart(audioRef.current);
+                  console.log('✅ Audio decoder primed');
+                } catch (e) {
+                  console.warn('⚠️ Decoder priming failed (non-fatal):', e);
+                }
+              }
+              resolve();
+            };
+            audioRef.current?.addEventListener('canplaythrough', onReady, { once: true });
+          });
         }
         setIsBuffering(false);
       } catch (e) {
@@ -90,9 +134,22 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
           return;
         }
 
+        // Check buffer threshold
+        const minBuffer = Math.min(3, effectiveDuration * 0.1);
+        if (bufferedEnd < minBuffer) {
+          toast.info('Audio still buffering, please wait...');
+          return;
+        }
+
         try {
+          // Pause all microphones to prevent audio device switching glitches
+          await audioFocusManager.pauseAll('complaint_summary_playback');
+          
           // Warm up audio device to prevent glitches
-          await playoutSilentPreRoll(200);
+          await playoutSilentPreRoll(300);
+          
+          // Prime the decoder to prevent initial cut-out
+          await primeAudioStart(audioRef.current);
           
           // Start with volume at 0
           audioRef.current.volume = 0;
@@ -102,11 +159,13 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
           setIsPlaying(true);
           
           // Fade in smoothly to prevent audio glitches
-          fadeInVolume(audioRef.current, 1.0, 300);
+          fadeInVolume(audioRef.current, 1.0, 500);
         } catch (error) {
           console.error('Audio playback error:', error);
           toast.error('Audio playback failed. Please try again.');
           setIsPlaying(false);
+          // Resume microphones on error
+          await audioFocusManager.resumeAll();
         }
       }
     }
@@ -116,7 +175,9 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
     const newTime = value[0];
     setCurrentTime(newTime);
     if (audioRef.current) {
-      audioRef.current.currentTime = newTime;
+      // Clamp seek to avoid INDEX_SIZE_ERR on very short files
+      const clampedTime = Math.min(newTime, (audioRef.current.duration || effectiveDuration) - 0.001);
+      audioRef.current.currentTime = Math.max(0, clampedTime);
     }
   };
 
@@ -126,10 +187,19 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
     }
   };
 
-  const handleEnded = () => {
+  const handleEnded = async () => {
     setIsPlaying(false);
     setCurrentTime(0);
+    // Resume microphones after playback
+    await audioFocusManager.resumeAll();
   };
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      audioFocusManager.resumeAll();
+    };
+  }, []);
 
   return (
     <Card className="p-3 bg-accent/30 border-accent w-[200px]">

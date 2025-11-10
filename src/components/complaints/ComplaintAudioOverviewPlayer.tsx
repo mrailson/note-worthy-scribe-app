@@ -5,7 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { showToast } from '@/utils/toastWrapper';
 import { useVoicePreference } from '@/hooks/useVoicePreference';
-import { playoutSilentPreRoll, fadeInVolume } from '@/utils/AudioFocusManager';
+import { playoutSilentPreRoll, fadeInVolume, audioFocusManager } from '@/utils/AudioFocusManager';
 
 interface ComplaintAudioOverviewPlayerProps {
   complaintId: string;
@@ -45,6 +45,23 @@ export const ComplaintAudioOverviewPlayer = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [bufferedEnd, setBufferedEnd] = useState(0);
 
+  // Helper to prime the audio decoder by micro-seeking
+  const primeAudioStart = async (audio: HTMLAudioElement): Promise<void> => {
+    return new Promise((resolve) => {
+      const handleFirstSeek = () => {
+        audio.removeEventListener('seeked', handleFirstSeek);
+        audio.currentTime = 0.00;
+        const handleSecondSeek = () => {
+          audio.removeEventListener('seeked', handleSecondSeek);
+          resolve();
+        };
+        audio.addEventListener('seeked', handleSecondSeek, { once: true });
+      };
+      audio.addEventListener('seeked', handleFirstSeek, { once: true });
+      audio.currentTime = 0.05;
+    });
+  };
+
   const handlePlayAudio = async () => {
     if (!audioOverviewUrl) {
       console.log('❌ No audio URL available');
@@ -64,25 +81,40 @@ export const ComplaintAudioOverviewPlayer = ({
       if (audioRef.current && audioRef.current.readyState >= 3) {
         console.log('▶️ Playing preloaded audio');
         
+        // Check buffer threshold
+        const minBuffer = Math.min(3, totalDuration * 0.1);
+        if (bufferedEnd < minBuffer) {
+          showToast.info('Audio still buffering, please wait...', { section: 'complaints' });
+          return;
+        }
+        
+        // Pause all microphones to prevent audio device switching glitches
+        await audioFocusManager.pauseAll('complaint_playback');
+        
         // Warm up audio device on first play to prevent cut-offs
         if (!didWarmUpRef.current) {
           await playoutSilentPreRoll(300);
           didWarmUpRef.current = true;
         }
         
+        // Prime the decoder to prevent initial cut-out
+        await primeAudioStart(audioRef.current);
+        
         audioRef.current.currentTime = 0;
         audioRef.current.playbackRate = playbackSpeed;
       
-        audioRef.current.addEventListener('ended', () => {
+        audioRef.current.addEventListener('ended', async () => {
           console.log('✅ Audio playback ended');
           setIsPlaying(false);
           setCurrentTime(0);
           if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
           }
+          // Resume microphones after playback
+          await audioFocusManager.resumeAll();
         });
         
-        audioRef.current.addEventListener('error', (e) => {
+        audioRef.current.addEventListener('error', async (e) => {
           console.error('❌ Audio playback error:', e);
           console.error('Audio URL (blob):', audioObjectUrlRef.current);
           showToast.error('Failed to play audio - check console for details', { section: 'complaints' });
@@ -90,6 +122,8 @@ export const ComplaintAudioOverviewPlayer = ({
           if (animationFrameRef.current) {
             cancelAnimationFrame(animationFrameRef.current);
           }
+          // Resume microphones on error
+          await audioFocusManager.resumeAll();
         });
 
         audioRef.current.addEventListener('loadedmetadata', () => {
@@ -230,10 +264,21 @@ export const ComplaintAudioOverviewPlayer = ({
         audioRef.current.addEventListener('canplaythrough', updateBuffered);
 
         // Wait for audio to be buffered
-        await new Promise<void>((resolve) => {
-          const onCanPlayThrough = () => {
+        await new Promise<void>(async (resolve) => {
+          const onCanPlayThrough = async () => {
             console.log('✅ Audio preloaded and ready');
             updateBuffered();
+            
+            // Prime the decoder during preload to prevent first-play cut-out
+            if (audioRef.current) {
+              try {
+                await primeAudioStart(audioRef.current);
+                console.log('✅ Audio decoder primed');
+              } catch (e) {
+                console.warn('⚠️ Decoder priming failed (non-fatal):', e);
+              }
+            }
+            
             setIsBuffering(false);
             resolve();
           };
@@ -269,6 +314,9 @@ export const ComplaintAudioOverviewPlayer = ({
         audioObjectUrlRef.current = null;
       }
       sourceUrlRef.current = null;
+      
+      // Resume microphones when component unmounts
+      audioFocusManager.resumeAll();
     };
   }, []);
 
@@ -320,7 +368,9 @@ export const ComplaintAudioOverviewPlayer = ({
 
   const handleSeekEnd = (value: number[]) => {
     if (audioRef.current) {
-      audioRef.current.currentTime = value[0];
+      // Clamp seek to avoid INDEX_SIZE_ERR on very short files
+      const clampedTime = Math.min(value[0], (audioRef.current.duration || totalDuration) - 0.001);
+      audioRef.current.currentTime = Math.max(0, clampedTime);
     }
     setIsSeeking(false);
   };
