@@ -377,41 +377,41 @@ export const HierarchicalReports = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
-                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">Denton Village Surgery</span>
-                      <span className="text-muted-foreground">6,277 (7.1%)</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">Bugbrooke Surgery</span>
-                      <span className="text-muted-foreground">10,773 (12.1%)</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">Towcester Medical Centre</span>
-                      <span className="text-muted-foreground">11,439 (12.9%)</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">Brook Health Centre</span>
-                      <span className="text-muted-foreground">8,983 (10.1%)</span>
-                    </div>
-                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
+                    <div className="flex items-center p-2 rounded bg-background/50">
                       <span className="font-medium">Springfield Surgery</span>
-                      <span className="text-muted-foreground">12,649 (14.2%)</span>
                     </div>
-                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
+                    <div className="flex items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">Towcester Medical Centre</span>
+                    </div>
+                    <div className="flex items-center p-2 rounded bg-background/50 pl-6">
+                      <span className="text-muted-foreground">→ Paulerspury Surgery</span>
+                    </div>
+                    <div className="flex items-center p-2 rounded bg-background/50">
                       <span className="font-medium">Brackley Medical Centre</span>
-                      <span className="text-muted-foreground">16,128 (18.1%)</span>
                     </div>
-                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">The Parks Medical Practice (4 sites)</span>
-                      <span className="text-muted-foreground">22,689 (25.5%)</span>
+                    <div className="flex items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">The Parks Medical Practice</span>
                     </div>
-                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
-                      <span className="font-medium">Oak Lane</span>
-                      <span className="text-muted-foreground text-purple-600 dark:text-purple-400">Participating Member</span>
+                    <div className="flex items-center p-2 rounded bg-background/50 pl-6">
+                      <span className="text-muted-foreground">→ Grange Park</span>
                     </div>
-                    <div className="col-span-1 md:col-span-2 flex justify-between items-center p-2 rounded bg-purple-100 dark:bg-purple-900/30 font-semibold border-t-2 border-purple-300 dark:border-purple-700 mt-2">
-                      <span>Total Population</span>
-                      <span>88,938 (100.0%)</span>
+                    <div className="flex items-center p-2 rounded bg-background/50 pl-6">
+                      <span className="text-muted-foreground">→ Hanslope Surgery</span>
+                    </div>
+                    <div className="flex items-center p-2 rounded bg-background/50 pl-6">
+                      <span className="text-muted-foreground">→ Roade Medical Centre</span>
+                    </div>
+                    <div className="flex items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">Denton Village Surgery</span>
+                    </div>
+                    <div className="flex items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">Bugbrooke Surgery</span>
+                    </div>
+                    <div className="flex items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">The Brook Health Centre</span>
+                    </div>
+                    <div className="flex items-center p-2 rounded bg-background/50 pl-6">
+                      <span className="text-muted-foreground">→ Silverstone Surgery</span>
                     </div>
                   </div>
                 </CardContent>
