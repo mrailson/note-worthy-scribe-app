@@ -165,8 +165,8 @@ export default function ComplaintAIReport() {
           message: htmlMessage,
           word_attachment: {
             content: base64Content,
-            filename: `Complaint_Report_${complaint.reference_number}_${format(new Date(), 'yyyy-MM-dd')}.txt`,
-            type: 'text/plain'
+            filename: `Complaint_Report_${complaint.reference_number}_${format(new Date(), 'yyyy-MM-dd')}.docx`,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
           }
         }
       });
@@ -303,27 +303,27 @@ NHS Complaints Management System
   <div style="background: white; padding: 25px; border-radius: 8px; margin-bottom: 20px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
     <h2 style="color: #667eea; margin-top: 0;">Timeline & Compliance</h2>
     
-    <table style="width: 100%; border-collapse: collapse; margin-top: 15px;">
+    <table style="width: 100%; border-collapse: collapse; margin-top: 15px; border: 1px solid #e5e7eb;">
       <thead>
         <tr style="background-color: #f3f4f6;">
-          <th style="padding: 12px; text-align: left;">Milestone</th>
-          <th style="padding: 12px; text-align: left;">Date</th>
-          <th style="padding: 12px; text-align: left;">Days</th>
-          <th style="padding: 12px; text-align: left;">Status</th>
+          <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Milestone</th>
+          <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Date</th>
+          <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Days</th>
+          <th style="padding: 12px; text-align: left; border: 1px solid #e5e7eb;">Status</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td style="padding: 12px;">Acknowledgement</td>
-          <td style="padding: 12px;">${formatDate(reportData.timelineCompliance.acknowledged.date)}</td>
-          <td style="padding: 12px;">${reportData.timelineCompliance.acknowledged.daysFromReceived}</td>
-          <td style="padding: 12px;">${getStatusBadge(reportData.timelineCompliance.acknowledged.status)}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb;">Acknowledgement</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb;">${formatDate(reportData.timelineCompliance.acknowledged.date)}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb;">${reportData.timelineCompliance.acknowledged.daysFromReceived}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb;">${getStatusBadge(reportData.timelineCompliance.acknowledged.status)}</td>
         </tr>
         <tr>
-          <td style="padding: 12px;">Outcome Letter</td>
-          <td style="padding: 12px;">${formatDate(reportData.timelineCompliance.outcome.date)}</td>
-          <td style="padding: 12px;">${reportData.timelineCompliance.outcome.daysFromReceived}</td>
-          <td style="padding: 12px;">${getStatusBadge(reportData.timelineCompliance.outcome.status)}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb;">Outcome Letter</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb;">${formatDate(reportData.timelineCompliance.outcome.date)}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb;">${reportData.timelineCompliance.outcome.daysFromReceived}</td>
+          <td style="padding: 12px; border: 1px solid #e5e7eb;">${getStatusBadge(reportData.timelineCompliance.outcome.status)}</td>
         </tr>
       </tbody>
     </table>
