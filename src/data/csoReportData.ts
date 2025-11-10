@@ -600,9 +600,9 @@ export const preDeploymentChecklist: ChecklistItem[] = [
   },
   {
     item: "Security warnings resolved",
-    status: "PARTIAL",
+    status: "COMPLETE",
     owner: "Technical Lead",
-    targetDate: "Before deployment"
+    targetDate: "Complete"
   },
   {
     item: "Penetration testing completed",
