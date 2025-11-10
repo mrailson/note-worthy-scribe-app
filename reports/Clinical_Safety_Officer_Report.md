@@ -206,9 +206,61 @@ User Input → Authentication → RLS Policies → Database/Storage → Audit Lo
 
 ---
 
-## 8. Recommendations for NHS Deployment
+## 8. Notewell AI – Governance Classification Summary for Pilot Deployment
 
-### 8.1 IMMEDIATE ACTIONS REQUIRED
+As part of the clinical safety assessment, the Notewell AI Meeting Manager and Notewell AI Complaints Management modules have been reviewed to determine their relevance to DCB0129 compliance, business-criticality, and operational impact on NHS primary care services.
+
+### 8.1 Classification
+
+Both modules are classified as:
+
+**Non-Clinical, Non-Safety-Critical, Business-Important (but not Business-Critical) Tools.**
+
+They do not form part of direct clinical care, clinical decision-making, prescribing, triage, or diagnosis. Their output is used solely for administrative, governance, and organisational purposes.
+
+### 8.2 DCB0129 Applicability
+
+These modules do not meet the threshold for DCB0129 medical device classification.
+
+**Key Points:**
+- Used to support PCN and practice governance processes, not clinical workflows
+- No patient-specific clinical data is used to drive diagnostic or therapeutic decisions
+- Therefore: **These modules are out of scope of DCB0129 clinical risk management requirements**
+
+### 8.3 Business Criticality
+
+An assessment has confirmed that neither module is business-critical.
+
+**Reasoning:**
+- No impact on real-time clinical delivery
+- Safe and immediate workarounds exist (email minutes, manual complaints templates)
+- No patient safety risk if the system is unavailable
+- Downtime does not affect contractual compliance with GP contracts, PCN DES, ARRS, or QOF
+
+**Conclusion:**
+The modules are categorised as **'Business Important'** but not **'Business Critical'**.
+
+### 8.4 Data Protection & Information Governance
+
+**Data Processing Characteristics:**
+- Only standard governance-level data is processed (meeting notes, internal discussions, anonymised complaint summaries)
+- No intrusive personal data or special-category clinical data is required for system operation
+- Modules operate under the existing Notewell AI DPIA, with low data-impact risk
+- Full data segregation and deletion pathways are documented
+
+### 8.5 Pilot Deployment Rationale
+
+Because the risk profile is low and both modules fall outside clinical safety scope:
+
+✅ **Pilot use is approved with minimal IT governance overhead**, requiring only standard DSPT-aligned controls (access management, auditing, and secure hosting).
+
+This supports agile testing within the PCN while maintaining full compliance with NHS data, security, and safety frameworks.
+
+---
+
+## 9. Recommendations for NHS Deployment
+
+### 9.1 IMMEDIATE ACTIONS REQUIRED
 
 1. **Address Security Warnings**
    - Fix 29 identified security configuration issues
@@ -225,7 +277,7 @@ User Input → Authentication → RLS Policies → Database/Storage → Audit Lo
    - Conduct formal hazard analysis
    - Define risk mitigation strategies
 
-### 8.2 BEFORE PRODUCTION DEPLOYMENT
+### 9.2 BEFORE PRODUCTION DEPLOYMENT
 
 1. **Security Hardening**
    - Complete penetration testing
@@ -242,7 +294,7 @@ User Input → Authentication → RLS Policies → Database/Storage → Audit Lo
    - Establish clinical governance committee
    - Define incident reporting procedures
 
-### 8.3 ONGOING MONITORING
+### 9.3 ONGOING MONITORING
 
 1. **Regular Security Reviews**
    - Quarterly security assessment
@@ -261,7 +313,7 @@ User Input → Authentication → RLS Policies → Database/Storage → Audit Lo
 
 ---
 
-## 9. Conclusion
+## 10. Conclusion
 
 The Healthcare Management System demonstrates strong foundational security and privacy controls suitable for NHS deployment. The comprehensive audit logging, role-based access controls, and data protection measures provide a solid base for clinical safety.
 
