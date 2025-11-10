@@ -1495,7 +1495,8 @@ const ComplaintDetails = () => {
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div><strong>Patient:</strong> {complaint.patient_name}</div>
                 <div><strong>Category:</strong> {getCategoryLabel(complaint.category)}</div>
-                <div><strong>Status: </strong> 
+                <div>
+                  <strong>Status: </strong>
                   {complaint.status === 'under_review' && acknowledgementSentToPatient && (
                     <Mail className="h-3 w-3 inline ml-1 mr-1" />
                   )}
