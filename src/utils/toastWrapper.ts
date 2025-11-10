@@ -37,7 +37,7 @@ export const showToast = {
   },
 
   error: (message: string, options?: ToastOptions) => {
-    if (!isSectionEnabled(options?.section)) return;
+    // Always show errors regardless of preferences
     const { section, ...sonnerOptions } = options || {};
     return sonnerToast.error(message, sonnerOptions);
   },
@@ -66,8 +66,15 @@ export const showShadcnToast = (params: {
   variant?: 'default' | 'destructive';
   section?: ToastSection;
 }) => {
-  const { section, ...toastParams } = params;
+  const { section, variant, ...toastParams } = params;
+  
+  // Always show destructive (error) toasts regardless of preferences
+  if (variant === 'destructive') {
+    return shadcnToast({ ...toastParams, variant });
+  }
+  
+  // Check preferences for non-error toasts
   if (!isSectionEnabled(section)) return;
   
-  return shadcnToast(toastParams);
+  return shadcnToast({ ...toastParams, variant });
 };
