@@ -12,7 +12,14 @@ interface ReportDetailModalProps {
   onClose: () => void;
 }
 
-const COLORS = ['hsl(var(--primary))', 'hsl(var(--secondary))', 'hsl(var(--accent))', 'hsl(var(--muted))'];
+const COLORS = [
+  'hsl(217, 91%, 60%)',  // Vibrant blue
+  'hsl(142, 71%, 45%)',  // Vibrant green
+  'hsl(280, 65%, 60%)',  // Vibrant purple
+  'hsl(25, 95%, 53%)',   // Vibrant orange
+  'hsl(340, 82%, 52%)',  // Vibrant pink
+  'hsl(45, 93%, 47%)',   // Vibrant yellow
+];
 
 const levelColors = {
   Practice: 'blue',
@@ -131,11 +138,13 @@ export function ReportDetailModal({ report, isOpen, onClose }: ReportDetailModal
                 data={data}
                 cx="50%"
                 cy="50%"
-                labelLine={false}
+                labelLine={true}
                 label={({ name, value }) => `${name}: ${value}%`}
                 outerRadius={100}
                 fill="hsl(var(--primary))"
                 dataKey="value"
+                stroke="hsl(var(--background))"
+                strokeWidth={2}
               >
                 {data.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
