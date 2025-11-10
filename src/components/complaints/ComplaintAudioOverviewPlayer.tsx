@@ -45,23 +45,6 @@ export const ComplaintAudioOverviewPlayer = ({
   const [isBuffering, setIsBuffering] = useState(false);
   const [bufferedEnd, setBufferedEnd] = useState(0);
 
-  // Helper to prime the audio decoder by micro-seeking
-  const primeAudioStart = async (audio: HTMLAudioElement): Promise<void> => {
-    return new Promise((resolve) => {
-      const handleFirstSeek = () => {
-        audio.removeEventListener('seeked', handleFirstSeek);
-        audio.currentTime = 0.00;
-        const handleSecondSeek = () => {
-          audio.removeEventListener('seeked', handleSecondSeek);
-          resolve();
-        };
-        audio.addEventListener('seeked', handleSecondSeek, { once: true });
-      };
-      audio.addEventListener('seeked', handleFirstSeek, { once: true });
-      audio.currentTime = 0.05;
-    });
-  };
-
   const handlePlayAudio = async () => {
     if (!audioOverviewUrl) {
       console.log('❌ No audio URL available');
@@ -81,8 +64,8 @@ export const ComplaintAudioOverviewPlayer = ({
       if (audioRef.current && audioRef.current.readyState >= 3) {
         console.log('▶️ Playing preloaded audio');
         
-        // Check buffer threshold
-        const minBuffer = Math.min(3, totalDuration * 0.1);
+        // Check buffer threshold - ensure we have at least 5 seconds buffered
+        const minBuffer = Math.min(5, totalDuration * 0.2);
         if (bufferedEnd < minBuffer) {
           showToast.info('Audio still buffering, please wait...', { section: 'complaints' });
           return;
@@ -93,14 +76,13 @@ export const ComplaintAudioOverviewPlayer = ({
         
         // Warm up audio device on first play to prevent cut-offs
         if (!didWarmUpRef.current) {
-          await playoutSilentPreRoll(300);
+          await playoutSilentPreRoll(500);
           didWarmUpRef.current = true;
         }
         
-        // Prime the decoder to prevent initial cut-out
-        await primeAudioStart(audioRef.current);
-        
-        audioRef.current.currentTime = 0;
+        // Start from 0.3s to skip problematic initial buffer
+        // This avoids the decoder initialization issues at the very start
+        audioRef.current.currentTime = 0.3;
         audioRef.current.playbackRate = playbackSpeed;
       
         audioRef.current.addEventListener('ended', async () => {
@@ -263,22 +245,11 @@ export const ComplaintAudioOverviewPlayer = ({
         audioRef.current.addEventListener('progress', updateBuffered);
         audioRef.current.addEventListener('canplaythrough', updateBuffered);
 
-        // Wait for audio to be buffered
-        await new Promise<void>(async (resolve) => {
-          const onCanPlayThrough = async () => {
+        // Wait for audio to be buffered and ready
+        await new Promise<void>((resolve) => {
+          const onCanPlayThrough = () => {
             console.log('✅ Audio preloaded and ready');
             updateBuffered();
-            
-            // Prime the decoder during preload to prevent first-play cut-out
-            if (audioRef.current) {
-              try {
-                await primeAudioStart(audioRef.current);
-                console.log('✅ Audio decoder primed');
-              } catch (e) {
-                console.warn('⚠️ Decoder priming failed (non-fatal):', e);
-              }
-            }
-            
             setIsBuffering(false);
             resolve();
           };
