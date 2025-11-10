@@ -522,6 +522,7 @@ export const thirdPartyRisks: ThirdPartyRisk[] = [
     assuranceLevel: "HIGH",
     risk: "Core infrastructure dependency",
     mitigation: [
+      "Data Processing Agreement signed (10/11/2025)",
       "AWS UK region",
       "Automatic backups",
       "Encryption at rest and transit",
