@@ -82,23 +82,14 @@ export const CallToActionSlide = () => {
         </div>
       </div>
 
-      {/* Turquoise Accent Bar at Bottom with Buttons */}
-      <div className="h-16 bg-gradient-to-r from-[#00A9CE] to-[#00A9CE] flex items-center justify-center gap-4">
+      {/* Turquoise Accent Bar at Bottom with Button */}
+      <div className="h-16 bg-gradient-to-r from-[#00A9CE] to-[#00A9CE] flex items-center justify-center">
         <Button
           onClick={() => navigate('/complaints')}
           size="lg"
           className="bg-white hover:bg-white/90 text-[#003087] font-bold px-8 py-4 text-lg shadow-xl"
         >
           Open Notewell AI Complaints System
-          <ArrowRight className="ml-2 h-5 w-5" />
-        </Button>
-        <Button
-          onClick={() => navigate('/cso-report')}
-          size="lg"
-          variant="outline"
-          className="bg-white/95 hover:bg-white text-[#003087] font-bold px-8 py-4 text-lg shadow-xl border-2 border-white"
-        >
-          View CSO Assessment Report
           <ArrowRight className="ml-2 h-5 w-5" />
         </Button>
       </div>
