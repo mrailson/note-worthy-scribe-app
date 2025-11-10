@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp, RefreshCw, Mail } from 'lucide-react';
-import { AudioSummaryPlayer } from '@/components/complaints/AudioSummaryPlayer';
+import { ComplaintAudioOverviewPlayer } from '@/components/complaints/ComplaintAudioOverviewPlayer';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { downloadComplaintReport } from '@/utils/downloadComplaintReport';
@@ -586,9 +586,11 @@ NHS Complaints Management System
               <div className="h-8 w-1 bg-primary rounded-full" />
               Timeline & Compliance
             </CardTitle>
-            <AudioSummaryPlayer 
-              audioUrl={audioOverview?.audio_overview_url}
-              duration={audioOverview?.audio_overview_duration || 180}
+            <ComplaintAudioOverviewPlayer
+              complaintId={id as string}
+              audioOverviewUrl={audioOverview?.audio_overview_url}
+              audioOverviewText={audioOverview?.audio_overview_text}
+              audioOverviewDuration={audioOverview?.audio_overview_duration}
             />
           </div>
         </CardHeader>
