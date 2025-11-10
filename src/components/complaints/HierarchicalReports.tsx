@@ -326,12 +326,63 @@ export const HierarchicalReports = () => {
                 <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-900/30">
                   <Layers className="h-5 w-5 text-purple-600 dark:text-purple-400" />
                 </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Neighbourhoods Level Reports</h3>
+                <div className="flex-1">
+                  <h3 className="font-semibold text-lg">Northamptonshire - Rural East & South</h3>
                   <p className="text-sm text-muted-foreground">Cross-PCN insights and collaboration opportunities across your neighbourhood</p>
                 </div>
               </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              
+              {/* Participating Practices */}
+              <Card className="bg-purple-50/50 dark:bg-purple-900/10 border-purple-200 dark:border-purple-800">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Building2 className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                    Participating Practices
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">Denton Village Surgery</span>
+                      <span className="text-muted-foreground">6,277 (7.1%)</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">Bugbrooke Surgery</span>
+                      <span className="text-muted-foreground">10,773 (12.1%)</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">Towcester Medical Centre</span>
+                      <span className="text-muted-foreground">11,439 (12.9%)</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">Brook Health Centre</span>
+                      <span className="text-muted-foreground">8,983 (10.1%)</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">Springfield Surgery</span>
+                      <span className="text-muted-foreground">12,649 (14.2%)</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">Brackley Medical Centre</span>
+                      <span className="text-muted-foreground">16,128 (18.1%)</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">The Parks Medical Practice (4 sites)</span>
+                      <span className="text-muted-foreground">22,689 (25.5%)</span>
+                    </div>
+                    <div className="flex justify-between items-center p-2 rounded bg-background/50">
+                      <span className="font-medium">Oak Lane</span>
+                      <span className="text-muted-foreground text-purple-600 dark:text-purple-400">Participating Member</span>
+                    </div>
+                    <div className="col-span-1 md:col-span-2 flex justify-between items-center p-2 rounded bg-purple-100 dark:bg-purple-900/30 font-semibold border-t-2 border-purple-300 dark:border-purple-700 mt-2">
+                      <span>Total Population</span>
+                      <span>88,938 (100.0%)</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
                 {NeighbourhoodsReports.map((report) => (
                   <ReportCardComponent key={report.title} report={report} levelColor="purple" />
                 ))}
