@@ -376,7 +376,7 @@ export const HierarchicalReports = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                  <div className="flex flex-col gap-2 text-xs">
                     <div className="flex items-center p-2 rounded bg-background/50">
                       <span className="font-medium">Springfield Surgery</span>
                     </div>
