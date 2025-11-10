@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { Play, Pause } from 'lucide-react';
@@ -13,13 +13,62 @@ interface AudioSummaryPlayerProps {
 export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPlayerProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const [effectiveDuration, setEffectiveDuration] = useState(duration);
   const audioRef = useRef<HTMLAudioElement>(null);
+  const objectUrlRef = useRef<string | null>(null);
+  const sourceUrlRef = useRef<string | null>(null);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
+
+  useEffect(() => {
+    if (!audioUrl) return;
+    let aborted = false;
+
+    const preload = async () => {
+      try {
+        setIsBuffering(true);
+        const res = await fetch(audioUrl, { cache: 'no-store' });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        if (aborted) return;
+
+        if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = URL.createObjectURL(blob);
+
+        if (audioRef.current && objectUrlRef.current) {
+          audioRef.current.src = objectUrlRef.current;
+          audioRef.current.load();
+          audioRef.current.onloadedmetadata = () => {
+            if (audioRef.current?.duration && isFinite(audioRef.current.duration)) {
+              setEffectiveDuration(audioRef.current.duration);
+            }
+          };
+          audioRef.current.onerror = () => {
+            toast.error('Unable to load audio summary');
+          };
+        }
+        setIsBuffering(false);
+      } catch (e) {
+        console.error('Audio preload error:', e);
+        toast.error('Unable to load audio summary');
+        setIsBuffering(false);
+      }
+    };
+
+    preload();
+    return () => {
+      aborted = true;
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, [audioUrl]);
 
   const handlePlayPause = () => {
     if (!audioUrl) {
@@ -79,7 +128,7 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
             )}
           </Button>
           <div className="text-xs text-muted-foreground font-mono">
-            {formatTime(currentTime)} / {formatTime(duration)}
+            {formatTime(currentTime)} / {formatTime(effectiveDuration)}
           </div>
         </div>
         
@@ -92,11 +141,11 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
           </div>
           <Slider
             value={[currentTime]}
-            max={duration}
+            max={effectiveDuration}
             step={1}
             onValueChange={handleSliderChange}
             className="w-full"
-            disabled={!audioUrl}
+            disabled={!audioUrl || isBuffering}
           />
         </div>
       </div>
@@ -104,7 +153,7 @@ export function AudioSummaryPlayer({ audioUrl, duration = 180 }: AudioSummaryPla
       {audioUrl && (
         <audio
           ref={audioRef}
-          src={audioUrl}
+          src={objectUrlRef.current ?? undefined}
           onTimeUpdate={handleTimeUpdate}
           onEnded={handleEnded}
         />
