@@ -561,15 +561,6 @@ export const ComplaintAudioOverviewPlayer = ({
         </p>
       )}
       
-      {/* AI Critical Friend Complaint Review button - shown after audio is generated */}
-      {audioOverviewUrl && (
-        <div className="mt-4 pt-4 border-t">
-          <p className="text-sm text-muted-foreground mb-2">
-            Need an objective review? Chat with our AI assistant to get constructive feedback on this complaint handling and identify areas for improvement.
-          </p>
-        </div>
-      )}
-      
       {audioOverviewText && showTranscript && (
         <div className="mt-3">
           <div className="flex items-center gap-2 mb-2">
