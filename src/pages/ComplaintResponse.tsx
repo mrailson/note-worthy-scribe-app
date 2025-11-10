@@ -399,7 +399,10 @@ export default function ComplaintResponse() {
                     <div className="flex justify-between items-center">
                       <ComplaintMicRecorder
                         onTranscriptUpdate={(text) => {
-                          setResponse(prev => prev + (prev ? '\n\n' : '') + text);
+                          setResponse(prev => {
+                            const spacer = prev && !prev.endsWith(' ') && !text.startsWith(' ') ? ' ' : '';
+                            return (prev || '') + spacer + text;
+                          });
                         }}
                         disabled={complaint.response_submitted}
                         className="text-sm"

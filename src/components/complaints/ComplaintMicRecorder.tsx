@@ -50,15 +50,29 @@ export const ComplaintMicRecorder = forwardRef<ComplaintMicRecorderRef, Complain
           console.log('Partial:', text);
         },
         onFinal: (text) => {
-          // Only send final, non-duplicate transcripts
-          console.log('Final:', text);
-          const trimmedText = text.trim();
-          
-          // Deduplicate: only send if different from last final text
-          if (trimmedText && trimmedText !== lastFinalTextRef.current) {
-            lastFinalTextRef.current = trimmedText;
-            onTranscriptUpdate(trimmedText);
+          // Compute delta vs last final to avoid repetitions like "some" -> "some changes" -> "some changes to"
+          const next = text.trim();
+          const prev = lastFinalTextRef.current;
+          console.log('Final received:', { prev, next });
+
+          let delta = '';
+          if (!prev) {
+            delta = next;
+          } else if (next.startsWith(prev)) {
+            delta = next.slice(prev.length).trimStart();
+          } else if (prev.startsWith(next)) {
+            // Model rewound or shortened — don't emit
+            delta = '';
+          } else {
+            // Find longest common prefix
+            let i = 0;
+            const min = Math.min(prev.length, next.length);
+            while (i < min && prev[i] === next[i]) i++;
+            delta = next.slice(i).trimStart();
           }
+
+          lastFinalTextRef.current = next;
+          if (delta) onTranscriptUpdate(delta);
         },
         onClose: (code, reason) => {
           console.log('Connection closed:', code, reason);
