@@ -12,7 +12,8 @@ import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import complaintDemoImg from '@/assets/complaint-letter-demo.png';
+import complaintPage1 from '@/assets/complaint-page-1.jpg';
+import complaintPage2 from '@/assets/complaint-page-2.jpg';
 
 interface ComplaintData {
   patient_name?: string;
@@ -174,16 +175,24 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
       
       // Special handling for Example 2 - show two images instead of a text file for demo
       if (exampleNumber === 2) {
-        const imgResponse = await fetch(complaintDemoImg);
-        const imgBlob = await imgResponse.blob();
+        // Fetch both complaint letter page images
+        const [img1Response, img2Response] = await Promise.all([
+          fetch(complaintPage1),
+          fetch(complaintPage2)
+        ]);
         
-        // Create two File objects to mimic two page images
-        const imageFile1 = new File([imgBlob], 'complaint-letter-page-1.png', {
-          type: 'image/png',
+        const [img1Blob, img2Blob] = await Promise.all([
+          img1Response.blob(),
+          img2Response.blob()
+        ]);
+        
+        // Create two File objects from the actual complaint letter pages
+        const imageFile1 = new File([img1Blob], 'complaint-letter-page-1.jpg', {
+          type: 'image/jpeg',
           lastModified: Date.now()
         });
-        const imageFile2 = new File([imgBlob], 'complaint-letter-page-2.png', {
-          type: 'image/png',
+        const imageFile2 = new File([img2Blob], 'complaint-letter-page-2.jpg', {
+          type: 'image/jpeg',
           lastModified: Date.now()
         });
         
