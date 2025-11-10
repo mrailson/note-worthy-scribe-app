@@ -6454,6 +6454,19 @@ export type Database = {
           transcript: string
         }[]
       }
+      get_meeting_stats_by_user: {
+        Args: never
+        Returns: {
+          completed_meetings: number
+          email: string
+          first_meeting_date: string
+          full_name: string
+          latest_meeting_date: string
+          meeting_count: number
+          recording_meetings: number
+          user_id: string
+        }[]
+      }
       get_meeting_transcript: {
         Args: { p_meeting_id: string }
         Returns: string

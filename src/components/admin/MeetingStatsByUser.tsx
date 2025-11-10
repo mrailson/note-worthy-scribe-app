@@ -29,88 +29,27 @@ export const MeetingStatsByUser = () => {
   const fetchMeetingStats = async () => {
     try {
       setLoading(true);
-      
-      console.log('[MeetingStatsByUser] Starting fetch...');
-      
-      // Query meetings directly
-      const { data: meetings, error: meetingsError } = await supabase
-        .from('meetings')
-        .select('user_id, status, created_at');
-      
-      if (meetingsError) {
-        console.error('[MeetingStatsByUser] Error fetching meetings:', meetingsError);
-        return;
-      }
-      
-      console.log(`[MeetingStatsByUser] Fetched ${meetings?.length || 0} meetings`);
-      
-      if (meetings && meetings.length > 0) {
-        // Group by user
-        const userStats: Record<string, any> = {};
-        meetings.forEach(m => {
-          if (!userStats[m.user_id]) {
-            userStats[m.user_id] = {
-              user_id: m.user_id,
-              meeting_count: 0,
-              completed_meetings: 0,
-              recording_meetings: 0,
-              first_meeting_date: m.created_at,
-              latest_meeting_date: m.created_at,
-              email: '',
-              full_name: null
-            };
-          }
-          userStats[m.user_id].meeting_count++;
-          if (m.status === 'completed') userStats[m.user_id].completed_meetings++;
-          if (m.status === 'recording') userStats[m.user_id].recording_meetings++;
-          if (new Date(m.created_at) < new Date(userStats[m.user_id].first_meeting_date)) {
-            userStats[m.user_id].first_meeting_date = m.created_at;
-          }
-          if (new Date(m.created_at) > new Date(userStats[m.user_id].latest_meeting_date)) {
-            userStats[m.user_id].latest_meeting_date = m.created_at;
-          }
-        });
+      console.log('[MeetingStatsByUser] Fetching via RPC get_meeting_stats_by_user');
 
-        const uniqueUserIds = Object.keys(userStats);
-        console.log(`[MeetingStatsByUser] Found ${uniqueUserIds.length} unique users with meetings`);
-
-        // Fetch user details from profiles table
-        const { data: profiles, error: profilesError } = await supabase
-          .from('profiles')
-          .select('id, email, full_name')
-          .in('id', uniqueUserIds);
-        
-        if (profilesError) {
-          console.error('[MeetingStatsByUser] Error fetching profiles:', profilesError);
-        }
-        
-        console.log(`[MeetingStatsByUser] Fetched ${profiles?.length || 0} profiles`);
-        
-        const enrichedStats: UserMeetingStats[] = Object.values(userStats).map((stat: any) => {
-          const profile = profiles?.find((p: any) => p.id === stat.user_id);
-          return {
-            ...stat,
-            email: profile?.email || 'Unknown',
-            full_name: profile?.full_name || null
-          };
-        });
-
-        // Filter to only show users with 1 or more meetings (already implicit, but being explicit)
-        const filteredStats = enrichedStats.filter(s => s.meeting_count >= 1);
-        
-        filteredStats.sort((a, b) => b.meeting_count - a.meeting_count);
-        
-        console.log(`[MeetingStatsByUser] Final stats for ${filteredStats.length} users:`, filteredStats);
-        
-        setStats(filteredStats);
-        setTotalMeetings(filteredStats.reduce((sum, s) => sum + s.meeting_count, 0));
-      } else {
-        console.log('[MeetingStatsByUser] No meetings found');
+      const { data, error } = await supabase.rpc('get_meeting_stats_by_user');
+      if (error) {
+        console.error('[MeetingStatsByUser] RPC error:', error);
         setStats([]);
         setTotalMeetings(0);
+        return;
       }
+
+      const results = (data || []) as UserMeetingStats[];
+      console.log(`[MeetingStatsByUser] Received ${results.length} users`);
+
+      // Only include users with >=1 meeting (RPC already ensures this, but keep explicit)
+      const filtered = results.filter(r => (r.meeting_count || 0) >= 1);
+      filtered.sort((a, b) => b.meeting_count - a.meeting_count);
+
+      setStats(filtered);
+      setTotalMeetings(filtered.reduce((sum, s) => sum + (s.meeting_count || 0), 0));
     } catch (error) {
-      console.error('[MeetingStatsByUser] Error fetching meeting stats:', error);
+      console.error('[MeetingStatsByUser] Unexpected error:', error);
     } finally {
       setLoading(false);
     }
