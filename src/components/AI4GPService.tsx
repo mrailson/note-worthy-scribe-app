@@ -160,7 +160,9 @@ const AI4GPService = () => {
     autoCollapseUserPrompts,
     setAutoCollapseUserPrompts,
     chatHistoryRetentionDays,
-    setChatHistoryRetentionDays
+    setChatHistoryRetentionDays,
+    hideGPClinical,
+    setHideGPClinical
   } = useAI4GPService();
 
   const { practiceContext, practiceDetails } = usePracticeContext();
@@ -255,6 +257,13 @@ const AI4GPService = () => {
   React.useEffect(() => {
     setShowNews(false);
   }, []);
+
+  // Force Practice Manager role when GP/Clinical is hidden
+  React.useEffect(() => {
+    if (hideGPClinical && selectedRole === 'gp') {
+      setSelectedRole('practice-manager');
+    }
+  }, [hideGPClinical, selectedRole]);
 
   const handleDisclaimerAccept = () => {
     setShowDisclaimerModal(false);
@@ -600,37 +609,39 @@ const AI4GPService = () => {
                         </p>
                         
                         {/* Role Selection */}
-                        <div className="flex justify-center">
-                          <div className={cn(
-                            "flex bg-muted rounded-lg p-1",
-                            deviceInfo.isIPhone && "w-full max-w-sm"
-                          )}>
-                            <button
-                              onClick={() => setSelectedRole('gp')}
-                              className={cn(
-                                "flex-1 rounded-md transition-all",
-                                deviceInfo.isIPhone ? "px-4 py-3 text-sm min-h-[44px]" : "px-3 py-1.5 text-xs sm:text-sm",
-                                selectedRole === 'gp'
-                                  ? 'bg-background text-foreground shadow-sm font-bold'
-                                  : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
-                              )}
-                            >
-                              For GP/Clinical
-                            </button>
-                            <button
-                              onClick={() => setSelectedRole('practice-manager')}
-                              className={cn(
-                                "flex-1 rounded-md transition-all",
-                                deviceInfo.isIPhone ? "px-4 py-3 text-sm min-h-[44px]" : "px-3 py-1.5 text-xs sm:text-sm",
-                                selectedRole === 'practice-manager'
-                                  ? 'bg-background text-foreground shadow-sm font-bold'
-                                  : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
-                              )}
-                            >
-                              For Practice Managers
-                            </button>
+                        {!hideGPClinical && (
+                          <div className="flex justify-center">
+                            <div className={cn(
+                              "flex bg-muted rounded-lg p-1",
+                              deviceInfo.isIPhone && "w-full max-w-sm"
+                            )}>
+                              <button
+                                onClick={() => setSelectedRole('gp')}
+                                className={cn(
+                                  "flex-1 rounded-md transition-all",
+                                  deviceInfo.isIPhone ? "px-4 py-3 text-sm min-h-[44px]" : "px-3 py-1.5 text-xs sm:text-sm",
+                                  selectedRole === 'gp'
+                                    ? 'bg-background text-foreground shadow-sm font-bold'
+                                    : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
+                                )}
+                              >
+                                For GP/Clinical
+                              </button>
+                              <button
+                                onClick={() => setSelectedRole('practice-manager')}
+                                className={cn(
+                                  "flex-1 rounded-md transition-all",
+                                  deviceInfo.isIPhone ? "px-4 py-3 text-sm min-h-[44px]" : "px-3 py-1.5 text-xs sm:text-sm",
+                                  selectedRole === 'practice-manager'
+                                    ? 'bg-background text-foreground shadow-sm font-bold'
+                                    : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
+                                )}
+                              >
+                                For Practice Managers
+                              </button>
+                            </div>
                           </div>
-                        </div>
+                        )}
                         
                         {/* Hide QuickActionsPanel on iPhone for simpler ChatGPT-like interface */}
                         {!deviceInfo.isIPhone && (
@@ -792,6 +803,8 @@ const AI4GPService = () => {
           onAutoCollapseUserPromptsChange={setAutoCollapseUserPrompts}
           chatHistoryRetentionDays={chatHistoryRetentionDays}
           onChatHistoryRetentionDaysChange={setChatHistoryRetentionDays}
+          hideGPClinical={hideGPClinical}
+          onHideGPClinicalChange={setHideGPClinical}
         />
 
       {/* Quick Image Modal */}

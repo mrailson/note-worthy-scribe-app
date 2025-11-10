@@ -46,6 +46,8 @@ interface SettingsModalProps {
   onReadingFontChange: (enabled: boolean) => void;
   autoCollapseUserPrompts: boolean;
   onAutoCollapseUserPromptsChange: (enabled: boolean) => void;
+  hideGPClinical: boolean;
+  onHideGPClinicalChange: (enabled: boolean) => void;
 }
 
 interface ApiTestResult {
@@ -142,6 +144,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   onReadingFontChange,
   autoCollapseUserPrompts,
   onAutoCollapseUserPromptsChange,
+  hideGPClinical,
+  onHideGPClinicalChange,
 }) => {
   const { isSystemAdmin } = useAuth();
   const selectedModelInfo = AI_MODELS.find(model => model.id === selectedModel) || AI_MODELS.find(model => model.recommended) || AI_MODELS[0];
@@ -510,6 +514,42 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             </CardContent>
           </Card>
 
+
+          {/* Interface Features */}
+          <Card className="border-purple-200 bg-gradient-to-r from-background to-purple-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Eye className="h-4 w-4 text-purple-600" />
+                Interface Features
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <Label htmlFor="hide-gp-clinical" className="text-sm font-medium">
+                    Hide GP/Clinical Features
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Hide the "For GP/Clinical" option and AI4GP service from the interface
+                  </p>
+                </div>
+                <Switch
+                  id="hide-gp-clinical"
+                  checked={hideGPClinical}
+                  onCheckedChange={onHideGPClinicalChange}
+                />
+              </div>
+              
+              {hideGPClinical && (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <div className="text-sm font-medium text-purple-800">👁️ GP/Clinical Features Hidden</div>
+                  <div className="text-xs text-purple-700 mt-1">
+                    The "For GP/Clinical" option is now hidden from the interface
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Local Policy Settings */}
           <Card className="border-green-200 bg-gradient-to-r from-background to-green-50">

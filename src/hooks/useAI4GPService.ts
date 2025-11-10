@@ -23,6 +23,7 @@ export const useAI4GPService = () => {
   const [isClinical, setIsClinical] = useState(false);
   const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
   const [chatHistoryRetentionDays, setChatHistoryRetentionDays] = useState(30);
+  const [hideGPClinical, setHideGPClinical] = useState(false);
   
   // Display Settings - now managed by useDisplayPreferences
   const {
@@ -907,6 +908,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           setReadingFont(preferences.readingFont ?? false);
           setAutoCollapseUserPrompts(preferences.autoCollapseUserPrompts ?? false);
           setChatHistoryRetentionDays(preferences.chatHistoryRetentionDays ?? 30);
+          setHideGPClinical(preferences.hideGPClinical ?? false);
           
           console.log('AI4GP settings loaded successfully');
         } else {
@@ -946,7 +948,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         highContrast,
         readingFont,
         autoCollapseUserPrompts,
-        chatHistoryRetentionDays
+        chatHistoryRetentionDays,
+        hideGPClinical
       };
 
       console.log('Saving AI4GP preferences:', preferences);
@@ -1334,6 +1337,8 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     autoCollapseUserPrompts,
     setAutoCollapseUserPrompts,
     chatHistoryRetentionDays,
-    setChatHistoryRetentionDays
+    setChatHistoryRetentionDays,
+    hideGPClinical,
+    setHideGPClinical
   };
 };
