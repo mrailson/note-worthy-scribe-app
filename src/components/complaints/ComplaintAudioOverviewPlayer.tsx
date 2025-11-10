@@ -44,6 +44,76 @@ export const ComplaintAudioOverviewPlayer = ({
   const didWarmUpRef = useRef(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [bufferedEnd, setBufferedEnd] = useState(0);
+  const audioBlobRef = useRef<Blob | null>(null);
+  // Web Audio fallback
+  const webAudioCtxRef = useRef<AudioContext | null>(null);
+  const webAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const webAudioGainRef = useRef<GainNode | null>(null);
+  const webStartTimeRef = useRef<number | null>(null);
+  const usingWebAudioRef = useRef(false);
+
+  // Stop any active Web Audio playback
+  const stopWebAudio = () => {
+    try {
+      if (webAudioSourceRef.current) {
+        webAudioSourceRef.current.onended = null as any;
+        webAudioSourceRef.current.stop(0);
+        webAudioSourceRef.current.disconnect();
+        webAudioSourceRef.current = null;
+      }
+    } catch (e) {
+      console.warn('WebAudio stop error (non-fatal):', e);
+    }
+  };
+
+  // Play via Web Audio API (robust path)
+  const playViaWebAudio = async () => {
+    if (!audioBlobRef.current) return;
+
+    if (!webAudioCtxRef.current) {
+      webAudioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 44100 });
+    }
+
+    const ctx = webAudioCtxRef.current;
+    await ctx.resume();
+
+    const arrayBuffer = await audioBlobRef.current.arrayBuffer();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.7);
+
+    source.connect(gain).connect(ctx.destination);
+
+    usingWebAudioRef.current = true;
+    webAudioSourceRef.current = source;
+    webAudioGainRef.current = gain;
+    webStartTimeRef.current = ctx.currentTime;
+
+    source.onended = async () => {
+      usingWebAudioRef.current = false;
+      stopWebAudio();
+      setIsPlaying(false);
+      setCurrentTime(0);
+      await audioFocusManager.resumeAll();
+    };
+
+    source.start(0, 0);
+    setIsPlaying(true);
+
+    // Animate current time for UI
+    const update = () => {
+      if (!usingWebAudioRef.current || !webAudioCtxRef.current || !webStartTimeRef.current) return;
+      const elapsed = webAudioCtxRef.current.currentTime - webStartTimeRef.current;
+      setCurrentTime(Math.min(elapsed, audioBuffer.duration));
+      animationFrameRef.current = requestAnimationFrame(update);
+    };
+    animationFrameRef.current = requestAnimationFrame(update);
+  };
 
   const handlePlayAudio = async () => {
     if (!audioOverviewUrl) {
@@ -53,9 +123,14 @@ export const ComplaintAudioOverviewPlayer = ({
     }
 
     try {
-      if (audioRef.current && isPlaying) {
+      if (isPlaying) {
         console.log('⏸️ Pausing audio');
-        audioRef.current.pause();
+        if (usingWebAudioRef.current) {
+          stopWebAudio();
+          await audioFocusManager.resumeAll();
+        } else if (audioRef.current) {
+          audioRef.current.pause();
+        }
         setIsPlaying(false);
         return;
       }
@@ -63,6 +138,20 @@ export const ComplaintAudioOverviewPlayer = ({
       // Audio should already be preloaded, just play it
       if (audioRef.current && audioRef.current.readyState >= 3) {
         console.log('▶️ Playing preloaded audio');
+        
+        // If start of the buffer is not near 0, fall back to robust Web Audio path
+        let bufferedStart = 0;
+        try {
+          const br = audioRef.current.buffered;
+          if (br && br.length) bufferedStart = br.start(0);
+        } catch {}
+        if (bufferedStart > 0.05 && audioBlobRef.current) {
+          console.log(`⚠️ Buffered start at ${bufferedStart.toFixed(2)}s – using Web Audio fallback.`);
+          await audioFocusManager.pauseAll('complaint_playback');
+          if (!didWarmUpRef.current) { await playoutSilentPreRoll(500); didWarmUpRef.current = true; }
+          await playViaWebAudio();
+          return;
+        }
         
         // Check buffer threshold - ensure we have at least 5 seconds buffered
         const minBuffer = Math.min(5, totalDuration * 0.2);
@@ -203,6 +292,8 @@ export const ComplaintAudioOverviewPlayer = ({
           const res = await fetch(audioOverviewUrl, { cache: 'no-store' });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const blob = await res.blob();
+          
+          audioBlobRef.current = blob;
           
           if (audioObjectUrlRef.current) {
             URL.revokeObjectURL(audioObjectUrlRef.current);
