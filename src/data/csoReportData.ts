@@ -575,6 +575,12 @@ export const preDeploymentChecklist: ChecklistItem[] = [
     targetDate: "Complete"
   },
   {
+    item: "DPAs with Database providers signed",
+    status: "COMPLETE",
+    owner: "IG Lead",
+    targetDate: "Complete"
+  },
+  {
     item: "Security warnings resolved",
     status: "COMPLETE",
     owner: "Technical Lead",
