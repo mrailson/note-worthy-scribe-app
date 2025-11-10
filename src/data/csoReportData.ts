@@ -634,7 +634,6 @@ export const recommendations = {
   immediate: [
     "Formal DCB0129 Compliance: Appoint CSO, complete Clinical Safety Case, establish Hazard Log",
     "Data Protection Compliance: Complete DPIA, obtain SIRO and Caldicott Guardian approval",
-    "Security Remediation: Complete comprehensive security audit and address all identified warnings",
     "Clinical Validation Workflows: Implement mandatory human review for AI-generated clinical content",
     "Training Programme: Develop and deliver all mandatory training modules before user access",
     "Navigation & Access Controls: Complete documentation of all system navigation paths and security documentation access"

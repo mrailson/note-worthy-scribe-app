@@ -565,18 +565,6 @@ const CSOReport = () => {
                   </div>
                 ))}
               </div>
-
-              <div className="mt-6 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-orange-700 dark:text-orange-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold text-orange-900 dark:text-orange-300 mb-1">Urgent Action Required</h4>
-                    <p className="text-sm text-orange-800 dark:text-orange-400">
-                      Formal Data Processing Agreements (DPAs) must be obtained and signed with OpenAI, Deepgram, and Grok before deployment. Document all data flows and maintain a register of data processors.
-                    </p>
-                  </div>
-                </div>
-              </div>
             </CardContent>
           </Card>
         </section>
