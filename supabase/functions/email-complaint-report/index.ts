@@ -1,13 +1,10 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
-import { Resend } from 'npm:resend@4.0.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
-
-const resend = new Resend(Deno.env.get('RESEND_API_KEY'));
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -24,28 +21,55 @@ serve(async (req) => {
       });
     }
 
-    // Generate Word document content (simplified base64 version)
-    // For a proper Word doc, we'd use docx library, but for simplicity we'll create a basic format
+    // Generate Word document content
     const wordDocContent = generateWordDoc(reportData, complaint);
     
     // Generate HTML email
     const htmlEmail = generateHTMLEmail(reportData, complaint);
 
-    // Send email via Resend
-    const emailResponse = await resend.emails.send({
-      from: 'NHS Complaints System <onboarding@resend.dev>',
-      to: ['malcolm.railson@nhs.net'],
-      subject: `Complaint Review Report - ${complaint.reference_number}`,
-      html: htmlEmail,
-      attachments: [
-        {
-          filename: `Complaint_Report_${complaint.reference_number}_${new Date().toISOString().split('T')[0]}.txt`,
-          content: Buffer.from(wordDocContent).toString('base64'),
+    // Get EmailJS credentials
+    const serviceId = Deno.env.get('EMAILJS_SERVICE_ID');
+    const templateId = Deno.env.get('EMAILJS_TEMPLATE_ID');
+    const publicKey = Deno.env.get('EMAILJS_PUBLIC_KEY');
+    const privateKey = Deno.env.get('EMAILJS_PRIVATE_KEY');
+
+    if (!serviceId || !templateId || !publicKey || !privateKey) {
+      throw new Error('EmailJS credentials not configured');
+    }
+
+    // Prepare attachment
+    const attachmentBase64 = btoa(wordDocContent);
+    
+    // Send email via EmailJS REST API
+    const emailResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        service_id: serviceId,
+        template_id: templateId,
+        user_id: publicKey,
+        accessToken: privateKey,
+        template_params: {
+          to_email: 'malcolm.railson@nhs.net',
+          to_name: 'GP Partners',
+          subject: `Complaint Review Report - ${complaint.reference_number}`,
+          message_html: htmlEmail,
+          complaint_reference: complaint.reference_number,
+          report_attachment: attachmentBase64,
+          attachment_name: `Complaint_Report_${complaint.reference_number}_${new Date().toISOString().split('T')[0]}.txt`,
         },
-      ],
+      }),
     });
 
-    console.log('Email sent successfully:', emailResponse);
+    if (!emailResponse.ok) {
+      const errorText = await emailResponse.text();
+      console.error('EmailJS error:', errorText);
+      throw new Error(`EmailJS returned ${emailResponse.status}: ${errorText}`);
+    }
+
+    console.log('Email sent successfully via EmailJS');
 
     return new Response(JSON.stringify({ success: true, emailResponse }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
