@@ -24,12 +24,12 @@ export const ComplaintMicRecorder = forwardRef<ComplaintMicRecorderRef, Complain
   const [isConnecting, setIsConnecting] = useState(false);
   const [status, setStatus] = useState<string>('');
   const clientRef = useRef<AssemblyRealtimeClient | null>(null);
-  const accumulatedTextRef = useRef<string>('');
+  const lastFinalTextRef = useRef<string>('');
   const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
     clearTranscript: () => {
-      accumulatedTextRef.current = '';
+      lastFinalTextRef.current = '';
     }
   }));
 
@@ -46,15 +46,18 @@ export const ComplaintMicRecorder = forwardRef<ComplaintMicRecorderRef, Complain
           console.log('AssemblyAI connection opened');
         },
         onPartial: (text) => {
-          // Show live partial transcripts (interim results)
+          // Live partial transcripts (not sent to parent)
           console.log('Partial:', text);
         },
         onFinal: (text) => {
-          // Only send final, complete transcripts
+          // Only send final, non-duplicate transcripts
           console.log('Final:', text);
-          if (text.trim()) {
-            accumulatedTextRef.current += (accumulatedTextRef.current ? ' ' : '') + text;
-            onTranscriptUpdate(text);
+          const trimmedText = text.trim();
+          
+          // Deduplicate: only send if different from last final text
+          if (trimmedText && trimmedText !== lastFinalTextRef.current) {
+            lastFinalTextRef.current = trimmedText;
+            onTranscriptUpdate(trimmedText);
           }
         },
         onClose: (code, reason) => {
@@ -100,6 +103,7 @@ export const ComplaintMicRecorder = forwardRef<ComplaintMicRecorderRef, Complain
     setIsRecording(false);
     setIsConnecting(false);
     setStatus('');
+    lastFinalTextRef.current = ''; // Reset for next recording session
   };
 
   const toggleRecording = () => {
