@@ -44,6 +44,84 @@ export const AudioOverviewPlayer = ({
   const sourceUrlRef = useRef<string | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const [isBuffering, setIsBuffering] = useState(false);
+  const audioBlobRef = useRef<Blob | null>(null);
+  
+  // Web Audio fallback
+  const webAudioCtxRef = useRef<AudioContext | null>(null);
+  const webAudioSourceRef = useRef<AudioBufferSourceNode | null>(null);
+  const webAudioGainRef = useRef<GainNode | null>(null);
+  const webStartTimeRef = useRef<number | null>(null);
+  const usingWebAudioRef = useRef(false);
+
+  // Stop any active Web Audio playback
+  const stopWebAudio = () => {
+    try {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+        animationFrameRef.current = null;
+      }
+      if (webAudioSourceRef.current) {
+        webAudioSourceRef.current.onended = null as any;
+        webAudioSourceRef.current.stop(0);
+        webAudioSourceRef.current.disconnect();
+        webAudioSourceRef.current = null;
+      }
+    } catch (e) {
+      console.warn('WebAudio stop error (non-fatal):', e);
+    }
+  };
+
+  // Play via Web Audio API (robust path)
+  const playViaWebAudio = async () => {
+    if (!audioBlobRef.current) return;
+
+    if (!webAudioCtxRef.current) {
+      webAudioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 44100 });
+    }
+
+    const ctx = webAudioCtxRef.current;
+    await ctx.resume();
+
+    const arrayBuffer = await audioBlobRef.current.arrayBuffer();
+    const audioBuffer = await ctx.decodeAudioData(arrayBuffer.slice(0));
+
+    const source = ctx.createBufferSource();
+    source.buffer = audioBuffer;
+    source.playbackRate.value = playbackSpeed;
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(1, ctx.currentTime + 0.7);
+
+    source.connect(gain).connect(ctx.destination);
+
+    usingWebAudioRef.current = true;
+    webAudioSourceRef.current = source;
+    webAudioGainRef.current = gain;
+    webStartTimeRef.current = ctx.currentTime;
+
+    source.onended = async () => {
+      usingWebAudioRef.current = false;
+      stopWebAudio();
+      setIsPlaying(false);
+      setCurrentTime(0);
+      const { audioFocusManager } = await import('@/utils/AudioFocusManager');
+      await audioFocusManager.resumeAll();
+    };
+
+    source.start(0, 0);
+    setIsPlaying(true);
+    setDuration(audioBuffer.duration);
+
+    // Animate current time for UI
+    const update = () => {
+      if (!usingWebAudioRef.current || !webAudioCtxRef.current || !webStartTimeRef.current) return;
+      const elapsed = webAudioCtxRef.current.currentTime - webStartTimeRef.current;
+      setCurrentTime(Math.min(elapsed, audioBuffer.duration));
+      animationFrameRef.current = requestAnimationFrame(update);
+    };
+    animationFrameRef.current = requestAnimationFrame(update);
+  };
 
   const handlePlayAudio = async () => {
     if (!audioOverviewUrl) {
@@ -53,73 +131,97 @@ export const AudioOverviewPlayer = ({
     }
 
     try {
-      if (audioRef.current && isPlaying) {
+      if (isPlaying) {
         console.log('⏸️ Pausing audio');
-        audioRef.current.pause();
+        if (usingWebAudioRef.current) {
+          stopWebAudio();
+          const { audioFocusManager } = await import('@/utils/AudioFocusManager');
+          await audioFocusManager.resumeAll();
+        } else if (audioRef.current) {
+          audioRef.current.pause();
+        }
         setIsPlaying(false);
         return;
       }
 
-      // Audio should already be preloaded, just play it
-      if (audioRef.current && audioRef.current.readyState >= 3) {
-        console.log('▶️ Playing preloaded audio');
-        audioRef.current.currentTime = 0;
-        audioRef.current.playbackRate = playbackSpeed;
+      // Check if audio is ready to play
+      if (!audioRef.current || audioRef.current.readyState < 3) {
+        toast.error('Audio is still loading, please wait...');
+        return;
+      }
+
+      // Check for buffering issues - if buffer doesn't start near 0, use Web Audio fallback
+      let bufferedStart = 0;
+      try {
+        const br = audioRef.current.buffered;
+        if (br && br.length) bufferedStart = br.start(0);
+      } catch {}
       
-        audioRef.current.addEventListener('ended', () => {
-          console.log('✅ Audio playback ended');
-          setIsPlaying(false);
-          setCurrentTime(0);
-          if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-          }
-          // Resume microphones after playback completes
-          import('@/utils/AudioFocusManager').then(({ audioFocusManager }) => {
-            audioFocusManager.resumeAll();
-          });
-        });
-        
-        audioRef.current.addEventListener('error', (e) => {
-          console.error('❌ Audio playback error:', e);
-          console.error('Audio URL (blob):', audioObjectUrlRef.current);
-          toast.error('Failed to play audio - check console for details');
-          setIsPlaying(false);
-          if (animationFrameRef.current) {
-            cancelAnimationFrame(animationFrameRef.current);
-          }
-          // Resume microphones on error
-          import('@/utils/AudioFocusManager').then(({ audioFocusManager }) => {
-            audioFocusManager.resumeAll();
-          });
-        });
-
-        audioRef.current.addEventListener('loadedmetadata', () => {
-          if (audioRef.current) {
-            setDuration(audioRef.current.duration);
-          }
-        });
-
-        const updateTime = () => {
-          if (audioRef.current && !isSeeking && audioRef.current.paused === false) {
-            setCurrentTime(audioRef.current.currentTime);
-            animationFrameRef.current = requestAnimationFrame(updateTime);
-          }
-        };
-        
-        // AUDIO CUTOUT FIX: Pause microphones, play silent pre-roll, then start audio
-        const { audioFocusManager, playoutSilentPreRoll, fadeInVolume } = await import('@/utils/AudioFocusManager');
-        
+      if (bufferedStart > 0.05 && audioBlobRef.current) {
+        console.log(`⚠️ Buffered start at ${bufferedStart.toFixed(2)}s – using Web Audio fallback.`);
+        const { audioFocusManager, playoutSilentPreRoll } = await import('@/utils/AudioFocusManager');
         await audioFocusManager.pauseAll('audio_playback');
         await playoutSilentPreRoll(500);
-        audioRef.current.volume = 0;
-        
-        await audioRef.current.play();
-        setIsPlaying(true);
-        animationFrameRef.current = requestAnimationFrame(updateTime);
-        fadeInVolume(audioRef.current, 1, 400);
-      } else {
-        toast.error('Audio is still loading, please wait...');
+        await playViaWebAudio();
+        return;
       }
+
+      // Standard HTMLAudioElement playback
+      console.log('▶️ Playing preloaded audio');
+      audioRef.current.currentTime = 0;
+      audioRef.current.playbackRate = playbackSpeed;
+    
+      audioRef.current.addEventListener('ended', () => {
+        console.log('✅ Audio playback ended');
+        setIsPlaying(false);
+        setCurrentTime(0);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+        // Resume microphones after playback completes
+        import('@/utils/AudioFocusManager').then(({ audioFocusManager }) => {
+          audioFocusManager.resumeAll();
+        });
+      });
+      
+      audioRef.current.addEventListener('error', (e) => {
+        console.error('❌ Audio playback error:', e);
+        console.error('Audio URL (blob):', audioObjectUrlRef.current);
+        toast.error('Failed to play audio - check console for details');
+        setIsPlaying(false);
+        if (animationFrameRef.current) {
+          cancelAnimationFrame(animationFrameRef.current);
+        }
+        // Resume microphones on error
+        import('@/utils/AudioFocusManager').then(({ audioFocusManager }) => {
+          audioFocusManager.resumeAll();
+        });
+      });
+
+      audioRef.current.addEventListener('loadedmetadata', () => {
+        if (audioRef.current) {
+          setDuration(audioRef.current.duration);
+        }
+      });
+
+      const updateTime = () => {
+        if (audioRef.current && !isSeeking && audioRef.current.paused === false) {
+          setCurrentTime(audioRef.current.currentTime);
+          animationFrameRef.current = requestAnimationFrame(updateTime);
+        }
+      };
+      
+      // AUDIO CUTOUT FIX: Pause microphones, play silent pre-roll, then start audio
+      const { audioFocusManager, playoutSilentPreRoll, fadeInVolume } = await import('@/utils/AudioFocusManager');
+      
+      await audioFocusManager.pauseAll('audio_playback');
+      await playoutSilentPreRoll(500);
+      audioRef.current.volume = 0;
+      
+      await audioRef.current.play();
+      setIsPlaying(true);
+      animationFrameRef.current = requestAnimationFrame(updateTime);
+      fadeInVolume(audioRef.current, 1, 400);
     } catch (error: any) {
       console.error('❌ Play error:', error);
       toast.error(`Playback error: ${error.message}`);
@@ -175,6 +277,8 @@ export const AudioOverviewPlayer = ({
           const res = await fetch(audioOverviewUrl, { cache: 'no-store' });
           if (!res.ok) throw new Error(`HTTP ${res.status}`);
           const blob = await res.blob();
+          
+          audioBlobRef.current = blob;
           
           if (audioObjectUrlRef.current) {
             URL.revokeObjectURL(audioObjectUrlRef.current);
@@ -245,6 +349,7 @@ export const AudioOverviewPlayer = ({
 
   useEffect(() => {
     return () => {
+      stopWebAudio();
       if (animationFrameRef.current) {
         cancelAnimationFrame(animationFrameRef.current);
       }
