@@ -201,11 +201,11 @@ export const exportCSOReportToWord = async () => {
           createBulletPoint("Multiple AI models with cross-validation capabilities"),
           createBulletPoint("Clear user disclaimers and safety warnings"),
           createBulletPoint("Scalable cloud infrastructure with automatic backups"),
+          createBulletPoint("Data Processing Agreements in place with OpenAI and Supabase (signed 10/11/2025)"),
 
           createHeading("Areas Requiring Attention", HeadingLevel.HEADING_2),
           createBulletPoint("Formal DCB0129 Clinical Risk Management documentation"),
           createBulletPoint("Resolution of security warnings and penetration testing"),
-          createBulletPoint("Data Processing Agreements with AI providers"),
           createBulletPoint("Formal Data Protection Impact Assessment"),
           createBulletPoint("Clinical validation workflows implementation"),
           createBulletPoint("Mandatory user training programme"),

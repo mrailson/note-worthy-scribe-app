@@ -268,6 +268,10 @@ const CSOReport = () => {
                       <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
                       <span>Secure navigation and documentation access controls</span>
                     </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
+                      <span>Data Processing Agreements in place with OpenAI and Supabase (signed 10/11/2025)</span>
+                    </li>
                   </ul>
                 </div>
 
@@ -284,10 +288,6 @@ const CSOReport = () => {
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
                       <span>Resolution of security warnings and penetration testing</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>Data Processing Agreements with AI providers</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
