@@ -517,27 +517,6 @@ export const ComplaintAudioOverviewPlayer = ({
           >
             <Download className="h-4 w-4" />
           </Button>
-
-          {audioOverviewText && (
-            <Button
-              onClick={() => setShowTranscript(!showTranscript)}
-              variant="outline"
-              size="sm"
-              className="h-8 px-2 gap-1"
-            >
-              {showTranscript ? (
-                <>
-                  <ChevronUp className="h-3 w-3" />
-                  Hide Transcript
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-3 w-3" />
-                  Show Transcript
-                </>
-              )}
-            </Button>
-          )}
         </div>
       )}
 
@@ -561,70 +540,6 @@ export const ComplaintAudioOverviewPlayer = ({
         </p>
       )}
       
-      {audioOverviewText && showTranscript && (
-        <div className="mt-3">
-          <div className="flex items-center gap-2 mb-2">
-            {!isEditingTranscript && (
-              <>
-                <Button
-                  onClick={() => setIsEditingTranscript(true)}
-                  variant="outline"
-                  size="sm"
-                  className="h-8 px-2 text-xs"
-                >
-                  Edit
-                </Button>
-                {onRegenerateAudio && (
-                  <Button
-                    onClick={() => handleRegenerateAudio()}
-                    variant="outline"
-                    size="sm"
-                    className="h-8 px-2 text-xs"
-                    disabled={isGeneratingAudio}
-                  >
-                    <RefreshCw className={`h-3 w-3 mr-1 ${isGeneratingAudio ? 'animate-spin' : ''}`} />
-                    Regenerate
-                  </Button>
-                )}
-              </>
-            )}
-          </div>
-          <div className="p-3 bg-muted/30 rounded-md border border-border/50">
-              {isEditingTranscript ? (
-                <div className="space-y-2">
-                  <textarea
-                    value={editedTranscript}
-                    onChange={(e) => setEditedTranscript(e.target.value)}
-                    className="w-full min-h-[150px] p-2 text-sm bg-background border border-border rounded-md resize-y focus:outline-none focus:ring-2 focus:ring-primary"
-                    placeholder="Enter transcript text..."
-                  />
-                  <div className="flex gap-2 justify-end">
-                    <Button
-                      onClick={handleCancelEdit}
-                      variant="outline"
-                      size="sm"
-                      className="h-8"
-                    >
-                      Cancel
-                    </Button>
-                    <Button
-                      onClick={handleSaveTranscript}
-                      size="sm"
-                      className="h-8"
-                      disabled={isGeneratingAudio || !editedTranscript.trim()}
-                    >
-                      {isGeneratingAudio ? 'Regenerating...' : 'Save & Regenerate'}
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                  {audioOverviewText}
-                </p>
-              )}
-            </div>
-        </div>
-      )}
     </div>
   );
 };
