@@ -23,6 +23,29 @@ export const CallToActionSlide = () => {
             </p>
           </div>
 
+          {/* Key Components */}
+          <div className="bg-[#003087]/5 rounded-lg p-4 border border-[#003087]/20 animate-fade-in" style={{ animationDelay: '0.1s' }}>
+            <h3 className="text-lg font-semibold text-[#003087] mb-2">Key Components:</h3>
+            <ul className="grid grid-cols-2 gap-2 text-sm text-foreground">
+              <li className="flex items-start gap-2">
+                <span className="text-[#00A9CE] mt-1">•</span>
+                <span>Multiple failed prescription requests</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#00A9CE] mt-1">•</span>
+                <span>Communication breakdown with reception staff</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#00A9CE] mt-1">•</span>
+                <span>Delay in essential medication access</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <span className="text-[#00A9CE] mt-1">•</span>
+                <span>Impact on patient's health condition</span>
+              </li>
+            </ul>
+          </div>
+
           {/* Two complaint pages side by side */}
           <div className="grid grid-cols-2 gap-6">
             <div className="bg-white rounded-lg shadow-lg overflow-hidden border-2 border-[#003087]/20 animate-fade-in max-h-[calc(100vh-280px)]" style={{ animationDelay: '0.2s' }}>
