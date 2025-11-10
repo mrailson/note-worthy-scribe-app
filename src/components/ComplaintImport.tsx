@@ -476,42 +476,52 @@ export const ComplaintImport: React.FC<ComplaintImportProps> = ({ onDataExtracte
               
               {selectedFiles.length > 0 && (
                 <div className="space-y-2">
-                  {selectedFiles.map((file, index) => (
-                    <div key={index} className={cn(
-                      "flex items-center justify-between bg-gray-50 rounded-lg",
-                      deviceInfo.isIPhone ? "p-4" : "p-3"
-                    )}>
-                      <div className={cn(
-                        "flex items-center gap-2 flex-1 min-w-0",
-                        deviceInfo.isIPhone && "w-full"
+                  {selectedFiles.map((file, index) => {
+                    const isImage = file.type.startsWith('image/');
+                    const imageUrl = isImage ? URL.createObjectURL(file) : null;
+                    
+                    return (
+                      <div key={index} className={cn(
+                        "flex items-center justify-between bg-gray-50 rounded-lg",
+                        deviceInfo.isIPhone ? "p-4" : "p-3"
                       )}>
-                        {file.type.startsWith('image/') ? (
-                          <img 
-                            src={URL.createObjectURL(file)} 
-                            alt={file.name}
-                            className="h-12 w-12 object-cover rounded border flex-shrink-0"
-                          />
-                        ) : (
-                          <FileText className="h-4 w-4 flex-shrink-0" />
-                        )}
-                        <span className={cn(
-                          "truncate",
-                          deviceInfo.isIPhone ? "text-sm" : "text-sm"
-                        )}>{file.name}</span>
-                        <Badge variant="secondary" className="flex-shrink-0 text-xs">
-                          {(file.size / 1024 / 1024).toFixed(2)} MB
-                        </Badge>
+                        <div className={cn(
+                          "flex items-center gap-3 flex-1 min-w-0",
+                          deviceInfo.isIPhone && "w-full"
+                        )}>
+                          {isImage && imageUrl ? (
+                            <img 
+                              src={imageUrl} 
+                              alt={file.name}
+                              className="h-12 w-12 object-cover rounded border flex-shrink-0"
+                              onError={(e) => {
+                                console.log('Image load error:', e);
+                              }}
+                            />
+                          ) : (
+                            <FileText className="h-4 w-4 flex-shrink-0" />
+                          )}
+                          <div className="flex-1 min-w-0">
+                            <span className={cn(
+                              "block truncate font-medium",
+                              deviceInfo.isIPhone ? "text-sm" : "text-sm"
+                            )}>{file.name}</span>
+                            <Badge variant="secondary" className="text-xs mt-1">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </Badge>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(index)}
+                          className="flex-shrink-0 ml-2"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => removeFile(index)}
-                        className="flex-shrink-0 ml-2"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {loadedExample && (
                     <Button
                       variant="link"
