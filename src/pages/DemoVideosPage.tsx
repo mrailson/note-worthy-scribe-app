@@ -53,6 +53,19 @@ const DemoVideosPage: React.FC = () => {
           <p className="text-muted-foreground mt-1">Explore short demos of Notewell AI features.</p>
         </header>
 
+        {/* Loom Video Embed */}
+        <section className="mb-8 max-w-4xl mx-auto">
+          <div style={{ position: 'relative', paddingBottom: '62.5%', height: 0 }}>
+            <iframe 
+              src="https://www.loom.com/embed/58d3d16963224dddac2ea8211bd2b90d" 
+              frameBorder="0" 
+              allowFullScreen
+              style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
+              title="Notewell AI Demo"
+            />
+          </div>
+        </section>
+
         <section aria-label="Demo video list">
           {loading ? (
             <div className="text-center text-muted-foreground">Loading videos…</div>
