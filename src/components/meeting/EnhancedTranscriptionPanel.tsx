@@ -201,16 +201,12 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const stats = useMemo(() => {
     const wordCount = transcript.trim().split(/\s+/).filter(w => w.length > 0).length;
     const fillerStats = countFillerWords(transcript);
-    const avgConfidence = chunks.length > 0 
-      ? chunks.reduce((sum, c) => sum + (c.confidence || 0), 0) / chunks.length 
-      : 0;
-    const lowConfidenceCount = chunks.filter(c => c.confidence < 0.7).length;
+    const totalChunkWords = chunks.reduce((sum, c) => sum + (c.word_count || 0), 0);
     
     return {
       wordCount,
       totalChunks: chunks.length,
-      avgConfidence: Math.round(avgConfidence * 100),
-      lowConfidenceCount,
+      totalChunkWords,
       fillerWordCount: fillerStats.totalRemoved,
       piiCount: piiMatches.length
     };
@@ -1272,7 +1268,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           </div>
            <div className={cn(
             "grid gap-4",
-            isIPhone ? "grid-cols-2 gap-3" : isMobile ? "grid-cols-3" : "grid-cols-6"
+            isIPhone ? "grid-cols-2 gap-3" : isMobile ? "grid-cols-3" : "grid-cols-5"
           )}>
             <div>
               <p className="text-xs text-muted-foreground mb-1">{isIPhone ? "Chunks" : "Total Chunks"}</p>
@@ -1282,21 +1278,12 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               )}>{stats.totalChunks}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Avg Conf</p>
+              <p className="text-xs text-muted-foreground mb-1">Total Words</p>
               <p className={cn(
                 "font-semibold",
                 isIPhone ? "text-lg" : "text-2xl"
-              )}>{stats.avgConfidence}%</p>
+              )}>{stats.totalChunkWords.toLocaleString('en-GB')}</p>
             </div>
-            {!isIPhone && (
-              <div>
-                <p className="text-xs text-muted-foreground mb-1">Low Conf</p>
-                <p className={cn(
-                  "font-semibold text-amber-600",
-                  isMobile ? "text-lg" : "text-2xl"
-                )}>{stats.lowConfidenceCount}</p>
-              </div>
-            )}
             <div>
               <p className="text-xs text-muted-foreground mb-1">Fillers</p>
               <p className={cn(
