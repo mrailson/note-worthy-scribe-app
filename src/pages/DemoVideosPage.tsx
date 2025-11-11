@@ -14,6 +14,7 @@ const DemoVideosPage: React.FC = () => {
   const [videos, setVideos] = useState<DemoVideo[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedVideo, setSelectedVideo] = useState<DemoVideo | null>(null);
+  const DIRECT_VIDEO_URL = 'https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/demo-videos/Efficient%20Complaints%20Management%20with%20Notewell%20AI.mp4';
 
   useEffect(() => {
     const load = async () => {
@@ -60,20 +61,28 @@ const DemoVideosPage: React.FC = () => {
           ) : (
             <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {videos.map((v) => (
-                <li key={v.name} className="group cursor-pointer" onClick={() => setSelectedVideo(v)}>
-                  <div className="relative rounded-lg overflow-hidden bg-muted aspect-video shadow-lg hover:shadow-xl transition-shadow">
-                    <video
-                      src={v.url}
-                      className="w-full h-full object-cover"
-                      preload="metadata"
-                    />
-                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                      <div className="w-16 h-16 rounded-full bg-primary/90 group-hover:bg-primary group-hover:scale-110 transition-all flex items-center justify-center shadow-lg">
-                        <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />
+                <li key={v.name} className="group">
+                  <a
+                    href={DIRECT_VIDEO_URL}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="block"
+                    aria-label={`Open ${v.name} demo video in a new tab`}
+                  >
+                    <div className="relative rounded-lg overflow-hidden bg-muted aspect-video shadow-lg hover:shadow-xl transition-shadow">
+                      <video
+                        src={v.url}
+                        className="w-full h-full object-cover"
+                        preload="metadata"
+                      />
+                      <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                        <div className="w-16 h-16 rounded-full bg-primary/90 group-hover:bg-primary group-hover:scale-110 transition-all flex items-center justify-center shadow-lg">
+                          <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <h2 className="mt-3 font-medium text-foreground line-clamp-2">{v.name}</h2>
+                    <h2 className="mt-3 font-medium text-foreground line-clamp-2">{v.name}</h2>
+                  </a>
                 </li>
               ))}
             </ul>
