@@ -261,17 +261,34 @@ export function StandardMinutesModal({ isOpen, onClose, meetingId, meetingTitle 
                     width: 100%;
                     border-collapse: collapse;
                     margin: 16px 0;
+                    border: 1px solid #d1d5db;
+                    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
                   }
                   .standard-minutes-content table td,
                   .standard-minutes-content table th {
-                    border: 1px solid #ddd;
-                    padding: 8px;
+                    border: 1px solid #d1d5db;
+                    padding: 12px;
                     text-align: left;
                   }
                   .standard-minutes-content table th {
-                    background-color: #f8f9fa;
+                    background-color: #005EB8;
                     font-weight: 600;
-                    color: #005EB8;
+                    color: #ffffff;
+                    text-transform: uppercase;
+                    font-size: 12px;
+                    letter-spacing: 0.5px;
+                  }
+                  .standard-minutes-content table tbody tr {
+                    transition: background-color 0.2s ease;
+                  }
+                  .standard-minutes-content table tbody tr:nth-child(odd) {
+                    background-color: #ffffff;
+                  }
+                  .standard-minutes-content table tbody tr:nth-child(even) {
+                    background-color: #f8f9fa;
+                  }
+                  .standard-minutes-content table tbody tr:hover {
+                    background-color: #e6f2ff;
                   }
                 `}
               </style>
