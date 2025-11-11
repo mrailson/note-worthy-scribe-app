@@ -65,15 +65,55 @@ export function transformMinutesToHtml(content: string, baseFontSize: number): s
     html = '<p>' + html + '</p>';
   }
 
-  // Basic table detection and formatting
-  const tableRegex = /\|(.+)\|/g;
-  if (tableRegex.test(html)) {
-    html = html.replace(/\|(.+)\|/g, (match, content) => {
-      const cells = content.split('|').map((cell: string) => `<td>${cell.trim()}</td>`).join('');
-      return `<tr>${cells}</tr>`;
-    });
-    html = html.replace(/(<tr>.*?<\/tr>)+/gs, '<table class="meeting-table">$&</table>');
+  // Improved table detection and formatting with proper header detection
+  const lines = html.split('<br>');
+  let inTable = false;
+  let tableRows: string[] = [];
+  let isFirstRow = true;
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    
+    // Check if this line contains a table row (has pipes)
+    if (line.includes('|') && line.split('|').length > 2) {
+      // Skip separator rows (like |---|---|)
+      if (/^\|[\s-:|]+\|$/.test(line)) {
+        isFirstRow = false;
+        continue;
+      }
+      
+      if (!inTable) {
+        inTable = true;
+        isFirstRow = true;
+      }
+      
+      // Parse the cells
+      const cells = line.split('|')
+        .filter(cell => cell.trim() !== '')
+        .map(cell => cell.trim());
+      
+      // Create table row with appropriate cell type
+      const cellTag = isFirstRow ? 'th' : 'td';
+      const rowHtml = '<tr>' + cells.map(cell => `<${cellTag}>${cell}</${cellTag}>`).join('') + '</tr>';
+      tableRows.push(rowHtml);
+      
+      isFirstRow = false;
+      lines[i] = ''; // Clear this line as we've processed it
+    } else if (inTable && tableRows.length > 0) {
+      // End of table, wrap accumulated rows
+      lines[i] = `<table class="meeting-table"><tbody>${tableRows.join('')}</tbody></table><br>${line}`;
+      tableRows = [];
+      inTable = false;
+      isFirstRow = true;
+    }
   }
+  
+  // Handle any remaining table rows
+  if (tableRows.length > 0) {
+    lines.push(`<table class="meeting-table"><tbody>${tableRows.join('')}</tbody></table>`);
+  }
+  
+  html = lines.join('<br>');
 
   return html;
 }

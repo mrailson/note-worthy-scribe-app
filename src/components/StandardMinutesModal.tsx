@@ -175,7 +175,7 @@ export function StandardMinutesModal({ isOpen, onClose, meetingId, meetingTitle 
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5 text-green-600" />
@@ -261,34 +261,51 @@ export function StandardMinutesModal({ isOpen, onClose, meetingId, meetingTitle 
                     width: 100%;
                     border-collapse: collapse;
                     margin: 16px 0;
-                    border: 1px solid #d1d5db;
-                    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+                    border: 2px solid #005EB8;
+                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+                    table-layout: fixed;
+                    font-size: 13px;
                   }
                   .standard-minutes-content table td,
                   .standard-minutes-content table th {
                     border: 1px solid #d1d5db;
-                    padding: 12px;
+                    padding: 10px 12px;
                     text-align: left;
+                    word-wrap: break-word;
+                    overflow-wrap: break-word;
+                    vertical-align: top;
                   }
                   .standard-minutes-content table th {
                     background-color: #005EB8;
                     font-weight: 600;
                     color: #ffffff;
-                    text-transform: uppercase;
-                    font-size: 12px;
-                    letter-spacing: 0.5px;
+                    font-size: 13px;
+                    border: 1px solid #004a94;
                   }
                   .standard-minutes-content table tbody tr {
-                    transition: background-color 0.2s ease;
+                    transition: background-color 0.15s ease;
                   }
                   .standard-minutes-content table tbody tr:nth-child(odd) {
                     background-color: #ffffff;
                   }
                   .standard-minutes-content table tbody tr:nth-child(even) {
-                    background-color: #f8f9fa;
+                    background-color: #f9fafb;
                   }
                   .standard-minutes-content table tbody tr:hover {
                     background-color: #e6f2ff;
+                  }
+                  .standard-minutes-content table tbody td {
+                    color: #212B32;
+                    line-height: 1.5;
+                  }
+                  @media (max-width: 768px) {
+                    .standard-minutes-content table {
+                      font-size: 12px;
+                    }
+                    .standard-minutes-content table td,
+                    .standard-minutes-content table th {
+                      padding: 8px;
+                    }
                   }
                 `}
               </style>
