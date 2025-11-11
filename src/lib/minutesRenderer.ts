@@ -264,14 +264,66 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
     html = `<p style="font-size: ${baseFontSize}px" class="mb-4 text-[#212B32] leading-relaxed">` + html + '</p>';
   }
 
-  // NHS-styled wrapper (styles now in global CSS to prevent reinjection crashes)
-  html = `<div class="minutes-content font-nhs max-w-full px-2" style="font-size:${baseFontSize}px; line-height:${baseFontSize*1.6}px; color:#212B32;">${html}</div>`;
+  // Professional NHS wrapper with optimized typography
+  html = `<div class="minutes-content font-nhs max-w-full px-2">
+    <style>
+      .minutes-content {
+        font-family: 'Fira Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        font-size: ${baseFontSize}px;
+        line-height: ${baseFontSize * 1.6}px;
+        color: #212B32;
+      }
+      
+      .minutes-content h2 {
+        page-break-after: avoid;
+      }
+      
+      .minutes-content h3 {
+        page-break-after: avoid;
+      }
+      
+      .minutes-content table {
+        page-break-inside: avoid;
+      }
+      
+      .minutes-content ul ul {
+        list-style-type: circle;
+        margin-top: 0.5rem;
+      }
+      
+      .minutes-content ol li[class*="border-l-2"] {
+        margin-bottom: 1rem;
+      }
+      
+      /* Print optimization */
+      @media print {
+        .minutes-content {
+          max-width: 100%;
+          font-size: 12pt;
+        }
+        
+        .minutes-content table th {
+          background-color: #f0f0f0 !important;
+          color: #000 !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        
+        .minutes-content table tr:nth-child(even) {
+          background-color: #f9f9f9 !important;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+      }
+    </style>
+    ${html}
+  </div>`;
 
   console.log('🔍 MINUTES RENDERER OUTPUT (first 500 chars):', html.substring(0, 500));
 
-  // Sanitise the HTML - added SVG support for icons (exclude style tags to prevent reinjection)
+  // Sanitize the HTML - added SVG support for icons
   return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'svg', 'path'],
+    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'style', 'svg', 'path'],
     ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style', 'value', 'fill', 'viewBox', 'fill-rule', 'clip-rule', 'd']
   });
 }

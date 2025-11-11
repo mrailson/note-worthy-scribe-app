@@ -825,15 +825,14 @@ ${cleanedTranscript}`;
       console.warn('⚠️ AI overview generation error, using extracted overview:', overviewError.message);
     }
 
-    // Update meeting with completion status, word count, AI overview, generated title, and notes_style_3
+    // Update meeting with completion status, word count, AI overview, and generated title
     await supabase
       .from('meetings')
       .update({ 
         notes_generation_status: 'completed',
         word_count: wordCount,
         overview: aiOverview,
-        title: generatedTitle,
-        notes_style_3: generatedNotes // Save to notes_style_3 for frontend compatibility
+        title: generatedTitle
       })
       .eq('id', meetingId);
 

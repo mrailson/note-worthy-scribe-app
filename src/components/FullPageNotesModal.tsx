@@ -19,8 +19,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { renderPoeticContent } from '@/lib/poeticRenderer';
 import { renderMinutesMarkdown } from '@/lib/minutesRenderer';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import { 
   renderMinutesNoActions, 
   renderMinutesBlackWhite, 
@@ -137,7 +135,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   
   const minutesContainerRef = useRef<HTMLDivElement>(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
-  const isMountedRef = useRef<boolean>(true);
   const [isEditing, setIsEditing] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
@@ -184,9 +181,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isRenderingExec, setIsRenderingExec] = useState(false);
   const [minutesHtml, setMinutesHtml] = useState<string>("");
   const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
-  const [useSimpleRenderer, setUseSimpleRenderer] = useState(true); // Default to safe view
-  const [preferStyled, setPreferStyled] = useState(false); // Default to safe view to prevent freezing
-  const [isClosing, setIsClosing] = useState(false); // Guard to prevent re-open loops
   const [transcript, setTranscript] = useState("");
 
   // Cache helpers for Standard minutes HTML across navigations
@@ -271,41 +265,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const cached = localStorage.getItem(key);
       if (cached) {
         setMinutesHtml(cached);
-        setUseSimpleRenderer(false);
         return; // skip rendering
       }
     }
 
-    // If user hasn't requested styled view, default to safe simple renderer to avoid any chance of freezing
-    if (!preferStyled) {
-      setUseSimpleRenderer(true);
-      setIsRenderingMinutes(false);
-      setMinutesHtml('');
-      return;
-    }
-
-    // Heuristic: fall back to simple renderer ONLY for extremely large content (50KB+ or 150+ tables)
-    // This preserves the beautiful NHS styling for 99% of meetings
-    const tableCount = (notesStyle3.match(/\n\|/g) || []).length;
-    if (notesStyle3.length > 50000 || tableCount > 150) {
-      console.warn('⚠️ Using simple markdown renderer for performance:', { len: notesStyle3.length, tableCount });
-      setUseSimpleRenderer(true);
-      setIsRenderingMinutes(false);
-      setMinutesHtml('');
-      return;
-    } else {
-      setUseSimpleRenderer(false);
-    }
-
     setIsRenderingMinutes(true);
-    const ric: any = (window as any).requestIdleCallback
-      ? (window as any).requestIdleCallback
-      : ((cb: any) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 1 }), 1));
-    const cic: any = (window as any).cancelIdleCallback
-      ? (window as any).cancelIdleCallback
-      : ((id: any) => clearTimeout(id));
-
-    const id = ric(() => {
+    const id = requestIdleCallback(() => {
       try {
         const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
         setMinutesHtml(html);
@@ -318,7 +283,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         setIsRenderingMinutes(false);
       }
     }, { timeout: 100 });
-    return () => cic(id);
+    return () => cancelIdleCallback(id);
   }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
@@ -348,23 +313,21 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
    // Fetch transcript when modal opens with enhanced validation
    useEffect(() => {
-     if (!isOpen || isClosing) return; // Skip if closing or not open
-     
      console.log('🔍 FullPageNotesModal useEffect - isOpen:', isOpen, 'meeting?.id:', meeting?.id, 'meeting?.title:', meeting?.title);
      
       // Enhanced validation - only validate meeting, don't auto-fetch transcript
-      if (meeting?.id) {
+      if (isOpen && meeting?.id) {
         // Validate meeting ID format
         if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
           console.error('❌ Invalid meeting ID format:', meeting.id);
-          // Don't auto-close, let user close manually to prevent loops
+          onClose();
           return;
         }
         
         // Validate meeting belongs to current user
         if (!user?.id) {
           console.error('❌ No authenticated user');
-          // Don't auto-close, let user close manually to prevent loops
+          onClose();
           return;
         }
         
@@ -378,15 +341,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         // Don't auto-fetch transcript - it will be loaded when user clicks transcript tab
         // This prevents UI freeze on modal open for large transcripts
       }
-   }, [isOpen, meeting?.id, meeting?.title, user?.id, isClosing]);
-
-   // Track component mounted state to prevent state updates after unmount
-   useEffect(() => {
-     isMountedRef.current = true;
-     return () => {
-       isMountedRef.current = false;
-     };
-   }, []);
+   }, [isOpen, meeting?.id, meeting?.title, user?.id]);
 
    // Auto-load transcript when Style Gallery tab is opened
    useEffect(() => {
@@ -623,7 +578,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
         if (!accessCheck) {
           console.error('❌ User does not have access to meeting:', currentMeetingId);
-          // Don't auto-close to prevent loops - let user close manually
+          onClose();
           return;
         }
 
@@ -805,32 +760,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
    };
 
-   // On-demand fallback: if Standard notes are empty when viewing Style 1, fetch from meeting_summaries
-   useEffect(() => {
-     if (isClosing) return; // Skip if modal is closing
-     
-     const fetchFallbackSummary = async () => {
-       if (!isOpen || activeNotesStyleTab !== 'style1' || notesStyle3 || !meeting?.id) return;
-       try {
-         const { data, error } = await supabase
-           .from('meeting_summaries')
-           .select('summary')
-           .eq('meeting_id', meeting.id)
-           .order('updated_at', { ascending: false })
-           .maybeSingle();
-         if (!error && data?.summary && !isClosing) {
-           setNotesStyle3(data.summary);
-           // Persist so subsequent loads are instant
-           await saveNoteStyleToDatabase(3, data.summary);
-         }
-       } catch (e) {
-         console.error('Fallback load of meeting_summaries failed:', e);
-       }
-     };
-     fetchFallbackSummary();
-   }, [isOpen, activeNotesStyleTab, meeting?.id, notesStyle3, isClosing]);
-
-   // Create a mock meeting data object for the export hook
+  // Create a mock meeting data object for the export hook
   const mockMeetingData = meeting ? {
     id: meeting.id,
     title: meeting.title,
@@ -2169,7 +2099,6 @@ ${transcriptToUse}`;
       toast.error('Missing meeting data');
       return;
     }
-    
     try {
       console.log('🚀 Calling auto-generate-meeting-notes with forceRegenerate...');
 
@@ -2193,9 +2122,7 @@ ${transcriptToUse}`;
         clearTimeout(timeoutId);
         if (invokeError.name === 'AbortError') {
           console.error('⏱️ Function call timed out after 2 minutes');
-          if (isMountedRef.current) {
-            toast.error('Notes generation timed out. Please try again with a shorter transcript.');
-          }
+          toast.error('Notes generation timed out. Please try again with a shorter transcript.');
           return;
         }
         throw invokeError;
@@ -2207,9 +2134,7 @@ ${transcriptToUse}`;
 
       if (data?.skipped) {
         console.log('⚠️ Notes generation was skipped:', data.message);
-        if (isMountedRef.current) {
-          toast.info(data.message || 'Notes regeneration skipped');
-        }
+        toast.info(data.message || 'Notes regeneration skipped');
         return;
       }
 
@@ -2220,59 +2145,42 @@ ${transcriptToUse}`;
       let attempts = 0;
       let generatedContent = null;
 
-      while (attempts < maxAttempts && isMountedRef.current) {
+      while (attempts < maxAttempts) {
         attempts++;
         
-        try {
-          // Check meeting status
-          const { data: meetingData, error: statusError } = await supabase
-            .from('meetings')
-            .select('notes_generation_status')
-            .eq('id', meeting.id)
+        // Check meeting status
+        const { data: meetingData } = await supabase
+          .from('meetings')
+          .select('notes_generation_status')
+          .eq('id', meeting.id)
+          .single();
+        
+        console.log(`📊 Attempt ${attempts}: Status = ${meetingData?.notes_generation_status}`);
+        
+        if (meetingData?.notes_generation_status === 'completed') {
+          // Fetch the regenerated notes
+          const { data: summaryData, error: fetchError } = await supabase
+            .from('meeting_summaries')
+            .select('summary')
+            .eq('meeting_id', meeting.id)
             .single();
-          
-          if (statusError) {
-            console.error('❌ Error checking status:', statusError);
-            // Continue polling instead of throwing
-            await new Promise(resolve => setTimeout(resolve, 2000));
-            continue;
-          }
-          
-          console.log(`📊 Attempt ${attempts}: Status = ${meetingData?.notes_generation_status}`);
-          
-          if (meetingData?.notes_generation_status === 'completed') {
-            // Fetch the regenerated notes
-            const { data: summaryData, error: fetchError } = await supabase
-              .from('meeting_summaries')
-              .select('summary')
-              .eq('meeting_id', meeting.id)
-              .single();
 
-            if (fetchError) {
-              console.error('❌ Error fetching notes:', fetchError);
-              throw fetchError;
-            }
-
-            if (summaryData?.summary) {
-              generatedContent = summaryData.summary;
-              console.log('✅ Notes regenerated successfully, length:', generatedContent.length);
-              break;
-            }
-          } else if (meetingData?.notes_generation_status === 'failed') {
-            throw new Error('Note generation failed on server');
+          if (fetchError) {
+            console.error('❌ Error fetching notes:', fetchError);
+            throw fetchError;
           }
-        } catch (pollError) {
-          console.error('❌ Polling error:', pollError);
-          // Don't break the loop on individual poll errors
+
+          if (summaryData?.summary) {
+            generatedContent = summaryData.summary;
+            console.log('✅ Notes regenerated successfully, length:', generatedContent.length);
+            break;
+          }
+        } else if (meetingData?.notes_generation_status === 'failed') {
+          throw new Error('Note generation failed on server');
         }
         
         // Wait 2 seconds before next check
         await new Promise(resolve => setTimeout(resolve, 2000));
-      }
-
-      if (!isMountedRef.current) {
-        console.log('⚠️ Component unmounted during generation, skipping state updates');
-        return;
       }
 
       if (generatedContent) {
@@ -2280,13 +2188,11 @@ ${transcriptToUse}`;
         const transcriptText = typeof transcript === 'string' ? transcript : '';
         const sanitised = sanitiseActionOwners(generatedContent, transcriptText);
         
-        if (sanitised !== generatedContent && isMountedRef.current) {
+        if (sanitised !== generatedContent) {
           toast.info('Action item owners corrected to prevent hallucinations');
         }
         
-        if (isMountedRef.current) {
-          setNotesStyle3(sanitised);
-        }
+        setNotesStyle3(sanitised);
         
         // Save to meetings table so it persists when returning to the meeting
         await saveNoteStyleToDatabase(3, sanitised);
@@ -2300,7 +2206,7 @@ ${transcriptToUse}`;
         
         if (updateError) {
           console.error('❌ Error fetching updated meeting data:', updateError);
-        } else if (updatedMeeting && isMountedRef.current) {
+        } else if (updatedMeeting) {
           // Check if meeting title was updated
           if (updatedMeeting.title && updatedMeeting.title !== meeting.title) {
             console.log('📝 Meeting title updated:', updatedMeeting.title);
@@ -2318,14 +2224,10 @@ ${transcriptToUse}`;
           }
         }
         
-        if (isMountedRef.current) {
-          toast.success('Notes, overview & gallery regenerated successfully');
-        }
+        toast.success('Notes, overview & gallery regenerated successfully');
       } else {
         console.error('❌ Timeout waiting for notes generation');
-        if (isMountedRef.current) {
-          toast.error('Note generation timed out. Please try again.');
-        }
+        toast.error('Note generation timed out. Please try again.');
       }
     } catch (error: any) {
       console.error('❌ Error generating Standard notes:', error);
@@ -2345,14 +2247,10 @@ ${transcriptToUse}`;
         }
       }
       
-      if (isMountedRef.current) {
-        toast.error(errorMessage);
-      }
+      toast.error(errorMessage);
     } finally {
       console.log('🏁 Standard generation finished');
-      if (isMountedRef.current) {
-        setIsGeneratingStyle3(false);
-      }
+      setIsGeneratingStyle3(false);
     }
   };
 
@@ -2927,13 +2825,8 @@ ${transcriptToUse}`;
         open={isOpen} 
         onOpenChange={(open) => {
           console.log('📱 Dialog onOpenChange called with:', open);
-          if (!open && !isClosing) {
-            setIsClosing(true);
-            // Small delay to ensure state updates
-            setTimeout(() => {
-              onClose();
-              setIsClosing(false);
-            }, 50);
+          if (!open) {
+            onClose();
           }
         }}
       >
@@ -3177,9 +3070,9 @@ ${transcriptToUse}`;
                             )}
                           </TabsList>
                           
-                          {/* Font Size Controls - only show for Minutes plus a View toggle */}
+                          {/* Font Size Controls - only show for Minutes */}
                           {activeNotesStyleTab === 'style1' && (
-                            <div className="flex items-center gap-2 border rounded-md p-1">
+                            <div className="flex items-center gap-1 border rounded-md p-1">
                               <Type className="h-4 w-4 text-muted-foreground mr-1" />
                               <Button
                                 variant="ghost"
@@ -3203,19 +3096,6 @@ ${transcriptToUse}`;
                                 title="Increase font size"
                               >
                                 <Plus className="h-3 w-3" />
-                              </Button>
-
-                              {/* View toggle */}
-                              <div className="mx-2 h-5 w-px bg-border/60" />
-                              <Button
-                                variant={preferStyled ? 'default' : 'outline'}
-                                size="sm"
-                                className="h-7 px-2"
-                                onClick={() => setPreferStyled(v => !v)}
-                                title={preferStyled ? 'Switch to Safe view' : 'Switch to Styled view'}
-                              >
-                                <Sparkles className="h-3 w-3 mr-1" />
-                                {preferStyled ? 'Styled view' : 'Safe view'}
                               </Button>
                             </div>
                           )}
@@ -3452,7 +3332,7 @@ ${transcriptToUse}`;
                                         <div className="flex items-center justify-center h-32">
                                           <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                                         </div>
-                                      ) : (isRenderingMinutes && !minutesHtml && !useSimpleRenderer) ? (
+                                      ) : (isRenderingMinutes && !minutesHtml) ? (
                                         <div className="flex items-center justify-center min-h-[500px]">
                                           <div className="flex flex-col items-center gap-4 animate-fade-in">
                                             <div className="relative">
@@ -3493,36 +3373,19 @@ ${transcriptToUse}`;
                                                .max-w-none ul, .max-w-none ol { font-size: ${fontSizeStyle1}px !important; }
                                              `}
                                            </style>
-                                            {activeNotesStyleTab === 'style1' && (
-                                              selectedFormatVariation === 'standard' ? (
-                                                useSimpleRenderer ? (
-                                                  <div ref={minutesContainerRef} className="prose prose-sm max-w-none">
-                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{notesStyle3}</ReactMarkdown>
-                                                  </div>
-                                                ) : (
-                                                  <div 
-                                                    ref={minutesContainerRef}
-                                                    dangerouslySetInnerHTML={{ 
-                                                      __html: (minutesHtml || '').replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') 
-                                                    }}
-                                                  />
-                                                )
-                                              ) : (
-                                                <div 
-                                                  ref={minutesContainerRef}
-                                                  dangerouslySetInnerHTML={{ 
-                                                    __html: (
-                                                      selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                      selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                      selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                      selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                      selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                      (minutesHtml || '')
-                                                    )
-                                                  }}
-                                                />
-                                              )
-                                            )}
+                                            <div 
+                                              ref={minutesContainerRef}
+                                              dangerouslySetInnerHTML={{ 
+                                                __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
+                                                  selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  (minutesHtml || '')
+                                                )) : ''
+                                              }}
+                                            />
                                          </div>
                                            <InlineWordCorrector
                                             content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
