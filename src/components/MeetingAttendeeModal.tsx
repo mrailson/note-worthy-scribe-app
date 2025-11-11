@@ -204,7 +204,8 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
       onClose();
     } catch (error) {
       console.error('Error saving attendees:', error);
-      showToast.error('Failed to save attendees');
+      const msg = error instanceof Error ? error.message : String(error);
+      showToast.error(`Failed to save attendees: ${msg}`);
     } finally {
       setIsSaving(false);
     }
@@ -270,7 +271,8 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
       fetchAttendees();
     } catch (error) {
       console.error('Error saving attendee:', error);
-      showToast.error('Failed to save attendee');
+      const msg = error instanceof Error ? error.message : String(error);
+      showToast.error(`Failed to save attendee: ${msg}`);
     }
   };
 
