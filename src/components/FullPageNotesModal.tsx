@@ -87,6 +87,7 @@ import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 import { medicalTermCorrector } from '@/utils/MedicalTermCorrector';
 import { exportConsultationToWord } from '@/utils/consultationWordExport';
+import DOMPurify from 'dompurify';
 
 interface Meeting {
   id: string;
@@ -181,9 +182,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isRenderingExec, setIsRenderingExec] = useState(false);
   const [minutesHtml, setMinutesHtml] = useState<string>("");
   const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
+  const [isFormattingInBackground, setIsFormattingInBackground] = useState(false);
+  const workerRef = useRef<Worker | null>(null);
   const [showTranscriptBanner, setShowTranscriptBanner] = useState(false);
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [transcript, setTranscript] = useState("");
+  const [isTrimming, setIsTrimming] = useState(false);
 
   // Cache helpers for Standard minutes HTML across navigations
   const minutesHash = (s: string) => {
@@ -224,6 +228,105 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   
   // Search functionality for transcript
   const [searchTerm, setSearchTerm] = useState("");
+  
+  // Helper to detect transcript markers
+  const detectTranscriptMarkers = (content: string) => {
+    return /===\s*TRANSCRIPT\s*(START|BEGIN|END|FINISH)?\s*===|#{1,6}\s*(Appendix|Appendices|Transcript|Raw Transcript|Full Transcript)|\*\*TRANSCRIPT\*\*/i.test(content);
+  };
+
+  // Worker helpers
+  const cancelMinutesWorker = React.useCallback(() => {
+    if (workerRef.current) {
+      workerRef.current.terminate();
+      workerRef.current = null;
+    }
+    setIsFormattingInBackground(false);
+  }, []);
+
+  const startMinutesWorker = React.useCallback((content: string, fontSize: number) => {
+    cancelMinutesWorker();
+    
+    console.time('Minutes Worker Formatting');
+    console.log('🔄 Starting worker for content length:', content.length);
+    
+    const worker = new Worker(
+      new URL('../workers/minutesFormatter.worker.ts', import.meta.url),
+      { type: 'module' }
+    );
+    
+    workerRef.current = worker;
+    setIsFormattingInBackground(true);
+
+    worker.onmessage = (e: MessageEvent) => {
+      console.timeEnd('Minutes Worker Formatting');
+      
+      if (e.data.type === 'success') {
+        // Sanitize on main thread
+        const sanitized = DOMPurify.sanitize(e.data.html, {
+          ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'div', 'span'],
+          ALLOWED_ATTR: ['class', 'style'],
+        });
+        
+        const wrapped = `<div class="minutes-content font-nhs max-w-full px-2">
+    <style>
+      .minutes-content {
+        font-family: 'Fira Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+        font-size: ${fontSize}px;
+        line-height: ${fontSize * 1.6}px;
+        color: #212B32;
+      }
+      
+      .minutes-content h2 {
+        page-break-after: avoid;
+      }
+      
+      .minutes-content h3 {
+        page-break-after: avoid;
+      }
+      
+      .minutes-content table {
+        page-break-inside: avoid;
+      }
+      
+      .minutes-content table.meeting-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 16px 0;
+      }
+      
+      .minutes-content table.meeting-table td,
+      .minutes-content table.meeting-table th {
+        border: 1px solid #ddd;
+        padding: 8px;
+        text-align: left;
+      }
+      
+      .minutes-content table.meeting-table th {
+        background-color: #f8f9fa;
+        font-weight: 600;
+      }
+    </style>
+    ${sanitized}
+  </div>`;
+        
+        setMinutesHtml(wrapped);
+        console.log('✅ Formatted HTML applied');
+      } else {
+        console.error('❌ Worker error:', e.data.message);
+      }
+      
+      cancelMinutesWorker();
+    };
+
+    worker.onerror = (error) => {
+      console.timeEnd('Minutes Worker Formatting');
+      console.error('❌ Worker failed:', error);
+      cancelMinutesWorker();
+    };
+
+    worker.postMessage({ content, baseFontSize: fontSize });
+  }, [cancelMinutesWorker]);
+  
   // Generate Executive HTML lazily when tab is opened or content changes
   useEffect(() => {
     if (activeNotesStyleTab === 'style4') {
@@ -249,76 +352,57 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [activeNotesStyleTab, notesStyle4, fontSizeStyle1]);
   
-  // Detect embedded transcript in style3 and show banner
+  // Detect embedded transcript and show banner
   useEffect(() => {
-    if (activeNotesStyleTab === 'style1' && notesStyle3) {
-      const hasTranscript = /===\s*TRANSCRIPT\s*===|#{1,2}\s*TRANSCRIPT|#{1,2}\s*Meeting\s+Transcript|^Transcript:|^Full\s+Transcript:/im.test(notesStyle3);
-      setShowTranscriptBanner(hasTranscript);
-    } else {
+    if (!notesStyle3 || activeNotesStyleTab !== 'style1') {
       setShowTranscriptBanner(false);
+      return;
     }
-  }, [activeNotesStyleTab, notesStyle3]);
+    const hasTranscript = detectTranscriptMarkers(notesStyle3);
+    setShowTranscriptBanner(hasTranscript);
+  }, [notesStyle3, activeNotesStyleTab]);
 
-  // Generate Minutes (Standard) HTML lazily with timeout and safeguards
+  // Render minutes using Web Worker for non-blocking formatting
   useEffect(() => {
-    if (activeNotesStyleTab !== 'style1') {
+    if (activeNotesStyleTab !== 'style1' || !notesStyle3) {
+      cancelMinutesWorker();
+      setMinutesHtml('');
       return;
     }
 
-    if (!notesStyle3?.trim()) {
-      setMinutesHtml("");
-      setIsRenderingMinutes(false);
-      return;
-    }
-
-    // Try cached HTML
-    const key = meeting?.id ? `${getMinutesCacheKey(meeting.id, notesStyle3)}_fs${fontSizeStyle1}` : null;
-    if (key) {
-      const cached = localStorage.getItem(key);
-      if (cached) {
-        setMinutesHtml(cached);
-        setIsRenderingMinutes(false);
-        return;
-      }
-    }
-
-    setIsRenderingMinutes(true);
+    console.log('🎨 Rendering Standard Minutes, length:', notesStyle3.length);
     
-    // Timeout fallback: if rendering takes >3s, show plain text temporarily
-    const timeoutId = setTimeout(() => {
-      console.warn('⏱️ Rendering timeout, showing plain text fallback');
-      // Strip transcript markers and show plain text
-      let cleanText = notesStyle3
-        .replace(/\n*===\s*TRANSCRIPT\s*===[\s\S]*$/i, '')
-        .replace(/\n*#{1,2}\s*TRANSCRIPT[\s\S]*$/im, '')
-        .replace(/\n*#{1,2}\s*Meeting\s+Transcript[\s\S]*$/im, '')
-        .replace(/\n*^Transcript:[\s\S]*$/im, '')
-        .replace(/\n*^Full\s+Transcript:[\s\S]*$/im, '');
-      
-      setMinutesHtml(`<div class="p-4"><pre class="whitespace-pre-wrap font-nhs">${cleanText}</pre></div>`);
-      setIsRenderingMinutes(false);
-    }, 3000);
-
-    const id = requestIdleCallback(() => {
-      try {
-        const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
-        setMinutesHtml(html);
-        if (key) localStorage.setItem(key, html);
-        clearTimeout(timeoutId);
-      } catch (e) {
-        console.error('Error rendering Standard minutes:', e);
-        setMinutesHtml(`<div class="p-4"><pre class="whitespace-pre-wrap font-nhs">${notesStyle3}</pre></div>`);
-        clearTimeout(timeoutId);
-      } finally {
-        setIsRenderingMinutes(false);
-      }
-    }, { timeout: 100 });
+    // Strip transcript markers for quick view
+    const transcriptPatterns = [
+      /===\s*TRANSCRIPT\s*(START|BEGIN|END|FINISH)?\s*===/gi,
+      /^#{1,6}\s*(Appendix|Appendices|Transcript|Raw Transcript|Full Transcript).*$/gim,
+      /^---+\s*Transcript\s*---+$/gim,
+      /\*\*TRANSCRIPT\*\*/gi,
+    ];
     
+    let quickView = notesStyle3;
+    for (const pattern of transcriptPatterns) {
+      quickView = quickView.replace(pattern, '');
+    }
+    quickView = quickView.replace(/(===\s*TRANSCRIPT|##\s*TRANSCRIPT|Appendix.*Transcript)[\s\S]*$/i, '');
+    
+    // Show plain text quick view immediately
+    const plainTextHtml = `<div class="minutes-content font-nhs max-w-full px-2" style="font-size: ${fontSizeStyle1}px; line-height: ${fontSizeStyle1 * 1.6}px; white-space: pre-wrap;">${quickView.slice(0, 50000)}</div>`;
+    setMinutesHtml(plainTextHtml);
+
+    // For risky content, delay worker start to ensure UI is responsive first
+    const hasTranscript = detectTranscriptMarkers(notesStyle3);
+    const delayMs = hasTranscript || notesStyle3.length > 15000 ? 500 : 0;
+
+    const timer = setTimeout(() => {
+      startMinutesWorker(notesStyle3, fontSizeStyle1);
+    }, delayMs);
+
     return () => {
-      cancelIdleCallback(id);
-      clearTimeout(timeoutId);
+      clearTimeout(timer);
+      cancelMinutesWorker();
     };
-  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1]);
+  }, [activeNotesStyleTab, notesStyle3, fontSizeStyle1, startMinutesWorker, cancelMinutesWorker]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
@@ -3131,8 +3215,23 @@ ${transcriptToUse}`;
                       }} className="h-full flex flex-col">
                         <div className="flex items-center gap-2 mb-4">
                           <TabsList>
-                            <TabsTrigger value="style1" className="text-xs sm:text-sm">
+                            <TabsTrigger value="style1" className="text-xs sm:text-sm flex items-center gap-2">
                               Meeting Minutes - Standard View
+                              {isFormattingInBackground && (
+                                <span className="text-xs text-muted-foreground ml-2 flex items-center gap-1">
+                                  (Formatting...
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      cancelMinutesWorker();
+                                    }}
+                                    className="text-primary hover:underline ml-1"
+                                  >
+                                    Stop
+                                  </button>
+                                  )
+                                </span>
+                              )}
                             </TabsTrigger>
                             <TabsTrigger value="style-gallery" className="text-xs sm:text-sm">
                               <Sparkles className="h-4 w-4 mr-1" />
@@ -3492,7 +3591,7 @@ ${transcriptToUse}`;
                                                 style4: notesStyle4
                                               }}
                                              onApplyCorrection={handleInlineCorrection}
-                                             isActive={!isEditing && activeNotesStyleTab === 'style1' && (notesStyle3?.length || 0) < 25000}
+                                             isActive={!isEditing && !isFormattingInBackground && activeNotesStyleTab === 'style1' && (notesStyle3?.length || 0) < 25000}
                                              selectionRootRef={minutesContainerRef}
                                            />
                                         </>
