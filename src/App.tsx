@@ -54,6 +54,7 @@ import LoadDemoTeamData from "./pages/LoadDemoTeamData";
 import DemoVideosPage from "./pages/DemoVideosPage";
 import DemoVideoPlayerPage from "./pages/DemoVideoPlayerPage";
 import AdminTranscriptRepair from "./pages/AdminTranscriptRepair";
+import AdminCopyNotes from "./pages/AdminCopyNotes";
 
 const App = () => {
   useSessionActivity();
@@ -77,6 +78,7 @@ const App = () => {
           <Route path="/demos" element={<DemoVideosPage />} />
           <Route path="/demos/watch/:name" element={<DemoVideoPlayerPage />} />
           <Route path="/admin/repair-transcripts" element={<AdminTranscriptRepair />} />
+          <Route path="/admin/copy-notes" element={<AdminCopyNotes />} />
               <Route path="/ai4gp" element={<AI4GP />} />
               <Route path="/gp-scribe" element={<GPScribe />} />
               <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />
