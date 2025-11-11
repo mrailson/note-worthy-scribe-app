@@ -184,8 +184,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isRenderingExec, setIsRenderingExec] = useState(false);
   const [minutesHtml, setMinutesHtml] = useState<string>("");
   const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
-  const [useSimpleRenderer, setUseSimpleRenderer] = useState(false);
-  const [preferStyled, setPreferStyled] = useState(false);
+  const [useSimpleRenderer, setUseSimpleRenderer] = useState(true); // Default to safe view
+  const [preferStyled, setPreferStyled] = useState(false); // Default to safe view to prevent freezing
+  const [isClosing, setIsClosing] = useState(false); // Guard to prevent re-open loops
   const [transcript, setTranscript] = useState("");
 
   // Cache helpers for Standard minutes HTML across navigations
@@ -347,21 +348,23 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
    // Fetch transcript when modal opens with enhanced validation
    useEffect(() => {
+     if (!isOpen || isClosing) return; // Skip if closing or not open
+     
      console.log('🔍 FullPageNotesModal useEffect - isOpen:', isOpen, 'meeting?.id:', meeting?.id, 'meeting?.title:', meeting?.title);
      
       // Enhanced validation - only validate meeting, don't auto-fetch transcript
-      if (isOpen && meeting?.id) {
+      if (meeting?.id) {
         // Validate meeting ID format
         if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
           console.error('❌ Invalid meeting ID format:', meeting.id);
-          onClose();
+          // Don't auto-close, let user close manually to prevent loops
           return;
         }
         
         // Validate meeting belongs to current user
         if (!user?.id) {
           console.error('❌ No authenticated user');
-          onClose();
+          // Don't auto-close, let user close manually to prevent loops
           return;
         }
         
@@ -375,7 +378,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         // Don't auto-fetch transcript - it will be loaded when user clicks transcript tab
         // This prevents UI freeze on modal open for large transcripts
       }
-   }, [isOpen, meeting?.id, meeting?.title, user?.id]);
+   }, [isOpen, meeting?.id, meeting?.title, user?.id, isClosing]);
 
    // Track component mounted state to prevent state updates after unmount
    useEffect(() => {
@@ -620,7 +623,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
         if (!accessCheck) {
           console.error('❌ User does not have access to meeting:', currentMeetingId);
-          onClose();
+          // Don't auto-close to prevent loops - let user close manually
           return;
         }
 
@@ -804,6 +807,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
    // On-demand fallback: if Standard notes are empty when viewing Style 1, fetch from meeting_summaries
    useEffect(() => {
+     if (isClosing) return; // Skip if modal is closing
+     
      const fetchFallbackSummary = async () => {
        if (!isOpen || activeNotesStyleTab !== 'style1' || notesStyle3 || !meeting?.id) return;
        try {
@@ -813,7 +818,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
            .eq('meeting_id', meeting.id)
            .order('updated_at', { ascending: false })
            .maybeSingle();
-         if (!error && data?.summary) {
+         if (!error && data?.summary && !isClosing) {
            setNotesStyle3(data.summary);
            // Persist so subsequent loads are instant
            await saveNoteStyleToDatabase(3, data.summary);
@@ -823,7 +828,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
        }
      };
      fetchFallbackSummary();
-   }, [isOpen, activeNotesStyleTab, meeting?.id, notesStyle3]);
+   }, [isOpen, activeNotesStyleTab, meeting?.id, notesStyle3, isClosing]);
 
    // Create a mock meeting data object for the export hook
   const mockMeetingData = meeting ? {
@@ -2922,8 +2927,13 @@ ${transcriptToUse}`;
         open={isOpen} 
         onOpenChange={(open) => {
           console.log('📱 Dialog onOpenChange called with:', open);
-          if (!open) {
-            onClose();
+          if (!open && !isClosing) {
+            setIsClosing(true);
+            // Small delay to ensure state updates
+            setTimeout(() => {
+              onClose();
+              setIsClosing(false);
+            }, 50);
           }
         }}
       >
