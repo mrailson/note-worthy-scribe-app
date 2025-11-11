@@ -76,8 +76,10 @@ export function transformMinutesToHtml(content: string, baseFontSize: number): s
     
     // Check if this line contains a table row (has pipes)
     if (line.includes('|') && line.split('|').filter(c => c.trim()).length >= 2) {
-      // Skip separator rows (like |---|---|)
-      if (/^[\|\s\-:]+$/.test(line)) {
+      // Skip separator rows (like |---|---| or |:---|---:| with any HTML tags)
+      const cleanLine = line.replace(/<[^>]*>/g, '').trim();
+      if (/^[\|\s\-:]+$/.test(cleanLine)) {
+        lines[i] = ''; // Clear separator row
         continue;
       }
       
@@ -86,12 +88,12 @@ export function transformMinutesToHtml(content: string, baseFontSize: number): s
         hasHeader = false;
       }
       
-      // Parse the cells
+      // Parse the cells - remove any HTML tags first for cleaner parsing
       const cells = line.split('|')
         .filter(cell => cell.trim() !== '')
         .map(cell => cell.trim());
       
-      // First row is header
+      // First non-separator row is header
       if (!hasHeader) {
         const headerHtml = '<thead><tr>' + cells.map(cell => `<th>${cell}</th>`).join('') + '</tr></thead>';
         tableRows.push(headerHtml);
