@@ -23,6 +23,14 @@ interface Attendee {
   role?: string;
 }
 
+interface AttendeeTemplate {
+  id: string;
+  template_name: string;
+  description?: string;
+  is_default: boolean;
+  attendees: Attendee[];
+}
+
 interface MeetingAttendeeModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -36,6 +44,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
   const [selectedAttendeeIds, setSelectedAttendeeIds] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
+  const [attendeeTemplates, setAttendeeTemplates] = useState<AttendeeTemplate[]>([]);
   
   // Add/Edit attendee form state
   const [isAddingAttendee, setIsAddingAttendee] = useState(false);
@@ -92,6 +101,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     if (isOpen && user) {
       fetchAttendees();
       fetchMeetingAttendees();
+      fetchAttendeeTemplates();
     }
   }, [isOpen, user, meetingId]);
 
@@ -136,12 +146,56 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     }
   };
 
+  const fetchAttendeeTemplates = async () => {
+    if (!user) return;
+
+    try {
+      // Get user's practice IDs
+      const { data: userRoles } = await supabase
+        .rpc('get_user_roles', { _user_id: user.id });
+      
+      if (!userRoles || userRoles.length === 0) return;
+
+      const practiceIds = userRoles.map(role => role.practice_id).filter(Boolean);
+
+      // Fetch attendee templates for user's practices
+      const { data: templates } = await supabase
+        .from('attendee_templates')
+        .select(`
+          *,
+          attendee_template_members (
+            attendees (*)
+          )
+        `)
+        .or(`practice_id.in.(${practiceIds.join(',')})`);
+
+      if (templates) {
+        const formattedTemplates = templates.map(template => ({
+          id: template.id,
+          template_name: template.template_name,
+          description: template.description,
+          is_default: template.is_default,
+          attendees: (template.attendee_template_members?.map((tm: any) => tm.attendees) || []) as Attendee[]
+        }));
+        setAttendeeTemplates(formattedTemplates);
+      }
+    } catch (error) {
+      console.error('Error fetching attendee templates:', error);
+    }
+  };
+
   const toggleAttendee = (attendeeId: string) => {
     setSelectedAttendeeIds(prev =>
       prev.includes(attendeeId)
         ? prev.filter(id => id !== attendeeId)
         : [...prev, attendeeId]
     );
+  };
+
+  const applyTemplate = (template: AttendeeTemplate) => {
+    const templateAttendeeIds = template.attendees.map(a => a.id);
+    setSelectedAttendeeIds(templateAttendeeIds);
+    showToast.success(`Applied "${template.template_name}" template`, { section: 'meeting_manager' });
   };
 
   const saveAttendees = async () => {
@@ -464,8 +518,9 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
         </DialogHeader>
 
         <Tabs defaultValue="quick-pick" className="w-full">
-          <TabsList className="grid w-full grid-cols-2">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="quick-pick">Quick Pick ({selectedAttendeeIds.length})</TabsTrigger>
+            <TabsTrigger value="templates">Templates</TabsTrigger>
             <TabsTrigger value="manage">Manage Global List</TabsTrigger>
           </TabsList>
 
@@ -532,6 +587,90 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
               )}
             </div>
 
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              <Button variant="outline" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button onClick={saveAttendees} disabled={isSaving}>
+                <Check className="h-4 w-4 mr-2" />
+                {isSaving ? 'Saving...' : 'Save Attendees'}
+              </Button>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="templates" className="space-y-4">
+            {attendeeTemplates.length === 0 ? (
+              <Card>
+                <CardContent className="p-6 text-center text-muted-foreground">
+                  No attendee templates found. Templates can be created in your user settings.
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                {attendeeTemplates.map(template => {
+                  const isActive = template.attendees.length > 0 && 
+                    template.attendees.every(a => selectedAttendeeIds.includes(a.id)) &&
+                    template.attendees.length === selectedAttendeeIds.length;
+
+                  return (
+                    <Card key={template.id} className={`${isActive ? 'border-primary bg-primary/5' : ''}`}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between gap-3 mb-3">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-semibold text-base">{template.template_name}</h4>
+                              {template.is_default && (
+                                <Badge variant="secondary" className="text-xs">Default</Badge>
+                              )}
+                            </div>
+                            {template.description && (
+                              <p className="text-sm text-muted-foreground mb-2">{template.description}</p>
+                            )}
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <Users className="h-3 w-3" />
+                              <span>{template.attendees.length} attendees</span>
+                            </div>
+                          </div>
+                          <Button 
+                            onClick={() => applyTemplate(template)} 
+                            size="sm"
+                            variant={isActive ? "outline" : "default"}
+                          >
+                            {isActive ? <Check className="h-4 w-4 mr-1" /> : null}
+                            {isActive ? 'Applied' : 'Apply'}
+                          </Button>
+                        </div>
+                        
+                        {template.attendees.length > 0 && (
+                          <div className="mt-3 pt-3 border-t space-y-2">
+                            <p className="text-xs font-medium text-muted-foreground">Attendees in this template:</p>
+                            <div className="space-y-1">
+                              {template.attendees.map(attendee => {
+                                const orgBadge = getOrgTypeBadge(attendee.organization_type);
+                                return (
+                                  <div key={attendee.id} className="flex items-center gap-2 text-sm">
+                                    <span className="font-medium">
+                                      {attendee.title === 'Dr' ? `${attendee.title} ${attendee.name}` : attendee.name}
+                                    </span>
+                                    <Badge variant="outline" className={`${orgBadge.className} text-xs`}>
+                                      {orgBadge.icon}
+                                    </Badge>
+                                    {attendee.role && (
+                                      <span className="text-xs text-muted-foreground">- {attendee.role}</span>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+            
             <div className="flex justify-end gap-2 pt-4 border-t">
               <Button variant="outline" onClick={onClose}>
                 Cancel
