@@ -50,7 +50,7 @@ const DemoVideosPage: React.FC = () => {
       <main className="container mx-auto px-4 py-8">
         <header className="mb-6 text-center">
           <h1 className="text-2xl font-semibold text-foreground">Demo Videos</h1>
-          <p className="text-muted-foreground mt-1">Explore short demos of Notewell AI features.</p>
+          <p className="text-muted-foreground mt-1">Short Overview of the Notewell AI Complaint Management Service</p>
         </header>
 
         {/* Featured Loom Demo */}
