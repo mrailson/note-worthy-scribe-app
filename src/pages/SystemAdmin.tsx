@@ -56,6 +56,7 @@ import { AdminMeetingControls } from '@/components/AdminMeetingControls';
 import { DCB0129Panel } from '@/components/admin/DCB0129Panel';
 import { ConsultationVisibilitySettings } from '@/components/admin/ConsultationVisibilitySettings';
 import { MeetingStatsByUser } from '@/components/admin/MeetingStatsByUser';
+import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 
 
 interface User {
@@ -3775,6 +3776,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           {/* Settings Tab */}
           <TabsContent value="settings" className="space-y-6">
             <ConsultationVisibilitySettings />
+            
+            <AdminVideoUpload />
             
             <Card>
               <CardHeader>
