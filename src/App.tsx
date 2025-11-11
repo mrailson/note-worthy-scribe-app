@@ -51,6 +51,7 @@ import EnhancedAccess from "./pages/EnhancedAccess";
 import { AdminVideoUpload } from "./components/admin/AdminVideoUpload";
 import ExecutiveOverview from "./pages/ExecutiveOverview";
 import LoadDemoTeamData from "./pages/LoadDemoTeamData";
+import DemoVideosPage from "./pages/DemoVideosPage";
 
 const App = () => {
   useSessionActivity();
@@ -71,6 +72,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/executive-overview" element={<ExecutiveOverview />} />
+              <Route path="/demos" element={<DemoVideosPage />} />
               <Route path="/ai4gp" element={<AI4GP />} />
               <Route path="/gp-scribe" element={<GPScribe />} />
               <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />
