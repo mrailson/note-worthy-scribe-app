@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   Clock, ChevronDown, ChevronUp, FileText, Users, Sparkles, 
-  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, Download, MoreVertical, Play, Loader2, Square
+  AlertTriangle, Copy, Eye, EyeOff, BarChart3, Trash2, Check, X, Type, Minus, Plus, Download, MoreVertical, Play, Loader2, Square, Layers, RefreshCw
 } from 'lucide-react';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator } from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
@@ -88,6 +88,63 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const sourceRef = React.useRef<AudioBufferSourceNode | null>(null);
   const gainRef = React.useRef<GainNode | null>(null);
   
+  // Consolidate state
+  const [isConsolidating, setIsConsolidating] = useState(false);
+  
+  // Handle consolidate transcript chunks
+  const handleConsolidateTranscript = async () => {
+    setIsConsolidating(true);
+    toast.info('Consolidating transcript chunks...', { duration: 2000 });
+    
+    try {
+      console.log('🔄 Consolidating transcript for meeting:', meetingId);
+      
+      const { data, error } = await supabase.functions.invoke('consolidate-meeting-chunks', {
+        body: { meetingId }
+      });
+      
+      if (error) {
+        console.error('❌ Error consolidating transcript:', error);
+        toast.error('Failed to consolidate transcript');
+        return;
+      }
+      
+      if (data?.success) {
+        console.log('✅ Consolidation successful:', data);
+        toast.success(`Consolidated ${data.chunksProcessed} chunks (${data.totalWords} words)`);
+        
+        // Refresh the transcript by fetching chunks again
+        const { data: chunksData } = await supabase
+          .from('meeting_transcription_chunks')
+          .select('*')
+          .eq('meeting_id', meetingId)
+          .order('chunk_number');
+        
+        if (chunksData) {
+          setChunks(chunksData);
+        }
+        
+        // Also update the transcript text
+        const { data: meetingData } = await supabase
+          .from('meetings')
+          .select('live_transcript_text')
+          .eq('id', meetingId)
+          .single();
+        
+        if (meetingData?.live_transcript_text) {
+          onTranscriptChange(meetingData.live_transcript_text);
+        }
+      } else {
+        toast.error(data?.message || 'Failed to consolidate transcript');
+      }
+    } catch (error) {
+      console.error('❌ Error consolidating transcript:', error);
+      toast.error('Failed to consolidate transcript');
+    } finally {
+      setIsConsolidating(false);
+    }
+  };
+
   // Fetch chunks with timestamp extraction and calculate stats
   useEffect(() => {
     if (!meetingId) return;
@@ -929,14 +986,31 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
             )}
           </div>
           
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowStats(!showStats)}
-          >
-            <BarChart3 className="h-4 w-4 mr-2" />
-            {showStats ? 'Hide' : 'Show'} Stats
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleConsolidateTranscript}
+              disabled={isConsolidating}
+              className="text-emerald-600 hover:text-emerald-700"
+            >
+              {isConsolidating ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Layers className="h-4 w-4 mr-2" />
+              )}
+              {isConsolidating ? 'Consolidating...' : 'Consolidate Chunks'}
+            </Button>
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setShowStats(!showStats)}
+            >
+              <BarChart3 className="h-4 w-4 mr-2" />
+              {showStats ? 'Hide' : 'Show'} Stats
+            </Button>
+          </div>
         </div>
 
         {/* Toggle Controls - Collapsible - Only shown when stats are visible */}

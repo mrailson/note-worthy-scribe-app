@@ -35,8 +35,7 @@ import {
   FileDown,
   Video,
   MonitorSpeaker,
-  Drama,
-  Layers
+  Drama
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -204,8 +203,6 @@ export const MeetingHistoryList = ({
   const [customLocations, setCustomLocations] = useState<string[]>([]);
   const [locationInputOpen, setLocationInputOpen] = useState<Record<string, boolean>>({});
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
-  const [consolidatingMeetings, setConsolidatingMeetings] = useState<Record<string, boolean>>({});
-  // State for tracking transcript consolidation progress per meeting
   
   // Fetch user practices and custom locations
   useEffect(() => {
@@ -924,51 +921,6 @@ export const MeetingHistoryList = ({
   const handleAttendeesClick = (meeting: Meeting) => {
     setSelectedMeetingForAttendees(meeting);
     setAttendeeModalOpen(true);
-  };
-
-  // Handle consolidate transcript chunks
-  const handleConsolidateTranscript = async (meeting: Meeting) => {
-    const meetingId = meeting.id;
-    
-    setConsolidatingMeetings(prev => ({ ...prev, [meetingId]: true }));
-    toast.info('Consolidating transcript chunks...', { duration: 2000 });
-    
-    try {
-      console.log('🔄 Consolidating transcript for meeting:', meetingId);
-      
-      const { data, error } = await supabase.functions.invoke('consolidate-meeting-chunks', {
-        body: { meetingId }
-      });
-      
-      if (error) {
-        console.error('❌ Error consolidating transcript:', error);
-        toast.error('Failed to consolidate transcript');
-        return;
-      }
-      
-      if (data?.success) {
-        console.log('✅ Consolidation successful:', data);
-        toast.success(`Consolidated ${data.chunksProcessed} chunks (${data.totalWords} words)`);
-        
-        // Refresh the meeting data to show updated transcript
-        setLocalMeetings(prev => prev.map(m => 
-          m.id === meetingId 
-            ? { ...m, word_count: data.totalWords }
-            : m
-        ));
-        
-        if (onRefresh) {
-          onRefresh();
-        }
-      } else {
-        toast.error(data?.message || 'Failed to consolidate transcript');
-      }
-    } catch (error) {
-      console.error('❌ Error consolidating transcript:', error);
-      toast.error('Failed to consolidate transcript');
-    } finally {
-      setConsolidatingMeetings(prev => ({ ...prev, [meetingId]: false }));
-    }
   };
 
   // Handle download meeting notes as Word
@@ -2302,24 +2254,6 @@ export const MeetingHistoryList = ({
                   <FileText style={{ display: 'inline', width: '16px', height: '16px', marginRight: '8px' }} />
                   View Meeting Notes
                 </div>
-
-                {/* Consolidate Transcript Button - Show if meeting has low word count but might have chunks */}
-                {meeting.word_count < 1000 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleConsolidateTranscript(meeting)}
-                    disabled={consolidatingMeetings[meeting.id]}
-                    className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-emerald-600 hover:text-emerald-700"
-                  >
-                    {consolidatingMeetings[meeting.id] ? (
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <Layers className="h-4 w-4" />
-                    )}
-                    <span>{consolidatingMeetings[meeting.id] ? 'Consolidating...' : 'Consolidate Transcript'}</span>
-                  </Button>
-                )}
 
                 {/* Audio Backup Button - Only show if audio backup exists */}
                 {meeting.audio_backup_path && (
