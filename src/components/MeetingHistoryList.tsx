@@ -86,6 +86,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useMultiTypeNotes } from "@/hooks/useMultiTypeNotes";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
 import { MeetingAttendeeModal } from './MeetingAttendeeModal';
+import { StandardMinutesModal } from "@/components/StandardMinutesModal";
 import { useAuth } from '@/contexts/AuthContext';
 import { AttendeeRoleBadge } from './meeting-history/AttendeeRoleBadge';
 import { useMeetingExport } from '@/hooks/useMeetingExport';
@@ -498,6 +499,10 @@ export const MeetingHistoryList = ({
   // Attendee modal state
   const [attendeeModalOpen, setAttendeeModalOpen] = useState(false);
   const [selectedMeetingForAttendees, setSelectedMeetingForAttendees] = useState<Meeting | null>(null);
+
+  // Standard Minutes modal state
+  const [standardMinutesModalOpen, setStandardMinutesModalOpen] = useState(false);
+  const [selectedMeetingForStandardMinutes, setSelectedMeetingForStandardMinutes] = useState<Meeting | null>(null);
 
   // Status recovery state
   const [recoveringMeetings, setRecoveringMeetings] = useState<Set<string>>(new Set());
@@ -921,6 +926,12 @@ export const MeetingHistoryList = ({
   const handleAttendeesClick = (meeting: Meeting) => {
     setSelectedMeetingForAttendees(meeting);
     setAttendeeModalOpen(true);
+  };
+
+  // Handle Standard Minutes click
+  const handleStandardMinutesClick = (meeting: Meeting) => {
+    setSelectedMeetingForStandardMinutes(meeting);
+    setStandardMinutesModalOpen(true);
   };
 
   // Handle download meeting notes as Word
@@ -2183,6 +2194,17 @@ export const MeetingHistoryList = ({
                   />
                 )}
                 
+                {/* Standard Minutes Button - NEW */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleStandardMinutesClick(meeting)}
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-green-600 hover:text-green-700"
+                >
+                  <FileText className="h-4 w-4" />
+                  <span>Standard Minutes</span>
+                </Button>
+                
                 {/* View Notes button - now available on all devices when not recording */}
                 <div 
                   style={{ 
@@ -2660,6 +2682,17 @@ export const MeetingHistoryList = ({
         meetingId={selectedMeetingForEmail?.id || ''}
         meetingTitle={selectedMeetingForEmail?.title || ''}
         meetingNotes={selectedMeetingForEmail?.meeting_summary || selectedMeetingForEmail?.transcript || ''}
+      />
+
+      {/* Standard Minutes Modal */}
+      <StandardMinutesModal
+        isOpen={standardMinutesModalOpen}
+        onClose={() => {
+          setStandardMinutesModalOpen(false);
+          setSelectedMeetingForStandardMinutes(null);
+        }}
+        meetingId={selectedMeetingForStandardMinutes?.id || ''}
+        meetingTitle={selectedMeetingForStandardMinutes?.title || ''}
       />
       
       {/* Process Confirmation Dialog */}
