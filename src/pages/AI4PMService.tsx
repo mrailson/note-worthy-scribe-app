@@ -72,6 +72,7 @@ import PptxGenJS from 'pptxgenjs';
 import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
 import NewsPanel from '@/components/NewsPanel';
+import { SpeechStudio } from '@/components/SpeechStudio/SpeechStudio';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
@@ -1048,7 +1049,7 @@ Format your responses clearly with headings and bullet points where appropriate 
           )}
 
           {/* Desktop Menu */}
-          <TabsList className={`grid w-full mb-6 ${isMobile ? 'hidden' : 'grid-cols-4'}`}>
+          <TabsList className={`grid w-full mb-6 ${isMobile ? 'hidden' : 'grid-cols-5'}`}>
             <TabsTrigger 
               value="ai-service"
               className="rounded-lg transition-all duration-200 font-medium shrink-0"
@@ -1066,6 +1067,16 @@ Format your responses clearly with headings and bullet points where appropriate 
               <div className="flex items-center gap-2">
                 <Bot className="h-5 w-5" />
                 <span>PM Genie</span>
+              </div>
+            </TabsTrigger>
+            
+            <TabsTrigger 
+              value="speech-studio"
+              className="rounded-lg transition-all duration-200 font-medium shrink-0"
+            >
+              <div className="flex items-center gap-2">
+                <Volume2 className="h-5 w-5" />
+                <span>Speech Studio</span>
               </div>
             </TabsTrigger>
             
@@ -1447,6 +1458,10 @@ Format your responses clearly with headings and bullet points where appropriate 
 
           <TabsContent value="pm-genie">
             <PMGenieVoiceAgent />
+          </TabsContent>
+
+          <TabsContent value="speech-studio">
+            <SpeechStudio />
           </TabsContent>
 
           <TabsContent value="history">
