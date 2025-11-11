@@ -245,3 +245,6 @@ verify_jwt = false
 
 [functions.generate-complaint-ai-report]
 verify_jwt = true
+
+[functions.consolidate-meeting-chunks]
+verify_jwt = true
