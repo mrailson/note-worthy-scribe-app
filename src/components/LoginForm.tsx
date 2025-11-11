@@ -11,6 +11,7 @@ import { ForgotPassword } from "./ForgotPassword";
 import { MagicLinkRequest } from "./MagicLinkRequest";
 import { ServiceOverview } from "./ServiceOverview";
 import { VpnTroubleshootingGuide } from "./VpnTroubleshootingGuide";
+import { DemoVideoSection } from "./DemoVideoSection";
 
 export const LoginForm = () => {
   const [email, setEmail] = useState("");
@@ -119,7 +120,7 @@ export const LoginForm = () => {
           </div>
           
           {/* Login Form - Takes up 1/3 of the screen on large devices */}
-          <div className="order-1 lg:order-2 lg:sticky lg:top-8">
+          <div className="order-1 lg:order-2 lg:sticky lg:top-8 space-y-8">
             <Card className="w-full shadow-strong">
               <CardHeader className="text-center">
                 <CardTitle className="flex items-center justify-center gap-2 text-primary">
@@ -218,6 +219,9 @@ export const LoginForm = () => {
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Demo Video Section - Below Login Card */}
+            <DemoVideoSection />
           </div>
         </div>
       </div>

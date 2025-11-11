@@ -85,9 +85,6 @@ export const ServiceOverview = () => {
 
   return (
     <div className="w-full space-y-8">
-      {/* Demo Video Section */}
-      <DemoVideoSection />
-
       {/* Services Grid - Moved to top */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {displayedServices.map((service, index) => (
