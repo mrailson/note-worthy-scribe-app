@@ -183,7 +183,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [minutesHtml, setMinutesHtml] = useState<string>("");
   const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
   const [isFormattingInBackground, setIsFormattingInBackground] = useState(false);
+  const [formattingTimedOut, setFormattingTimedOut] = useState(false);
   const workerRef = useRef<Worker | null>(null);
+  const workerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const [showTranscriptBanner, setShowTranscriptBanner] = useState(false);
   const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [transcript, setTranscript] = useState("");
@@ -234,13 +236,32 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     return /===\s*TRANSCRIPT\s*(START|BEGIN|END|FINISH)?\s*===|#{1,6}\s*(Appendix|Appendices|Transcript|Raw Transcript|Full Transcript)|\*\*TRANSCRIPT\*\*/i.test(content);
   };
 
+  // Apply basic markdown styling to quick view
+  const applyQuickViewFormatting = (text: string): string => {
+    return text
+      .replace(/^### (.+)$/gm, '<h3 style="font-size: 1.1em; font-weight: 600; margin: 16px 0 8px 0; color: hsl(var(--foreground));">$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2 style="font-size: 1.25em; font-weight: 600; margin: 20px 0 10px 0; color: hsl(var(--foreground));">$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1 style="font-size: 1.5em; font-weight: 700; margin: 24px 0 12px 0; color: hsl(var(--foreground));">$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight: 600;">$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/^- (.+)$/gm, '<div style="margin-left: 20px; margin-bottom: 4px;">• $1</div>')
+      .replace(/^\d+\. (.+)$/gm, '<div style="margin-left: 20px; margin-bottom: 4px;">$1</div>')
+      .replace(/\n\n/g, '<br><br>')
+      .replace(/\n/g, '<br>');
+  };
+
   // Worker helpers
   const cancelMinutesWorker = React.useCallback(() => {
     if (workerRef.current) {
       workerRef.current.terminate();
       workerRef.current = null;
     }
+    if (workerTimeoutRef.current) {
+      clearTimeout(workerTimeoutRef.current);
+      workerTimeoutRef.current = null;
+    }
     setIsFormattingInBackground(false);
+    setFormattingTimedOut(false);
   }, []);
 
   const startMinutesWorker = React.useCallback((content: string, fontSize: number) => {
@@ -249,6 +270,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     console.time('Minutes Worker Formatting');
     console.log('🔄 Starting worker for content length:', content.length);
     
+    const hasTranscript = detectTranscriptMarkers(content);
+    const hasRisks = hasTranscript || content.length > 15000;
+    
     const worker = new Worker(
       new URL('../workers/minutesFormatter.worker.ts', import.meta.url),
       { type: 'module' }
@@ -256,6 +280,24 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     
     workerRef.current = worker;
     setIsFormattingInBackground(true);
+    setFormattingTimedOut(false);
+
+    // 10-second timeout fallback
+    workerTimeoutRef.current = setTimeout(() => {
+      console.warn('⏱️ Worker timed out after 10s, falling back to synchronous rendering');
+      console.timeEnd('Minutes Worker Formatting');
+      cancelMinutesWorker();
+      setFormattingTimedOut(true);
+      
+      // Fallback: render synchronously
+      try {
+        const formatted = renderMinutesMarkdown(content, fontSize);
+        setMinutesHtml(formatted);
+        console.log('✅ Fallback rendering complete');
+      } catch (err) {
+        console.error('❌ Fallback rendering failed:', err);
+      }
+    }, 10000);
 
     worker.onmessage = (e: MessageEvent) => {
       console.timeEnd('Minutes Worker Formatting');
@@ -313,6 +355,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         console.log('✅ Formatted HTML applied');
       } else {
         console.error('❌ Worker error:', e.data.message);
+        setFormattingTimedOut(true);
       }
       
       cancelMinutesWorker();
@@ -322,10 +365,19 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       console.timeEnd('Minutes Worker Formatting');
       console.error('❌ Worker failed:', error);
       cancelMinutesWorker();
+      setFormattingTimedOut(true);
     };
 
     worker.postMessage({ content, baseFontSize: fontSize });
   }, [cancelMinutesWorker]);
+
+  const manualFormat = () => {
+    if (notesStyle3) {
+      setFormattingTimedOut(false);
+      setIsFormattingInBackground(true);
+      startMinutesWorker(notesStyle3, fontSizeStyle1);
+    }
+  };
   
   // Generate Executive HTML lazily when tab is opened or content changes
   useEffect(() => {
@@ -386,9 +438,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
     quickView = quickView.replace(/(===\s*TRANSCRIPT|##\s*TRANSCRIPT|Appendix.*Transcript)[\s\S]*$/i, '');
     
-    // Show plain text quick view immediately
-    const plainTextHtml = `<div class="minutes-content font-nhs max-w-full px-2" style="font-size: ${fontSizeStyle1}px; line-height: ${fontSizeStyle1 * 1.6}px; white-space: pre-wrap;">${quickView.slice(0, 50000)}</div>`;
-    setMinutesHtml(plainTextHtml);
+    // Show formatted quick view immediately
+    const formattedQuickView = applyQuickViewFormatting(quickView.slice(0, 50000));
+    const quickViewHtml = `<div class="minutes-content font-nhs max-w-full px-2" style="padding: 16px; font-size: ${fontSizeStyle1}px; line-height: ${fontSizeStyle1 * 1.6}px;">
+      ${formattedQuickView}
+    </div>`;
+    setMinutesHtml(quickViewHtml);
 
     // For risky content, delay worker start to ensure UI is responsive first
     const hasTranscript = detectTranscriptMarkers(notesStyle3);
@@ -3231,6 +3286,17 @@ ${transcriptToUse}`;
                                   </button>
                                   )
                                 </span>
+                              )}
+                              {formattingTimedOut && !isFormattingInBackground && (
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    manualFormat();
+                                  }}
+                                  className="text-xs text-primary hover:underline ml-2"
+                                >
+                                  Format Now
+                                </button>
                               )}
                             </TabsTrigger>
                             <TabsTrigger value="style-gallery" className="text-xs sm:text-sm">
