@@ -203,9 +203,83 @@ export function StandardMinutesModal({ isOpen, onClose, meetingId, meetingTitle 
         {!loading && !error && formattedContent && (
           <>
             <div 
-              className="prose prose-sm max-w-none border rounded-lg p-6 bg-background"
-              dangerouslySetInnerHTML={{ __html: formattedContent }}
-            />
+              className="border rounded-lg p-8 bg-white"
+              style={{
+                fontFamily: "'Fira Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif",
+                fontSize: '13px',
+                lineHeight: '1.6',
+                color: '#212B32'
+              }}
+            >
+              <style>
+                {`
+                  .standard-minutes-content h1 {
+                    color: #005EB8;
+                    font-size: 24px;
+                    font-weight: 600;
+                    margin: 24px 0 16px 0;
+                    line-height: 1.3;
+                  }
+                  .standard-minutes-content h2 {
+                    color: #005EB8;
+                    font-size: 20px;
+                    font-weight: 600;
+                    margin: 20px 0 12px 0;
+                    line-height: 1.3;
+                  }
+                  .standard-minutes-content h3 {
+                    color: #005EB8;
+                    font-size: 16px;
+                    font-weight: 600;
+                    margin: 16px 0 10px 0;
+                    line-height: 1.3;
+                  }
+                  .standard-minutes-content h4 {
+                    color: #005EB8;
+                    font-size: 14px;
+                    font-weight: 600;
+                    margin: 14px 0 8px 0;
+                    line-height: 1.3;
+                  }
+                  .standard-minutes-content p {
+                    margin: 12px 0;
+                    line-height: 1.6;
+                  }
+                  .standard-minutes-content ul, .standard-minutes-content ol {
+                    margin: 12px 0;
+                    padding-left: 24px;
+                  }
+                  .standard-minutes-content li {
+                    margin: 6px 0;
+                    line-height: 1.6;
+                  }
+                  .standard-minutes-content strong {
+                    font-weight: 600;
+                    color: #212B32;
+                  }
+                  .standard-minutes-content table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin: 16px 0;
+                  }
+                  .standard-minutes-content table td,
+                  .standard-minutes-content table th {
+                    border: 1px solid #ddd;
+                    padding: 8px;
+                    text-align: left;
+                  }
+                  .standard-minutes-content table th {
+                    background-color: #f8f9fa;
+                    font-weight: 600;
+                    color: #005EB8;
+                  }
+                `}
+              </style>
+              <div 
+                className="standard-minutes-content"
+                dangerouslySetInnerHTML={{ __html: formattedContent }}
+              />
+            </div>
 
             <div className="flex flex-wrap gap-2 pt-4 border-t">
               <Button
