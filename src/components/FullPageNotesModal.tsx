@@ -135,6 +135,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   
   const minutesContainerRef = useRef<HTMLDivElement>(null);
   const dialogContentRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef<boolean>(true);
   const [isEditing, setIsEditing] = useState(false);
   const [showFindReplace, setShowFindReplace] = useState(false);
   const [showCustomInstruction, setShowCustomInstruction] = useState(false);
@@ -342,6 +343,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         // This prevents UI freeze on modal open for large transcripts
       }
    }, [isOpen, meeting?.id, meeting?.title, user?.id]);
+
+   // Track component mounted state to prevent state updates after unmount
+   useEffect(() => {
+     isMountedRef.current = true;
+     return () => {
+       isMountedRef.current = false;
+     };
+   }, []);
 
    // Auto-load transcript when Style Gallery tab is opened
    useEffect(() => {
@@ -2099,6 +2108,7 @@ ${transcriptToUse}`;
       toast.error('Missing meeting data');
       return;
     }
+    
     try {
       console.log('🚀 Calling auto-generate-meeting-notes with forceRegenerate...');
 
@@ -2122,7 +2132,9 @@ ${transcriptToUse}`;
         clearTimeout(timeoutId);
         if (invokeError.name === 'AbortError') {
           console.error('⏱️ Function call timed out after 2 minutes');
-          toast.error('Notes generation timed out. Please try again with a shorter transcript.');
+          if (isMountedRef.current) {
+            toast.error('Notes generation timed out. Please try again with a shorter transcript.');
+          }
           return;
         }
         throw invokeError;
@@ -2134,7 +2146,9 @@ ${transcriptToUse}`;
 
       if (data?.skipped) {
         console.log('⚠️ Notes generation was skipped:', data.message);
-        toast.info(data.message || 'Notes regeneration skipped');
+        if (isMountedRef.current) {
+          toast.info(data.message || 'Notes regeneration skipped');
+        }
         return;
       }
 
@@ -2145,42 +2159,59 @@ ${transcriptToUse}`;
       let attempts = 0;
       let generatedContent = null;
 
-      while (attempts < maxAttempts) {
+      while (attempts < maxAttempts && isMountedRef.current) {
         attempts++;
         
-        // Check meeting status
-        const { data: meetingData } = await supabase
-          .from('meetings')
-          .select('notes_generation_status')
-          .eq('id', meeting.id)
-          .single();
-        
-        console.log(`📊 Attempt ${attempts}: Status = ${meetingData?.notes_generation_status}`);
-        
-        if (meetingData?.notes_generation_status === 'completed') {
-          // Fetch the regenerated notes
-          const { data: summaryData, error: fetchError } = await supabase
-            .from('meeting_summaries')
-            .select('summary')
-            .eq('meeting_id', meeting.id)
+        try {
+          // Check meeting status
+          const { data: meetingData, error: statusError } = await supabase
+            .from('meetings')
+            .select('notes_generation_status')
+            .eq('id', meeting.id)
             .single();
-
-          if (fetchError) {
-            console.error('❌ Error fetching notes:', fetchError);
-            throw fetchError;
+          
+          if (statusError) {
+            console.error('❌ Error checking status:', statusError);
+            // Continue polling instead of throwing
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            continue;
           }
+          
+          console.log(`📊 Attempt ${attempts}: Status = ${meetingData?.notes_generation_status}`);
+          
+          if (meetingData?.notes_generation_status === 'completed') {
+            // Fetch the regenerated notes
+            const { data: summaryData, error: fetchError } = await supabase
+              .from('meeting_summaries')
+              .select('summary')
+              .eq('meeting_id', meeting.id)
+              .single();
 
-          if (summaryData?.summary) {
-            generatedContent = summaryData.summary;
-            console.log('✅ Notes regenerated successfully, length:', generatedContent.length);
-            break;
+            if (fetchError) {
+              console.error('❌ Error fetching notes:', fetchError);
+              throw fetchError;
+            }
+
+            if (summaryData?.summary) {
+              generatedContent = summaryData.summary;
+              console.log('✅ Notes regenerated successfully, length:', generatedContent.length);
+              break;
+            }
+          } else if (meetingData?.notes_generation_status === 'failed') {
+            throw new Error('Note generation failed on server');
           }
-        } else if (meetingData?.notes_generation_status === 'failed') {
-          throw new Error('Note generation failed on server');
+        } catch (pollError) {
+          console.error('❌ Polling error:', pollError);
+          // Don't break the loop on individual poll errors
         }
         
         // Wait 2 seconds before next check
         await new Promise(resolve => setTimeout(resolve, 2000));
+      }
+
+      if (!isMountedRef.current) {
+        console.log('⚠️ Component unmounted during generation, skipping state updates');
+        return;
       }
 
       if (generatedContent) {
@@ -2188,11 +2219,13 @@ ${transcriptToUse}`;
         const transcriptText = typeof transcript === 'string' ? transcript : '';
         const sanitised = sanitiseActionOwners(generatedContent, transcriptText);
         
-        if (sanitised !== generatedContent) {
+        if (sanitised !== generatedContent && isMountedRef.current) {
           toast.info('Action item owners corrected to prevent hallucinations');
         }
         
-        setNotesStyle3(sanitised);
+        if (isMountedRef.current) {
+          setNotesStyle3(sanitised);
+        }
         
         // Save to meetings table so it persists when returning to the meeting
         await saveNoteStyleToDatabase(3, sanitised);
@@ -2206,7 +2239,7 @@ ${transcriptToUse}`;
         
         if (updateError) {
           console.error('❌ Error fetching updated meeting data:', updateError);
-        } else if (updatedMeeting) {
+        } else if (updatedMeeting && isMountedRef.current) {
           // Check if meeting title was updated
           if (updatedMeeting.title && updatedMeeting.title !== meeting.title) {
             console.log('📝 Meeting title updated:', updatedMeeting.title);
@@ -2224,10 +2257,14 @@ ${transcriptToUse}`;
           }
         }
         
-        toast.success('Notes, overview & gallery regenerated successfully');
+        if (isMountedRef.current) {
+          toast.success('Notes, overview & gallery regenerated successfully');
+        }
       } else {
         console.error('❌ Timeout waiting for notes generation');
-        toast.error('Note generation timed out. Please try again.');
+        if (isMountedRef.current) {
+          toast.error('Note generation timed out. Please try again.');
+        }
       }
     } catch (error: any) {
       console.error('❌ Error generating Standard notes:', error);
@@ -2247,10 +2284,14 @@ ${transcriptToUse}`;
         }
       }
       
-      toast.error(errorMessage);
+      if (isMountedRef.current) {
+        toast.error(errorMessage);
+      }
     } finally {
       console.log('🏁 Standard generation finished');
-      setIsGeneratingStyle3(false);
+      if (isMountedRef.current) {
+        setIsGeneratingStyle3(false);
+      }
     }
   };
 
