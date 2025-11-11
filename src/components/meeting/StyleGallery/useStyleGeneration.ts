@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { StylePreviewsCache, GenerationProgress } from './types';
 import { getAllStyleKeys } from './styleDefinitions';
 
@@ -74,7 +74,7 @@ export const useStyleGeneration = () => {
   ) => {
     if (!transcript || transcript.length < 50) {
       setError('Transcript is too short to generate style previews');
-      toast.error('Transcript is too short');
+      showToast.error('Transcript is too short');
       return;
     }
 
@@ -90,7 +90,7 @@ export const useStyleGeneration = () => {
         setPreviews(cached.previews);
         setIsGenerating(false);
         setProgress(null);
-        toast.success('Loaded style previews from cache');
+        showToast.success('Loaded style previews from cache', { section: 'meeting_manager' });
         return;
       }
 
@@ -127,16 +127,16 @@ export const useStyleGeneration = () => {
       
       const generatedCount = Object.keys(data.previews).length;
       if (data.errors && data.errors.length > 0) {
-        toast.warning(`Generated ${generatedCount} of 10 styles. Some styles failed.`);
+        showToast.warning(`Generated ${generatedCount} of 10 styles. Some styles failed.`, { section: 'meeting_manager' });
         console.error('Some styles failed:', data.errors);
       } else {
-        toast.success(`Successfully generated ${generatedCount} professional note styles`);
+        showToast.success(`Successfully generated ${generatedCount} professional note styles`, { section: 'meeting_manager' });
       }
 
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to generate style previews';
       setError(errorMessage);
-      toast.error(errorMessage);
+      showToast.error(errorMessage);
       console.error('Error generating previews:', err);
     } finally {
       setIsGenerating(false);
@@ -156,10 +156,10 @@ export const useStyleGeneration = () => {
         .eq('id', meetingId);
       
       setPreviews({});
-      toast.success('Cache cleared');
+      showToast.success('Cache cleared', { section: 'meeting_manager' });
     } catch (err) {
       console.error('Error clearing cache:', err);
-      toast.error('Failed to clear cache');
+      showToast.error('Failed to clear cache');
     }
   }, []);
 
