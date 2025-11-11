@@ -274,9 +274,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
     }
 
-    // Heuristic: fall back to simple renderer for very large or table-heavy content
+    // Heuristic: fall back to simple renderer ONLY for extremely large content (50KB+ or 150+ tables)
+    // This preserves the beautiful NHS styling for 99% of meetings
     const tableCount = (notesStyle3.match(/\n\|/g) || []).length;
-    if (notesStyle3.length > 8000 || tableCount > 30) {
+    if (notesStyle3.length > 50000 || tableCount > 150) {
       console.warn('⚠️ Using simple markdown renderer for performance:', { len: notesStyle3.length, tableCount });
       setUseSimpleRenderer(true);
       setIsRenderingMinutes(false);
