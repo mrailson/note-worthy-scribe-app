@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
+import { Play } from 'lucide-react';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 
 interface DemoVideo {
   name: string;
@@ -11,6 +13,7 @@ interface DemoVideo {
 const DemoVideosPage: React.FC = () => {
   const [videos, setVideos] = useState<DemoVideo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedVideo, setSelectedVideo] = useState<DemoVideo | null>(null);
 
   useEffect(() => {
     const load = async () => {
@@ -55,24 +58,42 @@ const DemoVideosPage: React.FC = () => {
           ) : videos.length === 0 ? (
             <div className="text-center text-muted-foreground">No demos available yet.</div>
           ) : (
-            <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {videos.map((v) => (
-                <li key={v.name} className="border border-border rounded-lg p-4 bg-background shadow-sm">
-                  <h2 className="font-medium text-foreground truncate">{v.name}</h2>
-                  <a
-                    href={v.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 inline-flex items-center px-3 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition"
-                    aria-label={`Open demo video ${v.name}`}
-                  >
-                    Open video
-                  </a>
+                <li key={v.name} className="group cursor-pointer" onClick={() => setSelectedVideo(v)}>
+                  <div className="relative rounded-lg overflow-hidden bg-muted aspect-video shadow-lg hover:shadow-xl transition-shadow">
+                    <video
+                      src={v.url}
+                      className="w-full h-full object-cover"
+                      preload="metadata"
+                    />
+                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                      <div className="w-16 h-16 rounded-full bg-primary/90 group-hover:bg-primary group-hover:scale-110 transition-all flex items-center justify-center shadow-lg">
+                        <Play className="w-8 h-8 text-primary-foreground ml-1" fill="currentColor" />
+                      </div>
+                    </div>
+                  </div>
+                  <h2 className="mt-3 font-medium text-foreground line-clamp-2">{v.name}</h2>
                 </li>
               ))}
             </ul>
           )}
         </section>
+
+        <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
+          <DialogContent className="max-w-4xl w-full p-0">
+            {selectedVideo && (
+              <div className="relative bg-black">
+                <video
+                  src={selectedVideo.url}
+                  controls
+                  autoPlay
+                  className="w-full"
+                />
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
       </main>
     </>
   );
