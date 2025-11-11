@@ -271,7 +271,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
 
     setIsRenderingMinutes(true);
-    const id = requestIdleCallback(() => {
+    const ric: any = (window as any).requestIdleCallback
+      ? (window as any).requestIdleCallback
+      : ((cb: any) => setTimeout(() => cb({ didTimeout: false, timeRemaining: () => 1 }), 1));
+    const cic: any = (window as any).cancelIdleCallback
+      ? (window as any).cancelIdleCallback
+      : ((id: any) => clearTimeout(id));
+
+    const id = ric(() => {
       try {
         const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
         setMinutesHtml(html);
@@ -284,7 +291,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         setIsRenderingMinutes(false);
       }
     }, { timeout: 100 });
-    return () => cancelIdleCallback(id);
+    return () => cic(id);
   }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
@@ -769,7 +776,30 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
    };
 
-  // Create a mock meeting data object for the export hook
+   // On-demand fallback: if Standard notes are empty when viewing Style 1, fetch from meeting_summaries
+   useEffect(() => {
+     const fetchFallbackSummary = async () => {
+       if (!isOpen || activeNotesStyleTab !== 'style1' || notesStyle3 || !meeting?.id) return;
+       try {
+         const { data, error } = await supabase
+           .from('meeting_summaries')
+           .select('summary')
+           .eq('meeting_id', meeting.id)
+           .order('updated_at', { ascending: false })
+           .maybeSingle();
+         if (!error && data?.summary) {
+           setNotesStyle3(data.summary);
+           // Persist so subsequent loads are instant
+           await saveNoteStyleToDatabase(3, data.summary);
+         }
+       } catch (e) {
+         console.error('Fallback load of meeting_summaries failed:', e);
+       }
+     };
+     fetchFallbackSummary();
+   }, [isOpen, activeNotesStyleTab, meeting?.id, notesStyle3]);
+
+   // Create a mock meeting data object for the export hook
   const mockMeetingData = meeting ? {
     id: meeting.id,
     title: meeting.title,
