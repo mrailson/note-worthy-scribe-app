@@ -311,15 +311,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           ALLOWED_ATTR: ['class', 'style'],
         });
         
-        const wrapped = `<div class="minutes-content font-nhs max-w-full px-2" style="background: white;">
+        const wrapped = `<div class="minutes-content font-nhs max-w-full px-2">
     <style>
       .minutes-content {
         font-family: 'Fira Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
         font-size: ${fontSize}px;
         line-height: ${fontSize * 1.6}px;
         color: #212B32;
-        background: white;
-        padding: 16px;
       }
       
       .minutes-content h1, .minutes-content h2, .minutes-content h3 {

@@ -18,13 +18,17 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
         color: #212B32;
       }
       
-      .minutes-content h2 {
+      .minutes-content h1, .minutes-content h2, .minutes-content h3 {
+        color: #005EB8;
+        font-weight: 600;
+        margin-top: 20px;
+        margin-bottom: 12px;
         page-break-after: avoid;
       }
       
-      .minutes-content h3 {
-        page-break-after: avoid;
-      }
+      .minutes-content h1 { font-size: ${baseFontSize * 1.8}px; }
+      .minutes-content h2 { font-size: ${baseFontSize * 1.5}px; }
+      .minutes-content h3 { font-size: ${baseFontSize * 1.3}px; }
       
       .minutes-content table {
         page-break-inside: avoid;
@@ -34,18 +38,36 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
         width: 100%;
         border-collapse: collapse;
         margin: 16px 0;
+        table-layout: fixed;
+        border: 1px solid #d1d5db;
       }
       
-      .minutes-content table.meeting-table td,
-      .minutes-content table.meeting-table th {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: left;
-      }
-      
-      .minutes-content table.meeting-table th {
-        background-color: #f8f9fa;
+      .minutes-content table.meeting-table thead th {
+        background-color: #005EB8;
+        color: white;
         font-weight: 600;
+        padding: 12px;
+        text-align: left;
+        border: 1px solid #d1d5db;
+      }
+      
+      .minutes-content table.meeting-table tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+      }
+      
+      .minutes-content table.meeting-table tbody tr:nth-child(even) {
+        background-color: #f8fafb;
+      }
+      
+      .minutes-content table.meeting-table tbody tr:hover {
+        background-color: #e8f4f8;
+      }
+      
+      .minutes-content table.meeting-table td {
+        border: 1px solid #d1d5db;
+        padding: 10px;
+        text-align: left;
+        word-wrap: break-word;
       }
     </style>
     ${html}
