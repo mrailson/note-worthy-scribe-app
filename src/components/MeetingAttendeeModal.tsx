@@ -508,7 +508,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-1">
                               <span className="font-semibold truncate">
-                                {attendee.title ? `${attendee.title} ${attendee.name}` : attendee.name}
+                                {attendee.title === 'Dr' ? `${attendee.title} ${attendee.name}` : attendee.name}
                               </span>
                               <Badge variant="outline" className={`${orgBadge.className} text-xs shrink-0`}>
                                 {orgBadge.icon}
