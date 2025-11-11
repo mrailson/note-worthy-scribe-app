@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Helmet } from 'react-helmet-async';
-import { Link } from 'react-router-dom';
+
 import { supabase } from '@/integrations/supabase/client';
 import { Play } from 'lucide-react';
 
@@ -59,7 +59,7 @@ const DemoVideosPage: React.FC = () => {
             <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {videos.map((v) => (
                 <li key={v.name} className="group">
-                  <Link to={`/demos/watch/${encodeURIComponent(v.name)}`} className="block">
+                  <a href={v.url} target="_blank" rel="noopener noreferrer" className="block" aria-label={`Open demo video ${v.name} in a new tab`}>
                     <div className="relative rounded-lg overflow-hidden bg-muted aspect-video shadow-lg hover:shadow-xl transition-shadow">
                       <video
                         src={v.url}
@@ -75,7 +75,7 @@ const DemoVideosPage: React.FC = () => {
                       </div>
                     </div>
                     <h2 className="mt-3 font-medium text-foreground line-clamp-2">{v.name}</h2>
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>
