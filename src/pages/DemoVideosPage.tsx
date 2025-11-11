@@ -53,7 +53,7 @@ const DemoVideosPage: React.FC = () => {
           {loading ? (
             <div className="text-center text-muted-foreground">Loading videos…</div>
           ) : videos.length === 0 ? (
-            <div className="text-center text-muted-foreground">No demos yet. If you are an admin, upload one below.</div>
+            <div className="text-center text-muted-foreground">No demos available yet.</div>
           ) : (
             <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {videos.map((v) => (
@@ -73,15 +73,6 @@ const DemoVideosPage: React.FC = () => {
             </ul>
           )}
         </section>
-
-        <aside className="mt-8 text-center">
-          <Link
-            to="/admin/demo-video"
-            className="inline-flex items-center px-3 py-2 rounded-md border border-border text-foreground hover:bg-accent/10 transition"
-          >
-            Admin: Upload a new demo
-          </Link>
-        </aside>
       </main>
     </>
   );
