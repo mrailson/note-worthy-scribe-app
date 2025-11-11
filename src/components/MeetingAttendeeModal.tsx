@@ -11,7 +11,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Users, Plus, Edit, Trash2, Check, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 
 interface Attendee {
   id: string;
@@ -118,7 +118,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
       setAllAttendees((data as Attendee[]) || []);
     } catch (error) {
       console.error('Error fetching attendees:', error);
-      toast.error('Failed to load attendees');
+      showToast.error('Failed to load attendees');
     }
   };
 
@@ -204,7 +204,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
       onClose();
     } catch (error) {
       console.error('Error saving attendees:', error);
-      toast.error('Failed to save attendees');
+      showToast.error('Failed to save attendees');
     } finally {
       setIsSaving(false);
     }
@@ -212,7 +212,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
 
   const saveNewAttendee = async () => {
     if (!formData.name.trim()) {
-      toast.error('Name is required');
+      showToast.error('Name is required');
       return;
     }
 
@@ -224,7 +224,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
         .rpc('get_user_roles', { _user_id: user.id });
       
       if (!userRoles || userRoles.length === 0) {
-        toast.error('No practice assigned to your account');
+        showToast.error('No practice assigned to your account');
         return;
       }
 
@@ -245,7 +245,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
           .eq('id', editingAttendeeId);
 
         if (error) throw error;
-        toast.success('Attendee updated');
+        showToast.success('Attendee updated', { section: 'meeting_manager' });
       } else {
         // Insert new - always set user_id to current user (who is creating the record)
         
@@ -263,14 +263,14 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
           });
 
         if (error) throw error;
-        toast.success('Attendee added');
+        showToast.success('Attendee added', { section: 'meeting_manager' });
       }
 
       resetForm();
       fetchAttendees();
     } catch (error) {
       console.error('Error saving attendee:', error);
-      toast.error('Failed to save attendee');
+      showToast.error('Failed to save attendee');
     }
   };
 
@@ -297,12 +297,12 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
         .eq('id', attendeeId);
 
       if (error) throw error;
-      toast.success('Attendee deleted');
+      showToast.success('Attendee deleted', { section: 'meeting_manager' });
       fetchAttendees();
       setSelectedAttendeeIds(prev => prev.filter(id => id !== attendeeId));
     } catch (error) {
       console.error('Error deleting attendee:', error);
-      toast.error('Failed to delete attendee');
+      showToast.error('Failed to delete attendee');
     }
   };
 
