@@ -19,6 +19,8 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { renderPoeticContent } from '@/lib/poeticRenderer';
 import { renderMinutesMarkdown } from '@/lib/minutesRenderer';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { 
   renderMinutesNoActions, 
   renderMinutesBlackWhite, 
@@ -182,6 +184,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isRenderingExec, setIsRenderingExec] = useState(false);
   const [minutesHtml, setMinutesHtml] = useState<string>("");
   const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
+  const [useSimpleRenderer, setUseSimpleRenderer] = useState(false);
   const [transcript, setTranscript] = useState("");
 
   // Cache helpers for Standard minutes HTML across navigations
@@ -266,8 +269,21 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const cached = localStorage.getItem(key);
       if (cached) {
         setMinutesHtml(cached);
+        setUseSimpleRenderer(false);
         return; // skip rendering
       }
+    }
+
+    // Heuristic: fall back to simple renderer for very large or table-heavy content
+    const tableCount = (notesStyle3.match(/\n\|/g) || []).length;
+    if (notesStyle3.length > 8000 || tableCount > 30) {
+      console.warn('⚠️ Using simple markdown renderer for performance:', { len: notesStyle3.length, tableCount });
+      setUseSimpleRenderer(true);
+      setIsRenderingMinutes(false);
+      setMinutesHtml('');
+      return;
+    } else {
+      setUseSimpleRenderer(false);
     }
 
     setIsRenderingMinutes(true);
@@ -3403,7 +3419,7 @@ ${transcriptToUse}`;
                                         <div className="flex items-center justify-center h-32">
                                           <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                                         </div>
-                                      ) : (isRenderingMinutes && !minutesHtml) ? (
+                                      ) : (isRenderingMinutes && !minutesHtml && !useSimpleRenderer) ? (
                                         <div className="flex items-center justify-center min-h-[500px]">
                                           <div className="flex flex-col items-center gap-4 animate-fade-in">
                                             <div className="relative">
@@ -3444,19 +3460,34 @@ ${transcriptToUse}`;
                                                .max-w-none ul, .max-w-none ol { font-size: ${fontSizeStyle1}px !important; }
                                              `}
                                            </style>
-                                            <div 
-                                              ref={minutesContainerRef}
-                                              dangerouslySetInnerHTML={{ 
-                                                __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
-                                                  selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                  selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                  selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                  selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                  selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                  (minutesHtml || '')
-                                                )) : ''
-                                              }}
-                                            />
+                                            {activeNotesStyleTab === 'style1' && (
+                                              selectedFormatVariation === 'standard' ? (
+                                                useSimpleRenderer ? (
+                                                  <div ref={minutesContainerRef} className="prose prose-sm max-w-none">
+                                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{notesStyle3}</ReactMarkdown>
+                                                  </div>
+                                                ) : (
+                                                  <div 
+                                                    ref={minutesContainerRef}
+                                                    dangerouslySetInnerHTML={{ __html: minutesHtml || '' }}
+                                                  />
+                                                )
+                                              ) : (
+                                                <div 
+                                                  ref={minutesContainerRef}
+                                                  dangerouslySetInnerHTML={{ 
+                                                    __html: (
+                                                      selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                      selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                      selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                      selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                      selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                      (minutesHtml || '')
+                                                    )
+                                                  }}
+                                                />
+                                              )
+                                            )}
                                          </div>
                                            <InlineWordCorrector
                                             content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
