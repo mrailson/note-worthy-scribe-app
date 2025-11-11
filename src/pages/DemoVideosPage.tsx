@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Play } from 'lucide-react';
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 
 interface DemoVideo {
   name: string;
@@ -85,15 +85,34 @@ const DemoVideosPage: React.FC = () => {
             <DialogTitle className="sr-only">
               {selectedVideo?.name || 'Demo Video'}
             </DialogTitle>
+            <DialogDescription className="sr-only">
+              Notewell AI demo video player
+            </DialogDescription>
             {selectedVideo && (
               <div className="relative bg-black">
                 <video
                   key={selectedVideo.url}
-                  src={selectedVideo.url}
                   controls
                   className="w-full"
                   playsInline
-                />
+                  preload="metadata"
+                  crossOrigin="anonymous"
+                  autoPlay
+                  muted
+                >
+                  <source src={selectedVideo.url} type="video/mp4" />
+                </video>
+                <div className="p-3 text-right">
+                  <a
+                    href={selectedVideo.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm text-primary hover:underline"
+                    aria-label="Open video in a new tab"
+                  >
+                    Open in new tab
+                  </a>
+                </div>
               </div>
             )}
           </DialogContent>
