@@ -48,6 +48,7 @@ import { ProtectedRoute } from "./components/ProtectedRoute";
 import GPSoapUI from "./components/GPSoapUI";
 import Turkey2025 from "./pages/Turkey2025";
 import EnhancedAccess from "./pages/EnhancedAccess";
+import { AdminVideoUpload } from "./components/admin/AdminVideoUpload";
 import ExecutiveOverview from "./pages/ExecutiveOverview";
 import LoadDemoTeamData from "./pages/LoadDemoTeamData";
 
@@ -80,6 +81,7 @@ const App = () => {
               <Route path="/consultation-summary" element={<GPSoapUI />} />
               <Route path="/settings" element={<Settings />} />
               <Route path="/admin" element={<SystemAdmin />} />
+              <Route path="/admin/demo-video" element={<AdminVideoUpload />} />
               <Route path="/practice-admin" element={<PracticeAdmin />} />
               <Route path="/practice-admin/fridges" element={<PracticeAdminFridges />} />
               <Route path="/attendees" element={<Attendees />} />
