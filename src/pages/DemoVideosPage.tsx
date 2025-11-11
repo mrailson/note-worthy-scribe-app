@@ -3,7 +3,7 @@ import { Helmet } from 'react-helmet-async';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { Play } from 'lucide-react';
-import { Dialog, DialogContent } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 interface DemoVideo {
   name: string;
@@ -82,13 +82,17 @@ const DemoVideosPage: React.FC = () => {
 
         <Dialog open={!!selectedVideo} onOpenChange={() => setSelectedVideo(null)}>
           <DialogContent className="max-w-4xl w-full p-0">
+            <DialogTitle className="sr-only">
+              {selectedVideo?.name || 'Demo Video'}
+            </DialogTitle>
             {selectedVideo && (
               <div className="relative bg-black">
                 <video
+                  key={selectedVideo.url}
                   src={selectedVideo.url}
                   controls
-                  autoPlay
                   className="w-full"
+                  playsInline
                 />
               </div>
             )}
