@@ -3502,7 +3502,9 @@ ${transcriptToUse}`;
                                                 ) : (
                                                   <div 
                                                     ref={minutesContainerRef}
-                                                    dangerouslySetInnerHTML={{ __html: minutesHtml || '' }}
+                                                    dangerouslySetInnerHTML={{ 
+                                                      __html: (minutesHtml || '').replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') 
+                                                    }}
                                                   />
                                                 )
                                               ) : (
