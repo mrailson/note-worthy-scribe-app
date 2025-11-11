@@ -87,7 +87,6 @@ import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 import { medicalTermCorrector } from '@/utils/MedicalTermCorrector';
 import { exportConsultationToWord } from '@/utils/consultationWordExport';
-import DOMPurify from 'dompurify';
 
 interface Meeting {
   id: string;
@@ -182,14 +181,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isRenderingExec, setIsRenderingExec] = useState(false);
   const [minutesHtml, setMinutesHtml] = useState<string>("");
   const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
-  const [isFormattingInBackground, setIsFormattingInBackground] = useState(false);
-  const [formattingTimedOut, setFormattingTimedOut] = useState(false);
-  const workerRef = useRef<Worker | null>(null);
-  const workerTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const [showTranscriptBanner, setShowTranscriptBanner] = useState(false);
-  const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [transcript, setTranscript] = useState("");
-  const [isTrimming, setIsTrimming] = useState(false);
 
   // Cache helpers for Standard minutes HTML across navigations
   const minutesHash = (s: string) => {
@@ -200,8 +192,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const getMinutesCacheKey = (id: string, content: string) => `minutes-html-${id}-${minutesHash(content)}`;
   const [fontSizeStyle1, setFontSizeStyle1] = useState(13); // Font size for Minutes (default 13)
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
-  const [usingBackupFormatter, setUsingBackupFormatter] = useState(false); // Track if backup formatter is active
-  const [lastFormattedAt, setLastFormattedAt] = useState<string | null>(null); // Track last format time
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [transcriptLoaded, setTranscriptLoaded] = useState(false); // Track if transcript has been loaded
   const [transcriptSize, setTranscriptSize] = useState(0); // Track transcript size in bytes
@@ -232,194 +222,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   
   // Search functionality for transcript
   const [searchTerm, setSearchTerm] = useState("");
-  
-  // Helper to detect transcript markers
-  const detectTranscriptMarkers = (content: string) => {
-    return /===\s*TRANSCRIPT\s*(START|BEGIN|END|FINISH)?\s*===|#{1,6}\s*(Appendix|Appendices|Transcript|Raw Transcript|Full Transcript)|\*\*TRANSCRIPT\*\*/i.test(content);
-  };
-
-  // Apply basic markdown styling to quick view
-  const applyQuickViewFormatting = (text: string): string => {
-    return text
-      .replace(/^### (.+)$/gm, '<h3 style="font-size: 1.1em; font-weight: 600; margin: 16px 0 8px 0; color: hsl(var(--foreground));">$1</h3>')
-      .replace(/^## (.+)$/gm, '<h2 style="font-size: 1.25em; font-weight: 600; margin: 20px 0 10px 0; color: hsl(var(--foreground));">$1</h2>')
-      .replace(/^# (.+)$/gm, '<h1 style="font-size: 1.5em; font-weight: 700; margin: 24px 0 12px 0; color: hsl(var(--foreground));">$1</h1>')
-      .replace(/\*\*(.+?)\*\*/g, '<strong style="font-weight: 600;">$1</strong>')
-      .replace(/\*(.+?)\*/g, '<em>$1</em>')
-      .replace(/^- (.+)$/gm, '<div style="margin-left: 20px; margin-bottom: 4px;">• $1</div>')
-      .replace(/^\d+\. (.+)$/gm, '<div style="margin-left: 20px; margin-bottom: 4px;">$1</div>')
-      .replace(/\n\n/g, '<br><br>')
-      .replace(/\n/g, '<br>');
-  };
-
-  // Worker helpers
-  const cancelMinutesWorker = React.useCallback(() => {
-    if (workerRef.current) {
-      workerRef.current.terminate();
-      workerRef.current = null;
-    }
-    if (workerTimeoutRef.current) {
-      clearTimeout(workerTimeoutRef.current);
-      workerTimeoutRef.current = null;
-    }
-    setIsFormattingInBackground(false);
-    setFormattingTimedOut(false);
-  }, []);
-
-  const startMinutesWorker = React.useCallback((content: string, fontSize: number) => {
-    cancelMinutesWorker();
-    
-    console.time('Minutes Worker Formatting');
-    console.log('🔄 Starting worker for content length:', content.length);
-    
-    const hasTranscript = detectTranscriptMarkers(content);
-    const hasRisks = hasTranscript || content.length > 15000;
-    
-    const worker = new Worker(
-      new URL('../workers/minutesFormatter.worker.ts', import.meta.url),
-      { type: 'module' }
-    );
-    
-    workerRef.current = worker;
-    setIsFormattingInBackground(true);
-    setFormattingTimedOut(false);
-
-    // 10-second timeout fallback
-    workerTimeoutRef.current = setTimeout(() => {
-      console.warn('⏱️ Worker timed out after 10s, falling back to synchronous rendering');
-      console.timeEnd('Minutes Worker Formatting');
-      cancelMinutesWorker();
-      setFormattingTimedOut(true);
-      
-      // Fallback: render synchronously
-      try {
-        const formatted = renderMinutesMarkdown(content, fontSize);
-        setMinutesHtml(formatted);
-        console.log('✅ Fallback rendering complete');
-      } catch (err) {
-        console.error('❌ Fallback rendering failed:', err);
-      }
-    }, 10000);
-
-    worker.onmessage = (e: MessageEvent) => {
-      console.timeEnd('Minutes Worker Formatting');
-      
-      if (e.data.type === 'success') {
-        // Sanitize on main thread
-        const sanitized = DOMPurify.sanitize(e.data.html, {
-          ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'div', 'span', 'style'],
-          ALLOWED_ATTR: ['class', 'style'],
-        });
-        
-        const wrapped = `<div class="minutes-content font-nhs max-w-full px-2">
-    <style>
-      .minutes-content {
-        font-family: 'Fira Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-        font-size: ${fontSize}px;
-        line-height: ${fontSize * 1.6}px;
-        color: #212B32;
-      }
-      
-      .minutes-content h1, .minutes-content h2, .minutes-content h3 {
-        color: #005EB8;
-        font-weight: 600;
-        margin-top: 20px;
-        margin-bottom: 12px;
-        page-break-after: avoid;
-      }
-      
-      .minutes-content h1 { font-size: ${fontSize * 1.8}px; }
-      .minutes-content h2 { font-size: ${fontSize * 1.5}px; }
-      .minutes-content h3 { font-size: ${fontSize * 1.3}px; }
-      
-      .minutes-content table {
-        page-break-inside: avoid;
-      }
-      
-      .minutes-content table.meeting-table {
-        width: 100%;
-        border-collapse: collapse;
-        margin: 16px 0;
-        table-layout: fixed;
-        border: 1px solid #d1d5db;
-      }
-      
-      .minutes-content table.meeting-table thead th {
-        background-color: #005EB8;
-        color: white;
-        font-weight: 600;
-        padding: 12px;
-        text-align: left;
-        border: 1px solid #d1d5db;
-      }
-      
-      .minutes-content table.meeting-table tbody tr:nth-child(odd) {
-        background-color: #ffffff;
-      }
-      
-      .minutes-content table.meeting-table tbody tr:nth-child(even) {
-        background-color: #f8fafb;
-      }
-      
-      .minutes-content table.meeting-table tbody tr:hover {
-        background-color: #e8f4f8;
-      }
-      
-      .minutes-content table.meeting-table td {
-        border: 1px solid #d1d5db;
-        padding: 10px;
-        text-align: left;
-        word-wrap: break-word;
-      }
-    </style>
-    ${sanitized}
-  </div>`;
-        
-        setMinutesHtml(wrapped);
-        setUsingBackupFormatter(false);
-        setLastFormattedAt(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
-        console.log('✅ Formatted HTML applied');
-      } else {
-        console.error('❌ Worker error:', e.data.message);
-        setFormattingTimedOut(true);
-      }
-      
-      cancelMinutesWorker();
-    };
-
-    worker.onerror = (error) => {
-      console.timeEnd('Minutes Worker Formatting');
-      console.error('❌ Worker failed:', error);
-      cancelMinutesWorker();
-      setFormattingTimedOut(true);
-    };
-
-    worker.postMessage({ content, baseFontSize: fontSize });
-  }, [cancelMinutesWorker]);
-
-  const manualFormat = () => {
-    if (notesStyle3) {
-      setFormattingTimedOut(false);
-      setIsFormattingInBackground(true);
-      setUsingBackupFormatter(false);
-      startMinutesWorker(notesStyle3, fontSizeStyle1);
-    }
-  };
-  
-  const useBackupRenderer = () => {
-    cancelMinutesWorker();
-    if (!notesStyle3) return;
-    
-    console.log('🔄 Using backup formatter for content length:', notesStyle3.length);
-    const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
-    setMinutesHtml(html);
-    setUsingBackupFormatter(true);
-    setFormattingTimedOut(false);
-    setIsFormattingInBackground(false);
-    setLastFormattedAt(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
-    toast.success('Backup formatter applied');
-  };
-  
   // Generate Executive HTML lazily when tab is opened or content changes
   useEffect(() => {
     if (activeNotesStyleTab === 'style4') {
@@ -445,60 +247,44 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [activeNotesStyleTab, notesStyle4, fontSizeStyle1]);
   
-  // Detect embedded transcript and show banner
+  // Generate Minutes (Standard) HTML lazily - only when tab becomes active, with cache
   useEffect(() => {
-    if (!notesStyle3 || activeNotesStyleTab !== 'style1') {
-      setShowTranscriptBanner(false);
-      return;
-    }
-    const hasTranscript = detectTranscriptMarkers(notesStyle3);
-    setShowTranscriptBanner(hasTranscript);
-  }, [notesStyle3, activeNotesStyleTab]);
-
-  // Render minutes using Web Worker for non-blocking formatting
-  useEffect(() => {
-    if (activeNotesStyleTab !== 'style1' || !notesStyle3) {
-      cancelMinutesWorker();
-      setMinutesHtml('');
+    if (activeNotesStyleTab !== 'style1') {
       return;
     }
 
-    console.log('🎨 Rendering Standard Minutes, length:', notesStyle3.length);
-    
-    // Strip transcript markers for quick view
-    const transcriptPatterns = [
-      /===\s*TRANSCRIPT\s*(START|BEGIN|END|FINISH)?\s*===/gi,
-      /^#{1,6}\s*(Appendix|Appendices|Transcript|Raw Transcript|Full Transcript).*$/gim,
-      /^---+\s*Transcript\s*---+$/gim,
-      /\*\*TRANSCRIPT\*\*/gi,
-    ];
-    
-    let quickView = notesStyle3;
-    for (const pattern of transcriptPatterns) {
-      quickView = quickView.replace(pattern, '');
+    if (!notesStyle3?.trim()) {
+      setMinutesHtml("");
+      setIsRenderingMinutes(false);
+      return;
     }
-    quickView = quickView.replace(/(===\s*TRANSCRIPT|##\s*TRANSCRIPT|Appendix.*Transcript)[\s\S]*$/i, '');
-    
-    // Show formatted quick view immediately
-    const formattedQuickView = applyQuickViewFormatting(quickView.slice(0, 50000));
-    const quickViewHtml = `<div class="minutes-content font-nhs max-w-full px-2" style="padding: 16px; font-size: ${fontSizeStyle1}px; line-height: ${fontSizeStyle1 * 1.6}px;">
-      ${formattedQuickView}
-    </div>`;
-    setMinutesHtml(quickViewHtml);
 
-    // For risky content, delay worker start to ensure UI is responsive first
-    const hasTranscript = detectTranscriptMarkers(notesStyle3);
-    const delayMs = hasTranscript || notesStyle3.length > 15000 ? 500 : 0;
+    // Try cached HTML to avoid re-formatting delays on navigation - include font size in cache key
+    const key = meeting?.id ? `${getMinutesCacheKey(meeting.id, notesStyle3)}_fs${fontSizeStyle1}` : null;
+    if (key) {
+      const cached = localStorage.getItem(key);
+      if (cached) {
+        setMinutesHtml(cached);
+        return; // skip rendering
+      }
+    }
 
-    const timer = setTimeout(() => {
-      startMinutesWorker(notesStyle3, fontSizeStyle1);
-    }, delayMs);
-
-    return () => {
-      clearTimeout(timer);
-      cancelMinutesWorker();
-    };
-  }, [activeNotesStyleTab, notesStyle3, fontSizeStyle1, startMinutesWorker, cancelMinutesWorker]);
+    setIsRenderingMinutes(true);
+    const id = requestIdleCallback(() => {
+      try {
+        const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
+        setMinutesHtml(html);
+        if (key) localStorage.setItem(key, html);
+      } catch (e) {
+        console.error('Error rendering Standard minutes:', e);
+        setMinutesHtml(notesStyle3);
+        if (key) localStorage.setItem(key, notesStyle3);
+      } finally {
+        setIsRenderingMinutes(false);
+      }
+    }, { timeout: 100 });
+    return () => cancelIdleCallback(id);
+  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
@@ -899,52 +685,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   };
 
    // Save note style to database with enhanced validation
-  const detectEmbeddedTranscript = (content: string): boolean => {
-    if (!content) return false;
-    return /===\s*TRANSCRIPT\s*===|#{1,2}\s*TRANSCRIPT|#{1,2}\s*Meeting\s+Transcript|^Transcript:|^Full\s+Transcript:/im.test(content);
-  };
-
-  const stripTranscriptMarkers = (content: string): string => {
-    return content
-      .replace(/\n*===\s*TRANSCRIPT\s*===[\s\S]*$/i, '')
-      .replace(/\n*#{1,2}\s*TRANSCRIPT[\s\S]*$/im, '')
-      .replace(/\n*#{1,2}\s*Meeting\s+Transcript[\s\S]*$/im, '')
-      .replace(/\n*^Transcript:[\s\S]*$/im, '')
-      .replace(/\n*^Full\s+Transcript:[\s\S]*$/im, '')
-      .replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '')
-      .trim();
-  };
-
-  const handleTrimTranscript = async () => {
-    if (!notesStyle3) return;
-    
-    setIsCleaningTranscript(true);
-    try {
-      const cleaned = stripTranscriptMarkers(notesStyle3);
-      setNotesStyle3(cleaned);
-      await saveNoteStyleToDatabase(3, cleaned);
-      setShowTranscriptBanner(false);
-      toast.success('Transcript removed from minutes');
-    } catch (error) {
-      console.error('Error cleaning transcript:', error);
-      toast.error('Failed to clean transcript');
-    } finally {
-      setIsCleaningTranscript(false);
-    }
-  };
-
-  const saveNoteStyleToDatabase = async (styleNumber: number, content: string) => {
-    if (!meeting?.id || !user?.id || !content.trim()) {
-      console.error('❌ Invalid parameters for saveNoteStyleToDatabase');
-      return;
-    }
-
-    // Strip transcript markers before saving if this is style 3 (Standard Minutes)
-    let contentToSave = content;
-    if (styleNumber === 3 && detectEmbeddedTranscript(content)) {
-      console.log('🧹 Stripping embedded transcript before saving style 3');
-      contentToSave = stripTranscriptMarkers(content);
-    }
+   const saveNoteStyleToDatabase = async (styleNumber: number, content: string) => {
+     if (!meeting?.id || !user?.id || !content.trim()) {
+       console.error('❌ Invalid parameters for saveNoteStyleToDatabase');
+       return;
+     }
 
       // Validate meeting ID format and user access
       if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
@@ -3311,34 +3056,8 @@ ${transcriptToUse}`;
                       }} className="h-full flex flex-col">
                         <div className="flex items-center gap-2 mb-4">
                           <TabsList>
-                            <TabsTrigger value="style1" className="text-xs sm:text-sm flex items-center gap-2">
+                            <TabsTrigger value="style1" className="text-xs sm:text-sm">
                               Meeting Minutes - Standard View
-                              {isFormattingInBackground && (
-                                <span className="text-xs text-muted-foreground ml-2 flex items-center gap-1">
-                                  (Formatting...
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      cancelMinutesWorker();
-                                    }}
-                                    className="text-primary hover:underline ml-1"
-                                  >
-                                    Stop
-                                  </button>
-                                  )
-                                </span>
-                              )}
-                              {formattingTimedOut && !isFormattingInBackground && (
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    manualFormat();
-                                  }}
-                                  className="text-xs text-primary hover:underline ml-2"
-                                >
-                                  Format Now
-                                </button>
-                              )}
                             </TabsTrigger>
                             <TabsTrigger value="style-gallery" className="text-xs sm:text-sm">
                               <Sparkles className="h-4 w-4 mr-1" />
@@ -3351,89 +3070,33 @@ ${transcriptToUse}`;
                             )}
                           </TabsList>
                           
-                          {/* Status pill for formatter */}
-                          {activeNotesStyleTab === 'style1' && (usingBackupFormatter || lastFormattedAt) && (
-                            <div className="text-xs text-muted-foreground flex items-center gap-1 ml-2">
-                              {usingBackupFormatter ? (
-                                <>
-                                  <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
-                                  Backup formatter active{lastFormattedAt ? ` (${lastFormattedAt})` : ''}
-                                </>
-                              ) : lastFormattedAt ? (
-                                <>Last formatted at {lastFormattedAt}</>
-                              ) : null}
-                            </div>
-                          )}
-                          
-                          {/* Font Size Controls and Format Buttons - only show for Minutes */}
+                          {/* Font Size Controls - only show for Minutes */}
                           {activeNotesStyleTab === 'style1' && (
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1 border rounded-md p-1">
-                                <Type className="h-4 w-4 text-muted-foreground mr-1" />
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => setFontSizeStyle1(prev => Math.max(12, prev - 1))}
-                                  disabled={fontSizeStyle1 <= 12}
-                                  title="Decrease font size"
-                                >
-                                  <Minus className="h-3 w-3" />
-                                </Button>
-                                <span className="text-xs text-muted-foreground px-1 min-w-[2.5rem] text-center">
-                                  {fontSizeStyle1}px
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-7 w-7 p-0"
-                                  onClick={() => setFontSizeStyle1(prev => Math.min(24, prev + 1))}
-                                  disabled={fontSizeStyle1 >= 24}
-                                  title="Increase font size"
-                                >
-                                  <Plus className="h-3 w-3" />
-                                </Button>
-                              </div>
-                              
+                            <div className="flex items-center gap-1 border rounded-md p-1">
+                              <Type className="h-4 w-4 text-muted-foreground mr-1" />
                               <Button
-                                variant="outline"
+                                variant="ghost"
                                 size="sm"
-                                onClick={manualFormat}
-                                disabled={!notesStyle3 || isFormattingInBackground}
-                                title="Reformat the minutes"
-                                className="gap-1.5"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setFontSizeStyle1(prev => Math.max(12, prev - 1))}
+                                disabled={fontSizeStyle1 <= 12}
+                                title="Decrease font size"
                               >
-                                {isFormattingInBackground ? (
-                                  <RefreshCw className="h-3 w-3 animate-spin" />
-                                ) : (
-                                  <RefreshCw className="h-3 w-3" />
-                                )}
-                                Reformat
+                                <Minus className="h-3 w-3" />
                               </Button>
-                              
-                              {usingBackupFormatter ? (
-                                <Button
-                                  variant="secondary"
-                                  size="sm"
-                                  onClick={manualFormat}
-                                  title="Return to smart formatter"
-                                  className="gap-1.5"
-                                >
-                                  <Sparkles className="h-3 w-3" />
-                                  Smart Formatter
-                                </Button>
-                              ) : (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={useBackupRenderer}
-                                  disabled={!notesStyle3}
-                                  title="Use backup formatter for reliable rendering"
-                                  className="gap-1.5"
-                                >
-                                  Backup Formatter
-                                </Button>
-                              )}
+                              <span className="text-xs text-muted-foreground px-1 min-w-[2.5rem] text-center">
+                                {fontSizeStyle1}px
+                              </span>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-7 w-7 p-0"
+                                onClick={() => setFontSizeStyle1(prev => Math.min(24, prev + 1))}
+                                disabled={fontSizeStyle1 >= 24}
+                                title="Increase font size"
+                              >
+                                <Plus className="h-3 w-3" />
+                              </Button>
                             </div>
                           )}
 
@@ -3689,32 +3352,9 @@ ${transcriptToUse}`;
                                             </div>
                                           </div>
                                         </div>
-                                       ) : (
-                                         <>
-                                          {/* Transcript detection banner */}
-                                          {showTranscriptBanner && (
-                                            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
-                                              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                                              <div className="flex-1">
-                                                <p className="text-sm font-medium text-amber-900 mb-1">
-                                                  Large transcript detected in minutes
-                                                </p>
-                                                <p className="text-xs text-amber-700 mb-2">
-                                                  This may cause slow viewing. Trim the embedded transcript for faster performance.
-                                                </p>
-                                                <Button
-                                                  size="sm"
-                                                  variant="outline"
-                                                  onClick={handleTrimTranscript}
-                                                  disabled={isCleaningTranscript}
-                                                  className="text-xs"
-                                                >
-                                                  {isCleaningTranscript ? 'Cleaning...' : 'Trim Transcript'}
-                                                </Button>
-                                              </div>
-                                            </div>
-                                          )}
-                                          <div
+                                      ) : (
+                                        <>
+                                         <div 
                                            className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}
                                            style={{ 
                                              fontSize: `${fontSizeStyle1}px`, 
@@ -3747,16 +3387,16 @@ ${transcriptToUse}`;
                                               }}
                                             />
                                          </div>
-                                            <InlineWordCorrector
-                                             content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
-                                              allTabsContent={{
-                                                style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
-                                                style4: notesStyle4
-                                              }}
-                                             onApplyCorrection={handleInlineCorrection}
-                                             isActive={!isEditing && !isFormattingInBackground && activeNotesStyleTab === 'style1' && (notesStyle3?.length || 0) < 25000}
-                                             selectionRootRef={minutesContainerRef}
-                                           />
+                                           <InlineWordCorrector
+                                            content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
+                                             allTabsContent={{
+                                               style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
+                                               style4: notesStyle4
+                                             }}
+                                            onApplyCorrection={handleInlineCorrection}
+                                            isActive={!isEditing && activeNotesStyleTab === 'style1'}
+                                            selectionRootRef={minutesContainerRef}
+                                          />
                                         </>
                                       )}
                                   </div>

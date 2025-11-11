@@ -164,8 +164,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   useEffect(() => {
-    const isPublicRoute = window.location.pathname.startsWith('/public/');
-    
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -173,8 +171,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         setUser(session?.user ?? null);
         setLoading(false);
         
-        // Fetch user modules and check admin status when user logs in (skip for public routes)
-        if (session?.user && !isPublicRoute) {
+        // Fetch user modules and check admin status when user logs in
+        if (session?.user) {
           setTimeout(() => {
             fetchUserModules(session.user.id);
             checkSystemAdmin(session.user.id);
@@ -193,8 +191,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
-      // Also fetch modules and check admin status for existing session (skip for public routes)
-      if (session?.user && !isPublicRoute) {
+      // Also fetch modules and check admin status for existing session
+      if (session?.user) {
         setTimeout(() => {
           fetchUserModules(session.user.id);
           checkSystemAdmin(session.user.id);
@@ -208,10 +206,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // Periodically refresh user modules and admin status (reduced frequency)
   useEffect(() => {
-    // Skip module refresh for public routes to improve performance
-    const isPublicRoute = location.pathname.startsWith('/public/');
-    
-    if (user?.id && !isPublicRoute) {
+    if (user?.id) {
       // Immediate refresh
       fetchUserModules(user.id);
       checkSystemAdmin(user.id);
@@ -225,14 +220,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       
       return () => clearInterval(interval);
     }
-  }, [user?.id, location.pathname]);
+  }, [user?.id]);
 
   // Update session activity every 5 minutes and cleanup expired sessions
   useEffect(() => {
-    // Skip session activity tracking for public routes
-    const isPublicRoute = location.pathname.startsWith('/public/');
-    
-    if (!user?.id || isPublicRoute) return;
+    if (!user?.id) return;
 
     const updateActivity = async () => {
       try {
@@ -261,7 +253,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       clearInterval(activityInterval);
       clearInterval(cleanupInterval);
     };
-  }, [user?.id, location.pathname]);
+  }, [user?.id]);
 
   const signIn = async (email: string, password: string) => {
     try {
