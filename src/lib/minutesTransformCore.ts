@@ -69,22 +69,21 @@ export function transformMinutesToHtml(content: string, baseFontSize: number): s
   const lines = html.split('<br>');
   let inTable = false;
   let tableRows: string[] = [];
-  let isFirstRow = true;
+  let hasHeader = false;
   
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i].trim();
     
     // Check if this line contains a table row (has pipes)
-    if (line.includes('|') && line.split('|').length > 2) {
+    if (line.includes('|') && line.split('|').filter(c => c.trim()).length >= 2) {
       // Skip separator rows (like |---|---|)
-      if (/^\|[\s-:|]+\|$/.test(line)) {
-        isFirstRow = false;
+      if (/^[\|\s\-:]+$/.test(line)) {
         continue;
       }
       
       if (!inTable) {
         inTable = true;
-        isFirstRow = true;
+        hasHeader = false;
       }
       
       // Parse the cells
@@ -92,25 +91,33 @@ export function transformMinutesToHtml(content: string, baseFontSize: number): s
         .filter(cell => cell.trim() !== '')
         .map(cell => cell.trim());
       
-      // Create table row with appropriate cell type
-      const cellTag = isFirstRow ? 'th' : 'td';
-      const rowHtml = '<tr>' + cells.map(cell => `<${cellTag}>${cell}</${cellTag}>`).join('') + '</tr>';
-      tableRows.push(rowHtml);
+      // First row is header
+      if (!hasHeader) {
+        const headerHtml = '<thead><tr>' + cells.map(cell => `<th>${cell}</th>`).join('') + '</tr></thead>';
+        tableRows.push(headerHtml);
+        tableRows.push('<tbody>');
+        hasHeader = true;
+      } else {
+        // Data row
+        const rowHtml = '<tr>' + cells.map(cell => `<td>${cell}</td>`).join('') + '</tr>';
+        tableRows.push(rowHtml);
+      }
       
-      isFirstRow = false;
       lines[i] = ''; // Clear this line as we've processed it
     } else if (inTable && tableRows.length > 0) {
       // End of table, wrap accumulated rows
-      lines[i] = `<table class="meeting-table"><tbody>${tableRows.join('')}</tbody></table><br>${line}`;
+      tableRows.push('</tbody>');
+      lines[i] = `<table class="meeting-table">${tableRows.join('')}</table><br>${line}`;
       tableRows = [];
       inTable = false;
-      isFirstRow = true;
+      hasHeader = false;
     }
   }
   
   // Handle any remaining table rows
   if (tableRows.length > 0) {
-    lines.push(`<table class="meeting-table"><tbody>${tableRows.join('')}</tbody></table>`);
+    tableRows.push('</tbody>');
+    lines.push(`<table class="meeting-table">${tableRows.join('')}</table>`);
   }
   
   html = lines.join('<br>');

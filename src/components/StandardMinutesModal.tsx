@@ -260,27 +260,30 @@ export function StandardMinutesModal({ isOpen, onClose, meetingId, meetingTitle 
                   .standard-minutes-content table {
                     width: 100%;
                     border-collapse: collapse;
-                    margin: 16px 0;
+                    margin: 20px 0;
                     border: 2px solid #005EB8;
-                    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-                    table-layout: fixed;
-                    font-size: 13px;
+                    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+                    font-size: 14px;
                   }
-                  .standard-minutes-content table td,
-                  .standard-minutes-content table th {
-                    border: 1px solid #d1d5db;
-                    padding: 10px 12px;
-                    text-align: left;
-                    word-wrap: break-word;
-                    overflow-wrap: break-word;
-                    vertical-align: top;
+                  .standard-minutes-content table thead {
+                    background-color: #005EB8;
                   }
                   .standard-minutes-content table th {
                     background-color: #005EB8;
-                    font-weight: 600;
                     color: #ffffff;
-                    font-size: 13px;
+                    font-weight: 600;
+                    font-size: 14px;
+                    padding: 14px 16px;
+                    text-align: left;
                     border: 1px solid #004a94;
+                  }
+                  .standard-minutes-content table td {
+                    padding: 12px 16px;
+                    text-align: left;
+                    border: 1px solid #d1d5db;
+                    color: #212B32;
+                    line-height: 1.5;
+                    vertical-align: top;
                   }
                   .standard-minutes-content table tbody tr {
                     transition: background-color 0.15s ease;
@@ -289,23 +292,10 @@ export function StandardMinutesModal({ isOpen, onClose, meetingId, meetingTitle 
                     background-color: #ffffff;
                   }
                   .standard-minutes-content table tbody tr:nth-child(even) {
-                    background-color: #f9fafb;
+                    background-color: #f8fafb;
                   }
                   .standard-minutes-content table tbody tr:hover {
-                    background-color: #e6f2ff;
-                  }
-                  .standard-minutes-content table tbody td {
-                    color: #212B32;
-                    line-height: 1.5;
-                  }
-                  @media (max-width: 768px) {
-                    .standard-minutes-content table {
-                      font-size: 12px;
-                    }
-                    .standard-minutes-content table td,
-                    .standard-minutes-content table th {
-                      padding: 8px;
-                    }
+                    background-color: #e8f4f8;
                   }
                 `}
               </style>
