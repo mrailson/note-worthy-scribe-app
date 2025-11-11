@@ -154,14 +154,21 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                    align="end" 
                    className="bg-background border border-border shadow-lg w-48 z-50"
                  >
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/ai4gp')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      AI4PM Service
-                    </DropdownMenuItem>
-                    {hasModuleAccess('meeting_recorder') && (
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/ai4gp')}
+                       className="cursor-pointer py-3"
+                     >
+                       <Sparkles className="h-4 w-4 mr-2" />
+                       AI4PM Service
+                     </DropdownMenuItem>
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/ai4pm?tab=speech-studio')}
+                       className="cursor-pointer py-3"
+                     >
+                       <Mic className="h-4 w-4 mr-2" />
+                       Speech Studio
+                     </DropdownMenuItem>
+                     {hasModuleAccess('meeting_recorder') && (
                        <DropdownMenuItem 
                           onClick={() => navigate('/')}
                          className="cursor-pointer py-3"
@@ -434,6 +441,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ai4gp')}>
                                   <Sparkles className="h-4 w-4 mr-2" />
                                   AI4GP Service
+                                </Button>
+                              </DrawerClose>
+                              <DrawerClose asChild>
+                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/ai4pm?tab=speech-studio')}>
+                                  <Mic className="h-4 w-4 mr-2" />
+                                  Speech Studio
                                 </Button>
                               </DrawerClose>
                               {hasModuleAccess('meeting_recorder') && (

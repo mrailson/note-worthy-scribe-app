@@ -178,6 +178,13 @@ const AI4PMService = () => {
       loadSearchHistoryList();
       loadPracticeContext();
     }
+    
+    // Check for tab parameter in URL
+    const params = new URLSearchParams(window.location.search);
+    const tabParam = params.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
   }, [user]);
 
   // File input setup
