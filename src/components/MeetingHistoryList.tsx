@@ -205,6 +205,7 @@ export const MeetingHistoryList = ({
   const [locationInputOpen, setLocationInputOpen] = useState<Record<string, boolean>>({});
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [consolidatingMeetings, setConsolidatingMeetings] = useState<Record<string, boolean>>({});
+  // State for tracking transcript consolidation progress per meeting
   
   // Fetch user practices and custom locations
   useEffect(() => {
