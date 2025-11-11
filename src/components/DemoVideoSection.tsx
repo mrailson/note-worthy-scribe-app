@@ -33,33 +33,29 @@ export const DemoVideoSection: React.FC = () => {
   if (loading || !videoUrl) return null;
 
   return (
-    <section className="mb-12 animate-fade-in">
-      <div className="text-center mb-6">
-        <h2 className="text-3xl font-bold text-foreground mb-2">
+    <section className="mb-8 animate-fade-in">
+      <div className="text-center mb-4">
+        <h2 className="text-xl font-semibold text-foreground mb-1">
           See Notewell AI in Action
         </h2>
-        <p className="text-muted-foreground">
-          Watch how Notewell AI streamlines practice management and enhances patient care
+        <p className="text-sm text-muted-foreground">
+          Watch our quick demo
         </p>
       </div>
       
-      <div className="relative max-w-4xl mx-auto rounded-xl overflow-hidden shadow-2xl border border-border">
-        <video 
-          controls
-          preload="metadata"
-          className="w-full"
-          poster="/placeholder.svg"
-        >
-          <source src={videoUrl} type="video/mp4" />
-          <source src={videoUrl} type="video/webm" />
-          <source src={videoUrl} type="video/quicktime" />
-          Your browser does not support the video tag.
-        </video>
-        
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-0 hover:opacity-100 transition-opacity">
-          <div className="bg-primary/80 rounded-full p-6">
-            <Play className="h-12 w-12 text-primary-foreground" />
-          </div>
+      <div className="flex justify-center">
+        <div className="relative max-w-md w-full rounded-lg overflow-hidden shadow-lg border border-border">
+          <video 
+            controls
+            preload="auto"
+            className="w-full h-auto"
+            controlsList="nodownload"
+          >
+            <source src={videoUrl} type="video/mp4" />
+            <source src={videoUrl} type="video/webm" />
+            <source src={videoUrl} type="video/quicktime" />
+            Your browser does not support the video tag.
+          </video>
         </div>
       </div>
     </section>
