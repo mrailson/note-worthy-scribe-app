@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Eye, Copy, Download, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { StyleDefinition } from './types';
 import { stripMarkdown } from '@/utils/stripMarkdown';
 import { renderMinutesMarkdown } from '@/lib/minutesRenderer';
@@ -35,7 +35,7 @@ export const StyleCard = ({
       const plainText = stripMarkdown(content);
       navigator.clipboard.writeText(plainText);
       onCopy(content);
-      toast.success('Copied to clipboard');
+      showToast.success('Copied to clipboard', { section: 'meeting_manager' });
     }
   };
 

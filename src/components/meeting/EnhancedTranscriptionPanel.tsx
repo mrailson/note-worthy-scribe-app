@@ -16,7 +16,7 @@ import { removeFillerWords, countFillerWords, type FillerWordStats } from '@/uti
 import { detectPII, highlightPII, maskPII, removePII, type PIIMatch } from '@/utils/piiDetector';
 import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { useIsIPhone, useIsMobile } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { TranscriptContextDialog } from '@/components/meeting/TranscriptContextDialog';
@@ -94,7 +94,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   // Handle consolidate transcript chunks
   const handleConsolidateTranscript = async () => {
     setIsConsolidating(true);
-    toast.info('Consolidating transcript chunks...', { duration: 2000 });
+    showToast.info('Consolidating transcript chunks...', { section: 'meeting_manager', duration: 2000 });
     
     try {
       console.log('🔄 Consolidating transcript for meeting:', meetingId);
@@ -105,13 +105,13 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
       
       if (error) {
         console.error('❌ Error consolidating transcript:', error);
-        toast.error('Failed to consolidate transcript');
+        showToast.error('Failed to consolidate transcript');
         return;
       }
       
       if (data?.success) {
         console.log('✅ Consolidation successful:', data);
-        toast.success(`Consolidated ${data.chunksProcessed} chunks (${data.totalWords} words)`);
+        showToast.success(`Consolidated ${data.chunksProcessed} chunks (${data.totalWords} words)`, { section: 'meeting_manager' });
         
         // Refresh the transcript by fetching chunks again
         const { data: chunksData } = await supabase
@@ -135,11 +135,11 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           onTranscriptChange(meetingData.live_transcript_text);
         }
       } else {
-        toast.error(data?.message || 'Failed to consolidate transcript');
+        showToast.error(data?.message || 'Failed to consolidate transcript');
       }
     } catch (error) {
       console.error('❌ Error consolidating transcript:', error);
-      toast.error('Failed to consolidate transcript');
+      showToast.error('Failed to consolidate transcript');
     } finally {
       setIsConsolidating(false);
     }
@@ -180,7 +180,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         setChunks(chunksWithTimestamps);
       } catch (error) {
         console.error('Error fetching chunks:', error);
-        toast.error('Failed to load transcription chunks');
+        showToast.error('Failed to load transcription chunks');
       } finally {
         setIsLoading(false);
       }
@@ -251,7 +251,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     if (fillerStats.totalRemoved > 0) changes.push(`${fillerStats.totalRemoved} filler words`);
     if (nhsResult.appliedRuleIds.length > 0) changes.push(`${nhsResult.appliedRuleIds.length} NHS terms`);
     
-    toast.success(changes.length > 0 ? `Cleaned transcript: ${changes.join(' + ')}` : 'Transcript cleaned');
+    showToast.success(changes.length > 0 ? `Cleaned transcript: ${changes.join(' + ')}` : 'Transcript cleaned', { section: 'meeting_manager' });
   };
 
   const handleMaskAllPII = () => {
@@ -261,7 +261,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
       maskedText = maskPII(maskedText, piiMatches[i]);
     }
     onTranscriptChange(maskedText);
-    toast.success(`Masked ${piiMatches.length} PII instances`);
+    showToast.success(`Masked ${piiMatches.length} PII instances`, { section: 'meeting_manager' });
   };
 
   const handleMaskSelectedPII = () => {
@@ -273,7 +273,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     }
     onTranscriptChange(maskedText);
     setSelectedPII(new Set());
-    toast.success(`Masked ${selectedMatches.length} selected PII instances`);
+    showToast.success(`Masked ${selectedMatches.length} selected PII instances`, { section: 'meeting_manager' });
   };
 
   const handleAddContext = (
@@ -304,7 +304,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
       onTranscriptChange(updatedTranscript);
     }
     
-    toast.success('Context added to transcript');
+    showToast.success('Context added to transcript', { section: 'meeting_manager' });
   };
 
   const handleStartEdit = () => {
@@ -317,7 +317,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     setTranscriptHistory(prev => [...prev, transcript]);
     onTranscriptChange(editValue);
     setIsEditing(false);
-    toast.success('Transcript updated');
+    showToast.success('Transcript updated', { section: 'meeting_manager' });
   };
 
   const handleCancelEdit = () => {
@@ -327,19 +327,19 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
   const handleUndo = () => {
     if (transcriptHistory.length === 0) {
-      toast.error('No changes to undo');
+      showToast.error('No changes to undo');
       return;
     }
     
     const lastVersion = transcriptHistory[transcriptHistory.length - 1];
     setTranscriptHistory(prev => prev.slice(0, -1));
     onTranscriptChange(lastVersion);
-    toast.success('Changes undone');
+    showToast.success('Changes undone', { section: 'meeting_manager' });
   };
 
   const handleFormatTranscript = async () => {
     if (!transcript) {
-      toast.error('No transcript to format');
+      showToast.error('No transcript to format');
       return;
     }
 
@@ -353,7 +353,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
       if (error) {
         console.error('Format transcript error:', error);
-        toast.error('Failed to format transcript');
+        showToast.error('Failed to format transcript');
         return;
       }
 
@@ -361,13 +361,13 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         // Save current transcript to history before changing
         setTranscriptHistory(prev => [...prev, transcript]);
         onTranscriptChange(data.formattedTranscript);
-        toast.success('Transcript formatted with proper paragraphs');
+        showToast.success('Transcript formatted with proper paragraphs', { section: 'meeting_manager' });
       } else {
-        toast.error('No formatted transcript returned');
+        showToast.error('No formatted transcript returned');
       }
     } catch (error) {
       console.error('Error formatting transcript:', error);
-      toast.error('Failed to format transcript');
+      showToast.error('Failed to format transcript');
     } finally {
       setIsFormatting(false);
     }
@@ -375,7 +375,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
   const playTranscript = async () => {
     if (!transcript?.trim()) {
-      toast.error('No text to play');
+      showToast.error('No text to play');
       return;
     }
 
@@ -435,12 +435,12 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
       // Show info if text was limited for faster playback
       if (wasLimited) {
-        toast.info(`Playing first ${textToPlay.length} characters for faster playback`);
+        showToast.info(`Playing first ${textToPlay.length} characters for faster playback`, { section: 'meeting_manager' });
       }
 
       // Show warning if text was truncated by Deepgram
       if (data.wasTruncated) {
-        toast.warning(`Text was truncated to ${data.processedLength} characters (Deepgram limit: 2000)`);
+        showToast.warning(`Text was truncated to ${data.processedLength} characters (Deepgram limit: 2000)`, { section: 'meeting_manager' });
       }
 
       // Convert base64 to audio blob
@@ -485,12 +485,12 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
       await ctx.resume();
       source.start(0);
-      toast.success('Playing transcript');
+      showToast.success('Playing transcript', { section: 'meeting_manager' });
 
     } catch (error: any) {
       console.error('TTS error:', error);
       const errorMessage = error?.message || 'Failed to generate speech';
-      toast.error(errorMessage);
+      showToast.error(errorMessage);
       setIsPlaying(false);
       
       // Resume other audio on error
@@ -519,12 +519,12 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     const { audioFocusManager } = await import('@/utils/AudioFocusManager');
     await audioFocusManager.resumeAll();
     
-    toast.info('Playback stopped');
+    showToast.info('Playback stopped', { section: 'meeting_manager' });
   };
 
   const handleDownloadWord = async () => {
     if (!transcript) {
-      toast.error('No transcript to download');
+      showToast.error('No transcript to download');
       return;
     }
 
@@ -736,10 +736,10 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         : `transcript-${new Date().toISOString().split('T')[0]}.docx`;
       
       saveAs(blob, fileName);
-      toast.success('Transcript downloaded');
+      showToast.success('Transcript downloaded', { section: 'meeting_manager' });
     } catch (error) {
       console.error('Error downloading transcript:', error);
-      toast.error('Failed to download transcript');
+      showToast.error('Failed to download transcript');
     }
   };
 
@@ -1162,7 +1162,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               <DropdownMenuItem
                 onClick={() => {
                   navigator.clipboard.writeText(transcript);
-                  toast.success('Transcript copied');
+                  showToast.success('Transcript copied', { section: 'meeting_manager' });
                 }}
                 disabled={!transcript}
               >

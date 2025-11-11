@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileDown } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { exportConsultationToWord } from '@/utils/consultationWordExport';
 import { ClinicalAction } from './ClinicalActionsPanel';
 
@@ -44,7 +44,7 @@ export const ConsultationExportButton: React.FC<ConsultationExportButtonProps> =
   const handleExport = async () => {
     try {
       setIsExporting(true);
-      toast.info('Generating consultation document...');
+      showToast.info('Generating consultation document...', { section: 'meeting_manager' });
 
       await exportConsultationToWord({
         shorthand,
@@ -58,10 +58,10 @@ export const ConsultationExportButton: React.FC<ConsultationExportButtonProps> =
         consultationDate
       });
 
-      toast.success('Consultation document downloaded');
+      showToast.success('Consultation document downloaded', { section: 'meeting_manager' });
     } catch (error) {
       console.error('Export failed:', error);
-      toast.error('Failed to export consultation document');
+      showToast.error('Failed to export consultation document');
     } finally {
       setIsExporting(false);
     }

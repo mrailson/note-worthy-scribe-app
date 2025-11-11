@@ -11,7 +11,7 @@ import { FileUploadArea } from '@/components/ai4gp/FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { Upload, FileText, Image as ImageIcon, Type } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface TranscriptContextDialogProps {
   open: boolean;
@@ -57,7 +57,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
       setUploadedFiles([...uploadedFiles, ...processed]);
     } catch (error) {
       console.error('File processing error:', error);
-      toast.error('Failed to process some files');
+      showToast.error('Failed to process some files');
     }
   };
 
@@ -81,7 +81,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
 
   const handleAddToTranscript = () => {
     if (selectedTypes.length === 0) {
-      toast.error('Please select at least one context type');
+      showToast.error('Please select at least one context type');
       return;
     }
 
@@ -98,7 +98,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
     } else if (uploadedFiles.length > 0) {
       onAddContext(selectedTypes, uploadedFiles, customLabel);
     } else {
-      toast.error('Please add some content before adding to transcript');
+      showToast.error('Please add some content before adding to transcript');
       return;
     }
 

@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Copy, Download, FileText } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface SoapNote {
   S: string; // Subjective
@@ -62,7 +62,7 @@ export const SoapNotesDisplay: React.FC<SoapNotesDisplayProps> = ({
     
     const text = `${section}: ${soapNotes[section]}`;
     navigator.clipboard.writeText(text);
-    toast.success(`${section} section copied to clipboard`);
+    showToast.success(`${section} section copied to clipboard`, { section: 'meeting_manager' });
     
     if (onCopySection) {
       onCopySection(section);
@@ -74,7 +74,7 @@ export const SoapNotesDisplay: React.FC<SoapNotesDisplayProps> = ({
     
     const fullSoap = `S: ${soapNotes.S}\n\nO: ${soapNotes.O}\n\nA: ${soapNotes.A}\n\nP: ${soapNotes.P}`;
     navigator.clipboard.writeText(fullSoap);
-    toast.success('Complete SOAP notes copied to clipboard');
+    showToast.success('Complete SOAP notes copied to clipboard', { section: 'meeting_manager' });
     
     if (onCopyAll) {
       onCopyAll();

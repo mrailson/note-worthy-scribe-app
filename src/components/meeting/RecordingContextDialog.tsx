@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { FileText, Check } from 'lucide-react';
 import { SimpleFileUpload } from '@/components/SimpleFileUpload';
 import { useFileUpload } from '@/hooks/useFileUpload';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 
 interface RecordingContextDialogProps {
@@ -86,12 +86,12 @@ export const RecordingContextDialog: React.FC<RecordingContextDialogProps> = ({
 
       if (error) throw error;
 
-      toast.success('Context saved successfully');
+      showToast.success('Context saved successfully', { section: 'meeting_manager' });
       onContextSaved?.();
       onOpenChange(false);
     } catch (error) {
       console.error('Error saving context:', error);
-      toast.error('Failed to save context');
+      showToast.error('Failed to save context');
     } finally {
       setIsSaving(false);
     }

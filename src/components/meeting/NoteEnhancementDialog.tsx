@@ -14,7 +14,7 @@ import { Label } from "@/components/ui/label";
 import { Loader2, Wand2 } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface NoteEnhancementDialogProps {
   open: boolean;
@@ -42,7 +42,7 @@ export function NoteEnhancementDialog({
 
   const handleEnhance = async () => {
     if (!prompt.trim()) {
-      toast.error('Please enter a prompt or use voice input');
+      showToast.error('Please enter a prompt or use voice input');
       return;
     }
 
@@ -62,7 +62,7 @@ export function NoteEnhancementDialog({
 
       if (data?.enhancedContent) {
         onEnhanced(data.enhancedContent);
-        toast.success('Notes enhanced successfully!');
+        showToast.success('Notes enhanced successfully!', { section: 'meeting_manager' });
         setPrompt('');
         onOpenChange(false);
       } else {
@@ -70,7 +70,7 @@ export function NoteEnhancementDialog({
       }
     } catch (error) {
       console.error('Error enhancing notes:', error);
-      toast.error('Failed to enhance notes. Please try again.');
+      showToast.error('Failed to enhance notes. Please try again.');
     } finally {
       setIsProcessing(false);
     }

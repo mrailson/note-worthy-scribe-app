@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { AlertTriangle, RefreshCw, Loader2, Download, Copy, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { saveAs } from 'file-saver';
 import { stripMarkdown } from '@/utils/stripMarkdown';
 import { renderMinutesMarkdown } from '@/lib/minutesRenderer';
@@ -141,16 +141,16 @@ export const StyleGalleryContainer = ({
       
       const blob = await Packer.toBlob(doc);
       saveAs(blob, `${fileName}.docx`);
-      toast.success('Exported as Word document');
+      showToast.success('Exported as Word document', { section: 'meeting_manager' });
     } catch (err) {
       console.error('Export error:', err);
-      toast.error('Failed to export');
+      showToast.error('Failed to export');
     }
   };
 
   const handleGenerate = () => {
     if (!transcript || transcript.length < 50) {
-      toast.error('Please load the meeting transcript first');
+      showToast.error('Please load the meeting transcript first');
       return;
     }
     generatePreviews(meetingId, transcript, meetingContext);
@@ -167,7 +167,7 @@ export const StyleGalleryContainer = ({
   const handleCopyFullContent = () => {
     const plainText = stripMarkdown(viewContent);
     navigator.clipboard.writeText(plainText);
-    toast.success('Copied full content to clipboard');
+    showToast.success('Copied full content to clipboard', { section: 'meeting_manager' });
   };
 
   const styleKeys = getAllStyleKeys();

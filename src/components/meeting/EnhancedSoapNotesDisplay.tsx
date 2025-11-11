@@ -4,11 +4,14 @@ import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Copy, FileText, ChevronDown, ChevronUp, FileDown, MoreVertical, Mail } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { ClinicalActionsPanel, ClinicalAction } from './ClinicalActionsPanel';
 import { SafetyNettingPanel } from './SafetyNettingPanel';
 import { formatSoapNote } from '@/utils/emrFormatters';
 import { PatientLetterPreview } from './PatientLetterPreview';
+import { exportConsultationToWord } from '@/utils/consultationWordExport';
+import { supabase } from '@/integrations/supabase/client';
+import { saveAs } from 'file-saver';
 
 type ViewMode = 'quick' | 'standard' | 'detailed' | 'comparison';
 type EmrFormat = 'emis' | 'systmone';
@@ -154,7 +157,7 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
     navigator.clipboard.writeText(formattedText);
     
     const systemName = emrFormat === 'emis' ? 'EMIS Web' : 'SystmOne';
-    toast.success(`${section} section copied for ${systemName}`);
+    showToast.success(`${section} section copied for ${systemName}`, { section: 'meeting_manager' });
     
     if (onCopySection) {
       onCopySection(section);
@@ -168,7 +171,7 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
     navigator.clipboard.writeText(formattedText);
     
     const systemName = emrFormat === 'emis' ? 'EMIS Web' : 'SystmOne';
-    toast.success(`Complete SOAP notes copied for ${systemName}`);
+    showToast.success(`Complete SOAP notes copied for ${systemName}`, { section: 'meeting_manager' });
     
     if (onCopyAll) {
       onCopyAll();
@@ -179,21 +182,20 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
     if (!summaryLine) return;
     
     navigator.clipboard.writeText(summaryLine);
-    toast.success('Summary line copied to clipboard');
+    showToast.success('Summary line copied to clipboard', { section: 'meeting_manager' });
   };
 
   const handleCopyPatientCopy = () => {
     if (!patientCopy) return;
     
     navigator.clipboard.writeText(patientCopy);
-    toast.success('Patient copy copied to clipboard');
+    showToast.success('Patient copy copied to clipboard', { section: 'meeting_manager' });
   };
 
   const handleExportToWord = async () => {
     try {
-      toast.info('Generating consultation document...');
-      const { exportConsultationToWord } = await import('@/utils/consultationWordExport');
-      
+      showToast.info('Generating consultation document...', { section: 'meeting_manager' });
+
       await exportConsultationToWord({
         shorthand,
         standard,
@@ -202,24 +204,25 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
         referral,
         review,
         clinicalActions,
-        consultationType
+        consultationType,
+        consultationDate: new Date()
       });
-      
-      toast.success('Consultation document downloaded');
+
+      showToast.success('Consultation document downloaded', { section: 'meeting_manager' });
     } catch (error) {
       console.error('Export failed:', error);
-      toast.error('Failed to export consultation document');
+      showToast.error('Failed to export consultation document');
     }
   };
 
   const handleExportPatientLetter = async () => {
     if (!patientCopy) {
-      toast.error('No patient information available to export');
+      showToast.error('No patient information available to export');
       return;
     }
     
     try {
-      toast.info('Creating your patient letter...');
+      showToast.info('Creating your patient letter...', { section: 'meeting_manager' });
       const { exportPatientLetterToWord } = await import('@/utils/patientLetterExport');
       
       await exportPatientLetterToWord({
@@ -231,10 +234,10 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
         referral
       });
       
-      toast.success('Patient letter downloaded successfully');
+      showToast.success('Patient letter downloaded successfully', { section: 'meeting_manager' });
     } catch (error) {
       console.error('Patient letter export failed:', error);
-      toast.error('Failed to create patient letter');
+      showToast.error('Failed to create patient letter');
     }
   };
 
@@ -497,7 +500,7 @@ export const EnhancedSoapNotesDisplay: React.FC<EnhancedSoapNotesDisplayProps> =
                 if (onEmailPatientCopy) {
                   onEmailPatientCopy();
                 } else {
-                  toast.info('Email action not available');
+                  showToast.info('Email action not available', { section: 'meeting_manager' });
                 }
               }}
             >
