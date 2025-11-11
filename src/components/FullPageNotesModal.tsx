@@ -181,6 +181,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isRenderingExec, setIsRenderingExec] = useState(false);
   const [minutesHtml, setMinutesHtml] = useState<string>("");
   const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
+  const [showTranscriptBanner, setShowTranscriptBanner] = useState(false);
+  const [isCleaningTranscript, setIsCleaningTranscript] = useState(false);
   const [transcript, setTranscript] = useState("");
 
   // Cache helpers for Standard minutes HTML across navigations
@@ -247,7 +249,17 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [activeNotesStyleTab, notesStyle4, fontSizeStyle1]);
   
-  // Generate Minutes (Standard) HTML lazily - only when tab becomes active, with cache
+  // Detect embedded transcript in style3 and show banner
+  useEffect(() => {
+    if (activeNotesStyleTab === 'style1' && notesStyle3) {
+      const hasTranscript = /===\s*TRANSCRIPT\s*===|#{1,2}\s*TRANSCRIPT|#{1,2}\s*Meeting\s+Transcript|^Transcript:|^Full\s+Transcript:/im.test(notesStyle3);
+      setShowTranscriptBanner(hasTranscript);
+    } else {
+      setShowTranscriptBanner(false);
+    }
+  }, [activeNotesStyleTab, notesStyle3]);
+
+  // Generate Minutes (Standard) HTML lazily with timeout and safeguards
   useEffect(() => {
     if (activeNotesStyleTab !== 'style1') {
       return;
@@ -259,31 +271,53 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       return;
     }
 
-    // Try cached HTML to avoid re-formatting delays on navigation - include font size in cache key
+    // Try cached HTML
     const key = meeting?.id ? `${getMinutesCacheKey(meeting.id, notesStyle3)}_fs${fontSizeStyle1}` : null;
     if (key) {
       const cached = localStorage.getItem(key);
       if (cached) {
         setMinutesHtml(cached);
-        return; // skip rendering
+        setIsRenderingMinutes(false);
+        return;
       }
     }
 
     setIsRenderingMinutes(true);
+    
+    // Timeout fallback: if rendering takes >3s, show plain text temporarily
+    const timeoutId = setTimeout(() => {
+      console.warn('⏱️ Rendering timeout, showing plain text fallback');
+      // Strip transcript markers and show plain text
+      let cleanText = notesStyle3
+        .replace(/\n*===\s*TRANSCRIPT\s*===[\s\S]*$/i, '')
+        .replace(/\n*#{1,2}\s*TRANSCRIPT[\s\S]*$/im, '')
+        .replace(/\n*#{1,2}\s*Meeting\s+Transcript[\s\S]*$/im, '')
+        .replace(/\n*^Transcript:[\s\S]*$/im, '')
+        .replace(/\n*^Full\s+Transcript:[\s\S]*$/im, '');
+      
+      setMinutesHtml(`<div class="p-4"><pre class="whitespace-pre-wrap font-nhs">${cleanText}</pre></div>`);
+      setIsRenderingMinutes(false);
+    }, 3000);
+
     const id = requestIdleCallback(() => {
       try {
         const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
         setMinutesHtml(html);
         if (key) localStorage.setItem(key, html);
+        clearTimeout(timeoutId);
       } catch (e) {
         console.error('Error rendering Standard minutes:', e);
-        setMinutesHtml(notesStyle3);
-        if (key) localStorage.setItem(key, notesStyle3);
+        setMinutesHtml(`<div class="p-4"><pre class="whitespace-pre-wrap font-nhs">${notesStyle3}</pre></div>`);
+        clearTimeout(timeoutId);
       } finally {
         setIsRenderingMinutes(false);
       }
     }, { timeout: 100 });
-    return () => cancelIdleCallback(id);
+    
+    return () => {
+      cancelIdleCallback(id);
+      clearTimeout(timeoutId);
+    };
   }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
@@ -685,11 +719,52 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   };
 
    // Save note style to database with enhanced validation
-   const saveNoteStyleToDatabase = async (styleNumber: number, content: string) => {
-     if (!meeting?.id || !user?.id || !content.trim()) {
-       console.error('❌ Invalid parameters for saveNoteStyleToDatabase');
-       return;
-     }
+  const detectEmbeddedTranscript = (content: string): boolean => {
+    if (!content) return false;
+    return /===\s*TRANSCRIPT\s*===|#{1,2}\s*TRANSCRIPT|#{1,2}\s*Meeting\s+Transcript|^Transcript:|^Full\s+Transcript:/im.test(content);
+  };
+
+  const stripTranscriptMarkers = (content: string): string => {
+    return content
+      .replace(/\n*===\s*TRANSCRIPT\s*===[\s\S]*$/i, '')
+      .replace(/\n*#{1,2}\s*TRANSCRIPT[\s\S]*$/im, '')
+      .replace(/\n*#{1,2}\s*Meeting\s+Transcript[\s\S]*$/im, '')
+      .replace(/\n*^Transcript:[\s\S]*$/im, '')
+      .replace(/\n*^Full\s+Transcript:[\s\S]*$/im, '')
+      .replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '')
+      .trim();
+  };
+
+  const handleTrimTranscript = async () => {
+    if (!notesStyle3) return;
+    
+    setIsCleaningTranscript(true);
+    try {
+      const cleaned = stripTranscriptMarkers(notesStyle3);
+      setNotesStyle3(cleaned);
+      await saveNoteStyleToDatabase(3, cleaned);
+      setShowTranscriptBanner(false);
+      toast.success('Transcript removed from minutes');
+    } catch (error) {
+      console.error('Error cleaning transcript:', error);
+      toast.error('Failed to clean transcript');
+    } finally {
+      setIsCleaningTranscript(false);
+    }
+  };
+
+  const saveNoteStyleToDatabase = async (styleNumber: number, content: string) => {
+    if (!meeting?.id || !user?.id || !content.trim()) {
+      console.error('❌ Invalid parameters for saveNoteStyleToDatabase');
+      return;
+    }
+
+    // Strip transcript markers before saving if this is style 3 (Standard Minutes)
+    let contentToSave = content;
+    if (styleNumber === 3 && detectEmbeddedTranscript(content)) {
+      console.log('🧹 Stripping embedded transcript before saving style 3');
+      contentToSave = stripTranscriptMarkers(content);
+    }
 
       // Validate meeting ID format and user access
       if (typeof meeting.id !== 'string' || meeting.id.length !== 36) {
@@ -3352,9 +3427,32 @@ ${transcriptToUse}`;
                                             </div>
                                           </div>
                                         </div>
-                                      ) : (
-                                        <>
-                                         <div 
+                                       ) : (
+                                         <>
+                                          {/* Transcript detection banner */}
+                                          {showTranscriptBanner && (
+                                            <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg flex items-start gap-3">
+                                              <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                              <div className="flex-1">
+                                                <p className="text-sm font-medium text-amber-900 mb-1">
+                                                  Large transcript detected in minutes
+                                                </p>
+                                                <p className="text-xs text-amber-700 mb-2">
+                                                  This may cause slow viewing. Trim the embedded transcript for faster performance.
+                                                </p>
+                                                <Button
+                                                  size="sm"
+                                                  variant="outline"
+                                                  onClick={handleTrimTranscript}
+                                                  disabled={isCleaningTranscript}
+                                                  className="text-xs"
+                                                >
+                                                  {isCleaningTranscript ? 'Cleaning...' : 'Trim Transcript'}
+                                                </Button>
+                                              </div>
+                                            </div>
+                                          )}
+                                          <div
                                            className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}
                                            style={{ 
                                              fontSize: `${fontSizeStyle1}px`, 
@@ -3387,16 +3485,16 @@ ${transcriptToUse}`;
                                               }}
                                             />
                                          </div>
-                                           <InlineWordCorrector
-                                            content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
-                                             allTabsContent={{
-                                               style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
-                                               style4: notesStyle4
-                                             }}
-                                            onApplyCorrection={handleInlineCorrection}
-                                            isActive={!isEditing && activeNotesStyleTab === 'style1'}
-                                            selectionRootRef={minutesContainerRef}
-                                          />
+                                            <InlineWordCorrector
+                                             content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
+                                              allTabsContent={{
+                                                style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
+                                                style4: notesStyle4
+                                              }}
+                                             onApplyCorrection={handleInlineCorrection}
+                                             isActive={!isEditing && activeNotesStyleTab === 'style1' && (notesStyle3?.length || 0) < 25000}
+                                             selectionRootRef={minutesContainerRef}
+                                           />
                                         </>
                                       )}
                                   </div>

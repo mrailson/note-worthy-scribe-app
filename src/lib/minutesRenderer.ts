@@ -8,16 +8,28 @@ import DOMPurify from 'dompurify';
 export function renderMinutesMarkdown(content: string, baseFontSize: number = 13): string {
   if (!content) return '';
 
-  // Preprocess content to normalize spacing and remove transcript section
+  // Pre-process content to handle special formatting and strip ALL transcript markers
   let preprocessedContent = content
-    // Remove "MEETING TRANSCRIPT FOR REFERENCE" section and everything after it
+    // Remove everything after any transcript marker (case-insensitive, multiple patterns)
+    .replace(/\n*===\s*TRANSCRIPT\s*===[\s\S]*$/i, '')
+    .replace(/\n*#{1,2}\s*TRANSCRIPT\s*[\s\S]*$/im, '')
+    .replace(/\n*#{1,2}\s*Meeting\s+Transcript\s*[\s\S]*$/im, '')
+    .replace(/\n*^Transcript:\s*[\s\S]*$/im, '')
+    .replace(/\n*^Full\s+Transcript:\s*[\s\S]*$/im, '')
+    // Original pattern for backwards compatibility
     .replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '')
     // Normalize line breaks
     .replace(/\r\n/g, '\n')
-    // Clean up multiple consecutive line breaks
     .replace(/\n{3,}/g, '\n\n')
-    // Ensure headers are on their own lines
+    // Ensure headers have space before them (except at start)
     .replace(/([^\n])(#{1,6}\s+)/g, '$1\n$2');
+
+  // Hard guard: if content is still massive after stripping, cap it for performance
+  if (preprocessedContent.length > 50000) {
+    console.warn('⚠️ Content exceeds 50k chars after transcript stripping, capping for performance');
+    preprocessedContent = preprocessedContent.substring(0, 50000) + 
+      '\n\n_[Content truncated for performance - transcript removed]_';
+  }
 
   // Convert markdown to HTML with NHS professional styling
   let html = preprocessedContent
@@ -321,9 +333,18 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
 
   console.log('🔍 MINUTES RENDERER OUTPUT (first 500 chars):', html.substring(0, 500));
 
-  // Sanitize the HTML - added SVG support for icons
-  return DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'style', 'svg', 'path'],
-    ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style', 'value', 'fill', 'viewBox', 'fill-rule', 'clip-rule', 'd']
-  });
+  // Sanitize the HTML with fallback protection - added SVG support for icons
+  try {
+    return DOMPurify.sanitize(html, {
+      ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'style', 'svg', 'path'],
+      ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style', 'value', 'fill', 'viewBox', 'fill-rule', 'clip-rule', 'd'],
+      ALLOW_DATA_ATTR: false
+    });
+  } catch (error) {
+    console.error('❌ DOMPurify sanitization failed, returning plain text fallback:', error);
+    // Return minimally formatted plain text as fallback
+    return `<div class="minutes-content font-nhs max-w-full px-2">
+      <pre style="white-space: pre-wrap; font-family: inherit; font-size: ${baseFontSize}px; line-height: ${baseFontSize * 1.6}px;">${preprocessedContent}</pre>
+    </div>`;
+  }
 }
