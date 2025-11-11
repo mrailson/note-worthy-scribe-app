@@ -53,7 +53,7 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
 
     // Sanitize
     return DOMPurify.sanitize(wrapped, {
-      ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'table', 'tr', 'td', 'th', 'span', 'style'],
+      ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'strong', 'em', 'ul', 'ol', 'li', 'br', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'span', 'style'],
       ALLOWED_ATTR: ['class', 'style'],
     });
   } catch (error) {

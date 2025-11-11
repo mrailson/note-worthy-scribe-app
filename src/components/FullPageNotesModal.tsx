@@ -200,6 +200,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const getMinutesCacheKey = (id: string, content: string) => `minutes-html-${id}-${minutesHash(content)}`;
   const [fontSizeStyle1, setFontSizeStyle1] = useState(13); // Font size for Minutes (default 13)
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
+  const [usingBackupFormatter, setUsingBackupFormatter] = useState(false); // Track if backup formatter is active
+  const [lastFormattedAt, setLastFormattedAt] = useState<string | null>(null); // Track last format time
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
   const [transcriptLoaded, setTranscriptLoaded] = useState(false); // Track if transcript has been loaded
   const [transcriptSize, setTranscriptSize] = useState(0); // Track transcript size in bytes
@@ -305,26 +307,32 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       if (e.data.type === 'success') {
         // Sanitize on main thread
         const sanitized = DOMPurify.sanitize(e.data.html, {
-          ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'table', 'tr', 'td', 'th', 'div', 'span'],
+          ALLOWED_TAGS: ['p', 'br', 'strong', 'em', 'u', 'h1', 'h2', 'h3', 'ul', 'ol', 'li', 'table', 'thead', 'tbody', 'tr', 'td', 'th', 'div', 'span', 'style'],
           ALLOWED_ATTR: ['class', 'style'],
         });
         
-        const wrapped = `<div class="minutes-content font-nhs max-w-full px-2">
+        const wrapped = `<div class="minutes-content font-nhs max-w-full px-2" style="background: white;">
     <style>
       .minutes-content {
         font-family: 'Fira Sans', 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
         font-size: ${fontSize}px;
         line-height: ${fontSize * 1.6}px;
         color: #212B32;
+        background: white;
+        padding: 16px;
       }
       
-      .minutes-content h2 {
+      .minutes-content h1, .minutes-content h2, .minutes-content h3 {
+        color: #005EB8;
+        font-weight: 600;
+        margin-top: 20px;
+        margin-bottom: 12px;
         page-break-after: avoid;
       }
       
-      .minutes-content h3 {
-        page-break-after: avoid;
-      }
+      .minutes-content h1 { font-size: ${fontSize * 1.8}px; }
+      .minutes-content h2 { font-size: ${fontSize * 1.5}px; }
+      .minutes-content h3 { font-size: ${fontSize * 1.3}px; }
       
       .minutes-content table {
         page-break-inside: avoid;
@@ -334,24 +342,44 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         width: 100%;
         border-collapse: collapse;
         margin: 16px 0;
+        table-layout: fixed;
+        border: 1px solid #d1d5db;
       }
       
-      .minutes-content table.meeting-table td,
-      .minutes-content table.meeting-table th {
-        border: 1px solid #ddd;
-        padding: 8px;
-        text-align: left;
-      }
-      
-      .minutes-content table.meeting-table th {
-        background-color: #f8f9fa;
+      .minutes-content table.meeting-table thead th {
+        background-color: #005EB8;
+        color: white;
         font-weight: 600;
+        padding: 12px;
+        text-align: left;
+        border: 1px solid #d1d5db;
+      }
+      
+      .minutes-content table.meeting-table tbody tr:nth-child(odd) {
+        background-color: #ffffff;
+      }
+      
+      .minutes-content table.meeting-table tbody tr:nth-child(even) {
+        background-color: #f8fafb;
+      }
+      
+      .minutes-content table.meeting-table tbody tr:hover {
+        background-color: #e8f4f8;
+      }
+      
+      .minutes-content table.meeting-table td {
+        border: 1px solid #d1d5db;
+        padding: 10px;
+        text-align: left;
+        word-wrap: break-word;
       }
     </style>
     ${sanitized}
   </div>`;
         
         setMinutesHtml(wrapped);
+        setUsingBackupFormatter(false);
+        setLastFormattedAt(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
         console.log('✅ Formatted HTML applied');
       } else {
         console.error('❌ Worker error:', e.data.message);
@@ -375,8 +403,23 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     if (notesStyle3) {
       setFormattingTimedOut(false);
       setIsFormattingInBackground(true);
+      setUsingBackupFormatter(false);
       startMinutesWorker(notesStyle3, fontSizeStyle1);
     }
+  };
+  
+  const useBackupRenderer = () => {
+    cancelMinutesWorker();
+    if (!notesStyle3) return;
+    
+    console.log('🔄 Using backup formatter for content length:', notesStyle3.length);
+    const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
+    setMinutesHtml(html);
+    setUsingBackupFormatter(true);
+    setFormattingTimedOut(false);
+    setIsFormattingInBackground(false);
+    setLastFormattedAt(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+    toast.success('Backup formatter applied');
   };
   
   // Generate Executive HTML lazily when tab is opened or content changes
@@ -3310,33 +3353,89 @@ ${transcriptToUse}`;
                             )}
                           </TabsList>
                           
-                          {/* Font Size Controls - only show for Minutes */}
+                          {/* Status pill for formatter */}
+                          {activeNotesStyleTab === 'style1' && (usingBackupFormatter || lastFormattedAt) && (
+                            <div className="text-xs text-muted-foreground flex items-center gap-1 ml-2">
+                              {usingBackupFormatter ? (
+                                <>
+                                  <span className="inline-block w-2 h-2 rounded-full bg-amber-500"></span>
+                                  Backup formatter active{lastFormattedAt ? ` (${lastFormattedAt})` : ''}
+                                </>
+                              ) : lastFormattedAt ? (
+                                <>Last formatted at {lastFormattedAt}</>
+                              ) : null}
+                            </div>
+                          )}
+                          
+                          {/* Font Size Controls and Format Buttons - only show for Minutes */}
                           {activeNotesStyleTab === 'style1' && (
-                            <div className="flex items-center gap-1 border rounded-md p-1">
-                              <Type className="h-4 w-4 text-muted-foreground mr-1" />
+                            <div className="flex items-center gap-2">
+                              <div className="flex items-center gap-1 border rounded-md p-1">
+                                <Type className="h-4 w-4 text-muted-foreground mr-1" />
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => setFontSizeStyle1(prev => Math.max(12, prev - 1))}
+                                  disabled={fontSizeStyle1 <= 12}
+                                  title="Decrease font size"
+                                >
+                                  <Minus className="h-3 w-3" />
+                                </Button>
+                                <span className="text-xs text-muted-foreground px-1 min-w-[2.5rem] text-center">
+                                  {fontSizeStyle1}px
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                  onClick={() => setFontSizeStyle1(prev => Math.min(24, prev + 1))}
+                                  disabled={fontSizeStyle1 >= 24}
+                                  title="Increase font size"
+                                >
+                                  <Plus className="h-3 w-3" />
+                                </Button>
+                              </div>
+                              
                               <Button
-                                variant="ghost"
+                                variant="outline"
                                 size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={() => setFontSizeStyle1(prev => Math.max(12, prev - 1))}
-                                disabled={fontSizeStyle1 <= 12}
-                                title="Decrease font size"
+                                onClick={manualFormat}
+                                disabled={!notesStyle3 || isFormattingInBackground}
+                                title="Reformat the minutes"
+                                className="gap-1.5"
                               >
-                                <Minus className="h-3 w-3" />
+                                {isFormattingInBackground ? (
+                                  <RefreshCw className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="h-3 w-3" />
+                                )}
+                                Reformat
                               </Button>
-                              <span className="text-xs text-muted-foreground px-1 min-w-[2.5rem] text-center">
-                                {fontSizeStyle1}px
-                              </span>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="h-7 w-7 p-0"
-                                onClick={() => setFontSizeStyle1(prev => Math.min(24, prev + 1))}
-                                disabled={fontSizeStyle1 >= 24}
-                                title="Increase font size"
-                              >
-                                <Plus className="h-3 w-3" />
-                              </Button>
+                              
+                              {usingBackupFormatter ? (
+                                <Button
+                                  variant="secondary"
+                                  size="sm"
+                                  onClick={manualFormat}
+                                  title="Return to smart formatter"
+                                  className="gap-1.5"
+                                >
+                                  <Sparkles className="h-3 w-3" />
+                                  Smart Formatter
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={useBackupRenderer}
+                                  disabled={!notesStyle3}
+                                  title="Use backup formatter for reliable rendering"
+                                  className="gap-1.5"
+                                >
+                                  Backup Formatter
+                                </Button>
+                              )}
                             </div>
                           )}
 
