@@ -202,6 +202,7 @@ export const MeetingHistoryList = ({
   const [userPractices, setUserPractices] = useState<Array<{id: string, practice_name: string}>>([]);
   const [customLocations, setCustomLocations] = useState<string[]>([]);
   const [locationInputOpen, setLocationInputOpen] = useState<Record<string, boolean>>({});
+  const [locationInputValues, setLocationInputValues] = useState<Record<string, string>>({});
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   
   // Fetch user practices and custom locations
@@ -1970,24 +1971,35 @@ export const MeetingHistoryList = ({
                               <div className="p-2 space-y-1">
                                 <Input
                                   placeholder="Type or select location..."
-                                  value={meeting.meeting_location || ''}
-                                  onChange={async (e) => {
+                                  value={locationInputValues[meeting.id] ?? meeting.meeting_location ?? ''}
+                                  onChange={(e) => {
                                     const newLocation = e.target.value;
+                                    // Update local input value immediately for smooth typing
+                                    setLocationInputValues(prev => ({ ...prev, [meeting.id]: newLocation }));
+                                    
+                                    // Update local meetings state immediately for visual feedback
+                                    setLocalMeetings(prev => prev.map(m => 
+                                      m.id === meeting.id 
+                                        ? { ...m, meeting_location: newLocation }
+                                        : m
+                                    ));
+                                  }}
+                                  onBlur={async () => {
+                                    // Save to database when user finishes typing
+                                    const newLocation = locationInputValues[meeting.id] ?? meeting.meeting_location ?? '';
                                     try {
                                       const { error } = await supabase
                                         .from('meetings')
                                         .update({ meeting_location: newLocation })
                                         .eq('id', meeting.id);
                                       if (error) throw error;
-                                      
-                                      // Update local state
-                                      setLocalMeetings(prev => prev.map(m => 
-                                        m.id === meeting.id 
-                                          ? { ...m, meeting_location: newLocation }
-                                          : m
-                                      ));
                                     } catch (error) {
                                       console.error('Error updating location:', error);
+                                    }
+                                  }}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      e.currentTarget.blur();
                                     }
                                   }}
                                   className="h-8 text-xs"
