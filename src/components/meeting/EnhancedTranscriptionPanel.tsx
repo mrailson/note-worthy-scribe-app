@@ -203,10 +203,16 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     const fillerStats = countFillerWords(transcript);
     const totalChunkWords = chunks.reduce((sum, c) => sum + (c.word_count || 0), 0);
     
+    // Calculate difference percentage
+    const differencePercentage = totalChunkWords > 0 
+      ? Math.round(((wordCount - totalChunkWords) / totalChunkWords) * 100)
+      : 0;
+    
     return {
       wordCount,
       totalChunks: chunks.length,
       totalChunkWords,
+      differencePercentage,
       fillerWordCount: fillerStats.totalRemoved,
       piiCount: piiMatches.length
     };
@@ -1268,7 +1274,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           </div>
            <div className={cn(
             "grid gap-4",
-            isIPhone ? "grid-cols-2 gap-3" : isMobile ? "grid-cols-3" : "grid-cols-5"
+            isIPhone ? "grid-cols-2 gap-3" : isMobile ? "grid-cols-3" : "grid-cols-6"
           )}>
             <div>
               <p className="text-xs text-muted-foreground mb-1">{isIPhone ? "Chunks" : "Total Chunks"}</p>
@@ -1278,11 +1284,26 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
               )}>{stats.totalChunks}</p>
             </div>
             <div>
-              <p className="text-xs text-muted-foreground mb-1">Total Words</p>
+              <p className="text-xs text-muted-foreground mb-1">{isIPhone ? "Chunk Words" : "Total Word Count for Chunks"}</p>
               <p className={cn(
                 "font-semibold",
                 isIPhone ? "text-lg" : "text-2xl"
               )}>{stats.totalChunkWords.toLocaleString('en-GB')}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">{isIPhone ? "Trans Words" : "Total Word Count"}</p>
+              <p className={cn(
+                "font-semibold",
+                isIPhone ? "text-lg" : "text-2xl"
+              )}>{stats.wordCount.toLocaleString('en-GB')}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground mb-1">Difference</p>
+              <p className={cn(
+                "font-semibold",
+                isIPhone ? "text-lg" : "text-2xl",
+                stats.differencePercentage > 0 ? "text-green-600" : stats.differencePercentage < 0 ? "text-red-600" : ""
+              )}>{stats.differencePercentage > 0 ? '+' : ''}{stats.differencePercentage}%</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground mb-1">Fillers</p>
@@ -1291,20 +1312,13 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
                 isIPhone ? "text-lg" : "text-2xl"
               )}>{stats.fillerWordCount}</p>
             </div>
-            <div>
-              <p className="text-xs text-muted-foreground mb-1">PII</p>
-              <p className={cn(
-                "font-semibold text-red-600",
-                isIPhone ? "text-lg" : "text-2xl"
-              )}>{stats.piiCount}</p>
-            </div>
             {!isIPhone && (
               <div>
-                <p className="text-xs text-muted-foreground mb-1">Words</p>
+                <p className="text-xs text-muted-foreground mb-1">PII</p>
                 <p className={cn(
-                  "font-semibold",
+                  "font-semibold text-red-600",
                   isMobile ? "text-lg" : "text-2xl"
-                )}>{stats.wordCount.toLocaleString('en-GB')}</p>
+                )}>{stats.piiCount}</p>
               </div>
             )}
           </div>
