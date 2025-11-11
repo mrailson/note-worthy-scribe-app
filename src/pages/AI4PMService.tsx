@@ -1027,6 +1027,14 @@ Format your responses clearly with headings and bullet points where appropriate 
                       <span>PM Genie</span>
                     </TabsTrigger>
                     <TabsTrigger 
+                      value="speech-studio" 
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
+                      onClick={() => setIsTabMenuOpen(false)}
+                    >
+                      <Volume2 className="h-4 w-4" />
+                      <span>Speech Studio</span>
+                    </TabsTrigger>
+                    <TabsTrigger 
                       value="history" 
                       className="flex flex-col items-center gap-1 py-3 px-2 rounded-lg transition-all duration-200 text-xs font-medium data-[state=active]:bg-primary/90 data-[state=active]:text-primary-foreground"
                       onClick={() => setIsTabMenuOpen(false)}
