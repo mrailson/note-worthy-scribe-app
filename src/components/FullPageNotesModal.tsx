@@ -185,6 +185,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [minutesHtml, setMinutesHtml] = useState<string>("");
   const [isRenderingMinutes, setIsRenderingMinutes] = useState(false);
   const [useSimpleRenderer, setUseSimpleRenderer] = useState(false);
+  const [preferStyled, setPreferStyled] = useState(false);
   const [transcript, setTranscript] = useState("");
 
   // Cache helpers for Standard minutes HTML across navigations
@@ -272,6 +273,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
         setUseSimpleRenderer(false);
         return; // skip rendering
       }
+    }
+
+    // If user hasn't requested styled view, default to safe simple renderer to avoid any chance of freezing
+    if (!preferStyled) {
+      setUseSimpleRenderer(true);
+      setIsRenderingMinutes(false);
+      setMinutesHtml('');
+      return;
     }
 
     // Heuristic: fall back to simple renderer ONLY for extremely large content (50KB+ or 150+ tables)
@@ -3158,9 +3167,9 @@ ${transcriptToUse}`;
                             )}
                           </TabsList>
                           
-                          {/* Font Size Controls - only show for Minutes */}
+                          {/* Font Size Controls - only show for Minutes plus a View toggle */}
                           {activeNotesStyleTab === 'style1' && (
-                            <div className="flex items-center gap-1 border rounded-md p-1">
+                            <div className="flex items-center gap-2 border rounded-md p-1">
                               <Type className="h-4 w-4 text-muted-foreground mr-1" />
                               <Button
                                 variant="ghost"
@@ -3184,6 +3193,19 @@ ${transcriptToUse}`;
                                 title="Increase font size"
                               >
                                 <Plus className="h-3 w-3" />
+                              </Button>
+
+                              {/* View toggle */}
+                              <div className="mx-2 h-5 w-px bg-border/60" />
+                              <Button
+                                variant={preferStyled ? 'default' : 'outline'}
+                                size="sm"
+                                className="h-7 px-2"
+                                onClick={() => setPreferStyled(v => !v)}
+                                title={preferStyled ? 'Switch to Safe view' : 'Switch to Styled view'}
+                              >
+                                <Sparkles className="h-3 w-3 mr-1" />
+                                {preferStyled ? 'Styled view' : 'Safe view'}
                               </Button>
                             </div>
                           )}
