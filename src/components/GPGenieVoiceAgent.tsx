@@ -89,6 +89,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   const [conversationBuffer, setConversationBuffer] = useState<ConversationMessage[]>([]);
   const [isQualityDetailsOpen, setIsQualityDetailsOpen] = useState(false);
   const conversationIdRef = useRef<string | null>(null);
+  const processedMessageIds = useRef<Set<string>>(new Set());
 
   const languageRotation = [
     { code: 'en', text: 'Test Language Support Service' },
@@ -192,6 +193,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       conversationIdRef.current = `${activeTab}_${Date.now()}`;
       setQualityScore(null);
       setConversationBuffer([]); // Clear old conversation when starting new one
+      processedMessageIds.current.clear(); // Clear message deduplication tracking
     },
     onDisconnect: async () => {
       const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
@@ -225,6 +227,22 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       
       // Capture conversation for ALL services with timestamps
       if (message.message && message.source) {
+        // Create unique message ID to prevent duplicates
+        const messageId = `${message.source}-${message.message.substring(0, 50)}-${Date.now()}`;
+        
+        // Skip if we've already processed this message recently (within 100ms)
+        if (processedMessageIds.current.has(messageId)) {
+          console.log('⚠️ Skipping duplicate message');
+          return;
+        }
+        
+        processedMessageIds.current.add(messageId);
+        
+        // Clean up old message IDs after 5 seconds
+        setTimeout(() => {
+          processedMessageIds.current.delete(messageId);
+        }, 5000);
+        
         console.log('🎯 Message - Source:', message.source, 'Content:', message.message.substring(0, 50) + '...');
         
         const timestamp = new Date().toISOString();
