@@ -1382,6 +1382,18 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
           <>
         <Tabs value={activeTab} className="w-full">
           <TabsContent value="gp-genie" className="mt-0">
+            <div className="bg-amber-50 dark:bg-amber-950/30 border-l-4 border-amber-500 px-4 py-3 mb-6 rounded">
+              <div className="flex items-start space-x-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                <div className="text-sm text-amber-800 dark:text-amber-200">
+                  <p className="font-semibold mb-1">Proof of Concept Test Service Only</p>
+                  <p>
+                    <strong>GP Genie is NOT approved for real-world clinical use.</strong> This is a proof of concept demonstration service for testing and evaluation purposes only. 
+                    Do not use this service for actual patient care, clinical decision-making, or any real-world healthcare scenarios.
+                  </p>
+                </div>
+              </div>
+            </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               <div className="bg-muted/50 rounded-lg p-4">
                 <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
