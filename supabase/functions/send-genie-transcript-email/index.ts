@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, Packer } from "npm:docx@8.5.0";
+import { Resend } from "npm:resend@4.0.0";
 
+const resend = new Resend(Deno.env.get("RESEND_API_KEY") as string);
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
@@ -512,44 +514,31 @@ Confidential - Do Not Forward
 Conversation ID: ${conversationId}
     `.trim();
 
-    // Send via EmailJS
-    console.log(`[Transcript Email] Sending to ${userEmail} via EmailJS...`);
+    // Send via Resend
+    console.log(`[Transcript Email] Sending to ${userEmail} via Resend...`);
     
-    const emailPayload = {
-      service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-      template_id: Deno.env.get('EMAILJS_GENERIC_TEMPLATE_ID'),
-      user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-      accessToken: Deno.env.get('EMAILJS_PRIVATE_KEY'),
-      template_params: {
-        to_email: userEmail,
-        from_name: 'Notewell AI',
-        subject: `${serviceName} Conversation Transcript - ${formatTime(conversationBuffer[0].timestamp).split(' on ')[1]}`,
-        html_content: emailHtml,
-        message: plainText
-      }
-    };
+    const subject = `${serviceName} Conversation Transcript - ${formatTime(conversationBuffer[0].timestamp).split(' on ')[1]}`;
 
-    console.log('[Transcript Email] EmailJS payload:', {
-      service_id: emailPayload.service_id ? 'SET' : 'MISSING',
-      template_id: emailPayload.template_id ? 'SET' : 'MISSING',
-      user_id: emailPayload.user_id ? 'SET' : 'MISSING',
-      accessToken: emailPayload.accessToken ? 'SET' : 'MISSING',
-      to_email: userEmail
-    });
-    
-    const emailJsResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(emailPayload)
+    const { data, error } = await resend.emails.send({
+      from: 'Notewell AI <onboarding@resend.dev>',
+      to: [userEmail],
+      subject,
+      html: emailHtml,
+      text: plainText,
+      attachments: [
+        {
+          filename: `${serviceName.replace(/ /g, '-')}-transcript.docx`,
+          content: docBase64,
+        },
+      ],
     });
 
-    if (!emailJsResponse.ok) {
-      const errorText = await emailJsResponse.text();
-      console.error('[Transcript Email] EmailJS error:', emailJsResponse.status, errorText);
-      throw new Error(`EmailJS error: ${emailJsResponse.status} - ${errorText}`);
+    if (error) {
+      console.error('[Transcript Email] Resend error:', error);
+      throw new Error(`Resend error: ${error.message ?? 'Unknown error'}`);
     }
 
-    console.log('[Transcript Email] ✅ Email sent successfully');
+    console.log('[Transcript Email] ✅ Email sent successfully via Resend');
 
     return new Response(
       JSON.stringify({ 
