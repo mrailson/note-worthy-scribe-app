@@ -592,7 +592,6 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                   ]
                 }),
                 new Paragraph({
-                  text: msg.user,
                   spacing: { after: 120 },
                   indent: { left: 360 },
                   children: [
@@ -625,7 +624,6 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                   ]
                 }),
                 new Paragraph({
-                  text: msg.agent,
                   spacing: { after: 120 },
                   indent: { left: 360 },
                   children: [
