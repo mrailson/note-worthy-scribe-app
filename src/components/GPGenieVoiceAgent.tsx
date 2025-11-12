@@ -39,6 +39,9 @@ import { toast } from 'sonner';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
+import { saveAs } from 'file-saver';
+import { Packer } from 'docx';
 
 interface QualityScore {
   accuracy: number;
@@ -215,7 +218,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       }
       
       conversationIdRef.current = null;
-      setConversationBuffer([]);
+      // Keep conversation buffer for download - don't clear until page navigation
     },
     onMessage: (message) => {
       console.log('📨 Message received:', message);
@@ -395,8 +398,8 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     }
   };
 
-  // Download transcript
-  const downloadTranscript = () => {
+  // Download transcript as Word document
+  const downloadTranscript = async () => {
     if (conversationBuffer.length === 0) {
       toast.error('No conversation to download');
       return;
@@ -404,61 +407,469 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
 
     const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
     
-    // Get conversation start time from first message
+    // Get conversation metadata
     const startTime = conversationBuffer[0]?.timestamp 
-      ? new Date(conversationBuffer[0].timestamp).toLocaleString('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        })
-      : new Date().toLocaleString('en-GB', {
-          hour: '2-digit',
-          minute: '2-digit',
-          day: '2-digit',
-          month: '2-digit',
-          year: 'numeric'
-        });
+      ? new Date(conversationBuffer[0].timestamp)
+      : new Date();
+    
+    const endTime = conversationBuffer[conversationBuffer.length - 1]?.agentTimestamp
+      ? new Date(conversationBuffer[conversationBuffer.length - 1].agentTimestamp)
+      : new Date();
+    
+    const duration = Math.round((endTime.getTime() - startTime.getTime()) / 1000 / 60);
 
-    // Generate plain text format
-    let content = `${serviceName.toUpperCase()} CONVERSATION TRANSCRIPT\n`;
-    content += `=`.repeat(60) + '\n\n';
-    content += `Service: ${serviceName}\n`;
-    content += `Start Time: ${startTime}\n`;
-    content += `User Messages: ${conversationBuffer.filter(m => m.user).length}\n\n`;
-    content += `CONVERSATION HISTORY\n`;
-    content += `-`.repeat(60) + '\n\n';
+    // Create Word document with professional NHS-style formatting
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          // Title with NHS Blue
+          new Paragraph({
+            text: 'Notewell AI',
+            heading: HeadingLevel.TITLE,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+            children: [
+              new TextRun({
+                text: 'Notewell AI',
+                bold: true,
+                size: 32,
+                color: '005EB8', // NHS Blue
+                font: 'Calibri'
+              })
+            ]
+          }),
+          
+          // Service name
+          new Paragraph({
+            text: `${serviceName} - Conversation Transcript`,
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+            children: [
+              new TextRun({
+                text: `${serviceName} - Conversation Transcript`,
+                bold: true,
+                size: 28,
+                color: '2563EB', // Blue-600
+                font: 'Calibri'
+              })
+            ]
+          }),
 
-    conversationBuffer.forEach(msg => {
-      if (msg.user) {
-        const time = msg.userTimestamp ? 
-          new Date(msg.userTimestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-        content += `[${time}] You:\n${msg.user}\n\n`;
-      }
-      if (msg.agent) {
-        const time = msg.agentTimestamp ? 
-          new Date(msg.agentTimestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
-        content += `[${time}] ${serviceName}:\n${msg.agent}\n\n`;
-      }
+          // Metadata table
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              bottom: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              left: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              right: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' }
+            },
+            rows: [
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: 'Start Time:', bold: true, font: 'Calibri', size: 22 })]
+                    })],
+                    width: { size: 30, type: WidthType.PERCENTAGE }
+                  }),
+                  new TableCell({
+                    children: [new Paragraph(startTime.toLocaleString('en-GB', { 
+                      hour: '2-digit', 
+                      minute: '2-digit', 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric' 
+                    }))],
+                    width: { size: 70, type: WidthType.PERCENTAGE }
+                  })
+                ]
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: 'End Time:', bold: true, font: 'Calibri', size: 22 })]
+                    })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph(endTime.toLocaleString('en-GB', { 
+                      hour: '2-digit', 
+                      minute: '2-digit', 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric' 
+                    }))]
+                  })
+                ]
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: 'Duration:', bold: true, font: 'Calibri', size: 22 })]
+                    })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph(`${duration} minutes`)]
+                  })
+                ]
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: 'Messages:', bold: true, font: 'Calibri', size: 22 })]
+                    })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph(`${conversationBuffer.filter(m => m.user).length} user messages`)]
+                  })
+                ]
+              })
+            ]
+          }),
+
+          new Paragraph({ text: '', spacing: { after: 400 } }),
+
+          // Conversation History heading
+          new Paragraph({
+            text: 'Conversation History',
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 240, after: 200 },
+            children: [
+              new TextRun({
+                text: 'Conversation History',
+                bold: true,
+                size: 24,
+                color: '2563EB',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          // Conversation messages
+          ...conversationBuffer.flatMap(msg => {
+            const messages: Paragraph[] = [];
+            
+            if (msg.user) {
+              const time = msg.userTimestamp ? 
+                new Date(msg.userTimestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+              
+              messages.push(
+                new Paragraph({
+                  spacing: { before: 200, after: 100 },
+                  children: [
+                    new TextRun({
+                      text: `[${time}] You:`,
+                      bold: true,
+                      color: '2563EB',
+                      size: 22,
+                      font: 'Calibri'
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  text: msg.user,
+                  spacing: { after: 120 },
+                  indent: { left: 360 },
+                  children: [
+                    new TextRun({
+                      text: msg.user,
+                      size: 22,
+                      color: '374151',
+                      font: 'Calibri'
+                    })
+                  ]
+                })
+              );
+            }
+            
+            if (msg.agent) {
+              const time = msg.agentTimestamp ? 
+                new Date(msg.agentTimestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+              
+              messages.push(
+                new Paragraph({
+                  spacing: { before: 200, after: 100 },
+                  children: [
+                    new TextRun({
+                      text: `[${time}] ${serviceName}:`,
+                      bold: true,
+                      color: '10B981',
+                      size: 22,
+                      font: 'Calibri'
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  text: msg.agent,
+                  spacing: { after: 120 },
+                  indent: { left: 360 },
+                  children: [
+                    new TextRun({
+                      text: msg.agent,
+                      size: 22,
+                      color: '374151',
+                      font: 'Calibri'
+                    })
+                  ]
+                })
+              );
+            }
+            
+            return messages;
+          }),
+
+          new Paragraph({ text: '', spacing: { before: 400, after: 200 } }),
+
+          // COMPREHENSIVE DISCLAIMER
+          new Paragraph({
+            text: 'IMPORTANT DISCLAIMER',
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 },
+            children: [
+              new TextRun({
+                text: 'IMPORTANT DISCLAIMER',
+                bold: true,
+                size: 24,
+                color: 'DC2626', // Red-600
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({
+                text: '⚠️ NOT AN APPROVED NHS CLINICAL TOOL',
+                bold: true,
+                size: 22,
+                color: 'DC2626',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            text: 'This tool is provided by Notewell AI for concept testing and demonstration purposes only. It is NOT approved, endorsed, or validated for use within NHS clinical settings for patient diagnosis, treatment, or clinical decision-making.',
+            spacing: { after: 200 },
+            children: [
+              new TextRun({
+                text: 'This tool is provided by Notewell AI for concept testing and demonstration purposes only. It is NOT approved, endorsed, or validated for use within NHS clinical settings for patient diagnosis, treatment, or clinical decision-making.',
+                size: 20,
+                color: '374151',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({
+                text: '• ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'Non-Clinical Use Only: ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'This service must NOT be used for patient diagnosis, treatment planning, prescribing, or any clinical decision-making that impacts patient safety or care outcomes.',
+                size: 20,
+                color: '374151',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({
+                text: '• ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'No Regulatory Approval: ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'This system has not received MHRA approval, CE marking, or any regulatory clearance as a medical device. It has not undergone clinical safety validation required for NHS deployment.',
+                size: 20,
+                color: '374151',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({
+                text: '• ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'Concept Testing Only: ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'This service is being evaluated for potential future NHS use but is currently in early-stage concept testing with non-patient-facing administrative and operational scenarios only.',
+                size: 20,
+                color: '374151',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({
+                text: '• ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'No Warranty or Liability: ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'Notewell AI provides this service "as is" without any warranties of accuracy, reliability, or fitness for any clinical purpose. Users assume all risk and responsibility for any outcomes resulting from use of this service.',
+                size: 20,
+                color: '374151',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({
+                text: '• ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'Data Protection Notice: ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'Do NOT input identifiable patient information, personal health records, or any sensitive clinical data. This system is not approved for processing NHS patient data under Data Protection Act 2018 or UK GDPR requirements for clinical systems.',
+                size: 20,
+                color: '374151',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({
+                text: '• ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'Translation Accuracy Warning: ',
+                bold: true,
+                size: 20,
+                font: 'Calibri'
+              }),
+              new TextRun({
+                text: 'AI-generated translations may contain errors, mistranslations, or culturally inappropriate content. All translations should be independently verified by qualified human translators before clinical use.',
+                size: 20,
+                color: '374151',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { before: 200, after: 120 },
+            children: [
+              new TextRun({
+                text: 'By using this service, you acknowledge that you have read, understood, and accept these limitations and disclaimers. If you require clinical-grade translation, diagnosis support, or patient-facing AI tools, please use only NHS-approved and clinically validated systems.',
+                bold: true,
+                size: 20,
+                color: 'DC2626',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({ text: '', spacing: { before: 400 } }),
+
+          // Footer
+          new Paragraph({
+            text: 'Generated by Notewell AI',
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 400 },
+            children: [
+              new TextRun({
+                text: 'Generated by Notewell AI',
+                size: 18,
+                color: '6B7280',
+                italics: true,
+                font: 'Calibri'
+              })
+            ]
+          }),
+          
+          new Paragraph({
+            text: `Document created: ${new Date().toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: `Document created: ${new Date().toLocaleString('en-GB', { hour: '2-digit', minute: '2-digit', day: '2-digit', month: '2-digit', year: 'numeric' })}`,
+                size: 18,
+                color: '6B7280',
+                italics: true,
+                font: 'Calibri'
+              })
+            ]
+          })
+        ]
+      }]
     });
 
-    content += `\n` + `=`.repeat(60) + '\n';
-    content += `Generated by Notewell AI\n`;
-    content += `This transcript is for your records only\n`;
-
-    // Create and download file
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${serviceName.replace(/ /g, '-')}-transcript-${Date.now()}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-
-    toast.success('Transcript downloaded');
+    // Generate and download
+    try {
+      const blob = await Packer.toBlob(doc);
+      saveAs(blob, `${serviceName.replace(/ /g, '-')}-transcript-${Date.now()}.docx`);
+      toast.success('Transcript downloaded as Word document');
+    } catch (error) {
+      console.error('Failed to generate Word document:', error);
+      toast.error('Failed to generate document');
+    }
   };
 
   // End conversation
