@@ -227,21 +227,21 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       
       // Capture conversation for ALL services with timestamps
       if (message.message && message.source) {
-        // Create unique message ID to prevent duplicates
-        const messageId = `${message.source}-${message.message.substring(0, 50)}-${Date.now()}`;
+        // Create unique message ID based on content only (not timestamp) to prevent duplicates
+        const messageId = `${message.source}-${message.message}`;
         
-        // Skip if we've already processed this message recently (within 100ms)
+        // Skip if we've already processed this exact message recently
         if (processedMessageIds.current.has(messageId)) {
-          console.log('⚠️ Skipping duplicate message');
+          console.log('⚠️ Skipping duplicate message:', message.message.substring(0, 50) + '...');
           return;
         }
         
         processedMessageIds.current.add(messageId);
         
-        // Clean up old message IDs after 5 seconds
+        // Clean up old message IDs after 10 seconds
         setTimeout(() => {
           processedMessageIds.current.delete(messageId);
-        }, 5000);
+        }, 10000);
         
         console.log('🎯 Message - Source:', message.source, 'Content:', message.message.substring(0, 50) + '...');
         
