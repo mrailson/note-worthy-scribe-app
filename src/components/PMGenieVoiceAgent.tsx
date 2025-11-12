@@ -18,12 +18,15 @@ import {
   PhoneCall,
   CircleCheck,
   AlertTriangle,
-  XCircle
+  XCircle,
+  Download
 } from 'lucide-react';
 import { useConversation } from '@11labs/react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, Packer } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface QualityScore {
   accuracy: number;
@@ -221,6 +224,264 @@ const PMGenieVoiceAgent = () => {
     }
   };
 
+  // Download transcript as Word document
+  const downloadTranscript = async () => {
+    if (conversationBuffer.length === 0) {
+      toast.error('No conversation to download');
+      return;
+    }
+
+    const serviceName = 'PM Genie';
+    
+    // Get conversation metadata
+    const startTime = conversationBuffer[0]?.timestamp 
+      ? new Date(conversationBuffer[0].timestamp)
+      : new Date();
+    
+    const endTime = conversationBuffer[conversationBuffer.length - 1]?.agentTimestamp
+      ? new Date(conversationBuffer[conversationBuffer.length - 1].agentTimestamp)
+      : new Date();
+    
+    const duration = Math.round((endTime.getTime() - startTime.getTime()) / 1000 / 60);
+
+    // Create Word document with professional NHS-style formatting
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          // Title with NHS Blue
+          new Paragraph({
+            text: 'Notewell AI',
+            heading: HeadingLevel.TITLE,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+            children: [
+              new TextRun({
+                text: 'Notewell AI',
+                bold: true,
+                size: 32,
+                color: '005EB8', // NHS Blue
+                font: 'Calibri'
+              })
+            ]
+          }),
+          
+          // Service name with emerald green
+          new Paragraph({
+            text: `${serviceName} - Conversation Transcript`,
+            heading: HeadingLevel.HEADING_1,
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+            children: [
+              new TextRun({
+                text: `${serviceName} - Conversation Transcript`,
+                bold: true,
+                size: 28,
+                color: '10B981', // Emerald-500
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          // Metadata table
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              bottom: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              left: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              right: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' }
+            },
+            rows: [
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: 'Start Time:', bold: true, font: 'Calibri', size: 22 })]
+                    })],
+                    width: { size: 30, type: WidthType.PERCENTAGE }
+                  }),
+                  new TableCell({
+                    children: [new Paragraph(startTime.toLocaleString('en-GB', { 
+                      hour: '2-digit', 
+                      minute: '2-digit', 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric' 
+                    }))],
+                    width: { size: 70, type: WidthType.PERCENTAGE }
+                  })
+                ]
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: 'End Time:', bold: true, font: 'Calibri', size: 22 })]
+                    })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph(endTime.toLocaleString('en-GB', { 
+                      hour: '2-digit', 
+                      minute: '2-digit', 
+                      day: '2-digit', 
+                      month: '2-digit', 
+                      year: 'numeric' 
+                    }))]
+                  })
+                ]
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: 'Duration:', bold: true, font: 'Calibri', size: 22 })]
+                    })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph(`${duration} minutes`)]
+                  })
+                ]
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({
+                      children: [new TextRun({ text: 'Messages:', bold: true, font: 'Calibri', size: 22 })]
+                    })]
+                  }),
+                  new TableCell({
+                    children: [new Paragraph(`${conversationBuffer.filter(m => m.user).length} user messages`)]
+                  })
+                ]
+              })
+            ]
+          }),
+
+          new Paragraph({ text: '', spacing: { after: 400 } }),
+
+          // Conversation History heading
+          new Paragraph({
+            text: 'Conversation History',
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 240, after: 200 },
+            children: [
+              new TextRun({
+                text: 'Conversation History',
+                bold: true,
+                size: 24,
+                color: '10B981', // Emerald-500
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          // Conversation messages
+          ...conversationBuffer.flatMap(msg => {
+            const messages: Paragraph[] = [];
+            
+            if (msg.user) {
+              const time = msg.userTimestamp ? 
+                new Date(msg.userTimestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+              
+              messages.push(
+                new Paragraph({
+                  spacing: { before: 200, after: 100 },
+                  children: [
+                    new TextRun({
+                      text: `[${time}] You:`,
+                      bold: true,
+                      color: '2563EB',
+                      size: 22,
+                      font: 'Calibri'
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { after: 120 },
+                  indent: { left: 360 },
+                  children: [
+                    new TextRun({
+                      text: msg.user,
+                      size: 22,
+                      color: '374151',
+                      font: 'Calibri'
+                    })
+                  ]
+                })
+              );
+            }
+            
+            if (msg.agent) {
+              const time = msg.agentTimestamp ? 
+                new Date(msg.agentTimestamp).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '';
+              
+              messages.push(
+                new Paragraph({
+                  spacing: { before: 200, after: 100 },
+                  children: [
+                    new TextRun({
+                      text: `[${time}] ${serviceName}:`,
+                      bold: true,
+                      color: '10B981', // Emerald-500
+                      size: 22,
+                      font: 'Calibri'
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { after: 120 },
+                  indent: { left: 360 },
+                  children: [
+                    new TextRun({
+                      text: msg.agent,
+                      size: 22,
+                      color: '374151',
+                      font: 'Calibri'
+                    })
+                  ]
+                })
+              );
+            }
+            
+            return messages;
+          }),
+
+          new Paragraph({ text: '', spacing: { before: 400 } }),
+
+          // Footer
+          new Paragraph({
+            text: 'Generated by Notewell AI',
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 400 },
+            children: [
+              new TextRun({
+                text: 'Generated by Notewell AI',
+                size: 18,
+                color: '9CA3AF',
+                font: 'Calibri',
+                italics: true
+              })
+            ]
+          })
+        ]
+      }]
+    });
+
+    // Generate and download the document
+    try {
+      const blob = await Packer.toBlob(doc);
+      const timestamp = new Date().toISOString().split('T')[0];
+      saveAs(blob, `PM-Genie-Transcript-${timestamp}.docx`);
+      toast.success('Transcript downloaded successfully');
+    } catch (error) {
+      console.error('Error generating Word document:', error);
+      toast.error('Failed to download transcript');
+    }
+  };
+
   // End conversation
   const endConversation = async () => {
     try {
@@ -250,9 +511,7 @@ const PMGenieVoiceAgent = () => {
       await conversation.endSession();
       console.log('PM Genie conversation ended');
       
-      // Clear buffer after sending
-      setConversationBuffer([]);
-      conversationIdRef.current = null;
+      // Keep buffer for download - don't clear until page navigation
       
     } catch (err) {
       console.error('Error ending conversation:', err);
@@ -402,6 +661,19 @@ const PMGenieVoiceAgent = () => {
               </Button>
             )}
           </div>
+
+          {/* Download Transcript Button */}
+          {conversationBuffer.length > 0 && (
+            <Button 
+              onClick={downloadTranscript}
+              variant="outline"
+              size="sm"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Download Transcript
+            </Button>
+          )}
         </div>
 
         {/* What PM Genie Can Help With & Features */}
