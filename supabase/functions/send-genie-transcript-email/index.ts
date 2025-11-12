@@ -229,27 +229,38 @@ Conversation ID: ${conversationId}
     // Send via EmailJS
     console.log(`[Transcript Email] Sending to ${userEmail} via EmailJS...`);
     
+    const emailPayload = {
+      service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
+      template_id: Deno.env.get('EMAILJS_GENERIC_TEMPLATE_ID'),
+      user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
+      accessToken: Deno.env.get('EMAILJS_PRIVATE_KEY'),
+      template_params: {
+        to_email: userEmail,
+        from_name: 'Notewell AI',
+        subject: `${serviceName} Conversation Transcript - ${formatTime(conversationBuffer[0].timestamp).split(' on ')[1]}`,
+        html_content: emailHtml,
+        message: plainText
+      }
+    };
+
+    console.log('[Transcript Email] EmailJS payload:', {
+      service_id: emailPayload.service_id ? 'SET' : 'MISSING',
+      template_id: emailPayload.template_id ? 'SET' : 'MISSING',
+      user_id: emailPayload.user_id ? 'SET' : 'MISSING',
+      accessToken: emailPayload.accessToken ? 'SET' : 'MISSING',
+      to_email: userEmail
+    });
+    
     const emailJsResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        service_id: Deno.env.get('EMAILJS_SERVICE_ID'),
-        template_id: Deno.env.get('EMAILJS_GENERIC_TEMPLATE_ID'),
-        user_id: Deno.env.get('EMAILJS_PUBLIC_KEY'),
-        accessToken: Deno.env.get('EMAILJS_PRIVATE_KEY'),
-        template_params: {
-          to_email: userEmail,
-          subject: `${serviceName} Conversation Transcript - ${formatTime(conversationBuffer[0].timestamp).split(' on ')[1]}`,
-          message_html: emailHtml,
-          message: plainText
-        }
-      })
+      body: JSON.stringify(emailPayload)
     });
 
     if (!emailJsResponse.ok) {
       const errorText = await emailJsResponse.text();
       console.error('[Transcript Email] EmailJS error:', emailJsResponse.status, errorText);
-      throw new Error(`EmailJS error: ${emailJsResponse.status}`);
+      throw new Error(`EmailJS error: ${emailJsResponse.status} - ${errorText}`);
     }
 
     console.log('[Transcript Email] ✅ Email sent successfully');
