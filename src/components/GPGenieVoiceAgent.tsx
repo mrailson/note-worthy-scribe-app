@@ -1362,21 +1362,24 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
               )}
             </div>
             
-            {/* Download Transcript Button */}
-            {conversationBuffer.length > 0 && (
-              <Button 
-                onClick={downloadTranscript}
-                variant="outline"
-                size="sm"
-                className={cn(
-                  "flex items-center gap-2",
-                  deviceInfo.isIPhone && "min-h-[48px] text-sm px-6"
-                )}
-              >
-                <Download className={cn("h-4 w-4", deviceInfo.isIPhone && "h-5 w-5")} />
-                Download Transcript
-              </Button>
-            )}
+            {/* Download Transcript Button - Debug info */}
+            {(() => {
+              console.log('🔍 Download button check - Buffer length:', conversationBuffer.length, 'Status:', conversation.status);
+              return conversationBuffer.length > 0 ? (
+                <Button 
+                  onClick={downloadTranscript}
+                  variant="default"
+                  size="default"
+                  className={cn(
+                    "flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90",
+                    deviceInfo.isIPhone && "min-h-[48px] text-base px-6"
+                  )}
+                >
+                  <Download className={cn("h-4 w-4", deviceInfo.isIPhone && "h-5 w-5")} />
+                  Download Transcript ({conversationBuffer.length} messages)
+                </Button>
+              ) : null;
+            })()}
           </div>
         </div>
 

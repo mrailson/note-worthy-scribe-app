@@ -662,18 +662,21 @@ const PMGenieVoiceAgent = () => {
             )}
           </div>
 
-          {/* Download Transcript Button */}
-          {conversationBuffer.length > 0 && (
-            <Button 
-              onClick={downloadTranscript}
-              variant="outline"
-              size="sm"
-              className="flex items-center gap-2"
-            >
-              <Download className="h-4 w-4" />
-              Download Transcript
-            </Button>
-          )}
+          {/* Download Transcript Button - Debug info */}
+          {(() => {
+            console.log('🔍 PM Genie Download button check - Buffer length:', conversationBuffer.length, 'Status:', conversation.status);
+            return conversationBuffer.length > 0 ? (
+              <Button 
+                onClick={downloadTranscript}
+                variant="default"
+                size="default"
+                className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+              >
+                <Download className="h-4 w-4" />
+                Download Transcript ({conversationBuffer.length} messages)
+              </Button>
+            ) : null;
+          })()}
         </div>
 
         {/* What PM Genie Can Help With & Features */}
