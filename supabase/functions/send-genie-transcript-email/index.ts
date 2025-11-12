@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, Packer } from "npm:docx@8.5.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -192,39 +193,290 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Prepare plain text version
-    const plainText = `
-${serviceName.toUpperCase()} CONVERSATION TRANSCRIPT
-${'='.repeat(60)}
+    // Generate Word document
+    console.log('[Transcript Email] Generating Word document...');
+    
+    const doc = new Document({
+      sections: [{
+        properties: {},
+        children: [
+          // Title
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 200 },
+            children: [
+              new TextRun({
+                text: 'Notewell AI',
+                bold: true,
+                size: 32,
+                color: '005EB8',
+                font: 'Calibri'
+              })
+            ]
+          }),
+          
+          // Service name
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { after: 400 },
+            children: [
+              new TextRun({
+                text: `${serviceName} - Conversation Transcript`,
+                bold: true,
+                size: 28,
+                color: '2563EB',
+                font: 'Calibri'
+              })
+            ]
+          }),
 
-Service: ${serviceName}
-Start Time: ${formatTime(conversationBuffer[0].timestamp)}
-End Time: ${formatTime(conversationBuffer[conversationBuffer.length - 1].timestamp)}
-Duration: ${durationMins} minute${durationMins !== 1 ? 's' : ''}
-Total Exchanges: ${messageCount}
+          // Metadata table
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              bottom: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              left: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              right: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' },
+              insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'D1D5DB' }
+            },
+            rows: [
+              new TableRow({
+                children: [
+                  new TableCell({
+                    children: [new Paragraph({ children: [new TextRun({ text: 'Start Time:', bold: true, font: 'Calibri', size: 22 })] })],
+                    width: { size: 30, type: WidthType.PERCENTAGE }
+                  }),
+                  new TableCell({
+                    children: [new Paragraph({ children: [new TextRun({ text: formatTime(conversationBuffer[0].timestamp), font: 'Calibri', size: 22 })] })],
+                    width: { size: 70, type: WidthType.PERCENTAGE }
+                  })
+                ]
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'End Time:', bold: true, font: 'Calibri', size: 22 })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: formatTime(conversationBuffer[conversationBuffer.length - 1].timestamp), font: 'Calibri', size: 22 })] })] })
+                ]
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Duration:', bold: true, font: 'Calibri', size: 22 })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${durationMins} minutes`, font: 'Calibri', size: 22 })] })] })
+                ]
+              }),
+              new TableRow({
+                children: [
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Messages:', bold: true, font: 'Calibri', size: 22 })] })] }),
+                  new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${messageCount} user messages`, font: 'Calibri', size: 22 })] })] })
+                ]
+              })
+            ]
+          }),
 
-CONVERSATION HISTORY
-${'-'.repeat(60)}
+          new Paragraph({ text: '', spacing: { after: 400 } }),
 
-${conversationBuffer.map((msg: ConversationMessage) => {
-  let text = '';
-  if (msg.user) {
-    const time = msg.userTimestamp ? formatTimeOnly(msg.userTimestamp) : '';
-    text += `[${time}] You:\n${msg.user}\n\n`;
-  }
-  if (msg.agent) {
-    const time = msg.agentTimestamp ? formatTimeOnly(msg.agentTimestamp) : '';
-    text += `[${time}] ${serviceName}:\n${msg.agent}\n\n`;
-  }
-  return text;
-}).join('')}
+          // Conversation History heading
+          new Paragraph({
+            spacing: { before: 240, after: 200 },
+            children: [
+              new TextRun({
+                text: 'Conversation History',
+                bold: true,
+                size: 24,
+                color: '2563EB',
+                font: 'Calibri'
+              })
+            ]
+          }),
 
-${'='.repeat(60)}
-Generated by Notewell AI
-This transcript is for your records only
-Confidential - Do Not Forward
-Conversation ID: ${conversationId}
-    `.trim();
+          // Conversation messages
+          ...conversationBuffer.flatMap((msg: ConversationMessage) => {
+            const messages: any[] = [];
+            
+            if (msg.user) {
+              const time = msg.userTimestamp ? formatTimeOnly(msg.userTimestamp) : '';
+              messages.push(
+                new Paragraph({
+                  spacing: { before: 200, after: 100 },
+                  children: [
+                    new TextRun({
+                      text: `[${time}] You:`,
+                      bold: true,
+                      color: '2563EB',
+                      size: 22,
+                      font: 'Calibri'
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { after: 120 },
+                  indent: { left: 360 },
+                  children: [
+                    new TextRun({
+                      text: msg.user,
+                      size: 22,
+                      color: '374151',
+                      font: 'Calibri'
+                    })
+                  ]
+                })
+              );
+            }
+            
+            if (msg.agent) {
+              const time = msg.agentTimestamp ? formatTimeOnly(msg.agentTimestamp) : '';
+              messages.push(
+                new Paragraph({
+                  spacing: { before: 200, after: 100 },
+                  children: [
+                    new TextRun({
+                      text: `[${time}] ${serviceName}:`,
+                      bold: true,
+                      color: '10B981',
+                      size: 22,
+                      font: 'Calibri'
+                    })
+                  ]
+                }),
+                new Paragraph({
+                  spacing: { after: 120 },
+                  indent: { left: 360 },
+                  children: [
+                    new TextRun({
+                      text: msg.agent,
+                      size: 22,
+                      color: '374151',
+                      font: 'Calibri'
+                    })
+                  ]
+                })
+              );
+            }
+            
+            return messages;
+          }),
+
+          new Paragraph({ text: '', spacing: { before: 400, after: 200 } }),
+
+          // DISCLAIMER
+          new Paragraph({
+            spacing: { before: 400, after: 200 },
+            children: [
+              new TextRun({
+                text: 'IMPORTANT DISCLAIMER',
+                bold: true,
+                size: 24,
+                color: 'DC2626',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({
+                text: '⚠️ NOT AN APPROVED NHS CLINICAL TOOL',
+                bold: true,
+                size: 22,
+                color: 'DC2626',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 200 },
+            children: [
+              new TextRun({
+                text: 'This tool is provided by Notewell AI for concept testing and demonstration purposes only. It is NOT approved, endorsed, or validated for use within NHS clinical settings for patient diagnosis, treatment, or clinical decision-making.',
+                size: 20,
+                color: '374151',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({ text: '• ', bold: true, size: 20, font: 'Calibri' }),
+              new TextRun({ text: 'Non-Clinical Use Only: ', bold: true, size: 20, font: 'Calibri' }),
+              new TextRun({ text: 'This service must NOT be used for patient diagnosis, treatment planning, prescribing, or any clinical decision-making.', size: 20, color: '374151', font: 'Calibri' })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({ text: '• ', bold: true, size: 20, font: 'Calibri' }),
+              new TextRun({ text: 'No Regulatory Approval: ', bold: true, size: 20, font: 'Calibri' }),
+              new TextRun({ text: 'This system has not received MHRA approval, CE marking, or any regulatory clearance as a medical device.', size: 20, color: '374151', font: 'Calibri' })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { after: 120 },
+            children: [
+              new TextRun({ text: '• ', bold: true, size: 20, font: 'Calibri' }),
+              new TextRun({ text: 'Data Protection Notice: ', bold: true, size: 20, font: 'Calibri' }),
+              new TextRun({ text: 'Do NOT input identifiable patient information. This system is not approved for processing NHS patient data.', size: 20, color: '374151', font: 'Calibri' })
+            ]
+          }),
+
+          new Paragraph({
+            spacing: { before: 200, after: 120 },
+            children: [
+              new TextRun({
+                text: 'By using this service, you acknowledge these limitations. If you require clinical-grade tools, please use only NHS-approved and clinically validated systems.',
+                bold: true,
+                size: 20,
+                color: 'DC2626',
+                font: 'Calibri'
+              })
+            ]
+          }),
+
+          new Paragraph({ text: '', spacing: { before: 400 } }),
+
+          // Footer
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            spacing: { before: 400 },
+            children: [
+              new TextRun({
+                text: 'Generated by Notewell AI',
+                size: 18,
+                color: '6B7280',
+                italics: true,
+                font: 'Calibri'
+              })
+            ]
+          }),
+          
+          new Paragraph({
+            alignment: AlignmentType.CENTER,
+            children: [
+              new TextRun({
+                text: `Document created: ${formatTime(new Date().toISOString())}`,
+                size: 18,
+                color: '6B7280',
+                italics: true,
+                font: 'Calibri'
+              })
+            ]
+          })
+        ]
+      }]
+    });
+
+    // Generate buffer
+    const docBuffer = await Packer.toBuffer(doc);
+    const docBase64 = btoa(String.fromCharCode(...new Uint8Array(docBuffer)));
+    
+    console.log('[Transcript Email] Word document generated, size:', docBuffer.byteLength, 'bytes');
 
     // Send via EmailJS
     console.log(`[Transcript Email] Sending to ${userEmail} via EmailJS...`);
@@ -239,7 +491,10 @@ Conversation ID: ${conversationId}
         from_name: 'Notewell AI',
         subject: `${serviceName} Conversation Transcript - ${formatTime(conversationBuffer[0].timestamp).split(' on ')[1]}`,
         html_content: emailHtml,
-        message: plainText
+        attachment: {
+          name: `${serviceName.replace(/ /g, '-')}-transcript.docx`,
+          data: docBase64
+        }
       }
     };
 
