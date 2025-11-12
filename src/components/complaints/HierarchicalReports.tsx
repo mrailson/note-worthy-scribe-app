@@ -484,49 +484,57 @@ export const HierarchicalReports = () => {
                       <CardContent>
                         <div className="flex flex-col gap-2 text-xs">
                           <div className="flex items-center justify-between p-2 rounded bg-muted/50">
-                            <span className="font-medium">Abbey Medical Centre</span>
-                            <span className="text-muted-foreground">TBC</span>
+                            <span className="font-medium">Abbey Medical Practice</span>
+                            <span className="text-muted-foreground">27,264</span>
                           </div>
-                          <div className="flex items-center p-2 rounded bg-muted/50 pl-6">
-                            <span className="text-muted-foreground">→ Broad Street Surgery, Earls Barton</span>
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50 pl-6">
+                            <span className="text-muted-foreground">→ Broad Street Surgery</span>
+                            <span className="text-muted-foreground">0</span>
                           </div>
                           <div className="flex items-center justify-between p-2 rounded bg-muted/50">
                             <span className="font-medium">Albany House Medical Centre</span>
-                            <span className="text-muted-foreground">TBC</span>
+                            <span className="text-muted-foreground">20,458</span>
                           </div>
-                          <div className="flex items-center p-2 rounded bg-muted/50 pl-6">
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50 pl-6">
                             <span className="text-muted-foreground">→ Wollaston</span>
+                            <span className="text-muted-foreground">0</span>
                           </div>
                           <div className="flex items-center justify-between p-2 rounded bg-muted/50">
-                            <span className="font-medium">Dr Pasquali – Irchester Surgery</span>
-                            <span className="text-muted-foreground">TBC</span>
+                            <span className="font-medium">Dr Pasquali</span>
+                            <span className="text-muted-foreground">4,040</span>
                           </div>
                           <div className="flex items-center justify-between p-2 rounded bg-muted/50">
-                            <span className="font-medium">Earls Barton Medical Centre</span>
-                            <span className="text-muted-foreground">TBC</span>
+                            <span className="font-medium">Earls Barton & Penvale Park</span>
+                            <span className="text-muted-foreground">5,603</span>
                           </div>
                           <div className="flex items-center justify-between p-2 rounded bg-muted/50">
                             <span className="font-medium">Queensway Medical Centre</span>
-                            <span className="text-muted-foreground">TBC</span>
+                            <span className="text-muted-foreground">14,651</span>
+                          </div>
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+                            <span className="font-medium">Redwell Medical Centre</span>
+                            <span className="text-muted-foreground">12,305</span>
                           </div>
                           <div className="flex items-center justify-between p-2 rounded bg-muted/50">
                             <span className="font-medium">Summerlee Medical Centre</span>
-                            <span className="text-muted-foreground">TBC</span>
-                          </div>
-                          <div className="flex items-center justify-between p-2 rounded bg-muted/50">
-                            <span className="font-medium">The Redwell Medical Centre</span>
-                            <span className="text-muted-foreground">TBC</span>
+                            <span className="text-muted-foreground">1,819</span>
                           </div>
                           <div className="flex items-center justify-between p-2 rounded bg-muted/50">
                             <span className="font-medium">Woodsend Medical Centre</span>
                             <span className="text-muted-foreground">TBC</span>
                           </div>
-                          <div className="flex items-center p-2 rounded bg-muted/50 pl-6">
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50 pl-6">
                             <span className="text-muted-foreground">→ Bozeat Surgery</span>
+                            <span className="text-muted-foreground">0</span>
                           </div>
-                          <div className="flex items-center p-2 rounded bg-muted/50 pl-6">
+                          <div className="flex items-center justify-between p-2 rounded bg-muted/50 pl-6">
                             <span className="text-muted-foreground">→ Wollaston Surgery</span>
+                            <span className="text-muted-foreground">5,310</span>
                           </div>
+                        </div>
+                        <div className="mt-4 pt-3 border-t border-purple-200 dark:border-purple-700 flex items-center justify-between font-semibold text-sm">
+                          <span>Total</span>
+                          <span>91,450</span>
                         </div>
                       </CardContent>
                     </Card>
