@@ -23,6 +23,7 @@ import {
 import { useConversation } from '@11labs/react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface QualityScore {
   accuracy: number;
@@ -34,13 +35,22 @@ interface QualityScore {
   explanation?: string;
 }
 
+interface ConversationMessage {
+  user: string;
+  agent: string;
+  timestamp: string;
+  userTimestamp?: string;
+  agentTimestamp?: string;
+}
+
 const PMGenieVoiceAgent = () => {
+  const { profile } = useUserProfile();
   const [hasPermission, setHasPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [agentUrl, setAgentUrl] = useState<string | null>(null);
   const [qualityScore, setQualityScore] = useState<QualityScore | null>(null);
-  const [conversationBuffer, setConversationBuffer] = useState<{user: string, agent: string}[]>([]);
+  const [conversationBuffer, setConversationBuffer] = useState<ConversationMessage[]>([]);
   const conversationIdRef = useRef<string | null>(null);
 
   const verifyConversationQuality = async (userInput: string, agentResponse: string) => {
@@ -76,19 +86,45 @@ const PMGenieVoiceAgent = () => {
       setQualityScore(null);
       setConversationBuffer([]);
     },
-    onDisconnect: () => {
+    onDisconnect: async () => {
       console.log('Disconnected from PM Genie');
       toast.info('Disconnected from PM Genie');
+      
+      // Backup: Send transcript if buffer has content and wasn't already sent
+      if (conversationBuffer.length > 0 && profile?.email && conversationIdRef.current) {
+        console.log(`📧 Sending PM Genie transcript on disconnect to ${profile.email}...`);
+        
+        try {
+          await supabase.functions.invoke('send-genie-transcript-email', {
+            body: {
+              userEmail: profile.email,
+              serviceName: 'PM Genie',
+              conversationBuffer: conversationBuffer,
+              conversationId: conversationIdRef.current,
+              serviceType: 'pm-genie'
+            }
+          });
+        } catch (err) {
+          console.error('Failed to send transcript on disconnect:', err);
+        }
+      }
+      
       conversationIdRef.current = null;
+      setConversationBuffer([]);
     },
     onMessage: (message) => {
       console.log('PM Genie message:', message);
       
-      // Capture conversation for verification
+      // Capture conversation for verification with timestamps
       if (message.message && message.source) {
-        const newEntry = {
+        const timestamp = new Date().toISOString();
+        
+        const newEntry: ConversationMessage = {
           user: message.source === 'user' ? message.message : '',
-          agent: message.source === 'ai' ? message.message : ''
+          agent: message.source === 'ai' ? message.message : '',
+          timestamp: timestamp,
+          userTimestamp: message.source === 'user' ? timestamp : undefined,
+          agentTimestamp: message.source === 'ai' ? timestamp : undefined
         };
         
         setConversationBuffer(prev => {
@@ -97,6 +133,7 @@ const PMGenieVoiceAgent = () => {
             updated.push(newEntry);
           } else if (message.source === 'ai' && updated.length > 0) {
             updated[updated.length - 1].agent = message.message;
+            updated[updated.length - 1].agentTimestamp = timestamp;
             // Trigger verification for the complete exchange
             const lastExchange = updated[updated.length - 1];
             if (lastExchange.user && lastExchange.agent) {
@@ -187,8 +224,36 @@ const PMGenieVoiceAgent = () => {
   // End conversation
   const endConversation = async () => {
     try {
+      // Send transcript email silently BEFORE ending session
+      if (conversationBuffer.length > 0 && profile?.email) {
+        console.log(`📧 Sending PM Genie transcript to ${profile.email}...`);
+        
+        const { data, error } = await supabase.functions.invoke('send-genie-transcript-email', {
+          body: {
+            userEmail: profile.email,
+            serviceName: 'PM Genie',
+            conversationBuffer: conversationBuffer,
+            conversationId: conversationIdRef.current,
+            serviceType: 'pm-genie'
+          }
+        });
+        
+        if (error) {
+          console.error('Failed to send transcript email:', error);
+          // Silent - don't show error to user
+        } else {
+          console.log('✅ PM Genie transcript email sent successfully');
+        }
+      }
+      
+      // Now end the session
       await conversation.endSession();
       console.log('PM Genie conversation ended');
+      
+      // Clear buffer after sending
+      setConversationBuffer([]);
+      conversationIdRef.current = null;
+      
     } catch (err) {
       console.error('Error ending conversation:', err);
     }

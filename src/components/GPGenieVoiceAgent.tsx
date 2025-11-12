@@ -37,6 +37,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
+import { useUserProfile } from '@/hooks/useUserProfile';
 
 interface QualityScore {
   accuracy: number;
@@ -52,7 +53,16 @@ interface QualityScore {
   targetLanguage?: string;
 }
 
+interface ConversationMessage {
+  user: string;
+  agent: string;
+  timestamp: string;
+  userTimestamp?: string;
+  agentTimestamp?: string;
+}
+
 const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string }) => {
+  const { profile } = useUserProfile();
   const deviceInfo = useDeviceInfo();
   const getLanguageName = (code: string) => {
     if (!code) return 'Unknown';
@@ -72,7 +82,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   const [error, setError] = useState<string | null>(null);
   const [currentLanguageIndex, setCurrentLanguageIndex] = useState(0);
   const [qualityScore, setQualityScore] = useState<QualityScore | null>(null);
-  const [conversationBuffer, setConversationBuffer] = useState<{user: string, agent: string}[]>([]);
+  const [conversationBuffer, setConversationBuffer] = useState<ConversationMessage[]>([]);
   const [isQualityDetailsOpen, setIsQualityDetailsOpen] = useState(false);
   const conversationIdRef = useRef<string | null>(null);
 
@@ -174,31 +184,53 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       toast.success(`Connected to ${serviceName}`);
       setError(null);
       
-      if (activeTab === 'patient-line') {
-        conversationIdRef.current = `oaklane_${Date.now()}`;
-        setQualityScore(null);
-        setConversationBuffer([]);
-      }
+      // Initialize for ALL services
+      conversationIdRef.current = `${activeTab}_${Date.now()}`;
+      setQualityScore(null);
+      setConversationBuffer([]);
     },
-    onDisconnect: () => {
+    onDisconnect: async () => {
       const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
       console.log(`Disconnected from ${serviceName}`);
       toast.info(`Disconnected from ${serviceName}`);
       
-      if (activeTab === 'patient-line') {
-        conversationIdRef.current = null;
+      // Backup: Send transcript if buffer has content and wasn't already sent
+      if (conversationBuffer.length > 0 && profile?.email && conversationIdRef.current) {
+        console.log(`📧 Sending ${serviceName} transcript on disconnect to ${profile.email}...`);
+        
+        try {
+          await supabase.functions.invoke('send-genie-transcript-email', {
+            body: {
+              userEmail: profile.email,
+              serviceName: serviceName,
+              conversationBuffer: conversationBuffer,
+              conversationId: conversationIdRef.current,
+              serviceType: activeTab
+            }
+          });
+        } catch (err) {
+          console.error('Failed to send transcript on disconnect:', err);
+        }
       }
+      
+      conversationIdRef.current = null;
+      setConversationBuffer([]);
     },
     onMessage: (message) => {
       console.log('📨 Message received:', message);
       
-      // Only capture and verify for Oak Lane Patient Line
-      if (activeTab === 'patient-line' && message.message && message.source) {
-        console.log('🎯 Oak Lane message - Source:', message.source, 'Content:', message.message.substring(0, 50) + '...');
+      // Capture conversation for ALL services with timestamps
+      if (message.message && message.source) {
+        console.log('🎯 Message - Source:', message.source, 'Content:', message.message.substring(0, 50) + '...');
         
-        const newEntry = {
+        const timestamp = new Date().toISOString();
+        
+        const newEntry: ConversationMessage = {
           user: message.source === 'user' ? message.message : '',
-          agent: message.source === 'ai' ? message.message : ''
+          agent: message.source === 'ai' ? message.message : '',
+          timestamp: timestamp,
+          userTimestamp: message.source === 'user' ? timestamp : undefined,
+          agentTimestamp: message.source === 'ai' ? timestamp : undefined
         };
         
         setConversationBuffer(prev => {
@@ -209,17 +241,19 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
           } else if (message.source === 'ai' && updated.length > 0) {
             console.log('🤖 AI response captured:', message.message.substring(0, 50) + '...');
             updated[updated.length - 1].agent = message.message;
-            // Trigger verification for the complete exchange
-            const lastExchange = updated[updated.length - 1];
-            if (lastExchange.user && lastExchange.agent) {
-              console.log('🔄 Triggering verification for complete exchange');
-              verifyConversationQuality(lastExchange.user, lastExchange.agent);
+            updated[updated.length - 1].agentTimestamp = timestamp;
+            
+            // Trigger verification ONLY for Oak Lane Patient Line
+            if (activeTab === 'patient-line') {
+              const lastExchange = updated[updated.length - 1];
+              if (lastExchange.user && lastExchange.agent) {
+                console.log('🔄 Triggering verification for Oak Lane exchange');
+                verifyConversationQuality(lastExchange.user, lastExchange.agent);
+              }
             }
           }
           return updated;
         });
-      } else if (activeTab === 'patient-line') {
-        console.log('⚠️ Oak Lane message missing data - message:', !!message.message, 'source:', message.source);
       }
     },
     onError: (error) => {
@@ -363,7 +397,36 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   // End conversation
   const endConversation = async () => {
     try {
+      // Send transcript email silently BEFORE ending session
+      if (conversationBuffer.length > 0 && profile?.email) {
+        const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
+        console.log(`📧 Sending ${serviceName} transcript to ${profile.email}...`);
+        
+        const { data, error } = await supabase.functions.invoke('send-genie-transcript-email', {
+          body: {
+            userEmail: profile.email,
+            serviceName: serviceName,
+            conversationBuffer: conversationBuffer,
+            conversationId: conversationIdRef.current,
+            serviceType: activeTab
+          }
+        });
+        
+        if (error) {
+          console.error('Failed to send transcript email:', error);
+          // Silent - don't show error to user
+        } else {
+          console.log(`✅ ${serviceName} transcript email sent successfully`);
+        }
+      }
+      
+      // Now end the session
       await conversation.endSession();
+      
+      // Clear buffer after sending
+      setConversationBuffer([]);
+      conversationIdRef.current = null;
+      
     } catch (err: any) {
       console.error('Failed to end conversation:', err);
     }
