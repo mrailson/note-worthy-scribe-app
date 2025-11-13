@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useGenieHistory, ServiceType, GenieSession } from '@/hooks/useGenieHistory';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -16,6 +17,7 @@ interface GenieHistoryProps {
 
 export const GenieHistory: React.FC<GenieHistoryProps> = ({ serviceType }) => {
   const { sessions, loading, loadSessions, deleteSession } = useGenieHistory();
+  const { profile } = useUserProfile();
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -81,6 +83,12 @@ export const GenieHistory: React.FC<GenieHistoryProps> = ({ serviceType }) => {
           insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' }
         },
         rows: [
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'User', bold: true })] })] }),
+              new TableCell({ children: [new Paragraph(profile?.full_name || profile?.email || 'Unknown User')] })
+            ]
+          }),
           new TableRow({
             children: [
               new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Start Time', bold: true })] })] }),
