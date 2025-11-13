@@ -91,9 +91,11 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   const [currentLanguageIndex, setCurrentLanguageIndex] = useState(0);
   const [qualityScore, setQualityScore] = useState<QualityScore | null>(null);
   const [conversationBuffer, setConversationBuffer] = useState<ConversationMessage[]>([]);
+  const conversationBufferRef = useRef<ConversationMessage[]>([]);
   const [isQualityDetailsOpen, setIsQualityDetailsOpen] = useState(false);
   const conversationIdRef = useRef<string | null>(null);
   const processedMessageIds = useRef<Set<string>>(new Set());
+  const serviceTypeAtConnectionRef = useRef<ServiceType>('gp-genie');
 
   const languageRotation = [
     { code: 'en', text: 'Test Language Support Service' },
@@ -195,11 +197,13 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       
       // Initialize for ALL services - clear old buffer and set start time
       conversationStartTime.current = new Date();
+      serviceTypeAtConnectionRef.current = activeTab as ServiceType;
       conversationIdRef.current = `${activeTab}_${Date.now()}`;
       setQualityScore(null);
       setConversationBuffer([]); // Clear old conversation when starting new one
+      conversationBufferRef.current = [];
       processedMessageIds.current.clear(); // Clear message deduplication tracking
-      console.log('✅ Conversation start time set:', conversationStartTime.current);
+      console.log('✅ Conversation start time set:', conversationStartTime.current, 'Service type at connect:', serviceTypeAtConnectionRef.current);
     },
     onDisconnect: async () => {
       const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
@@ -207,28 +211,44 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       toast.info(`Disconnected from ${serviceName}`);
       
       // Save to history
-      if (conversationBuffer.length > 0 && conversationStartTime.current) {
-        await saveSession(
-          activeTab as ServiceType,
-          conversationBuffer,
-          conversationStartTime.current,
-          new Date(),
-          true // email was sent
-        );
+      const buffered = conversationBufferRef.current;
+      const startAt = conversationStartTime.current;
+      const serviceAtConnect = serviceTypeAtConnectionRef.current;
+      console.log('💾 Attempting to save session to history...', {
+        bufferLength: buffered.length,
+        hasStartTime: !!startAt,
+        serviceAtConnect
+      });
+      if (buffered.length > 0 && startAt) {
+        try {
+          const saved = await saveSession(
+            serviceAtConnect,
+            buffered,
+            startAt,
+            new Date(),
+            true // email was sent
+          );
+          console.log('✅ Session saved successfully to history:', saved?.id);
+        } catch (e) {
+          console.error('❌ Failed to save session to history:', e);
+        }
       }
       
       // Backup: Send transcript if buffer has content and wasn't already sent
-      if (conversationBuffer.length > 0 && profile?.email && conversationIdRef.current) {
-        console.log(`📧 Sending ${serviceName} transcript on disconnect to ${profile.email}...`);
+      const bufferedForEmail = conversationBufferRef.current;
+      const serviceTypeForEmail = serviceTypeAtConnectionRef.current;
+      const serviceNameForEmail = serviceTypeForEmail === 'gp-genie' ? 'GP Genie' : serviceTypeForEmail === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
+      if (bufferedForEmail.length > 0 && profile?.email && conversationIdRef.current) {
+        console.log(`📧 Sending ${serviceNameForEmail} transcript on disconnect to ${profile.email}...`);
         
         try {
           await supabase.functions.invoke('send-genie-transcript-email', {
             body: {
               userEmail: profile.email,
-              serviceName: serviceName,
-              conversationBuffer: conversationBuffer,
+              serviceName: serviceNameForEmail,
+              conversationBuffer: bufferedForEmail,
               conversationId: conversationIdRef.current,
-              serviceType: activeTab
+              serviceType: serviceTypeForEmail
             }
           });
         } catch (err) {
@@ -291,6 +311,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
               }
             }
           }
+          conversationBufferRef.current = updated;
           return updated;
         });
       }
@@ -911,42 +932,45 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   // End conversation
   const endConversation = async () => {
     try {
-      // Save to history
-      if (conversationBuffer.length > 0 && conversationStartTime.current) {
-        await saveSession(
-          activeTab as ServiceType,
-          conversationBuffer,
-          conversationStartTime.current,
-          new Date(),
-          true // email was sent
-        );
+      const buffered = conversationBufferRef.current;
+      const startAt = conversationStartTime.current;
+      const serviceAtConnect = serviceTypeAtConnectionRef.current;
+
+      // Save to history (manual end)
+      if (buffered.length > 0 && startAt) {
+        try {
+          const saved = await saveSession(
+            serviceAtConnect,
+            buffered,
+            startAt,
+            new Date(),
+            true // email was sent
+          );
+          console.log('✅ Session saved successfully to history (manual end):', saved?.id);
+        } catch (e) {
+          console.error('❌ Failed to save session to history (manual end):', e);
+        }
       }
       
       // Send transcript email silently BEFORE ending session
-      if (conversationBuffer.length > 0 && profile?.email) {
-        const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
-        console.log(`📧 Sending ${serviceName} transcript to ${profile.email}...`);
+      if (buffered.length > 0 && profile?.email) {
+        const serviceNameForEmail = serviceAtConnect === 'gp-genie' ? 'GP Genie' : serviceAtConnect === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
+        console.log(`📧 Sending ${serviceNameForEmail} transcript to ${profile.email}...`);
         
         const { data, error } = await supabase.functions.invoke('send-genie-transcript-email', {
           body: {
             userEmail: profile.email,
-            serviceName: serviceName,
-            conversationBuffer: conversationBuffer,
+            serviceName: serviceNameForEmail,
+            conversationBuffer: buffered,
             conversationId: conversationIdRef.current,
-            serviceType: activeTab
+            serviceType: serviceAtConnect
           }
         });
         
         if (error) {
           console.error('Failed to send transcript email:', error);
-          toast.warning('Email delivery failed - use Download Transcript button', {
-            duration: 5000
-          });
         } else {
-          console.log(`✅ ${serviceName} transcript email sent successfully`);
-          toast.success('Transcript sent to your email', {
-            duration: 3000
-          });
+          console.log('📧 Transcript email sent:', data);
         }
       }
       
