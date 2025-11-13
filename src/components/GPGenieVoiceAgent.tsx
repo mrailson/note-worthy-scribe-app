@@ -376,12 +376,16 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
 
   // Start conversation
   const startConversation = async () => {
+    setIsLoading(true);
+    setError(null);
+    
     const permitted = hasPermission ? true : await requestMicrophonePermission();
-    if (!permitted) return;
+    if (!permitted) {
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      setIsLoading(true);
-      setError(null);
       
       // Generate signed URL first (required for authorized agents)
       const signedUrl = await generateSignedUrl();
@@ -1407,8 +1411,10 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
                     <Phone className={cn("h-5 w-5", deviceInfo.isIPhone && "h-6 w-6")} />
                   )}
                   {deviceInfo.isIPhone 
-                    ? (isLoading ? 'Connecting...' : 'Start Call') 
-                    : (isLoading ? 'Connecting...' : 'Start the Conversation')
+                    ? (isLoading ? 'Starting...' : 'Start Call') 
+                    : (isLoading 
+                      ? `Starting ${activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line'}...`
+                      : 'Start the Conversation')
                   }
                 </Button>
               )}
