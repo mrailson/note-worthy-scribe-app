@@ -1,4 +1,4 @@
-import { RefreshCw, Download, Plus } from "lucide-react";
+import { RefreshCw, Download, Plus, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InfoTooltip } from "@/components/nres/InfoTooltip";
@@ -72,6 +72,15 @@ export const CommsStrategyHeader = ({
           >
             <Plus className="h-4 w-4" />
             Add New Plan
+          </Button>
+
+          <Button
+            onClick={() => window.open('https://claude.ai/public/artifacts/eb3cdf6b-2e56-4f22-9a09-d6d81a6d74ca', '_blank')}
+            variant="outline"
+            className="gap-2 border-[#005EB8] text-[#005EB8] hover:bg-[#005EB8] hover:text-white"
+          >
+            <ExternalLink className="h-4 w-4" />
+            NRES Comms Strategy
           </Button>
 
           <Button
