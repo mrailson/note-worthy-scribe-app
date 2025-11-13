@@ -23,7 +23,7 @@ export const DashboardHeader = ({
   onAutoRefreshToggle,
   onManualRefresh
 }: DashboardHeaderProps) => {
-  const [countdown, setCountdown] = useState(30);
+  const [countdown, setCountdown] = useState(300);
 
   useEffect(() => {
     if (!autoRefresh) return;
@@ -32,7 +32,7 @@ export const DashboardHeader = ({
       setCountdown(prev => {
         if (prev <= 1) {
           onManualRefresh();
-          return 30;
+          return 300;
         }
         return prev - 1;
       });
@@ -43,7 +43,7 @@ export const DashboardHeader = ({
 
   useEffect(() => {
     if (!autoRefresh) {
-      setCountdown(30);
+      setCountdown(300);
     }
   }, [autoRefresh]);
 
@@ -102,7 +102,7 @@ export const DashboardHeader = ({
             className="gap-2"
           >
             <RefreshCw className={`h-4 w-4 ${autoRefresh ? 'animate-spin' : ''}`} />
-            Auto-refresh {autoRefresh && `(${countdown}s)`}
+            Auto-refresh {autoRefresh && `(${Math.floor(countdown / 60)}:${String(countdown % 60).padStart(2, '0')})`}
           </Button>
 
           <Button
