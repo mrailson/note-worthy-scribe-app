@@ -97,6 +97,25 @@ export const useGenieHistory = () => {
         return null;
       }
 
+      // Check for duplicate sessions (within 5 seconds of start time)
+      const startTimeStr = startTime.toISOString();
+      const fiveSecondsEarlier = new Date(startTime.getTime() - 5000).toISOString();
+      const fiveSecondsLater = new Date(startTime.getTime() + 5000).toISOString();
+      
+      const { data: existingSessions } = await supabase
+        .from('genie_sessions')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('service_type', serviceType)
+        .gte('start_time', fiveSecondsEarlier)
+        .lte('start_time', fiveSecondsLater)
+        .limit(1);
+
+      if (existingSessions && existingSessions.length > 0) {
+        console.log('⚠️ Duplicate session detected, skipping save');
+        return null;
+      }
+
       // Generate title: Service name + timestamp
       const serviceNames = {
         'gp-genie': 'GP Genie',
