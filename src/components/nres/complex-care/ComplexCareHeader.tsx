@@ -78,15 +78,10 @@ export const ComplexCareHeader = ({
                 ))}
               </SelectContent>
             </Select>
-
-            <div className="flex items-center gap-2">
-              <div className="h-3 w-3 rounded-full bg-green-400 animate-pulse" />
-              <span className="text-sm">Live</span>
-            </div>
           </div>
 
           <p className="text-xs text-muted-foreground text-right">
-            Last refresh: {lastRefresh.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            Last updated: {lastRefresh.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
       </div>

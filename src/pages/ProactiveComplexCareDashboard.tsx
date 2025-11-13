@@ -113,14 +113,6 @@ const ProactiveComplexCareDashboard = () => {
     });
   };
 
-  // Simulate real-time updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setLastRefresh(new Date());
-    }, 30000); // Update every 30 seconds
-
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-muted">
