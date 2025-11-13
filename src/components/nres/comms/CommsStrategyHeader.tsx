@@ -1,4 +1,4 @@
-import { RefreshCw, Download, Plus, ExternalLink } from "lucide-react";
+import { RefreshCw, Download, Plus, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { InfoTooltip } from "@/components/nres/InfoTooltip";
@@ -81,8 +81,8 @@ export const CommsStrategyHeader = ({
             variant="outline"
             className="gap-2 border-[#005EB8] text-[#005EB8] hover:bg-[#005EB8] hover:text-white"
           >
-            <ExternalLink className="h-4 w-4" />
-            View Reference
+            <Copy className="h-4 w-4" />
+            Copy Reference
           </Button>
 
           <Button
