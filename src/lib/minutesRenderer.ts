@@ -321,9 +321,12 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
 
   console.log('🔍 MINUTES RENDERER OUTPUT (first 500 chars):', html.substring(0, 500));
 
-  // Sanitize the HTML - added SVG support for icons
+  // Sanitize the HTML - added SVG support for icons and CSP-compliant flags
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'ol', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'style', 'svg', 'path'],
-    ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style', 'value', 'fill', 'viewBox', 'fill-rule', 'clip-rule', 'd']
+    ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style', 'value', 'fill', 'viewBox', 'fill-rule', 'clip-rule', 'd'],
+    SAFE_FOR_TEMPLATES: true,   // Prevent template string evaluation
+    RETURN_DOM_FRAGMENT: false, // Return string, not DOM node
+    FORCE_BODY: true            // Prevent script execution context
   });
 }
