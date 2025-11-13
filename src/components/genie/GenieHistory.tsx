@@ -5,9 +5,10 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Download, Search, Trash2, Clock, MessageSquare } from 'lucide-react';
 import { format } from 'date-fns';
-import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
+import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, Packer } from 'docx';
 import { saveAs } from 'file-saver';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 interface GenieHistoryProps {
   serviceType: ServiceType;
@@ -120,8 +121,8 @@ export const GenieHistory: React.FC<GenieHistoryProps> = ({ serviceType }) => {
 
     // Add conversation messages
     session.messages.forEach((msg, idx) => {
-      const userTime = format(new Date(msg.userTimestamp), 'HH:mm');
-      const agentTime = format(new Date(msg.agentTimestamp), 'HH:mm');
+      const userTime = msg.userTimestamp ? format(new Date(msg.userTimestamp), 'HH:mm') : format(new Date(msg.timestamp), 'HH:mm');
+      const agentTime = msg.agentTimestamp ? format(new Date(msg.agentTimestamp), 'HH:mm') : format(new Date(msg.timestamp), 'HH:mm');
 
       children.push(
         new Paragraph({
@@ -184,9 +185,15 @@ export const GenieHistory: React.FC<GenieHistoryProps> = ({ serviceType }) => {
       }]
     });
 
-    const blob = await require('docx').Packer.toBlob(doc);
-    const fileName = `${serviceName.replace(/ /g, '_')}_Transcript_${format(new Date(session.start_time), 'yyyyMMdd_HHmm')}.docx`;
-    saveAs(blob, fileName);
+    try {
+      const blob = await Packer.toBlob(doc);
+      const fileName = `${serviceName.replace(/ /g, '_')}_Transcript_${format(new Date(session.start_time), 'yyyyMMdd_HHmm')}.docx`;
+      saveAs(blob, fileName);
+      toast.success('Transcript downloaded successfully');
+    } catch (error) {
+      console.error('Failed to generate Word document:', error);
+      toast.error('Failed to generate transcript document');
+    }
   };
 
   const formatDuration = (seconds: number) => {
