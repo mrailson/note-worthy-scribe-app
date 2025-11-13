@@ -92,32 +92,32 @@ export const ConsultationsTable = ({ consultations, onRowClick }: ConsultationsT
         <Table>
           <TableHeader>
             <TableRow className="bg-[#005EB8] hover:bg-[#005EB8]">
-              <TableHead className="text-white">Patient</TableHead>
-              <TableHead className="text-white">Home Practice</TableHead>
-              <TableHead className="text-white">Hub Practice</TableHead>
-              <TableHead className="text-white">Clinician</TableHead>
-              <TableHead className="text-white">Test Type</TableHead>
-              <TableHead className="text-white">
+              <TableHead className="text-[#003087]">Patient</TableHead>
+              <TableHead className="text-[#003087]">Home Practice</TableHead>
+              <TableHead className="text-[#003087]">Hub Practice</TableHead>
+              <TableHead className="text-[#003087]">Clinician</TableHead>
+              <TableHead className="text-[#003087]">Test Type</TableHead>
+              <TableHead className="text-[#003087]">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => toggleSort('receivedAt')}
-                  className="text-white hover:text-white hover:bg-[#003087] p-0"
+                  className="text-[#003087] hover:text-[#003087] hover:bg-white/10 p-0"
                 >
                   Received <ArrowUpDown className="ml-1 h-4 w-4" />
                 </Button>
               </TableHead>
-              <TableHead className="text-white">
+              <TableHead className="text-[#003087]">
                 <Button
                   variant="ghost"
                   size="sm"
                   onClick={() => toggleSort('hoursElapsed')}
-                  className="text-white hover:text-white hover:bg-[#003087] p-0"
+                  className="text-[#003087] hover:text-[#003087] hover:bg-white/10 p-0"
                 >
                   Time <ArrowUpDown className="ml-1 h-4 w-4" />
                 </Button>
               </TableHead>
-              <TableHead className="text-white">Status</TableHead>
+              <TableHead className="text-[#003087]">Status</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
