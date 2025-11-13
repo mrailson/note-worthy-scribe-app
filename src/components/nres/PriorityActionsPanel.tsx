@@ -14,6 +14,7 @@ interface PriorityActionsPanelProps {
 }
 
 export const PriorityActionsPanel = ({ consultations, onViewDetails }: PriorityActionsPanelProps) => {
+  const [panelOpen, setPanelOpen] = useState(false);
   const [criticalOpen, setCriticalOpen] = useState(true);
   const [urgentOpen, setUrgentOpen] = useState(true);
   const [dueSoonOpen, setDueSoonOpen] = useState(false);
@@ -70,12 +71,36 @@ export const PriorityActionsPanel = ({ consultations, onViewDetails }: PriorityA
   );
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold text-[#003087]">Priority Actions</h2>
-        <InfoTooltip content="Results requiring urgent attention, automatically prioritized by time elapsed. System sends automated reminders at 48hrs and 72hrs, with escalation to Practice Manager at 96hrs." />
-      </div>
-
+    <Collapsible open={panelOpen} onOpenChange={setPanelOpen} className="space-y-4">
+      <Card className="bg-white">
+        <CollapsibleTrigger className="w-full p-4 flex items-center justify-between hover:bg-muted/50 transition-colors">
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-bold text-[#001847]">Priority Actions</h2>
+            <div className="flex items-center gap-1 text-sm">
+              {critical.length > 0 && (
+                <span className="px-2 py-1 rounded-full bg-[#DA291C] text-white text-xs font-semibold">
+                  {critical.length} Critical
+                </span>
+              )}
+              {urgent.length > 0 && (
+                <span className="px-2 py-1 rounded-full bg-[#ED8B00] text-white text-xs font-semibold">
+                  {urgent.length} Urgent
+                </span>
+              )}
+              {dueSoon.length > 0 && (
+                <span className="px-2 py-1 rounded-full bg-[#FFB81C] text-white text-xs font-semibold">
+                  {dueSoon.length} Due Soon
+                </span>
+              )}
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <InfoTooltip content="Results requiring urgent attention, automatically prioritized by time elapsed. System sends automated reminders at 48hrs and 72hrs, with escalation to Practice Manager at 96hrs." />
+            <ChevronDown className={`h-5 w-5 transition-transform ${panelOpen ? 'rotate-180' : ''}`} />
+          </div>
+        </CollapsibleTrigger>
+        
+        <CollapsibleContent className="px-4 pb-4 space-y-4">
       {/* Critical - >72 hours */}
       <Collapsible open={criticalOpen} onOpenChange={setCriticalOpen}>
         <Card className={`${critical.length > 0 ? 'border-[#DA291C] bg-[#DA291C]/5' : ''}`}>
@@ -138,6 +163,8 @@ export const PriorityActionsPanel = ({ consultations, onViewDetails }: PriorityA
           </CollapsibleContent>
         </Card>
       </Collapsible>
-    </div>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 };
