@@ -246,6 +246,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                <Grid3X3 className="h-4 w-4 mr-2" />
                                Results Dashboard
                              </DropdownMenuItem>
+                             <DropdownMenuItem 
+                               onClick={() => navigate('/nres/complex-care')}
+                               className="cursor-pointer py-3"
+                             >
+                               <Users className="h-4 w-4 mr-2" />
+                               Proactive Complex Care
+                             </DropdownMenuItem>
                            </DropdownMenuSubContent>
                          </DropdownMenuSub>
                          
