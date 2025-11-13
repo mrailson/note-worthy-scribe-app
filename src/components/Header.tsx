@@ -161,6 +161,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                       <Sparkles className="h-4 w-4 mr-2" />
                       AI4PM Service
                     </DropdownMenuItem>
+                    <DropdownMenuItem 
+                      onClick={() => navigate('/gp-genie')}
+                      className="cursor-pointer py-3"
+                    >
+                      <Mic className="h-4 w-4 mr-2" />
+                      AI Phone Agents
+                    </DropdownMenuItem>
                     {hasModuleAccess('meeting_recorder') && (
                        <DropdownMenuItem 
                           onClick={() => navigate('/')}
