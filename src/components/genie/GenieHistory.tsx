@@ -86,7 +86,13 @@ export const GenieHistory: React.FC<GenieHistoryProps> = ({ serviceType }) => {
           new TableRow({
             children: [
               new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'User', bold: true })] })] }),
-              new TableCell({ children: [new Paragraph(profile?.full_name || profile?.email || 'Unknown User')] })
+              new TableCell({ children: [new Paragraph(profile?.full_name || 'Unknown User')] })
+            ]
+          }),
+          new TableRow({
+            children: [
+              new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: 'Email', bold: true })] })] }),
+              new TableCell({ children: [new Paragraph(profile?.email || 'Not available')] })
             ]
           }),
           new TableRow({
