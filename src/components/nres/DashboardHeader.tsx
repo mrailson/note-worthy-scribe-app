@@ -62,7 +62,7 @@ export const DashboardHeader = ({
     <div className="bg-[#005EB8] text-white p-6 rounded-t-lg">
       <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold">NRES Dashboard</h1>
+          <h1 className="text-3xl font-bold">NRES Results Dashboard</h1>
           <InfoTooltip 
             content="Real-time visibility of all hub consultation results across Rural East & South Neighbourhood practices. This dashboard ensures complete accountability and zero lost results." 
             className="text-white/70 hover:text-white"
