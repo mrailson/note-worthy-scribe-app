@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2 } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -246,15 +246,22 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 <Users className="h-4 w-4 mr-2" />
                                 Proactive Complex Care
                               </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => navigate('/gp-genie')}
-                                className="cursor-pointer py-3"
-                              >
-                                <Mic className="h-4 w-4 mr-2" />
-                                AI Phone Agents
-                              </DropdownMenuItem>
-                            </DropdownMenuSubContent>
-                          </DropdownMenuSub>
+                            <DropdownMenuItem 
+                              onClick={() => navigate('/gp-genie')}
+                              className="cursor-pointer py-3"
+                            >
+                              <Mic className="h-4 w-4 mr-2" />
+                              AI Phone Agents
+                            </DropdownMenuItem>
+                            <DropdownMenuItem 
+                              onClick={() => navigate('/nres/comms-strategy')}
+                              className="cursor-pointer py-3"
+                            >
+                              <MessageSquare className="h-4 w-4 mr-2" />
+                              Comms Strategy
+                            </DropdownMenuItem>
+                          </DropdownMenuSubContent>
+                        </DropdownMenuSub>
                          
                          {hasModuleAccess('mic_test_service_access') && (
                           <DropdownMenuItem 
