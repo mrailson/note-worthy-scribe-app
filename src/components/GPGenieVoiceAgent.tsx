@@ -44,7 +44,8 @@ import { useGenieHistory, ServiceType } from '@/hooks/useGenieHistory';
 import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
 import { Packer } from 'docx';
-import { playoutSilentPreRoll } from '@/utils/AudioFocusManager';
+import { playoutSilentPreRoll, fadeInVolume } from '@/utils/AudioFocusManager';
+import wakeRing from '@/assets/sounds/uk_phone_ring_two_rings.wav';
 
 interface QualityScore {
   accuracy: number;
@@ -98,6 +99,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   const processedMessageIds = useRef<Set<string>>(new Set());
   const serviceTypeAtConnectionRef = useRef<ServiceType>('gp-genie');
   const volumeGuardTimerRef = useRef<number | null>(null);
+  const wakeAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const languageRotation = [
     { code: 'en', text: 'Test Language Support Service' },
@@ -409,6 +411,34 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     }
   };
 
+  // Play an audible lead‑in ring to wake the output device reliably
+  const playWakeSound = async () => {
+    try {
+      if (!wakeAudioRef.current) {
+        const a = new Audio(wakeRing);
+        a.preload = 'auto';
+        a.loop = false;
+        (a as any).playsInline = true;
+        a.crossOrigin = 'anonymous';
+        wakeAudioRef.current = a;
+      }
+      const audio = wakeAudioRef.current!;
+      audio.currentTime = 0;
+      audio.volume = Math.min(Math.max(volume, 0.2), 0.5);
+      const playPromise = audio.play();
+      if (playPromise) await playPromise;
+      // optional gentle fade to avoid harsh start
+      try { fadeInVolume(audio, audio.volume, 250); } catch {}
+      await new Promise<void>((resolve) => {
+        audio.addEventListener('ended', () => resolve(), { once: true });
+      });
+      console.log('🔔 Wake ring played successfully');
+    } catch (err) {
+      console.warn('Wake ring failed, falling back to silent pre-roll', err);
+      await playoutSilentPreRoll(600);
+    }
+  };
+
   // Start conversation
   const startConversation = async () => {
     setIsLoading(true);
@@ -421,6 +451,8 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     }
 
     try {
+      // Play lead-in ring immediately on user gesture to wake audio path
+      await playWakeSound();
       
       // Generate signed URL first (required for authorized agents)
       const signedUrl = await generateSignedUrl();
@@ -479,6 +511,9 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     try {
       setIsLoading(true);
       setError(null);
+
+      // Play lead-in ring immediately on user gesture to wake audio path
+      await playWakeSound();
       
       // Generate signed URL for language support agent
       const { data, error } = await supabase.functions.invoke('elevenlabs-agent-url', {
