@@ -91,14 +91,16 @@ const PMGenieVoiceAgent = () => {
       conversationIdRef.current = `conv_${Date.now()}`;
       conversationStartTime.current = new Date();
       setQualityScore(null);
+      console.log('🔄 Clearing conversation buffer on NEW connection');
       setConversationBuffer([]);
     },
     onDisconnect: async () => {
-      console.log('Disconnected from PM Genie');
+      console.log('Disconnected from PM Genie. Buffer length:', conversationBuffer.length);
       toast.info('Disconnected from PM Genie');
       
       // Save to history
       if (conversationBuffer.length > 0 && conversationStartTime.current) {
+        console.log('💾 Saving PM Genie session to history...');
         await saveSession(
           'pm-genie',
           conversationBuffer,
@@ -128,6 +130,7 @@ const PMGenieVoiceAgent = () => {
       }
       
       conversationIdRef.current = null;
+      console.log('✅ Keeping conversation buffer for download. Buffer length:', conversationBuffer.length);
       // Keep conversation buffer for download - don't clear
     },
     onMessage: (message) => {
@@ -149,9 +152,11 @@ const PMGenieVoiceAgent = () => {
           const updated = [...prev];
           if (message.source === 'user') {
             updated.push(newEntry);
+            console.log('💬 Added user message to buffer. New length:', updated.length);
           } else if (message.source === 'ai' && updated.length > 0) {
             updated[updated.length - 1].agent = message.message;
             updated[updated.length - 1].agentTimestamp = timestamp;
+            console.log('💬 Added AI response to buffer. Buffer length:', updated.length);
             // Trigger verification for the complete exchange
             const lastExchange = updated[updated.length - 1];
             if (lastExchange.user && lastExchange.agent) {
@@ -689,20 +694,31 @@ const PMGenieVoiceAgent = () => {
           </div>
 
           {/* Download Transcript Button - Debug info */}
-          {(() => {
-            console.log('🔍 PM Genie Download button check - Buffer length:', conversationBuffer.length, 'Status:', conversation.status);
-            return conversationBuffer.length > 0 ? (
-              <Button 
-                onClick={downloadTranscript}
-                variant="default"
-                size="default"
-                className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                <Download className="h-4 w-4" />
-                Download Transcript ({conversationBuffer.length} messages)
-              </Button>
-            ) : null;
-          })()}
+          <div className="w-full flex flex-col items-center gap-2">
+            {(() => {
+              console.log('🔍 PM Genie Download button check - Buffer length:', conversationBuffer.length, 'Status:', conversation.status);
+              if (conversationBuffer.length > 0) {
+                return (
+                  <Button 
+                    onClick={downloadTranscript}
+                    variant="default"
+                    size="default"
+                    className="flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90"
+                  >
+                    <Download className="h-4 w-4" />
+                    Download Transcript ({conversationBuffer.length} messages)
+                  </Button>
+                );
+              } else if (conversation.status === 'disconnected' && conversationIdRef.current === null) {
+                return (
+                  <p className="text-sm text-muted-foreground">
+                    Start a conversation to download a transcript
+                  </p>
+                );
+              }
+              return null;
+            })()}
+          </div>
         </div>
 
         {/* What PM Genie Can Help With & Features */}

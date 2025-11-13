@@ -1388,23 +1388,32 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
               )}
             </div>
             
-            {/* Download Transcript Button - Debug info */}
+            {/* Download Transcript Button - Shows after conversation */}
             {(() => {
-              console.log('🔍 Download button check - Buffer length:', conversationBuffer.length, 'Status:', conversation.status);
-              return conversationBuffer.length > 0 ? (
-                <Button 
-                  onClick={downloadTranscript}
-                  variant="default"
-                  size="default"
-                  className={cn(
-                    "flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90",
-                    deviceInfo.isIPhone && "min-h-[48px] text-base px-6"
-                  )}
-                >
-                  <Download className={cn("h-4 w-4", deviceInfo.isIPhone && "h-5 w-5")} />
-                  Download Transcript ({conversationBuffer.length} messages)
-                </Button>
-              ) : null;
+              console.log('🔍 Download button check - Buffer length:', conversationBuffer.length, 'Active tab:', activeTab, 'Status:', conversation.status);
+              if (conversationBuffer.length > 0) {
+                return (
+                  <Button 
+                    onClick={downloadTranscript}
+                    variant="default"
+                    size="default"
+                    className={cn(
+                      "flex items-center gap-2 bg-primary text-primary-foreground hover:bg-primary/90",
+                      deviceInfo.isIPhone && "min-h-[48px] text-base px-6"
+                    )}
+                  >
+                    <Download className={cn("h-4 w-4", deviceInfo.isIPhone && "h-5 w-5")} />
+                    Download Transcript ({conversationBuffer.length} messages)
+                  </Button>
+                );
+              } else if (conversation.status === 'disconnected' && conversationIdRef.current === null) {
+                return (
+                  <p className="text-sm text-muted-foreground">
+                    Complete a conversation to download transcript
+                  </p>
+                );
+              }
+              return null;
             })()}
           </div>
         </div>

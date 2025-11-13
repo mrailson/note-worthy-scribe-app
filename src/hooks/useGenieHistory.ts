@@ -38,7 +38,9 @@ export const useGenieHistory = () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('User not authenticated');
+        // Silently return if user is not authenticated
+        setSessions([]);
+        setLoading(false);
         return;
       }
 
