@@ -72,7 +72,7 @@ export default function CommsStrategyDashboard() {
   };
 
   const handleViewReference = () => {
-    window.open('https://claude.site/public/artifacts/8e3c3eac-c391-4a84-a0c5-d481fb7a061a', '_blank', 'noopener,noreferrer');
+    window.open('https://claude.ai/public/artifacts/8e3c3eac-c391-4a84-a0c5-d481fb7a061a', '_blank', 'noopener,noreferrer');
   };
 
   return (
