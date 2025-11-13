@@ -154,21 +154,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                    align="end" 
                    className="bg-background border border-border shadow-lg w-48 z-50"
                  >
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/ai4gp')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Sparkles className="h-4 w-4 mr-2" />
-                      AI4PM Service
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/gp-genie')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Mic className="h-4 w-4 mr-2" />
-                      AI Phone Agents
-                    </DropdownMenuItem>
-                    {hasModuleAccess('meeting_recorder') && (
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/ai4gp')}
+                       className="cursor-pointer py-3"
+                     >
+                       <Sparkles className="h-4 w-4 mr-2" />
+                       AI4PM Service
+                     </DropdownMenuItem>
+                     {hasModuleAccess('meeting_recorder') && (
                        <DropdownMenuItem 
                           onClick={() => navigate('/')}
                          className="cursor-pointer py-3"
@@ -232,29 +225,36 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           </DropdownMenuItem>
                          )}
                          
-                         {/* NRES Menu with Submenus */}
-                         <DropdownMenuSub>
-                           <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                             <Building2 className="h-4 w-4 mr-2" />
-                             NRES
-                           </DropdownMenuSubTrigger>
-                           <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
-                             <DropdownMenuItem 
-                               onClick={() => navigate('/nres')}
-                               className="cursor-pointer py-3"
-                             >
-                               <Grid3X3 className="h-4 w-4 mr-2" />
-                               Results Dashboard
-                             </DropdownMenuItem>
-                             <DropdownMenuItem 
-                               onClick={() => navigate('/nres/complex-care')}
-                               className="cursor-pointer py-3"
-                             >
-                               <Users className="h-4 w-4 mr-2" />
-                               Proactive Complex Care
-                             </DropdownMenuItem>
-                           </DropdownMenuSubContent>
-                         </DropdownMenuSub>
+                          {/* NRES Menu with Submenus */}
+                          <DropdownMenuSub>
+                            <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                              <Building2 className="h-4 w-4 mr-2" />
+                              NRES
+                            </DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
+                              <DropdownMenuItem 
+                                onClick={() => navigate('/nres')}
+                                className="cursor-pointer py-3"
+                              >
+                                <Grid3X3 className="h-4 w-4 mr-2" />
+                                Results Dashboard
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => navigate('/nres/complex-care')}
+                                className="cursor-pointer py-3"
+                              >
+                                <Users className="h-4 w-4 mr-2" />
+                                Proactive Complex Care
+                              </DropdownMenuItem>
+                              <DropdownMenuItem 
+                                onClick={() => navigate('/gp-genie')}
+                                className="cursor-pointer py-3"
+                              >
+                                <Mic className="h-4 w-4 mr-2" />
+                                AI Phone Agents
+                              </DropdownMenuItem>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
                          
                          {hasModuleAccess('mic_test_service_access') && (
                           <DropdownMenuItem 
