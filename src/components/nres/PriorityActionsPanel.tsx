@@ -78,17 +78,17 @@ export const PriorityActionsPanel = ({ consultations, onViewDetails }: PriorityA
             <h2 className="text-xl font-bold text-[#001847]">Priority Actions</h2>
             <div className="flex items-center gap-1 text-sm">
               {critical.length > 0 && (
-                <span className="px-2 py-1 rounded-full bg-[#DA291C] text-white text-xs font-semibold">
+                <span className="px-2 py-1 rounded-full bg-[#DA291C] text-[#001847] text-xs font-semibold">
                   {critical.length} Critical
                 </span>
               )}
               {urgent.length > 0 && (
-                <span className="px-2 py-1 rounded-full bg-[#ED8B00] text-white text-xs font-semibold">
+                <span className="px-2 py-1 rounded-full bg-[#ED8B00] text-[#001847] text-xs font-semibold">
                   {urgent.length} Urgent
                 </span>
               )}
               {dueSoon.length > 0 && (
-                <span className="px-2 py-1 rounded-full bg-[#FFB81C] text-white text-xs font-semibold">
+                <span className="px-2 py-1 rounded-full bg-[#FFB81C] text-[#001847] text-xs font-semibold">
                   {dueSoon.length} Due Soon
                 </span>
               )}
