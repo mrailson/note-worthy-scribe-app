@@ -93,9 +93,9 @@ INSTRUCTION: Write 2-3 comprehensive paragraphs summarising the overall meeting.
 
 # ATTENDEES
 
-Practice team members
+TBC
 
-INSTRUCTION FOR ATTENDEES: If specific names are mentioned in the transcript, list them here (e.g., "Dr Sarah Johnson, Practice Manager David Smith, Nurse Jane Williams"). If NO names are mentioned, write "Practice team members". Never write anything in square brackets.
+INSTRUCTION FOR ATTENDEES: Attendees should be managed separately through the meeting management interface. Always write "TBC" here and never extract names from the transcript.
 
 ---
 

@@ -299,90 +299,8 @@ serve(async (req) => {
       organization?: string;
     }
     
-    // Parse attendee list from transcript if present
-    function parseTranscriptAttendeeList(transcript: string): AttendeeInfo[] {
-      const attendees: AttendeeInfo[] = [];
-
-      // Strategy 1: Original marker style --- ATTENDEE LIST --- ... ---
-      const markerMatch = transcript.match(/---\s*(?:ATTENDEE LIST|attendees|ATTENDEES)\s*---\s*\n?([\s\S]*?)(?=\n---|\n\*\*\*|$)/i);
-      if (markerMatch) {
-        const attendeeText = markerMatch[1];
-        console.log('📋 Found attendee list (marker style) in transcript:', attendeeText.substring(0, 200));
-        parseLinesIntoAttendees(attendeeText, attendees);
-        return attendees;
-      }
-
-      // Strategy 2: Heading style with underline, as shown in user screenshots
-      // e.g.
-      // ATTENDEE LIST\n_____\n...names...
-      const headingIndex = transcript.search(/^\s*ATTENDEE LIST\s*$/im);
-      if (headingIndex !== -1) {
-        // Slice from heading line
-        const afterHeading = transcript.slice(headingIndex);
-        const lines = afterHeading.split(/\r?\n/);
-        // Drop the heading line
-        let restLines = lines.slice(1);
-        // Drop an optional underline line made of _ or - characters
-        if (restLines[0] && /^[\s_\-]{3,}$/.test(restLines[0])) {
-          restLines = restLines.slice(1);
-        }
-
-        // Stop when we hit an obvious new section heading or pagination/control text
-        const stopAt = restLines.findIndex(l => /^(?:Next|Previous|EXECUTIVE SUMMARY|DISCUSSION|MEETING|Key Points|Agenda|MINUTES|Meeting Details)\b/i.test(l));
-        const relevant = (stopAt === -1 ? restLines : restLines.slice(0, stopAt))
-          .join('\n')
-          // Remove image/artifact lines like "--- file.png ---"
-          .replace(/^---.*\.(?:png|jpg|jpeg|pdf).*---$/gim, '')
-          // Remove excessive underscores lines
-          .replace(/^[\s_\-]{3,}$/gim, '')
-          .trim();
-
-        console.log('📋 Found attendee list (heading style) in transcript:', relevant.substring(0, 200));
-        parseLinesIntoAttendees(relevant, attendees);
-        return attendees;
-      }
-
-      return attendees;
-
-      // Helper: parse lines into attendees supporting formats like
-      // "SURNAME, Firstname (ORG)", "Firstname Surname (ORG)", or semicolon-separated lists
-      function parseLinesIntoAttendees(text: string, bucket: AttendeeInfo[]) {
-        // Split by newlines or semicolons
-        const rawLines = text.split(/[;\n]/).map(l => l.trim()).filter(Boolean);
-        for (const raw of rawLines) {
-          // Skip obvious non-name artefacts
-          if (/^---/.test(raw) || /\.(?:png|jpg|jpeg|pdf)$/i.test(raw)) continue;
-
-          // Match patterns like "Name (ORG)" while allowing commas in the name
-          const m = raw.match(/^([^()]+?)\s*\(([^)]+)\)\s*$/);
-          if (m) {
-            let namePart = m[1].trim();
-            const org = m[2].trim();
-            // Convert "SURNAME, Firstname" → "Firstname Surname"
-            if (namePart.includes(',')) {
-              const parts = namePart.split(',').map(p => p.trim());
-              if (parts.length === 2) {
-                const surname = parts[0].charAt(0).toUpperCase() + parts[0].slice(1).toLowerCase();
-                const firstname = parts[1].charAt(0).toUpperCase() + parts[1].slice(1).toLowerCase();
-                namePart = `${firstname} ${surname}`;
-              }
-            }
-            bucket.push({ name: namePart, organization: org });
-            continue;
-          }
-
-          // If no org provided, still capture the name if it looks like one
-          const nameOnly = raw.replace(/^[\-•\*\s]+/, '').trim();
-          if (nameOnly && /[A-Za-z]/.test(nameOnly) && nameOnly.length >= 3) {
-            bucket.push({ name: nameOnly });
-          }
-        }
-      }
-    }
-    
-    // Try to parse attendees from transcript first
-    const transcriptAttendees = parseTranscriptAttendeeList(fullTranscript);
-    
+    // ONLY use explicitly added attendees from the database
+    // Do NOT extract attendees from transcript to avoid picking up names of people discussed
     const cardAttendeeDetails: AttendeeInfo[] = cardAttendees
       ?.map(item => ({
         name: item.attendee?.name,
@@ -390,49 +308,24 @@ serve(async (req) => {
       }))
       .filter((item): item is AttendeeInfo => Boolean(item.name)) || [];
 
-    // Merge transcript attendees with card attendees (transcript takes priority for org info)
-    const mergedAttendeeDetails: AttendeeInfo[] = [...transcriptAttendees];
-    for (const cardAttendee of cardAttendeeDetails) {
-      const exists = mergedAttendeeDetails.find(a => 
-        a.name.toLowerCase().includes(cardAttendee.name.toLowerCase()) ||
-        cardAttendee.name.toLowerCase().includes(a.name.toLowerCase())
-      );
-      if (!exists) {
-        mergedAttendeeDetails.push(cardAttendee);
-      }
-    }
+    console.log('👥 Explicit attendees from database:', cardAttendeeDetails.length, cardAttendeeDetails);
 
-    const cardAttendeeNames = mergedAttendeeDetails.map(a => a.name);
-    console.log('👥 Merged attendees:', cardAttendeeNames.length, cardAttendeeNames);
-    console.log('👥 Transcript participants:', meeting.participants?.length || 0, meeting.participants);
-
-    // Determine final attendee list using intelligent merge
-    let finalAttendees: string[];
+    // Determine final attendee list - ONLY use explicit attendees or TBC
     let attendeeWithOrg: string[];
-    if (cardAttendeeNames.length >= 1) {
-      // Use fuzzy deduplication to merge card attendees with transcript participants
-      const transcriptParticipants = meeting.participants || [];
-      finalAttendees = fuzzyDeduplicate(cardAttendeeNames, transcriptParticipants);
-      
-      // Format attendees with organizations (use merged details that include transcript orgs)
-      attendeeWithOrg = finalAttendees.map(name => {
-        const attendeeDetail = mergedAttendeeDetails.find(a => 
-          a.name.toLowerCase() === name.toLowerCase() ||
-          a.name.toLowerCase().includes(name.toLowerCase()) ||
-          name.toLowerCase().includes(a.name.toLowerCase())
-        );
-        if (attendeeDetail?.organization) {
-          return `${name} (${attendeeDetail.organization})`;
+    if (cardAttendeeDetails.length >= 1) {
+      // Format attendees with organizations
+      attendeeWithOrg = cardAttendeeDetails.map(attendee => {
+        if (attendee.organization) {
+          return `${attendee.name} (${attendee.organization})`;
         }
-        return name;
+        return attendee.name;
       });
       
-      console.log('✅ Using merged attendees (card + transcript):', finalAttendees.length, attendeeWithOrg);
+      console.log('✅ Using explicit attendees:', attendeeWithOrg.length, attendeeWithOrg);
     } else {
-      // Fallback to transcript participants only
-      finalAttendees = meeting.participants || [];
-      attendeeWithOrg = finalAttendees;
-      console.log('✅ Using transcript participants only:', finalAttendees.length, finalAttendees);
+      // No explicit attendees - use TBC
+      attendeeWithOrg = ['TBC'];
+      console.log('✅ No explicit attendees - using TBC');
     }
 
     // Calculate word count for the meeting

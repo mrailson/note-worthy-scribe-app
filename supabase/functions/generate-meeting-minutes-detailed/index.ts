@@ -44,7 +44,6 @@ serve(async (req) => {
         end_time,
         created_at,
         agenda,
-        participants,
         meeting_context,
         meeting_location,
         meeting_format,
@@ -56,6 +55,40 @@ serve(async (req) => {
     if (meetingError || !meetingData) {
       throw new Error('Meeting not found');
     }
+
+    // Fetch explicit attendees from meeting_attendees table
+    const { data: cardAttendees, error: attendeesError } = await supabase
+      .from('meeting_attendees')
+      .select(`
+        attendee:attendees (
+          name,
+          organization
+        )
+      `)
+      .eq('meeting_id', meetingId);
+
+    if (attendeesError) {
+      console.warn('⚠️ Error fetching meeting_attendees:', attendeesError);
+    }
+
+    // Format explicit attendees
+    let attendeesList = 'TBC';
+    if (cardAttendees && cardAttendees.length > 0) {
+      const formattedAttendees = cardAttendees
+        .map((item: any) => {
+          const name = item.attendee?.name;
+          const org = item.attendee?.organization;
+          if (!name) return null;
+          return org ? `${name} (${org})` : name;
+        })
+        .filter(Boolean);
+      
+      if (formattedAttendees.length > 0) {
+        attendeesList = formattedAttendees.join(', ');
+      }
+    }
+
+    console.log('👥 Explicit attendees:', attendeesList);
 
     // Get full transcript using the database function
     const { data: transcriptData, error: transcriptError } = await supabase
@@ -76,7 +109,7 @@ serve(async (req) => {
 
     // Build context information from meeting metadata
     const contextInfo = `**MEETING CONTEXT:**
-${meetingData.agenda ? `- Agenda: ${meetingData.agenda}\n` : ''}${meetingData.participants?.length ? `- Attendees: ${meetingData.participants.join(', ')}\n` : ''}${meetingData.meeting_location ? `- Location: ${meetingData.meeting_location}\n` : ''}${meetingData.meeting_format ? `- Format: ${meetingData.meeting_format}\n` : ''}${meetingData.meeting_context ? `- Additional Context: ${JSON.stringify(meetingData.meeting_context)}\n` : ''}
+${meetingData.agenda ? `- Agenda: ${meetingData.agenda}\n` : ''}${attendeesList !== 'TBC' ? `- Attendees: ${attendeesList}\n` : ''}${meetingData.meeting_location ? `- Location: ${meetingData.meeting_location}\n` : ''}${meetingData.meeting_format ? `- Format: ${meetingData.meeting_format}\n` : ''}${meetingData.meeting_context ? `- Additional Context: ${JSON.stringify(meetingData.meeting_context)}\n` : ''}
 **IMPORTANT: Use the exact attendee names provided above. Do not modify spellings.**
 
 `;
