@@ -34,11 +34,13 @@ import {
   Download
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { GenieHistory } from '@/components/genie/GenieHistory';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useGenieHistory, ServiceType } from '@/hooks/useGenieHistory';
 import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
 import { Packer } from 'docx';
@@ -67,7 +69,9 @@ interface ConversationMessage {
 
 const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string }) => {
   const { profile } = useUserProfile();
+  const { saveSession } = useGenieHistory();
   const deviceInfo = useDeviceInfo();
+  const conversationStartTime = useRef<Date | null>(null);
   const getLanguageName = (code: string) => {
     if (!code) return 'Unknown';
     const lower = code.toLowerCase();
@@ -199,6 +203,17 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
       console.log(`Disconnected from ${serviceName}`);
       toast.info(`Disconnected from ${serviceName}`);
+      
+      // Save to history
+      if (conversationBuffer.length > 0 && conversationStartTime.current) {
+        await saveSession(
+          activeTab as ServiceType,
+          conversationBuffer,
+          conversationStartTime.current,
+          new Date(),
+          true // email was sent
+        );
+      }
       
       // Backup: Send transcript if buffer has content and wasn't already sent
       if (conversationBuffer.length > 0 && profile?.email && conversationIdRef.current) {
@@ -894,6 +909,17 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   // End conversation
   const endConversation = async () => {
     try {
+      // Save to history
+      if (conversationBuffer.length > 0 && conversationStartTime.current) {
+        await saveSession(
+          activeTab as ServiceType,
+          conversationBuffer,
+          conversationStartTime.current,
+          new Date(),
+          true // email was sent
+        );
+      }
+      
       // Send transcript email silently BEFORE ending session
       if (conversationBuffer.length > 0 && profile?.email) {
         const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
@@ -1622,6 +1648,27 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
             </div>
           </TabsContent>
         </Tabs>
+        
+        {/* History Section */}
+        <div className="mt-8 pt-8 border-t">
+          <h3 className="text-lg font-semibold mb-4">Conversation History</h3>
+          <Tabs defaultValue="gp-genie" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="gp-genie">GP Genie</TabsTrigger>
+              <TabsTrigger value="pm-genie">PM Genie</TabsTrigger>
+              <TabsTrigger value="patient-line">Oak Lane Patient Line</TabsTrigger>
+            </TabsList>
+            <TabsContent value="gp-genie" className="mt-4">
+              <GenieHistory serviceType="gp-genie" />
+            </TabsContent>
+            <TabsContent value="pm-genie" className="mt-4">
+              <GenieHistory serviceType="pm-genie" />
+            </TabsContent>
+            <TabsContent value="patient-line" className="mt-4">
+              <GenieHistory serviceType="patient-line" />
+            </TabsContent>
+          </Tabs>
+        </div>
           </>
         )}
       </CardContent>

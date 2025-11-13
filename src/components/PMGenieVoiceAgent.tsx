@@ -25,6 +25,7 @@ import { useConversation } from '@11labs/react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useUserProfile } from '@/hooks/useUserProfile';
+import { useGenieHistory } from '@/hooks/useGenieHistory';
 import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, Packer } from 'docx';
 import { saveAs } from 'file-saver';
 
@@ -48,6 +49,7 @@ interface ConversationMessage {
 
 const PMGenieVoiceAgent = () => {
   const { profile } = useUserProfile();
+  const { saveSession } = useGenieHistory();
   const [hasPermission, setHasPermission] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -55,6 +57,7 @@ const PMGenieVoiceAgent = () => {
   const [qualityScore, setQualityScore] = useState<QualityScore | null>(null);
   const [conversationBuffer, setConversationBuffer] = useState<ConversationMessage[]>([]);
   const conversationIdRef = useRef<string | null>(null);
+  const conversationStartTime = useRef<Date | null>(null);
 
   const verifyConversationQuality = async (userInput: string, agentResponse: string) => {
     try {
@@ -86,12 +89,24 @@ const PMGenieVoiceAgent = () => {
       toast.success('Connected to PM Genie');
       setError(null);
       conversationIdRef.current = `conv_${Date.now()}`;
+      conversationStartTime.current = new Date();
       setQualityScore(null);
       setConversationBuffer([]);
     },
     onDisconnect: async () => {
       console.log('Disconnected from PM Genie');
       toast.info('Disconnected from PM Genie');
+      
+      // Save to history
+      if (conversationBuffer.length > 0 && conversationStartTime.current) {
+        await saveSession(
+          'pm-genie',
+          conversationBuffer,
+          conversationStartTime.current,
+          new Date(),
+          true // email was sent
+        );
+      }
       
       // Backup: Send transcript if buffer has content and wasn't already sent
       if (conversationBuffer.length > 0 && profile?.email && conversationIdRef.current) {
@@ -113,7 +128,7 @@ const PMGenieVoiceAgent = () => {
       }
       
       conversationIdRef.current = null;
-      setConversationBuffer([]);
+      // Keep conversation buffer for download - don't clear
     },
     onMessage: (message) => {
       console.log('PM Genie message:', message);
@@ -485,6 +500,17 @@ const PMGenieVoiceAgent = () => {
   // End conversation
   const endConversation = async () => {
     try {
+      // Save to history
+      if (conversationBuffer.length > 0 && conversationStartTime.current) {
+        await saveSession(
+          'pm-genie',
+          conversationBuffer,
+          conversationStartTime.current,
+          new Date(),
+          true // email was sent
+        );
+      }
+      
       // Send transcript email silently BEFORE ending session
       if (conversationBuffer.length > 0 && profile?.email) {
         console.log(`📧 Sending PM Genie transcript to ${profile.email}...`);

@@ -2607,6 +2607,54 @@ export type Database = {
           },
         ]
       }
+      genie_sessions: {
+        Row: {
+          brief_overview: string | null
+          created_at: string | null
+          duration_seconds: number | null
+          email_sent: boolean | null
+          end_time: string
+          id: string
+          message_count: number | null
+          messages: Json
+          service_type: string
+          start_time: string
+          title: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          brief_overview?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          email_sent?: boolean | null
+          end_time: string
+          id?: string
+          message_count?: number | null
+          messages?: Json
+          service_type: string
+          start_time: string
+          title?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          brief_overview?: string | null
+          created_at?: string | null
+          duration_seconds?: number | null
+          email_sent?: boolean | null
+          end_time?: string
+          id?: string
+          message_count?: number | null
+          messages?: Json
+          service_type?: string
+          start_time?: string
+          title?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       gp_practices: {
         Row: {
           address: string | null
