@@ -53,6 +53,7 @@ import ExecutiveOverview from "./pages/ExecutiveOverview";
 import LoadDemoTeamData from "./pages/LoadDemoTeamData";
 import DemoVideosPage from "./pages/DemoVideosPage";
 import NRESDashboard from "./pages/NRESDashboard";
+import ProactiveComplexCareDashboard from "./pages/ProactiveComplexCareDashboard";
 
 const App = () => {
   useSessionActivity();
@@ -75,6 +76,7 @@ const App = () => {
               <Route path="/executive-overview" element={<ExecutiveOverview />} />
               <Route path="/demos" element={<DemoVideosPage />} />
               <Route path="/nres" element={<NRESDashboard />} />
+              <Route path="/nres/complex-care" element={<ProactiveComplexCareDashboard />} />
               <Route path="/ai4gp" element={<AI4GP />} />
               <Route path="/gp-scribe" element={<GPScribe />} />
               <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />
