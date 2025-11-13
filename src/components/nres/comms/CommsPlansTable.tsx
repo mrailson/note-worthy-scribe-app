@@ -38,11 +38,9 @@ export const CommsPlansTable = ({
           <TableHeader>
             <TableRow className="bg-white hover:bg-white border-b-2 border-[#005EB8]">
               <TableHead className="text-[#003087] font-semibold">Plan Name</TableHead>
-              <TableHead className="text-[#003087] font-semibold">Owner</TableHead>
               <TableHead className="text-[#003087] font-semibold">Target Audience</TableHead>
               <TableHead className="text-[#003087] font-semibold">Channels</TableHead>
               <TableHead className="text-[#003087] font-semibold">Practice</TableHead>
-              <TableHead className="text-[#003087] font-semibold">Start Date</TableHead>
               <TableHead className="text-[#003087] font-semibold">Target Date</TableHead>
               <TableHead className="text-[#003087] font-semibold">Status</TableHead>
               <TableHead className="text-[#003087] font-semibold">Latest Event</TableHead>
@@ -58,24 +56,11 @@ export const CommsPlansTable = ({
                   className={index % 2 === 0 ? 'bg-white' : 'bg-[#f8fafb]'}
                 >
                   <TableCell className="font-medium">{plan.planName}</TableCell>
-                  <TableCell>{plan.owner}</TableCell>
                   <TableCell>{plan.targetAudience}</TableCell>
                   <TableCell>
-                    <div className="flex flex-wrap gap-1">
-                      {plan.communicationChannels.slice(0, 2).map((channel) => (
-                        <Badge key={channel} variant="outline" className="text-xs">
-                          {channel}
-                        </Badge>
-                      ))}
-                      {plan.communicationChannels.length > 2 && (
-                        <Badge variant="outline" className="text-xs">
-                          +{plan.communicationChannels.length - 2}
-                        </Badge>
-                      )}
-                    </div>
+...
                   </TableCell>
                   <TableCell className="text-sm">{plan.practice}</TableCell>
-                  <TableCell className="text-sm">{formatDate(plan.startDate)}</TableCell>
                   <TableCell className="text-sm">{formatDate(plan.targetCompletionDate)}</TableCell>
                   <TableCell>
                     <StatusBadge status={plan.currentStatus} />
