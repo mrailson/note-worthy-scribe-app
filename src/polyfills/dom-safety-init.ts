@@ -33,29 +33,8 @@
       } as any;
     }
 
-    // Optional: wrap MutationObserver to filter node lists to Elements only
-    const MO: any = (window as any).MutationObserver;
-    if (MO && !MO.__safeWrapped) {
-      const OriginalMO = MO;
-      (window as any).MutationObserver = class SafeMO extends OriginalMO {
-        constructor(callback: any) {
-          super((mutations: MutationRecord[], observer: MutationObserver) => {
-            try {
-              const asElements = (nodes: any) => Array.from(nodes || []).filter((n: any): n is Element => n && n.nodeType === 1);
-              const safeMutations = mutations.map(m => ({
-                ...m,
-                addedNodes: asElements(m.addedNodes),
-                removedNodes: asElements(m.removedNodes),
-              }));
-              callback(safeMutations, observer);
-            } catch {
-              // Swallow errors from third-party observers
-            }
-          });
-        }
-      } as any;
-      (window as any).MutationObserver.__safeWrapped = true;
-    }
+    // DO NOT filter nodes - rrweb needs all node types (text, comment, etc.)
+    // The hasAttribute polyfill above ensures safety without breaking libraries
 
     // Lightweight debug
     console.debug('Early DOM safety init applied');
