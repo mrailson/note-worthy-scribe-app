@@ -84,12 +84,12 @@ export const PatientRow = ({
         </div>
 
         {/* Engagement - Col 9 */}
-        <div className="lg:col-span-2 flex items-center">
+        <div className="lg:col-span-1 flex items-center">
           <EngagementStatus status={patient.engagementStatus} />
         </div>
 
         {/* Actions - Col 10-12 */}
-        <div className="lg:col-span-2 flex items-center">
+        <div className="lg:col-span-3 flex items-center">
           <ActionButtons
             patient={patient}
             onBookReview={onBookReview}
