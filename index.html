@@ -82,7 +82,50 @@
 
   <body>
     <div id="root"></div>
-    <!-- Early DOM safety module must load before the app to patch prototypes in time -->
+    
+    <!-- CRITICAL: DOM safety must run IMMEDIATELY before ANY other JavaScript -->
+    <script>
+      (function() {
+        try {
+          if (typeof window === 'undefined' || !window.Node) return;
+          
+          const originalElHasAttr = Element.prototype.hasAttribute;
+          
+          // Provide safe hasAttribute on Node.prototype (covers Text, Comment, etc.)
+          const nodeProto = Node.prototype;
+          if (typeof nodeProto.hasAttribute !== 'function') {
+            Object.defineProperty(nodeProto, 'hasAttribute', {
+              value: function(name) {
+                // Only Elements can have attributes; everything else returns false
+                return this && this.nodeType === 1 && typeof originalElHasAttr === 'function'
+                  ? originalElHasAttr.call(this, String(name))
+                  : false;
+              },
+              configurable: true,
+              writable: true,
+            });
+          }
+          
+          // Harden Element.prototype.hasAttribute to never throw
+          if (typeof originalElHasAttr === 'function') {
+            Element.prototype.hasAttribute = function(name) {
+              try {
+                if (!this || this.nodeType !== 1) return false;
+                return originalElHasAttr.call(this, String(name));
+              } catch {
+                return false;
+              }
+            };
+          }
+          
+          console.debug('✅ Early DOM safety init applied (inline)');
+        } catch (err) {
+          console.error('❌ DOM safety init failed:', err);
+        }
+      })();
+    </script>
+    
+    <!-- Now load the app modules -->
     <script type="module" src="/src/polyfills/dom-safety-init.ts"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
