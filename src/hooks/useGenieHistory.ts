@@ -105,20 +105,43 @@ export const useGenieHistory = () => {
       };
       const title = `${serviceNames[serviceType]} — ${format(startTime, 'HH:mm')} on ${format(startTime, 'dd/MM/yyyy')}`;
 
-      // Generate brief overview from first question and last answer
+      // Generate brief overview using AI summarisation
       let briefOverview = '';
-      if (messages.length > 0) {
+      try {
+        const conversationText = messages.map((msg, idx) => 
+          `User: ${msg.user}\n${serviceNames[serviceType]}: ${msg.agent}`
+        ).join('\n\n');
+
+        const { data: summaryData, error: summaryError } = await supabase.functions.invoke('generate-conversation-summary', {
+          body: {
+            conversationText,
+            maxWords: 120
+          }
+        });
+
+        if (summaryError) {
+          console.error('Failed to generate AI summary:', summaryError);
+          // Fallback to simple overview
+          const firstUserMsg = messages[0]?.user || '';
+          const lastAgentMsg = messages[messages.length - 1]?.agent || '';
+          const firstQuestion = firstUserMsg.split('.')[0] || firstUserMsg.substring(0, 100);
+          const lastAnswer = lastAgentMsg.split('.')[0] || lastAgentMsg.substring(0, 100);
+          briefOverview = `${firstQuestion}... ${lastAnswer}`;
+        } else {
+          briefOverview = summaryData.summary || '';
+        }
+      } catch (err) {
+        console.error('Error generating summary:', err);
+        // Fallback to simple overview
         const firstUserMsg = messages[0]?.user || '';
         const lastAgentMsg = messages[messages.length - 1]?.agent || '';
-        
-        // Take first sentence of each
         const firstQuestion = firstUserMsg.split('.')[0] || firstUserMsg.substring(0, 100);
         const lastAnswer = lastAgentMsg.split('.')[0] || lastAgentMsg.substring(0, 100);
-        
         briefOverview = `${firstQuestion}... ${lastAnswer}`;
-        if (briefOverview.length > 250) {
-          briefOverview = briefOverview.substring(0, 247) + '...';
-        }
+      }
+
+      if (briefOverview.length > 500) {
+        briefOverview = briefOverview.substring(0, 497) + '...';
       }
 
       const durationSeconds = Math.floor((endTime.getTime() - startTime.getTime()) / 1000);
