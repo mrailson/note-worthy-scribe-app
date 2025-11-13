@@ -120,7 +120,7 @@ const NRESDashboard = () => {
 
           {/* Consultations Table - Right Column */}
           <div className="lg:col-span-3 bg-white rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-[#003087] mb-4">NRES Consultations (Patients seen by non home practice)</h2>
+            <h2 className="text-xl font-bold text-[#001847] mb-4">NRES Consultations (Patients seen by non home practice)</h2>
             <ConsultationsTable
               consultations={filteredConsultations}
               onRowClick={handleConsultationClick}
