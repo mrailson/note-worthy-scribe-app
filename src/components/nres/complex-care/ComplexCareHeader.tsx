@@ -39,7 +39,7 @@ export const ComplexCareHeader = ({
   ];
 
   return (
-    <div className="bg-gradient-to-r from-[#005EB8] to-[#003D7A] text-white rounded-lg p-6 shadow-lg">
+    <div className="bg-card text-foreground border border-border rounded-lg p-6 shadow-sm">
       <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
         {/* Title Section */}
         <div className="flex-1">
@@ -51,10 +51,10 @@ export const ComplexCareHeader = ({
               content="AI-powered dashboard ranking patients by risk score to enable proactive intervention before hospital admission. Updates in real-time with automatic prioritization."
             />
           </div>
-          <p className="text-blue-100 text-sm">
+          <p className="text-muted-foreground text-sm">
             Rural East & South Neighbourhood Access Service
           </p>
-          <div className="flex items-center gap-4 mt-2 text-xs text-blue-100">
+          <div className="flex items-center gap-4 mt-2 text-xs text-muted-foreground">
             <span>7 Practices</span>
             <span>•</span>
             <span>88,938 Patients</span>
@@ -67,7 +67,7 @@ export const ComplexCareHeader = ({
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-3">
             <Select value={selectedPractice} onValueChange={onPracticeChange}>
-              <SelectTrigger className="w-[200px] bg-white text-[#003087]">
+              <SelectTrigger className="w-[200px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -85,7 +85,7 @@ export const ComplexCareHeader = ({
             </div>
           </div>
 
-          <p className="text-xs text-blue-100 text-right">
+          <p className="text-xs text-muted-foreground text-right">
             Last refresh: {lastRefresh.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
@@ -102,13 +102,13 @@ export const ComplexCareHeader = ({
             className={cn(
               "transition-all",
               selectedFilter === filter.value
-                ? "bg-white text-[#005EB8] hover:bg-white/90"
-                : "bg-transparent text-white border-white hover:bg-white/10"
+                ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-background text-foreground border-border hover:bg-muted"
             )}
           >
             {filter.label}
             {filter.count !== undefined && (
-              <span className="ml-2 px-1.5 py-0.5 rounded-full bg-[#005EB8] text-white text-xs">
+              <span className="ml-2 px-1.5 py-0.5 rounded-full bg-primary text-primary-foreground text-xs">
                 {filter.count}
               </span>
             )}
