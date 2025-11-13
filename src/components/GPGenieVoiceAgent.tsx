@@ -448,6 +448,16 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       });
       
       console.log(`[${activeTab}] Conversation started successfully:`, conversationId);
+
+      // Force-enable audible output immediately after start (kick some devices out of HFP)
+      try {
+        await conversation.setVolume({ volume: 0 });
+        await new Promise(r => setTimeout(r, 60));
+        await conversation.setVolume({ volume });
+        console.log('🔈 Volume kick applied after session start');
+      } catch (e) {
+        console.warn('⚠️ Volume kick failed:', e);
+      }
       
       console.log('Conversation started:', conversationId);
       
@@ -491,6 +501,16 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       });
 
       console.log('Language test conversation started:', conversationId);
+      
+      // Force-enable audible output immediately after start (language test)
+      try {
+        await conversation.setVolume({ volume: 0 });
+        await new Promise(r => setTimeout(r, 60));
+        await conversation.setVolume({ volume });
+        console.log('🔈 Volume kick applied after language test start');
+      } catch (e) {
+        console.warn('⚠️ Volume kick failed (language test):', e);
+      }
       
     } catch (err: any) {
       console.error('Failed to start language test conversation:', err);
