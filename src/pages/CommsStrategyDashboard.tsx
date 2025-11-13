@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Header } from "@/components/Header";
 import { CommsStrategyHeader } from "@/components/nres/comms/CommsStrategyHeader";
 import { CommsMetricCard } from "@/components/nres/comms/CommsMetricCard";
 import { CommsPlansTable } from "@/components/nres/comms/CommsPlansTable";
@@ -72,6 +73,7 @@ export default function CommsStrategyDashboard() {
 
   return (
     <div className="min-h-screen bg-[#F0F4F5]">
+      <Header />
       <CommsStrategyHeader
         selectedPractice={selectedPractice}
         onPracticeChange={setSelectedPractice}

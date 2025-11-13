@@ -36,17 +36,17 @@ export const CommsPlansTable = ({
       <div className="overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow className="bg-[#005EB8] hover:bg-[#005EB8]">
-              <TableHead className="text-white font-semibold">Plan Name</TableHead>
-              <TableHead className="text-white font-semibold">Owner</TableHead>
-              <TableHead className="text-white font-semibold">Target Audience</TableHead>
-              <TableHead className="text-white font-semibold">Channels</TableHead>
-              <TableHead className="text-white font-semibold">Practice</TableHead>
-              <TableHead className="text-white font-semibold">Start Date</TableHead>
-              <TableHead className="text-white font-semibold">Target Date</TableHead>
-              <TableHead className="text-white font-semibold">Status</TableHead>
-              <TableHead className="text-white font-semibold">Latest Event</TableHead>
-              <TableHead className="text-white font-semibold text-right">Actions</TableHead>
+            <TableRow className="bg-white hover:bg-white border-b-2 border-[#005EB8]">
+              <TableHead className="text-[#003087] font-semibold">Plan Name</TableHead>
+              <TableHead className="text-[#003087] font-semibold">Owner</TableHead>
+              <TableHead className="text-[#003087] font-semibold">Target Audience</TableHead>
+              <TableHead className="text-[#003087] font-semibold">Channels</TableHead>
+              <TableHead className="text-[#003087] font-semibold">Practice</TableHead>
+              <TableHead className="text-[#003087] font-semibold">Start Date</TableHead>
+              <TableHead className="text-[#003087] font-semibold">Target Date</TableHead>
+              <TableHead className="text-[#003087] font-semibold">Status</TableHead>
+              <TableHead className="text-[#003087] font-semibold">Latest Event</TableHead>
+              <TableHead className="text-[#003087] font-semibold text-right">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
