@@ -12,6 +12,7 @@ interface CommsStrategyHeaderProps {
   onRefresh: () => void;
   onAddPlan: () => void;
   onExport: () => void;
+  onViewReference: () => void;
 }
 
 export const CommsStrategyHeader = ({
@@ -22,6 +23,7 @@ export const CommsStrategyHeader = ({
   onRefresh,
   onAddPlan,
   onExport,
+  onViewReference,
 }: CommsStrategyHeaderProps) => {
   const dateRangeOptions = [
     { value: 'all', label: 'All Time' },
@@ -75,7 +77,7 @@ export const CommsStrategyHeader = ({
           </Button>
 
           <Button
-            onClick={() => window.open('https://claude.ai/public/artifacts/eb3cdf6b-2e56-4f22-9a09-d6d81a6d74ca?fullscreen=false', '_blank', 'noopener,noreferrer')}
+            onClick={onViewReference}
             variant="outline"
             className="gap-2 border-[#005EB8] text-[#005EB8] hover:bg-[#005EB8] hover:text-white"
           >

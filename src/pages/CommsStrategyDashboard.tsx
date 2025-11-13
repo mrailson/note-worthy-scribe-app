@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { CommsStrategyHeader } from "@/components/nres/comms/CommsStrategyHeader";
 import { CommsMetricCard } from "@/components/nres/comms/CommsMetricCard";
 import { CommsPlansTable } from "@/components/nres/comms/CommsPlansTable";
+import { ReferenceModal } from "@/components/nres/comms/ReferenceModal";
 import { mockCommsPlans, mockCommsEvents, mockCommsMetrics } from "@/data/commsStrategyMockData";
 import { CommsPlan } from "@/types/commsStrategyTypes";
 import { toast } from "@/hooks/use-toast";
@@ -11,6 +12,7 @@ export default function CommsStrategyDashboard() {
   const [selectedPractice, setSelectedPractice] = useState('All Practices');
   const [selectedDateRange, setSelectedDateRange] = useState('all');
   const [selectedPlan, setSelectedPlan] = useState<CommsPlan | null>(null);
+  const [referenceModalOpen, setReferenceModalOpen] = useState(false);
 
   // Filter plans based on selected practice
   const filteredPlans = mockCommsPlans.filter(plan => 
@@ -71,6 +73,10 @@ export default function CommsStrategyDashboard() {
     });
   };
 
+  const handleViewReference = () => {
+    setReferenceModalOpen(true);
+  };
+
   return (
     <div className="min-h-screen bg-[#F0F4F5]">
       <Header />
@@ -82,6 +88,12 @@ export default function CommsStrategyDashboard() {
         onRefresh={handleRefresh}
         onAddPlan={handleAddPlan}
         onExport={handleExport}
+        onViewReference={handleViewReference}
+      />
+
+      <ReferenceModal 
+        open={referenceModalOpen} 
+        onOpenChange={setReferenceModalOpen}
       />
 
       <div className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
