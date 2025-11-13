@@ -221,17 +221,24 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            <Shield className="h-4 w-4 mr-2" />
                            CQC Compliance
                          </DropdownMenuItem>
-                       )}
-                       {hasModuleAccess('shared_drive_access') && (
+                        )}
+                        {hasModuleAccess('shared_drive_access') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/shared-drive')}
+                            className="cursor-pointer py-3"
+                          >
+                            <FolderOpen className="h-4 w-4 mr-2" />
+                            Shared Drive
+                          </DropdownMenuItem>
+                         )}
                          <DropdownMenuItem 
-                           onClick={() => navigate('/shared-drive')}
+                           onClick={() => navigate('/nres')}
                            className="cursor-pointer py-3"
                          >
-                           <FolderOpen className="h-4 w-4 mr-2" />
-                           Shared Drive
+                           <Building2 className="h-4 w-4 mr-2" />
+                           NRES Dashboard
                          </DropdownMenuItem>
-                        )}
-                        {hasModuleAccess('mic_test_service_access') && (
+                         {hasModuleAccess('mic_test_service_access') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/mic-test')}
                             className="cursor-pointer py-3"
