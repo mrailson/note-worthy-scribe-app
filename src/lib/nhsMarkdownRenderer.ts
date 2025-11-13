@@ -259,9 +259,12 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
   
   // Debug disabled: console.log('🔍 MARKDOWN OUTPUT:', html);
   
-  // Sanitize the HTML
+  // Sanitize the HTML with CSP-compliant flags
   return DOMPurify.sanitize(html, {
     ALLOWED_TAGS: ['div', 'p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'strong', 'em', 'ul', 'li', 'a', 'br', 'table', 'thead', 'tbody', 'tr', 'th', 'td', 'span', 'style'],
-    ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style']
+    ALLOWED_ATTR: ['class', 'href', 'target', 'rel', 'style'],
+    SAFE_FOR_TEMPLATES: true,   // Prevent template string evaluation
+    RETURN_DOM_FRAGMENT: false, // Return string, not DOM node
+    FORCE_BODY: true            // Prevent script execution context
   });
 }
