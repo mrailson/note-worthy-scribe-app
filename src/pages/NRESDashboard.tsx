@@ -16,18 +16,15 @@ const NRESDashboard = () => {
   const { toast } = useToast();
   const [selectedPractice, setSelectedPractice] = useState('All Practices');
   const [dateRange, setDateRange] = useState('today');
-  const [autoRefresh, setAutoRefresh] = useState(true);
   const [consultations, setConsultations] = useState(mockConsultations);
   const [metrics, setMetrics] = useState(mockMetrics);
   const [selectedConsultation, setSelectedConsultation] = useState<HubConsultation | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
-  const [lastRefresh, setLastRefresh] = useState(new Date());
 
   const handleRefresh = useCallback(() => {
     // Simulate data refresh with slight variations
     setConsultations([...mockConsultations]);
     setMetrics({ ...mockMetrics });
-    setLastRefresh(new Date());
     
     toast({
       title: "Dashboard Updated",
@@ -53,13 +50,6 @@ const NRESDashboard = () => {
     trend: metrics.trend as 'up' | 'down' | 'stable'
   };
 
-  // Auto-refresh effect
-  useEffect(() => {
-    if (!autoRefresh) return;
-    const interval = setInterval(handleRefresh, 30000); // Refresh every 30 seconds
-    return () => clearInterval(interval);
-  }, [autoRefresh, handleRefresh]);
-
   return (
     <div className="min-h-screen bg-[#F0F4F5]">
       <Header />
@@ -70,8 +60,6 @@ const NRESDashboard = () => {
           onPracticeChange={setSelectedPractice}
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
-          autoRefresh={autoRefresh}
-          onAutoRefreshToggle={() => setAutoRefresh(!autoRefresh)}
           onManualRefresh={handleRefresh}
         />
 
@@ -149,7 +137,6 @@ const NRESDashboard = () => {
         {/* Footer Info */}
         <div className="text-center text-sm text-muted-foreground pb-4">
           <p>NHS Rural East & South Neighbourhood • Real-time Results Management</p>
-          <p className="text-xs mt-1">Last updated: {lastRefresh.toLocaleTimeString('en-GB')} • {autoRefresh ? 'Auto-refresh enabled' : 'Auto-refresh disabled'}</p>
         </div>
       </div>
 
