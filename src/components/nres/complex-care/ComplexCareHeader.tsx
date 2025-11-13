@@ -22,12 +22,12 @@ export const ComplexCareHeader = ({
   const practices = [
     'All Practices',
     'Towcester MC',
-    'Silverstone Surgery',
     'Brackley MC',
-    'Greens Norton',
-    'Deanshanger MC',
     'Bugbrooke',
-    'Parks',
+    'Denton',
+    'Parks MC',
+    'Brook',
+    'Springfield'
   ];
 
   const filters: { value: ConditionFilterType; label: string; count?: number }[] = [
