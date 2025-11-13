@@ -97,6 +97,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   const conversationIdRef = useRef<string | null>(null);
   const processedMessageIds = useRef<Set<string>>(new Set());
   const serviceTypeAtConnectionRef = useRef<ServiceType>('gp-genie');
+  const volumeGuardTimerRef = useRef<number | null>(null);
 
   const languageRotation = [
     { code: 'en', text: 'Test Language Support Service' },
@@ -213,11 +214,36 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       } catch (err) {
         console.warn('⚠️ Silent pre-roll failed:', err);
       }
+
+      // Ensure audible volume during first 3s after connect (some devices ramp slowly)
+      try {
+        const startTs = performance.now();
+        volumeGuardTimerRef.current = window.setInterval(async () => {
+          if (conversation.status === 'connected' && !isMuted) {
+            try {
+              await conversation.setVolume({ volume });
+            } catch {}
+          }
+          if (performance.now() - startTs > 3000 && volumeGuardTimerRef.current) {
+            clearInterval(volumeGuardTimerRef.current);
+            volumeGuardTimerRef.current = null;
+            console.log('✅ Volume guard completed');
+          }
+        }, 250);
+      } catch (e) {
+        console.warn('⚠️ Volume guard setup failed:', e);
+      }
     },
     onDisconnect: async () => {
       const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
       console.log(`Disconnected from ${serviceName}`);
       toast.info(`Disconnected from ${serviceName}`);
+
+      // Clear any pending volume guard interval
+      if (volumeGuardTimerRef.current) {
+        clearInterval(volumeGuardTimerRef.current);
+        volumeGuardTimerRef.current = null;
+      }
       
       // Save to history
       const buffered = conversationBufferRef.current;
@@ -1088,6 +1114,15 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
     }, 3000); // Rotate every 3 seconds
 
     return () => clearInterval(interval);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (volumeGuardTimerRef.current) {
+        clearInterval(volumeGuardTimerRef.current);
+        volumeGuardTimerRef.current = null;
+      }
+    };
   }, []);
 
   return (
