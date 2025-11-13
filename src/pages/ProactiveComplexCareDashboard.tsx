@@ -123,7 +123,7 @@ const ProactiveComplexCareDashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#667eea] to-[#764ba2]">
+    <div className="min-h-screen bg-muted">
       <Header />
       
       <div className="container mx-auto px-4 py-6 space-y-6">
@@ -150,8 +150,8 @@ const ProactiveComplexCareDashboard = () => {
         <InsightsPanel insights={mockInsights} />
 
         {/* Footer Info */}
-        <div className="text-center text-sm text-white pb-4">
-          <p className="font-semibold">NHS Rural East & South Neighbourhood • AI-Powered Proactive Care</p>
+        <div className="text-center text-sm text-muted-foreground pb-4">
+          <p className="font-semibold text-muted-foreground">NHS Rural East & South Neighbourhood • AI-Powered Proactive Care</p>
           <p className="text-xs mt-1 opacity-90">
             Live risk scoring • Automatic prioritization • Zero lost patients
           </p>

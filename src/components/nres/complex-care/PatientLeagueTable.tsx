@@ -25,7 +25,7 @@ export const PatientLeagueTable = ({
 
   return (
     <Card className="overflow-hidden">
-      <div className="bg-[#003087] text-white p-4 flex items-center justify-between">
+      <div className="bg-muted text-foreground p-4 flex items-center justify-between border-b border-border">
         <h2 className="text-xl font-bold flex items-center gap-2">
           Top 25 Priority Patients
           <InfoTooltip 
@@ -38,7 +38,7 @@ export const PatientLeagueTable = ({
       </div>
 
       {/* Table Header */}
-      <div className="hidden lg:grid lg:grid-cols-12 gap-4 p-4 bg-[#005EB8] text-white font-semibold text-sm border-b border-[#003087]">
+      <div className="hidden lg:grid lg:grid-cols-12 gap-4 p-4 bg-muted text-foreground font-semibold text-sm border-b border-border">
         <div className="lg:col-span-1">Rank</div>
         <div className="lg:col-span-2">Patient</div>
         <div className="lg:col-span-1">Risk</div>
