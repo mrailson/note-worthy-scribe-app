@@ -28,6 +28,8 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 import { useGenieHistory } from '@/hooks/useGenieHistory';
 import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle, Packer } from 'docx';
 import { saveAs } from 'file-saver';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { GenieHistory } from '@/components/genie/GenieHistory';
 
 interface QualityScore {
   accuracy: number;
@@ -557,7 +559,8 @@ const PMGenieVoiceAgent = () => {
   }, []);
 
   return (
-    <Card className="w-full max-w-4xl mx-auto">
+    <>
+      <Card className="w-full max-w-4xl mx-auto">
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -798,6 +801,28 @@ const PMGenieVoiceAgent = () => {
         </div>
       </CardContent>
     </Card>
+    
+    {/* History Section */}
+    <div className="mt-8 pt-8 border-t max-w-4xl mx-auto">
+      <h3 className="text-lg font-semibold mb-4">Conversation History</h3>
+      <Tabs defaultValue="pm-genie" className="w-full">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="gp-genie">GP Genie</TabsTrigger>
+          <TabsTrigger value="pm-genie">PM Genie</TabsTrigger>
+          <TabsTrigger value="patient-line">Oak Lane Patient Line</TabsTrigger>
+        </TabsList>
+        <TabsContent value="gp-genie" className="mt-4">
+          <GenieHistory serviceType="gp-genie" />
+        </TabsContent>
+        <TabsContent value="pm-genie" className="mt-4">
+          <GenieHistory serviceType="pm-genie" />
+        </TabsContent>
+        <TabsContent value="patient-line" className="mt-4">
+          <GenieHistory serviceType="patient-line" />
+        </TabsContent>
+      </Tabs>
+    </div>
+    </>
   );
 };
 
