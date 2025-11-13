@@ -108,24 +108,21 @@ const NRESDashboard = () => {
           />
         </div>
 
-        {/* Main Content Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Priority Actions Panel - Left Column */}
-          <div className="lg:col-span-2">
-            <PriorityActionsPanel
-              consultations={filteredConsultations}
-              onViewDetails={handleConsultationClick}
-            />
-          </div>
+        {/* Priority Actions Panel - Full Width */}
+        <div className="w-full">
+          <PriorityActionsPanel
+            consultations={filteredConsultations}
+            onViewDetails={handleConsultationClick}
+          />
+        </div>
 
-          {/* Consultations Table - Right Column */}
-          <div className="lg:col-span-3 bg-white rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-[#001847] mb-4">NRES Consultations (Patients seen by non home practice)</h2>
-            <ConsultationsTable
-              consultations={filteredConsultations}
-              onRowClick={handleConsultationClick}
-            />
-          </div>
+        {/* Consultations Table - Full Width */}
+        <div className="w-full bg-white rounded-lg p-6 shadow-sm">
+          <h2 className="text-xl font-bold text-[#001847] mb-4">NRES Consultations (Patients seen by non home practice)</h2>
+          <ConsultationsTable
+            consultations={filteredConsultations}
+            onRowClick={handleConsultationClick}
+          />
         </div>
 
         {/* Bottom Row - Charts */}
