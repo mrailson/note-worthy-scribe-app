@@ -189,7 +189,7 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
   };
 
   const conversation = useConversation({
-    onConnect: () => {
+    onConnect: async () => {
       const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
       console.log(`Connected to ${serviceName}`);
       toast.success(`Connected to ${serviceName}`);
@@ -204,6 +204,18 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       conversationBufferRef.current = [];
       processedMessageIds.current.clear(); // Clear message deduplication tracking
       console.log('✅ Conversation start time set:', conversationStartTime.current, 'Service type at connect:', serviceTypeAtConnectionRef.current);
+      
+      // AUDIO CUTOUT FIX: Wait for audio stream to stabilize before setting volume
+      // The ElevenLabs SDK needs a moment for the audio pipeline to fully initialize
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      // Set initial volume after connection is stable (prevents cutout in first 3 seconds)
+      try {
+        await conversation.setVolume({ volume: 0.8 });
+        console.log('✅ Initial volume set successfully after connection stabilized');
+      } catch (err) {
+        console.error('❌ Failed to set initial volume:', err);
+      }
     },
     onDisconnect: async () => {
       const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
@@ -407,9 +419,6 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       
       console.log(`[${activeTab}] Conversation started successfully:`, conversationId);
       
-      // AUDIO CUTOUT FIX: Do not set volume programmatically after connection - this causes interruptions
-      console.log('✅ Connection established without programmatic volume changes');
-      
       console.log('Conversation started:', conversationId);
       
     } catch (err: any) {
@@ -444,9 +453,6 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         signedUrl: data.signed_url
       });
 
-      // AUDIO CUTOUT FIX: Do not set volume programmatically after connection - this causes interruptions
-      console.log('✅ Language test connection established without programmatic volume changes');
-      
       console.log('Language test conversation started:', conversationId);
       
     } catch (err: any) {
