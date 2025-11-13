@@ -193,11 +193,13 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       toast.success(`Connected to ${serviceName}`);
       setError(null);
       
-      // Initialize for ALL services - clear old buffer
+      // Initialize for ALL services - clear old buffer and set start time
+      conversationStartTime.current = new Date();
       conversationIdRef.current = `${activeTab}_${Date.now()}`;
       setQualityScore(null);
       setConversationBuffer([]); // Clear old conversation when starting new one
       processedMessageIds.current.clear(); // Clear message deduplication tracking
+      console.log('✅ Conversation start time set:', conversationStartTime.current);
     },
     onDisconnect: async () => {
       const serviceName = activeTab === 'gp-genie' ? 'GP Genie' : activeTab === 'pm-genie' ? 'PM Genie' : 'Oak Lane Patient Line';
