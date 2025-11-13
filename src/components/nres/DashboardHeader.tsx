@@ -71,7 +71,7 @@ export const DashboardHeader = ({
             variant="outline"
             size="sm"
             onClick={onManualRefresh}
-            className="gap-2"
+            className="gap-2 text-gray-600"
           >
             <RefreshCw className="h-4 w-4" />
             Refresh Now
@@ -80,7 +80,7 @@ export const DashboardHeader = ({
           <Button
             variant="outline"
             size="sm"
-            className="gap-2"
+            className="gap-2 text-gray-600"
           >
             <Download className="h-4 w-4" />
             Export
