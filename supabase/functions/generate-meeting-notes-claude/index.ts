@@ -49,7 +49,7 @@ function sanitizeMeetingMinutes(content: string): string {
     // Remove Location: [Insert Location]
     .replace(/Location:\s*\[Insert[^\]]*\]/gi, 'Location: Location not specified')
     // Remove Attendees: [Insert...]
-    .replace(/Attendees:\s*\[Insert[^\]]*\]/gi, 'Attendees: Practice team members')
+    .replace(/Attendees:\s*\[Insert[^\]]*\]/gi, 'Attendees: TBC')
     // Remove Apologies: [Insert...]
     .replace(/Apologies:\s*\[Insert[^\]]*\]/gi, '')
     // Remove Owner: [Insert Owner Name]
@@ -142,7 +142,7 @@ async function consolidateChunkResults(chunkResults, meetingTitle, meetingDate, 
 CRITICAL RULES:
 - Never use placeholder text like [Insert X] or [Not specified]
 - If information is not available, omit the field entirely
-- Use "Practice team members" for unknown attendees
+- Use "TBC" for unknown attendees (attendees should be managed separately)
 - Use "Location not specified" if location unknown
 - Merge all agenda items chronologically
 - Remove duplicate action items and decisions
@@ -212,7 +212,7 @@ STRICT RULES:
 - Only include information actually present in the transcript
 - NEVER use placeholders or square brackets like [Insert X], [Not specified], [To be confirmed]
 - If information is not available, omit the field/section entirely
-- Use "Practice team members" for unknown attendees
+- Always write "TBC" for attendees (attendees should be managed separately, never extract from transcript)
 - Use "Location not specified" if location is unknown
 - Capture ALL agenda items, decisions, and action items from the transcript
 
@@ -223,7 +223,7 @@ OUTPUT STRUCTURE:
 - Date: ${meetingDate || 'Date not recorded'}
 - Time: ${meetingTime || 'Time not recorded'}
 - Location: [Only if explicitly mentioned in transcript, otherwise write "Location not specified"]
-- Attendees: [List specific names/roles if mentioned, otherwise write "Practice team members"]
+- Attendees: TBC
 
 # EXECUTIVE SUMMARY
 Write 2-3 concise paragraphs covering: meeting purpose, key decisions, major outcomes, and next steps.
