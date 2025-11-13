@@ -44,8 +44,8 @@ export const PatientLeagueTable = ({
         <div className="lg:col-span-1">Risk</div>
         <div className="lg:col-span-2">Conditions</div>
         <div className="lg:col-span-2">Key Metrics</div>
-        <div className="lg:col-span-2">Engagement</div>
-        <div className="lg:col-span-2">Actions</div>
+        <div className="lg:col-span-1">Engagement</div>
+        <div className="lg:col-span-3">Actions</div>
       </div>
 
       {/* Patient Rows */}
