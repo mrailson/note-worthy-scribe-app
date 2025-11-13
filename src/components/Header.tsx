@@ -222,7 +222,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            CQC Compliance
                          </DropdownMenuItem>
                         )}
-                        {hasModuleAccess('shared_drive_access') && (
+                         {hasModuleAccess('shared_drive_access') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/shared-drive')}
                             className="cursor-pointer py-3"
@@ -231,13 +231,24 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Shared Drive
                           </DropdownMenuItem>
                          )}
-                         <DropdownMenuItem 
-                           onClick={() => navigate('/nres')}
-                           className="cursor-pointer py-3"
-                         >
-                           <Building2 className="h-4 w-4 mr-2" />
-                           NRES Dashboard
-                         </DropdownMenuItem>
+                         
+                         {/* NRES Menu with Submenus */}
+                         <DropdownMenuSub>
+                           <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                             <Building2 className="h-4 w-4 mr-2" />
+                             NRES
+                           </DropdownMenuSubTrigger>
+                           <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
+                             <DropdownMenuItem 
+                               onClick={() => navigate('/nres')}
+                               className="cursor-pointer py-3"
+                             >
+                               <Grid3X3 className="h-4 w-4 mr-2" />
+                               Results Dashboard
+                             </DropdownMenuItem>
+                           </DropdownMenuSubContent>
+                         </DropdownMenuSub>
+                         
                          {hasModuleAccess('mic_test_service_access') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/mic-test')}
