@@ -50,6 +50,8 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
   const [isEditing, setIsEditing] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isManagingTemplates, setIsManagingTemplates] = useState(false);
+  const [isEditingTemplate, setIsEditingTemplate] = useState(false);
+  const [editingTemplateId, setEditingTemplateId] = useState<string | null>(null);
   const [selectedTemplate, setSelectedTemplate] = useState<AttendeeTemplate | null>(null);
   const [formData, setFormData] = useState({
     name: '',
@@ -301,42 +303,76 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
     }
 
     try {
-      const { data: template, error: templateError } = await supabase
-        .from('attendee_templates')
-        .insert({
-          user_id: user?.id,
-          practice_id: userPracticeIds[0],
-          template_name: templateFormData.name,
-          description: templateFormData.description || null,
-          is_default: false
-        })
-        .select()
-        .single();
+      if (isEditingTemplate && editingTemplateId) {
+        // Update existing template
+        const { error: templateError } = await supabase
+          .from('attendee_templates')
+          .update({
+            template_name: templateFormData.name,
+            description: templateFormData.description || null,
+          })
+          .eq('id', editingTemplateId);
 
-      if (templateError) throw templateError;
+        if (templateError) throw templateError;
 
-      const templateMembers = templateFormData.selectedAttendeeIds.map(attendeeId => ({
-        template_id: template.id,
-        attendee_id: attendeeId
-      }));
+        // Delete existing template members
+        const { error: deleteError } = await supabase
+          .from('attendee_template_members')
+          .delete()
+          .eq('template_id', editingTemplateId);
 
-      const { error: linkError } = await supabase
-        .from('attendee_template_members')
-        .insert(templateMembers);
+        if (deleteError) throw deleteError;
 
-      if (linkError) throw linkError;
+        // Insert new template members
+        const templateMembers = templateFormData.selectedAttendeeIds.map(attendeeId => ({
+          template_id: editingTemplateId,
+          attendee_id: attendeeId
+        }));
 
-      toast({
-        title: "Success",
-        description: "Template created successfully"
-      });
+        const { error: linkError } = await supabase
+          .from('attendee_template_members')
+          .insert(templateMembers);
 
-      setTemplateFormData({
-        name: '',
-        description: '',
-        selectedAttendeeIds: []
-      });
-      setIsManagingTemplates(false);
+        if (linkError) throw linkError;
+
+        toast({
+          title: "Success",
+          description: "Template updated successfully"
+        });
+      } else {
+        // Create new template
+        const { data: template, error: templateError } = await supabase
+          .from('attendee_templates')
+          .insert({
+            user_id: user?.id,
+            practice_id: userPracticeIds[0],
+            template_name: templateFormData.name,
+            description: templateFormData.description || null,
+            is_default: false
+          })
+          .select()
+          .single();
+
+        if (templateError) throw templateError;
+
+        const templateMembers = templateFormData.selectedAttendeeIds.map(attendeeId => ({
+          template_id: template.id,
+          attendee_id: attendeeId
+        }));
+
+        const { error: linkError } = await supabase
+          .from('attendee_template_members')
+          .insert(templateMembers);
+
+        if (linkError) throw linkError;
+
+        toast({
+          title: "Success",
+          description: "Template created successfully"
+        });
+      }
+
+      resetTemplateForm();
       fetchTemplates();
     } catch (error) {
       console.error('Error saving template:', error);
@@ -346,6 +382,28 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
         variant: "destructive"
       });
     }
+  };
+
+  const editTemplate = (template: AttendeeTemplate) => {
+    setTemplateFormData({
+      name: template.template_name,
+      description: template.description || '',
+      selectedAttendeeIds: template.attendees.map(a => a.id)
+    });
+    setEditingTemplateId(template.id);
+    setIsEditingTemplate(true);
+    setIsManagingTemplates(true);
+  };
+
+  const resetTemplateForm = () => {
+    setTemplateFormData({
+      name: '',
+      description: '',
+      selectedAttendeeIds: []
+    });
+    setEditingTemplateId(null);
+    setIsEditingTemplate(false);
+    setIsManagingTemplates(false);
   };
 
   const deleteTemplate = async (templateId: string) => {
@@ -641,8 +699,10 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
           <Card>
             <CardHeader>
               <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Create Attendee Template</CardTitle>
-                <Button variant="ghost" size="sm" onClick={() => setIsManagingTemplates(false)}>
+                <CardTitle className="text-lg">
+                  {isEditingTemplate ? 'Edit Attendee Template' : 'Create Attendee Template'}
+                </CardTitle>
+                <Button variant="ghost" size="sm" onClick={resetTemplateForm}>
                   <X className="h-4 w-4" />
                 </Button>
               </div>
@@ -692,12 +752,21 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
               </div>
 
               <div className="flex items-center justify-end space-x-2 pt-2">
-                <Button variant="outline" onClick={() => setIsManagingTemplates(false)}>
+                <Button variant="outline" onClick={resetTemplateForm}>
                   Cancel
                 </Button>
                 <Button onClick={saveTemplate}>
-                  <Bookmark className="h-4 w-4 mr-2" />
-                  Create Template
+                  {isEditingTemplate ? (
+                    <>
+                      <Check className="h-4 w-4 mr-2" />
+                      Update Template
+                    </>
+                  ) : (
+                    <>
+                      <Bookmark className="h-4 w-4 mr-2" />
+                      Create Template
+                    </>
+                  )}
                 </Button>
               </div>
             </CardContent>
@@ -706,7 +775,13 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
 
         {/* Create Template Button */}
         {!isManagingTemplates && (
-          <Button onClick={() => setIsManagingTemplates(true)} className="w-full md:w-auto">
+          <Button 
+            onClick={() => {
+              resetTemplateForm();
+              setIsManagingTemplates(true);
+            }} 
+            className="w-full md:w-auto"
+          >
             <Plus className="h-4 w-4 mr-2" />
             Create New Template
           </Button>
@@ -760,6 +835,13 @@ export const AttendeeManager: React.FC<AttendeeManagerProps> = ({
                                 Apply
                               </Button>
                             )}
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              onClick={() => editTemplate(template)}
+                            >
+                              <Edit className="h-3 w-3" />
+                            </Button>
                             <Button 
                               variant="destructive" 
                               size="sm"
