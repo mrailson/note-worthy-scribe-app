@@ -44,6 +44,7 @@ import { useGenieHistory, ServiceType } from '@/hooks/useGenieHistory';
 import { Document, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
 import { Packer } from 'docx';
+import { playoutSilentPreRoll } from '@/utils/AudioFocusManager';
 
 interface QualityScore {
   accuracy: number;
@@ -205,16 +206,12 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
       processedMessageIds.current.clear(); // Clear message deduplication tracking
       console.log('✅ Conversation start time set:', conversationStartTime.current, 'Service type at connect:', serviceTypeAtConnectionRef.current);
       
-      // AUDIO CUTOUT FIX: Wait for audio stream to stabilize before setting volume
-      // The ElevenLabs SDK needs a moment for the audio pipeline to fully initialize
-      await new Promise(resolve => setTimeout(resolve, 100));
-      
-      // Set initial volume after connection is stable (prevents cutout in first 3 seconds)
+      // AUDIO CUTOUT FIX: Warm up output device with silent pre-roll to prevent early dropouts
       try {
-        await conversation.setVolume({ volume: 0.8 });
-        console.log('✅ Initial volume set successfully after connection stabilized');
+        await playoutSilentPreRoll(600);
+        console.log('✅ Silent pre-roll completed after connection');
       } catch (err) {
-        console.error('❌ Failed to set initial volume:', err);
+        console.warn('⚠️ Silent pre-roll failed:', err);
       }
     },
     onDisconnect: async () => {
@@ -407,6 +404,13 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
         return;
       }
 
+      // Warm up audio output to prevent initial cutout before starting session
+      try {
+        await playoutSilentPreRoll(800);
+        console.log('🔊 Silent pre-roll complete before session start');
+      } catch (e) {
+        console.warn('Silent pre-roll failed', e);
+      }
       console.log(`[${activeTab}] Starting conversation with signed URL:`, signedUrl);
       const conversationId = await conversation.startSession({ 
         agentId: activeTab === 'gp-genie' 
@@ -447,6 +451,13 @@ const GPGenieVoiceAgent = ({ initialTab = 'gp-genie' }: { initialTab?: string })
 
       if (error) throw error;
       
+      // Warm up audio output to prevent initial cutout before starting session (language test)
+      try {
+        await playoutSilentPreRoll(800);
+        console.log('🔊 Silent pre-roll complete before language test session');
+      } catch (e) {
+        console.warn('Silent pre-roll failed', e);
+      }
       console.log('Starting language test conversation with signed URL');
       const conversationId = await conversation.startSession({ 
         agentId: 'agent_01jws2qhv2essav25m8cfq2h0v',
