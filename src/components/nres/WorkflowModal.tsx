@@ -15,20 +15,20 @@ interface WorkflowModalProps {
 export const WorkflowModal = ({ open, onOpenChange }: WorkflowModalProps) => {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
+      <DialogContent className="max-w-[95vw] max-h-[95vh] overflow-hidden flex flex-col p-8">
+        <DialogHeader className="mb-4">
           <DialogTitle className="text-2xl text-[#003087]">
             Neighbourhood - Across Practice Results Management
           </DialogTitle>
         </DialogHeader>
         
-        <Tabs defaultValue="diagram" className="mt-4">
-          <TabsList className="grid w-full grid-cols-2">
+        <Tabs defaultValue="diagram" className="flex-1 flex flex-col overflow-hidden">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
             <TabsTrigger value="diagram">Workflow Diagram</TabsTrigger>
             <TabsTrigger value="details">How It Works</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="diagram" className="mt-4">
+          <TabsContent value="diagram" className="flex-1 overflow-y-auto px-2 py-4">
             <img 
               src={workflowDiagram} 
               alt="Neighbourhood Across Practice Results Management Workflow" 
@@ -36,7 +36,7 @@ export const WorkflowModal = ({ open, onOpenChange }: WorkflowModalProps) => {
             />
           </TabsContent>
           
-          <TabsContent value="details" className="mt-4 prose prose-sm max-w-none">
+          <TabsContent value="details" className="flex-1 overflow-y-auto px-2 py-4 prose prose-sm max-w-none">
             <div className="space-y-6 text-foreground">
               <div>
                 <h3 className="text-xl font-bold text-[#003087] mb-3">
