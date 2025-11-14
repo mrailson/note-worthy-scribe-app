@@ -7,6 +7,7 @@ import { ConsultationsTable } from "@/components/nres/ConsultationsTable";
 import { PerformanceChart } from "@/components/nres/PerformanceChart";
 import { EscalationsLog } from "@/components/nres/EscalationsLog";
 import { PatientDetailModal } from "@/components/nres/PatientDetailModal";
+import { WorkflowModal } from "@/components/nres/WorkflowModal";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
 import { HubConsultation } from "@/types/nresTypes";
 import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info } from "lucide-react";
@@ -21,6 +22,7 @@ const NRESDashboard = () => {
   const [metrics, setMetrics] = useState(mockMetrics);
   const [selectedConsultation, setSelectedConsultation] = useState<HubConsultation | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
 
   const handleRefresh = useCallback(() => {
     // Simulate data refresh with slight variations
@@ -81,7 +83,7 @@ const NRESDashboard = () => {
             tooltip="Total number of hub consultation results currently awaiting GP review. Includes all pending, overdue, and critical results."
             variant="default"
             icon={<FileText className="h-8 w-8" />}
-            onClick={() => {}}
+            onClick={() => setWorkflowModalOpen(true)}
           />
           
           <MetricCard
@@ -151,6 +153,12 @@ const NRESDashboard = () => {
         consultation={selectedConsultation}
         open={modalOpen}
         onOpenChange={setModalOpen}
+      />
+
+      {/* Workflow Modal */}
+      <WorkflowModal
+        open={workflowModalOpen}
+        onOpenChange={setWorkflowModalOpen}
       />
     </div>
   );
