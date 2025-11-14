@@ -2485,6 +2485,39 @@ const ComplaintDetails = () => {
                             <Brain className="h-4 w-4 mr-1" />
                             AI Report
                           </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              const latestReview = reviewConversations?.[0];
+                              const aiReview = latestReview ? {
+                                conversation_summary: latestReview.conversation_summary,
+                                challenges_identified: latestReview.challenges_identified || [],
+                                recommendations: latestReview.recommendations || [],
+                                conversation_duration: latestReview.conversation_duration || 0,
+                                conversation_started_at: latestReview.conversation_started_at,
+                                created_by: latestReview.created_by || 'System User',
+                              } : undefined;
+
+                              await exportComplaintReportToWord({
+                                complaint,
+                                audioOverview: audioOverview?.audio_overview_text,
+                                investigationSummary: existingOutcome?.investigation_summary,
+                                findingsText: existingOutcome?.findings_text,
+                                outcome: existingOutcome ? {
+                                  outcome_type: existingOutcome.outcome_type,
+                                  outcome_summary: existingOutcome.outcome_summary
+                                } : undefined,
+                                acknowledgementLetter,
+                                outcomeLetter: existingOutcome?.outcome_letter,
+                                aiReview
+                              });
+                            }}
+                            className="border-blue-500 text-blue-600 hover:bg-blue-50"
+                          >
+                            <FileText className="h-4 w-4 mr-1" />
+                            Indemnity Report
+                          </Button>
                         </div>
                       </div>
                       
