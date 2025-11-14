@@ -25,7 +25,7 @@ export const WorkflowModal = ({ open, onOpenChange }: WorkflowModalProps) => {
         <Tabs defaultValue="diagram" className="h-[calc(95vh-8rem)] flex flex-col">
           <TabsList className="grid w-full grid-cols-3 mb-4 shrink-0">
             <TabsTrigger value="diagram">Workflow Diagram</TabsTrigger>
-            <TabsTrigger value="details">How It Could Work</TabsTrigger>
+            <TabsTrigger value="details">Proposed Workflow and Process</TabsTrigger>
             <TabsTrigger value="integration">Clinical System Integration</TabsTrigger>
           </TabsList>
           
