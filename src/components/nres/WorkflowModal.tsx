@@ -130,39 +130,39 @@ export const WorkflowModal = ({ open, onOpenChange }: WorkflowModalProps) => {
                 </div>
               </div>
 
-              <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg border border-green-200 dark:border-green-800">
-                <h4 className="text-lg font-semibold text-green-800 dark:text-green-300 mb-2">3. Benefits</h4>
-                <ul className="space-y-1 text-sm">
-                  <li>✓ <strong>Guaranteed governance:</strong> No results lost between hub and practice.</li>
-                  <li>✓ <strong>Consistent, safe workflow</strong> across 7 practices.</li>
-                  <li>✓ <strong>Supports cross-practice working</strong> without increasing risk.</li>
-                  <li>✓ <strong>Data stays within</strong> each patient's own GP home practice.</li>
+              <div className="bg-green-50 dark:bg-green-950 p-6 rounded-lg border-2 border-green-300 dark:border-green-800">
+                <h4 className="text-2xl font-bold text-green-800 dark:text-green-300 mb-4">3. Benefits</h4>
+                <ul className="space-y-3 text-base">
+                  <li className="flex gap-2"><span className="text-xl">✓</span><span><strong>Guaranteed governance:</strong> No results lost between hub and practice.</span></li>
+                  <li className="flex gap-2"><span className="text-xl">✓</span><span><strong>Consistent, safe workflow</strong> across 7 practices.</span></li>
+                  <li className="flex gap-2"><span className="text-xl">✓</span><span><strong>Supports cross-practice working</strong> without increasing risk.</span></li>
+                  <li className="flex gap-2"><span className="text-xl">✓</span><span><strong>Data stays within</strong> each patient's own GP home practice.</span></li>
                 </ul>
               </div>
 
-              <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg border border-amber-200 dark:border-amber-800">
-                <h4 className="text-lg font-semibold text-amber-800 dark:text-amber-300 mb-2">4. Required Enablers (Critical)</h4>
-                <p className="text-sm mb-2">To deliver this safely, the model requires:</p>
-                <div className="space-y-2 text-sm">
+              <div className="bg-amber-50 dark:bg-amber-950 p-6 rounded-lg border-2 border-amber-300 dark:border-amber-800">
+                <h4 className="text-2xl font-bold text-amber-800 dark:text-amber-300 mb-4">4. Required Enablers (Critical)</h4>
+                <p className="text-base mb-4 font-medium">To deliver this safely, the model requires:</p>
+                <div className="space-y-4 text-base">
                   <div>
-                    <p className="font-semibold">🔵 Full interface access to EMIS Web and SystmOne</p>
-                    <ul className="list-disc ml-8">
+                    <p className="font-bold text-lg mb-2">🔵 Full interface access to EMIS Web and SystmOne</p>
+                    <ul className="list-disc ml-8 space-y-1">
                       <li>IM1 / EMIS Partner APIs</li>
                       <li>TPP SystmOne IM1 / Client Integration</li>
                       <li>GP Connect messaging where appropriate</li>
                     </ul>
                   </div>
                   <div>
-                    <p className="font-semibold">🔵 ICB support for enabling these interfaces</p>
+                    <p className="font-bold text-lg">🔵 ICB support for enabling these interfaces</p>
                   </div>
                 </div>
-                <div className="mt-3 p-3 bg-red-50 dark:bg-red-950 rounded border border-red-200 dark:border-red-800">
-                  <p className="text-sm font-semibold text-red-800 dark:text-red-300">
+                <div className="mt-4 p-4 bg-red-50 dark:bg-red-950 rounded border-2 border-red-300 dark:border-red-800">
+                  <p className="text-base font-semibold text-red-800 dark:text-red-300 leading-relaxed">
                     Without ICS/ICB assistance to unlock supplier access:<br/>
                     → the automated routing cannot be implemented<br/>
                     → and a safe regional results-management model is not possible
                   </p>
-                  <p className="text-sm font-bold mt-2 text-red-900 dark:text-red-200">
+                  <p className="text-base font-bold mt-3 text-red-900 dark:text-red-200">
                     This is the single most important dependency.
                   </p>
                 </div>
