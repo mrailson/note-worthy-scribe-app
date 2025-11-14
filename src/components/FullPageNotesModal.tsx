@@ -2962,7 +2962,7 @@ ${transcriptToUse}`;
           
           {/* Tabs Content */}
           <div className="flex-1 overflow-hidden">
-            <Tabs defaultValue="notes" value={activeTab} onValueChange={(value) => {
+            <Tabs defaultValue="transcript" value={activeTab} onValueChange={(value) => {
               // Lazy load transcript when user switches to transcript tab
               if (value === 'transcript' && !transcriptLoaded && !isLoadingTranscript) {
                 console.log('🔄 Lazy loading transcript on tab switch...');
