@@ -9,6 +9,8 @@ import { BookingModal } from "@/components/nres/complex-care/BookingModal";
 import { mockComplexCarePatients, mockStatistics, mockInsights } from "@/data/complexCareMockData";
 import { ComplexCarePatient, ConditionFilterType } from "@/types/complexCareTypes";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Info } from "lucide-react";
 
 const ProactiveComplexCareDashboard = () => {
   const { toast } = useToast();
@@ -119,6 +121,15 @@ const ProactiveComplexCareDashboard = () => {
       <Header />
       
       <div className="max-w-[1600px] mx-auto px-6 py-6 space-y-6">
+        {/* Mock-up Warning Banner */}
+        <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800">
+          <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <strong>Mock-up Dashboard:</strong> This is a demonstration interface with no real functionality. 
+            Full integration with SystmOne and EMIS is required for live data and operational features.
+          </AlertDescription>
+        </Alert>
+
         <ComplexCareHeader
           selectedPractice={selectedPractice}
           onPracticeChange={setSelectedPractice}
