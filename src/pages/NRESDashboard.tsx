@@ -9,8 +9,9 @@ import { EscalationsLog } from "@/components/nres/EscalationsLog";
 import { PatientDetailModal } from "@/components/nres/PatientDetailModal";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
 import { HubConsultation } from "@/types/nresTypes";
-import { FileText, AlertTriangle, TrendingUp, CheckCircle2 } from "lucide-react";
+import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const NRESDashboard = () => {
   const { toast } = useToast();
@@ -55,6 +56,14 @@ const NRESDashboard = () => {
       <Header />
       
       <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* Mock-up Warning Banner */}
+        <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800">
+          <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            <strong>Mock-up Dashboard:</strong> This is a demonstration interface with no real functionality. 
+            Full integration with SystmOne and EMIS is required for live data and operational features.
+          </AlertDescription>
+        </Alert>
         <DashboardHeader
           selectedPractice={selectedPractice}
           onPracticeChange={setSelectedPractice}
