@@ -52,38 +52,38 @@ export const WorkflowModal = ({ open, onOpenChange }: WorkflowModalProps) => {
                 </p>
               </div>
 
-              <div>
-                <h4 className="text-lg font-semibold text-[#003087] dark:text-blue-300 mb-3">2. How It Works – Step-By-Step</h4>
-                <div className="space-y-3">
-                  <div className="flex gap-3">
-                    <span className="text-blue-600 font-bold">1️⃣</span>
+              <div className="bg-slate-50 dark:bg-slate-900 p-6 rounded-lg border-2 border-slate-300 dark:border-slate-700">
+                <h4 className="text-2xl font-bold text-[#003087] dark:text-blue-300 mb-5">2. How It Works – Step-By-Step</h4>
+                <div className="space-y-5">
+                  <div className="flex gap-4">
+                    <span className="text-3xl font-bold">1️⃣</span>
                     <div>
-                      <p className="font-semibold">Patient attends another practice or hub service</p>
-                      <p className="text-sm text-muted-foreground">Example: A Towcester Medical Centre (TMC) patient books an Enhanced Access appointment at Brackley Hub.</p>
+                      <p className="text-lg font-semibold mb-1">Patient attends another practice or hub service</p>
+                      <p className="text-base text-muted-foreground">Example: A Towcester Medical Centre (TMC) patient books an Enhanced Access appointment at Brackley Hub.</p>
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <span className="text-blue-600 font-bold">2️⃣</span>
+                  <div className="flex gap-4">
+                    <span className="text-3xl font-bold">2️⃣</span>
                     <div>
-                      <p className="font-semibold">Tests are ordered in the hub</p>
-                      <p className="text-sm text-muted-foreground">Blood tests, imaging, swabs, or other investigations requested during the consultation.</p>
+                      <p className="text-lg font-semibold mb-1">Tests are ordered in the hub</p>
+                      <p className="text-base text-muted-foreground">Blood tests, imaging, swabs, or other investigations requested during the consultation.</p>
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <span className="text-blue-600 font-bold">3️⃣</span>
+                  <div className="flex gap-4">
+                    <span className="text-3xl font-bold">3️⃣</span>
                     <div>
-                      <p className="font-semibold">AI captures the patient's home practice + named GP</p>
-                      <p className="text-sm text-muted-foreground">Using demographics from the clinical system. Ensures correct routing before results are returned.</p>
+                      <p className="text-lg font-semibold mb-1">AI captures the patient's home practice + named GP</p>
+                      <p className="text-base text-muted-foreground">Using demographics from the clinical system. Ensures correct routing before results are returned.</p>
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <span className="text-blue-600 font-bold">4️⃣</span>
+                  <div className="flex gap-4">
+                    <span className="text-3xl font-bold">4️⃣</span>
                     <div>
-                      <p className="font-semibold">Results are auto-routed back to the home practice</p>
-                      <ul className="text-sm text-muted-foreground list-disc ml-5 mt-1">
+                      <p className="text-lg font-semibold mb-1">Results are auto-routed back to the home practice</p>
+                      <ul className="text-base text-muted-foreground list-disc ml-5 mt-2 space-y-1">
                         <li>Results DO NOT go to the clinician who saw the patient.</li>
                         <li>Results DO NOT stay with the hub.</li>
                         <li>They return directly to TMC, as if they were requested by TMC.</li>
@@ -91,36 +91,36 @@ export const WorkflowModal = ({ open, onOpenChange }: WorkflowModalProps) => {
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <span className="text-blue-600 font-bold">5️⃣</span>
+                  <div className="flex gap-4">
+                    <span className="text-3xl font-bold">5️⃣</span>
                     <div>
-                      <p className="font-semibold">AI assigns responsibility</p>
-                      <p className="text-sm text-muted-foreground">Automatically assigns the result to:</p>
-                      <ul className="text-sm text-muted-foreground list-disc ml-5">
+                      <p className="text-lg font-semibold mb-1">AI assigns responsibility</p>
+                      <p className="text-base text-muted-foreground mb-2">Automatically assigns the result to:</p>
+                      <ul className="text-base text-muted-foreground list-disc ml-5 space-y-1">
                         <li>the named GP, or</li>
                         <li>the home practice duty inbox, depending on practice preference.</li>
                       </ul>
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <span className="text-blue-600 font-bold">6️⃣</span>
+                  <div className="flex gap-4">
+                    <span className="text-3xl font-bold">6️⃣</span>
                     <div>
-                      <p className="font-semibold">Governance safety net</p>
-                      <ul className="text-sm text-muted-foreground list-disc ml-5">
+                      <p className="text-lg font-semibold mb-1">Governance safety net</p>
+                      <ul className="text-base text-muted-foreground list-disc ml-5 space-y-1">
                         <li>48 hours → alert to home practice admin/PM</li>
                         <li>72 hours → alert escalates to Clinical Lead</li>
                         <li>96 hours → escalation to PCN Director / governance</li>
                       </ul>
-                      <p className="text-sm font-semibold mt-1">This ensures zero lost results.</p>
+                      <p className="text-base font-semibold mt-2 text-foreground">This ensures zero lost results.</p>
                     </div>
                   </div>
 
-                  <div className="flex gap-3">
-                    <span className="text-blue-600 font-bold">7️⃣</span>
+                  <div className="flex gap-4">
+                    <span className="text-3xl font-bold">7️⃣</span>
                     <div>
-                      <p className="font-semibold">Real-time dashboard</p>
-                      <ul className="text-sm text-muted-foreground list-disc ml-5">
+                      <p className="text-lg font-semibold mb-1">Real-time dashboard</p>
+                      <ul className="text-base text-muted-foreground list-disc ml-5 space-y-1">
                         <li>Shows all outstanding hub-generated results by practice.</li>
                         <li>Highlights overdue items and escalation status.</li>
                         <li>Provides a neighbourhood-wide accountability view.</li>
