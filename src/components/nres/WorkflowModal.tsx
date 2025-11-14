@@ -18,7 +18,7 @@ export const WorkflowModal = ({ open, onOpenChange }: WorkflowModalProps) => {
       <DialogContent className="max-w-[95vw] max-h-[95vh] p-6">
         <DialogHeader className="pb-4">
           <DialogTitle className="text-2xl text-[#003087]">
-            Neighbourhood - Across Practice Results Management
+            Neighbourhood - Across Practice Results Management - Draft V1.0 (Discussion Support Overview)
           </DialogTitle>
         </DialogHeader>
         
