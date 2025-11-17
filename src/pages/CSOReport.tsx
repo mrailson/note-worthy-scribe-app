@@ -1152,7 +1152,7 @@ const CSOReport = () => {
                 <p className="text-sm text-muted-foreground mb-4">The following can be made accessible directly inside NoteWell under Governance → Assurance Pack:</p>
                 <div className="grid md:grid-cols-2 gap-2">
                   {[
-                    { name: "MHRA Class I Certificate", link: null },
+                    { name: "MHRA Class I Certificate", link: "/documents/MHRA-Class-I-Registration-Certificate.pdf" },
                     { name: "DCB0129 Safety Case", link: "/safety-case" },
                     { name: "Hazard Log", link: "/hazard-log" },
                     { name: "DPIA", link: null },
