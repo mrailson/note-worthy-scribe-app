@@ -85,7 +85,7 @@ const PrivacyPolicy = () => {
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">01604 123456</span>
+                  <span className="text-sm">07740 812180</span>
                 </div>
               </div>
             </div>
