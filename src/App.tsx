@@ -148,16 +148,8 @@ const App = () => {
                 </ProtectedRoute>
               } />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/hazard-log" element={
-                <ProtectedRoute requiredModule="enhanced_access">
-                  <HazardLog />
-                </ProtectedRoute>
-              } />
-              <Route path="/safety-case" element={
-                <ProtectedRoute requiredModule="enhanced_access">
-                  <SafetyCase />
-                </ProtectedRoute>
-              } />
+              <Route path="/hazard-log" element={<HazardLog />} />
+              <Route path="/safety-case" element={<SafetyCase />} />
               <Route path="/feedback" element={<PracticeManagerFeedback />} />
               <Route path="/feedback/results" element={<FeedbackResults />} />
               <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
