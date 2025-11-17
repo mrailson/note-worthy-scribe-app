@@ -62,7 +62,6 @@ import DemoVideosPage from "./pages/DemoVideosPage";
 import NRESDashboard from "./pages/NRESDashboard";
 import ProactiveComplexCareDashboard from "./pages/ProactiveComplexCareDashboard";
 import CommsStrategyDashboard from "./pages/CommsStrategyDashboard";
-import DataFlowArchitecture from "./pages/DataFlowArchitecture";
 
 const App = () => {
   useSessionActivity();
