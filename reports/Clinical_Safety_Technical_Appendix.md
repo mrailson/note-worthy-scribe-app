@@ -378,7 +378,7 @@ CREATE FUNCTION emergency_system_lockdown(
 
 ---
 
-**Document Version:** 1.0  
-**Last Updated:** September 2025  
+**Document Version:** 1.1  
+**Last Updated:** November 2025  
 **Classification:** NHS Restricted  
 **Review Cycle:** 6 months
