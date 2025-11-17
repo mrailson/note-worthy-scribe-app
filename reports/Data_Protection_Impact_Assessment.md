@@ -39,9 +39,11 @@ This DPIA is **mandatory** under UK GDPR Article 35 as the processing involves:
 ### Data Controller Details
 
 **Organisation:** PCN Services Ltd  
-**ICO Registration:** [Pending - to be obtained prior to deployment]  
-**Address:** [Practice Address]  
-**Contact:** [Contact Details]  
+**ICO Registration Number:** ZB226324  
+**Registration Expiry:** 03/10/2026  
+**Address:** Ground Floor, 2 Woodberry Grove, London, N12 0DR, United Kingdom  
+**Email:** malcolm.railson@nhs.net  
+**Telephone:** 07740812180
 
 **Data Protection Officer (DPO):**  
 Name: [DPO Name]  
