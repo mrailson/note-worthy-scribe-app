@@ -1460,7 +1460,7 @@ No critical or high residual risks remain after implementation of comprehensive 
 - GDPR-aware (data processing terms available)
 
 **Due Diligence:**
-- **DPA Status:** ✓ Business agreement with GDPR-compliant data protection terms
+- **DPA Status:** ✓ **Signed Data Processing Agreement** (executed 17/11/2025) - Full GDPR-compliant terms including Article 28 requirements
 - **Transfer Mechanism:** UK International Data Transfer Agreement (IDTA) or Standard Contractual Clauses (SCCs)
 - **Data Retention:** **Zero-day retention** - API calls not used to train models, no customer data stored
 - **Data Minimisation:** Patient identifiers removed before API calls (anonymised clinical scenarios only)
@@ -1582,7 +1582,7 @@ No critical or high residual risks remain after implementation of comprehensive 
 | Processor | Location | Certification | DPA | Data Retention | Risk Rating |
 |-----------|----------|---------------|-----|----------------|-------------|
 | Supabase | UK | ISO 27001, SOC 2 | ✓ | 30 days (backups) | **LOW** |
-| OpenAI | US | SOC 2 | ✓ | Zero-day | **MEDIUM** |
+| OpenAI | US | ISO 27001, SOC 2 | ✓ Signed | Zero-day | **MEDIUM** |
 | ElevenLabs | US/EU | Enterprise security | ✓ | Transient | **LOW** |
 | EmailJS | US | None | ✓ | Transient | **LOW-MEDIUM** |
 

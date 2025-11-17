@@ -620,6 +620,18 @@ const DPIA: React.FC = () => {
                       </div>
                     </div>
                     <div>
+                      <p className="text-sm font-medium text-muted-foreground">DPA Status</p>
+                      <p className="text-sm flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-success" />
+                        <span className="font-semibold">Signed (17/11/2025)</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground">Full GDPR Article 28 compliance</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Data Retention</p>
+                      <p className="text-sm font-semibold text-success">Zero-day retention</p>
+                    </div>
+                    <div>
                       <p className="text-sm font-medium text-muted-foreground">Data Processed</p>
                       <p className="text-sm">Anonymised clinical queries (no patient identifiers)</p>
                     </div>
