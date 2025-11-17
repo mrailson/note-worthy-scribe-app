@@ -1152,27 +1152,37 @@ const CSOReport = () => {
                 <p className="text-sm text-muted-foreground mb-4">The following can be made accessible directly inside NoteWell under Governance → Assurance Pack:</p>
                 <div className="grid md:grid-cols-2 gap-2">
                   {[
-                    { name: "MHRA Class I Certificate", link: "/documents/MHRA-Class-I-Registration-Certificate.pdf" },
-                    { name: "DCB0129 Safety Case", link: "/safety-case" },
-                    { name: "Hazard Log", link: "/hazard-log" },
-                    { name: "DPIA", link: null },
-                    { name: "Privacy Policy", link: "/privacy-policy" },
-                    { name: "Security Posture Overview", link: null },
-                    { name: "Penetration Test Scope", link: null },
-                    { name: "Incident Response Policy", link: null },
-                    { name: "Cyber Essentials (in progress) documents", link: null },
-                    { name: "Data Flow Diagram & Architecture Summary", link: null }
+                    { name: "MHRA Class I Certificate", link: "/documents/MHRA-Class-I-Registration-Certificate.pdf", isDownload: true },
+                    { name: "DCB0129 Safety Case", link: "/safety-case", isDownload: false },
+                    { name: "Hazard Log", link: "/hazard-log", isDownload: false },
+                    { name: "DPIA", link: null, isDownload: false },
+                    { name: "Privacy Policy", link: "/privacy-policy", isDownload: false },
+                    { name: "Security Posture Overview", link: null, isDownload: false },
+                    { name: "Penetration Test Scope", link: null, isDownload: false },
+                    { name: "Incident Response Policy", link: null, isDownload: false },
+                    { name: "Cyber Essentials (in progress) documents", link: null, isDownload: false },
+                    { name: "Data Flow Diagram & Architecture Summary", link: null, isDownload: false }
                   ].map((doc, idx) => (
                     <div key={idx} className="flex items-start gap-2 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
                       <FileText className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
                       {doc.link ? (
-                        <Link 
-                          to={doc.link} 
-                          target="_blank"
-                          className="text-sm text-primary hover:underline font-medium"
-                        >
-                          {doc.name}
-                        </Link>
+                        doc.isDownload ? (
+                          <a 
+                            href={doc.link}
+                            download
+                            className="text-sm text-primary hover:underline font-medium"
+                          >
+                            {doc.name}
+                          </a>
+                        ) : (
+                          <Link 
+                            to={doc.link} 
+                            target="_blank"
+                            className="text-sm text-primary hover:underline font-medium"
+                          >
+                            {doc.name}
+                          </Link>
+                        )
                       ) : (
                         <span className="text-sm">{doc.name}</span>
                       )}
