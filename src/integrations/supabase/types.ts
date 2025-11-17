@@ -2504,6 +2504,13 @@ export type Database = {
             referencedRelation: "practice_fridges"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "fridge_status_changes_fridge_id_fkey"
+            columns: ["fridge_id"]
+            isOneToOne: false
+            referencedRelation: "public_fridge_qr_view"
+            referencedColumns: ["id"]
+          },
         ]
       }
       fridge_temperature_alerts: {
@@ -2555,6 +2562,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "fridge_temperature_alerts_fridge_id_fkey"
+            columns: ["fridge_id"]
+            isOneToOne: false
+            referencedRelation: "public_fridge_qr_view"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "fridge_temperature_alerts_reading_id_fkey"
             columns: ["reading_id"]
             isOneToOne: false
@@ -2603,6 +2617,13 @@ export type Database = {
             columns: ["fridge_id"]
             isOneToOne: false
             referencedRelation: "practice_fridges"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fridge_temperature_readings_fridge_id_fkey"
+            columns: ["fridge_id"]
+            isOneToOne: false
+            referencedRelation: "public_fridge_qr_view"
             referencedColumns: ["id"]
           },
         ]
@@ -6269,6 +6290,42 @@ export type Database = {
           name_norm?: never
           notes?: string | null
           status_enum?: string | null
+        }
+        Relationships: []
+      }
+      public_fridge_qr_view: {
+        Row: {
+          generic_location: string | null
+          id: string | null
+          is_active: boolean | null
+          practice_id: string | null
+          qr_code_data: string | null
+        }
+        Insert: {
+          generic_location?: never
+          id?: string | null
+          is_active?: boolean | null
+          practice_id?: string | null
+          qr_code_data?: string | null
+        }
+        Update: {
+          generic_location?: never
+          id?: string | null
+          is_active?: boolean | null
+          practice_id?: string | null
+          qr_code_data?: string | null
+        }
+        Relationships: []
+      }
+      public_practice_feedback: {
+        Row: {
+          avg_complaints_interest: number | null
+          avg_complaints_usefulness: number | null
+          avg_meeting_manager_interest: number | null
+          avg_meeting_manager_usefulness: number | null
+          feedback_count: number | null
+          feedback_month: string | null
+          practice_name: string | null
         }
         Relationships: []
       }
