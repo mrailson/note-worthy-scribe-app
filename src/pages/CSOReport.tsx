@@ -188,6 +188,7 @@ const CSOReport = () => {
                 { id: "gdpr", label: "GDPR Compliance", icon: Lock },
                 { id: "security", label: "Security", icon: Shield },
                 { id: "third-party", label: "Third Parties", icon: Users },
+                { id: "nhs-assurance", label: "NHS Assurance Pack", icon: FileText },
                 { id: "checklist", label: "Checklist", icon: CheckCircle },
                 { id: "recommendations", label: "Recommendations", icon: TrendingUp }
               ].map((nav) => (
@@ -679,6 +680,513 @@ const CSOReport = () => {
                   </div>
                 </TabsContent>
               </Tabs>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* NHS Assurance Pack */}
+        <section id="nhs-assurance" className="mb-8">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-2xl flex items-center gap-2">
+                    <FileText className="w-6 h-6" />
+                    NHS Assurance, DTAC & Security Overview Pack
+                  </CardTitle>
+                  <CardDescription>For NHS ICB IT, Digital, IG & Clinical Safety Review - Version: November 2025</CardDescription>
+                </div>
+                <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 text-lg px-4 py-2">
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  MHRA Registered
+                </Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* 1. Overview */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Database className="w-5 h-5" />
+                  1. Overview of NoteWell AI
+                </h3>
+                <div className="prose dark:prose-invert max-w-none space-y-3">
+                  <p>NoteWell AI is a UK-hosted digital platform designed to support administrative and governance workflows across primary care. Core functions include:</p>
+                  <ul className="space-y-1 ml-4">
+                    <li>Meeting recording, transcription, and summarisation</li>
+                    <li>Structured complaints management</li>
+                    <li>Scribe support (SOAP/SystemOne-style summaries)</li>
+                    <li>Governance action logs and audit trails</li>
+                    <li>Secure document generation and export</li>
+                  </ul>
+                  <p className="font-medium">NoteWell does not provide autonomous diagnosis or treatment recommendations and currently has no direct integration with EMIS or SystmOne, making it a <strong>low-risk DTAC profile</strong>.</p>
+                  <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-4 mt-4">
+                    <p className="font-semibold text-green-900 dark:text-green-300">In November 2025, NoteWell AI was formally registered as an MHRA Class I Medical Device.</p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* 2. MHRA & Clinical Safety */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  2. MHRA & Clinical Safety Compliance
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <Card className="bg-muted/50">
+                    <CardHeader>
+                      <CardTitle className="text-lg">MHRA Compliance</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Registered as a Class I Medical Device (2025)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Manufacturer: PCN Services Ltd</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>UK Responsible Person: PCN Services Ltd</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-muted/50">
+                    <CardHeader>
+                      <CardTitle className="text-lg">Clinical Safety (DCB0129 & DCB0160)</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>DCB0129 Clinical Safety Case completed</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Full Hazard Log maintained</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Clinical Safety Officer appointed & documented</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Human-in-the-loop model — no autonomous clinical action</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span>Risk mitigations include audit logs, access control, human review, and bounded outputs</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* 3. Data Protection & GDPR */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Lock className="w-5 h-5" />
+                  3. Data Protection & GDPR
+                </h3>
+                <p className="mb-4">NoteWell processes data strictly as a <strong>Data Processor</strong> for the NHS organisation.</p>
+                <div className="grid md:grid-cols-2 gap-3">
+                  {[
+                    "DPIA completed and ready for sharing",
+                    "UK-only hosting and data storage",
+                    "All PHI/PII encrypted in transit (TLS 1.2+) and at rest (AES-256)",
+                    "Role-based access control (RLS)",
+                    "No data reused for AI training",
+                    "Full audit logs of all content access",
+                    "Retention, deletion and lifecycle controls implemented"
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">{item}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* 4. Technical Security Posture */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  4. Technical Security Posture
+                </h3>
+                
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="hosting">
+                    <AccordionTrigger className="text-base font-semibold">Hosting & Infrastructure</AccordionTrigger>
+                    <AccordionContent>
+                      <ul className="space-y-2 ml-4">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>UK-only cloud infrastructure</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>No public inbound services beyond HTTPS</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>TLS enforced edge-to-end</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Segregated databases per tenant organisation via RLS</span>
+                        </li>
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="authentication">
+                    <AccordionTrigger className="text-base font-semibold">Authentication & Access</AccordionTrigger>
+                    <AccordionContent>
+                      <ul className="space-y-2 ml-4">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>JWT-based identity</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Secure session expiry</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Optional MFA</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Row-Level Security (RLS) for organisation boundaries</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Least privilege principle applied across roles</span>
+                        </li>
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="application">
+                    <AccordionTrigger className="text-base font-semibold">Application Security Controls</AccordionTrigger>
+                    <AccordionContent>
+                      <ul className="space-y-2 ml-4">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>OWASP-aligned secure development lifecycle</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Code scanning dependencies monitoring</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>API rate-limiting and brute-force protection</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Strict CORS and origin rules</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>High-entropy random secret keys</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Error/exception sanitisation (no sensitive stack trace leakage)</span>
+                        </li>
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="monitoring">
+                    <AccordionTrigger className="text-base font-semibold">Monitoring & Audit</AccordionTrigger>
+                    <AccordionContent>
+                      <ul className="space-y-2 ml-4">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Full audit trail for user actions</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Tamper-resistant audit logging</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Monitoring for failed login attempts</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Incident response plan in place</span>
+                        </li>
+                      </ul>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
+              </div>
+
+              <Separator />
+
+              {/* 5. Interoperability */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">5. Interoperability Statement</h3>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                    <XCircle className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">No direct EMIS or SystmOne integration at present</span>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Data output formats: PDF, DOCX, TXT, CSV, JSON</span>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                    <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">FHIR-compatible export planned for future phases</span>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">API-first architecture allows controlled integration when required</span>
+                  </div>
+                  <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-4">
+                    <p className="font-semibold text-green-900 dark:text-green-300">Low interoperability risk profile under DTAC</p>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* 6. DTAC Compliance Summary */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">6. DTAC Compliance Summary</h3>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>DTAC Domain</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Evidence</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    <TableRow>
+                      <TableCell className="font-medium">Clinical Safety</TableCell>
+                      <TableCell>
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Fully met
+                        </Badge>
+                      </TableCell>
+                      <TableCell>MHRA Class I, DCB0129</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Data Protection</TableCell>
+                      <TableCell>
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Fully met
+                        </Badge>
+                      </TableCell>
+                      <TableCell>DPIA, UK-only hosting</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Technical Security</TableCell>
+                      <TableCell>
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Fully met (proportionate)
+                        </Badge>
+                      </TableCell>
+                      <TableCell>Encryption, access control, pen-test plan</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Interoperability</TableCell>
+                      <TableCell>
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Low-risk
+                        </Badge>
+                      </TableCell>
+                      <TableCell>No EMIS/S1 write-back</TableCell>
+                    </TableRow>
+                    <TableRow>
+                      <TableCell className="font-medium">Usability & Accessibility</TableCell>
+                      <TableCell>
+                        <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          WCAG-aligned
+                        </Badge>
+                      </TableCell>
+                      <TableCell>Primary care UI testing</TableCell>
+                    </TableRow>
+                  </TableBody>
+                </Table>
+                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-4 mt-4">
+                  <p className="font-semibold text-green-900 dark:text-green-300">This constitutes a low-risk DTAC footprint suitable for pilot and deployment in GP practices, PCNs and Neighbourhoods.</p>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* 7. Penetration Test Requirements */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  7. Penetration Test Requirements (NHS-Ready Format)
+                </h3>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="font-semibold mb-2">Purpose</h4>
+                    <p className="text-sm text-muted-foreground">To validate NoteWell's external security posture using CREST/NCSC-aligned methodology.</p>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Scope (Required for NHS DTAC)</h4>
+                    <Accordion type="multiple" className="w-full">
+                      <AccordionItem value="webapp">
+                        <AccordionTrigger className="text-sm font-semibold">A. External Web Application</AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="space-y-1 ml-4 text-sm">
+                            <li>• Login, MFA, reset flows</li>
+                            <li>• Session management</li>
+                            <li>• Access control & RLS checks</li>
+                            <li>• Account provisioning restrictions</li>
+                            <li>• Input validation</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      <AccordionItem value="api">
+                        <AccordionTrigger className="text-sm font-semibold">B. API & Backend</AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="space-y-1 ml-4 text-sm">
+                            <li>• REST endpoint enumeration</li>
+                            <li>• API authentication & authorisation</li>
+                            <li>• Injection tests (SQL/NoSQL/ORM)</li>
+                            <li>• Rate limiting & brute-force attempt handling</li>
+                            <li>• Data leakage & error sanitisation</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      <AccordionItem value="infrastructure">
+                        <AccordionTrigger className="text-sm font-semibold">C. Infrastructure & Config</AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="space-y-1 ml-4 text-sm">
+                            <li>• TLS review</li>
+                            <li>• Exposed services</li>
+                            <li>• Cloud misconfiguration checks</li>
+                            <li>• Secrets management & key handling</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+
+                      <AccordionItem value="owasp">
+                        <AccordionTrigger className="text-sm font-semibold">D. OWASP Top 10 Coverage</AccordionTrigger>
+                        <AccordionContent>
+                          <ul className="space-y-1 ml-4 text-sm">
+                            <li>• Broken Access Control</li>
+                            <li>• Injection</li>
+                            <li>• Cryptographic failures</li>
+                            <li>• Security misconfigurations</li>
+                            <li>• Vulnerable components</li>
+                            <li>• Authentication failures</li>
+                            <li>• SSRF</li>
+                            <li>• Logging/monitoring failures</li>
+                          </ul>
+                        </AccordionContent>
+                      </AccordionItem>
+                    </Accordion>
+                  </div>
+
+                  <div className="bg-muted/50 rounded-lg p-4">
+                    <h4 className="font-semibold mb-2">Out of Scope</h4>
+                    <p className="text-sm text-muted-foreground mb-2">Not required for a Class I DTAC review:</p>
+                    <ul className="space-y-1 ml-4 text-sm text-muted-foreground">
+                      <li>• Red teaming</li>
+                      <li>• Phishing/social engineering</li>
+                      <li>• Physical security</li>
+                      <li>• Zero-day modelling</li>
+                      <li>• Insider threat simulations</li>
+                    </ul>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Deliverables</h4>
+                    <div className="grid md:grid-cols-2 gap-2">
+                      {[
+                        "Executive summary",
+                        "Detailed technical findings",
+                        "CVSS scoring",
+                        "Recommendations",
+                        "Re-test verification"
+                      ].map((item, idx) => (
+                        <div key={idx} className="flex items-center gap-2 p-2 border rounded bg-background text-sm">
+                          <CheckCircle className="w-3 h-3 text-green-600 flex-shrink-0" />
+                          <span>{item}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h4 className="font-semibold mb-2">Frequency</h4>
+                    <ul className="space-y-1 ml-4 text-sm">
+                      <li>• Pre-deployment (2025/26)</li>
+                      <li>• Annually thereafter</li>
+                      <li>• After significant architecture changes</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* 8. Documents Available */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">8. Documents Available for the ICB</h3>
+                <p className="text-sm text-muted-foreground mb-4">The following can be made accessible directly inside NoteWell under Governance → Assurance Pack:</p>
+                <div className="grid md:grid-cols-2 gap-2">
+                  {[
+                    "MHRA Class I Certificate",
+                    "DCB0129 Safety Case",
+                    "Hazard Log",
+                    "DPIA",
+                    "Privacy Policy",
+                    "Security Posture Overview",
+                    "Penetration Test Scope",
+                    "Incident Response Policy",
+                    "Cyber Essentials (in progress) documents",
+                    "Data Flow Diagram & Architecture Summary"
+                  ].map((doc, idx) => (
+                    <div key={idx} className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                      <FileText className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">{doc}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* 9. Summary Statement */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3">9. Summary Statement for NHS ICB IT</h3>
+                <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 border border-green-200 dark:border-green-900 rounded-lg p-6">
+                  <p className="text-base leading-relaxed">
+                    NoteWell AI is a <strong>low-risk, MHRA Class I medical device</strong> designed for safe deployment across primary care. 
+                    It meets all applicable DTAC domains, has completed its DPIA, clinical safety case, and safety officer oversight, and maintains 
+                    UK-only hosting, strong encryption, RLS access controls, full audit logs and a clear, CREST-aligned penetration testing programme.
+                  </p>
+                  <p className="text-base leading-relaxed mt-4">
+                    The tool involves <strong>no EMIS/S1 write-back</strong>, uses strict human-in-the-loop validation, and is suitable for 
+                    pilot and scaled use in <strong>GP practices, PCNs and Neighbourhood teams</strong>.
+                  </p>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </section>
