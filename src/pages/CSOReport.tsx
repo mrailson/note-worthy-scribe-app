@@ -1161,7 +1161,7 @@ const CSOReport = () => {
                     { name: "Penetration Test Scope", link: null, isDownload: false },
                     { name: "Incident Response Policy", link: "/incident-response", isDownload: false },
                     { name: "Cyber Essentials (in progress) documents", link: null, isDownload: false },
-                    { name: "Data Flow Diagram & Architecture Summary", link: null, isDownload: false }
+                    { name: "Data Flow Diagram & Architecture Summary", link: "/data-flow-architecture", isDownload: false }
                   ].map((doc, idx) => (
                     <div key={idx} className="flex items-start gap-2 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
                       <FileText className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />

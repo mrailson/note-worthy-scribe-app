@@ -11,7 +11,6 @@ import {
   Lock,
   GitBranch,
   Workflow,
-  ArrowRight,
   AlertTriangle,
   CheckCircle,
   FileText,
@@ -45,7 +44,6 @@ const DataFlowArchitecture = () => {
     { id: "frontend-arch", label: "Frontend Architecture", icon: Globe },
     { id: "backend-arch", label: "Backend Architecture", icon: Server },
     { id: "database-schema", label: "Database Schema", icon: Database },
-    { id: "sequences", label: "Sequence Diagrams", icon: Workflow },
     { id: "deployment", label: "Deployment", icon: Cloud },
     { id: "data-lifecycle", label: "Data Lifecycle", icon: HardDrive },
     { id: "integration-matrix", label: "Integration Security", icon: GitBranch }
@@ -118,87 +116,6 @@ const DataFlowArchitecture = () => {
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">High-Level System Architecture</h3>
-                    <lov-mermaid>
-graph TB
-    subgraph "Client Layer"
-        A[Web Browser<br/>React + TypeScript]
-        B[Mobile Browser<br/>Responsive PWA]
-    end
-    
-    subgraph "CDN & Edge"
-        C[Lovable CDN<br/>Static Assets]
-        D[Edge Caching<br/>Global Distribution]
-    end
-    
-    subgraph "Authentication Layer"
-        E[Supabase Auth<br/>OTP + Password]
-        F[Session Management<br/>JWT Tokens]
-    end
-    
-    subgraph "Application Layer"
-        G[React Application<br/>TanStack Query]
-        H[Real-time Subscriptions<br/>WebSocket]
-        I[File Upload/Download<br/>Multipart Handling]
-    end
-    
-    subgraph "Backend Services"
-        J[Supabase PostgreSQL<br/>Primary Database]
-        K[Row Level Security<br/>RLS Policies]
-        L[Database Functions<br/>Stored Procedures]
-        M[Storage Buckets<br/>Encrypted Files]
-    end
-    
-    subgraph "AI Integration Layer"
-        N[OpenAI API<br/>GPT-4 & Embeddings]
-        O[ElevenLabs API<br/>Voice Synthesis]
-        P[AssemblyAI<br/>Transcription]
-    end
-    
-    subgraph "Security & Monitoring"
-        Q[Audit Logging<br/>Comprehensive Trails]
-        R[Data Encryption<br/>AES-256 at Rest]
-        S[TLS 1.3<br/>In Transit]
-    end
-    
-    A & B --> C
-    C --> D
-    A & B --> E
-    E --> F
-    F --> G
-    G --> H
-    G --> I
-    H --> J
-    I --> M
-    J --> K
-    J --> L
-    K --> J
-    G --> N
-    G --> O
-    G --> P
-    J --> Q
-    J --> R
-    A & B -.-> S
-    
-    style A fill:#3b82f6,stroke:#1e40af,color:#fff
-    style B fill:#3b82f6,stroke:#1e40af,color:#fff
-    style G fill:#3b82f6,stroke:#1e40af,color:#fff
-    style J fill:#10b981,stroke:#059669,color:#fff
-    style K fill:#10b981,stroke:#059669,color:#fff
-    style L fill:#10b981,stroke:#059669,color:#fff
-    style M fill:#10b981,stroke:#059669,color:#fff
-    style N fill:#f59e0b,stroke:#d97706,color:#fff
-    style O fill:#f59e0b,stroke:#d97706,color:#fff
-    style P fill:#f59e0b,stroke:#d97706,color:#fff
-    style Q fill:#ef4444,stroke:#dc2626,color:#fff
-    style R fill:#ef4444,stroke:#dc2626,color:#fff
-    style S fill:#ef4444,stroke:#dc2626,color:#fff
-                    </lov-mermaid>
-                  </div>
-
-                  <Separator />
-
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="p-4 border rounded-lg bg-muted/30">
                       <h4 className="font-semibold mb-2 flex items-center gap-2">
@@ -236,7 +153,7 @@ graph TB
                         <li>• ElevenLabs voice synthesis</li>
                         <li>• AssemblyAI transcription</li>
                         <li>• Context-aware processing</li>
-                        <li>• Token optimization</li>
+                        <li>• Token optimisation</li>
                       </ul>
                     </div>
                     <div className="p-4 border rounded-lg bg-muted/30">
@@ -251,6 +168,40 @@ graph TB
                         <li>• Comprehensive audit logs</li>
                         <li>• Role-based access control</li>
                       </ul>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="p-6 border rounded-lg bg-blue-50 dark:bg-blue-950/30">
+                    <h3 className="font-semibold text-lg mb-3 text-blue-900 dark:text-blue-100">
+                      High-Level Architecture Summary
+                    </h3>
+                    <div className="space-y-3 text-sm">
+                      <div>
+                        <strong className="text-blue-900 dark:text-blue-200">Client Layer:</strong>
+                        <p className="ml-4">Web browsers and mobile devices access the React application via HTTPS, with all static assets served through a global CDN.</p>
+                      </div>
+                      <div>
+                        <strong className="text-blue-900 dark:text-blue-200">Authentication Layer:</strong>
+                        <p className="ml-4">Supabase Auth handles user authentication with JWT tokens, supporting OTP and password-based login with session management.</p>
+                      </div>
+                      <div>
+                        <strong className="text-blue-900 dark:text-blue-200">Application Layer:</strong>
+                        <p className="ml-4">React application with TanStack Query manages state, real-time WebSocket subscriptions provide live updates, and file operations handle document uploads/downloads.</p>
+                      </div>
+                      <div>
+                        <strong className="text-blue-900 dark:text-blue-200">Backend Services:</strong>
+                        <p className="ml-4">Supabase PostgreSQL database enforces Row Level Security policies, with encrypted storage buckets for files and database functions for business logic.</p>
+                      </div>
+                      <div>
+                        <strong className="text-blue-900 dark:text-blue-200">AI Integration:</strong>
+                        <p className="ml-4">Secure connections to OpenAI (GPT-4), ElevenLabs (voice), and AssemblyAI (transcription) with PII masking and rate limiting.</p>
+                      </div>
+                      <div>
+                        <strong className="text-blue-900 dark:text-blue-200">Security & Monitoring:</strong>
+                        <p className="ml-4">Comprehensive audit logging, AES-256 encryption at rest, TLS 1.3 in transit, and continuous monitoring for security events.</p>
+                      </div>
                     </div>
                   </div>
                 </CardContent>
@@ -278,72 +229,26 @@ graph TB
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">Authentication Flow Diagram</h3>
-                    <lov-mermaid>
-graph TB
-    subgraph "User Actions"
-        A[User Enters Credentials<br/>Email + Password/OTP]
-    end
-    
-    subgraph "Frontend Validation"
-        B{Form Validation<br/>Client-side}
-        C[Display Error<br/>Invalid Format]
-    end
-    
-    subgraph "Supabase Auth Service"
-        D[Auth Request<br/>POST /auth/v1]
-        E{Credential<br/>Validation}
-        F[Generate JWT Token<br/>Access + Refresh]
-        G[Return Error<br/>401 Unauthorised]
-    end
-    
-    subgraph "Session Management"
-        H[Store JWT in<br/>Secure Storage]
-        I[Set Session Cookie<br/>HttpOnly]
-        J[Session Activity Monitor<br/>Inactivity Tracking]
-    end
-    
-    subgraph "Authorisation Check"
-        K[Extract User ID<br/>from JWT]
-        L[Query user_profiles<br/>& user_practices]
-        M{Check Module<br/>Permissions}
-        N[Grant Access<br/>to Resources]
-        O[Deny Access<br/>403 Forbidden]
-    end
-    
-    subgraph "Row Level Security"
-        P[Apply RLS Policies<br/>auth.uid = user_id]
-        Q[Filter Database Queries<br/>Practice-specific]
-    end
-    
-    A --> B
-    B -->|Valid| D
-    B -->|Invalid| C
-    D --> E
-    E -->|Success| F
-    E -->|Failure| G
-    F --> H
-    H --> I
-    I --> J
-    J --> K
-    K --> L
-    L --> M
-    M -->|Authorised| N
-    M -->|Unauthorised| O
-    N --> P
-    P --> Q
-    
-    style A fill:#3b82f6,stroke:#1e40af,color:#fff
-    style B fill:#3b82f6,stroke:#1e40af,color:#fff
-    style D fill:#10b981,stroke:#059669,color:#fff
-    style E fill:#10b981,stroke:#059669,color:#fff
-    style F fill:#10b981,stroke:#059669,color:#fff
-    style P fill:#ef4444,stroke:#dc2626,color:#fff
-    style Q fill:#ef4444,stroke:#dc2626,color:#fff
-    style G fill:#f59e0b,stroke:#d97706,color:#fff
-    style O fill:#f59e0b,stroke:#d97706,color:#fff
-                    </lov-mermaid>
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Authentication Flow Process</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="p-4 border rounded-lg bg-blue-50 dark:bg-blue-950/30">
+                        <h4 className="font-semibold mb-2 text-blue-900 dark:text-blue-100">1. User Input</h4>
+                        <p className="text-sm">User enters email and password/OTP → Client-side validation → Form submission to Supabase Auth</p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/30">
+                        <h4 className="font-semibold mb-2 text-green-900 dark:text-green-100">2. Credential Verification</h4>
+                        <p className="text-sm">Supabase Auth validates credentials → Generates JWT access & refresh tokens → Returns tokens to client</p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-purple-50 dark:bg-purple-950/30">
+                        <h4 className="font-semibold mb-2 text-purple-900 dark:text-purple-100">3. Session Management</h4>
+                        <p className="text-sm">Tokens stored securely → HttpOnly session cookies set → Inactivity monitoring enabled (30min timeout)</p>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-orange-50 dark:bg-orange-950/30">
+                        <h4 className="font-semibold mb-2 text-orange-900 dark:text-orange-100">4. Authorisation Check</h4>
+                        <p className="text-sm">Extract user ID from JWT → Query user profile & practice membership → Check module permissions → Apply RLS policies</p>
+                      </div>
+                    </div>
                   </div>
 
                   <Separator />
@@ -407,84 +312,30 @@ graph TB
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">Meeting Transcription Flow</h3>
-                    <lov-mermaid>
-graph TB
-    subgraph "Audio Capture"
-        A[Browser Microphone<br/>MediaRecorder API]
-        B[Audio Chunks<br/>250ms intervals]
-        C[Local Buffer<br/>In-memory Queue]
-    end
-    
-    subgraph "Session Management"
-        D[Create Meeting Record<br/>meetings table]
-        E[Create Audio Session<br/>audio_sessions table]
-        F[Active Meeting Monitor<br/>Heartbeat tracking]
-    end
-    
-    subgraph "Transcription Services"
-        G[AssemblyAI WebSocket<br/>Real-time streaming]
-        H[Transcription Chunks<br/>assembly_transcripts]
-        I[Confidence Scoring<br/>Quality metrics]
-    end
-    
-    subgraph "Storage Layer"
-        J[Audio Storage<br/>Supabase Storage]
-        K[Audio Chunks Table<br/>Metadata tracking]
-        L[Chunk Cleaning<br/>Background process]
-    end
-    
-    subgraph "AI Processing"
-        M[OpenAI GPT-4<br/>Summary generation]
-        N[Extract Action Items<br/>Structured data]
-        O[Generate Meeting Notes<br/>Formatted document]
-    end
-    
-    subgraph "Document Creation"
-        P[Create Meeting Summary<br/>meeting_summaries table]
-        Q[Generate PDF/DOCX<br/>Export formats]
-        R[Share with Attendees<br/>Email distribution]
-    end
-    
-    subgraph "Audit & Security"
-        S[Audit Log Entry<br/>User actions tracked]
-        T[RLS Enforcement<br/>Practice isolation]
-        U[Data Retention<br/>Automatic cleanup]
-    end
-    
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    C --> G
-    G --> H
-    H --> I
-    C --> J
-    J --> K
-    K --> L
-    I --> M
-    M --> N
-    N --> O
-    O --> P
-    P --> Q
-    Q --> R
-    D --> S
-    H --> T
-    P --> U
-    
-    style A fill:#3b82f6,stroke:#1e40af,color:#fff
-    style C fill:#3b82f6,stroke:#1e40af,color:#fff
-    style G fill:#f59e0b,stroke:#d97706,color:#fff
-    style J fill:#10b981,stroke:#059669,color:#fff
-    style K fill:#10b981,stroke:#059669,color:#fff
-    style M fill:#f59e0b,stroke:#d97706,color:#fff
-    style N fill:#f59e0b,stroke:#d97706,color:#fff
-    style S fill:#ef4444,stroke:#dc2626,color:#fff
-    style T fill:#ef4444,stroke:#dc2626,color:#fff
-    style U fill:#ef4444,stroke:#dc2626,color:#fff
-                    </lov-mermaid>
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Meeting Transcription Process</h3>
+                    <div className="space-y-3">
+                      <div className="p-4 border-l-4 border-blue-500 bg-muted/50">
+                        <h4 className="font-semibold mb-1 text-blue-700 dark:text-blue-300">Step 1: Audio Capture</h4>
+                        <p className="text-sm">Browser MediaRecorder API captures microphone audio in 250ms chunks → Audio buffered in-memory queue → Meeting record created in database</p>
+                      </div>
+                      <div className="p-4 border-l-4 border-green-500 bg-muted/50">
+                        <h4 className="font-semibold mb-1 text-green-700 dark:text-green-300">Step 2: Real-time Transcription</h4>
+                        <p className="text-sm">Audio chunks streamed to AssemblyAI via WebSocket → Transcription processed with confidence scoring → Chunks stored in assembly_transcripts table</p>
+                      </div>
+                      <div className="p-4 border-l-4 border-purple-500 bg-muted/50">
+                        <h4 className="font-semibold mb-1 text-purple-700 dark:text-purple-300">Step 3: Storage & Archival</h4>
+                        <p className="text-sm">Audio chunks uploaded to encrypted Supabase storage → Metadata tracked in audio_chunks table → Background cleanup process after 90 days</p>
+                      </div>
+                      <div className="p-4 border-l-4 border-orange-500 bg-muted/50">
+                        <h4 className="font-semibold mb-1 text-orange-700 dark:text-orange-300">Step 4: AI Processing</h4>
+                        <p className="text-sm">Complete transcript sent to OpenAI GPT-4 → Summary generated with action items → Structured meeting notes created and stored</p>
+                      </div>
+                      <div className="p-4 border-l-4 border-red-500 bg-muted/50">
+                        <h4 className="font-semibold mb-1 text-red-700 dark:text-red-300">Step 5: Distribution</h4>
+                        <p className="text-sm">Meeting summary exported to PDF/DOCX → Shared with attendees via email → Audit log entry created for all access</p>
+                      </div>
+                    </div>
                   </div>
 
                   <Separator />
@@ -560,88 +411,22 @@ graph TB
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">Complaints Workflow</h3>
-                    <lov-mermaid>
-graph TB
-    subgraph "Complaint Submission"
-        A[User Creates Complaint<br/>Web form entry]
-        B[Validate Required Fields<br/>Patient info, description]
-        C[Generate Reference Number<br/>Auto-incremented]
-    end
-    
-    subgraph "Initial Processing"
-        D[Store in Database<br/>complaints table]
-        E[AI Categorisation<br/>OpenAI classification]
-        F[Priority Assignment<br/>Urgent/High/Medium/Low]
-        G[Send Acknowledgement<br/>Email to complainant]
-    end
-    
-    subgraph "Document Management"
-        H[Upload Supporting Docs<br/>complaint_documents]
-        I[Store in Supabase Storage<br/>Encrypted bucket]
-        J[OCR Processing<br/>Extract text if needed]
-    end
-    
-    subgraph "Investigation"
-        K[Assign to Staff Member<br/>Workflow routing]
-        L[Request Staff Responses<br/>Secure token links]
-        M[Collect Evidence<br/>complaint_investigation_evidence]
-        N[AI-Assisted Analysis<br/>Pattern detection]
-    end
-    
-    subgraph "Response Generation"
-        O[Draft Outcome Letter<br/>AI-assisted drafting]
-        P[Human Review & Edit<br/>Clinician approval]
-        Q[Final Approval<br/>Practice manager sign-off]
-        R[Send to Complainant<br/>Email + PDF]
-    end
-    
-    subgraph "Audit & Compliance"
-        S[Comprehensive Audit Log<br/>complaint_audit_detailed]
-        T[Compliance Checks<br/>complaint_compliance_checks]
-        U[CQC Reporting<br/>Annual data extraction]
-    end
-    
-    subgraph "Data Retention"
-        V[Calculate Retention Date<br/>6 years from closure]
-        W[Automatic Archival<br/>Cold storage]
-        X[Secure Deletion<br/>GDPR compliance]
-    end
-    
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    F --> G
-    D --> H
-    H --> I
-    I --> J
-    G --> K
-    K --> L
-    L --> M
-    M --> N
-    N --> O
-    O --> P
-    P --> Q
-    Q --> R
-    D --> S
-    F --> T
-    R --> U
-    R --> V
-    V --> W
-    W --> X
-    
-    style A fill:#3b82f6,stroke:#1e40af,color:#fff
-    style D fill:#10b981,stroke:#059669,color:#fff
-    style E fill:#f59e0b,stroke:#d97706,color:#fff
-    style N fill:#f59e0b,stroke:#d97706,color:#fff
-    style O fill:#f59e0b,stroke:#d97706,color:#fff
-    style S fill:#ef4444,stroke:#dc2626,color:#fff
-    style T fill:#ef4444,stroke:#dc2626,color:#fff
-    style U fill:#ef4444,stroke:#dc2626,color:#fff
-                    </lov-mermaid>
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Complaints Workflow Stages</h3>
+                    <div className="grid gap-3">
+                      {[
+                        { stage: "1. Submission", color: "blue", desc: "Web form entry → Field validation → Auto-generated reference number → Database storage" },
+                        { stage: "2. Initial Processing", color: "green", desc: "AI categorisation → Priority assignment → Acknowledgement email sent within 3 days" },
+                        { stage: "3. Investigation", color: "purple", desc: "Staff assignment → Evidence collection → Secure token links for responses → AI pattern analysis" },
+                        { stage: "4. Response", color: "orange", desc: "AI-assisted draft → Human review → Manager approval → Send to complainant" },
+                        { stage: "5. Compliance", color: "red", desc: "Audit logging → Compliance checks → CQC reporting → 6-year retention" }
+                      ].map((item, idx) => (
+                        <div key={idx} className={`p-4 border-l-4 border-${item.color}-500 bg-muted/50`}>
+                          <h4 className={`font-semibold mb-1 text-${item.color}-700 dark:text-${item.color}-300`}>{item.stage}</h4>
+                          <p className="text-sm">{item.desc}</p>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <Separator />
@@ -671,16 +456,6 @@ graph TB
                           </ul>
                         </div>
                         <div>
-                          <h4 className="font-semibold mb-2">Response Generation</h4>
-                          <ul className="text-sm space-y-1 ml-4">
-                            <li>• AI drafts initial response based on investigation findings</li>
-                            <li>• Multiple tone options: formal, empathetic, clinical</li>
-                            <li>• Template library for common scenarios</li>
-                            <li>• Mandatory human review and approval workflow</li>
-                            <li>• Digital signature integration for authorised signatories</li>
-                          </ul>
-                        </div>
-                        <div>
                           <h4 className="font-semibold mb-2">CQC Compliance</h4>
                           <ul className="text-sm space-y-1 ml-4">
                             <li>• Automatic compliance checklist generation</li>
@@ -707,7 +482,7 @@ graph TB
               </Card>
             </section>
 
-            {/* AI Integration Flow */}
+            {/* AI Integration */}
             <section id="ai-integration">
               <Card>
                 <CardHeader>
@@ -723,98 +498,6 @@ graph TB
                       NoteWell AI integrates with multiple AI providers to deliver intelligent features while maintaining
                       data security, implementing rate limiting, and providing fallback mechanisms for resilience.
                     </p>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">AI Integration Flow</h3>
-                    <lov-mermaid>
-graph TB
-    subgraph "User Request"
-        A[User Action<br/>AI feature trigger]
-        B[Context Preparation<br/>Data masking]
-        C[Request Validation<br/>Input sanitisation]
-    end
-    
-    subgraph "Request Processing"
-        D{Check API Key<br/>Configuration}
-        E[Load from Secrets<br/>Supabase secrets]
-        F[Rate Limit Check<br/>Token bucket]
-        G[Queue Request<br/>If rate limited]
-    end
-    
-    subgraph "OpenAI Integration"
-        H[GPT-4 API Call<br/>HTTPS POST]
-        I[Context Window<br/>Management]
-        J[Token Optimisation<br/>Truncation logic]
-        K[Response Streaming<br/>Server-Sent Events]
-    end
-    
-    subgraph "ElevenLabs Integration"
-        L[Voice Synthesis<br/>Text-to-Speech API]
-        M[Audio Format<br/>MP3 generation]
-        N[Storage Upload<br/>Supabase bucket]
-    end
-    
-    subgraph "AssemblyAI Integration"
-        O[Transcription WebSocket<br/>Real-time stream]
-        P[Audio Processing<br/>Chunk upload]
-        Q[Confidence Scoring<br/>Quality metrics]
-    end
-    
-    subgraph "Error Handling"
-        R{Request<br/>Success?}
-        S[Return Response<br/>to User]
-        T[Log Error<br/>Audit trail]
-        U[Retry Logic<br/>Exponential backoff]
-        V[Fallback Response<br/>User notification]
-    end
-    
-    subgraph "Security Controls"
-        W[PII Masking<br/>Before API call]
-        X[Response Sanitisation<br/>After API call]
-        Y[Audit Logging<br/>All AI interactions]
-    end
-    
-    A --> B
-    B --> C
-    C --> D
-    D -->|Valid| F
-    D -->|Missing| E
-    E --> F
-    F -->|Allowed| H
-    F -->|Limited| G
-    G --> F
-    H --> I
-    I --> J
-    J --> K
-    A --> L
-    L --> M
-    M --> N
-    A --> O
-    O --> P
-    P --> Q
-    K --> R
-    N --> R
-    Q --> R
-    R -->|Success| S
-    R -->|Failure| T
-    T --> U
-    U -->|Retry| H
-    U -->|Max retries| V
-    B --> W
-    K --> X
-    S --> Y
-    
-    style A fill:#3b82f6,stroke:#1e40af,color:#fff
-    style H fill:#f59e0b,stroke:#d97706,color:#fff
-    style L fill:#f59e0b,stroke:#d97706,color:#fff
-    style O fill:#f59e0b,stroke:#d97706,color:#fff
-    style W fill:#ef4444,stroke:#dc2626,color:#fff
-    style X fill:#ef4444,stroke:#dc2626,color:#fff
-    style Y fill:#ef4444,stroke:#dc2626,color:#fff
-                    </lov-mermaid>
                   </div>
 
                   <Separator />
@@ -851,6 +534,34 @@ graph TB
                       </ul>
                     </div>
                   </div>
+
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">AI Request Flow</h3>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold min-w-[120px]">1. Request Init:</span>
+                        <span>User action triggers AI feature → Context preparation with data masking → Input validation</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold min-w-[120px]">2. Security:</span>
+                        <span>API key loaded from Supabase secrets → PII masking applied → Rate limit check</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold min-w-[120px]">3. API Call:</span>
+                        <span>HTTPS POST to AI service → Token optimisation → Response streaming (if supported)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold min-w-[120px]">4. Error Handling:</span>
+                        <span>Success: Return sanitised response → Failure: Log error, retry with exponential backoff, fallback if max retries exceeded</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <span className="font-semibold min-w-[120px]">5. Audit:</span>
+                        <span>All AI interactions logged → Response sanitisation → User notification</span>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </section>
@@ -876,93 +587,28 @@ graph TB
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">Defence-in-Depth Security Model</h3>
-                    <lov-mermaid>
-graph TB
-    subgraph "Layer 1: Network Security"
-        A[TLS 1.3 Encryption<br/>All traffic encrypted]
-        B[CDN Protection<br/>DDoS mitigation]
-        C[Firewall Rules<br/>IP whitelisting]
-    end
-    
-    subgraph "Layer 2: Application Security"
-        D[Input Validation<br/>XSS & SQL injection prevention]
-        E[CSRF Protection<br/>Token verification]
-        F[Content Security Policy<br/>CSP headers]
-        G[Rate Limiting<br/>Abuse prevention]
-    end
-    
-    subgraph "Layer 3: Authentication"
-        H[Supabase Auth<br/>JWT tokens]
-        I[MFA Support<br/>OTP codes]
-        J[Session Management<br/>Timeout + activity monitoring]
-        K[Password Policy<br/>Complexity requirements]
-    end
-    
-    subgraph "Layer 4: Authorisation"
-        L[Row Level Security<br/>Database-enforced]
-        M[Role-Based Access<br/>User/Admin/System roles]
-        N[Practice Isolation<br/>Multi-tenancy]
-        O[Module Permissions<br/>Feature flags]
-    end
-    
-    subgraph "Layer 5: Data Encryption"
-        P[Encryption at Rest<br/>AES-256]
-        Q[Encryption in Transit<br/>TLS 1.3]
-        R[Field-Level Encryption<br/>Sensitive data]
-        S[Key Management<br/>Supabase managed]
-    end
-    
-    subgraph "Layer 6: Audit & Monitoring"
-        T[Comprehensive Audit Logs<br/>All user actions]
-        U[Security Event Detection<br/>Anomaly detection]
-        V[Automated Alerts<br/>Suspicious activity]
-        W[Compliance Reporting<br/>GDPR, CQC]
-    end
-    
-    subgraph "Layer 7: Incident Response"
-        X[Incident Detection<br/>Real-time monitoring]
-        Y[Automated Response<br/>Account lockout]
-        Z[Manual Investigation<br/>Security team review]
-        AA[Post-Incident Review<br/>Lessons learned]
-    end
-    
-    A --> D
-    B --> D
-    C --> D
-    D --> H
-    E --> H
-    F --> H
-    G --> H
-    H --> L
-    I --> L
-    J --> L
-    K --> L
-    L --> P
-    M --> P
-    N --> P
-    O --> P
-    P --> T
-    Q --> T
-    R --> T
-    S --> T
-    T --> X
-    U --> X
-    V --> X
-    W --> X
-    X --> Y
-    Y --> Z
-    Z --> AA
-    
-    style A fill:#ef4444,stroke:#dc2626,color:#fff
-    style D fill:#ef4444,stroke:#dc2626,color:#fff
-    style H fill:#ef4444,stroke:#dc2626,color:#fff
-    style L fill:#ef4444,stroke:#dc2626,color:#fff
-    style P fill:#ef4444,stroke:#dc2626,color:#fff
-    style T fill:#ef4444,stroke:#dc2626,color:#fff
-    style X fill:#ef4444,stroke:#dc2626,color:#fff
-                    </lov-mermaid>
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Defence-in-Depth Layers</h3>
+                    <div className="space-y-2">
+                      {[
+                        { layer: "Layer 1: Network Security", items: ["TLS 1.3 encryption for all traffic", "CDN with DDoS protection", "Firewall rules and IP whitelisting"] },
+                        { layer: "Layer 2: Application Security", items: ["Input validation (XSS & SQL injection prevention)", "CSRF protection with token verification", "Content Security Policy headers", "Rate limiting for abuse prevention"] },
+                        { layer: "Layer 3: Authentication", items: ["Supabase Auth with JWT tokens", "MFA support with OTP codes", "Session timeout after 30min inactivity", "Password complexity requirements"] },
+                        { layer: "Layer 4: Authorisation", items: ["Row Level Security (database-enforced)", "Role-based access control", "Practice-level isolation (multi-tenancy)", "Module permissions with feature flags"] },
+                        { layer: "Layer 5: Data Encryption", items: ["AES-256 encryption at rest", "TLS 1.3 in transit", "Field-level encryption for sensitive data", "Supabase-managed key management"] },
+                        { layer: "Layer 6: Audit & Monitoring", items: ["Comprehensive audit logs of all actions", "Security event detection", "Automated alerts for suspicious activity", "Compliance reporting (GDPR, CQC)"] },
+                        { layer: "Layer 7: Incident Response", items: ["Real-time incident detection", "Automated response (account lockout)", "Manual investigation workflows", "Post-incident review process"] }
+                      ].map((layer, idx) => (
+                        <div key={idx} className="p-4 border rounded-lg bg-red-50 dark:bg-red-950/30">
+                          <h4 className="font-semibold mb-2 text-red-900 dark:text-red-100">{layer.layer}</h4>
+                          <ul className="text-sm space-y-1">
+                            {layer.items.map((item, i) => (
+                              <li key={i}>• {item}</li>
+                            ))}
+                          </ul>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <Separator />
@@ -1046,97 +692,6 @@ graph TB
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">Frontend Component Architecture</h3>
-                    <lov-mermaid>
-graph TB
-    subgraph "Application Shell"
-        A[App.tsx<br/>Root component]
-        B[Router<br/>react-router-dom]
-        C[Security Wrapper<br/>Session monitoring]
-    end
-    
-    subgraph "Layout Components"
-        D[Header<br/>Navigation & user menu]
-        E[Sidebar<br/>Module navigation]
-        F[Footer<br/>Branding & links]
-    end
-    
-    subgraph "Page Components"
-        G[AI4GP Page<br/>AI search interface]
-        H[GPScribe Page<br/>Meeting recording]
-        I[Complaints Page<br/>Complaint management]
-        J[Settings Page<br/>User preferences]
-        K[Admin Pages<br/>System configuration]
-    end
-    
-    subgraph "Feature Components"
-        L[MeetingRecorder<br/>Audio capture]
-        M[TranscriptViewer<br/>Real-time display]
-        N[ComplaintForm<br/>Data entry]
-        O[AIChat<br/>Conversational UI]
-        P[FileUpload<br/>Document handling]
-    end
-    
-    subgraph "UI Components"
-        Q[Shadcn UI<br/>Base components]
-        R[Custom Components<br/>Branded elements]
-        S[Forms<br/>react-hook-form]
-        T[Modals & Dialogs<br/>Radix UI]
-    end
-    
-    subgraph "State Management"
-        U[TanStack Query<br/>Server state]
-        V[React Context<br/>Global state]
-        W[Local State<br/>useState]
-        X[Supabase Subscriptions<br/>Real-time updates]
-    end
-    
-    subgraph "Data Layer"
-        Y[API Hooks<br/>Custom hooks]
-        Z[Supabase Client<br/>Database access]
-        AA[File Upload<br/>Storage API]
-        AB[Real-time Listeners<br/>WebSocket]
-    end
-    
-    A --> B
-    A --> C
-    B --> D
-    B --> E
-    B --> F
-    B --> G
-    B --> H
-    B --> I
-    B --> J
-    B --> K
-    G --> O
-    H --> L
-    H --> M
-    I --> N
-    I --> P
-    L --> Q
-    N --> S
-    O --> T
-    U --> Y
-    V --> Y
-    W --> Y
-    X --> Y
-    Y --> Z
-    Y --> AA
-    Y --> AB
-    
-    style A fill:#3b82f6,stroke:#1e40af,color:#fff
-    style B fill:#3b82f6,stroke:#1e40af,color:#fff
-    style G fill:#3b82f6,stroke:#1e40af,color:#fff
-    style H fill:#3b82f6,stroke:#1e40af,color:#fff
-    style I fill:#3b82f6,stroke:#1e40af,color:#fff
-    style U fill:#10b981,stroke:#059669,color:#fff
-    style Z fill:#10b981,stroke:#059669,color:#fff
-                    </lov-mermaid>
-                  </div>
-
-                  <Separator />
-
                   <Accordion type="single" collapsible className="w-full">
                     <AccordionItem value="frontend-details">
                       <AccordionTrigger>Frontend Technical Details</AccordionTrigger>
@@ -1209,96 +764,46 @@ graph TB
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">Backend Service Architecture</h3>
-                    <lov-mermaid>
-graph TB
-    subgraph "Supabase Platform"
-        A[PostgreSQL 15<br/>Primary database]
-        B[Connection Pooler<br/>PgBouncer]
-        C[Realtime Server<br/>WebSocket]
-    end
-    
-    subgraph "Database Schema"
-        D[User Management<br/>user_profiles, user_practices]
-        E[Clinical Data<br/>meetings, complaints]
-        F[Audit Tables<br/>Comprehensive logging]
-        G[Configuration<br/>Settings & templates]
-    end
-    
-    subgraph "Row Level Security"
-        H[RLS Policies<br/>Enforced at DB level]
-        I[User Isolation<br/>auth.uid checks]
-        J[Practice Isolation<br/>Multi-tenancy]
-        K[Admin Override<br/>Conditional access]
-    end
-    
-    subgraph "Database Functions"
-        L[Custom Functions<br/>PL/pgSQL]
-        M[Computed Columns<br/>Virtual fields]
-        N[Validation Logic<br/>Check constraints]
-        O[Business Rules<br/>Triggers]
-    end
-    
-    subgraph "Triggers & Automation"
-        P[Audit Logging<br/>After insert/update/delete]
-        Q[Timestamp Management<br/>updated_at automation]
-        R[Data Validation<br/>Before insert/update]
-        S[Cascade Operations<br/>Referential integrity]
-    end
-    
-    subgraph "Storage & Files"
-        T[Supabase Storage<br/>S3-compatible]
-        U[Encrypted Buckets<br/>Server-side encryption]
-        V[Access Control<br/>Storage policies]
-        W[File Metadata<br/>Size, type, checksums]
-    end
-    
-    subgraph "Backup & Recovery"
-        X[Automated Backups<br/>Daily snapshots]
-        Y[Point-in-Time Recovery<br/>7-day retention]
-        Z[Disaster Recovery<br/>Multi-region]
-        AA[Backup Encryption<br/>AES-256]
-    end
-    
-    A --> B
-    B --> C
-    A --> D
-    A --> E
-    A --> F
-    A --> G
-    D --> H
-    E --> H
-    F --> H
-    H --> I
-    H --> J
-    H --> K
-    A --> L
-    L --> M
-    L --> N
-    L --> O
-    O --> P
-    O --> Q
-    O --> R
-    O --> S
-    A --> T
-    T --> U
-    U --> V
-    T --> W
-    A --> X
-    X --> Y
-    X --> Z
-    X --> AA
-    
-    style A fill:#10b981,stroke:#059669,color:#fff
-    style B fill:#10b981,stroke:#059669,color:#fff
-    style D fill:#10b981,stroke:#059669,color:#fff
-    style E fill:#10b981,stroke:#059669,color:#fff
-    style H fill:#ef4444,stroke:#dc2626,color:#fff
-    style P fill:#ef4444,stroke:#dc2626,color:#fff
-    style T fill:#10b981,stroke:#059669,color:#fff
-    style X fill:#ef4444,stroke:#dc2626,color:#fff
-                    </lov-mermaid>
+                  <div className="space-y-4">
+                    <h3 className="font-semibold text-lg">Backend Components</h3>
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/30">
+                        <h4 className="font-semibold mb-2 text-green-900 dark:text-green-100">Database Layer</h4>
+                        <ul className="text-sm space-y-1">
+                          <li>• PostgreSQL 15 managed by Supabase</li>
+                          <li>• PgBouncer connection pooling</li>
+                          <li>• Real-time WebSocket server</li>
+                          <li>• Automated backups & replication</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/30">
+                        <h4 className="font-semibold mb-2 text-green-900 dark:text-green-100">Row Level Security</h4>
+                        <ul className="text-sm space-y-1">
+                          <li>• Database-enforced policies</li>
+                          <li>• User isolation (auth.uid checks)</li>
+                          <li>• Practice isolation (multi-tenancy)</li>
+                          <li>• Admin conditional access</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/30">
+                        <h4 className="font-semibold mb-2 text-green-900 dark:text-green-100">Database Functions</h4>
+                        <ul className="text-sm space-y-1">
+                          <li>• PL/pgSQL custom functions</li>
+                          <li>• Computed columns (virtual fields)</li>
+                          <li>• Validation logic & check constraints</li>
+                          <li>• Business rules via triggers</li>
+                        </ul>
+                      </div>
+                      <div className="p-4 border rounded-lg bg-green-50 dark:bg-green-950/30">
+                        <h4 className="font-semibold mb-2 text-green-900 dark:text-green-100">Storage & Files</h4>
+                        <ul className="text-sm space-y-1">
+                          <li>• S3-compatible storage buckets</li>
+                          <li>• Server-side encryption (AES-256)</li>
+                          <li>• Storage-level access policies</li>
+                          <li>• Metadata tracking (size, type, checksums)</li>
+                        </ul>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -1312,7 +817,7 @@ graph TB
                     <Database className="w-6 h-6" />
                     Database Schema Overview
                   </CardTitle>
-                  <CardDescription>Entity-relationship diagram and table structure</CardDescription>
+                  <CardDescription>Entity-relationship and table structure</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="prose dark:prose-invert max-w-none">
@@ -1321,92 +826,6 @@ graph TB
                       multi-tenancy support, and GDPR compliance. Key entity groups include user management, clinical
                       data, complaints, CQC compliance, and audit logging.
                     </p>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">Core Database Schema</h3>
-                    <lov-mermaid>
-erDiagram
-    USER_PROFILES ||--o{ USER_PRACTICES : "belongs to"
-    USER_PROFILES ||--o{ MEETINGS : "creates"
-    USER_PROFILES ||--o{ COMPLAINTS : "creates"
-    USER_PROFILES ||--o{ AI_4_PM_SEARCHES : "creates"
-    
-    GP_PRACTICES ||--o{ USER_PRACTICES : "has members"
-    GP_PRACTICES ||--o{ PRACTICE_DETAILS : "has details"
-    GP_PRACTICES ||--o{ COMPLAINTS : "receives"
-    GP_PRACTICES ||--o{ ATTENDEES : "employs"
-    
-    MEETINGS ||--o{ AUDIO_SESSIONS : "has"
-    AUDIO_SESSIONS ||--o{ AUDIO_CHUNKS : "contains"
-    MEETINGS ||--o{ ASSEMBLY_TRANSCRIPTS : "generates"
-    MEETINGS ||--o{ MEETING_SUMMARIES : "produces"
-    MEETINGS ||--o{ MEETING_ATTENDEES : "includes"
-    ATTENDEES ||--o{ MEETING_ATTENDEES : "attends"
-    
-    COMPLAINTS ||--o{ COMPLAINT_DOCUMENTS : "has"
-    COMPLAINTS ||--o{ COMPLAINT_NOTES : "has"
-    COMPLAINTS ||--o{ COMPLAINT_AUDIT_LOG : "logs"
-    COMPLAINTS ||--o{ COMPLAINT_COMPLIANCE_CHECKS : "tracks"
-    COMPLAINTS ||--o{ COMPLAINT_OUTCOMES : "resolves"
-    COMPLAINTS ||--o{ COMPLAINT_INVESTIGATION_FINDINGS : "investigates"
-    
-    CQC_POLICIES ||--o{ CQC_EVIDENCE : "supports"
-    CQC_ASSESSMENTS ||--o{ CQC_EVIDENCE : "references"
-    CQC_ALERTS ||--o{ CQC_POLICIES : "relates to"
-    
-    CONTRACTORS ||--o{ CONTRACTOR_RESUMES : "uploads"
-    CONTRACTORS ||--o{ CONTRACTOR_COMPETENCIES : "possesses"
-    CONTRACTORS ||--o{ CONTRACTOR_EXPERIENCE : "has"
-    CONTRACTORS ||--o{ CONTRACTOR_NOTES : "annotated"
-    
-    USER_PROFILES {
-        uuid id PK
-        uuid user_id FK
-        string full_name
-        string email
-        string role
-        uuid practice_id FK
-        jsonb modules
-        timestamp created_at
-        timestamp updated_at
-    }
-    
-    MEETINGS {
-        uuid id PK
-        uuid user_id FK
-        string title
-        string status
-        timestamp meeting_date
-        jsonb meeting_notes
-        jsonb attendees
-        timestamp created_at
-    }
-    
-    COMPLAINTS {
-        uuid id PK
-        uuid created_by FK
-        string reference_number
-        string patient_name
-        string category
-        string priority
-        string status
-        text complaint_description
-        timestamp created_at
-    }
-    
-    CQC_POLICIES {
-        uuid id PK
-        string title
-        string policy_type
-        string cqc_domain
-        string file_path
-        number ai_compliance_score
-        timestamp review_date
-    }
-                    </lov-mermaid>
                   </div>
 
                   <Separator />
@@ -1464,147 +883,29 @@ erDiagram
                       </div>
                     </div>
                   </div>
-                </CardContent>
-              </Card>
-            </section>
 
-            {/* Sequence Diagrams */}
-            <section id="sequences">
-              <Card>
-                <CardHeader>
-                  <CardTitle className="text-2xl flex items-center gap-2">
-                    <Workflow className="w-6 h-6" />
-                    Sequence Diagrams for Critical Operations
-                  </CardTitle>
-                  <CardDescription>Step-by-step interaction flows for key features</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-6">
-                  <Accordion type="single" collapsible className="w-full">
-                    <AccordionItem value="seq-auth">
-                      <AccordionTrigger>User Authentication Sequence</AccordionTrigger>
-                      <AccordionContent>
-                        <lov-mermaid>
-sequenceDiagram
-    actor User
-    participant Browser
-    participant React App
-    participant Supabase Auth
-    participant PostgreSQL
-    participant RLS Engine
-    
-    User->>Browser: Enter credentials
-    Browser->>React App: Submit login form
-    React App->>React App: Validate input
-    React App->>Supabase Auth: POST /auth/v1/token
-    Supabase Auth->>Supabase Auth: Verify credentials
-    alt Credentials valid
-        Supabase Auth->>Supabase Auth: Generate JWT
-        Supabase Auth-->>React App: Return access & refresh tokens
-        React App->>Browser: Store tokens securely
-        React App->>PostgreSQL: Query user_profiles
-        PostgreSQL->>RLS Engine: Apply RLS policy
-        RLS Engine-->>PostgreSQL: Filter by auth.uid()
-        PostgreSQL-->>React App: Return user profile
-        React App->>React App: Set user context
-        React App-->>Browser: Redirect to dashboard
-        Browser-->>User: Show authenticated UI
-    else Credentials invalid
-        Supabase Auth-->>React App: Return 401 error
-        React App-->>Browser: Show error message
-        Browser-->>User: Display "Invalid credentials"
-    end
-                        </lov-mermaid>
-                      </AccordionContent>
-                    </AccordionItem>
-                    
-                    <AccordionItem value="seq-meeting">
-                      <AccordionTrigger>Meeting Recording & Transcription Sequence</AccordionTrigger>
-                      <AccordionContent>
-                        <lov-mermaid>
-sequenceDiagram
-    actor User
-    participant Browser
-    participant React App
-    participant MediaRecorder
-    participant AssemblyAI
-    participant Supabase DB
-    participant Supabase Storage
-    participant OpenAI
-    
-    User->>Browser: Click "Start Recording"
-    Browser->>React App: Request microphone permission
-    React App->>MediaRecorder: Start audio capture
-    React App->>Supabase DB: Create meeting record
-    Supabase DB-->>React App: Return meeting ID
-    React App->>Supabase DB: Create audio session
-    
-    loop Every 250ms
-        MediaRecorder->>React App: Audio chunk available
-        React App->>Supabase Storage: Upload audio chunk
-        React App->>AssemblyAI: Stream audio (WebSocket)
-        AssemblyAI->>AssemblyAI: Process audio
-        AssemblyAI-->>React App: Return transcription
-        React App->>Supabase DB: Store transcript chunk
-        React App->>Browser: Update UI with transcript
-    end
-    
-    User->>Browser: Click "Stop Recording"
-    Browser->>React App: Stop recording request
-    React App->>MediaRecorder: Stop capture
-    React App->>AssemblyAI: Close WebSocket
-    React App->>Supabase DB: Mark session complete
-    React App->>Supabase DB: Fetch full transcript
-    Supabase DB-->>React App: Return transcript
-    React App->>OpenAI: Generate meeting summary
-    OpenAI-->>React App: Return summary & actions
-    React App->>Supabase DB: Store meeting summary
-    React App->>Browser: Show summary for review
-    Browser-->>User: Display meeting notes
-                        </lov-mermaid>
-                      </AccordionContent>
-                    </AccordionItem>
-                    
-                    <AccordionItem value="seq-complaint">
-                      <AccordionTrigger>Complaint Submission & Processing Sequence</AccordionTrigger>
-                      <AccordionContent>
-                        <lov-mermaid>
-sequenceDiagram
-    actor User
-    participant React App
-    participant Supabase DB
-    participant Supabase Storage
-    participant OpenAI
-    participant Email Service
-    
-    User->>React App: Fill complaint form
-    User->>React App: Upload supporting docs
-    React App->>Supabase Storage: Store documents
-    Supabase Storage-->>React App: Return file paths
-    
-    User->>React App: Submit complaint
-    React App->>React App: Validate form data
-    React App->>Supabase DB: Insert complaint record
-    Supabase DB->>Supabase DB: Generate reference number
-    Supabase DB->>Supabase DB: Trigger audit log
-    Supabase DB-->>React App: Return complaint ID
-    
-    React App->>OpenAI: Categorise complaint
-    OpenAI-->>React App: Return category & priority
-    React App->>Supabase DB: Update complaint
-    
-    React App->>OpenAI: Generate acknowledgement
-    OpenAI-->>React App: Return draft letter
-    React App->>Supabase DB: Store acknowledgement
-    React App->>Email Service: Send to complainant
-    Email Service-->>User: Receive acknowledgement
-    
-    React App->>Supabase DB: Create compliance checklist
-    React App->>Supabase DB: Assign to staff member
-    React App-->>User: Show success message
-                        </lov-mermaid>
-                      </AccordionContent>
-                    </AccordionItem>
-                  </Accordion>
+                  <Separator />
+
+                  <div className="space-y-3">
+                    <h3 className="font-semibold text-lg">Major Table Groups</h3>
+                    <div className="space-y-2">
+                      <div className="p-3 border-l-4 border-blue-500 bg-muted/50">
+                        <strong className="text-blue-700 dark:text-blue-300">User Management:</strong> user_profiles, user_practices, gp_practices, practice_details
+                      </div>
+                      <div className="p-3 border-l-4 border-green-500 bg-muted/50">
+                        <strong className="text-green-700 dark:text-green-300">Meetings:</strong> meetings, audio_sessions, audio_chunks, assembly_transcripts, meeting_summaries, attendees
+                      </div>
+                      <div className="p-3 border-l-4 border-orange-500 bg-muted/50">
+                        <strong className="text-orange-700 dark:text-orange-300">Complaints:</strong> complaints, complaint_documents, complaint_notes, complaint_audit_log, complaint_outcomes, complaint_involved_parties
+                      </div>
+                      <div className="p-3 border-l-4 border-purple-500 bg-muted/50">
+                        <strong className="text-purple-700 dark:text-purple-300">CQC Compliance:</strong> cqc_policies, cqc_evidence, cqc_assessments, cqc_alerts, cqc_domains
+                      </div>
+                      <div className="p-3 border-l-4 border-red-500 bg-muted/50">
+                        <strong className="text-red-700 dark:text-red-300">Audit & Security:</strong> complaint_audit_detailed, data_retention_policies, chunk_cleaning_stats
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </section>
@@ -1629,83 +930,6 @@ sequenceDiagram
 
                   <Separator />
 
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">Deployment Architecture</h3>
-                    <lov-mermaid>
-graph TB
-    subgraph "Development"
-        A[Developer Workstation<br/>Local development]
-        B[Git Repository<br/>Version control]
-        C[Feature Branches<br/>Code review]
-    end
-    
-    subgraph "CI/CD Pipeline"
-        D[Build Process<br/>Vite bundler]
-        E[Type Checking<br/>TypeScript compiler]
-        F[Linting & Testing<br/>ESLint + Tests]
-        G[Build Artifacts<br/>Optimised bundle]
-    end
-    
-    subgraph "Lovable Platform"
-        H[Lovable CDN<br/>Global edge network]
-        I[Static Assets<br/>HTML, CSS, JS]
-        J[Cache Strategy<br/>Intelligent caching]
-    end
-    
-    subgraph "Supabase Cloud"
-        K[PostgreSQL Database<br/>Managed service]
-        L[Storage Buckets<br/>File storage]
-        M[Auth Service<br/>User management]
-        N[Realtime Server<br/>WebSocket]
-    end
-    
-    subgraph "Monitoring & Logging"
-        O[Application Logs<br/>Error tracking]
-        P[Performance Metrics<br/>Response times]
-        Q[Security Events<br/>Audit logs]
-        R[Uptime Monitoring<br/>Health checks]
-    end
-    
-    subgraph "Backup & DR"
-        S[Automated Backups<br/>Daily snapshots]
-        T[Point-in-Time Recovery<br/>7-day retention]
-        U[Geo-Replication<br/>Multi-region]
-        V[Disaster Recovery Plan<br/>RTO: 4h, RPO: 1h]
-    end
-    
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    F --> G
-    G --> H
-    H --> I
-    I --> J
-    J --> K
-    J --> L
-    J --> M
-    J --> N
-    H --> O
-    K --> P
-    M --> Q
-    N --> R
-    K --> S
-    S --> T
-    S --> U
-    S --> V
-    
-    style H fill:#3b82f6,stroke:#1e40af,color:#fff
-    style K fill:#10b981,stroke:#059669,color:#fff
-    style L fill:#10b981,stroke:#059669,color:#fff
-    style M fill:#10b981,stroke:#059669,color:#fff
-    style O fill:#f59e0b,stroke:#d97706,color:#fff
-    style S fill:#ef4444,stroke:#dc2626,color:#fff
-                    </lov-mermaid>
-                  </div>
-
-                  <Separator />
-
                   <div className="grid md:grid-cols-2 gap-4">
                     <div className="p-4 border rounded-lg">
                       <h4 className="font-semibold mb-2">Hosting Infrastructure</h4>
@@ -1721,8 +945,8 @@ graph TB
                       <h4 className="font-semibold mb-2">Availability & Performance</h4>
                       <ul className="text-sm space-y-1">
                         <li>• <strong>Uptime SLA:</strong> 99.9% availability</li>
-                        <li>• <strong>CDN:</strong> <200ms latency globally</li>
-                        <li>• <strong>Database:</strong> <50ms query response</li>
+                        <li>• <strong>CDN:</strong> &lt;200ms latency globally</li>
+                        <li>• <strong>Database:</strong> &lt;50ms query response</li>
                         <li>• <strong>Concurrent Users:</strong> 1,000+ supported</li>
                         <li>• <strong>Scalability:</strong> Auto-scaling enabled</li>
                       </ul>
@@ -1768,86 +992,6 @@ graph TB
                       NoteWell AI implements a comprehensive data lifecycle management system ensuring GDPR compliance,
                       with automated archival and deletion based on legal retention requirements and user preferences.
                     </p>
-                  </div>
-
-                  <Separator />
-
-                  <div>
-                    <h3 className="font-semibold text-lg mb-4">Data Lifecycle Flow</h3>
-                    <lov-mermaid>
-graph TB
-    subgraph "Data Creation"
-        A[User Creates Data<br/>Form submission]
-        B[Data Validation<br/>Input checks]
-        C[Store in Database<br/>Initial record]
-        D[Calculate Retention Date<br/>Based on policy]
-    end
-    
-    subgraph "Active Use Phase"
-        E[Data Accessible<br/>Normal operations]
-        F[Regular Access<br/>Read/write operations]
-        G[Audit Logging<br/>Track all access]
-        H[Updates & Modifications<br/>Version tracking]
-    end
-    
-    subgraph "Retention Monitoring"
-        I[Daily Retention Scan<br/>Automated check]
-        J{Retention Date<br/>Passed?}
-        K[Continue Active Use<br/>No action needed]
-    end
-    
-    subgraph "Archival Phase"
-        L[Mark for Archival<br/>Status update]
-        M[Notify Stakeholders<br/>Email alerts]
-        N[Move to Cold Storage<br/>Compressed backup]
-        O[Update Access Controls<br/>Read-only]
-    end
-    
-    subgraph "Deletion Phase"
-        P[Final Retention Check<br/>Legal requirements]
-        Q[User Confirmation<br/>If required]
-        R[Secure Deletion<br/>Multi-pass wipe]
-        S[Deletion Audit Log<br/>Immutable record]
-        T[Update Related Records<br/>Cascade cleanup]
-    end
-    
-    subgraph "Audit & Compliance"
-        U[Retention Policy Table<br/>data_retention_policies]
-        V[Compliance Reports<br/>GDPR documentation]
-        W[Right to Erasure<br/>User requests]
-    end
-    
-    A --> B
-    B --> C
-    C --> D
-    D --> E
-    E --> F
-    F --> G
-    F --> H
-    H --> I
-    I --> J
-    J -->|No| K
-    K --> F
-    J -->|Yes| L
-    L --> M
-    M --> N
-    N --> O
-    O --> P
-    P --> Q
-    Q --> R
-    R --> S
-    S --> T
-    U --> D
-    V --> I
-    W --> P
-    
-    style C fill:#10b981,stroke:#059669,color:#fff
-    style E fill:#10b981,stroke:#059669,color:#fff
-    style G fill:#ef4444,stroke:#dc2626,color:#fff
-    style L fill:#f59e0b,stroke:#d97706,color:#fff
-    style R fill:#ef4444,stroke:#dc2626,color:#fff
-    style S fill:#ef4444,stroke:#dc2626,color:#fff
-                    </lov-mermaid>
                   </div>
 
                   <Separator />
