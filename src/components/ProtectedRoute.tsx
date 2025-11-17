@@ -15,7 +15,7 @@ export const ProtectedRoute = ({
   requiredModule, 
   fallbackPath = '/' 
 }: ProtectedRouteProps) => {
-  const { hasModuleAccess, loading, user } = useAuth();
+  const { hasModuleAccess, loading, user, isSystemAdmin } = useAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,6 +28,11 @@ export const ProtectedRoute = ({
 
     // If no specific module is required, just check authentication
     if (!requiredModule) {
+      return;
+    }
+
+    // System admins can access all routes regardless of module access
+    if (!loading && isSystemAdmin) {
       return;
     }
 
@@ -61,7 +66,7 @@ export const ProtectedRoute = ({
       toast.error('You do not have access to this module. Please contact your administrator.');
       navigate(fallbackPath, { replace: true });
     }
-  }, [hasModuleAccess, requiredModule, loading, navigate, fallbackPath, user]);
+  }, [hasModuleAccess, requiredModule, loading, navigate, fallbackPath, user, isSystemAdmin]);
 
   if (loading) {
     return (
@@ -78,7 +83,7 @@ export const ProtectedRoute = ({
     return null;
   }
 
-  if (requiredModule && !hasModuleAccess(requiredModule)) {
+  if (requiredModule && !isSystemAdmin && !hasModuleAccess(requiredModule)) {
     return null;
   }
 
