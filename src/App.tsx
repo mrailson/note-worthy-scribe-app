@@ -36,11 +36,13 @@ import PatientLanguageSelection from "./pages/PatientLanguageSelection";
 import GPGenie from "./pages/GPGenie";
 import NewRecorder from "./pages/NewRecorder";
 import CSOReport from "./pages/CSOReport";
+import DPIA from "./pages/DPIA";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import HazardLog from "./pages/HazardLog";
 import SafetyCase from "./pages/SafetyCase";
 import SecurityPostureOverview from "./pages/SecurityPostureOverview";
 import IncidentResponsePolicy from "./pages/IncidentResponsePolicy";
+import DataFlowArchitecture from "./pages/DataFlowArchitecture";
 import Attendees from "./pages/Attendees";
 import PracticeManagerFeedback from "./pages/PracticeManagerFeedback";
 import FeedbackResults from "./pages/FeedbackResults";
@@ -147,6 +149,7 @@ const App = () => {
               } />
               <Route path="/cso-report" element={<CSOReport />} />
               <Route path="/data-flow-architecture" element={<DataFlowArchitecture />} />
+              <Route path="/dpia" element={<DPIA />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/hazard-log" element={<HazardLog />} />
               <Route path="/safety-case" element={<SafetyCase />} />
