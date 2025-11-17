@@ -145,16 +145,8 @@ const App = () => {
                   <SecurityCompliance />
                 </ProtectedRoute>
               } />
-              <Route path="/cso-report" element={
-                <ProtectedRoute requiredModule="enhanced_access">
-                  <CSOReport />
-                </ProtectedRoute>
-              } />
-              <Route path="/data-flow-architecture" element={
-                <ProtectedRoute requiredModule="enhanced_access">
-                  <DataFlowArchitecture />
-                </ProtectedRoute>
-              } />
+              <Route path="/cso-report" element={<CSOReport />} />
+              <Route path="/data-flow-architecture" element={<DataFlowArchitecture />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/hazard-log" element={<HazardLog />} />
               <Route path="/safety-case" element={<SafetyCase />} />
