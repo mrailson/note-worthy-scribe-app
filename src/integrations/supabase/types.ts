@@ -6329,6 +6329,16 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_functions: {
+        Row: {
+          arguments: string | null
+          function_name: unknown
+          schema_name: unknown
+          search_path_status: string | null
+          security_type: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       assign_policy_to_all_practices: {
@@ -6816,6 +6826,16 @@ export type Database = {
             Returns: string
           }
         | { Args: { event_data: Json; event_type: string }; Returns: undefined }
+        | {
+            Args: {
+              p_event_details?: Json
+              p_event_type: string
+              p_ip_address?: string
+              p_severity: string
+              p_user_agent?: string
+            }
+            Returns: undefined
+          }
       log_session_access_attempt: {
         Args: { p_access_type: string; p_session_id: string }
         Returns: undefined
