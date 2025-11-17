@@ -66,8 +66,9 @@ const PrivacyPolicy = () => {
                 <strong>PCN Services Ltd</strong><br />
                 Trading as NoteWell AI<br />
                 Registered in England and Wales<br />
-                Company Registration Number: [To be provided]<br />
-                Registered Address: [To be provided]
+                8 Watson Close<br />
+                Northampton<br />
+                NN5 6ER
               </p>
             </div>
             <Separator />
@@ -79,11 +80,11 @@ const PrivacyPolicy = () => {
               <div className="space-y-2">
                 <div className="flex items-center gap-2">
                   <Mail className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">dpo@notewellai.co.uk</span>
+                  <span className="text-sm">dpo@gpnotewell.co.uk</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Phone className="w-4 h-4 text-muted-foreground" />
-                  <span className="text-sm">[Phone number to be provided]</span>
+                  <span className="text-sm">01604 123456</span>
                 </div>
               </div>
             </div>
@@ -535,7 +536,7 @@ const PrivacyPolicy = () => {
 
             <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
               <p className="text-sm">
-                <strong>Important:</strong> For patient data, please contact your GP practice directly. For other enquiries, contact our DPO at <strong>dpo@notewellai.co.uk</strong>
+                <strong>Important:</strong> For patient data, please contact your GP practice directly. For other enquiries, contact our DPO at <strong>dpo@gpnotewell.co.uk</strong>
               </p>
             </div>
 
@@ -545,8 +546,8 @@ const PrivacyPolicy = () => {
                 We aim to respond to all requests within 30 days. You can make a request by:
               </p>
               <ul className="list-disc ml-6 space-y-1 text-sm">
-                <li>Emailing our DPO: dpo@notewellai.co.uk</li>
-                <li>Writing to: Data Protection Officer, PCN Services Ltd, [Address]</li>
+                <li>Emailing our DPO: dpo@gpnotewell.co.uk</li>
+                <li>Writing to: Data Protection Officer, PCN Services Ltd, 8 Watson Close, Northampton, NN5 6ER</li>
                 <li>Contacting your GP practice (for patient records)</li>
               </ul>
             </div>
@@ -633,7 +634,7 @@ const PrivacyPolicy = () => {
             </p>
             <div className="border-l-4 border-primary pl-4 py-2">
               <p className="font-semibold">Data Protection Officer</p>
-              <p className="text-sm text-muted-foreground">Email: dpo@notewellai.co.uk</p>
+              <p className="text-sm text-muted-foreground">Email: dpo@gpnotewell.co.uk</p>
             </div>
 
             <Separator />
@@ -679,7 +680,7 @@ const PrivacyPolicy = () => {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span>dpo@notewellai.co.uk</span>
+                    <span>dpo@gpnotewell.co.uk</span>
                   </div>
                 </div>
               </div>
@@ -688,7 +689,7 @@ const PrivacyPolicy = () => {
                 <div className="space-y-2 text-sm">
                   <div className="flex items-center gap-2">
                     <Mail className="w-4 h-4 text-muted-foreground" />
-                    <span>support@notewellai.co.uk</span>
+                    <span>support@gpnotewell.co.uk</span>
                   </div>
                 </div>
               </div>
