@@ -1153,8 +1153,8 @@ const CSOReport = () => {
                 <div className="grid md:grid-cols-2 gap-2">
                   {[
                     { name: "MHRA Class I Certificate", link: null },
-                    { name: "DCB0129 Safety Case", link: null },
-                    { name: "Hazard Log", link: null },
+                    { name: "DCB0129 Safety Case", link: "/safety-case" },
+                    { name: "Hazard Log", link: "/hazard-log" },
                     { name: "DPIA", link: null },
                     { name: "Privacy Policy", link: "/privacy-policy" },
                     { name: "Security Posture Overview", link: null },
