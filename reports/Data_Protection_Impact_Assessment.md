@@ -13,7 +13,13 @@
 
 | Version | Date | Author | Changes |
 |---------|------|--------|---------|
-| 1.0 | 17/11/2025 | Data Protection Officer | Initial DPIA creation |
+| 1.0 | 17/11/2025 | Data Protection Officer | Initial DPIA creation; references CSO assessment November 2025 |
+
+**Related Assessments:**
+- Clinical Safety Officer Report (November 2025) - See `Clinical_Safety_Officer_Report.md`
+- CSO Assessment Checklist (November 2025) - See `CSO_Assessment_Checklist.md`
+- Security Warnings Analysis (November 2025) - See `Security_Warnings_Analysis.md`
+- Clinical Safety Technical Appendix (November 2025) - See `Clinical_Safety_Technical_Appendix.md`
 
 ---
 
