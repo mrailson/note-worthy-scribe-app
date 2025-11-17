@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -1151,20 +1152,30 @@ const CSOReport = () => {
                 <p className="text-sm text-muted-foreground mb-4">The following can be made accessible directly inside NoteWell under Governance → Assurance Pack:</p>
                 <div className="grid md:grid-cols-2 gap-2">
                   {[
-                    "MHRA Class I Certificate",
-                    "DCB0129 Safety Case",
-                    "Hazard Log",
-                    "DPIA",
-                    "Privacy Policy",
-                    "Security Posture Overview",
-                    "Penetration Test Scope",
-                    "Incident Response Policy",
-                    "Cyber Essentials (in progress) documents",
-                    "Data Flow Diagram & Architecture Summary"
+                    { name: "MHRA Class I Certificate", link: null },
+                    { name: "DCB0129 Safety Case", link: null },
+                    { name: "Hazard Log", link: null },
+                    { name: "DPIA", link: null },
+                    { name: "Privacy Policy", link: "/privacy-policy" },
+                    { name: "Security Posture Overview", link: null },
+                    { name: "Penetration Test Scope", link: null },
+                    { name: "Incident Response Policy", link: null },
+                    { name: "Cyber Essentials (in progress) documents", link: null },
+                    { name: "Data Flow Diagram & Architecture Summary", link: null }
                   ].map((doc, idx) => (
-                    <div key={idx} className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                    <div key={idx} className="flex items-start gap-2 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
                       <FileText className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
-                      <span className="text-sm">{doc}</span>
+                      {doc.link ? (
+                        <Link 
+                          to={doc.link} 
+                          target="_blank"
+                          className="text-sm text-primary hover:underline font-medium"
+                        >
+                          {doc.name}
+                        </Link>
+                      ) : (
+                        <span className="text-sm">{doc.name}</span>
+                      )}
                     </div>
                   ))}
                 </div>

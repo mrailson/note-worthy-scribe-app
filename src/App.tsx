@@ -36,6 +36,7 @@ import PatientLanguageSelection from "./pages/PatientLanguageSelection";
 import GPGenie from "./pages/GPGenie";
 import NewRecorder from "./pages/NewRecorder";
 import CSOReport from "./pages/CSOReport";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Attendees from "./pages/Attendees";
 import PracticeManagerFeedback from "./pages/PracticeManagerFeedback";
 import FeedbackResults from "./pages/FeedbackResults";
@@ -144,6 +145,7 @@ const App = () => {
                   <CSOReport />
                 </ProtectedRoute>
               } />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/feedback" element={<PracticeManagerFeedback />} />
               <Route path="/feedback/results" element={<FeedbackResults />} />
               <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
