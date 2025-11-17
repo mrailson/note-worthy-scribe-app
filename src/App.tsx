@@ -147,6 +147,7 @@ const App = () => {
               } />
               <Route path="/cso-report" element={<CSOReport />} />
               <Route path="/data-flow-architecture" element={<DataFlowArchitecture />} />
+              <Route path="/dpia" element={<DPIA />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/hazard-log" element={<HazardLog />} />
               <Route path="/safety-case" element={<SafetyCase />} />
