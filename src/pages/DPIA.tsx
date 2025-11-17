@@ -201,8 +201,20 @@ const DPIA: React.FC = () => {
                       <p className="text-base">PCN Services Ltd</p>
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-muted-foreground">ICO Registration</p>
-                      <p className="text-base">[Pending - pre-deployment]</p>
+                      <p className="text-sm font-medium text-muted-foreground">ICO Registration Number</p>
+                      <p className="text-base font-semibold">ZB226324</p>
+                      <p className="text-sm text-muted-foreground">Expires: 03/10/2026</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Address</p>
+                      <p className="text-base">Ground Floor, 2 Woodberry Grove</p>
+                      <p className="text-base">London, N12 0DR</p>
+                      <p className="text-base">United Kingdom</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-muted-foreground">Contact Details</p>
+                      <p className="text-base">malcolm.railson@nhs.net</p>
+                      <p className="text-base">07740812180</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Data Protection Officer</p>
