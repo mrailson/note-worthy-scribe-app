@@ -1159,7 +1159,7 @@ const CSOReport = () => {
                     { name: "Privacy Policy", link: "/privacy-policy", isDownload: false },
                     { name: "Security Posture Overview", link: "/security-posture", isDownload: false },
                     { name: "Penetration Test Scope", link: null, isDownload: false },
-                    { name: "Incident Response Policy", link: null, isDownload: false },
+                    { name: "Incident Response Policy", link: "/incident-response", isDownload: false },
                     { name: "Cyber Essentials (in progress) documents", link: null, isDownload: false },
                     { name: "Data Flow Diagram & Architecture Summary", link: null, isDownload: false }
                   ].map((doc, idx) => (
