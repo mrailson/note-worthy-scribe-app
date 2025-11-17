@@ -218,7 +218,7 @@ const DPIA: React.FC = () => {
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Data Protection Officer</p>
-                      <p className="text-base">dpo@pcnservices.nhs.uk</p>
+                      <p className="text-base">dpo@gpnotewell.co.uk</p>
                     </div>
                     <div>
                       <p className="text-sm font-medium text-muted-foreground">Caldicott Guardian</p>
@@ -918,7 +918,7 @@ const DPIA: React.FC = () => {
                   <Card className="bg-muted/50">
                     <CardContent className="pt-6">
                       <p className="text-sm mb-2"><strong>Data Protection Officer (DPO)</strong></p>
-                      <p className="text-sm text-muted-foreground">Email: dpo@pcnservices.nhs.uk</p>
+                      <p className="text-sm text-muted-foreground">Email: dpo@gpnotewell.co.uk</p>
                       <p className="text-sm text-muted-foreground">Address: PCN Services Ltd, [Practice Address]</p>
                       <p className="text-sm text-muted-foreground mt-3">All rights requests will be acknowledged within 3 working days and responded to within 1 month.</p>
                     </CardContent>
