@@ -66,6 +66,7 @@ const PrivacyPolicy = () => {
                 <strong>PCN Services Ltd</strong><br />
                 Trading as NoteWell AI<br />
                 Registered in England and Wales<br />
+                Company Registration Number: 13491108<br />
                 8 Watson Close<br />
                 Northampton<br />
                 NN5 6ER
