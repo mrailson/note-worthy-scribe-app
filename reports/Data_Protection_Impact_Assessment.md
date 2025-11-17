@@ -47,7 +47,7 @@ This DPIA is **mandatory** under UK GDPR Article 35 as the processing involves:
 
 **Data Protection Officer (DPO):**  
 Name: [DPO Name]  
-Email: dpo@pcnservices.nhs.uk  
+Email: dpo@gpnotewell.co.uk  
 Phone: [DPO Contact Number]
 
 **Senior Information Risk Owner (SIRO):**  
@@ -1685,7 +1685,7 @@ Privacy notice discloses OpenAI use and US transfer, purpose explained
 ### 8.1 Right of Access (Subject Access Requests - SARs)
 
 **Procedure:**
-1. **Receipt:** SAR received via email (dpo@pcnservices.nhs.uk) or written request
+1. **Receipt:** SAR received via email (dpo@gpnotewell.co.uk) or written request
 2. **Verification:** Identity verified (photo ID + proof of address, or NHS smartcard)
 3. **Search:** Data mapping register consulted, database queries executed
 4. **Compilation:** Personal data extracted (all tables, files, emails, audit logs)
@@ -2140,7 +2140,7 @@ We process your personal data to provide NHS healthcare services, including:
 
 **Your Rights:** Access, rectification, erasure (where applicable), restriction, portability, objection.
 
-**Contact:** Data Protection Officer - dpo@pcnservices.nhs.uk
+**Contact:** Data Protection Officer - dpo@gpnotewell.co.uk
 
 [Full privacy notice available at www.pcnservices.nhs.uk/privacy]
 
