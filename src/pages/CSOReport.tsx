@@ -1157,7 +1157,7 @@ const CSOReport = () => {
                     { name: "Hazard Log", link: "/hazard-log", isDownload: false },
                     { name: "DPIA", link: null, isDownload: false },
                     { name: "Privacy Policy", link: "/privacy-policy", isDownload: false },
-                    { name: "Security Posture Overview", link: null, isDownload: false },
+                    { name: "Security Posture Overview", link: "/security-posture", isDownload: false },
                     { name: "Penetration Test Scope", link: null, isDownload: false },
                     { name: "Incident Response Policy", link: null, isDownload: false },
                     { name: "Cyber Essentials (in progress) documents", link: null, isDownload: false },

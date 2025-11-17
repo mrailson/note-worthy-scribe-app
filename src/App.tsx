@@ -39,6 +39,7 @@ import CSOReport from "./pages/CSOReport";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import HazardLog from "./pages/HazardLog";
 import SafetyCase from "./pages/SafetyCase";
+import SecurityPostureOverview from "./pages/SecurityPostureOverview";
 import Attendees from "./pages/Attendees";
 import PracticeManagerFeedback from "./pages/PracticeManagerFeedback";
 import FeedbackResults from "./pages/FeedbackResults";
@@ -150,6 +151,7 @@ const App = () => {
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/hazard-log" element={<HazardLog />} />
               <Route path="/safety-case" element={<SafetyCase />} />
+              <Route path="/security-posture" element={<SecurityPostureOverview />} />
               <Route path="/feedback" element={<PracticeManagerFeedback />} />
               <Route path="/feedback/results" element={<FeedbackResults />} />
               <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
