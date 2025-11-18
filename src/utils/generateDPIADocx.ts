@@ -510,8 +510,8 @@ function generateRiskDetail(risk: Risk): Paragraph[] {
 }
 
 // Generate risk assessment section
-function generateRiskAssessment(risks: Risk[]): Paragraph[] {
-  const paragraphs: Paragraph[] = [
+function generateRiskAssessment(risks: Risk[]): Array<Paragraph | Table> {
+  const paragraphs: Array<Paragraph | Table> = [
     new Paragraph({
       text: "3. Risk Assessment & Treatment",
       heading: HeadingLevel.HEADING_1,
@@ -541,12 +541,8 @@ function generateRiskAssessment(risks: Risk[]): Paragraph[] {
     })
   );
 
-  paragraphs.push(
-    new Paragraph({
-      children: [createRiskTable(risks)],
-      spacing: { after: 400 },
-    })
-  );
+  // Push the table as a block element rather than inside a paragraph
+  paragraphs.push(createRiskTable(risks));
 
   // Add detailed risk descriptions
   paragraphs.push(
@@ -605,7 +601,7 @@ function createProcessorsTable(processors: DPIAData["processors"]): Table {
 }
 
 // Generate processors section
-function generateProcessorsSection(processors: DPIAData["processors"]): Paragraph[] {
+function generateProcessorsSection(processors: DPIAData["processors"]): Array<Paragraph | Table> {
   return [
     new Paragraph({
       text: "4. Third-Party Processors",
@@ -615,10 +611,8 @@ function generateProcessorsSection(processors: DPIAData["processors"]): Paragrap
       text: "The following third-party processors have access to patient data:",
       spacing: { after: 200 },
     }),
-    new Paragraph({
-      children: [createProcessorsTable(processors)],
-      spacing: { after: 300 },
-    }),
+    // Insert the processors table as a standalone table
+    createProcessorsTable(processors),
   ];
 }
 
