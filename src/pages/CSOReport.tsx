@@ -449,16 +449,55 @@ const CSOReport = () => {
                 </Table>
               </div>
 
-              <div className="mt-6 bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900 rounded-lg p-4">
-                <div className="flex items-start gap-3">
-                  <AlertCircle className="w-5 h-5 text-orange-700 dark:text-orange-500 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold text-orange-900 dark:text-orange-300 mb-1">Action Required</h4>
-                    <p className="text-sm text-orange-800 dark:text-orange-400">
-                      Formal Data Protection Impact Assessment (DPIA) documentation is required for all three services before deployment. DPO sign-off mandatory.
-                    </p>
+              {/* DPIA Reference Card */}
+              <div className="grid md:grid-cols-2 gap-4 mt-6">
+                <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-orange-700 dark:text-orange-500 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold text-orange-900 dark:text-orange-300 mb-1">Action Required</h4>
+                      <p className="text-sm text-orange-800 dark:text-orange-400 mb-3">
+                        Formal Data Protection Impact Assessment (DPIA) documentation is required for all three services before deployment. DPO sign-off mandatory.
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        className="border-orange-300 text-orange-900 hover:bg-orange-100 dark:border-orange-700 dark:text-orange-300 dark:hover:bg-orange-900/20"
+                        asChild
+                      >
+                        <Link to="/dpia">
+                          <FileText className="w-4 h-4 mr-2" />
+                          View Complete DPIA
+                        </Link>
+                      </Button>
+                    </div>
                   </div>
                 </div>
+
+                <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-blue-200 dark:border-blue-800">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <Shield className="w-4 h-4" />
+                      Data Protection Impact Assessment
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <p className="text-sm text-muted-foreground">
+                      Comprehensive DPIA completed covering all processing activities:
+                    </p>
+                    <ul className="text-sm space-y-1 ml-4 list-disc text-muted-foreground">
+                      <li>Meeting Manager (audio recording & transcription)</li>
+                      <li>GP Scribe (clinical consultation notes)</li>
+                      <li>Complaints Management System</li>
+                    </ul>
+                    <Button variant="outline" size="sm" className="w-full mt-2" asChild>
+                      <Link to="/dpia">
+                        <FileText className="w-4 h-4 mr-2" />
+                        View Full DPIA Documentation
+                      </Link>
+                    </Button>
+                  </CardContent>
+                </Card>
               </div>
             </CardContent>
           </Card>

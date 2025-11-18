@@ -23,6 +23,7 @@ import {
   MapPin,
   Server,
   AlertCircle,
+  ShieldAlert,
 } from "lucide-react";
 import { calculateRiskScores, getRiskLevel, formatLikelihood, formatSeverity, calculateRiskStatistics } from "@/utils/dpiaRiskMatrix";
 import type { Risk } from "@/utils/dpiaRiskMatrix";
@@ -96,7 +97,7 @@ const DPIA: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-3 mb-4">
+          <div className="flex flex-wrap gap-3 mb-6">
             <Badge variant="outline" className="text-sm">
               <FileText className="h-3 w-3 mr-1" />
               Version 1.0
@@ -124,6 +125,43 @@ const DPIA: React.FC = () => {
             </AlertDescription>
           </Alert>
         </div>
+
+        {/* Related Documentation */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-lg">Related Safety & Compliance Documentation</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-3 gap-4">
+              <a 
+                href="/safety-case" 
+                className="flex flex-col items-center gap-2 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <Shield className="w-8 h-8 text-primary" />
+                <div className="font-semibold text-center">Clinical Safety Case</div>
+                <div className="text-xs text-muted-foreground text-center">DCB0129 Compliance</div>
+              </a>
+
+              <a 
+                href="/security-report" 
+                className="flex flex-col items-center gap-2 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <ShieldAlert className="w-8 h-8 text-primary" />
+                <div className="font-semibold text-center">Security Scan Report</div>
+                <div className="text-xs text-muted-foreground text-center">Technical Security Status</div>
+              </a>
+
+              <a 
+                href="/cso-report" 
+                className="flex flex-col items-center gap-2 p-4 border rounded-lg hover:bg-muted/50 transition-colors"
+              >
+                <FileText className="w-8 h-8 text-primary" />
+                <div className="font-semibold text-center">CSO Assessment</div>
+                <div className="text-xs text-muted-foreground text-center">Full Compliance Report</div>
+              </a>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Navigation Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

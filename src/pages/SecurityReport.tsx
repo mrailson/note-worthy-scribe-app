@@ -1,10 +1,12 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { AlertTriangle, ShieldAlert, Info, Download, CheckCircle2 } from "lucide-react";
+import { AlertTriangle, ShieldAlert, Info, Download, CheckCircle2, ChevronRight, Shield, FileText } from "lucide-react";
 import { format } from "date-fns";
+import { Header } from "@/components/Header";
 
 interface SecurityFinding {
   id: string;
@@ -137,13 +139,45 @@ ${index + 1}. ${finding.name}
   };
 
   return (
-    <div className="container mx-auto p-6 max-w-7xl">
-      <div className="mb-8">
-        <h1 className="text-4xl font-bold mb-2">Security Posture Report</h1>
-        <p className="text-muted-foreground">
-          Last scanned: {format(scanDate, "PPpp")}
-        </p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <Header />
+      
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Breadcrumb Navigation */}
+        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
+          <Link to="/safety-case" className="hover:text-primary transition-colors">
+            Clinical Safety Case
+          </Link>
+          <ChevronRight className="w-4 h-4" />
+          <span className="text-foreground">Security Scan Report</span>
+        </div>
+
+        {/* Context Banner */}
+        <Card className="mb-6 bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-blue-200 dark:border-blue-800">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <h3 className="font-semibold mb-2">Why Security Matters for Clinical Safety</h3>
+                <p className="text-sm text-muted-foreground">
+                  This security scan is a critical component of our{' '}
+                  <Link to="/safety-case" className="text-blue-600 hover:underline dark:text-blue-400">
+                    DCB0129 Clinical Safety Case
+                  </Link>
+                  . Ensuring robust data protection and access controls is essential for patient safety, data confidentiality, 
+                  and maintaining trust in NHS clinical systems. Each finding below is assessed for its potential clinical impact.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <div className="mb-8">
+          <h1 className="text-4xl font-bold mb-2">Security Posture Report</h1>
+          <p className="text-muted-foreground">
+            Last scanned: {format(scanDate, "PPpp")}
+          </p>
+        </div>
 
       {/* Executive Summary */}
       <Card className="mb-6 border-2 border-primary/20">
@@ -359,9 +393,39 @@ ${index + 1}. ${finding.name}
         </CardContent>
       </Card>
 
+      {/* Related Documentation */}
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Related Documentation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/safety-case">
+                <Shield className="w-4 h-4 mr-2" />
+                Clinical Safety Case
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/dpia">
+                <FileText className="w-4 h-4 mr-2" />
+                Data Protection Impact Assessment
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/cso-report">
+                <FileText className="w-4 h-4 mr-2" />
+                Full CSO Assessment Report
+              </Link>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="mt-8 text-center text-sm text-muted-foreground">
         <p>This report is auto-generated based on the latest security scan.</p>
         <p className="mt-1">For questions about these findings, contact your system administrator.</p>
+      </div>
       </div>
     </div>
   );
