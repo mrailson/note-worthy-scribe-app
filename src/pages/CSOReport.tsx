@@ -204,6 +204,17 @@ const CSOReport = () => {
                   {nav.label}
                 </Button>
               ))}
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-start"
+                asChild
+              >
+                <Link to="/dpia">
+                  <Lock className="w-4 h-4 mr-2" />
+                  DPIA
+                </Link>
+              </Button>
             </div>
           </CardContent>
         </Card>
