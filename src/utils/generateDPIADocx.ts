@@ -790,8 +790,7 @@ export async function generateDPIADocx(data: DPIAData, filename: string): Promis
     creator: data.metadata.organisation,
     title: "Data Protection Impact Assessment",
     description: "DPIA for Integrated Care Management Platform",
-    styles: buildNHSStyles(),
-    numbering: buildNumbering(),
+    // Note: using default Word styles for maximum compatibility
 
     sections: [
       {
