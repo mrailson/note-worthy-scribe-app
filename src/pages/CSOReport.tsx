@@ -1311,8 +1311,7 @@ const CSOReport = () => {
                           </a>
                         ) : (
                           <Link 
-                            to={doc.link} 
-                            target="_blank"
+                            to={doc.link}
                             className="text-sm text-primary hover:underline font-medium"
                           >
                             {doc.name}
