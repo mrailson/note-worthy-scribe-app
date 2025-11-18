@@ -836,6 +836,89 @@ const CSOReport = () => {
 
               <Separator />
 
+              {/* 2.5 DTAC Assessment */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  2.5 NHS Digital Technology Assessment Criteria (DTAC)
+                </h3>
+                <div className="prose dark:prose-invert max-w-none space-y-3">
+                  <p>
+                    A comprehensive DTAC assessment has been completed covering all required criteria for NHS digital health technologies:
+                  </p>
+                  <div className="grid md:grid-cols-2 gap-3 not-prose">
+                    <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-semibold">Section A: Company Information</div>
+                        <div className="text-muted-foreground">Organisation & product details verified</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-semibold">Section B: Value Proposition</div>
+                        <div className="text-muted-foreground">Clinical & operational benefits documented</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-semibold">Section C1: Clinical Safety</div>
+                        <div className="text-muted-foreground">CSO appointed, DCB0129 compliant, hazard log maintained</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-semibold">Section C2: Data Protection</div>
+                        <div className="text-muted-foreground">ICO registered, DPIA completed, UK data residency</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-semibold">Section C3: Technical Security</div>
+                        <div className="text-muted-foreground">Cyber Essentials, penetration testing, incident response</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-semibold">Section C4: Interoperability</div>
+                        <div className="text-muted-foreground">Standards compliance (HL7 FHIR, SNOMED CT)</div>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                      <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                      <div className="text-sm">
+                        <div className="font-semibold">Section D: Usability & Accessibility</div>
+                        <div className="text-muted-foreground">WCAG compliance, user testing, training provided</div>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4 mt-4">
+                    <p className="font-semibold text-blue-900 dark:text-blue-300 mb-2">Full DTAC Assessment Available</p>
+                    <p className="text-sm text-blue-800 dark:text-blue-400 mb-3">
+                      The complete DTAC assessment document includes detailed evidence and documentation across all seven sections required for NHS procurement.
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="bg-background hover:bg-muted"
+                    >
+                      <Link to="/dtac">
+                        <FileText className="w-4 h-4 mr-2" />
+                        View Full DTAC Assessment
+                      </Link>
+                    </Button>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
               {/* 3. Data Protection & GDPR */}
               <div>
                 <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
@@ -1206,6 +1289,7 @@ const CSOReport = () => {
                     { name: "DCB0129 Safety Case", link: "/safety-case", isDownload: false },
                     { name: "Hazard Log", link: "/hazard-log", isDownload: false },
                     { name: "DPIA", link: "/dpia", isDownload: false },
+                    { name: "DTAC Assessment", link: "/dtac", isDownload: false },
                     { name: "Privacy Policy", link: "/privacy-policy", isDownload: false },
                     { name: "Security Posture Overview", link: "/security-posture", isDownload: false },
                     { name: "Penetration Test Scope", link: null, isDownload: false },
