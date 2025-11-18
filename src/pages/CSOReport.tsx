@@ -1194,7 +1194,7 @@ const CSOReport = () => {
                     { name: "MHRA Class I Certificate", link: "/documents/MHRA-Class-I-Registration-Certificate.pdf", isDownload: true },
                     { name: "DCB0129 Safety Case", link: "/safety-case", isDownload: false },
                     { name: "Hazard Log", link: "/hazard-log", isDownload: false },
-                    { name: "DPIA", link: null, isDownload: false },
+                    { name: "DPIA", link: "/dpia", isDownload: false },
                     { name: "Privacy Policy", link: "/privacy-policy", isDownload: false },
                     { name: "Security Posture Overview", link: "/security-posture", isDownload: false },
                     { name: "Penetration Test Scope", link: null, isDownload: false },
