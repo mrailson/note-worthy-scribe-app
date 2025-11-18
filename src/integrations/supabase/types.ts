@@ -6298,21 +6298,18 @@ export type Database = {
           generic_location: string | null
           id: string | null
           is_active: boolean | null
-          practice_id: string | null
           qr_code_data: string | null
         }
         Insert: {
-          generic_location?: never
+          generic_location?: string | null
           id?: string | null
           is_active?: boolean | null
-          practice_id?: string | null
           qr_code_data?: string | null
         }
         Update: {
-          generic_location?: never
+          generic_location?: string | null
           id?: string | null
           is_active?: boolean | null
-          practice_id?: string | null
           qr_code_data?: string | null
         }
         Relationships: []
