@@ -7,15 +7,40 @@ import { Link } from "react-router-dom";
 interface SecuritySummaryCardProps {
   variant?: 'compact' | 'detailed';
   showActions?: boolean;
+  findings?: {
+    errors: number;
+    warnings: number;
+    info: number;
+    total: number;
+  };
+  isLoading?: boolean;
 }
 
-export function SecuritySummaryCard({ variant = 'compact', showActions = true }: SecuritySummaryCardProps) {
-  const findings = {
-    errors: 3,
-    warnings: 3,
-    info: 3,
-    total: 9
-  };
+export function SecuritySummaryCard({ 
+  variant = 'compact', 
+  showActions = true,
+  findings = { errors: 0, warnings: 0, info: 0, total: 0 },
+  isLoading = false
+}: SecuritySummaryCardProps) {
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <ShieldAlert className="w-5 h-5" />
+            Security Scan Status
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-center py-8">
+            <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2 text-muted-foreground" />
+            <p className="text-sm text-muted-foreground">Loading security scan data...</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <Card>

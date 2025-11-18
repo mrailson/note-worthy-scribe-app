@@ -4947,6 +4947,92 @@ export type Database = {
         }
         Relationships: []
       }
+      security_scan_findings: {
+        Row: {
+          category: string | null
+          created_at: string
+          description: string
+          details: string | null
+          finding_id: string
+          id: string
+          level: string
+          name: string
+          resolved_at: string | null
+          scan_id: string
+          scanned_at: string
+        }
+        Insert: {
+          category?: string | null
+          created_at?: string
+          description: string
+          details?: string | null
+          finding_id: string
+          id?: string
+          level: string
+          name: string
+          resolved_at?: string | null
+          scan_id: string
+          scanned_at?: string
+        }
+        Update: {
+          category?: string | null
+          created_at?: string
+          description?: string
+          details?: string | null
+          finding_id?: string
+          id?: string
+          level?: string
+          name?: string
+          resolved_at?: string | null
+          scan_id?: string
+          scanned_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "security_scan_findings_scan_id_fkey"
+            columns: ["scan_id"]
+            isOneToOne: false
+            referencedRelation: "security_scans"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      security_scans: {
+        Row: {
+          created_at: string
+          error_count: number
+          id: string
+          info_count: number
+          scan_type: string | null
+          scanned_at: string
+          total_findings: number
+          triggered_by: string | null
+          warn_count: number
+        }
+        Insert: {
+          created_at?: string
+          error_count?: number
+          id?: string
+          info_count?: number
+          scan_type?: string | null
+          scanned_at?: string
+          total_findings?: number
+          triggered_by?: string | null
+          warn_count?: number
+        }
+        Update: {
+          created_at?: string
+          error_count?: number
+          id?: string
+          info_count?: number
+          scan_type?: string | null
+          scanned_at?: string
+          total_findings?: number
+          triggered_by?: string | null
+          warn_count?: number
+        }
+        Relationships: []
+      }
       security_settings: {
         Row: {
           description: string | null
