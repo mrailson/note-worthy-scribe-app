@@ -23,7 +23,8 @@ import {
   Clock,
   ChevronRight,
   Download,
-  ArrowUp
+  ArrowUp,
+  ExternalLink
 } from "lucide-react";
 import {
   services,
@@ -1322,6 +1323,29 @@ const CSOReport = () => {
                       )}
                     </div>
                   ))}
+                </div>
+                
+                <div className="mt-4 p-4 bg-muted/50 border rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="font-semibold mb-2">Platform Security Certifications</h4>
+                      <p className="text-sm text-muted-foreground mb-3">
+                        NoteWell is built on the Lovable platform, which maintains ISO 27001 and SOC 2 Type II compliance. 
+                        View full security documentation, compliance reports, and audit certificates:
+                      </p>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => window.open('https://trust.platform.delve.co/lovable', '_blank')}
+                        className="gap-2"
+                      >
+                        <Shield className="h-4 w-4" />
+                        Lovable Trust Centre
+                        <ExternalLink className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
 

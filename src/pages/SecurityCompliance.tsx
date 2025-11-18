@@ -24,7 +24,8 @@ import {
   Home,
   Info,
   Building2,
-  UserCheck
+  UserCheck,
+  ExternalLink
 } from "lucide-react";
 
 export default function SecurityCompliance() {
@@ -384,6 +385,18 @@ export default function SecurityCompliance() {
             Evidence packs and compliance documentation for NHS IT governance, CQC inspections, 
             and DSPT submission requirements.
           </p>
+          <div className="flex justify-center mt-4">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://trust.platform.delve.co/lovable', '_blank')}
+              className="gap-2"
+            >
+              <Shield className="h-4 w-4" />
+              View Lovable Trust Centre
+              <ExternalLink className="h-3 w-3" />
+            </Button>
+          </div>
         </div>
 
         {/* Audience Selection */}
