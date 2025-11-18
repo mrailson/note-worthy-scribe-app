@@ -1365,8 +1365,9 @@ const CSOReport = () => {
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 border border-green-200 dark:border-green-900 rounded-lg p-6">
                   <p className="text-base leading-relaxed">
                     NoteWell AI is a <strong>low-risk, MHRA Class I medical device</strong> designed for safe deployment across primary care. 
-                    It meets all applicable DTAC domains, has completed its DPIA, clinical safety case, and safety officer oversight, and maintains 
-                    UK-only hosting, strong encryption, RLS access controls, full audit logs and a clear, CREST-aligned penetration testing programme.
+                    It meets all applicable DTAC domains, has completed its DPIA and clinical safety case (with CSO assessment complete and formal signoff in progress), 
+                    and maintains UK-only hosting, strong encryption (100+ RLS policies, 73% security improvement achieved), full audit logs, and CREST-standard 
+                    penetration testing scheduled for Q2 2025.
                   </p>
                   <p className="text-base leading-relaxed mt-4">
                     The tool involves <strong>no EMIS/S1 write-back</strong>, uses strict human-in-the-loop validation, and is suitable for 
