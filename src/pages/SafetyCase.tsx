@@ -4,8 +4,38 @@ import { SecuritySummaryCard } from '@/components/SecuritySummaryCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Shield, FileText, AlertCircle, ShieldCheck } from 'lucide-react';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const SafetyCase = () => {
+  // Fetch latest security scan data
+  const { data: scanData, isLoading: isScanLoading } = useQuery({
+    queryKey: ['security-scan-summary'],
+    queryFn: async () => {
+      const { data: latestScan, error } = await supabase
+        .from('security_scans')
+        .select('total_findings, error_count, warn_count, info_count')
+        .order('scanned_at', { ascending: false })
+        .limit(1)
+        .single();
+
+      if (error) {
+        console.error('Error fetching scan summary:', error);
+        return { errors: 0, warnings: 0, info: 0, total: 0 };
+      }
+
+      return {
+        errors: latestScan?.error_count || 0,
+        warnings: latestScan?.warn_count || 0,
+        info: latestScan?.info_count || 0,
+        total: latestScan?.total_findings || 0
+      };
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const securityFindings = scanData || { errors: 0, warnings: 0, info: 0, total: 0 };
+
   return (
     <div className="min-h-screen bg-background">
       <Header />
@@ -83,6 +113,15 @@ const SafetyCase = () => {
             </div>
           </CardContent>
         </Card>
+
+        {/* Security & Data Protection Summary */}
+        <div className="mb-8">
+          <SecuritySummaryCard 
+            variant="detailed" 
+            findings={securityFindings}
+            isLoading={isScanLoading}
+          />
+        </div>
 
         {/* Safety Case Components */}
         <Card className="mb-6">
