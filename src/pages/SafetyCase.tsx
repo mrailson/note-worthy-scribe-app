@@ -3,11 +3,15 @@ import { CSOComplianceReport } from '@/components/CSOComplianceReport';
 import { SecuritySummaryCard } from '@/components/SecuritySummaryCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Shield, FileText, AlertCircle, ShieldCheck } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Shield, FileText, AlertCircle, ShieldCheck, ArrowLeft } from 'lucide-react';
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 const SafetyCase = () => {
+  const navigate = useNavigate();
+  
   // Fetch latest security scan data
   const { data: scanData, isLoading: isScanLoading } = useQuery({
     queryKey: ['security-scan-summary'],
@@ -41,6 +45,17 @@ const SafetyCase = () => {
       <Header />
       
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Back Navigation */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/cso-report')}
+          className="mb-4 gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to CSO Report
+        </Button>
+
         {/* Header */}
         <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-950/20 dark:to-blue-950/20 border-l-4 border-purple-500 p-6 mb-8 rounded-lg">
           <div className="flex items-center gap-2 mb-2">

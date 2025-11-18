@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { FileText, Download, Shield, CheckCircle2, AlertCircle, Info, Loader2 } from "lucide-react";
+import { FileText, Download, Shield, CheckCircle2, AlertCircle, Info, Loader2, ArrowLeft } from "lucide-react";
 import { CompanyInfoSection } from "@/components/dtac/CompanyInfoSection";
 import { ValuePropositionSection } from "@/components/dtac/ValuePropositionSection";
 import { ClinicalSafetySection } from "@/components/dtac/ClinicalSafetySection";
@@ -19,8 +19,10 @@ import type { DTACAssessment } from "@/types/dtac";
 import { generateDTACDocx } from "@/utils/generateDTACDocx";
 import { toast } from "sonner";
 import { useDTACAssessment } from "@/hooks/useDTACAssessment";
+import { useNavigate } from "react-router-dom";
 
 const DTACAssessmentPage: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [isGenerating, setIsGenerating] = useState(false);
   
@@ -75,6 +77,17 @@ const DTACAssessmentPage: React.FC = () => {
       <Header />
       
       <div className="container mx-auto px-4 py-6 space-y-6">
+        {/* Back Navigation */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/cso-report')}
+          className="gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to CSO Report
+        </Button>
+
         {/* Page Header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>

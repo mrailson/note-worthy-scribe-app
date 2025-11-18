@@ -1,9 +1,13 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertTriangle, Users, Clock, FileText, Phone, Shield, CheckCircle2, AlertCircle } from "lucide-react";
+import { AlertTriangle, Users, Clock, FileText, Phone, Shield, CheckCircle2, AlertCircle, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const IncidentResponsePolicy = () => {
+  const navigate = useNavigate();
+  
   const incidentTeam = [
     {
       role: "Incident Response Lead",
@@ -201,6 +205,17 @@ const IncidentResponsePolicy = () => {
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-8">
+        {/* Back Navigation */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/cso-report')}
+          className="mb-4 gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to CSO Report
+        </Button>
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">

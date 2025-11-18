@@ -1,9 +1,13 @@
+import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Shield, Lock, Database, Network, FileCheck, Eye, AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
+import { Shield, Lock, Database, Network, FileCheck, Eye, AlertTriangle, CheckCircle2, ExternalLink, ArrowLeft } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const SecurityPostureOverview = () => {
+  const navigate = useNavigate();
+  
   const securityDomains = [
     {
       icon: Lock,
@@ -140,7 +144,20 @@ const SecurityPostureOverview = () => {
 
   return (
     <div className="min-h-screen bg-background">
+      <Header />
+      
       <div className="container mx-auto px-4 py-8">
+        {/* Back Navigation */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/cso-report')}
+          className="mb-4 gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to CSO Report
+        </Button>
+
         {/* Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">
