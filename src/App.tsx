@@ -37,6 +37,7 @@ import GPGenie from "./pages/GPGenie";
 import NewRecorder from "./pages/NewRecorder";
 import CSOReport from "./pages/CSOReport";
 import DPIA from "./pages/DPIA";
+import DTACAssessment from "./pages/DTACAssessment";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import HazardLog from "./pages/HazardLog";
 import SafetyCase from "./pages/SafetyCase";
@@ -150,6 +151,7 @@ const App = () => {
               <Route path="/cso-report" element={<CSOReport />} />
               <Route path="/data-flow-architecture" element={<DataFlowArchitecture />} />
               <Route path="/dpia" element={<DPIA />} />
+              <Route path="/dtac" element={<DTACAssessment />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/hazard-log" element={<HazardLog />} />
               <Route path="/safety-case" element={<SafetyCase />} />
