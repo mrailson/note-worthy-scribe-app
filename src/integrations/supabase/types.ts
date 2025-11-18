@@ -2468,6 +2468,103 @@ export type Database = {
         }
         Relationships: []
       }
+      dtac_assessments: {
+        Row: {
+          clinical_safety: Json | null
+          company_info: Json | null
+          created_at: string
+          data_protection: Json | null
+          id: string
+          interoperability: Json | null
+          organisation_id: string | null
+          status: string
+          technical_security: Json | null
+          updated_at: string
+          usability_accessibility: Json | null
+          user_id: string
+          value_proposition: Json | null
+          version: string | null
+        }
+        Insert: {
+          clinical_safety?: Json | null
+          company_info?: Json | null
+          created_at?: string
+          data_protection?: Json | null
+          id?: string
+          interoperability?: Json | null
+          organisation_id?: string | null
+          status?: string
+          technical_security?: Json | null
+          updated_at?: string
+          usability_accessibility?: Json | null
+          user_id: string
+          value_proposition?: Json | null
+          version?: string | null
+        }
+        Update: {
+          clinical_safety?: Json | null
+          company_info?: Json | null
+          created_at?: string
+          data_protection?: Json | null
+          id?: string
+          interoperability?: Json | null
+          organisation_id?: string | null
+          status?: string
+          technical_security?: Json | null
+          updated_at?: string
+          usability_accessibility?: Json | null
+          user_id?: string
+          value_proposition?: Json | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dtac_assessments_organisation_id_fkey"
+            columns: ["organisation_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      dtac_evidence: {
+        Row: {
+          assessment_id: string
+          file_name: string
+          file_path: string
+          file_type: string | null
+          id: string
+          question_code: string
+          uploaded_at: string
+        }
+        Insert: {
+          assessment_id: string
+          file_name: string
+          file_path: string
+          file_type?: string | null
+          id?: string
+          question_code: string
+          uploaded_at?: string
+        }
+        Update: {
+          assessment_id?: string
+          file_name?: string
+          file_path?: string
+          file_type?: string | null
+          id?: string
+          question_code?: string
+          uploaded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "dtac_evidence_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "dtac_assessments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       fridge_status_changes: {
         Row: {
           changed_at: string

@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
-import { FileText, Download, Shield, CheckCircle2, AlertCircle, Info } from "lucide-react";
+import { FileText, Download, Shield, CheckCircle2, AlertCircle, Info, Loader2 } from "lucide-react";
 import { CompanyInfoSection } from "@/components/dtac/CompanyInfoSection";
 import { ValuePropositionSection } from "@/components/dtac/ValuePropositionSection";
 import { ClinicalSafetySection } from "@/components/dtac/ClinicalSafetySection";
@@ -18,86 +18,42 @@ import { DTACProgress as DTACProgressTracker } from "@/components/dtac/DTACProgr
 import type { DTACAssessment } from "@/types/dtac";
 import { generateDTACDocx } from "@/utils/generateDTACDocx";
 import { toast } from "sonner";
+import { useDTACAssessment } from "@/hooks/useDTACAssessment";
 
-const DTACAssessment: React.FC = () => {
+const DTACAssessmentPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const [isGenerating, setIsGenerating] = useState(false);
   
-  // Initial empty assessment state
-  const [assessment, setAssessment] = useState<Partial<DTACAssessment>>({
-    status: 'draft',
-    version: '1.0',
-    companyInfo: {
-      a1_companyName: '',
-      a2_productName: '',
-      a3_productType: '',
-      a4_contactName: '',
-      a5_contactEmail: '',
-      a6_contactPhone: '',
-      a7_companyRegistrationNumber: '',
-      a8_registeredAddress: '',
-      a9_websiteUrl: '',
-      a10_yearsTrading: '',
-    },
-    valueProposition: {
-      b1_targetUsers: '',
-      b2_problemSolved: '',
-      b3_benefits: '',
-      b4_evidenceBase: '',
-    },
-    clinicalSafety: {
-      c1_1_csoName: '',
-      c1_1_csoQualifications: '',
-      c1_1_csoContact: '',
-      c1_2_dcb0129Compliant: false,
-      c1_2_dcb0129Evidence: '',
-      c1_3_mhraRegistered: false,
-      c1_3_mhraDetails: '',
-      c1_4_hazardLog: false,
-      c1_4_hazardLogSummary: '',
-    },
-    dataProtection: {
-      c2_1_icoRegistered: false,
-      c2_1_icoNumber: '',
-      c2_2_dpoName: '',
-      c2_2_dpoContact: '',
-      c2_3_dsptStatus: '',
-      c2_3_dsptEvidence: '',
-      c2_3_2_dpiaCompleted: false,
-      c2_3_2_dpiaDate: '',
-      c2_3_2_dpiaSummary: '',
-      c2_4_dataMinimisation: '',
-      c2_5_dataLocation: '',
-      c2_5_dataLocationDetails: '',
-    },
-    technicalSecurity: {
-      c3_1_cyberEssentials: false,
-      c3_1_cyberEssentialsPlus: false,
-      c3_1_certificateNumber: '',
-      c3_2_penetrationTesting: false,
-      c3_2_testingFrequency: '',
-      c3_2_lastTestDate: '',
-      c3_3_vulnerabilityManagement: '',
-      c3_4_incidentResponse: '',
-    },
-    interoperability: {
-      c4_1_standardsCompliance: [],
-      c4_1_standardsDetails: '',
-      c4_2_apiAvailable: false,
-      c4_2_apiDocumentation: '',
-      c4_3_integrationSupport: '',
-    },
-    usabilityAccessibility: {
-      d1_1_userTesting: false,
-      d1_1_userTestingDetails: '',
-      d1_2_accessibilityStandard: '',
-      d1_2_wcagLevel: '',
-      d1_3_accessibilityTesting: '',
-      d1_4_userSupport: '',
-      d1_5_trainingProvided: false,
-      d1_5_trainingDetails: '',
-    },
-  });
+  const { assessment, setAssessment, loading } = useDTACAssessment();
+  
+  if (loading) {
+    return (
+      <>
+        <Header />
+        <div className="container mx-auto p-6 flex items-center justify-center min-h-[50vh]">
+          <div className="flex items-center gap-2">
+            <Loader2 className="h-6 w-6 animate-spin" />
+            <span>Loading assessment...</span>
+          </div>
+        </div>
+      </>
+    );
+  }
+  
+  if (!assessment) {
+    return (
+      <>
+        <Header />
+        <div className="container mx-auto p-6">
+          <Alert variant="destructive">
+            <AlertDescription>
+              Failed to load assessment. Please refresh the page.
+            </AlertDescription>
+          </Alert>
+        </div>
+      </>
+    );
+  }
 
   const handleDownloadDTAC = async () => {
     setIsGenerating(true);
@@ -317,4 +273,4 @@ const DTACAssessment: React.FC = () => {
   );
 };
 
-export default DTACAssessment;
+export default DTACAssessmentPage;
