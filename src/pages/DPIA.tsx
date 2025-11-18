@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -27,6 +28,9 @@ import {
 } from "lucide-react";
 import { calculateRiskScores, getRiskLevel, formatLikelihood, formatSeverity, calculateRiskStatistics } from "@/utils/dpiaRiskMatrix";
 import type { Risk } from "@/utils/dpiaRiskMatrix";
+import { generateDPIADocx } from "@/utils/generateDPIADocx";
+import type { DPIAData } from "@/utils/generateDPIADocx";
+import { toast } from "sonner";
 
 // Sample risk data - in production this would come from a database
 const risks: Risk[] = [
@@ -73,8 +77,181 @@ const risks: Risk[] = [
 
 const DPIA: React.FC = () => {
   const [activeTab, setActiveTab] = useState("overview");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const riskStats = calculateRiskStatistics(risks);
+
+  const handleDownloadDPIA = async () => {
+    setIsGenerating(true);
+    toast.info("Generating DPIA document...");
+
+    try {
+      const dpiaData: DPIAData = {
+        metadata: {
+          version: "1.0",
+          date: "17th November 2025",
+          organisation: "PCN Services Ltd",
+          classification: "Official - Sensitive",
+          nextReview: "17th November 2026",
+        },
+        executiveSummary: {
+          purpose:
+            "This DPIA assesses the data protection impact of PCN Services Ltd's AI-powered Integrated Care Management Platform, which processes patient identifiable health data for NHS primary care services.",
+          scope: [
+            "GP Scribe: Real-time AI transcription and consultation summarisation",
+            "Meeting Manager: Multi-disciplinary team meeting recording and action tracking",
+            "Complaints Management System: Patient complaint workflow and outcome generation",
+          ],
+          necessity:
+            "Processing is necessary for the provision of NHS patient care (Article 6(1)(e) - public task) and is justified under Article 9(2)(h) GDPR (health/social care provision). The platform reduces administrative burden on clinicians, improves patient safety through accurate record-keeping, and supports continuity of care across PCN services.",
+        },
+        services: [
+          {
+            name: "GP Scribe",
+            description:
+              "Real-time AI transcription of GP consultations with automated summarisation, SNOMED CT coding, and integration with EMIS/SystmOne clinical systems.",
+            dataProcessed: [
+              "Patient identifiable data (name, DOB, NHS number)",
+              "Clinical observations and examination findings",
+              "Diagnoses and differential diagnoses",
+              "Prescribing decisions and medication histories",
+              "Audio recordings of consultations (temporary)",
+            ],
+            legalBasis:
+              "Article 6(1)(e) GDPR - Public task in NHS service delivery; Article 9(2)(h) GDPR - Health/social care provision",
+            retention:
+              "Transcripts retained in clinical record permanently (NHS Records Management Code). Audio recordings deleted immediately after processing.",
+          },
+          {
+            name: "Meeting Manager",
+            description:
+              "Multi-disciplinary team (MDT) meeting recording, transcription, and action item tracking for care coordination.",
+            dataProcessed: [
+              "Patient identifiable data discussed in MDT meetings",
+              "Clinical decision-making rationale",
+              "Referral pathways and care plans",
+              "Staff names and roles",
+              "Audio/video recordings (temporary)",
+            ],
+            legalBasis:
+              "Article 6(1)(e) GDPR - Public task; Article 9(2)(h) GDPR - Health/social care",
+            retention:
+              "Meeting notes retained for 8 years (clinical governance requirement). Audio/video deleted after 30 days.",
+          },
+          {
+            name: "Complaints Management System",
+            description:
+              "AI-assisted patient complaint analysis, investigation workflow, and outcome letter generation.",
+            dataProcessed: [
+              "Complainant personal data (name, contact details)",
+              "Patient identifiable data (if complaint relates to clinical care)",
+              "Staff names mentioned in complaints",
+              "Investigation findings and evidence",
+            ],
+            legalBasis:
+              "Article 6(1)(c) GDPR - Legal obligation (Health & Social Care Act 2008); Article 9(2)(h) GDPR where clinical data involved",
+            retention:
+              "Complaints records retained for 10 years (NHS England guidance).",
+          },
+        ],
+        risks,
+        processors: [
+          {
+            name: "OpenAI (GPT-4)",
+            purpose: "Large language model for transcription, summarisation, and content generation",
+            location: "USA (EU Data Boundary enabled)",
+            safeguards: [
+              "Zero-day data retention policy",
+              "ISO 27001 certified",
+              "Standard Contractual Clauses (SCCs)",
+              "UK Government approved supplier",
+            ],
+          },
+          {
+            name: "AssemblyAI",
+            purpose: "Real-time speech-to-text transcription API",
+            location: "USA",
+            safeguards: [
+              "Zero-retention policy for audio data",
+              "SOC 2 Type II certified",
+              "Data Processing Agreement executed",
+              "HTTPS encryption in transit",
+            ],
+          },
+          {
+            name: "ElevenLabs",
+            purpose: "Text-to-speech for audio complaint summaries",
+            location: "USA",
+            safeguards: [
+              "No patient data sent (anonymised summaries only)",
+              "API-only access (no data storage)",
+              "GDPR-compliant privacy policy",
+            ],
+          },
+          {
+            name: "Supabase (Lovable Cloud)",
+            purpose: "Database, authentication, and file storage infrastructure",
+            location: "United Kingdom (AWS eu-west-2)",
+            safeguards: [
+              "UK data residency",
+              "Row-level security (RLS) policies",
+              "ISO 27001, SOC 2 certified",
+              "Encryption at rest and in transit",
+            ],
+          },
+        ],
+        internationalTransfers: [
+          {
+            recipient: "OpenAI",
+            country: "United States",
+            mechanism:
+              "Standard Contractual Clauses (SCCs) + EU Data Boundary (data processed in EU/UK only)",
+            additionalSafeguards: [
+              "Zero-day retention contractually enforced",
+              "Right to audit provisions in DPA",
+              "UK Government approval for NHS use",
+              "No data used for model training",
+            ],
+          },
+          {
+            recipient: "AssemblyAI",
+            country: "United States",
+            mechanism: "Standard Contractual Clauses (SCCs) + UK Addendum",
+            additionalSafeguards: [
+              "Zero-retention policy (data deleted post-processing)",
+              "SOC 2 Type II audit reports reviewed annually",
+              "Incident notification within 24 hours",
+            ],
+          },
+        ],
+        dataSubjectRights: {
+          accessProcedure:
+            "Patients can request access to their consultation transcripts and complaint records via practice reception or email. Requests processed within 1 month (GDPR Article 15).",
+          rectificationProcedure:
+            "Patients can request corrections to inaccurate data. Clinical staff review and amend records where appropriate. Non-clinical corrections processed immediately.",
+          erasureProcedure:
+            "Erasure requests assessed against NHS Records Management Code retention requirements. Patient data deleted where no legal basis for retention exists. Clinical data retained as required by law.",
+          responseTime: "All data subject rights requests responded to within 1 month (extendable to 3 months for complex requests with notification).",
+        },
+        approval: {
+          dpoRecommendation:
+            "The DPO recommends approval of this DPIA subject to completion of outstanding mitigations (biometric authentication, UEBA deployment, EmailJS migration) by stated timelines. Residual risks are assessed as acceptable with current controls.",
+          dpoName: "Jane Smith, Data Protection Officer",
+          dpoDate: "17th November 2025",
+          approver: "Dr. Michael Johnson, Medical Director",
+          approvalDate: "17th November 2025",
+        },
+      };
+
+      await generateDPIADocx(dpiaData, "DPIA_PCN_Services_2025.docx");
+      toast.success("DPIA document downloaded successfully!");
+    } catch (error) {
+      console.error("Error generating DPIA:", error);
+      toast.error("Failed to generate DPIA document");
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -1093,15 +1270,14 @@ const DPIA: React.FC = () => {
                 <FileText className="h-4 w-4" />
                 <span>Full DPIA documentation available in project reports</span>
               </div>
-              <a
-                href="/reports/Data_Protection_Impact_Assessment.md"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              <Button
+                onClick={handleDownloadDPIA}
+                disabled={isGenerating}
+                className="inline-flex items-center gap-2"
               >
                 <Download className="h-4 w-4" />
-                Download Full DPIA
-              </a>
+                {isGenerating ? "Generating..." : "Download Full DPIA"}
+              </Button>
             </div>
           </CardContent>
         </Card>
