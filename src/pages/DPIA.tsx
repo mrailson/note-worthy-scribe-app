@@ -236,10 +236,10 @@ const DPIA: React.FC = () => {
         approval: {
           dpoRecommendation:
             "The DPO recommends approval of this DPIA subject to completion of outstanding mitigations (biometric authentication, UEBA deployment, EmailJS migration) by stated timelines. Residual risks are assessed as acceptable with current controls.",
-          dpoName: "Jane Smith, Data Protection Officer",
-          dpoDate: "17th November 2025",
-          approver: "Dr. Michael Johnson, Medical Director",
-          approvalDate: "17th November 2025",
+          dpoName: "[DPO Name and Title]",
+          dpoDate: "[Date]",
+          approver: "[Approver Name and Title]",
+          approvalDate: "[Date]",
         },
       };
 
