@@ -117,9 +117,9 @@ const SecurityReport = () => {
       <Header />
       <div className="container mx-auto py-8 px-4 max-w-7xl">
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
-          <Link to="/safety-case" className="hover:text-primary flex items-center gap-1">
+          <Link to="/cso-report" className="hover:text-primary flex items-center gap-1">
             <ArrowLeft className="w-4 h-4" />
-            Clinical Safety Case
+            CSO Report
           </Link>
           <ChevronRight className="w-4 h-4" />
           <span>Security Scan Report</span>
