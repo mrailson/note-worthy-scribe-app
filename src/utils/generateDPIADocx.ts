@@ -297,8 +297,14 @@ function generateProcessingActivities(services: DPIAData["services"]): Paragraph
         spacing: { after: 200 },
       }),
       new Paragraph({
-        text: "Data Processed:",
-        style: "Heading3",
+        children: [
+          new TextRun({
+            text: "Data Processed:",
+            bold: true,
+            font: FONTS.default,
+            size: FONTS.size.body,
+          }),
+        ],
       })
     );
 
@@ -438,8 +444,12 @@ function generateRiskDetail(risk: Risk): Paragraph[] {
       spacing: { after: 120 },
     }),
     new Paragraph({
-      text: "Controls in Place:",
-      style: "Strong",
+      children: [
+        new TextRun({
+          text: "Controls in Place:",
+          bold: true,
+        }),
+      ],
     }),
     ...risk.controls.map(
       (control) =>
@@ -456,8 +466,12 @@ function generateRiskDetail(risk: Risk): Paragraph[] {
       spacing: { after: 120 },
     }),
     new Paragraph({
-      text: "Additional Measures Planned:",
-      style: "Strong",
+      children: [
+        new TextRun({
+          text: "Additional Measures Planned:",
+          bold: true,
+        }),
+      ],
     }),
     ...risk.additionalMeasures.map(
       (measure) =>
@@ -636,8 +650,12 @@ function generateTransfersSection(
         spacing: { after: 120 },
       }),
       new Paragraph({
-        text: "Additional Safeguards:",
-        style: "Strong",
+        children: [
+          new TextRun({
+            text: "Additional Safeguards:",
+            bold: true,
+          }),
+        ],
       })
     );
 
