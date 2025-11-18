@@ -1,8 +1,9 @@
 import { Header } from '@/components/Header';
 import { CSOComplianceReport } from '@/components/CSOComplianceReport';
+import { SecuritySummaryCard } from '@/components/SecuritySummaryCard';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Shield, FileText, AlertCircle } from 'lucide-react';
+import { Shield, FileText, AlertCircle, ShieldCheck } from 'lucide-react';
 
 const SafetyCase = () => {
   return (
@@ -137,6 +138,49 @@ const SafetyCase = () => {
                   Post-implementation surveillance and incident reporting procedures.
                 </p>
               </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Security & Technical Compliance Section */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ShieldCheck className="w-5 h-5 text-blue-600" />
+              Technical Security & Data Protection Status
+            </CardTitle>
+            <CardDescription>
+              Real-time security scan results and data protection compliance overview
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid md:grid-cols-2 gap-4">
+              <SecuritySummaryCard variant="detailed" showActions={true} />
+              
+              <Card className="bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/20 dark:to-purple-950/20 border-blue-200 dark:border-blue-800">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base flex items-center gap-2">
+                    <Shield className="w-4 h-4" />
+                    Data Protection Impact Assessment
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground">
+                    Comprehensive DPIA completed covering all processing activities:
+                  </p>
+                  <ul className="text-sm space-y-1 ml-4 list-disc text-muted-foreground">
+                    <li>Meeting Manager (audio recording & transcription)</li>
+                    <li>GP Scribe (clinical consultation notes)</li>
+                    <li>Complaints Management System</li>
+                  </ul>
+                  <div className="pt-2">
+                    <a href="/dpia" className="text-sm text-blue-600 hover:underline dark:text-blue-400 flex items-center gap-1">
+                      <FileText className="w-4 h-4" />
+                      View Full DPIA Documentation →
+                    </a>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
           </CardContent>
         </Card>
