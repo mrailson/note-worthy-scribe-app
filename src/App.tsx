@@ -62,6 +62,7 @@ import DemoVideosPage from "./pages/DemoVideosPage";
 import NRESDashboard from "./pages/NRESDashboard";
 import ProactiveComplexCareDashboard from "./pages/ProactiveComplexCareDashboard";
 import CommsStrategyDashboard from "./pages/CommsStrategyDashboard";
+import SecurityReport from "./pages/SecurityReport";
 
 const App = () => {
   useSessionActivity();
@@ -160,6 +161,7 @@ const App = () => {
               <Route path="/admin/consolidate" element={<AdminConsolidate />} />
               <Route path="/turkey2025" element={<Turkey2025 />} />
               <Route path="/voice-test" element={<VoiceTest />} />
+              <Route path="/security-report" element={<SecurityReport />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
