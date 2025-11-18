@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { useNavigate } from "react-router-dom";
 import {
   Shield,
   AlertTriangle,
@@ -25,6 +26,7 @@ import {
   Server,
   AlertCircle,
   ShieldAlert,
+  ArrowLeft,
 } from "lucide-react";
 import { calculateRiskScores, getRiskLevel, formatLikelihood, formatSeverity, calculateRiskStatistics } from "@/utils/dpiaRiskMatrix";
 import type { Risk } from "@/utils/dpiaRiskMatrix";
@@ -76,6 +78,7 @@ const risks: Risk[] = [
 ];
 
 const DPIA: React.FC = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("overview");
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -258,6 +261,17 @@ const DPIA: React.FC = () => {
       <Header />
       
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Back Navigation */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/cso-report')}
+          className="mb-4 gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to CSO Report
+        </Button>
+
         {/* Page Header */}
         <div className="mb-8">
           <div className="flex items-center gap-3 mb-4">

@@ -19,11 +19,14 @@ import {
   Zap,
   Server,
   Globe,
-  HardDrive
+  HardDrive,
+  ArrowLeft
 } from "lucide-react";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 const DataFlowArchitecture = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<string>("overview");
 
   const scrollToSection = (sectionId: string) => {
@@ -53,6 +56,17 @@ const DataFlowArchitecture = () => {
     <>
       <Header />
       <div className="container mx-auto px-4 py-8">
+        {/* Back Navigation */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/cso-report')}
+          className="mb-4 gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to CSO Report
+        </Button>
+
         <div className="mb-8">
           <h1 className="text-4xl font-bold mb-2 flex items-center gap-3">
             <GitBranch className="w-10 h-10 text-primary" />

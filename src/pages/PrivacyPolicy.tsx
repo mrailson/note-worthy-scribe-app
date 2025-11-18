@@ -1,15 +1,30 @@
 import { Header } from '@/components/Header';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
-import { Shield, Lock, Database, UserCheck, FileText, AlertCircle, Mail, Phone } from 'lucide-react';
+import { Shield, Lock, Database, UserCheck, FileText, AlertCircle, Mail, Phone, ArrowLeft } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 
 const PrivacyPolicy = () => {
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <div className="container mx-auto px-4 py-8 max-w-5xl">
+        {/* Back Navigation */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/cso-report')}
+          className="mb-4 gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to CSO Report
+        </Button>
+
         {/* Header */}
         <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-background border-l-4 border-primary p-6 mb-8 rounded-lg">
           <div className="flex items-center gap-2 mb-2">

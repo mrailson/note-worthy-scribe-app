@@ -2,14 +2,29 @@ import { Header } from '@/components/Header';
 import { HazardAnalysisReport } from '@/components/HazardAnalysisReport';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, Shield } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { AlertTriangle, Shield, ArrowLeft } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 
 const HazardLog = () => {
+  const navigate = useNavigate();
+  
   return (
     <div className="min-h-screen bg-background">
       <Header />
       
       <div className="container mx-auto px-4 py-8 max-w-7xl">
+        {/* Back Navigation */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => navigate('/cso-report')}
+          className="mb-4 gap-2"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to CSO Report
+        </Button>
+
         {/* Header */}
         <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/20 dark:to-red-950/20 border-l-4 border-orange-500 p-6 mb-8 rounded-lg">
           <div className="flex items-center gap-2 mb-2">
