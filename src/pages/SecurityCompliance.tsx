@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useNavigate } from "react-router-dom";
-import { useToast } from "@/hooks/use-toast";
 import { onDownloadCqcEvidencePack, onDownloadAdvancedEvidencePack } from "@/utils/evidencePackExport";
 import { Header } from "@/components/Header";
 import { 
@@ -30,7 +29,6 @@ import {
 
 export default function SecurityCompliance() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const [expandedSections, setExpandedSections] = useState<Record<string, boolean>>({});
   const [userType, setUserType] = useState<'practice_manager' | 'governance'>('practice_manager');
 
@@ -42,28 +40,14 @@ export default function SecurityCompliance() {
   };
 
   const downloadEvidencePack = async (type: 'cqc' | 'advanced') => {
-    toast({
-      title: `${type === 'cqc' ? 'CQC' : 'Advanced'} Evidence Pack`,
-      description: `Generating ${type === 'cqc' ? 'CQC' : 'Advanced'} evidence pack for download...`,
-    });
-    
     try {
       if (type === 'cqc') {
         await onDownloadCqcEvidencePack();
       } else {
         await onDownloadAdvancedEvidencePack();
       }
-      
-      toast({
-        title: "Evidence Pack Generated",
-        description: `${type === 'cqc' ? 'CQC' : 'Advanced'} evidence pack is ready for download.`,
-      });
     } catch (error) {
-      toast({
-        title: "Export Error",
-        description: "Failed to generate evidence pack. Please try again.",
-        variant: "destructive"
-      });
+      console.error('Error generating evidence pack:', error);
     }
   };
 
