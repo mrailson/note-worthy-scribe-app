@@ -1,6 +1,7 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Shield, Lock, Database, Network, FileCheck, Eye, AlertTriangle, CheckCircle2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Shield, Lock, Database, Network, FileCheck, Eye, AlertTriangle, CheckCircle2, ExternalLink } from "lucide-react";
 
 const SecurityPostureOverview = () => {
   const securityDomains = [
@@ -90,7 +91,8 @@ const SecurityPostureOverview = () => {
     { name: "NHS DCB0160", status: "Compliant", description: "Clinical Safety Officer Registration" },
     { name: "MHRA Class I", status: "Registered", description: "Medical Device Registration" },
     { name: "CQC Regulation 16", status: "Compliant", description: "Receiving and Acting on Complaints" },
-    { name: "ISO 27001 Aligned", status: "In Progress", description: "Information Security Management" }
+    { name: "ISO 27001", status: "Compliant", description: "Information Security Management (Lovable Platform)" },
+    { name: "SOC 2 Type II", status: "Compliant", description: "Security, Availability & Confidentiality (Lovable Platform)" }
   ];
 
   const technicalControls = [
@@ -188,7 +190,19 @@ const SecurityPostureOverview = () => {
 
         {/* Compliance Frameworks */}
         <div className="mb-8">
-          <h2 className="text-2xl font-semibold mb-4">Compliance & Standards</h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-2xl font-semibold">Compliance & Standards</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => window.open('https://trust.platform.delve.co/lovable', '_blank')}
+              className="gap-2"
+            >
+              <Shield className="h-4 w-4" />
+              Lovable Trust Centre
+              <ExternalLink className="h-3 w-3" />
+            </Button>
+          </div>
           <Card>
             <CardContent className="pt-6">
               <div className="grid md:grid-cols-3 gap-4">
@@ -206,6 +220,19 @@ const SecurityPostureOverview = () => {
                     <p className="text-sm text-muted-foreground">{framework.description}</p>
                   </div>
                 ))}
+              </div>
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  <strong>Note:</strong> ISO 27001 and SOC 2 Type II certifications apply to the Lovable platform infrastructure. 
+                  View full compliance documentation and security controls at the{' '}
+                  <button
+                    onClick={() => window.open('https://trust.platform.delve.co/lovable', '_blank')}
+                    className="text-primary hover:underline inline-flex items-center gap-1"
+                  >
+                    Lovable Trust Centre
+                    <ExternalLink className="h-3 w-3" />
+                  </button>
+                </p>
               </div>
             </CardContent>
           </Card>
