@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -44,6 +44,7 @@ import {
 } from "@/data/csoReportData";
 
 const CSOReport = () => {
+  const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<string>("executive");
   const [isExporting, setIsExporting] = useState(false);
 
@@ -553,7 +554,7 @@ const CSOReport = () => {
                 <div className="bg-orange-50 dark:bg-orange-950/20 border border-orange-200 dark:border-orange-900 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <AlertTriangle className="w-5 h-5 text-orange-700 dark:text-orange-500 flex-shrink-0 mt-0.5" />
-                    <div>
+                    <div className="flex-1">
                       <h4 className="font-semibold text-orange-900 dark:text-orange-300 mb-1">Critical Security Actions</h4>
                       <ul className="text-sm text-orange-800 dark:text-orange-400 space-y-1 mt-2">
                         <li>• Complete comprehensive security audit and address all identified warnings</li>
@@ -563,6 +564,14 @@ const CSOReport = () => {
                         <li>• Develop and test security incident response plan</li>
                         <li>• Document and verify all system navigation and access control paths</li>
                       </ul>
+                      <Button 
+                        onClick={() => navigate('/security-report')}
+                        variant="outline"
+                        size="sm"
+                        className="mt-3 bg-white dark:bg-background hover:bg-orange-100 dark:hover:bg-orange-950/40"
+                      >
+                        View Security Audit Report
+                      </Button>
                     </div>
                   </div>
                 </div>
