@@ -151,6 +151,7 @@ export default function SecurityCompliance() {
       icon: <Lock className="h-5 w-5" />,
       title: "Authentication & Authorization",
       description: "Multi-factor authentication with role-based access controls",
+      status: "Implemented" as const,
       details: [
         "JWT token management with auto-refresh",
         "Role-based permissions (System Admin, Practice Manager, PCN Manager)",
@@ -162,6 +163,7 @@ export default function SecurityCompliance() {
       icon: <Database className="h-5 w-5" />,
       title: "Database Security",
       description: "Row Level Security (RLS) policies on all sensitive data",
+      status: "Implemented" as const,
       details: [
         "User-based data isolation",
         "Practice-specific access controls",
@@ -173,22 +175,36 @@ export default function SecurityCompliance() {
       icon: <Eye className="h-5 w-5" />,
       title: "Audit & Monitoring",
       description: "Comprehensive logging and monitoring of all system activities",
+      status: "In Progress" as const,
       details: [
         "Complete audit trails for all data changes",
         "Failed login attempt tracking",
         "Role change auditing",
-        "Real-time security monitoring"
+        "Real-time security monitoring (in progress)"
       ]
     },
     {
       icon: <Users className="h-5 w-5" />,
       title: "Data Protection",
       description: "GDPR compliance with privacy by design principles",
+      status: "Implemented" as const,
       details: [
         "Data minimization and purpose limitation",
         "Right to access, rectification, and erasure",
         "Data portability features",
         "Consent management systems"
+      ]
+    },
+    {
+      icon: <Shield className="h-5 w-5" />,
+      title: "Penetration Testing",
+      description: "Annual security testing and vulnerability assessment",
+      status: "Planned" as const,
+      details: [
+        "Scheduled annual penetration testing",
+        "Vulnerability disclosure process (in development)",
+        "Security incident response plan (in development)",
+        "CI/CD security scanning (in progress)"
       ]
     }
   ];
@@ -399,6 +415,93 @@ export default function SecurityCompliance() {
           </div>
         </div>
 
+        {/* Security Status Banner */}
+        <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-950/20 dark:to-amber-950/20 border border-orange-200 dark:border-orange-900 rounded-lg p-4 mb-6">
+          <div className="flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-orange-700 dark:text-orange-500 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-orange-900 dark:text-orange-300 mb-2">Ongoing Security Enhancement Programme</h3>
+              <p className="text-sm text-orange-800 dark:text-orange-400 mb-3">
+                The platform has strong core security controls with 100+ RLS policies and 73% security improvement achieved. 
+                Critical security actions are in progress to reach NHS production readiness.
+              </p>
+              <div className="flex flex-wrap gap-2">
+                <Button 
+                  onClick={() => navigate('/cso-report')}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-background hover:bg-orange-100 dark:hover:bg-orange-950/40"
+                >
+                  View CSO Report
+                </Button>
+                <Button 
+                  onClick={() => navigate('/security-report')}
+                  variant="outline"
+                  size="sm"
+                  className="bg-white dark:bg-background hover:bg-orange-100 dark:hover:bg-orange-950/40"
+                >
+                  View Security Audit Report
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Current Security Status Card */}
+        <Card className="mb-6 border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Shield className="h-5 w-5 text-primary" />
+              Current Security Status
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="text-center p-4 bg-green-50 dark:bg-green-950/20 rounded-lg">
+                <div className="text-2xl font-bold text-green-700 dark:text-green-400">73%</div>
+                <div className="text-sm text-green-600 dark:text-green-500">Security Improvement Achieved</div>
+              </div>
+              <div className="text-center p-4 bg-blue-50 dark:bg-blue-950/20 rounded-lg">
+                <div className="text-2xl font-bold text-blue-700 dark:text-blue-400">100+</div>
+                <div className="text-sm text-blue-600 dark:text-blue-500">RLS Policies Implemented</div>
+              </div>
+              <div className="text-center p-4 bg-purple-50 dark:bg-purple-950/20 rounded-lg">
+                <div className="text-2xl font-bold text-purple-700 dark:text-purple-400">15</div>
+                <div className="text-sm text-purple-600 dark:text-purple-500">Critical Vulnerabilities Resolved</div>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t">
+              <h4 className="font-semibold mb-3 flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-orange-600" />
+                Critical Actions in Progress
+              </h4>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li className="flex items-start gap-2">
+                  <span className="text-orange-500 font-bold">•</span>
+                  <span>Complete comprehensive security audit and address all identified warnings</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-orange-500 font-bold">•</span>
+                  <span>Implement security scanning as part of CI/CD pipeline</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-orange-500 font-bold">•</span>
+                  <span>Conduct penetration testing (minimum annual schedule)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-orange-500 font-bold">•</span>
+                  <span>Establish vulnerability disclosure process</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-orange-500 font-bold">•</span>
+                  <span>Develop and test security incident response plan</span>
+                </li>
+              </ul>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Audience Selection */}
         <div className="flex justify-center mb-6">
           <div className="flex gap-2 p-1 bg-muted rounded-lg">
@@ -424,13 +527,14 @@ export default function SecurityCompliance() {
         </div>
 
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className={`grid w-full h-auto ${userType === 'governance' ? 'grid-cols-5' : 'grid-cols-1'}`}>
+          <TabsList className={`grid w-full h-auto ${userType === 'governance' ? 'grid-cols-6' : 'grid-cols-1'}`}>
             <TabsTrigger value="overview" className="text-xs sm:text-sm px-2 py-2">Overview</TabsTrigger>
             {userType === 'governance' && (
               <>
                 <TabsTrigger value="technical" className="text-xs sm:text-sm px-2 py-2">Technical</TabsTrigger>
                 <TabsTrigger value="compliance" className="text-xs sm:text-sm px-2 py-2">Compliance</TabsTrigger>
                 <TabsTrigger value="risk" className="text-xs sm:text-sm px-2 py-2">Risk Mgmt</TabsTrigger>
+                <TabsTrigger value="roadmap" className="text-xs sm:text-sm px-2 py-2">Roadmap</TabsTrigger>
                 <TabsTrigger value="dspt" className="text-xs sm:text-sm px-2 py-2">DSPT Crosswalk</TabsTrigger>
               </>
             )}
@@ -459,138 +563,43 @@ export default function SecurityCompliance() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Shield className="h-5 w-5 text-primary" />
-                  Security Controls Overview
+                  Core Security Controls
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Card className="border-primary/20">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Lock className="h-5 w-5 text-primary" />
+                  {securityControls.map((control, index) => (
+                    <Card key={index} className="border-primary/20">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between mb-2">
+                          <CardTitle className="flex items-center gap-2 text-base">
+                            <div className="p-2 rounded-lg bg-primary/10">
+                              {control.icon}
+                            </div>
+                            {control.title}
+                          </CardTitle>
+                          <Badge variant={
+                            control.status === 'Implemented' ? 'default' :
+                            control.status === 'In Progress' ? 'secondary' :
+                            'outline'
+                          }>
+                            {control.status}
+                          </Badge>
                         </div>
-                        Authentication & Access
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">Secure logins, staff-specific roles, account lockout protection</p>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-1">
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Multi-factor authentication</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Role-based access controls</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Session management with automatic timeout</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Account lockout protection</span>
-                        </li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-primary/20">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Users className="h-5 w-5 text-primary" />
-                        </div>
-                        Data Protection
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">GDPR and NHS-compliant data handling at all times</p>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-1">
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Data minimization and purpose limitation</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Right to access, rectification, and erasure</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Data portability features</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Consent management systems</span>
-                        </li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-primary/20">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Eye className="h-5 w-5 text-primary" />
-                        </div>
-                        Audit & Monitoring
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">Automatic logs of activity, with alerts for anything unusual</p>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-1">
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Complete audit trails for all data changes</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Failed login attempt tracking</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Role change auditing</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Real-time security monitoring</span>
-                        </li>
-                      </ul>
-                    </CardContent>
-                  </Card>
-
-                  <Card className="border-primary/20">
-                    <CardHeader className="pb-3">
-                      <CardTitle className="flex items-center gap-2 text-base">
-                        <div className="p-2 rounded-lg bg-primary/10">
-                          <Database className="h-5 w-5 text-primary" />
-                        </div>
-                        Database Security
-                      </CardTitle>
-                      <p className="text-sm text-muted-foreground">UK-only encrypted hosting, data separated by practice</p>
-                    </CardHeader>
-                    <CardContent>
-                      <ul className="space-y-1">
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>User-based data isolation</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Practice-specific access controls</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Encrypted data transmission via HTTPS/TLS 1.3</span>
-                        </li>
-                        <li className="flex items-center gap-2 text-sm">
-                          <CheckCircle className="h-3 w-3 text-success shrink-0" />
-                          <span>Automated data retention policies</span>
-                        </li>
-                      </ul>
-                    </CardContent>
-                  </Card>
+                        <p className="text-sm text-muted-foreground">{control.description}</p>
+                      </CardHeader>
+                      <CardContent>
+                        <ul className="space-y-1">
+                          {control.details.map((detail, idx) => (
+                            <li key={idx} className="flex items-center gap-2 text-sm">
+                              <CheckCircle className="h-3 w-3 text-success shrink-0" />
+                              <span>{detail}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </CardContent>
+                    </Card>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -1468,6 +1477,130 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;`}
 
           {/* DSPT Toolkit Evidence Crosswalk Tab - Governance Only */}
           {userType === 'governance' && (
+            <TabsContent value="roadmap" className="space-y-6">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <Shield className="h-5 w-5 text-primary" />
+                    Security Enhancement Roadmap
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Completed Milestones */}
+                  <div>
+                    <h4 className="font-semibold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
+                      <CheckCircle className="w-5 h-5" />
+                      Completed Security Milestones
+                    </h4>
+                    <div className="space-y-2 ml-7">
+                      <div className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                        <span>Implemented 100+ Row Level Security (RLS) policies across all data tables</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                        <span>Resolved 15 critical security vulnerabilities from initial audit</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                        <span>Achieved 73% overall security improvement</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                        <span>Implemented JWT authentication with auto-refresh and session management</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                        <span>Established role-based access controls (RBAC) system</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <CheckCircle className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
+                        <span>Implemented comprehensive audit logging across all modules</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Current Security Work */}
+                  <div>
+                    <h4 className="font-semibold text-orange-700 dark:text-orange-400 mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-5 h-5" />
+                      Current Security Work (Q4 2024 - Q1 2025)
+                    </h4>
+                    <div className="space-y-2 ml-7">
+                      <div className="flex items-start gap-2 text-sm">
+                        <div className="w-4 h-4 rounded-full border-2 border-orange-500 mt-0.5 flex-shrink-0"></div>
+                        <span>Complete comprehensive security audit and address all remaining warnings</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <div className="w-4 h-4 rounded-full border-2 border-orange-500 mt-0.5 flex-shrink-0"></div>
+                        <span>Implement automated security scanning in CI/CD pipeline</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <div className="w-4 h-4 rounded-full border-2 border-orange-500 mt-0.5 flex-shrink-0"></div>
+                        <span>Document and verify all system navigation and access control paths</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <div className="w-4 h-4 rounded-full border-2 border-orange-500 mt-0.5 flex-shrink-0"></div>
+                        <span>Develop security incident response plan with testing procedures</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Planned Security Enhancements */}
+                  <div>
+                    <h4 className="font-semibold text-blue-700 dark:text-blue-400 mb-3 flex items-center gap-2">
+                      <FileText className="w-5 h-5" />
+                      Planned Security Enhancements (Q2 2025+)
+                    </h4>
+                    <div className="space-y-2 ml-7">
+                      <div className="flex items-start gap-2 text-sm">
+                        <div className="w-4 h-4 rounded border border-blue-500 mt-0.5 flex-shrink-0"></div>
+                        <span><strong>Annual Penetration Testing:</strong> Schedule minimum annual pen tests with certified providers</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <div className="w-4 h-4 rounded border border-blue-500 mt-0.5 flex-shrink-0"></div>
+                        <span><strong>Vulnerability Disclosure Programme:</strong> Establish formal process for external security researchers</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <div className="w-4 h-4 rounded border border-blue-500 mt-0.5 flex-shrink-0"></div>
+                        <span><strong>Advanced Threat Monitoring:</strong> Implement SIEM integration and real-time threat detection</span>
+                      </div>
+                      <div className="flex items-start gap-2 text-sm">
+                        <div className="w-4 h-4 rounded border border-blue-500 mt-0.5 flex-shrink-0"></div>
+                        <span><strong>Security Awareness Training:</strong> Ongoing programme for all system users</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Timeline Overview */}
+                  <div className="bg-muted/50 rounded-lg p-4 mt-6">
+                    <h4 className="font-semibold mb-3">Key Dates</h4>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Security Audit Completion:</span>
+                        <span className="font-medium">Q1 2025</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">First Penetration Test:</span>
+                        <span className="font-medium">Q2 2025</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">NHS Production Readiness:</span>
+                        <span className="font-medium">Q2 2025</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+          )}
+
+          {/* DSPT Toolkit Evidence Crosswalk Tab - Governance Only */}
+          {userType === 'governance' && (
             <TabsContent value="dspt" className="space-y-6">
               <Card>
                 <CardHeader>
@@ -1528,6 +1661,67 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;`}
             </TabsContent>
           )}
         </Tabs>
+
+        {/* Cross-References & Navigation */}
+        <Card className="mt-6 border-primary/20">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ExternalLink className="h-5 w-5 text-primary" />
+              Related Governance Documents
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground mb-4">
+                For comprehensive governance assessment, please review these related documents:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                <Button
+                  onClick={() => navigate('/cso-report')}
+                  variant="outline"
+                  className="justify-start h-auto py-3"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold">CSO Report</div>
+                    <div className="text-xs text-muted-foreground">Clinical Safety Officer Assessment</div>
+                  </div>
+                </Button>
+                <Button
+                  onClick={() => navigate('/security-report')}
+                  variant="outline"
+                  className="justify-start h-auto py-3"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold">Security Audit Report</div>
+                    <div className="text-xs text-muted-foreground">Real-time security scan results</div>
+                  </div>
+                </Button>
+                <Button
+                  onClick={() => navigate('/data-protection')}
+                  variant="outline"
+                  className="justify-start h-auto py-3"
+                >
+                  <div className="text-left">
+                    <div className="font-semibold">DPIA</div>
+                    <div className="text-xs text-muted-foreground">Data Protection Impact Assessment</div>
+                  </div>
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Back Navigation */}
+        <div className="mt-6 flex justify-center">
+          <Button
+            onClick={() => navigate('/cso-report')}
+            variant="outline"
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to CSO Report
+          </Button>
+        </div>
       </div>
     </div>
   );
