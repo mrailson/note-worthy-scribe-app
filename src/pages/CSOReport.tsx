@@ -1876,53 +1876,91 @@ const CSOReport = () => {
 
               <Separator />
 
-              {/* Subject Access Requests & FOI */}
+              {/* Backups, Restore, SAR & FOI Support */}
               <div>
                 <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
-                  <FileText className="w-5 h-5" />
-                  Subject Access Requests (SAR) & FOI Handling
+                  <Database className="w-5 h-5" />
+                  Backups, Restore, SAR & FOI Support
                 </h3>
+                
                 <p className="mb-4">
-                  NoteWell AI will provide clear mechanisms for practices to respond to SARs and FOI requests efficiently and safely.
+                  The ICP security discussion highlighted the importance of clear backup and restore arrangements (including ransomware resilience), and practical support for Subject Access Requests (SARs) and Freedom of Information (FOI) requests, so NoteWell does not save time in one area only to create extra work elsewhere.
                 </p>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Initial capability outline (to be finalised with the DPO and SIRO):
-                </p>
-                <div className="space-y-3">
-                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
-                    <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <span className="font-semibold">Data Export:</span> Practices will be able to export all complaint records and associated documents for a given patient (export method TBC).
+
+                <div className="space-y-4">
+                  {/* Backups & ransomware resilience */}
+                  <div className="border rounded-lg p-4 bg-background">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Database className="w-4 h-4 text-blue-600" />
+                      Backups & Ransomware Resilience
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Supabase provides regular automated backups of the primary database (UK region)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Access to backups is restricted to platform administrators</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Options for immutable backups and recovery point objectives (RPO/RTO) are being explored with hosting partners (TBC)</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
-                    <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <span className="font-semibold">Search Functionality:</span> A structured search tool will allow identification of all records containing a patient's identifiers (TBC).
+
+                  {/* Deletion vs backups */}
+                  <div className="border rounded-lg p-4 bg-background">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <AlertTriangle className="w-4 h-4 text-amber-600" />
+                      Deletion vs Backups
+                    </h4>
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">A written position is required on how data erasure/deletion requests interact with historic backups (TBC)</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">This will be aligned with standard NHS guidance on backups and data protection</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
-                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <span className="font-semibold">Filters:</span> Only the relevant patient's data will be included in an export, preventing accidental disclosure.
+
+                  {/* SAR/FOI support */}
+                  <div className="border rounded-lg p-4 bg-background">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      SAR/FOI Support (Planned Feature)
+                    </h4>
+                    <div className="space-y-2 mb-3">
+                      <div className="flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm"><strong>Requirement identified:</strong> Ability to efficiently retrieve all records relating to a specific patient or staff member for SAR/FOI</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm"><strong>Planned roadmap item:</strong> A search/export function (e.g. "return all complaints/meeting records for [NHS number / name / unique ID]") to generate SAR/FOI bundles</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Until that feature is implemented, practices will be able to search using standard filters and export results, but a dedicated SAR/FOI workflow will be added to reduce burden</span>
+                      </div>
                     </div>
                   </div>
-                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
-                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                    <div className="text-sm">
-                      <span className="font-semibold">Audit Trail:</span> All SAR/FOI extraction events will be fully logged.
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
-                    <div>
-                      <p className="text-sm font-semibold mb-1">Compliance Workflow</p>
-                      <p className="text-sm text-muted-foreground">
-                        A dedicated SAR/FOI compliance workflow will be added in the next iteration following DPO review (TBC).
-                      </p>
-                    </div>
+
+                  {/* TBC items */}
+                  <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-4">
+                    <h4 className="font-semibold text-sm mb-2 flex items-center gap-2">
+                      <Clock className="w-4 h-4 text-amber-600" />
+                      TBC Items
+                    </h4>
+                    <ul className="space-y-1 ml-4 text-sm">
+                      <li>• Final backup strategy (including immutable options, RPO/RTO) – to be agreed with chosen hosting organisation</li>
+                      <li>• SAR/FOI export design and implementation timetable</li>
+                      <li>• These details will be incorporated into the DPIA, DSAR/FOI guidance for practices, and the public-facing Trust Centre when finalised</li>
+                    </ul>
                   </div>
                 </div>
               </div>
@@ -1938,81 +1976,84 @@ const CSOReport = () => {
                 
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="hosting">
-                    <AccordionTrigger className="text-base font-semibold">Hosting & Infrastructure - Deployment Model</AccordionTrigger>
+                    <AccordionTrigger className="text-base font-semibold">Hosting & Deployment Model</AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-4">
-                        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-4">
-                          <h4 className="font-semibold text-sm mb-2 text-amber-900 dark:text-amber-300">Current (Development Only)</h4>
-                          <ul className="space-y-2 ml-4">
-                            <li className="flex items-start gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm">Lovable + Supabase (AWS London)</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm">UK-only cloud infrastructure</span>
-                            </li>
-                            <li className="flex items-start gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm">Suitable for development and testing only</span>
-                            </li>
-                          </ul>
+                        {/* Current position */}
+                        <div className="border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20 p-4 rounded-r-lg">
+                          <h4 className="font-semibold text-sm mb-2 text-amber-900 dark:text-amber-300">Current Position (Pilot)</h4>
+                          <p className="text-sm mb-3">
+                            NoteWell AI is currently hosted on Supabase (AWS London region) with the application layer deployed via the Lovable platform. All data is stored in the UK, encrypted in transit (TLS 1.2+) and at rest (AES-256).
+                          </p>
                         </div>
-                        
-                        <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-4">
-                          <h4 className="font-semibold text-sm mb-2 text-green-900 dark:text-green-300">Target (For Pilot Deployment)</h4>
+
+                        {/* Target position */}
+                        <div className="border-l-4 border-green-500 bg-green-50 dark:bg-green-950/20 p-4 rounded-r-lg">
+                          <h4 className="font-semibold text-sm mb-2 text-green-900 dark:text-green-300">Target Position (Production / Neighbourhood Model)</h4>
+                          <p className="text-sm mb-3">
+                            The preferred strategic option is to host NoteWell within an NHS-controlled environment (e.g. LHIS/UHL tenant), using Lovable primarily as a development environment with code promoted via GitHub into a controlled NHS deployment pipeline.
+                          </p>
+                          <p className="text-sm font-semibold mb-2">This would allow:</p>
                           <ul className="space-y-2 ml-4">
                             <li className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm">NHS-hosted tenant (LHIS preferred)</span>
+                              <span className="text-sm">Use of existing NHS security controls and monitoring</span>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm">Alternative: UHL or PCN/Neighbourhood tenant</span>
+                              <span className="text-sm">Easier assurance for practices around complaints-related PII</span>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm">Full NHS governance and risk ownership</span>
+                              <span className="text-sm">Alignment with ICB/ICP security and DSPT governance</span>
                             </li>
                           </ul>
                         </div>
 
-                        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
-                          <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-300">Migration Path</h4>
-                          <ul className="space-y-2 ml-4">
+                        {/* Decisions & dependencies */}
+                        <div className="border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-950/20 p-4 rounded-r-lg">
+                          <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-300">Decisions & Dependencies (TBC)</h4>
+                          <ul className="space-y-2 text-sm">
                             <li className="flex items-start gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm">Export codebase via GitHub integration</span>
+                              <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <span><strong>Hosting organisation:</strong> TBC between Neighbourhood / LHIS / Trust (decision owner: ICP Digital/IT)</span>
                             </li>
                             <li className="flex items-start gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm">Redeploy into NHS-approved hosting environment</span>
+                              <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <span><strong>Final production tenancy:</strong> NHS tenant vs. supplier tenancy – to be confirmed as part of neighbourhood business case</span>
                             </li>
                             <li className="flex items-start gap-2">
-                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span className="text-sm">Standard React/Vite application - platform agnostic</span>
+                              <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <span><strong>Timeline:</strong> Target decision for hosting model during neighbourhood planning (TBC – expected 2026)</span>
                             </li>
                           </ul>
                         </div>
 
-                        <div className="mt-3 p-3 bg-muted rounded-lg">
-                          <p className="text-sm"><strong>Justification:</strong> NHS-hosted deployment enables easier penetration test acceptance, clearer ICB risk ownership, and aligns with NHS data sovereignty requirements. Running live production on Lovable is not recommended for NHS deployment.</p>
+                        {/* Important notice */}
+                        <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-2 border-amber-300 dark:border-amber-900 rounded-lg p-4">
+                          <div className="flex items-start gap-3">
+                            <AlertTriangle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                            <p className="text-sm">
+                              <strong>Important:</strong> Until a final hosting decision is made, NoteWell will remain in UK-only Supabase/Lovable hosting for development and limited pilot discussions only, with no broad roll-out of complaints data processing.
+                            </p>
+                          </div>
                         </div>
 
-                        <div className="space-y-2 mt-4">
-                          <h4 className="font-semibold text-sm">Infrastructure Security Controls</h4>
+                        {/* Infrastructure controls */}
+                        <div className="mt-3">
+                          <h4 className="font-semibold text-sm mb-2">Infrastructure Security Controls</h4>
                           <ul className="space-y-2 ml-4">
                             <li className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span>No public inbound services beyond HTTPS</span>
+                              <span className="text-sm">No public inbound services beyond HTTPS</span>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span>TLS enforced edge-to-end</span>
+                              <span className="text-sm">TLS enforced edge-to-end</span>
                             </li>
                             <li className="flex items-start gap-2">
                               <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                              <span>Segregated databases per tenant organisation via RLS</span>
+                              <span className="text-sm">Segregated databases per tenant organisation via RLS</span>
                             </li>
                           </ul>
                         </div>
@@ -2035,11 +2076,36 @@ const CSOReport = () => {
                         <li className="flex items-start gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
                           <div>
-                            <span className="font-semibold">Mandatory MFA for all users</span>
-                            <p className="text-sm text-muted-foreground mt-1">
-                              Two MFA options provided: Authenticator App and Email/Code. 
-                              We understand user resistance; therefore two MFA methods are provided to ensure accessibility whilst maintaining security.
-                            </p>
+                            <span className="font-semibold">Multi-Factor Authentication (MFA) – Mandatory for All Users</span>
+                            <div className="mt-2 space-y-2 text-sm">
+                              <p className="text-muted-foreground">
+                                Complaints content will frequently contain sensitive and potentially inflammatory PII. The ICB security lead has advised that MFA is mandatory, in line with NHS security expectations.
+                              </p>
+                              <div className="bg-muted/50 rounded-lg p-3 mt-2">
+                                <p className="font-semibold mb-1">Current Position</p>
+                                <ul className="space-y-1 ml-4">
+                                  <li>• Supabase Auth supports email/password plus optional MFA</li>
+                                  <li>• MFA is not yet enforced for all users in the pilot configuration</li>
+                                </ul>
+                              </div>
+                              <div className="bg-muted/50 rounded-lg p-3 mt-2">
+                                <p className="font-semibold mb-1">Planned MFA Approach</p>
+                                <ul className="space-y-1 ml-4">
+                                  <li>• MFA will be required for all production users accessing complaints or other PII-bearing modules</li>
+                                  <li>• <strong>Microsoft Authenticator</strong> (preferred where organisations already use Microsoft 365)</li>
+                                  <li>• Alternative NHS-aligned factors (e.g. smartcard-based or card/OTP options where available)</li>
+                                  <li>• Exact MFA mechanism will be selected to balance usability for practice managers (including less tech-confident staff) with NHS security standards</li>
+                                </ul>
+                              </div>
+                              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-3 mt-2">
+                                <p className="font-semibold mb-1 text-amber-900 dark:text-amber-300">TBC Items</p>
+                                <ul className="space-y-1 ml-4 text-muted-foreground">
+                                  <li>• Final MFA option(s) to be agreed with ICP/LHIS security (TBC)</li>
+                                  <li>• Configuration in Supabase to enforce MFA for all production organisations (TBC)</li>
+                                  <li>• MFA will be clearly documented in onboarding materials so GP practices understand that multi-factor login is a non-negotiable control for complaints and governance data</li>
+                                </ul>
+                              </div>
+                            </div>
                           </div>
                         </li>
                         <li className="flex items-start gap-2">
@@ -2149,48 +2215,62 @@ const CSOReport = () => {
                   </AccordionItem>
 
                   <AccordionItem value="log-retention">
-                    <AccordionTrigger className="text-base font-semibold">Log Retention & Data Lifecycle (CAF v4 Aligned)</AccordionTrigger>
+                    <AccordionTrigger className="text-base font-semibold">Log Retention & Monitoring</AccordionTrigger>
                     <AccordionContent>
                       <p className="text-sm mb-4">
-                        NoteWell AI defines log retention periods based on operational need, privacy requirements, and upcoming CAF v4 alignment.
+                        NoteWell generates audit and security logs for user logins and access to complaints and meeting records, configuration changes and role updates, and security-relevant events (e.g. repeated failed logins).
                       </p>
                       <p className="text-sm mb-4">
-                        These values will be finalised with the hosting organisation (TBC), but the proposed retention periods are:
+                        The ICB security lead highlighted the emerging mapping of DSPT → CAF v4, which will require applications to explicitly define log retention based on risk and use case, rather than a blanket value.
                       </p>
-                      <div className="space-y-2">
-                        <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
-                          <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                          <div className="text-sm">
-                            <span className="font-semibold">System audit logs:</span> 90 days (TBC)
-                          </div>
+
+                      <div className="space-y-3">
+                        {/* Current position */}
+                        <div className="bg-muted/50 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2">Current Position</h4>
+                          <ul className="space-y-2 text-sm">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Logs are retained in Supabase for operational troubleshooting and security review</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <span>No formal, risk-based written log retention policy has yet been agreed</span>
+                            </li>
+                          </ul>
                         </div>
-                        <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
-                          <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                          <div className="text-sm">
-                            <span className="font-semibold">Access logs:</span> 12 months (TBC)
-                          </div>
+
+                        {/* Planned approach */}
+                        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-300">Planned Approach (Subject to ICP/LHIS Agreement)</h4>
+                          <p className="text-sm mb-3">Define log retention period for:</p>
+                          <ul className="space-y-2 text-sm">
+                            <li className="flex items-start gap-2">
+                              <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <span><strong>Application/audit logs:</strong> e.g. 6–12 months (TBC)</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                              <span><strong>Security event logs:</strong> e.g. longer if required by CAF/DSPT (TBC)</span>
+                            </li>
+                          </ul>
+                          <p className="text-sm mt-3 font-semibold">Balance:</p>
+                          <ul className="space-y-1 ml-4 text-sm">
+                            <li>• Security and forensic value of logs</li>
+                            <li>• Supabase storage cost</li>
+                            <li>• GDPR data minimisation and storage limitation (especially where logs may include identifiers)</li>
+                          </ul>
                         </div>
-                        <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
-                          <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                          <div className="text-sm">
-                            <span className="font-semibold">Security logs:</span> 180 days (TBC)
-                          </div>
+
+                        {/* TBC items */}
+                        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 text-amber-900 dark:text-amber-300">TBC Items</h4>
+                          <ul className="space-y-1 ml-4 text-sm">
+                            <li>• Final retention periods for each log type (to be aligned with DSPT/CAF v4 – TBC)</li>
+                            <li>• Confirmation of which logs may contain PII and how these are redacted/rotated if required</li>
+                            <li>• Once agreed, the log retention policy will be documented here and reflected in the DPIA and DSPT submissions</li>
+                          </ul>
                         </div>
-                        <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
-                          <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
-                          <div className="text-sm">
-                            <span className="font-semibold">Meeting transcripts:</span> 30 days default (configurable per practice)
-                          </div>
-                        </div>
-                        <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
-                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <div className="text-sm">
-                            <span className="font-semibold">Complaints data:</span> 7 years (statutory NHS requirement)
-                          </div>
-                        </div>
-                      </div>
-                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
-                        <p className="text-sm"><strong>CAF v4 Alignment:</strong> A full data lifecycle table will be added once the hosting environment and SIRO requirements are confirmed.</p>
                       </div>
                     </AccordionContent>
                   </AccordionItem>
