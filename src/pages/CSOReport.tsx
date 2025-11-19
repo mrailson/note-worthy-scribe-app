@@ -452,7 +452,7 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">Cyber Essentials</span>
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <p className="text-sm font-semibold mb-2">In progress</p>
+                    <p className="text-sm font-semibold mb-2">Target: Q1 2026</p>
                     <a 
                       href="https://iasme.co.uk/cyber-essentials/frequently-asked-questions/" 
                       target="_blank"
@@ -1876,6 +1876,59 @@ const CSOReport = () => {
 
               <Separator />
 
+              {/* Subject Access Requests & FOI */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <FileText className="w-5 h-5" />
+                  Subject Access Requests (SAR) & FOI Handling
+                </h3>
+                <p className="mb-4">
+                  NoteWell AI will provide clear mechanisms for practices to respond to SARs and FOI requests efficiently and safely.
+                </p>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Initial capability outline (to be finalised with the DPO and SIRO):
+                </p>
+                <div className="space-y-3">
+                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                    <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <span className="font-semibold">Data Export:</span> Practices will be able to export all complaint records and associated documents for a given patient (export method TBC).
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                    <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <span className="font-semibold">Search Functionality:</span> A structured search tool will allow identification of all records containing a patient's identifiers (TBC).
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <span className="font-semibold">Filters:</span> Only the relevant patient's data will be included in an export, preventing accidental disclosure.
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="text-sm">
+                      <span className="font-semibold">Audit Trail:</span> All SAR/FOI extraction events will be fully logged.
+                    </div>
+                  </div>
+                </div>
+                <div className="mt-4 p-4 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
+                  <div className="flex items-start gap-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold mb-1">Compliance Workflow</p>
+                      <p className="text-sm text-muted-foreground">
+                        A dedicated SAR/FOI compliance workflow will be added in the next iteration following DPO review (TBC).
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
               {/* 4. Technical Security Posture */}
               <div>
                 <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
@@ -2001,6 +2054,44 @@ const CSOReport = () => {
                     </AccordionContent>
                   </AccordionItem>
 
+                  <AccordionItem value="rbac-jml">
+                    <AccordionTrigger className="text-base font-semibold">RBAC – Joiners, Movers & Leavers (JML)</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm mb-4">
+                        A formal JML process will be implemented to ensure user access is accurate, timely, and practice-controlled. The process will operate as follows:
+                      </p>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Joiners:</span> Practice Admins create new accounts and assign roles.
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Movers:</span> When staff change practices, their previous access is automatically revoked (logic implemented; final workflow TBC).
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Leavers:</span> Practice Admins disable accounts immediately; system auto-locks inactive accounts after 60 days (TBC).
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Oversight:</span> NoteWell will maintain automated alerts for orphaned or legacy accounts (TBC).
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
+                        <p className="text-sm"><strong>Note:</strong> A full JML policy will be published once finalised with the hosting organisation (TBC).</p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
                   <AccordionItem value="application">
                     <AccordionTrigger className="text-base font-semibold">Application Security Controls</AccordionTrigger>
                     <AccordionContent>
@@ -2054,6 +2145,85 @@ const CSOReport = () => {
                           <span>Incident response plan in place</span>
                         </li>
                       </ul>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="log-retention">
+                    <AccordionTrigger className="text-base font-semibold">Log Retention & Data Lifecycle (CAF v4 Aligned)</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm mb-4">
+                        NoteWell AI defines log retention periods based on operational need, privacy requirements, and upcoming CAF v4 alignment.
+                      </p>
+                      <p className="text-sm mb-4">
+                        These values will be finalised with the hosting organisation (TBC), but the proposed retention periods are:
+                      </p>
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                          <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">System audit logs:</span> 90 days (TBC)
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                          <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Access logs:</span> 12 months (TBC)
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                          <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Security logs:</span> 180 days (TBC)
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                          <Clock className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Meeting transcripts:</span> 30 days default (configurable per practice)
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 border rounded-lg bg-background">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Complaints data:</span> 7 years (statutory NHS requirement)
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg">
+                        <p className="text-sm"><strong>CAF v4 Alignment:</strong> A full data lifecycle table will be added once the hosting environment and SIRO requirements are confirmed.</p>
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+
+                  <AccordionItem value="cyber-essentials">
+                    <AccordionTrigger className="text-base font-semibold">Cyber Essentials Roadmap</AccordionTrigger>
+                    <AccordionContent>
+                      <p className="text-sm mb-4">
+                        NoteWell AI is working toward Cyber Essentials certification to support NHS adoption.
+                      </p>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Cyber Essentials (Basic):</span> Target completion Q1 2026 (TBC)
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <AlertCircle className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Cyber Essentials Plus:</span> Not required for Class I medical device software, but may be explored depending on hosting structure (TBC)
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2 p-3 bg-muted/50 rounded-lg">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <div className="text-sm">
+                            <span className="font-semibold">Alignment:</span> Security controls already align to many CE requirements (MFA, encryption, access control, audit logging)
+                          </div>
+                        </div>
+                      </div>
+                      <div className="mt-4 p-3 bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg">
+                        <p className="text-sm"><strong>Next Steps:</strong> A formal Cyber Essentials readiness assessment will begin once the hosting organisation is confirmed.</p>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
                 </Accordion>
