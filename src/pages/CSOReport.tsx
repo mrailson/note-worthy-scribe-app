@@ -531,10 +531,6 @@ const CSOReport = () => {
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
-                      <span>Multiple AI models with cross-validation capabilities</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
                       <span>Clear user disclaimers and safety warnings</span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -547,7 +543,7 @@ const CSOReport = () => {
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
-                      <span>Data Processing Agreements in place with OpenAI and Supabase (signed 10/11/2025)</span>
+                      <span>Data Processing Agreements in place with OpenAI (signed 10 November 2025) and Supabase (signed 5 August 2025)</span>
                     </li>
                   </ul>
                 </div>
@@ -560,23 +556,31 @@ const CSOReport = () => {
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>DCB0129 Clinical Risk Management documentation to be validated by NHS as needed</span>
+                      <span>DCB0129 Clinical Risk Management draft to be validated and adopted by NHS host organisation CSO</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>Resolution of any security warnings and plan penetration testing</span>
+                      <span>Proportionate external web application penetration test post-migration to NHS hosting (target 2026)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>Formal Data Protection Impact Assessment</span>
+                      <span>Finalisation and sign-off of the DPIA by ICB IG lead (Meeting Notes & Complaints)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>Clinical validation workflows implementation</span>
+                      <span>Confirmation of hosting model and DSPT ownership (NHS tenant preferred)</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>Mandatory user training programme</span>
+                      <span>Clinical validation workflows implementation (mandatory human review, governance sign-off)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
+                      <span>Mandatory user training programme (including MFA and SAR/FOI export process)</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
+                      <span>MFA enforcement for all production users accessing PII-bearing modules</span>
                     </li>
                   </ul>
                 </div>
@@ -2062,12 +2066,12 @@ const CSOReport = () => {
                     </CardHeader>
                     <CardContent className="space-y-2">
                       <div className="flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span>DCB0129 Clinical Safety Case completed</span>
+                        <AlertCircle className="w-4 h-4 text-amber-600" />
+                        <span>Draft DCB0129 Clinical Safety Case (awaiting NHS CSO adoption)</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span>Full Hazard Log maintained</span>
+                        <span>Hazard Log maintained (pilot modules only)</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <CheckCircle className="w-4 h-4 text-green-600" />
@@ -2524,34 +2528,35 @@ const CSOReport = () => {
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <span className="font-semibold">Multi-Factor Authentication (MFA) – Mandatory for All Users</span>
-                            <div className="mt-2 space-y-2 text-sm">
-                              <p className="text-muted-foreground">
-                                Complaints content will frequently contain sensitive and potentially inflammatory PII. The ICB security lead has advised that MFA is mandatory, in line with NHS security expectations.
-                              </p>
-                              <div className="bg-muted/50 rounded-lg p-3 mt-2">
-                                <p className="font-semibold mb-1">Current Position</p>
-                                <ul className="space-y-1 ml-4">
-                                  <li>• Supabase Auth supports email/password plus optional MFA</li>
-                                  <li>• MFA is not yet enforced for all users in the pilot configuration</li>
-                                </ul>
-                              </div>
-                              <div className="bg-muted/50 rounded-lg p-3 mt-2">
-                                <p className="font-semibold mb-1">Planned MFA Approach</p>
-                                <ul className="space-y-1 ml-4">
-                                  <li>• MFA will be required for all production users accessing complaints or other PII-bearing modules</li>
-                                  <li>• <strong>Microsoft Authenticator</strong> (preferred where organisations already use Microsoft 365)</li>
-                                  <li>• Alternative NHS-aligned factors (e.g. smartcard-based or card/OTP options where available)</li>
-                                  <li>• Exact MFA mechanism will be selected to balance usability for practice managers (including less tech-confident staff) with NHS security standards</li>
-                                </ul>
-                              </div>
+                            <div>
+                              <span className="font-semibold">Multi-Factor Authentication (MFA) – Mandatory for Production</span>
+                              <div className="mt-2 space-y-2 text-sm">
+                                <p className="text-muted-foreground">
+                                  Complaints content frequently contains sensitive PII. MFA is mandatory for all production users accessing PII-bearing modules, in line with NHS security expectations and ICB requirements.
+                                </p>
+                                <div className="bg-muted/50 rounded-lg p-3 mt-2">
+                                  <p className="font-semibold mb-1">Current Position (Development Environment)</p>
+                                  <ul className="space-y-1 ml-4">
+                                    <li>• Supabase Auth supports email/password plus optional MFA (TOTP-based)</li>
+                                    <li>• MFA is available but not enforced in development/testing environment</li>
+                                    <li>• Will be enforced for all production users before pilot deployment</li>
+                                  </ul>
+                                </div>
+                                <div className="bg-muted/50 rounded-lg p-3 mt-2">
+                                  <p className="font-semibold mb-1">Production MFA Implementation</p>
+                                  <ul className="space-y-1 ml-4">
+                                    <li>• Mandatory for all production users before pilot deployment</li>
+                                    <li>• <strong>Authenticator App (TOTP)</strong> - compatible with Microsoft Authenticator, Google Authenticator, or any TOTP app</li>
+                                    <li>• Alternative: Email verification code as fallback where appropriate</li>
+                                    <li>• Final MFA configuration to be agreed with NHS hosting organisation (LHIS/UHL)</li>
+                                  </ul>
+                                </div>
                               <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-3 mt-2">
-                                <p className="font-semibold mb-1 text-amber-900 dark:text-amber-300">TBC Items</p>
+                                <p className="font-semibold mb-1 text-amber-900 dark:text-amber-300">Outstanding Actions</p>
                                 <ul className="space-y-1 ml-4 text-muted-foreground">
-                                  <li>• Final MFA option(s) to be agreed with ICP/LHIS security (TBC)</li>
-                                  <li>• Configuration in Supabase to enforce MFA for all production organisations (TBC)</li>
-                                  <li>• MFA will be clearly documented in onboarding materials so GP practices understand that multi-factor login is a non-negotiable control for complaints and governance data</li>
+                                  <li>• Enforce MFA in production Supabase configuration before pilot launch</li>
+                                  <li>• Create training materials for MFA setup and use</li>
+                                  <li>• Test MFA enrollment process with practice managers</li>
                                 </ul>
                               </div>
                             </div>
@@ -3022,10 +3027,10 @@ const CSOReport = () => {
                   <div className="flex items-start gap-3">
                     <Shield className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
                     <div>
-                      <h4 className="font-semibold mb-2">Platform Security Certifications</h4>
+                      <h4 className="font-semibold mb-2">Development Platform Security (Lovable/Supabase)</h4>
                       <p className="text-sm text-muted-foreground mb-3">
-                        NoteWell is built on the Lovable platform, which maintains ISO 27001 and SOC 2 Type II compliance. 
-                        View full security documentation, compliance reports, and audit certificates:
+                        The current development environment is built on the Lovable platform (with Supabase backend), which maintains ISO 27001 and SOC 2 Type II compliance. 
+                        Note: For production deployment, NoteWell will migrate to NHS-hosted infrastructure. View development platform security documentation:
                       </p>
                       <Button
                         variant="outline"
@@ -3049,17 +3054,16 @@ const CSOReport = () => {
                 <h3 className="text-xl font-semibold mb-3">9. Summary Statement for NHS ICB IT</h3>
                 <div className="bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950/20 dark:to-blue-950/20 border border-green-200 dark:border-green-900 rounded-lg p-6">
                   <p className="text-base leading-relaxed">
-                    NoteWell AI is a <strong>low-risk, MHRA Class I medical device</strong> designed for safe deployment across primary care. 
-                    It meets all applicable DTAC domains, has completed its DPIA and clinical safety case (with CSO assessment complete and formal signoff in progress), 
-                    and maintains UK-only data storage with target NHS-hosted tenant deployment, strong encryption (100+ RLS policies, 73% security improvement achieved), full audit logs, and CREST-standard 
-                    penetration testing scheduled for Q2 2025.
+                    NoteWell AI is a <strong>low-risk, MHRA Class I medical device</strong> designed for safe deployment across primary care in a non-business-critical, governance-focused role. 
+                    A draft DPIA and draft clinical safety case (DCB0129) are in place for Meeting Notes & Complaints (with CSO/SIRO/Caldicott sign-off to follow once NHS hosting is confirmed). 
+                    It maintains UK-only data storage with a target NHS-hosted tenant for production, implements strong encryption and comprehensive RLS policies, full audit logs, and a planned CREST-standard external web application penetration test after migration to NHS hosting (target 2026).
                   </p>
                   <p className="text-base leading-relaxed mt-4">
-                    <strong>Hosting Model:</strong> Current development uses Lovable/Supabase (AWS London). For pilot deployment, the system will migrate to NHS-hosted infrastructure (LHIS preferred) via GitHub export, enabling clearer ICB risk ownership and easier pen-test acceptance.
+                    <strong>Hosting Model:</strong> Current development uses Lovable/Supabase (AWS London) for prototype purposes only. For pilot deployment, the system will migrate to NHS-hosted infrastructure (LHIS preferred) via GitHub export, enabling clearer ICB risk ownership and easier pen-test acceptance.
                   </p>
                   <p className="text-base leading-relaxed mt-4">
-                    The tool involves <strong>no EMIS/S1 write-back</strong>, uses strict human-in-the-loop validation, and is suitable for 
-                    pilot and scaled use in <strong>GP practices, PCNs and Neighbourhood teams</strong>.
+                    The tool involves <strong>no EMIS/S1 write-back</strong>, uses strict human-in-the-loop validation for all outputs, and is suitable for 
+                    controlled pilot use in <strong>GP practices, PCNs and Neighbourhood teams</strong>, subject to completion of the outstanding governance and security actions documented in the Pre-Deployment Readiness Checklist.
                   </p>
                 </div>
               </div>
