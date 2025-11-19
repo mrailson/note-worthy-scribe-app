@@ -386,7 +386,7 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">Pen Test</span>
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <p className="text-sm font-semibold">Scheduled (external web app only)</p>
+                    <p className="text-sm font-semibold">To be Scheduled (external web app only)</p>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
