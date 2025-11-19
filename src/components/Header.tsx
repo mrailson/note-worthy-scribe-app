@@ -38,6 +38,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
   const [hideGPClinical, setHideGPClinical] = useState(false);
+  const [isOakLaneNonAdmin, setIsOakLaneNonAdmin] = useState(false);
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -73,6 +74,26 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
         if (!settingsError && settings && settings.length > 0) {
           const prefs: any = settings[0].setting_value;
           setHideGPClinical(!!prefs?.hideGPClinical);
+        }
+
+        // Check if user is assigned to Oak Lane and is NOT an admin
+        const OAK_LANE_PRACTICE_ID = 'c800c954-3928-4a37-a5c4-c4ff3e680333';
+        const { data: userRoles, error: rolesError } = await supabase
+          .from('user_roles')
+          .select('practice_id, role')
+          .eq('user_id', user.id);
+
+        if (!rolesError && userRoles && userRoles.length > 0) {
+          // Check if user is assigned to Oak Lane
+          const isOakLane = userRoles.some((r: any) => r.practice_id === OAK_LANE_PRACTICE_ID);
+          // Check if user is NOT admin level (system_admin, administrator, practice_manager)
+          const isNotAdmin = !userRoles.some((r: any) => 
+            r.role === 'system_admin' || 
+            r.role === 'administrator' || 
+            r.role === 'practice_manager'
+          );
+          
+          setIsOakLaneNonAdmin(isOakLane && isNotAdmin);
         }
       } catch (error) {
         console.error('Error checking user permissions:', error);
@@ -336,38 +357,45 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                      My Profile
                    </DropdownMenuItem>
                    <DropdownMenuSeparator />
-                   <DropdownMenuItem 
-                     onClick={() => navigate('/settings')}
-                     className="cursor-pointer py-3"
-                   >
-                     <Settings className="h-4 w-4 mr-2" />
-                     User Settings
-                   </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/cso-report')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Shield className="h-4 w-4 mr-2" />
-                      CSO Report
-                    </DropdownMenuItem>
-                    <DropdownMenuItem 
-                      onClick={() => navigate('/attendees')}
-                      className="cursor-pointer py-3"
-                    >
-                      <Users className="h-4 w-4 mr-2" />
-                      Manage Attendees
-                    </DropdownMenuItem>
-                    
-                    {/* Practice Manager Menu */}
-                    {hasModuleAccess('practice_manager_access') && (
+                    {/* Hide User Settings for Oak Lane non-admin users */}
+                    {!isOakLaneNonAdmin && (
                       <DropdownMenuItem 
-                        onClick={() => navigate('/practice-admin')}
+                        onClick={() => navigate('/settings')}
                         className="cursor-pointer py-3"
                       >
-                        <Users className="h-4 w-4 mr-2" />
-                        Practice Management
+                        <Settings className="h-4 w-4 mr-2" />
+                        User Settings
                       </DropdownMenuItem>
                     )}
+                     <DropdownMenuItem 
+                       onClick={() => navigate('/cso-report')}
+                       className="cursor-pointer py-3"
+                     >
+                       <Shield className="h-4 w-4 mr-2" />
+                       CSO Report
+                     </DropdownMenuItem>
+                     
+                     {/* Hide Manage Attendees for Oak Lane non-admin users */}
+                     {!isOakLaneNonAdmin && (
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/attendees')}
+                         className="cursor-pointer py-3"
+                       >
+                         <Users className="h-4 w-4 mr-2" />
+                         Manage Attendees
+                       </DropdownMenuItem>
+                     )}
+                     
+                     {/* Hide Practice Management for Oak Lane non-admin users */}
+                     {!isOakLaneNonAdmin && hasModuleAccess('practice_manager_access') && (
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/practice-admin')}
+                         className="cursor-pointer py-3"
+                       >
+                         <Users className="h-4 w-4 mr-2" />
+                         Practice Management
+                       </DropdownMenuItem>
+                     )}
                    
                    {/* System Admin Menu */}
                    {isSystemAdmin && (
@@ -547,21 +575,27 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                     CQC Compliance
                                   </Button>
                                 </DrawerClose>
-                              )}
-                              {hasModuleAccess('practice_manager_access') && (
-                                <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/practice-admin')}>
-                                    <Users className="h-4 w-4 mr-2" />
-                                    Practice Management
-                                  </Button>
-                                </DrawerClose>
-                              )}
-                              <DrawerClose asChild>
-                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/attendees')}>
-                                  <Users className="h-4 w-4 mr-2" />
-                                  Manage Attendees
-                                </Button>
-                              </DrawerClose>
+                               )}
+                               
+                               {/* Hide Practice Management for Oak Lane non-admin users */}
+                               {!isOakLaneNonAdmin && hasModuleAccess('practice_manager_access') && (
+                                 <DrawerClose asChild>
+                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/practice-admin')}>
+                                     <Users className="h-4 w-4 mr-2" />
+                                     Practice Management
+                                   </Button>
+                                 </DrawerClose>
+                               )}
+                               
+                               {/* Hide Manage Attendees for Oak Lane non-admin users */}
+                               {!isOakLaneNonAdmin && (
+                                 <DrawerClose asChild>
+                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/attendees')}>
+                                     <Users className="h-4 w-4 mr-2" />
+                                     Manage Attendees
+                                   </Button>
+                                 </DrawerClose>
+                               )}
                             </CollapsibleContent>
                           </Collapsible>
 
@@ -677,12 +711,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               </Button>
                             </DrawerClose>
 
-                            <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/settings')}>
-                                <Settings className="h-4 w-4 mr-2" />
-                                User Settings
-                              </Button>
-                            </DrawerClose>
+                            {/* Hide User Settings for Oak Lane non-admin users */}
+                            {!isOakLaneNonAdmin && (
+                              <DrawerClose asChild>
+                                <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/settings')}>
+                                  <Settings className="h-4 w-4 mr-2" />
+                                  User Settings
+                                </Button>
+                              </DrawerClose>
+                            )}
 
                             <DrawerClose asChild>
                               <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/cso-report')}>
