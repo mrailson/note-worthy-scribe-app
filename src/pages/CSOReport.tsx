@@ -421,7 +421,16 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">Cyber Essentials</span>
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <p className="text-sm font-semibold">In progress</p>
+                    <p className="text-sm font-semibold mb-2">In progress</p>
+                    <a 
+                      href="https://iasme.co.uk/cyber-essentials/frequently-asked-questions/" 
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                      <ExternalLink className="w-3 h-3" />
+                      <span className="underline">Learn more</span>
+                    </a>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
