@@ -335,21 +335,42 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">Clinical Safety (DCB0129)</span>
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-semibold">Completed – Awaiting signature</p>
+                    <p className="text-sm font-semibold mb-2">Completed – Awaiting signature</p>
+                    <button
+                      onClick={() => scrollToSection('hazard-log')}
+                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                      <FileText className="w-3 h-3" />
+                      <span className="underline">View Safety Case</span>
+                    </button>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
                       <span className="text-sm font-medium text-muted-foreground">Hazard Log</span>
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-semibold">Updated and approved</p>
+                    <p className="text-sm font-semibold mb-2">Updated and approved</p>
+                    <button
+                      onClick={() => scrollToSection('hazard-log')}
+                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                      <AlertTriangle className="w-3 h-3" />
+                      <span className="underline">View Hazard Log</span>
+                    </button>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
                       <span className="text-sm font-medium text-muted-foreground">DPIA</span>
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <p className="text-sm font-semibold">Near completion</p>
+                    <p className="text-sm font-semibold mb-2">Near completion</p>
+                    <button
+                      onClick={() => scrollToSection('dpia-summary')}
+                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                      <Shield className="w-3 h-3" />
+                      <span className="underline">View DPIA Summary</span>
+                    </button>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
