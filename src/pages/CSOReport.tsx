@@ -357,12 +357,14 @@ const CSOReport = () => {
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
                     <p className="text-sm font-semibold mb-2">Pending</p>
-                    <Button variant="outline" size="sm" asChild className="w-full">
-                      <a href="/documents/NoteWell_SIRO_Statement_Full.pdf" download className="flex items-center justify-center gap-2">
-                        <Download className="w-3 h-3" />
-                        <span className="text-xs">Download SIRO Statement</span>
-                      </a>
-                    </Button>
+                    <a 
+                      href="/documents/NoteWell_SIRO_Statement_Full.pdf" 
+                      download 
+                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                      <Download className="w-3 h-3" />
+                      <span className="underline">Statement</span>
+                    </a>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
@@ -370,12 +372,14 @@ const CSOReport = () => {
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
                     <p className="text-sm font-semibold mb-2">Pending</p>
-                    <Button variant="outline" size="sm" asChild className="w-full">
-                      <a href="/documents/NoteWell_Caldicott_Statement_Full.pdf" download className="flex items-center justify-center gap-2">
-                        <Download className="w-3 h-3" />
-                        <span className="text-xs">Download Caldicott Statement</span>
-                      </a>
-                    </Button>
+                    <a 
+                      href="/documents/NoteWell_Caldicott_Statement_Full.pdf" 
+                      download 
+                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                    >
+                      <Download className="w-3 h-3" />
+                      <span className="underline">Statement</span>
+                    </a>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
