@@ -11,7 +11,7 @@ import { toast } from 'sonner';
 
 interface HazardItem {
   id: string;
-  system: 'meeting_manager' | 'complaint_system' | 'ai4gp';
+  system: 'meeting_manager' | 'complaint_system';
   hazardId: string;
   title: string;
   description: string;
@@ -204,124 +204,6 @@ const hazardAnalysisData: HazardItem[] = [
     status: 'mitigated',
     owner: 'Quality Improvement Manager',
     reviewDate: '2025-01-25'
-  },
-
-  // AI4GP Service Hazards
-  {
-    id: 'AI-H001',
-    system: 'ai4gp',
-    hazardId: 'AI-H001',
-    title: 'Inappropriate Clinical Advice Generation',
-    description: 'AI system provides incorrect, outdated, or inappropriate clinical guidance or decision support',
-    clinicalContext: 'Diagnosis support, treatment recommendations, medication guidance, clinical pathways',
-    potentialHarm: 'Misdiagnosis, inappropriate treatment, medication errors, delayed appropriate care',
-    severity: 'catastrophic',
-    probability: 'occasional',
-    riskLevel: 'high',
-    currentControls: [
-      'Regular updates with latest clinical guidelines (NICE, BNF)',
-      'Clinical expert validation of AI outputs',
-      'Clear disclaimers about AI limitations',
-      'Clinician override capabilities for AI recommendations',
-      'Comprehensive logging of all AI interactions'
-    ],
-    additionalControls: [
-      'Implement confidence thresholds for AI recommendations',
-      'Real-time integration with clinical evidence databases',
-      'Continuous monitoring of AI output accuracy',
-      'Regular clinical validation studies and outcome tracking'
-    ],
-    residualRisk: 'medium',
-    status: 'mitigated',
-    owner: 'Clinical AI Lead',
-    reviewDate: '2025-01-10'
-  },
-  {
-    id: 'AI-H002',
-    system: 'ai4gp',
-    hazardId: 'AI-H002',
-    title: 'Over-reliance on AI Leading to Reduced Clinical Skills',
-    description: 'Clinicians become overly dependent on AI systems, leading to deskilling and reduced diagnostic capabilities',
-    clinicalContext: 'Clinical decision-making, diagnostic reasoning, treatment planning, professional development',
-    potentialHarm: 'Reduced clinical competence, missed diagnoses when AI unavailable, professional deskilling',
-    severity: 'moderate',
-    probability: 'probable',
-    riskLevel: 'medium',
-    currentControls: [
-      'Mandatory clinical reasoning documentation',
-      'Regular clinical supervision and review',
-      'AI system designed to support, not replace, clinical judgement',
-      'Continuing professional development requirements',
-      'Periodic AI-free clinical assessments'
-    ],
-    additionalControls: [
-      'Implement clinical competency monitoring',
-      'Regular calibration exercises without AI support',
-      'Professional development tracking and requirements',
-      'Peer review and clinical audit programmes'
-    ],
-    residualRisk: 'low',
-    status: 'mitigated',
-    owner: 'Medical Director',
-    reviewDate: '2025-02-01'
-  },
-  {
-    id: 'AI-H003',
-    system: 'ai4gp',
-    hazardId: 'AI-H003',
-    title: 'AI Bias Leading to Health Inequalities',
-    description: 'AI algorithms exhibit bias against certain patient populations, leading to disparate health outcomes',
-    clinicalContext: 'Diagnostic support, treatment recommendations, risk stratification across diverse populations',
-    potentialHarm: 'Health inequalities, discrimination, inappropriate care for vulnerable populations',
-    severity: 'major',
-    probability: 'occasional',
-    riskLevel: 'high',
-    currentControls: [
-      'Diverse training data sets representing UK population',
-      'Regular bias testing across demographic groups',
-      'Clinical oversight for high-risk patient groups',
-      'Equality impact assessments for AI implementations',
-      'Continuous monitoring of outcomes by patient demographics'
-    ],
-    additionalControls: [
-      'Implement algorithmic fairness testing frameworks',
-      'Regular external audits for bias and discrimination',
-      'Patient advocacy group involvement in AI development',
-      'Transparent reporting of AI performance across populations'
-    ],
-    residualRisk: 'medium',
-    status: 'mitigated',
-    owner: 'Equality & Diversity Lead',
-    reviewDate: '2025-01-15'
-  },
-  {
-    id: 'AI-H004',
-    system: 'ai4gp',
-    hazardId: 'AI-H004',
-    title: 'Data Privacy Breach in AI Processing',
-    description: 'Patient data used for AI processing is inappropriately accessed, stored, or transmitted',
-    clinicalContext: 'All patient data processed by AI systems for clinical decision support',
-    potentialHarm: 'Privacy breach, identity theft, loss of patient trust, regulatory sanctions',
-    severity: 'major',
-    probability: 'remote',
-    riskLevel: 'medium',
-    currentControls: [
-      'Data minimisation principles for AI processing',
-      'End-to-end encryption for all data transmission',
-      'Federated learning approaches where possible',
-      'Regular privacy impact assessments',
-      'Strict data retention and deletion policies'
-    ],
-    additionalControls: [
-      'Implement differential privacy techniques',
-      'Zero-trust architecture for AI data processing',
-      'Regular third-party security assessments',
-      'Enhanced monitoring for unusual data access patterns'
-    ],
-    residualRisk: 'low',
-    status: 'mitigated',
-    owner: 'Data Protection Officer',
-    reviewDate: '2025-02-10'
   }
 ];
 
@@ -357,14 +239,13 @@ export function HazardAnalysisReport() {
     switch (system) {
       case 'meeting_manager': return 'Meeting Manager';
       case 'complaint_system': return 'Complaint System';
-      case 'ai4gp': return 'AI4GP Service';
       default: return system;
     }
   };
 
   const downloadHazardAnalysis = async () => {
     try {
-      const systems = ['meeting_manager', 'complaint_system', 'ai4gp'];
+      const systems = ['meeting_manager', 'complaint_system'];
       
       const doc = new Document({
         sections: [{
@@ -383,7 +264,7 @@ export function HazardAnalysisReport() {
               heading: HeadingLevel.HEADING_2,
             }),
             new Paragraph({
-              text: `This hazard analysis covers ${hazardAnalysisData.length} identified hazards across three core Notewell systems: Meeting Manager, Complaint System, and AI4GP Service. All hazards have been assessed using clinical risk management principles in accordance with DCB0129 requirements.`,
+              text: `This hazard analysis covers ${hazardAnalysisData.length} identified hazards across two core Notewell systems in scope for the initial pilot: Meeting Manager and Complaint System. All hazards have been assessed using clinical risk management principles in accordance with DCB0129 requirements.`,
               spacing: { after: 300 },
             }),
 
@@ -491,11 +372,10 @@ export function HazardAnalysisReport() {
       </div>
 
       <Tabs value={selectedSystem} onValueChange={setSelectedSystem}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="all">All Systems ({hazardAnalysisData.length})</TabsTrigger>
           <TabsTrigger value="meeting_manager">Meeting Manager ({hazardAnalysisData.filter(h => h.system === 'meeting_manager').length})</TabsTrigger>
           <TabsTrigger value="complaint_system">Complaint System ({hazardAnalysisData.filter(h => h.system === 'complaint_system').length})</TabsTrigger>
-          <TabsTrigger value="ai4gp">AI4GP Service ({hazardAnalysisData.filter(h => h.system === 'ai4gp').length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value={selectedSystem} className="space-y-4">
