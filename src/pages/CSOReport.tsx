@@ -1876,6 +1876,133 @@ const CSOReport = () => {
 
               <Separator />
 
+              {/* Delivery Model & DSPT Ownership */}
+              <div>
+                <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
+                  <Shield className="w-5 h-5" />
+                  Delivery Model & DSPT Ownership
+                </h3>
+
+                <p className="mb-4">
+                  NoteWell AI is being developed as a neighbourhood-aligned digital tool to support primary care governance, complaints handling and meeting management. The intention is not to operate NoteWell as a commercial product but as a shared NHS-facing service delivered in partnership with the local Integrated Care System (ICS), neighbourhood teams and approved NHS hosting providers.
+                </p>
+
+                <div className="space-y-4">
+                  {/* Delivery Model */}
+                  <div className="border rounded-lg p-4 bg-background">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <Users className="w-4 h-4 text-blue-600" />
+                      Delivery Model (Non-Commercial, NHS-Aligned)
+                    </h4>
+                    <p className="text-sm mb-3">
+                      NoteWell will be provided to participating practices and neighbourhoods as a centrally managed service, not an individually purchased or locally installed solution.
+                    </p>
+                    <div className="space-y-2">
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Access will be controlled per practice via role-based permissions</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">No fee-for-service commercial model</span>
+                      </div>
+                      <div className="flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                        <span className="text-sm">Focus on improving governance capacity, reducing administrative burden, and supporting NHS regulatory compliance</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Supplier Entity */}
+                  <div className="border rounded-lg p-4 bg-background">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2">
+                      <FileText className="w-4 h-4 text-blue-600" />
+                      Supplier Entity (PCN Services Ltd – Neutral Vehicle)
+                    </h4>
+                    <p className="text-sm mb-3">
+                      PCN Services Ltd is the legal entity currently acting as the developer and Data Processor for NoteWell during its early-stage development. It functions only as the governance and contracting vehicle for the tool and does not operate a commercial retail model.
+                    </p>
+                    <div className="bg-muted/50 rounded-lg p-3">
+                      <p className="text-sm">
+                        <strong>Future Structure (TBC):</strong> Depending on the final hosting and deployment structure, PCN Services Ltd may continue as the technical supplier or may transfer responsibilities to an NHS organisation.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* DSPT Ownership Options */}
+                  <div className="border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-950/20 p-4 rounded-r-lg">
+                    <h4 className="font-semibold mb-3 flex items-center gap-2 text-blue-900 dark:text-blue-300">
+                      <Shield className="w-4 h-4" />
+                      DSPT Ownership Options (To Be Confirmed with ICP/LHIS)
+                    </h4>
+                    <p className="text-sm mb-3">
+                      The final DSPT route will depend on where the system is hosted for pilot and production:
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border border-blue-200 dark:border-blue-900">
+                        <div className="flex items-start gap-2 mb-2">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-green-100 dark:bg-green-900 text-green-900 dark:text-green-300 flex items-center justify-center text-xs font-bold">1</span>
+                          <div>
+                            <p className="font-semibold text-sm text-green-900 dark:text-green-300">If hosted within an NHS organisation (preferred option – LHIS/UHL/Neighbourhood):</p>
+                          </div>
+                        </div>
+                        <ul className="ml-8 space-y-1 text-sm">
+                          <li className="flex items-start gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                            <span>DSPT responsibility sits with that NHS organisation</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                            <span>NoteWell operates as an NHS-provided service</span>
+                          </li>
+                        </ul>
+                      </div>
+
+                      <div className="bg-white dark:bg-gray-900 rounded-lg p-3 border border-amber-200 dark:border-amber-900">
+                        <div className="flex items-start gap-2 mb-2">
+                          <span className="flex-shrink-0 w-6 h-6 rounded-full bg-amber-100 dark:bg-amber-900 text-amber-900 dark:text-amber-300 flex items-center justify-center text-xs font-bold">2</span>
+                          <div>
+                            <p className="font-semibold text-sm text-amber-900 dark:text-amber-300">If hosted under a supplier tenancy (interim option):</p>
+                          </div>
+                        </div>
+                        <ul className="ml-8 space-y-1 text-sm">
+                          <li className="flex items-start gap-2">
+                            <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <span>PCN Services Ltd will complete DSPT (Standard) as the supplier</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <Clock className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                            <span>The hosting partner (e.g., LHIS or equivalent) may also share DSPT controls</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 p-3 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                      <p className="text-sm">
+                        <strong>Strategic Direction:</strong> This choice will be made jointly with the ICP digital team as part of determining the final hosting model. The preferred strategic direction is for NoteWell to be hosted within an NHS-owned tenant, aligning DSPT ownership and governance under the NHS rather than a private entity.
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Final Statement */}
+                  <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-2 border-amber-300 dark:border-amber-900 rounded-lg p-4">
+                    <div className="flex items-start gap-3">
+                      <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold mb-1">DSPT Status</p>
+                        <p className="text-sm text-muted-foreground">
+                          A final DSPT statement will be added once the hosting organisation is confirmed (TBC).
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
               {/* Backups, Restore, SAR & FOI Support */}
               <div>
                 <h3 className="text-xl font-semibold mb-3 flex items-center gap-2">
