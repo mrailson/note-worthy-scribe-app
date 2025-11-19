@@ -224,7 +224,7 @@ const CSOReport = () => {
                 className="justify-start"
                 asChild
               >
-                <Link to="/nhs-quest">
+                <Link to="/nhs-quest" target="_blank" rel="noopener noreferrer">
                   <Gamepad2 className="w-4 h-4 mr-2" />
                   NHS Quest
                 </Link>
