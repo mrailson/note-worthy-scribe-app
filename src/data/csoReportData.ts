@@ -529,9 +529,15 @@ export const preDeploymentChecklist: ChecklistItem[] = [
   },
   {
     item: "DPIA completed and signed",
-    status: "OUTSTANDING",
+    status: "PARTIAL",
     owner: "DPO",
     targetDate: "Before deployment"
+  },
+  {
+    item: "Obtain Formal MHRA Class 1 Medical Device Registration",
+    status: "COMPLETE",
+    owner: "Regulatory Lead",
+    targetDate: "Complete"
   },
   {
     item: "SIRO approval obtained",
