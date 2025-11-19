@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import architectureDiagram from "@/assets/architecture-diagram.png";
 import {
   Shield,
@@ -53,6 +54,7 @@ const CSOReport = () => {
   const [activeSection, setActiveSection] = useState<string>("executive");
   const [isExporting, setIsExporting] = useState(false);
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isArchitectureModalOpen, setIsArchitectureModalOpen] = useState(false);
 
   const handleExport = async () => {
     try {
@@ -442,11 +444,22 @@ const CSOReport = () => {
                     </div>
                     <p className="text-sm font-semibold mb-1">Development: AWS London via Supabase</p>
                     <p className="text-xs text-muted-foreground mb-3">Target: NHS-hosted tenant (LHIS preferred)</p>
-                    <img 
-                      src={architectureDiagram} 
-                      alt="NoteWell Architecture Diagram showing system components and data flow" 
-                      className="w-full rounded-md border border-border mt-2"
-                    />
+                    <div 
+                      className="relative cursor-pointer group"
+                      onClick={() => setIsArchitectureModalOpen(true)}
+                    >
+                      <img 
+                        src={architectureDiagram} 
+                        alt="NoteWell Architecture Diagram showing system components and data flow" 
+                        className="w-full h-32 object-cover rounded-md border border-border mt-2 transition-opacity group-hover:opacity-80"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-colors rounded-md">
+                        <div className="bg-white dark:bg-gray-900 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
+                          <ExternalLink className="w-5 h-5" />
+                        </div>
+                      </div>
+                      <p className="text-xs text-muted-foreground text-center mt-1">Click to view full diagram</p>
+                    </div>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
@@ -3195,6 +3208,27 @@ const CSOReport = () => {
           <p className="mt-1">© {new Date().getFullYear()} Notewell Healthcare Management System. All rights reserved.</p>
         </div>
       </div>
+
+      {/* Architecture Diagram Modal */}
+      <Dialog open={isArchitectureModalOpen} onOpenChange={setIsArchitectureModalOpen}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>NoteWell Architecture Diagram</DialogTitle>
+          </DialogHeader>
+          <div className="mt-4">
+            <img 
+              src={architectureDiagram} 
+              alt="NoteWell Architecture Diagram showing system components and data flow" 
+              className="w-full rounded-md border border-border"
+            />
+            <p className="text-sm text-muted-foreground mt-4">
+              <strong>Current hosting:</strong> Development environment on AWS London via Supabase
+              <br />
+              <strong>Target:</strong> NHS-hosted tenant (LHIS preferred) for production deployment
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
