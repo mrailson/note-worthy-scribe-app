@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Shield,
   AlertTriangle,
@@ -25,7 +26,8 @@ import {
   Download,
   ArrowUp,
   ExternalLink,
-  Gamepad2
+  Gamepad2,
+  ChevronDown
 } from "lucide-react";
 import {
   services,
@@ -48,6 +50,7 @@ const CSOReport = () => {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState<string>("executive");
   const [isExporting, setIsExporting] = useState(false);
+  const [isNavOpen, setIsNavOpen] = useState(false);
 
   const scrollToSection = (sectionId: string) => {
     setActiveSection(sectionId);
@@ -175,63 +178,72 @@ const CSOReport = () => {
           </div>
         </div>
 
-        {/* Quick Navigation */}
-        <Card className="mb-8 sticky top-4 z-10 shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-lg flex items-center gap-2">
-              <FileText className="w-5 h-5" />
-              Quick Navigation
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-              {[
-                { id: "executive", label: "Executive Summary", icon: Award },
-                { id: "services", label: "Services", icon: Database },
-                { id: "risks", label: "Risk Assessment", icon: AlertTriangle },
-                { id: "gdpr", label: "GDPR Compliance", icon: Lock },
-                { id: "security", label: "Security", icon: Shield },
-                { id: "third-party", label: "Third Parties", icon: Users },
-                { id: "nhs-assurance", label: "NHS Assurance Pack", icon: FileText },
-                { id: "checklist", label: "Checklist", icon: CheckCircle },
-                { id: "recommendations", label: "Recommendations", icon: TrendingUp }
-              ].map((nav) => (
-                <Button
-                  key={nav.id}
-                  variant={activeSection === nav.id ? "default" : "outline"}
-                  size="sm"
-                  className="justify-start"
-                  onClick={() => scrollToSection(nav.id)}
-                >
-                  <nav.icon className="w-4 h-4 mr-2" />
-                  {nav.label}
-                </Button>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                className="justify-start"
-                asChild
-              >
-                <Link to="/dpia">
-                  <Lock className="w-4 h-4 mr-2" />
-                  DPIA
-                </Link>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                className="justify-start"
-                asChild
-              >
-                <Link to="/nhs-quest" target="_blank" rel="noopener noreferrer">
-                  <Gamepad2 className="w-4 h-4 mr-2" />
-                  NHS Quest
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Quick Navigation - Collapsible */}
+        <Collapsible open={isNavOpen} onOpenChange={setIsNavOpen} className="mb-8">
+          <Card className="sticky top-4 z-10 shadow-lg">
+            <CollapsibleTrigger className="w-full">
+              <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <CardTitle className="text-lg flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <FileText className="w-5 h-5" />
+                    Quick Navigation
+                  </div>
+                  <ChevronDown className={`w-5 h-5 transition-transform ${isNavOpen ? 'rotate-180' : ''}`} />
+                </CardTitle>
+              </CardHeader>
+            </CollapsibleTrigger>
+            <CollapsibleContent>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                  {[
+                    { id: "executive", label: "Executive Summary", icon: Award },
+                    { id: "services", label: "Services", icon: Database },
+                    { id: "risks", label: "Risk Assessment", icon: AlertTriangle },
+                    { id: "gdpr", label: "GDPR Compliance", icon: Lock },
+                    { id: "security", label: "Security", icon: Shield },
+                    { id: "third-party", label: "Third Parties", icon: Users },
+                    { id: "nhs-assurance", label: "NHS Assurance Pack", icon: FileText },
+                    { id: "checklist", label: "Checklist", icon: CheckCircle },
+                    { id: "recommendations", label: "Recommendations", icon: TrendingUp }
+                  ].map((nav) => (
+                    <Button
+                      key={nav.id}
+                      variant={activeSection === nav.id ? "default" : "outline"}
+                      size="sm"
+                      className="justify-start"
+                      onClick={() => scrollToSection(nav.id)}
+                    >
+                      <nav.icon className="w-4 h-4 mr-2" />
+                      {nav.label}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start"
+                    asChild
+                  >
+                    <Link to="/dpia">
+                      <Lock className="w-4 h-4 mr-2" />
+                      DPIA
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start"
+                    asChild
+                  >
+                    <Link to="/nhs-quest" target="_blank" rel="noopener noreferrer">
+                      <Gamepad2 className="w-4 h-4 mr-2" />
+                      NHS Quest
+                    </Link>
+                  </Button>
+                </div>
+              </CardContent>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
 
         {/* Executive Summary */}
         <section id="executive" className="mb-8">
