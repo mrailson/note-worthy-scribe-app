@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import architectureDiagram from "@/assets/architecture-diagram.png";
 import {
   Shield,
   AlertTriangle,
@@ -438,7 +439,12 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">Hosting</span>
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-semibold">UK-only (AWS London via Supabase)</p>
+                    <p className="text-sm font-semibold mb-3">UK-only (AWS London via Supabase)</p>
+                    <img 
+                      src={architectureDiagram} 
+                      alt="NoteWell Architecture Diagram showing system components and data flow" 
+                      className="w-full rounded-md border border-border mt-2"
+                    />
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
