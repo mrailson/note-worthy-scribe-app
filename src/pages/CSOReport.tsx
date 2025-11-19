@@ -26,7 +26,8 @@ import {
   Download,
   ArrowUp,
   ExternalLink,
-  ChevronDown
+  ChevronDown,
+  FileCheck
 } from "lucide-react";
 import {
   services,
@@ -225,6 +226,17 @@ const CSOReport = () => {
                     <Link to="/dpia">
                       <Lock className="w-4 h-4 mr-2" />
                       DPIA
+                    </Link>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start"
+                    asChild
+                  >
+                    <Link to="/dcb0129">
+                      <FileCheck className="w-4 h-4 mr-2" />
+                      DCB0129 Hub
                     </Link>
                   </Button>
                 </div>

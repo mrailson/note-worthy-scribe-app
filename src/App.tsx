@@ -66,6 +66,7 @@ import CommsStrategyDashboard from "./pages/CommsStrategyDashboard";
 import SecurityReport from "./pages/SecurityReport";
 import SecurityAudit20251119 from "./pages/SecurityAudit20251119";
 import NHSQuest from "./pages/NHSQuest";
+import DCB0129 from "./pages/DCB0129";
 
 const App = () => {
   useSessionActivity();
@@ -157,6 +158,7 @@ const App = () => {
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
               <Route path="/hazard-log" element={<HazardLog />} />
               <Route path="/safety-case" element={<SafetyCase />} />
+              <Route path="/dcb0129" element={<DCB0129 />} />
               <Route path="/security-posture" element={<SecurityPostureOverview />} />
               <Route path="/incident-response" element={<IncidentResponsePolicy />} />
               <Route path="/feedback" element={<PracticeManagerFeedback />} />
