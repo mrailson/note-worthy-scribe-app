@@ -265,9 +265,73 @@ const CSOReport = () => {
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="prose dark:prose-invert max-w-none">
-                <p className="text-lg">
-                  This report provides a comprehensive clinical safety and data protection assessment of three core Notewell services deployed within NHS primary care settings: <strong>AI4GP Service</strong>, <strong>Meeting Notes System</strong>, and <strong>Complaints Management System</strong>. The assessment is conducted in accordance with DCB0129 (Clinical Risk Management), DCB0160 (Clinical Safety), and GDPR/Data Protection Act 2018 requirements.
+                <p className="text-base leading-relaxed mb-4">
+                  <strong>Executive Summary (Updated 19/11/2025)</strong>
                 </p>
+                <p className="text-base leading-relaxed mb-4">
+                  NoteWell AI is a Class I, low-risk, non-business-critical administrative and governance support tool for NHS primary care. It provides meeting transcription, structured complaints management, and document generation. NoteWell does not offer clinical decision-making, has no EMIS/S1 write-back, and all outputs require human review.
+                </p>
+                <p className="text-base leading-relaxed mb-4">
+                  A full DCB0129 clinical safety analysis has been completed with a maintained Hazard Log and human-in-the-loop controls. All data is UK-hosted, encrypted, role-restricted through RLS, and subject to complete audit logging. NoteWell operates strictly as a Data Processor and does not reuse any data for model training.
+                </p>
+                <p className="text-base leading-relaxed mb-4">
+                  The appropriate technical assurance route is a proportionate external web application penetration test, covering OWASP Top 10, authentication, access control, API endpoints and TLS configuration. Red-team, network-level, physical or social engineering testing is not required due to the system's risk profile, standalone architecture, and absence of NHS infrastructure integration.
+                </p>
+                <p className="text-base leading-relaxed">
+                  DPIA sign-off, SIRO approval, and completion of user training materials remain the final pre-deployment steps. Subject to these, NoteWell is suitable for pilot deployment across GP practices and PCNs.
+                </p>
+              </div>
+
+              {/* Assurance Status Overview Panel */}
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-6 mt-6">
+                <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-blue-900 dark:text-blue-300">
+                  <Shield className="w-5 h-5" />
+                  Assurance Status Overview
+                </h4>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-sm font-medium text-muted-foreground">Clinical Safety (DCB0129)</span>
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    </div>
+                    <p className="text-sm font-semibold">Complete – awaiting signature</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-sm font-medium text-muted-foreground">DPIA</span>
+                      <Clock className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <p className="text-sm font-semibold">Near completion</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-sm font-medium text-muted-foreground">Pen Test</span>
+                      <Clock className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <p className="text-sm font-semibold">Scheduled (external web app only)</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-sm font-medium text-muted-foreground">Hosting</span>
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    </div>
+                    <p className="text-sm font-semibold">UK-based</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-sm font-medium text-muted-foreground">Cyber Essentials</span>
+                      <Clock className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <p className="text-sm font-semibold">In progress</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-sm font-medium text-muted-foreground">CSO Review</span>
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    </div>
+                    <p className="text-sm font-semibold">Active</p>
+                  </div>
+                </div>
               </div>
 
               <Separator />
@@ -400,6 +464,148 @@ const CSOReport = () => {
                     </div>
                   </div>
                 ))}
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* System Criticality Classification */}
+        <section id="criticality" className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <Shield className="w-6 h-6" />
+                System Criticality Classification
+              </CardTitle>
+              <CardDescription>Business criticality and MHRA classification assessment</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-6">
+                <div className="flex items-start gap-3 mb-4">
+                  <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h3 className="text-lg font-semibold mb-2 text-green-900 dark:text-green-300">
+                      Class I, Non-Business-Critical Workflow Tool
+                    </h3>
+                    <p className="text-base text-green-800 dark:text-green-400 leading-relaxed">
+                      NoteWell AI is a <strong>non-business-critical Class I workflow tool</strong> used for administrative and governance processes. All supported functions can continue manually if required.
+                    </p>
+                  </div>
+                </div>
+                <div className="pl-9 space-y-3 text-sm">
+                  <div className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
+                    <span><strong>MHRA Classification:</strong> Class I medical device software (low risk, non-invasive)</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
+                    <span><strong>Business Continuity:</strong> All functions can be performed manually without system dependency</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
+                    <span><strong>Clinical Impact:</strong> No direct clinical decision-making; all outputs require human review</span>
+                  </div>
+                  <div className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 text-green-600 flex-shrink-0" />
+                    <span><strong>System Integration:</strong> Standalone system with no EMIS/S1 integration or write-back capability</span>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Proportionate Penetration Test Scope */}
+        <section id="pentest" className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <Lock className="w-6 h-6" />
+                Proportionate Penetration Test Scope
+              </CardTitle>
+              <CardDescription>Risk-based security testing approach appropriate to system classification</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-6">
+                <h3 className="font-semibold text-lg mb-4 text-blue-900 dark:text-blue-300">
+                  Proportionate External Web Application Testing
+                </h3>
+                <p className="text-base text-blue-800 dark:text-blue-400 mb-4 leading-relaxed">
+                  Given NoteWell's Class I classification, standalone architecture, and absence of NHS infrastructure integration, a <strong>proportionate external web application penetration test</strong> is the appropriate technical assurance route.
+                </p>
+                <div className="space-y-3">
+                  <h4 className="font-semibold text-base text-blue-900 dark:text-blue-300">In Scope:</h4>
+                  <ul className="space-y-2 text-sm">
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                      <span><strong>External web application test only</strong> – publicly accessible web interface</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                      <span><strong>OWASP Top 10 coverage</strong> – injection, broken authentication, XSS, etc.</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                      <span><strong>API endpoint testing</strong> – REST API security and input validation</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                      <span><strong>Authentication/session management</strong> – login security, session handling</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                      <span><strong>RBAC & RLS validation</strong> – role-based access control testing</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <CheckCircle className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                      <span><strong>TLS & configuration checks</strong> – encryption and security headers</span>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+
+              <div className="bg-gray-50 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-6">
+                <h4 className="font-semibold text-base mb-3 flex items-center gap-2">
+                  <XCircle className="w-5 h-5 text-gray-600" />
+                  Out of Scope (Not Required)
+                </h4>
+                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                  The following testing approaches are <strong>out of scope and not required</strong> due to the system's risk profile, standalone architecture, and absence of NHS infrastructure integration:
+                </p>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <XCircle className="w-4 h-4 mt-0.5 text-gray-600 flex-shrink-0" />
+                    <span><strong>Red teaming</strong> – adversarial simulation not proportionate to Class I risk</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <XCircle className="w-4 h-4 mt-0.5 text-gray-600 flex-shrink-0" />
+                    <span><strong>Network penetration testing</strong> – standalone SaaS with no NHS network integration</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <XCircle className="w-4 h-4 mt-0.5 text-gray-600 flex-shrink-0" />
+                    <span><strong>Social engineering</strong> – staff awareness is separate organisational control</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <XCircle className="w-4 h-4 mt-0.5 text-gray-600 flex-shrink-0" />
+                    <span><strong>Phishing campaigns</strong> – user training responsibility, not system vulnerability</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <XCircle className="w-4 h-4 mt-0.5 text-gray-600 flex-shrink-0" />
+                    <span><strong>Physical security assessments</strong> – cloud-hosted infrastructure managed by Supabase</span>
+                  </li>
+                </ul>
+              </div>
+
+              <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-4">
+                <div className="flex items-start gap-3">
+                  <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-amber-900 dark:text-amber-300 mb-1">Proportionate Assurance Rationale</h4>
+                    <p className="text-sm text-amber-800 dark:text-amber-400 leading-relaxed">
+                      This scope is proportionate to NoteWell's Class I classification, standalone architecture, non-business-critical status, and absence of direct NHS infrastructure integration. More extensive testing would not provide commensurate risk reduction benefits given the system's design and human-in-the-loop controls.
+                    </p>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
