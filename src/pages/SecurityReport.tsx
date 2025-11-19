@@ -116,6 +116,26 @@ const SecurityReport = () => {
     <>
       <Header />
       <div className="container mx-auto py-8 px-4 max-w-7xl">
+        {/* Banner linking to formal audit report */}
+        <Card className="mb-6 border-blue-200 dark:border-blue-900 bg-blue-50 dark:bg-blue-950/20">
+          <CardContent className="py-4">
+            <div className="flex items-start gap-3">
+              <InfoIcon className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <p className="text-sm text-blue-900 dark:text-blue-300">
+                  This page displays live security scan data. For the formal comprehensive audit report dated 19th November 2025,{" "}
+                  <Link 
+                    to="/compliance/security-audit-2025-11-19" 
+                    className="font-semibold underline hover:no-underline"
+                  >
+                    view the Security Audit Report
+                  </Link>
+                  .
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-4">
           <Link to="/cso-report" className="hover:text-primary flex items-center gap-1">
             <ArrowLeft className="w-4 h-4" />

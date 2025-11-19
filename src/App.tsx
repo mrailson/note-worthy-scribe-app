@@ -64,6 +64,7 @@ import NRESDashboard from "./pages/NRESDashboard";
 import ProactiveComplexCareDashboard from "./pages/ProactiveComplexCareDashboard";
 import CommsStrategyDashboard from "./pages/CommsStrategyDashboard";
 import SecurityReport from "./pages/SecurityReport";
+import SecurityAudit20251119 from "./pages/SecurityAudit20251119";
 
 const App = () => {
   useSessionActivity();
@@ -164,6 +165,7 @@ const App = () => {
               <Route path="/turkey2025" element={<Turkey2025 />} />
               <Route path="/voice-test" element={<VoiceTest />} />
               <Route path="/security-report" element={<SecurityReport />} />
+              <Route path="/compliance/security-audit-2025-11-19" element={<SecurityAudit20251119 />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
