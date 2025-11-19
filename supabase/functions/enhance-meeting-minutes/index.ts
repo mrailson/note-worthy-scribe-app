@@ -83,39 +83,84 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  const startTime = Date.now();
+
   try {
     if (!openAIApiKey) {
-      throw new Error('OpenAI API key not configured');
+      console.error('❌ OpenAI API key not configured');
+      return new Response(
+        JSON.stringify({ error: 'API key not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const { originalContent, enhancementType, specificRequest, context, useTranscript, meetingId } = await req.json();
 
     if (!originalContent || !enhancementType) {
-      throw new Error('Missing required fields: originalContent and enhancementType');
+      console.error('❌ Missing required fields');
+      return new Response(
+        JSON.stringify({ error: 'Missing required fields: originalContent and enhancementType' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
+    // Size guard: Check content length
+    const MAX_CONTENT_LENGTH = 25000; // 25k characters max
+    if (originalContent.length > MAX_CONTENT_LENGTH) {
+      console.error(`❌ Content too large: ${originalContent.length} characters`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Content too large to enhance (${originalContent.length} characters). Maximum is ${MAX_CONTENT_LENGTH} characters.`,
+          contentLength: originalContent.length,
+          maxLength: MAX_CONTENT_LENGTH
+        }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    console.log(`📝 Enhancement request: type=${enhancementType}, content length=${originalContent.length}, meetingId=${meetingId || 'none'}`);
+
     let transcriptContext = '';
+    const MAX_TRANSCRIPT_LENGTH = 15000; // Limit transcript context to 15k characters
     
     // Fetch meeting transcript if requested and meeting ID is provided
     if (useTranscript && meetingId && supabaseUrl && supabaseServiceKey) {
       try {
         const supabase = createClient(supabaseUrl, supabaseServiceKey);
         
-        // Use the get_meeting_full_transcript function
+        console.log('📋 Fetching transcript for context...');
         const { data: transcriptData, error: transcriptError } = await supabase
           .rpc('get_meeting_full_transcript', { p_meeting_id: meetingId });
 
         if (!transcriptError && transcriptData && transcriptData.length > 0) {
-          const transcript = transcriptData[0].transcript;
+          let transcript = transcriptData[0].transcript;
           if (transcript && transcript.trim()) {
+            // Truncate transcript if too long
+            if (transcript.length > MAX_TRANSCRIPT_LENGTH) {
+              console.log(`⚠️ Transcript too long (${transcript.length} chars), truncating to ${MAX_TRANSCRIPT_LENGTH}`);
+              transcript = transcript.substring(0, MAX_TRANSCRIPT_LENGTH) + '\n\n[Transcript truncated due to length...]';
+            }
             transcriptContext = `\n\nMEETING TRANSCRIPT FOR REFERENCE:\n${transcript}`;
-            console.log('Successfully fetched meeting transcript for enhancement');
+            console.log(`✅ Fetched transcript context (${transcript.length} chars)`);
           }
         }
       } catch (error) {
-        console.error('Error fetching transcript:', error);
+        console.error('❌ Error fetching transcript:', error);
         // Continue without transcript if there's an error
       }
+    }
+
+    // Final size check after adding transcript context
+    const totalContentLength = originalContent.length + transcriptContext.length;
+    if (totalContentLength > 35000) {
+      console.error(`❌ Total content too large: ${totalContentLength} characters (content: ${originalContent.length}, transcript: ${transcriptContext.length})`);
+      return new Response(
+        JSON.stringify({ 
+          error: 'Combined content and transcript too large to process. Try enhancing without transcript context.',
+          totalLength: totalContentLength
+        }),
+        { status: 413, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     let systemPrompt = "";
@@ -231,8 +276,16 @@ ${originalContent}${transcriptContext}`;
 
     if (!response.ok) {
       const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${errorData.error?.message || 'Unknown error'}`);
+      const elapsedMs = Date.now() - startTime;
+      console.error(`❌ OpenAI API error (${elapsedMs}ms):`, errorData);
+      
+      return new Response(
+        JSON.stringify({ 
+          error: `AI enhancement failed: ${errorData.error?.message || 'Unknown error'}`,
+          details: errorData
+        }),
+        { status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     const data = await response.json();
@@ -243,25 +296,27 @@ ${originalContent}${transcriptContext}`;
       enhancedContent = sanitiseActionOwners(enhancedContent, transcriptContext);
     }
 
-    console.log('Successfully enhanced meeting minutes');
+    const elapsedMs = Date.now() - startTime;
+    console.log(`✅ Successfully enhanced meeting minutes (${elapsedMs}ms), output length: ${enhancedContent.length}`);
 
     return new Response(JSON.stringify({
       enhancedContent,
-      originalLength: originalContent.length,
-      enhancedLength: enhancedContent.length,
-      model: modelName,
-      elapsed_ms: Date.now() - startedAt
+      processingTime: elapsedMs,
+      model: modelName
     }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
 
-  } catch (error) {
-    console.error('Error in enhance-meeting-minutes function:', error);
-    return new Response(JSON.stringify({ 
-      error: error.message 
-    }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+  } catch (error: any) {
+    const elapsedMs = Date.now() - startTime;
+    console.error(`❌ Enhancement error (${elapsedMs}ms):`, error);
+    
+    return new Response(
+      JSON.stringify({ 
+        error: error.message || 'Failed to enhance meeting minutes',
+        processingTime: elapsedMs
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 });

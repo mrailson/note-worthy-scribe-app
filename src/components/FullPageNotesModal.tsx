@@ -141,6 +141,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [customInstruction, setCustomInstruction] = useState("");
   const [showCustomAIModal, setShowCustomAIModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  // Safety constants for large content handling
+  const MAX_CONTENT_LENGTH = 20000; // characters
+  const ENHANCEMENT_TIMEOUT = 60000; // 60 seconds
   const [activeTab, setActiveTab] = useState("notes");
   const [activeNotesStyleTab, setActiveNotesStyleTab] = useState("style1");
   const [notesStyle2, setNotesStyle2] = useState("");
@@ -2665,10 +2669,22 @@ ${transcriptToUse}`;
       return;
     }
 
+    // Size guard
+    if (notes.length > MAX_CONTENT_LENGTH) {
+      toast.error(`Content too large to enhance (${notes.length} characters). Please try with shorter content.`);
+      return;
+    }
+
+    console.log('🔧 Applying custom instructions, content length:', notes.length);
     setIsGenerating(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('enhance-meeting-minutes', {
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), ENHANCEMENT_TIMEOUT)
+      );
+
+      const enhancePromise = supabase.functions.invoke('enhance-meeting-minutes', {
         body: {
           originalContent: notes,
           enhancementType: 'custom',
@@ -2677,16 +2693,29 @@ ${transcriptToUse}`;
         }
       });
 
-      if (error) throw error;
+      const { data, error } = await Promise.race([enhancePromise, timeoutPromise]) as any;
+
+      if (error) {
+        console.error('❌ Custom instruction error:', error);
+        throw error;
+      }
 
       if (data?.enhancedContent) {
+        console.log('✅ Custom instructions applied successfully');
         onNotesChange(data.enhancedContent);
         saveSummaryToDatabase(data.enhancedContent);
         setCustomInstruction("");
         setShowCustomInstruction(false);
+        toast.success('Custom instructions applied');
       }
-    } catch (error) {
-      console.error('Error applying custom instructions:', error);
+    } catch (error: any) {
+      console.error('❌ Error applying custom instructions:', error);
+      
+      if (error.message === 'TIMEOUT') {
+        toast.error('Enhancement timed out. This meeting may be too long. Your original notes have been preserved.');
+      } else {
+        toast.error('Failed to apply custom instructions. Please try again.');
+      }
     } finally {
       setIsGenerating(false);
     }
@@ -2703,26 +2732,38 @@ ${transcriptToUse}`;
   };
 
 
-  // AI Enhancement functionality
+  // AI Enhancement functionality with timeout and size guards
   const handleAIEnhancement = async (enhanceType: string) => {
     const currentContent = getCurrentContent();
     if (!currentContent.trim()) {
       return;
     }
 
+    // Size guard
+    if (currentContent.length > MAX_CONTENT_LENGTH) {
+      toast.error(`Content too large to enhance (${currentContent.length} characters). Please try with shorter content.`);
+      return;
+    }
+
+    console.log(`🔧 Enhancing with type: ${enhanceType}, content length:`, currentContent.length);
     setIsGenerating(true);
     
     try {
       const prompts = {
-        'clinical-focus': 'Focus on and enhance all clinical discussions, medical decisions, and patient care elements. Emphasize diagnostic considerations, treatment plans, and clinical reasoning.',
-        'action-analysis': 'Extract and organize all action items, decisions, and follow-up tasks. Create a structured analysis of responsibilities, timelines, and outcomes.',
+        'clinical-focus': 'Focus on and enhance all clinical discussions, medical decisions, and patient care elements. Emphasise diagnostic considerations, treatment plans, and clinical reasoning.',
+        'action-analysis': 'Extract and organise all action items, decisions, and follow-up tasks. Create a structured analysis of responsibilities, timelines, and outcomes.',
         'professional-tone': 'Enhance the language to meet professional healthcare standards. Use appropriate medical terminology and formal business language.',
         'risk-assessment': 'Identify and highlight all clinical and operational risks mentioned. Add risk assessment context and mitigation considerations.',
         'follow-up-plans': 'Generate comprehensive follow-up recommendations based on the discussions. Include timelines, responsible parties, and success metrics.',
-        'patient-safety': 'Emphasize all patient safety elements, quality improvement discussions, and safeguarding considerations. Highlight safety protocols and outcomes.'
+        'patient-safety': 'Emphasise all patient safety elements, quality improvement discussions, and safeguarding considerations. Highlight safety protocols and outcomes.'
       };
 
-      const { data, error } = await supabase.functions.invoke('enhance-meeting-minutes', {
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), ENHANCEMENT_TIMEOUT)
+      );
+
+      const enhancePromise = supabase.functions.invoke('enhance-meeting-minutes', {
         body: {
           originalContent: currentContent,
           enhancementType: 'custom',
@@ -2731,28 +2772,58 @@ ${transcriptToUse}`;
         }
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      const { data, error } = await Promise.race([enhancePromise, timeoutPromise]) as any;
 
-      onNotesChange(data.enhancedContent);
-    } catch (error) {
-      console.error('Enhancement error:', error);
+      if (error) {
+        console.error('❌ Enhancement error:', error);
+        throw error;
+      }
+      if (data?.error) {
+        console.error('❌ Enhancement data error:', data.error);
+        throw new Error(data.error);
+      }
+
+      if (data?.enhancedContent) {
+        console.log('✅ Enhancement successful');
+        onNotesChange(data.enhancedContent);
+        toast.success('Notes enhanced successfully');
+      }
+    } catch (error: any) {
+      console.error('❌ Enhancement error:', error);
+      
+      if (error.message === 'TIMEOUT') {
+        toast.error('Enhancement timed out. This meeting may be too long. Your original notes have been preserved.');
+      } else {
+        toast.error('Failed to enhance notes. Please try again.');
+      }
     } finally {
       setIsGenerating(false);
     }
   };
 
-  // Custom AI Enhancement
+  // Custom AI Enhancement with timeout and size guards
   const handleCustomAISubmit = async (prompt: string) => {
     const currentContent = getCurrentContent();
     if (!currentContent.trim() || !prompt.trim()) {
       return;
     }
 
+    // Size guard
+    if (currentContent.length > MAX_CONTENT_LENGTH) {
+      toast.error(`Content too large to enhance (${currentContent.length} characters). Please try with shorter content.`);
+      return;
+    }
+
+    console.log('🔧 Custom AI enhancement, content length:', currentContent.length);
     setIsGenerating(true);
     
     try {
-      const { data, error } = await supabase.functions.invoke('enhance-meeting-minutes', {
+      // Create timeout promise
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('TIMEOUT')), ENHANCEMENT_TIMEOUT)
+      );
+
+      const enhancePromise = supabase.functions.invoke('enhance-meeting-minutes', {
         body: {
           originalContent: currentContent,
           enhancementType: 'custom',
@@ -2761,13 +2832,31 @@ ${transcriptToUse}`;
         }
       });
 
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
+      const { data, error } = await Promise.race([enhancePromise, timeoutPromise]) as any;
 
-      onNotesChange(data.enhancedContent);
-      setShowCustomAIModal(false);
-    } catch (error) {
-      console.error('Custom enhancement error:', error);
+      if (error) {
+        console.error('❌ Custom AI error:', error);
+        throw error;
+      }
+      if (data?.error) {
+        console.error('❌ Custom AI data error:', data.error);
+        throw new Error(data.error);
+      }
+
+      if (data?.enhancedContent) {
+        console.log('✅ Custom AI enhancement successful');
+        onNotesChange(data.enhancedContent);
+        setShowCustomAIModal(false);
+        toast.success('Enhancement applied successfully');
+      }
+    } catch (error: any) {
+      console.error('❌ Custom enhancement error:', error);
+      
+      if (error.message === 'TIMEOUT') {
+        toast.error('Enhancement timed out. This meeting may be too long. Your original notes have been preserved.');
+      } else {
+        toast.error('Failed to apply enhancement. Please try again.');
+      }
     } finally {
       setIsGenerating(false);
     }
