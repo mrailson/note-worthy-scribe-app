@@ -1123,15 +1123,22 @@ const handlePasswordUpdate = async () => {
   }
   try {
     setUpdatingPassword(true);
-    const { error } = await supabase.functions.invoke('update-user-password-admin', {
+    const { data, error } = await supabase.functions.invoke('update-user-password-admin', {
       body: { email: passwordTargetUser.email, new_password: newPassword }
     });
+    
     if (error) throw error;
+    
+    if (!data?.success) {
+      throw new Error(data?.error || 'Failed to update password');
+    }
+    
     toast.success('Password updated successfully');
     setShowPasswordModal(false);
-  } catch (err) {
+    setNewPassword('');
+  } catch (err: any) {
     console.error('Error updating password:', err);
-    toast.error('Failed to update password');
+    toast.error(err.message || 'Failed to update password');
   } finally {
     setUpdatingPassword(false);
   }
