@@ -437,9 +437,10 @@ const CSOReport = () => {
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
                       <span className="text-sm font-medium text-muted-foreground">Hosting</span>
-                      <CheckCircle className="w-4 h-4 text-green-600" />
+                      <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <p className="text-sm font-semibold mb-3">UK-only (AWS London via Supabase)</p>
+                    <p className="text-sm font-semibold mb-1">Development: AWS London via Supabase</p>
+                    <p className="text-xs text-muted-foreground mb-3">Target: NHS-hosted tenant (LHIS preferred)</p>
                     <img 
                       src={architectureDiagram} 
                       alt="NoteWell Architecture Diagram showing system components and data flow" 
@@ -998,7 +999,7 @@ const CSOReport = () => {
                 <div className="grid md:grid-cols-2 gap-3">
                   <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg">
                     <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                    <span className="text-sm">UK-only hosting</span>
+                    <span className="text-sm">UK-only hosting (target: NHS tenant)</span>
                   </div>
                   <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg">
                     <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
@@ -1378,6 +1379,178 @@ const CSOReport = () => {
           </Card>
         </section>
 
+        {/* Deployment and Hosting Model */}
+        <section id="hosting-model" className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <Database className="w-6 h-6" />
+                Deployment and Hosting Model – Current vs Target
+              </CardTitle>
+              <CardDescription>Critical hosting decisions for NHS deployment and ICB risk ownership</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                {/* Current State */}
+                <div className="border-l-4 border-amber-500 bg-amber-50 dark:bg-amber-950/20 p-6 rounded-r-lg">
+                  <div className="flex items-start gap-3 mb-3">
+                    <Clock className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-lg text-amber-900 dark:text-amber-300 mb-2">
+                        Current (Development Only)
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        This configuration is suitable for development and testing only - not for live NHS deployment.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-amber-200 dark:border-amber-900">
+                      <h4 className="font-semibold text-sm mb-3">Platform</h4>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Lovable + Supabase</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>AWS London region</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>UK-only data storage</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-amber-200 dark:border-amber-900">
+                      <h4 className="font-semibold text-sm mb-3">Limitations</h4>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <span>Not NHS-controlled infrastructure</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <span>ICB concerns re: risk ownership</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0 mt-0.5" />
+                          <span>May complicate pen-test acceptance</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Target State */}
+                <div className="border-l-4 border-green-500 bg-green-50 dark:bg-green-950/20 p-6 rounded-r-lg">
+                  <div className="flex items-start gap-3 mb-3">
+                    <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-lg text-green-900 dark:text-green-300 mb-2">
+                        Target (For Pilot Deployment)
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        NHS-hosted infrastructure for production deployment and ICB approval.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="grid md:grid-cols-2 gap-4">
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-green-200 dark:border-green-900">
+                      <h4 className="font-semibold text-sm mb-3">Preferred Options</h4>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span><strong>Primary:</strong> LHIS NHS tenant</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span><strong>Alternative:</strong> UHL tenant</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span><strong>PCN/Neighbourhood:</strong> Local tenant</span>
+                        </li>
+                      </ul>
+                    </div>
+                    <div className="bg-white dark:bg-gray-900 rounded-lg p-4 border border-green-200 dark:border-green-900">
+                      <h4 className="font-semibold text-sm mb-3">Benefits</h4>
+                      <ul className="space-y-2 text-sm">
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Full NHS governance control</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Clear ICB risk ownership</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                          <span>Easier pen-test acceptance</span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Migration Path */}
+                <div className="border-l-4 border-blue-500 bg-blue-50 dark:bg-blue-950/20 p-6 rounded-r-lg">
+                  <div className="flex items-start gap-3 mb-3">
+                    <ArrowUp className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h3 className="font-semibold text-lg text-blue-900 dark:text-blue-300 mb-2">
+                        Migration Path
+                      </h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        Clear pathway from development environment to NHS production hosting.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-200 dark:border-blue-900">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-300 flex items-center justify-center text-xs font-bold">1</span>
+                      <div>
+                        <p className="font-semibold text-sm">Export via GitHub Integration</p>
+                        <p className="text-xs text-muted-foreground mt-1">Standard codebase export using built-in GitHub sync</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-200 dark:border-blue-900">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-300 flex items-center justify-center text-xs font-bold">2</span>
+                      <div>
+                        <p className="font-semibold text-sm">Redeploy to NHS Environment</p>
+                        <p className="text-xs text-muted-foreground mt-1">Deploy as standard React/Vite application into NHS-approved hosting</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3 p-3 bg-white dark:bg-gray-900 rounded-lg border border-blue-200 dark:border-blue-900">
+                      <span className="flex-shrink-0 w-6 h-6 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-300 flex items-center justify-center text-xs font-bold">3</span>
+                      <div>
+                        <p className="font-semibold text-sm">ICB Approval Process</p>
+                        <p className="text-xs text-muted-foreground mt-1">Submit for pen-test and final ICB sign-off in NHS environment</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* ICB Statement */}
+                <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/20 dark:to-orange-950/20 border-2 border-amber-300 dark:border-amber-900 rounded-lg p-6">
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="w-6 h-6 text-amber-600 flex-shrink-0" />
+                    <div>
+                      <h4 className="font-semibold text-base mb-2">ICB Position Statement</h4>
+                      <p className="text-sm mb-3">
+                        <strong className="text-amber-900 dark:text-amber-300">"Running live with Lovable will be a challenge"</strong> - ICB Feedback
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Justification for NHS Hosting:</strong> Enables easier penetration test acceptance, clear ICB risk ownership, alignment with NHS data sovereignty requirements, and smoother governance approval processes. The application architecture is platform-agnostic and can be deployed to any standard web hosting environment.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
         {/* Pre-Deployment Checklist */}
         <section id="checklist" className="mb-8">
           <Card>
@@ -1686,7 +1859,7 @@ const CSOReport = () => {
                 <div className="grid md:grid-cols-2 gap-3">
                   {[
                     "DPIA completed and ready for sharing",
-                    "UK-only hosting and data storage",
+                    "UK-only hosting and data storage (target: NHS-hosted tenant for production)",
                     "All PHI/PII encrypted in transit (TLS 1.2+) and at rest (AES-256)",
                     "Role-based access control (RLS)",
                     "No data reused for AI training",
@@ -1712,26 +1885,85 @@ const CSOReport = () => {
                 
                 <Accordion type="single" collapsible className="w-full">
                   <AccordionItem value="hosting">
-                    <AccordionTrigger className="text-base font-semibold">Hosting & Infrastructure</AccordionTrigger>
+                    <AccordionTrigger className="text-base font-semibold">Hosting & Infrastructure - Deployment Model</AccordionTrigger>
                     <AccordionContent>
-                      <ul className="space-y-2 ml-4">
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <span>UK-only cloud infrastructure</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <span>No public inbound services beyond HTTPS</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <span>TLS enforced edge-to-end</span>
-                        </li>
-                        <li className="flex items-start gap-2">
-                          <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <span>Segregated databases per tenant organisation via RLS</span>
-                        </li>
-                      </ul>
+                      <div className="space-y-4">
+                        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 text-amber-900 dark:text-amber-300">Current (Development Only)</h4>
+                          <ul className="space-y-2 ml-4">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">Lovable + Supabase (AWS London)</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">UK-only cloud infrastructure</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">Suitable for development and testing only</span>
+                            </li>
+                          </ul>
+                        </div>
+                        
+                        <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 text-green-900 dark:text-green-300">Target (For Pilot Deployment)</h4>
+                          <ul className="space-y-2 ml-4">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">NHS-hosted tenant (LHIS preferred)</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">Alternative: UHL or PCN/Neighbourhood tenant</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">Full NHS governance and risk ownership</span>
+                            </li>
+                          </ul>
+                        </div>
+
+                        <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+                          <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-300">Migration Path</h4>
+                          <ul className="space-y-2 ml-4">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">Export codebase via GitHub integration</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">Redeploy into NHS-approved hosting environment</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span className="text-sm">Standard React/Vite application - platform agnostic</span>
+                            </li>
+                          </ul>
+                        </div>
+
+                        <div className="mt-3 p-3 bg-muted rounded-lg">
+                          <p className="text-sm"><strong>Justification:</strong> NHS-hosted deployment enables easier penetration test acceptance, clearer ICB risk ownership, and aligns with NHS data sovereignty requirements. Running live production on Lovable is not recommended for NHS deployment.</p>
+                        </div>
+
+                        <div className="space-y-2 mt-4">
+                          <h4 className="font-semibold text-sm">Infrastructure Security Controls</h4>
+                          <ul className="space-y-2 ml-4">
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>No public inbound services beyond HTTPS</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>TLS enforced edge-to-end</span>
+                            </li>
+                            <li className="flex items-start gap-2">
+                              <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                              <span>Segregated databases per tenant organisation via RLS</span>
+                            </li>
+                          </ul>
+                        </div>
+                      </div>
                     </AccordionContent>
                   </AccordionItem>
 
@@ -1887,7 +2119,7 @@ const CSOReport = () => {
                           Fully met
                         </Badge>
                       </TableCell>
-                      <TableCell>DPIA, UK-only hosting</TableCell>
+                      <TableCell>DPIA, UK-only hosting (target: NHS tenant)</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell className="font-medium">Technical Security</TableCell>
@@ -2120,8 +2352,11 @@ const CSOReport = () => {
                   <p className="text-base leading-relaxed">
                     NoteWell AI is a <strong>low-risk, MHRA Class I medical device</strong> designed for safe deployment across primary care. 
                     It meets all applicable DTAC domains, has completed its DPIA and clinical safety case (with CSO assessment complete and formal signoff in progress), 
-                    and maintains UK-only hosting, strong encryption (100+ RLS policies, 73% security improvement achieved), full audit logs, and CREST-standard 
+                    and maintains UK-only data storage with target NHS-hosted tenant deployment, strong encryption (100+ RLS policies, 73% security improvement achieved), full audit logs, and CREST-standard 
                     penetration testing scheduled for Q2 2025.
+                  </p>
+                  <p className="text-base leading-relaxed mt-4">
+                    <strong>Hosting Model:</strong> Current development uses Lovable/Supabase (AWS London). For pilot deployment, the system will migrate to NHS-hosted infrastructure (LHIS preferred) via GitHub export, enabling clearer ICB risk ownership and easier pen-test acceptance.
                   </p>
                   <p className="text-base leading-relaxed mt-4">
                     The tool involves <strong>no EMIS/S1 write-back</strong>, uses strict human-in-the-loop validation, and is suitable for 
