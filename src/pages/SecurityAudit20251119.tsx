@@ -22,8 +22,8 @@ import {
 const SecurityAudit20251119 = () => {
   const auditDate = "19th November 2025";
   const auditTime = "07:18";
-  const totalFindings = 8;
-  const errorCount = 2;
+  const totalFindings = 7;
+  const errorCount = 1;
   const warningCount = 5;
   const infoCount = 1;
 
@@ -35,14 +35,6 @@ const SecurityAudit20251119 = () => {
       title: "Table without RLS enabled: public.gp_practices",
       description: "Enable RLS on table public.gp_practices for security",
       impact: "Critical - Healthcare practice information accessible without authentication"
-    },
-    {
-      id: "rls_not_enabled_002",
-      severity: "ERROR" as const,
-      category: "RLS_NOT_ENABLED",
-      title: "Table without RLS enabled: public.practice_staff",
-      description: "Enable RLS on table public.practice_staff for security",
-      impact: "Critical - Staff contact information and roles publicly accessible"
     },
     {
       id: "function_search_path_001",
@@ -222,7 +214,7 @@ const SecurityAudit20251119 = () => {
                   <div>
                     <h4 className="font-semibold text-amber-900 dark:text-amber-300 mb-2">Overall Security Posture</h4>
                     <p className="text-sm text-amber-800 dark:text-amber-400">
-                      This audit identified <strong>2 critical errors</strong> requiring immediate attention. These relate to missing Row Level Security (RLS) policies on tables containing sensitive healthcare and staff data. Additionally, 5 warnings were identified concerning database function security hardening and infrastructure configuration.
+                      This audit identified <strong>1 critical error</strong> requiring immediate attention. This relates to missing Row Level Security (RLS) policies on a table containing sensitive healthcare data. Additionally, 5 warnings were identified concerning database function security hardening and infrastructure configuration.
                     </p>
                   </div>
                 </div>
@@ -238,23 +230,19 @@ const SecurityAudit20251119 = () => {
               <AlertCircle className="w-5 h-5" />
               Critical Issues Requiring Immediate Action
             </CardTitle>
-            <CardDescription>2 high-priority security issues identified</CardDescription>
+            <CardDescription>1 high-priority security issue identified</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
               <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg p-4">
-                <h4 className="font-semibold text-red-900 dark:text-red-300 mb-3">Missing RLS Policies (2 errors)</h4>
+                <h4 className="font-semibold text-red-900 dark:text-red-300 mb-3">Missing RLS Policies (1 error)</h4>
                 <p className="text-sm text-red-800 dark:text-red-400 mb-3">
-                  The following tables are accessible without authentication due to missing Row Level Security policies:
+                  The following table is accessible without authentication due to missing Row Level Security policies:
                 </p>
                 <ul className="space-y-2 text-sm text-red-800 dark:text-red-400">
                   <li className="flex items-start gap-2">
                     <span className="font-mono bg-red-100 dark:bg-red-950/40 px-2 py-1 rounded text-xs">gp_practices</span>
                     <span>- Healthcare practice information including addresses and contact details</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="font-mono bg-red-100 dark:bg-red-950/40 px-2 py-1 rounded text-xs">practice_staff</span>
-                    <span>- Staff members' personal details, contact information and organisational roles</span>
                   </li>
                 </ul>
                 <div className="mt-4 p-3 bg-white dark:bg-background rounded border border-red-200 dark:border-red-900">
@@ -334,7 +322,7 @@ const SecurityAudit20251119 = () => {
               <ul className="space-y-2 text-sm ml-4">
                 <li className="flex items-start gap-2">
                   <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
-                  <span>Enable RLS on the 2 identified tables (gp_practices, practice_staff) and implement appropriate access policies</span>
+                  <span>Enable RLS on the identified table (gp_practices) and implement appropriate access policies</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <ChevronRight className="w-4 h-4 text-muted-foreground flex-shrink-0 mt-0.5" />
