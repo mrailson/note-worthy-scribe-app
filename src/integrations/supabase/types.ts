@@ -6259,6 +6259,7 @@ export type Database = {
           complaints_manager_access: boolean | null
           cqc_compliance_access: boolean | null
           created_at: string | null
+          cso_governance_access: boolean | null
           enhanced_access: boolean | null
           fridge_monitoring_access: boolean
           gp_scribe_access: boolean | null
@@ -6282,6 +6283,7 @@ export type Database = {
           complaints_manager_access?: boolean | null
           cqc_compliance_access?: boolean | null
           created_at?: string | null
+          cso_governance_access?: boolean | null
           enhanced_access?: boolean | null
           fridge_monitoring_access?: boolean
           gp_scribe_access?: boolean | null
@@ -6305,6 +6307,7 @@ export type Database = {
           complaints_manager_access?: boolean | null
           cqc_compliance_access?: boolean | null
           created_at?: string | null
+          cso_governance_access?: boolean | null
           enhanced_access?: boolean | null
           fridge_monitoring_access?: boolean
           gp_scribe_access?: boolean | null
@@ -6907,6 +6910,10 @@ export type Database = {
           p_user_id: string
         }
         Returns: string
+      }
+      has_cso_governance_access: {
+        Args: { _user_id?: string }
+        Returns: boolean
       }
       has_role: {
         Args: {
