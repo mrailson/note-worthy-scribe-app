@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose, DrawerFooter } from "@/components/ui/drawer";
@@ -27,6 +28,7 @@ interface HeaderProps {
 
 export const Header = ({ onNewMeeting }: HeaderProps) => {
   const { user, signOut, hasModuleAccess, refreshUserModules, isSystemAdmin } = useAuth();
+  const { hasServiceAccess } = useServiceActivation();
   const location = useLocation();
   const navigate = useNavigate();
   const [sharedDriveVisible, setSharedDriveVisible] = useState(true);
@@ -152,15 +154,18 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                  </DropdownMenuTrigger>
                  <DropdownMenuContent 
                    align="end" 
-                   className="bg-background border border-border shadow-lg w-48 z-50"
-                 >
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/ai4gp')}
-                       className="cursor-pointer py-3"
-                     >
-                       <Sparkles className="h-4 w-4 mr-2" />
-                       AI4PM Service
-                     </DropdownMenuItem>
+                    className="bg-background border border-border shadow-lg w-48 z-50"
+                  >
+                      {/* Only show AI4PM Service if user has activation */}
+                      {(hasServiceAccess('ai4pm') || hasServiceAccess('ai4gp')) && (
+                        <DropdownMenuItem 
+                          onClick={() => navigate('/ai4gp')}
+                          className="cursor-pointer py-3"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          AI4PM Service
+                        </DropdownMenuItem>
+                      )}
                      {hasModuleAccess('meeting_recorder') && (
                        <DropdownMenuItem 
                           onClick={() => navigate('/')}
@@ -223,45 +228,47 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             <FolderOpen className="h-4 w-4 mr-2" />
                             Shared Drive
                           </DropdownMenuItem>
-                         )}
-                         
-                          {/* NRES Menu with Submenus */}
-                          <DropdownMenuSub>
-                            <DropdownMenuSubTrigger className="cursor-pointer py-3">
-                              <Building2 className="h-4 w-4 mr-2" />
-                              NRES
-                            </DropdownMenuSubTrigger>
-                            <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
+                          )}
+                          
+                          {/* Only show NRES if user has activation */}
+                          {hasServiceAccess('nres') && (
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger className="cursor-pointer py-3">
+                                <Building2 className="h-4 w-4 mr-2" />
+                                NRES
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
+                                <DropdownMenuItem 
+                                  onClick={() => navigate('/nres')}
+                                  className="cursor-pointer py-3"
+                                >
+                                  <Grid3X3 className="h-4 w-4 mr-2" />
+                                  Results Dashboard
+                                </DropdownMenuItem>
+                                <DropdownMenuItem 
+                                  onClick={() => navigate('/nres/complex-care')}
+                                  className="cursor-pointer py-3"
+                                >
+                                  <Users className="h-4 w-4 mr-2" />
+                                  Proactive Complex Care
+                                </DropdownMenuItem>
                               <DropdownMenuItem 
-                                onClick={() => navigate('/nres')}
+                                onClick={() => navigate('/gp-genie')}
                                 className="cursor-pointer py-3"
                               >
-                                <Grid3X3 className="h-4 w-4 mr-2" />
-                                Results Dashboard
+                                <Mic className="h-4 w-4 mr-2" />
+                                AI Phone Agents
                               </DropdownMenuItem>
                               <DropdownMenuItem 
-                                onClick={() => navigate('/nres/complex-care')}
+                                onClick={() => navigate('/nres/comms-strategy')}
                                 className="cursor-pointer py-3"
                               >
-                                <Users className="h-4 w-4 mr-2" />
-                                Proactive Complex Care
+                                <MessageSquare className="h-4 w-4 mr-2" />
+                                Comms Strategy
                               </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => navigate('/gp-genie')}
-                              className="cursor-pointer py-3"
-                            >
-                              <Mic className="h-4 w-4 mr-2" />
-                              AI Phone Agents
-                            </DropdownMenuItem>
-                            <DropdownMenuItem 
-                              onClick={() => navigate('/nres/comms-strategy')}
-                              className="cursor-pointer py-3"
-                            >
-                              <MessageSquare className="h-4 w-4 mr-2" />
-                              Comms Strategy
-                            </DropdownMenuItem>
-                          </DropdownMenuSubContent>
-                        </DropdownMenuSub>
+                            </DropdownMenuSubContent>
+                          </DropdownMenuSub>
+                          )}
                          
                          {hasModuleAccess('mic_test_service_access') && (
                           <DropdownMenuItem 

@@ -6330,6 +6330,39 @@ export type Database = {
           },
         ]
       }
+      user_service_activations: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          created_at: string | null
+          id: string
+          notes: string | null
+          service: Database["public"]["Enums"]["service_type"]
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          service: Database["public"]["Enums"]["service_type"]
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          created_at?: string | null
+          id?: string
+          notes?: string | null
+          service?: Database["public"]["Enums"]["service_type"]
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_sessions: {
         Row: {
           id: string
@@ -6882,6 +6915,13 @@ export type Database = {
         }
         Returns: boolean
       }
+      has_service_activation: {
+        Args: {
+          _service: Database["public"]["Enums"]["service_type"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
       has_shared_drive_permission: {
         Args: {
           p_action: Database["public"]["Enums"]["permission_action"]
@@ -7199,6 +7239,13 @@ export type Database = {
         | "reception_team"
         | "admin_team"
         | "secretaries"
+      service_type:
+        | "ai4pm"
+        | "ai4gp"
+        | "nres"
+        | "meeting_recorder"
+        | "complaints"
+        | "cqc"
       staff_role:
         | "gp"
         | "phlebotomist"
@@ -7414,6 +7461,14 @@ export const Constants = {
         "reception_team",
         "admin_team",
         "secretaries",
+      ],
+      service_type: [
+        "ai4pm",
+        "ai4gp",
+        "nres",
+        "meeting_recorder",
+        "complaints",
+        "cqc",
       ],
       staff_role: [
         "gp",
