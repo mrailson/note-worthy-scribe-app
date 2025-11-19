@@ -451,7 +451,7 @@ const CSOReport = () => {
                       <img 
                         src={architectureDiagram} 
                         alt="NoteWell Architecture Diagram showing system components and data flow" 
-                        className="w-full h-32 object-cover rounded-md border border-border mt-2 transition-opacity group-hover:opacity-80"
+                        className="w-full h-20 object-cover rounded-md border border-border mt-2 transition-opacity group-hover:opacity-80"
                       />
                       <div className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/10 transition-colors rounded-md">
                         <div className="bg-white dark:bg-gray-900 rounded-full p-2 opacity-0 group-hover:opacity-100 transition-opacity shadow-lg">
@@ -3211,15 +3211,15 @@ const CSOReport = () => {
 
       {/* Architecture Diagram Modal */}
       <Dialog open={isArchitectureModalOpen} onOpenChange={setIsArchitectureModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-5xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>NoteWell Architecture Diagram</DialogTitle>
           </DialogHeader>
-          <div className="mt-4">
+          <div className="mt-4 overflow-auto max-h-[70vh]">
             <img 
               src={architectureDiagram} 
               alt="NoteWell Architecture Diagram showing system components and data flow" 
-              className="w-full rounded-md border border-border"
+              className="w-full h-auto object-contain rounded-md border border-border"
             />
             <p className="text-sm text-muted-foreground mt-4">
               <strong>Current hosting:</strong> Development environment on AWS London via Supabase
