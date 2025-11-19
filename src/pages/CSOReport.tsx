@@ -2179,12 +2179,26 @@ const CSOReport = () => {
             {/* DPO Sign-Off */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <Lock className="w-5 h-5" />
-                  Data Protection Officer Sign-Off
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Lock className="w-5 h-5" />
+                    Data Protection Officer Sign-Off
+                  </CardTitle>
+                  <Button variant="outline" size="sm" asChild>
+                    <a href="/reports/NoteWell_DPO_SignOff.pdf" target="_blank" rel="noopener noreferrer">
+                      <FileText className="w-4 h-4 mr-2" />
+                      Review DPO Documentation
+                    </a>
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
+                <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                  <p className="text-sm">
+                    <strong>For DPO Review:</strong> Please review the detailed Data Protection Officer documentation including DPIA summary, lawful basis, data flows, privacy controls, and compliance assessment before providing sign-off below.
+                  </p>
+                </div>
+
                 <div className="bg-muted/50 rounded-lg p-4">
                   <div>
                     <span className="font-semibold">GDPR Compliance Status:</span>
