@@ -182,7 +182,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         className="cursor-pointer py-3"
                       >
                         <Sparkles className="h-4 w-4 mr-2" />
-                        AI4GP / AI4PM Service
+                        AI4PM Service
                       </DropdownMenuItem>
                      {hasModuleAccess('meeting_recorder') && (
                        <DropdownMenuItem 
