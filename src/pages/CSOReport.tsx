@@ -356,14 +356,26 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">SIRO Sign-Off</span>
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <p className="text-sm font-semibold">Pending</p>
+                    <p className="text-sm font-semibold mb-2">Pending</p>
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <a href="/documents/NoteWell_SIRO_Statement_Full.pdf" download className="flex items-center justify-center gap-2">
+                        <Download className="w-3 h-3" />
+                        <span className="text-xs">Download SIRO Statement</span>
+                      </a>
+                    </Button>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
                       <span className="text-sm font-medium text-muted-foreground">Caldicott Guardian Approval</span>
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
-                    <p className="text-sm font-semibold">Pending</p>
+                    <p className="text-sm font-semibold mb-2">Pending</p>
+                    <Button variant="outline" size="sm" asChild className="w-full">
+                      <a href="/documents/NoteWell_Caldicott_Statement_Full.pdf" download className="flex items-center justify-center gap-2">
+                        <Download className="w-3 h-3" />
+                        <span className="text-xs">Download Caldicott Statement</span>
+                      </a>
+                    </Button>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
