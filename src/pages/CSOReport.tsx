@@ -592,21 +592,9 @@ const CSOReport = () => {
                 {/* Service Description - Non-Commercial Model */}
                 <div className="border-l-4 border-primary bg-gradient-to-r from-primary/5 to-background rounded-lg p-6 space-y-4">
                   <h3 className="text-xl font-semibold mb-3">Service Description (Non-Commercial, NHS-Aligned Model)</h3>
-                  <div className="prose dark:prose-invert max-w-none text-sm space-y-3">
+                  <div className="prose dark:prose-invert max-w-none text-sm">
                     <p className="leading-relaxed">
-                      NoteWell AI is designed as a shared NHS primary care support service rather than a commercial software product. Its purpose is to provide practices, PCNs and neighbourhoods with consistent, safe and efficient tools for complaints handling, meeting governance, audit trails and documentation. The service is intended to enhance existing NHS processes, reduce administrative burden, and support compliance with regulatory standards (CQC, NHS Complaints Regulations, DSPT, DCB0129/0160).
-                    </p>
-                    <p className="leading-relaxed">
-                      The model is explicitly non-commercial. NoteWell is not sold to practices, does not operate per-user or per-licence charging, and is not intended to generate profit. Instead, NoteWell is being developed collaboratively with local NHS leaders as a neighbourhood-led capability that can be adopted, hosted and governed within an NHS organisational structure (e.g., LHIS, UHL, neighbourhood digital infrastructure).
-                    </p>
-                    <p className="leading-relaxed">
-                      Access is centrally managed, with practices onboarded as part of a neighbourhood or ICS digital programme. The service operates on a "shared NHS utility" basis: one platform, centrally assured, centrally governed, delivered consistently across participating practices.
-                    </p>
-                    <p className="leading-relaxed">
-                      PCN Services Ltd acts solely as the development and delivery vehicle during early-stage prototyping. As the hosting model matures, the service may transition into an NHS tenant with operational ownership, risk holding and DSPT responsibilities sitting with the appropriate NHS organisation (TBC).
-                    </p>
-                    <p className="leading-relaxed">
-                      A detailed service and support model will be finalised once the hosting organisation for the pilot is confirmed.
+                      NoteWell AI is a neighbourhood-aligned digital service designed to support primary care with complaints handling, governance, meeting management and regulatory compliance. It is not a commercial software product; instead, it is being developed collaboratively with the ICS as a shared NHS capability that practices can use without individual procurement or licensing. Funding is requested to support assurance, hosting and controlled deployment within an NHS tenant (e.g., LHIS), enabling the neighbourhood to provide a consistent, safe and centrally governed tool that reduces administrative burden, strengthens compliance, and supports the Modern General Practice model. This investment allows the neighbourhood to deliver a high-impact governance and quality improvement service at scale, aligned with ICP priorities and reusable across the wider system.
                     </p>
                   </div>
                 </div>
