@@ -48,6 +48,8 @@ export interface ChecklistItem {
   status: 'COMPLETE' | 'PARTIAL' | 'OUTSTANDING';
   owner: string;
   targetDate: string;
+  note?: string;
+  category: string;
 }
 
 export const services: ServiceDescription[] = [
@@ -509,89 +511,194 @@ export const thirdPartyRisks: ThirdPartyRisk[] = [
 ];
 
 export const preDeploymentChecklist: ChecklistItem[] = [
+  // 1. Governance, Clinical Safety & Data Protection
   {
     item: "Formal CSO appointed",
     status: "OUTSTANDING",
-    owner: "Organisation",
-    targetDate: "Before deployment"
+    owner: "NHS Hosting Organisation / Neighbourhood (TBC)",
+    targetDate: "Before deployment",
+    note: "CSO to sit within the NHS organisation hosting NoteWell (LHIS/UHL preferred).",
+    category: "Governance, Clinical Safety & Data Protection"
   },
   {
-    item: "Clinical Safety Case completed",
+    item: "Clinical Safety Case (DCB0129) completed",
     status: "PARTIAL",
     owner: "CSO",
-    targetDate: "Ready for review once CSO appointed"
+    targetDate: "Before deployment",
+    note: "Draft complete; final review pending appointment of host-organisation CSO.",
+    category: "Governance, Clinical Safety & Data Protection"
   },
   {
     item: "Hazard Log approved",
     status: "PARTIAL",
     owner: "CSO",
-    targetDate: "Ready for review once CSO appointed"
+    targetDate: "Before deployment",
+    note: "Meeting Notes + Complaints only (AI4GP out of scope).",
+    category: "Governance, Clinical Safety & Data Protection"
   },
   {
     item: "DPIA completed and signed",
     status: "PARTIAL",
-    owner: "DPO",
-    targetDate: "Before deployment"
+    owner: "DPO (ICB IG Lead)",
+    targetDate: "Before deployment",
+    note: "DPIA draft complete; finalisation to be completed by ICB IG Lead as part of NHS tenant onboarding.",
+    category: "Governance, Clinical Safety & Data Protection"
   },
   {
-    item: "Obtain Formal MHRA Class 1 Medical Device Registration",
+    item: "MHRA Class I Registration (UK MDR 2002)",
     status: "COMPLETE",
     owner: "Regulatory Lead",
-    targetDate: "Complete"
+    targetDate: "Complete",
+    category: "Governance, Clinical Safety & Data Protection"
   },
   {
     item: "SIRO approval obtained",
     status: "OUTSTANDING",
-    owner: "SIRO",
-    targetDate: "Before deployment"
+    owner: "SIRO (NHS hosting organisation / neighbourhood)",
+    targetDate: "Before deployment",
+    note: "Requires final DPIA + hosting model confirmation.",
+    category: "Governance, Clinical Safety & Data Protection"
   },
   {
     item: "Caldicott Guardian approval",
     status: "OUTSTANDING",
     owner: "Caldicott Guardian",
-    targetDate: "Before deployment"
+    targetDate: "Before deployment",
+    note: "Will be completed once hosting organisation is confirmed and DPIA is signed.",
+    category: "Governance, Clinical Safety & Data Protection"
   },
+  
+  // 2. Contracts, DPAs & Hosting
   {
-    item: "DPAs with AI providers signed",
+    item: "DPAs with AI providers signed (OpenAI)",
     status: "COMPLETE",
     owner: "IG Lead",
-    targetDate: "Complete"
+    targetDate: "Complete",
+    category: "Contracts, DPAs & Hosting"
   },
   {
-    item: "DPAs with Database providers signed",
+    item: "DPAs with Database Providers signed (Supabase)",
     status: "COMPLETE",
     owner: "IG Lead",
-    targetDate: "Complete"
+    targetDate: "Complete",
+    note: "Applies to development environment. A new DPA will be issued once migrated into NHS hosting (TBC).",
+    category: "Contracts, DPAs & Hosting"
   },
   {
-    item: "Critical and High Level Security warnings resolved",
+    item: "Final hosting model confirmed (NHS tenant)",
+    status: "OUTSTANDING",
+    owner: "ICP Digital / LHIS",
+    targetDate: "Before deployment",
+    note: "Recommended NHS hosting options: LHIS or UHL/Apex tenant.",
+    category: "Contracts, DPAs & Hosting"
+  },
+  {
+    item: "DSPT ownership confirmed",
+    status: "OUTSTANDING",
+    owner: "Host Organisation",
+    targetDate: "Before deployment",
+    note: "DSPT responsibility will sit with the NHS organisation hosting the platform.",
+    category: "Contracts, DPAs & Hosting"
+  },
+  
+  // 3. Security Assurance
+  {
+    item: "Critical / High security warnings resolved",
     status: "COMPLETE",
     owner: "Technical Lead",
-    targetDate: "Complete"
+    targetDate: "Complete",
+    category: "Security Assurance"
   },
   {
-    item: "Penetration testing completed",
+    item: "Penetration test (External Web Application – CREST)",
     status: "OUTSTANDING",
-    owner: "InfoSec Team",
-    targetDate: "Before deployment"
+    owner: "Host Org InfoSec / Commissioned Provider",
+    targetDate: "After NHS hosting migration",
+    note: "Must be conducted after migration into NHS hosting environment. Scope: external web app, auth, API, OWASP Top 10. Red-team / internal network testing NOT required.",
+    category: "Security Assurance"
   },
   {
-    item: "User access controls configured",
+    item: "MFA enforced for all production users",
+    status: "OUTSTANDING",
+    owner: "System Admin / Host Organisation",
+    targetDate: "Before deployment",
+    note: "MFA is mandatory for complaints access. Preferred method to be agreed with LHIS (Authenticator or NHS-approved factor).",
+    category: "Security Assurance"
+  },
+  {
+    item: "Log retention policy (CAF v4 aligned) defined",
+    status: "OUTSTANDING",
+    owner: "Technical Lead & DPO",
+    targetDate: "Before deployment",
+    note: "Must cover audit logs, access logs, security logs, transcripts.",
+    category: "Security Assurance"
+  },
+  {
+    item: "Backup & restore strategy approved (including ransomware resilience)",
+    status: "OUTSTANDING",
+    owner: "Hosting Organisation / Technical Lead",
+    targetDate: "Before deployment",
+    note: "Requires definition of RPO/RTO and immutable backup approach.",
+    category: "Security Assurance"
+  },
+  
+  // 4. System Configuration & Access Control
+  {
+    item: "User access controls configured (RBAC + RLS)",
     status: "COMPLETE",
     owner: "System Admin",
-    targetDate: "Complete"
+    targetDate: "Complete",
+    note: "Per-practice isolation in development environment.",
+    category: "System Configuration & Access Control"
+  },
+  {
+    item: "JML (Joiners/Movers/Leavers) Process finalised",
+    status: "OUTSTANDING",
+    owner: "Host Organisation",
+    targetDate: "Before deployment",
+    note: "Final workflow depends on NHS hosting infrastructure.",
+    category: "System Configuration & Access Control"
   },
   {
     item: "System navigation and documentation access verified",
     status: "COMPLETE",
     owner: "System Admin",
-    targetDate: "Complete"
+    targetDate: "Complete",
+    category: "System Configuration & Access Control"
   },
+  
+  // 5. Operational Readiness
   {
     item: "Training materials developed",
     status: "PARTIAL",
     owner: "Training Lead",
-    targetDate: "2 weeks before deployment"
+    targetDate: "2 weeks before deployment",
+    note: "To include MFA onboarding + SAR/FOI export guidance.",
+    category: "Operational Readiness"
+  },
+  {
+    item: "SAR/FOI workflow designed",
+    status: "OUTSTANDING",
+    owner: "DPO / Technical Lead",
+    targetDate: "Before deployment",
+    note: "Export tools required for efficient DSAR handling.",
+    category: "Operational Readiness"
+  },
+  {
+    item: "Support & incident management model defined",
+    status: "OUTSTANDING",
+    owner: "Hosting Organisation / Neighbourhood Digital Team",
+    targetDate: "Before deployment",
+    note: "Must specify who monitors logs, handles alerts, triages support.",
+    category: "Operational Readiness"
+  },
+  {
+    item: "Pilot onboarding pack finalised (Practices)",
+    status: "OUTSTANDING",
+    owner: "Neighbourhood Digital / PMO",
+    targetDate: "Before deployment",
+    note: "Includes DPIA summary, MFA instructions, hosting details, user guidance.",
+    category: "Operational Readiness"
   }
 ];
 
