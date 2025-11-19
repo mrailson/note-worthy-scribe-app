@@ -867,7 +867,7 @@ const CSOReport = () => {
                 </div>
                 <div className="mt-3">
                   <span className="font-semibold text-sm">Mitigation:</span>
-                  <p className="text-sm text-muted-foreground mt-1">RLS; RBAC; audit logs; session timeout; MFA options</p>
+                  <p className="text-sm text-muted-foreground mt-1">RLS; RBAC; audit logs; session timeout; mandatory MFA (Authenticator App + Email/Code)</p>
                 </div>
               </div>
 
@@ -1030,7 +1030,7 @@ const CSOReport = () => {
                       <span className="font-semibold text-sm">Unauthorised access</span>
                       <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
                     </div>
-                    <p className="text-sm text-muted-foreground">Mitigation: RLS/RBAC/MFA</p>
+                    <p className="text-sm text-muted-foreground">Mitigation: RLS/RBAC/Mandatory MFA</p>
                   </div>
                   <div className="border rounded-lg p-4">
                     <div className="flex items-start justify-between mb-2">
@@ -1749,7 +1749,13 @@ const CSOReport = () => {
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
-                          <span>Optional MFA</span>
+                          <div>
+                            <span className="font-semibold">Mandatory MFA for all users</span>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              Two MFA options provided: Authenticator App and Email/Code. 
+                              We understand user resistance; therefore two MFA methods are provided to ensure accessibility whilst maintaining security.
+                            </p>
+                          </div>
                         </li>
                         <li className="flex items-start gap-2">
                           <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
