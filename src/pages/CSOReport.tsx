@@ -1132,7 +1132,7 @@ const CSOReport = () => {
                 <TabsList className="grid w-full grid-cols-3">
                   <TabsTrigger value="meeting">Meeting Notes ({meetingNotesRisks.length} Risks)</TabsTrigger>
                   <TabsTrigger value="complaints">Complaints ({complaintsRisks.length} Risks)</TabsTrigger>
-                  <TabsTrigger value="ai4gp">AI4GP ({ai4gpRisks.length} Risks)</TabsTrigger>
+                  <TabsTrigger value="ai4gp">AI4GP ({ai4gpRisks.length} Risks) NOT IN SCOPE</TabsTrigger>
                 </TabsList>
                 <TabsContent value="meeting" className="mt-6">
                   <RiskTable risks={meetingNotesRisks} title="Meeting Notes System - Clinical Risk Assessment" />
