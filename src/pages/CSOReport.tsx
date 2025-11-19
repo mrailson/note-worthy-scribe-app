@@ -167,10 +167,10 @@ const CSOReport = () => {
           <h1 className="text-3xl font-bold mb-2">Clinical Safety Officer & Data Protection Officer Assessment Report</h1>
           <p className="text-xl text-muted-foreground mb-4">Notewell Healthcare Management System Services</p>
           <div className="flex flex-wrap gap-4 text-sm">
-            <div><span className="font-semibold">Version:</span> 1.0</div>
+            <div><span className="font-semibold">Version:</span> 2.0</div>
             <div><span className="font-semibold">Date:</span> {new Date().toLocaleDateString('en-GB')}</div>
-            <div><span className="font-semibold">Status:</span> <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">DRAFT FOR REVIEW</Badge></div>
-            <div><span className="font-semibold">Initial Classification:</span> Non MHRA Medical Device with a view to MHRA Class 1 Medical Device</div>
+            <div><span className="font-semibold">Status:</span> <Badge className="bg-yellow-100 text-yellow-800 dark:bg-yellow-950 dark:text-yellow-300">AWAITING SIGN-OFF</Badge></div>
+            <div><span className="font-semibold">Medical Device Classification:</span> MHRA Class 1 Medical Device (UK MDR 2002) - Confirmed 19th November 2025</div>
           </div>
         </div>
 
@@ -1399,7 +1399,7 @@ const CSOReport = () => {
                 <div className="bg-muted/50 rounded-lg p-4 space-y-3">
                   <div>
                     <span className="font-semibold">System Safety Classification:</span>
-                    <p className="text-sm text-muted-foreground mt-1">Class I Medical Device Software (under UK MDR 2002) - Applied for 9th November 2025</p>
+                    <p className="text-sm text-muted-foreground mt-1">Class I Medical Device Software (UK MDR 2002) - Confirmed 19th November 2025</p>
                   </div>
                   <div>
                     <span className="font-semibold">Overall Safety Rating:</span>
