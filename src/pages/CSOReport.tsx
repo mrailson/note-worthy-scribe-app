@@ -996,6 +996,48 @@ const CSOReport = () => {
                 </div>
               </div>
 
+              <Separator />
+
+              {/* Data Processing Agreements */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Data Processing Agreements</h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Data Processing Agreements are in place with all sub-processors to ensure GDPR compliance and data protection.
+                </p>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <span className="text-sm block mb-1">Supabase DPA (signed 5 August 2025)</span>
+                      <a 
+                        href="/documents/Supabase_User_DPA_August_5_2025.pdf" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors underline"
+                      >
+                        Download Agreement
+                      </a>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <span className="text-sm block mb-1">OpenAI DPA (signed 10 November 2025)</span>
+                      <a 
+                        href="/documents/Data_Processing_Agreement_PCN_Services_Ltd_and_OpenAI.pdf" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors underline"
+                      >
+                        Download Agreement
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
               {/* Conclusion */}
               <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-5">
                 <div className="flex items-start gap-3">
