@@ -28,7 +28,8 @@ import {
   ArrowUp,
   ExternalLink,
   ChevronDown,
-  FileCheck
+  FileCheck,
+  Calendar
 } from "lucide-react";
 import {
   services,
@@ -258,6 +259,7 @@ const CSOReport = () => {
                     { id: "third-party", label: "Third Parties", icon: Users },
                     { id: "nhs-assurance", label: "NHS Assurance Pack & DTAC", icon: FileText },
                     { id: "checklist", label: "Checklist", icon: CheckCircle },
+                    { id: "roadmap", label: "Deployment Roadmap", icon: Calendar },
                     { id: "recommendations", label: "Recommendations", icon: TrendingUp }
                   ].map((nav) => (
                     <Button
@@ -1645,6 +1647,328 @@ const CSOReport = () => {
                     </div>
                     <div className="text-sm font-medium text-red-700 dark:text-red-400">Outstanding</div>
                   </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Deployment Roadmap */}
+        <section id="roadmap" className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <Calendar className="w-6 h-6" />
+                Deployment Roadmap (NHS-Aligned)
+              </CardTitle>
+              <CardDescription>Staged NHS assurance pathway from prototype to production</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="prose dark:prose-invert max-w-none">
+                <p className="text-base leading-relaxed mb-6">
+                  The migration and deployment of NoteWell AI will follow a staged NHS assurance pathway. This ensures safe transition from prototype development to NHS-hosted production, with full compliance to clinical safety, IG, DSPT and technical security controls.
+                </p>
+              </div>
+
+              <Accordion type="single" collapsible className="w-full">
+                {/* Phase 0 */}
+                <AccordionItem value="phase0">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3 w-full">
+                      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-blue-300 shrink-0">Phase 0</Badge>
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold">Foundation (Current Position)</div>
+                        <div className="text-sm text-muted-foreground">Status: IN PROGRESS</div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Objectives</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Complete core assurance documentation (CSO Report, DPIA, Hazard Log, MHRA evidence)</li>
+                        <li>Resolve critical/high technical vulnerabilities</li>
+                        <li>Stabilise Lovable development environment</li>
+                        <li>Prepare for migration to NHS tenant (LHIS/UHL)</li>
+                        <li>Maintain working prototype for demonstrations and design validation</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Deliverables</h4>
+                      <div className="space-y-2">
+                        {[
+                          { item: "MHRA Class I registration", complete: true },
+                          { item: "Draft DCB0129 Safety Case", complete: true },
+                          { item: "Full hazard log (Meeting Notes + Complaints)", complete: true },
+                          { item: "Full CSO page + evidence pack", complete: true },
+                          { item: "OpenAI + Supabase DPAs", complete: true },
+                          { item: "Security warnings resolved", complete: true },
+                          { item: "DPIA finalisation pending ICB IG Lead", complete: false },
+                          { item: "Hosting decision TBC (LHIS/UHL preferred)", complete: false }
+                        ].map((deliverable, idx) => (
+                          <div key={idx} className="flex items-center gap-2 text-sm">
+                            {deliverable.complete ? (
+                              <CheckCircle className="w-4 h-4 text-green-600 shrink-0" />
+                            ) : (
+                              <Clock className="w-4 h-4 text-yellow-600 shrink-0" />
+                            )}
+                            <span className={deliverable.complete ? "text-muted-foreground" : "text-foreground"}>
+                              {deliverable.item}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Phase 1 */}
+                <AccordionItem value="phase1">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3 w-full">
+                      <Badge className="bg-purple-100 text-purple-800 dark:bg-purple-950 dark:text-purple-300 shrink-0">Phase 1</Badge>
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold">NHS Hosting Migration</div>
+                        <div className="text-sm text-muted-foreground">Weeks 0–4 • Status: NOT STARTED</div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+                      <p className="text-sm font-medium text-blue-900 dark:text-blue-300">
+                        <strong>Trigger for Phase 1:</strong> ICB confirm hosting organisation (expected: LHIS)
+                      </p>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Objectives</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Move NoteWell from Lovable-hosted environment into NHS-controlled hosting</li>
+                        <li>Apply NHS-standard security baselines and MFA</li>
+                        <li>Establish DSPT ownership</li>
+                        <li>Implement proper backup/restore strategy and log retention</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Key Tasks</h4>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Establish GitHub → LHIS deployment pipeline ("security gate" model)</li>
+                        <li>Deploy NoteWell backend + database into NHS tenant</li>
+                        <li>Configure NHS authentication options (MFA mandatory)</li>
+                        <li>Implement agreed log retention policy (CAF v4 aligned)</li>
+                        <li>Implement immutable / ransomware-resilient backups</li>
+                        <li>Apply NHS access control standards (RBAC/RLS review)</li>
+                        <li>Re-run vulnerability scanning under LHIS stack</li>
+                      </ol>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Deliverables</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>NHS-hosted development + production environment</li>
+                        <li>DSPT owner confirmed</li>
+                        <li>Platform baseline security approved</li>
+                        <li>MFA configuration finalised</li>
+                        <li>Updated DPIA reflecting new hosting model</li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Phase 2 */}
+                <AccordionItem value="phase2">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3 w-full">
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300 shrink-0">Phase 2</Badge>
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold">Assurance Completion & Pen Test</div>
+                        <div className="text-sm text-muted-foreground">Weeks 4–8 • Status: NOT STARTED</div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Objectives</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Complete all mandatory NHS assurance prior to pilot</li>
+                        <li>Execute CREST-aligned external web application penetration test</li>
+                        <li>Obtain senior IG approvals (SIRO, Caldicott)</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Key Tasks</h4>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Finalise DPIA with ICB IG Lead</li>
+                        <li>CSO review + approve hazard log & safety case</li>
+                        <li>SIRO approval</li>
+                        <li>Caldicott Guardian approval</li>
+                        <li>Commission proportionate CREST web app pen test</li>
+                        <li>Complete pen test remediation</li>
+                        <li>Revalidate navigation, permissions, audit logs</li>
+                        <li>Produce final Assurance Pack (bundle for pilot sites)</li>
+                      </ol>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Deliverables</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Completed DCB0129 documentation</li>
+                        <li>Completed DPIA (signed)</li>
+                        <li>Approved SIRO + Caldicott statements</li>
+                        <li>Pen Test Report + remediation summary</li>
+                        <li>"Green/Amber" Assurance Pack for practices</li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Phase 3 */}
+                <AccordionItem value="phase3">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3 w-full">
+                      <Badge className="bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300 shrink-0">Phase 3</Badge>
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold">Controlled Pilot</div>
+                        <div className="text-sm text-muted-foreground">Weeks 8–16 • Status: FUTURE</div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div className="grid md:grid-cols-3 gap-4 mb-4">
+                      <div className="bg-muted rounded-lg p-3">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">Duration</div>
+                        <div className="text-sm font-semibold">8 weeks minimum</div>
+                      </div>
+                      <div className="bg-muted rounded-lg p-3">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">Max Sites</div>
+                        <div className="text-sm font-semibold">5 practices initially</div>
+                      </div>
+                      <div className="bg-muted rounded-lg p-3">
+                        <div className="text-xs font-medium text-muted-foreground mb-1">Risk Ownership</div>
+                        <div className="text-sm font-semibold">NHS hosting org</div>
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Objectives</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Evaluate safety, usability, governance compliance and operational value</li>
+                        <li>Trial user access onboarding, MFA adoption and JML processes</li>
+                        <li>Validate complaints workflows with real case studies</li>
+                        <li>Validate meeting transcription accuracy and user satisfaction</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Key Tasks</h4>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Select 3–5 early-adopter practices</li>
+                        <li>Provide full onboarding pack (training + IG materials)</li>
+                        <li>Monitor access logs, security alerts, system performance</li>
+                        <li>Capture user feedback and operational improvements</li>
+                        <li>Evaluate SAR/FOI export workflows</li>
+                        <li>Assess impact: admin time reduced, complaints cycle time, governance quality</li>
+                        <li>Produce Pilot Evaluation Report</li>
+                      </ol>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Deliverables</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Pilot Evaluation (qualitative + quantitative)</li>
+                        <li>Updated risk register and hazard log</li>
+                        <li>Prioritised improvements for wider rollout</li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Phase 4 */}
+                <AccordionItem value="phase4">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3 w-full">
+                      <Badge className="bg-teal-100 text-teal-800 dark:bg-teal-950 dark:text-teal-300 shrink-0">Phase 4</Badge>
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold">Neighbourhood Rollout</div>
+                        <div className="text-sm text-muted-foreground">Months 4–9 • Status: FUTURE</div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Objectives</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Scale NoteWell to all practices in the neighbourhood</li>
+                        <li>Embed into governance frameworks and Neighbourhood Digital Transformation plans</li>
+                        <li>Prepare for cross-ICB reuse</li>
+                      </ul>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Key Tasks</h4>
+                      <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Expand onboarding to all practices (15–20 expected)</li>
+                        <li>Provide group training and e-learning materials</li>
+                        <li>Operationalise JML and support processes</li>
+                        <li>Integrate with Neighbourhood governance dashboards</li>
+                        <li>Publish public-facing Trust Centre (transparency portal)</li>
+                        <li>Maintain annual pen test schedule</li>
+                        <li>Plan for Phase 2 (AI4GP module) if approved</li>
+                      </ol>
+                    </div>
+                    <div>
+                      <h4 className="font-semibold mb-2">Deliverables</h4>
+                      <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground ml-2">
+                        <li>Fully deployed neighbourhood-wide service</li>
+                        <li>Annual assurance cycle (DPIA, pen test, CSO review)</li>
+                        <li>Continuous improvement plan</li>
+                        <li>Case for ICS-wide adoption</li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                {/* Phase 5 */}
+                <AccordionItem value="phase5">
+                  <AccordionTrigger className="hover:no-underline">
+                    <div className="flex items-center gap-3 w-full">
+                      <Badge className="bg-indigo-100 text-indigo-800 dark:bg-indigo-950 dark:text-indigo-300 shrink-0">Phase 5</Badge>
+                      <div className="flex-1 text-left">
+                        <div className="font-semibold">ICS / Cross-System Adoption</div>
+                        <div className="text-sm text-muted-foreground">Months 9+ • Status: OPTIONAL FUTURE PATHWAY</div>
+                      </div>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-4 pt-4">
+                    <div>
+                      <h4 className="font-semibold mb-2">Objectives</h4>
+                      <ul className="list-disc list-inside space-y-1 text-muted-foreground ml-2">
+                        <li>Enable use across Northamptonshire, Leicestershire and wider regional ICPs</li>
+                        <li>Provide unified complaints and governance tooling for primary care</li>
+                        <li>Strengthen system-wide governance, BI and transparency</li>
+                      </ul>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              <Separator className="my-6" />
+
+              {/* Timeline Summary */}
+              <div className="bg-gradient-to-r from-primary/5 to-background border border-border rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-4">Summary Timeline</h3>
+                <div className="space-y-3">
+                  {[
+                    { phase: "Phase 0", title: "Documentation & Prototype", status: "NOW", color: "blue" },
+                    { phase: "Phase 1", title: "NHS Hosting Migration", status: "Weeks 0–4", color: "purple" },
+                    { phase: "Phase 2", title: "Assurance + Pen Test", status: "Weeks 4–8", color: "green" },
+                    { phase: "Phase 3", title: "Pilot Deployment", status: "Weeks 8–16", color: "orange" },
+                    { phase: "Phase 4", title: "Neighbourhood Rollout", status: "Months 4–9", color: "teal" },
+                    { phase: "Phase 5", title: "ICS Rollout", status: "Month 9+", color: "indigo" }
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex items-center gap-3">
+                      <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                      <div className="flex-1 flex items-center gap-3">
+                        <span className="font-medium min-w-[80px]">{item.phase}</span>
+                        <span className="text-muted-foreground">→</span>
+                        <span className="text-sm">{item.title}</span>
+                        <Badge variant="outline" className="ml-auto">{item.status}</Badge>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             </CardContent>
