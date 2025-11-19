@@ -527,7 +527,7 @@ const CSOReport = () => {
                   <ul className="space-y-2 text-sm">
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>Formal DCB0129 Clinical Risk Management documentation</span>
+                      <span>DCB0129 Clinical Risk Management documentation to be validated by NHS as needed</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
