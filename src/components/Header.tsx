@@ -367,13 +367,16 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         User Settings
                       </DropdownMenuItem>
                     )}
-                     <DropdownMenuItem 
-                       onClick={() => navigate('/cso-report')}
-                       className="cursor-pointer py-3"
-                     >
-                       <Shield className="h-4 w-4 mr-2" />
-                       CSO Report
-                     </DropdownMenuItem>
+                     {/* CSO Report - Only show if user has CSO governance access */}
+                     {hasModuleAccess('cso_governance_access') && (
+                       <DropdownMenuItem 
+                         onClick={() => navigate('/cso-report')}
+                         className="cursor-pointer py-3"
+                       >
+                         <Shield className="h-4 w-4 mr-2" />
+                         CSO Report
+                       </DropdownMenuItem>
+                     )}
                      
                      {/* Hide Manage Attendees for Oak Lane non-admin users */}
                      {!isOakLaneNonAdmin && (
@@ -721,12 +724,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               </DrawerClose>
                             )}
 
-                            <DrawerClose asChild>
-                              <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/cso-report')}>
-                                <Shield className="h-4 w-4 mr-2" />
-                                CSO Report
-                              </Button>
-                            </DrawerClose>
+                            {/* CSO Report - Only show if user has CSO governance access */}
+                            {hasModuleAccess('cso_governance_access') && (
+                              <DrawerClose asChild>
+                                <Button variant="ghost" className="justify-start w-full" onClick={() => navigate('/cso-report')}>
+                                  <Shield className="h-4 w-4 mr-2" />
+                                  CSO Report
+                                </Button>
+                              </DrawerClose>
+                            )}
 
                             <DrawerClose asChild>
                               <Button variant="destructive" className="justify-start w-full" onClick={signOut}>

@@ -47,7 +47,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       const { data, error } = await supabase
         .from('user_roles')
-        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access')
+        .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access')
         .eq('user_id', userId);
       
       if (error) {
@@ -74,6 +74,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         api_testing_service_access: acc.api_testing_service_access || roleRecord.api_testing_service_access,
         translation_service_access: acc.translation_service_access || roleRecord.translation_service_access,
         fridge_monitoring_access: acc.fridge_monitoring_access || roleRecord.fridge_monitoring_access,
+        cso_governance_access: acc.cso_governance_access || roleRecord.cso_governance_access,
       }), {
         meeting_notes_access: false,
         gp_scribe_access: false,
@@ -85,6 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         api_testing_service_access: false,
         translation_service_access: false,
         fridge_monitoring_access: false,
+        cso_governance_access: false,
       });
       
       // Convert the aggregated access flags to module names array
@@ -99,6 +101,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (aggregatedAccess.api_testing_service_access) modules.push('api_testing_service');
       if (aggregatedAccess.translation_service_access) modules.push('translation_service');
       if (aggregatedAccess.fridge_monitoring_access) modules.push('fridge_monitoring_access');
+      if (aggregatedAccess.cso_governance_access) modules.push('cso_governance_access');
       
       console.log(`Found ${data.length} role record(s) for user, aggregated modules:`, modules);
       setUserModules(modules);

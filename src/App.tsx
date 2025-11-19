@@ -151,16 +151,56 @@ const App = () => {
                   <SecurityCompliance />
                 </ProtectedRoute>
               } />
-              <Route path="/cso-report" element={<CSOReport />} />
-              <Route path="/data-flow-architecture" element={<DataFlowArchitecture />} />
-              <Route path="/dpia" element={<DPIA />} />
-              <Route path="/dtac" element={<DTACAssessment />} />
-              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
-              <Route path="/hazard-log" element={<HazardLog />} />
-              <Route path="/safety-case" element={<SafetyCase />} />
-              <Route path="/dcb0129" element={<DCB0129 />} />
-              <Route path="/security-posture" element={<SecurityPostureOverview />} />
-              <Route path="/incident-response" element={<IncidentResponsePolicy />} />
+              <Route path="/cso-report" element={
+                <ProtectedRoute requiredModule="cso_governance_access">
+                  <CSOReport />
+                </ProtectedRoute>
+              } />
+              <Route path="/data-flow-architecture" element={
+                <ProtectedRoute requiredModule="cso_governance_access">
+                  <DataFlowArchitecture />
+                </ProtectedRoute>
+              } />
+              <Route path="/dpia" element={
+                <ProtectedRoute requiredModule="cso_governance_access">
+                  <DPIA />
+                </ProtectedRoute>
+              } />
+              <Route path="/dtac" element={
+                <ProtectedRoute requiredModule="cso_governance_access">
+                  <DTACAssessment />
+                </ProtectedRoute>
+              } />
+              <Route path="/privacy-policy" element={
+                <ProtectedRoute requiredModule="cso_governance_access">
+                  <PrivacyPolicy />
+                </ProtectedRoute>
+              } />
+              <Route path="/hazard-log" element={
+                <ProtectedRoute requiredModule="cso_governance_access">
+                  <HazardLog />
+                </ProtectedRoute>
+              } />
+              <Route path="/safety-case" element={
+                <ProtectedRoute requiredModule="cso_governance_access">
+                  <SafetyCase />
+                </ProtectedRoute>
+              } />
+              <Route path="/dcb0129" element={
+                <ProtectedRoute requiredModule="cso_governance_access">
+                  <DCB0129 />
+                </ProtectedRoute>
+              } />
+              <Route path="/security-posture" element={
+                <ProtectedRoute requiredModule="cso_governance_access">
+                  <SecurityPostureOverview />
+                </ProtectedRoute>
+              } />
+              <Route path="/incident-response" element={
+                <ProtectedRoute requiredModule="cso_governance_access">
+                  <IncidentResponsePolicy />
+                </ProtectedRoute>
+              } />
               <Route path="/feedback" element={<PracticeManagerFeedback />} />
               <Route path="/feedback/results" element={<FeedbackResults />} />
               <Route path="/network-diagnostics" element={<NetworkDiagnosticsPage />} />
