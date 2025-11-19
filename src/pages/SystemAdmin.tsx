@@ -1670,6 +1670,55 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
           {/* Overview Tab */}
           <TabsContent value="overview" className="space-y-6">
+            {/* Maintenance Mode Card */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Lock className="h-5 w-5" />
+                  Maintenance Mode
+                </CardTitle>
+                <CardDescription>
+                  Control system-wide maintenance mode and custom messaging
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="flex items-center justify-between p-4 border rounded-lg">
+                  <div className="space-y-1">
+                    <Label htmlFor="maintenance-mode" className="text-base font-semibold">
+                      Maintenance Mode
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Current status: {maintenanceMode.enabled ? 'Active' : 'Inactive'}
+                    </p>
+                  </div>
+                  <Switch
+                    id="maintenance-mode"
+                    checked={maintenanceMode.enabled}
+                    onCheckedChange={(checked) => handleMaintenanceModeUpdate(checked, customMessage)}
+                    disabled={updating}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="maintenance-message">Custom Message</Label>
+                  <Textarea
+                    id="maintenance-message"
+                    value={customMessage}
+                    onChange={(e) => setCustomMessage(e.target.value)}
+                    placeholder="Enter custom maintenance message..."
+                    rows={3}
+                  />
+                  <Button 
+                    size="sm" 
+                    onClick={() => handleMaintenanceModeUpdate(maintenanceMode.enabled, customMessage)}
+                    disabled={updating}
+                  >
+                    Update Message
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -3779,53 +3828,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             
             <AdminVideoUpload />
             
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Lock className="h-5 w-5" />
-                  Maintenance Mode
-                </CardTitle>
-                <CardDescription>
-                  Control system-wide maintenance mode and custom messaging
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <Label htmlFor="maintenance-mode" className="text-base font-semibold">
-                      Maintenance Mode
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Current status: {maintenanceMode.enabled ? 'Active' : 'Inactive'}
-                    </p>
-                  </div>
-                  <Switch
-                    id="maintenance-mode"
-                    checked={maintenanceMode.enabled}
-                    onCheckedChange={(checked) => handleMaintenanceModeUpdate(checked, customMessage)}
-                    disabled={updating}
-                  />
-                </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="maintenance-message">Custom Message</Label>
-                  <Textarea
-                    id="maintenance-message"
-                    value={customMessage}
-                    onChange={(e) => setCustomMessage(e.target.value)}
-                    placeholder="Enter custom maintenance message..."
-                    rows={3}
-                  />
-                  <Button 
-                    size="sm" 
-                    onClick={() => handleMaintenanceModeUpdate(maintenanceMode.enabled, customMessage)}
-                    disabled={updating}
-                  >
-                    Update Message
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
           </TabsContent>
         </Tabs>
       </div>
