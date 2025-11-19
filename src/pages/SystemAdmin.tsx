@@ -633,8 +633,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
         .from('supplier_incidents')
         .select(`
           *,
-          profiles!reported_by(full_name),
-          gp_practices!practice_id(name)
+          profiles!reported_by(full_name)
         `)
         .order('reported_date', { ascending: false });
 
