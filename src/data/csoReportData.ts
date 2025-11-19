@@ -52,29 +52,6 @@ export interface ChecklistItem {
 
 export const services: ServiceDescription[] = [
   {
-    name: "AI4GP Service",
-    purpose: "AI-powered clinical and practice management assistant providing evidence-based guidance, information retrieval, and decision support for primary care clinicians and practice managers.",
-    capabilities: [
-      "Real-time AI chat interface with clinical query handling",
-      "Integration with OpenAI GPT-5 and Grok models for advanced reasoning",
-      "Clinical verification system with confidence scoring",
-      "Document upload and analysis (PDFs, clinical documents)",
-      "Translation services for patient communication",
-      "Practice context awareness (practice details, PCN information)",
-      "Search history and session management",
-      "Clinical disclaimer and safety warnings"
-    ],
-    userBase: "GPs, Practice Managers, Clinical Staff, Administrative Staff",
-    dataProcessed: [
-      "Clinical queries and conversations",
-      "Patient-related queries (anonymised/pseudonymised)",
-      "Practice operational data",
-      "User interaction logs",
-      "Uploaded clinical documents",
-      "Search history"
-    ]
-  },
-  {
     name: "Meeting Notes System",
     purpose: "Live transcription and AI-powered meeting minutes generation for NHS practice meetings, clinical discussions, and administrative meetings.",
     capabilities: [

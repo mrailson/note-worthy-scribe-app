@@ -578,7 +578,7 @@ const CSOReport = () => {
                 <Database className="w-6 h-6" />
                 Service Descriptions
               </CardTitle>
-              <CardDescription>Overview of the three Notewell services under assessment</CardDescription>
+              <CardDescription>Overview of the two Notewell services in scope for the initial pilot</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
