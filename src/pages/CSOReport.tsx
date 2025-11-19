@@ -335,7 +335,7 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">Clinical Safety (DCB0129)</span>
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-semibold mb-2">Completed – Awaiting signature</p>
+                    <p className="text-sm font-semibold mb-2">Draft Completed</p>
                     <div className="space-y-1">
                       <button
                         onClick={() => scrollToSection('hazard-log')}
