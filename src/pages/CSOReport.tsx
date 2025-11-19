@@ -366,32 +366,11 @@ const CSOReport = () => {
                     <p className="text-sm font-semibold mb-2">Near completion</p>
                     <button
                       onClick={() => scrollToSection('dpia-summary')}
-                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors mb-2"
+                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
                     >
                       <Shield className="w-3 h-3" />
                       <span className="underline">View DPIA Summary</span>
                     </button>
-                    <div className="space-y-1 pt-2 border-t border-blue-100 dark:border-blue-900">
-                      <a 
-                        href="/documents/Supabase_User_DPA_August_5_2025.pdf" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                      >
-                        <Download className="w-3 h-3" />
-                        <span className="underline">Supabase DPA</span>
-                      </a>
-                      <br />
-                      <a 
-                        href="/documents/Data_Processing_Agreement_PCN_Services_Ltd_and_OpenAI.pdf" 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                      >
-                        <Download className="w-3 h-3" />
-                        <span className="underline">OpenAI DPA</span>
-                      </a>
-                    </div>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
@@ -449,7 +428,28 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">DPAs</span>
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-semibold">Completed (OpenAI, Supabase)</p>
+                    <p className="text-sm font-semibold mb-2">Completed (OpenAI, Supabase)</p>
+                    <div className="space-y-1">
+                      <a 
+                        href="/documents/Supabase_User_DPA_August_5_2025.pdf" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span className="underline">Supabase DPA</span>
+                      </a>
+                      <br />
+                      <a 
+                        href="/documents/Data_Processing_Agreement_PCN_Services_Ltd_and_OpenAI.pdf" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                      >
+                        <Download className="w-3 h-3" />
+                        <span className="underline">OpenAI DPA</span>
+                      </a>
+                    </div>
                   </div>
                 </div>
               </div>
