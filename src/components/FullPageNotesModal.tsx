@@ -143,8 +143,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   
   // Safety constants for large content handling
-  const MAX_CONTENT_LENGTH = 20000; // characters
+  const MAX_CONTENT_LENGTH = 20000; // characters – guard for AI enhancement
   const ENHANCEMENT_TIMEOUT = 60000; // 60 seconds
+  const MAX_MINUTES_RENDER_LENGTH = 20000; // characters – threshold to skip heavy renderer
+  const MAX_MINUTES_FALLBACK_LENGTH = 30000; // absolute cap for what we show in UI
   const [activeTab, setActiveTab] = useState("notes");
   const [activeNotesStyleTab, setActiveNotesStyleTab] = useState("style1");
   const [notesStyle2, setNotesStyle2] = useState("");
@@ -257,8 +259,45 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       return;
     }
 
+    const length = notesStyle3?.length || 0;
+
     if (!notesStyle3?.trim()) {
       setMinutesHtml("");
+      setIsRenderingMinutes(false);
+      return;
+    }
+
+    // Lightweight mode for very large meetings to prevent browser freeze
+    if (length > MAX_MINUTES_RENDER_LENGTH) {
+      console.warn(
+        `⚠️ Notes too long for styled renderer (${length} chars). Using lightweight view.`
+      );
+
+      // Basic, cheap fallback – plain paragraphs, no DOMPurify, no complex regex
+      const safeText =
+        length > MAX_MINUTES_FALLBACK_LENGTH
+          ? notesStyle3.slice(0, MAX_MINUTES_FALLBACK_LENGTH) +
+            "\n\n[Content truncated for performance.]"
+          : notesStyle3;
+
+      const escaped = safeText
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+
+      const fallbackHtml = `
+        <div class="minutes-content font-nhs max-w-full px-2">
+          <p class="text-sm text-[#D5281B] mb-3">
+            This meeting's notes are very long, so a simplified view is shown to keep the app responsive.
+            Use the transcript tab if you need the full detail.
+          </p>
+          <pre class="whitespace-pre-wrap text-[#212B32]" style="font-size: ${fontSizeStyle1}px;">
+${escaped}
+          </pre>
+        </div>
+      `;
+
+      setMinutesHtml(fallbackHtml);
       setIsRenderingMinutes(false);
       return;
     }
