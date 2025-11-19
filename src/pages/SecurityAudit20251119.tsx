@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Header } from "@/components/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -16,10 +16,12 @@ import {
   ShieldAlert,
   Clock,
   AlertCircle,
-  Info as InfoIcon
+  Info as InfoIcon,
+  ArrowLeft
 } from "lucide-react";
 
 const SecurityAudit20251119 = () => {
+  const navigate = useNavigate();
   const auditDate = "19th November 2025";
   const auditTime = "07:18";
   const totalFindings = 7;
@@ -139,10 +141,16 @@ const SecurityAudit20251119 = () => {
                 <p className="text-muted-foreground mt-1">{auditDate}</p>
               </div>
             </div>
-            <Button onClick={handleDownload} variant="outline" className="gap-2 print:hidden">
-              <Download className="w-4 h-4" />
-              Download Report
-            </Button>
+            <div className="flex gap-2 print:hidden">
+              <Button onClick={() => navigate('/cso-report')} variant="outline" className="gap-2">
+                <ArrowLeft className="w-4 h-4" />
+                Back to CSO Report
+              </Button>
+              <Button onClick={handleDownload} variant="outline" className="gap-2">
+                <Download className="w-4 h-4" />
+                Download Report
+              </Button>
+            </div>
           </div>
         </div>
 
