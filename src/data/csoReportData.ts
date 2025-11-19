@@ -564,7 +564,7 @@ export const preDeploymentChecklist: ChecklistItem[] = [
     targetDate: "Complete"
   },
   {
-    item: "Security warnings resolved",
+    item: "Critical and High Level Security warnings resolved",
     status: "COMPLETE",
     owner: "Technical Lead",
     targetDate: "Complete"
