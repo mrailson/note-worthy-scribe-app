@@ -564,14 +564,19 @@ const CSOReport = () => {
                         <li>• Develop and test security incident response plan</li>
                         <li>• Document and verify all system navigation and access control paths</li>
                       </ul>
-                      <Button 
-                        onClick={() => navigate('/security-report')}
-                        variant="outline"
-                        size="sm"
-                        className="mt-3 bg-white dark:bg-background hover:bg-orange-100 dark:hover:bg-orange-950/40"
-                      >
-                        View Security Audit Report
-                      </Button>
+                      <div className="mt-3 space-y-2">
+                        <Button 
+                          onClick={() => navigate('/compliance/security-audit-2025-11-19')}
+                          variant="outline"
+                          size="sm"
+                          className="w-full bg-white dark:bg-background hover:bg-orange-100 dark:hover:bg-orange-950/40"
+                        >
+                          View Security Audit Report (19/11/2025)
+                        </Button>
+                        <p className="text-xs text-orange-700 dark:text-orange-500">
+                          Latest comprehensive audit: 19th November 2025
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </div>

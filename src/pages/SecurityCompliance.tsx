@@ -1515,7 +1515,19 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;`}
                     <div className="space-y-2 ml-7">
                       <div className="flex items-start gap-2 text-sm">
                         <div className="w-4 h-4 rounded-full border-2 border-orange-500 mt-0.5 flex-shrink-0"></div>
-                        <span>Complete comprehensive security audit and address all remaining warnings</span>
+                        <div className="flex-1">
+                          <span>Complete comprehensive security audit and address all remaining warnings</span>
+                          <div className="mt-1">
+                            <Button
+                              variant="link"
+                              size="sm"
+                              className="h-auto p-0 text-xs text-primary"
+                              onClick={() => navigate('/compliance/security-audit-2025-11-19')}
+                            >
+                              View Full Security Audit Report (19/11/2025) →
+                            </Button>
+                          </div>
+                        </div>
                       </div>
                       <div className="flex items-start gap-2 text-sm">
                         <div className="w-4 h-4 rounded-full border-2 border-orange-500 mt-0.5 flex-shrink-0"></div>
