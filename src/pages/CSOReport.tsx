@@ -52,6 +52,18 @@ const CSOReport = () => {
   const [isExporting, setIsExporting] = useState(false);
   const [isNavOpen, setIsNavOpen] = useState(false);
 
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      const { exportCSOReportToWord } = await import('@/utils/exportCSOReport');
+      await exportCSOReportToWord();
+    } catch (error) {
+      console.error('Error exporting report:', error);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   const scrollToSection = (sectionId: string) => {
     setActiveSection(sectionId);
     const element = document.getElementById(sectionId);
@@ -2115,10 +2127,16 @@ const CSOReport = () => {
             {/* CSO Sign-Off */}
             <Card>
               <CardHeader>
-                <CardTitle className="text-xl flex items-center gap-2">
-                  <Award className="w-5 h-5" />
-                  Clinical Safety Officer Sign-Off
-                </CardTitle>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <Award className="w-5 h-5" />
+                    Clinical Safety Officer Sign-Off
+                  </CardTitle>
+                  <Button variant="outline" size="sm" onClick={handleExport} disabled={isExporting}>
+                    <Download className="w-4 h-4 mr-2" />
+                    Download CSO Report
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="bg-muted/50 rounded-lg p-4 space-y-3">
