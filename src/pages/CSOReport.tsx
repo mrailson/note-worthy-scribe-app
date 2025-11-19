@@ -202,7 +202,7 @@ const CSOReport = () => {
                     { id: "gdpr", label: "GDPR Compliance", icon: Lock },
                     { id: "security", label: "Security", icon: Shield },
                     { id: "third-party", label: "Third Parties", icon: Users },
-                    { id: "nhs-assurance", label: "NHS Assurance Pack", icon: FileText },
+                    { id: "nhs-assurance", label: "NHS Assurance Pack & DTAC", icon: FileText },
                     { id: "checklist", label: "Checklist", icon: CheckCircle },
                     { id: "recommendations", label: "Recommendations", icon: TrendingUp }
                   ].map((nav) => (
