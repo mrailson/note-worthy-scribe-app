@@ -1,8 +1,5 @@
 import DOMPurify from 'dompurify';
 
-const HARD_MAX_LENGTH = 40000; // defensive ceiling for renderer
-const MEDIUM_MAX_LENGTH = 8000; // above this, skip expensive transforms
-
 /**
  * Professional NHS-styled renderer for meeting minutes - OPTION 1: Compact Inline
  * Optimized for formal medical/professional documentation
@@ -11,20 +8,7 @@ const MEDIUM_MAX_LENGTH = 8000; // above this, skip expensive transforms
 export function renderMinutesMarkdown(content: string, baseFontSize: number = 13): string {
   if (!content) return '';
 
-  const originalLength = content.length;
-
-  // Defensive hard limit - prevents processing truly massive content
-  if (content.length > HARD_MAX_LENGTH) {
-    console.warn(
-      `⚠️ renderMinutesMarkdown: content length ${content.length} exceeds ${HARD_MAX_LENGTH}, truncating.`
-    );
-    content = content.slice(0, HARD_MAX_LENGTH) +
-      "\n\n[Content truncated before formatting due to size.]";
-  }
-
-  const isMediumOrLarge = originalLength > MEDIUM_MAX_LENGTH;
-
-  // Preprocess content to normalise spacing and remove transcript section
+  // Preprocess content to normalize spacing and remove transcript section
   let preprocessedContent = content
     // Remove "MEETING TRANSCRIPT FOR REFERENCE" section and everything after it
     .replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '')
@@ -336,13 +320,6 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
   </div>`;
 
   console.log('🔍 MINUTES RENDERER OUTPUT (first 500 chars):', html.substring(0, 500));
-
-  // For medium/large content, skip DOMPurify to improve performance
-  // (AI-generated content is trusted and doesn't need sanitisation)
-  if (isMediumOrLarge) {
-    console.log('⚡ Skipping DOMPurify for performance (content length:', originalLength, ')');
-    return html;
-  }
 
   // Sanitize the HTML - added SVG support for icons and CSP-compliant flags
   return DOMPurify.sanitize(html, {

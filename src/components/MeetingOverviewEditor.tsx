@@ -357,13 +357,7 @@ export const MeetingOverviewEditor = ({
           {overview ? (
             <div 
               className="prose prose-sm max-w-none text-muted-foreground"
-              dangerouslySetInnerHTML={{ 
-                __html: renderMinutesMarkdown(
-                  overview.length > 4000 
-                    ? overview.slice(0, 4000) + '\n\n[Preview truncated for performance.]'
-                    : overview
-                )
-              }}
+              dangerouslySetInnerHTML={{ __html: renderMinutesMarkdown(overview) }}
             />
           ) : (
             <p className="text-sm text-muted-foreground italic">

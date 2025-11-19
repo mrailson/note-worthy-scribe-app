@@ -143,14 +143,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGenerating, setIsGenerating] = useState(false);
   
   // Safety constants for large content handling
-  const MAX_CONTENT_LENGTH = 20000; // characters – guard for AI enhancement
+  const MAX_CONTENT_LENGTH = 20000; // characters
   const ENHANCEMENT_TIMEOUT = 60000; // 60 seconds
-  const MAX_MINUTES_RENDER_LENGTH = 10000; // characters – threshold to skip heavy renderer (reduced for safety)
-  const MAX_MINUTES_FALLBACK_LENGTH = 20000; // absolute cap for what we show in UI
   const [activeTab, setActiveTab] = useState("notes");
   const [activeNotesStyleTab, setActiveNotesStyleTab] = useState("style1");
   const [notesStyle2, setNotesStyle2] = useState("");
-  const [forcePlainTextMinutes, setForcePlainTextMinutes] = useState(false);
   const [notesStyle3, setNotesStyle3] = useState("");
   const [notesStyle4, setNotesStyle4] = useState("");
   const [isGeneratingStyle2, setIsGeneratingStyle2] = useState(false);
@@ -260,53 +257,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       return;
     }
 
-    const length = notesStyle3?.length || 0;
-    console.log('🧮 Standard minutes length:', length, 'chars', {
-      meetingId: meeting?.id,
-      selectedFormatVariation,
-    });
-
     if (!notesStyle3?.trim()) {
       setMinutesHtml("");
-      setIsRenderingMinutes(false);
-      return;
-    }
-
-    // Lightweight mode for very large meetings to prevent browser freeze
-    if (length > MAX_MINUTES_RENDER_LENGTH) {
-      console.warn(
-        `⚠️ Notes too long for styled renderer (${length} chars). Using lightweight view.`
-      );
-
-      // Basic, cheap fallback – plain paragraphs, no DOMPurify, no complex regex
-      const safeText =
-        length > MAX_MINUTES_FALLBACK_LENGTH
-          ? notesStyle3.slice(0, MAX_MINUTES_FALLBACK_LENGTH) +
-            "\n\n[Content truncated for performance.]"
-          : notesStyle3;
-
-      const escaped = safeText
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;");
-
-      const fallbackHtml = `
-        <div class="minutes-content font-nhs max-w-full px-2">
-          <div class="bg-amber-50 border border-amber-200 rounded p-3 mb-4">
-            <p class="text-sm text-amber-900 mb-2">
-              ⚠️ This meeting's notes are very long (${length.toLocaleString()} chars), so a simplified view is shown to keep the app responsive.
-            </p>
-            <p class="text-xs text-amber-700">
-              Use the transcript tab for full detail, or <button onclick="window.location.reload()" class="underline">force plain text mode</button> if this view is still slow.
-            </p>
-          </div>
-          <pre class="whitespace-pre-wrap text-[#212B32]" style="font-size: ${fontSizeStyle1}px;">
-${escaped}
-          </pre>
-        </div>
-      `;
-
-      setMinutesHtml(fallbackHtml);
       setIsRenderingMinutes(false);
       return;
     }
@@ -3510,33 +3462,19 @@ ${transcriptToUse}`;
                                                .max-w-none ul, .max-w-none ol { font-size: ${fontSizeStyle1}px !important; }
                                              `}
                                            </style>
-                                             <div 
-                                               ref={minutesContainerRef}
-                                               dangerouslySetInnerHTML={{ 
-                                                 __html: (() => {
-                                                   if (activeNotesStyleTab !== 'style1') return '';
-                                                   
-                                                   const minutesLength = notesStyle3?.length || 0;
-                                                   const isMinutesTooLong = minutesLength > MAX_MINUTES_RENDER_LENGTH;
-                                                   
-                                                   // For very long notes, always use lightweight fallback regardless of variation
-                                                   if (isMinutesTooLong) {
-                                                     return minutesHtml || '';
-                                                   }
-                                                   
-                                                   // For normal-length notes, use full styling with variations
-                                                   const baseContent = formatVariationContent || notesStyle3;
-                                                   
-                                                   if (selectedFormatVariation === 'standard') return minutesHtml || '';
-                                                   if (selectedFormatVariation === 'no_actions') return renderMinutesNoActions(baseContent, fontSizeStyle1);
-                                                   if (selectedFormatVariation === 'black_white') return renderMinutesBlackWhite(baseContent, fontSizeStyle1);
-                                                   if (selectedFormatVariation === 'concise') return renderMinutesConcise(baseContent, fontSizeStyle1);
-                                                   if (selectedFormatVariation === 'detailed') return renderMinutesDetailed(baseContent, fontSizeStyle1);
-                                                   if (selectedFormatVariation === 'executive_brief') return renderMinutesExecutiveBrief(baseContent, fontSizeStyle1);
-                                                   return minutesHtml || '';
-                                                 })()
-                                               }}
-                                             />
+                                            <div 
+                                              ref={minutesContainerRef}
+                                              dangerouslySetInnerHTML={{ 
+                                                __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
+                                                  selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                  (minutesHtml || '')
+                                                )) : ''
+                                              }}
+                                            />
                                          </div>
                                            <InlineWordCorrector
                                             content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
