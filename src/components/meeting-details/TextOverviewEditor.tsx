@@ -104,7 +104,13 @@ export const TextOverviewEditor = ({
           {overview ? (
             <div 
               className="prose prose-sm max-w-none text-muted-foreground mb-3"
-              dangerouslySetInnerHTML={{ __html: renderMinutesMarkdown(overview) }}
+              dangerouslySetInnerHTML={{ 
+                __html: renderMinutesMarkdown(
+                  overview.length > 4000 
+                    ? overview.slice(0, 4000) + '\n\n[Preview truncated for performance.]'
+                    : overview
+                )
+              }}
             />
           ) : (
             <p className="text-sm text-muted-foreground italic mb-3">
