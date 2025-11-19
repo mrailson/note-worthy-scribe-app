@@ -178,6 +178,42 @@ const CSOReport = () => {
           </div>
         </div>
 
+        {/* Document Badge Component */}
+        <Card className="mb-8 border-l-4 border-primary bg-gradient-to-r from-blue-50 to-white dark:from-blue-950/20 dark:to-background">
+          <CardContent className="p-6">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="flex-1 min-w-[200px]">
+                <div className="flex items-center gap-3 mb-3">
+                  <FileText className="w-6 h-6 text-primary" />
+                  <h3 className="text-lg font-semibold">Clinical Safety Officer Assessment Report</h3>
+                </div>
+                <div className="space-y-2 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4" />
+                    <span><strong>Last updated:</strong> 19 November 2025</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Users className="w-4 h-4" />
+                    <span><strong>Prepared by:</strong> NoteWell Clinical Safety Team</span>
+                  </div>
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button 
+                  className="gap-2"
+                  onClick={() => window.print()}
+                >
+                  <Download className="w-4 h-4" />
+                  Download CSO Report (v2.1)
+                </Button>
+                <Badge className="self-end bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
+                  Version 2.1
+                </Badge>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Quick Navigation - Collapsible */}
         <Collapsible open={isNavOpen} onOpenChange={setIsNavOpen} className="mb-8">
           <Card className="sticky top-4 z-10 shadow-lg">
