@@ -201,10 +201,15 @@ const CSOReport = () => {
               <div className="flex flex-col gap-2">
                 <Button 
                   className="gap-2"
-                  onClick={() => window.print()}
+                  asChild
                 >
-                  <Download className="w-4 h-4" />
-                  Download CSO Report (v2.1)
+                  <a 
+                    href="/documents/NoteWell_CSO_Report_v2.1_Enhanced2.pdf"
+                    download="NoteWell_CSO_Report_v2.1.pdf"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download CSO Report (v2.1)
+                  </a>
                 </Button>
                 <Badge className="self-end bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">
                   Version 2.1
