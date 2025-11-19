@@ -10,6 +10,18 @@ const NHSQuest = () => {
   const [modalContent, setModalContent] = useState({ title: '', content: '' });
   const [showBattleResult, setShowBattleResult] = useState(false);
   const [battleOutcome, setBattleOutcome] = useState({ title: '', msg: '', win: false });
+  const [quizStep, setQuizStep] = useState('start');
+  const [quizResult, setQuizResult] = useState('');
+  const [scanLog, setScanLog] = useState('');
+  
+  const arcadeCanvasRef = useRef<HTMLCanvasElement>(null);
+  const spaceCanvasRef = useRef<HTMLCanvasElement>(null);
+  const [playerX, setPlayerX] = useState(350);
+  const [moveDir, setMoveDir] = useState(0);
+  const bulletsRef = useRef<Array<{x: number, y: number}>>([]);
+  const enemiesRef = useRef<Array<{x: number, y: number, text: string}>>([]);
+  const particlesRef = useRef<Array<{x: number, y: number, life: number, vx: number, vy: number}>>([]);
+  const animationFrameRef = useRef<number>();
 
   const scenarios = [
     {
@@ -93,7 +105,139 @@ const NHSQuest = () => {
     setShowModal(true);
   };
 
+  const initArcade = () => {
+    setShowStartScreen(false);
+    const canvas = arcadeCanvasRef.current;
+    if (!canvas) return;
+    
+    canvas.width = canvas.offsetWidth;
+    canvas.height = 400;
+    setPlayerX(canvas.width / 2 - 20);
+    setArcadeActive(true);
+    bulletsRef.current = [];
+    enemiesRef.current = [];
+    particlesRef.current = [];
+    setArcadeScore(0);
+    
+    setTimeout(spawnEnemy, 1000);
+    animationFrameRef.current = requestAnimationFrame(loopArcade);
+  };
+
+  const movePlayer = (dir: string) => {
+    setMoveDir(dir === 'left' ? -5 : 5);
+  };
+
+  const stopPlayer = () => {
+    setMoveDir(0);
+  };
+
+  const fireBullet = () => {
+    if (arcadeActive) {
+      bulletsRef.current.push({ x: playerX + 20, y: arcadeCanvasRef.current!.height - 40 });
+    }
+  };
+
+  const spawnEnemy = () => {
+    if (!arcadeActive) return;
+    const canvas = arcadeCanvasRef.current;
+    if (!canvas) return;
+    
+    const words = ["DTAC", "GDPR", "MHRA", "CSO", "FAX", "RISK"];
+    enemiesRef.current.push({
+      x: Math.random() * (canvas.width - 60),
+      y: 0,
+      text: words[Math.floor(Math.random() * words.length)]
+    });
+    
+    setTimeout(spawnEnemy, Math.max(500, 1500 - arcadeScore * 30));
+  };
+
+  const loopArcade = () => {
+    if (!arcadeActive) return;
+    
+    const canvas = arcadeCanvasRef.current;
+    const ctx = canvas?.getContext('2d');
+    if (!canvas || !ctx) return;
+
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const newX = playerX + moveDir;
+    setPlayerX(Math.max(0, Math.min(canvas.width - 40, newX)));
+
+    ctx.fillStyle = '#00ff41';
+    ctx.fillRect(playerX, canvas.height - 40, 40, 30);
+
+    ctx.fillStyle = '#00f3ff';
+    bulletsRef.current = bulletsRef.current.filter(b => {
+      b.y -= 7;
+      ctx.fillRect(b.x, b.y, 4, 10);
+      return b.y > 0;
+    });
+
+    ctx.font = "16px 'Press Start 2P'";
+    let newScore = arcadeScore;
+    
+    enemiesRef.current = enemiesRef.current.filter((e, i) => {
+      e.y += 1.5 + arcadeScore * 0.1;
+      ctx.fillStyle = e.text === "FAX" ? "#ff003c" : "#fff";
+      ctx.fillText(e.text, e.x, e.y);
+
+      bulletsRef.current = bulletsRef.current.filter((b, j) => {
+        if (b.x > e.x && b.x < e.x + 60 && b.y < e.y && b.y > e.y - 20) {
+          newScore++;
+          for (let k = 0; k < 10; k++) {
+            particlesRef.current.push({
+              x: e.x + 20,
+              y: e.y,
+              life: 20,
+              vx: (Math.random() - 0.5) * 5,
+              vy: (Math.random() - 0.5) * 5
+            });
+          }
+          return false;
+        }
+        return true;
+      });
+
+      if (e.y > canvas.height) {
+        setArcadeActive(false);
+        setShowStartScreen(true);
+        return false;
+      }
+      return bulletsRef.current.some(b => b.x > e.x && b.x < e.x + 60 && b.y < e.y && b.y > e.y - 20) ? false : true;
+    });
+
+    if (newScore !== arcadeScore) setArcadeScore(newScore);
+
+    particlesRef.current = particlesRef.current.filter(p => {
+      p.life--;
+      p.x += p.vx;
+      p.y += p.vy;
+      ctx.fillStyle = `rgba(0,255,65,${p.life / 20})`;
+      ctx.fillRect(p.x, p.y, 3, 3);
+      return p.life > 0;
+    });
+
+    ctx.fillStyle = "#ffd700";
+    ctx.fillText("SCORE: " + arcadeScore, 10, 30);
+
+    animationFrameRef.current = requestAnimationFrame(loopArcade);
+  };
+
+  const startScan = () => {
+    setScanLog("SCANNING...<br/>HTTPS: [OK]<br/>SPF: [OK]<br/>DMARC: [MISSING!]");
+  };
+
   useEffect(() => { initBattle(); }, []);
+  
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+    };
+  }, []);
 
   return (
     <div style={{ background: '#0d1117', color: '#c9d1d9', minHeight: '100vh', fontFamily: "'Fira Code', monospace" }}>
@@ -111,6 +255,74 @@ const NHSQuest = () => {
             </div>
           ))}
         </div>
+      </section>
+
+      {/* LEVEL 1.5: ARCADE */}
+      <section style={{ background: '#000', border: '4px solid #00ff41', padding: '20px', borderRadius: '10px', position: 'relative', maxWidth: '1200px', margin: '40px auto' }}>
+        <h2 style={{ fontSize: '2.5rem', color: '#00ff41', borderBottom: '2px solid #00ff41', display: 'inline-block', marginBottom: '30px' }}>
+          Level 1.5: Blast The Bureaucracy
+        </h2>
+        {showStartScreen && (
+          <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'rgba(0,0,0,0.9)', padding: '40px', border: '2px solid #00ff41', zIndex: 10, textAlign: 'center' }}>
+            <h3 style={{ color: '#00ff41', fontFamily: "'Press Start 2P'" }}>READY PLAYER ONE?</h3>
+            <p style={{ marginBottom: '20px' }}>Process the falling regulations.</p>
+            <button onClick={initArcade} style={{ background: 'transparent', border: '2px solid #00ff41', color: '#00ff41', padding: '15px 30px', cursor: 'pointer', fontFamily: "'Fira Code'" }}>INSERT COIN</button>
+          </div>
+        )}
+        <canvas ref={arcadeCanvasRef} style={{ background: '#111', width: '100%', maxWidth: '800px', height: '400px', display: 'block', margin: '0 auto', border: '2px solid #333' }}></canvas>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', marginTop: '20px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onMouseDown={() => movePlayer('left')} onMouseUp={stopPlayer} onMouseLeave={stopPlayer} onTouchStart={() => movePlayer('left')} onTouchEnd={stopPlayer} style={{ background: '#333', border: '2px solid #666', color: 'white', width: '60px', height: '60px', borderRadius: '10px', fontSize: '1.5rem', cursor: 'pointer' }}>←</button>
+            <button onMouseDown={() => movePlayer('right')} onMouseUp={stopPlayer} onMouseLeave={stopPlayer} onTouchStart={() => movePlayer('right')} onTouchEnd={stopPlayer} style={{ background: '#333', border: '2px solid #666', color: 'white', width: '60px', height: '60px', borderRadius: '10px', fontSize: '1.5rem', cursor: 'pointer' }}>→</button>
+          </div>
+          <button onClick={fireBullet} style={{ background: '#ff003c', border: '2px solid #ff5f56', width: '120px', height: '80px', borderRadius: '50px', fontFamily: "'Press Start 2P'", fontSize: '0.8rem', color: 'white', cursor: 'pointer' }}>COMPLY!</button>
+        </div>
+      </section>
+
+      {/* LEVEL 2: CLASSIFIER */}
+      <section style={{ padding: '80px 20px', maxWidth: '1200px', margin: '0 auto', textAlign: 'center' }}>
+        <h2 style={{ fontSize: '2.5rem', borderBottom: '2px solid #ff00ff', display: 'inline-block' }}>Level 2: Class-O-Matic</h2>
+        <div style={{ border: '1px solid #ff00ff', padding: '30px', borderRadius: '10px', marginTop: '30px' }}>
+          {quizStep === 'start' && (
+            <>
+              <h3>Is your AI a Medical Device?</h3>
+              <button onClick={() => setQuizStep('q1')} style={{ background: 'transparent', border: '2px solid #00ff41', color: '#00ff41', padding: '15px 30px', cursor: 'pointer', marginTop: '20px', fontFamily: "'Fira Code'" }}>Start Diagnostics</button>
+            </>
+          )}
+          {quizStep === 'q1' && (
+            <>
+              <h3>Does it affect treatment/diagnosis?</h3>
+              <button onClick={() => setQuizStep('q2')} style={{ background: 'transparent', border: '2px solid #00ff41', color: '#00ff41', padding: '15px 30px', cursor: 'pointer', margin: '10px', fontFamily: "'Fira Code'" }}>YES</button>
+              <button onClick={() => { setQuizResult('No'); setQuizStep('result'); }} style={{ background: 'transparent', border: '2px solid #00ff41', color: '#00ff41', padding: '15px 30px', cursor: 'pointer', margin: '10px', fontFamily: "'Fira Code'" }}>NO</button>
+            </>
+          )}
+          {quizStep === 'q2' && (
+            <>
+              <h3>Is the AI generative/interpretive?</h3>
+              <button onClick={() => { setQuizResult('Yes'); setQuizStep('result'); }} style={{ background: 'transparent', border: '2px solid #00ff41', color: '#00ff41', padding: '15px 30px', cursor: 'pointer', margin: '10px', fontFamily: "'Fira Code'" }}>YES</button>
+              <button onClick={() => { setQuizResult('No'); setQuizStep('result'); }} style={{ background: 'transparent', border: '2px solid #00ff41', color: '#00ff41', padding: '15px 30px', cursor: 'pointer', margin: '10px', fontFamily: "'Fira Code'" }}>NO</button>
+            </>
+          )}
+          {quizStep === 'result' && (
+            <>
+              <h2 style={{ color: '#00ff41' }}>{quizResult === 'Yes' ? 'CLASS IIa DEVICE (MHRA)' : 'IT SYSTEM (DTAC ONLY)'}</h2>
+              <button onClick={() => setQuizStep('start')} style={{ background: 'transparent', border: '2px solid #00ff41', color: '#00ff41', padding: '15px 30px', cursor: 'pointer', marginTop: '20px', fontFamily: "'Fira Code'" }}>Reset</button>
+            </>
+          )}
+        </div>
+      </section>
+
+      {/* LEVEL 3: SCANNER */}
+      <section style={{ background: '#000', border: '1px solid #333', position: 'relative', height: '450px', padding: '20px', maxWidth: '1200px', margin: '40px auto' }}>
+        <div style={{ textAlign: 'center', position: 'absolute', width: '100%', zIndex: 2, left: 0, top: '20px' }}>
+          <h2 style={{ fontSize: '2.5rem', borderBottom: '2px solid #00f3ff', display: 'inline-block', color: '#00f3ff' }}>Level 3: Domain Defense</h2>
+          <div style={{ marginTop: '20px' }}>
+            <input type="text" placeholder="mysaas.com" style={{ background: '#222', border: '1px solid #00f3ff', color: 'white', padding: '10px', width: '250px' }} />
+            <button onClick={startScan} style={{ background: 'transparent', border: '2px solid #00ff41', color: '#00ff41', padding: '10px 30px', cursor: 'pointer', marginLeft: '10px', fontFamily: "'Fira Code'" }}>SCAN</button>
+          </div>
+          <div dangerouslySetInnerHTML={{ __html: scanLog }} style={{ fontFamily: "'Press Start 2P'", fontSize: '0.7rem', marginTop: '20px', color: '#00ff41' }} />
+        </div>
+        <canvas ref={spaceCanvasRef} style={{ display: 'block', width: '100%', height: '100%' }}></canvas>
       </section>
 
       <section style={{ padding: '80px 20px', maxWidth: '800px', margin: '0 auto' }}>
