@@ -272,13 +272,13 @@ const CSOReport = () => {
                   NoteWell AI is a Class I, low-risk, non-business-critical administrative and governance support tool for NHS primary care. It provides meeting transcription, structured complaints management, and document generation. NoteWell does not offer clinical decision-making, has no EMIS/S1 write-back, and all outputs require human review.
                 </p>
                 <p className="text-base leading-relaxed mb-4">
-                  A full DCB0129 clinical safety analysis has been completed with a maintained Hazard Log and human-in-the-loop controls. All data is UK-hosted, encrypted, role-restricted through RLS, and subject to complete audit logging. NoteWell operates strictly as a Data Processor and does not reuse any data for model training.
+                  A full DCB0129 clinical safety analysis has been completed with a maintained Hazard Log and mandatory human-in-the-loop controls. All data is UK-hosted, encrypted, role-restricted through RLS, and subject to comprehensive audit logging. NoteWell operates strictly as a Data Processor and does not reuse any data for AI training.
                 </p>
                 <p className="text-base leading-relaxed mb-4">
                   The appropriate technical assurance route is a proportionate external web application penetration test, covering OWASP Top 10, authentication, access control, API endpoints and TLS configuration. Red-team, network-level, physical or social engineering testing is not required due to the system's risk profile, standalone architecture, and absence of NHS infrastructure integration.
                 </p>
                 <p className="text-base leading-relaxed">
-                  DPIA sign-off, SIRO approval, and completion of user training materials remain the final pre-deployment steps. Subject to these, NoteWell is suitable for pilot deployment across GP practices and PCNs.
+                  The DPIA is nearing completion and SIRO/Caldicott approvals will follow final review. Training materials for users will be completed before deployment. Subject to these, NoteWell is suitable for pilot deployment across GP practices and PCNs.
                 </p>
               </div>
 
@@ -286,7 +286,7 @@ const CSOReport = () => {
               <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-6 mt-6">
                 <h4 className="font-semibold text-lg mb-4 flex items-center gap-2 text-blue-900 dark:text-blue-300">
                   <Shield className="w-5 h-5" />
-                  Assurance Status Overview
+                  Assurance Status Overview (19/11/2025)
                 </h4>
                 <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
@@ -294,7 +294,14 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">Clinical Safety (DCB0129)</span>
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-semibold">Complete – awaiting signature</p>
+                    <p className="text-sm font-semibold">Completed – Awaiting signature</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-sm font-medium text-muted-foreground">Hazard Log</span>
+                      <CheckCircle className="w-4 h-4 text-green-600" />
+                    </div>
+                    <p className="text-sm font-semibold">Updated and approved</p>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
@@ -302,6 +309,20 @@ const CSOReport = () => {
                       <Clock className="w-4 h-4 text-amber-600" />
                     </div>
                     <p className="text-sm font-semibold">Near completion</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-sm font-medium text-muted-foreground">SIRO Sign-Off</span>
+                      <Clock className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <p className="text-sm font-semibold">Pending</p>
+                  </div>
+                  <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
+                    <div className="flex items-start justify-between mb-1">
+                      <span className="text-sm font-medium text-muted-foreground">Caldicott Guardian Approval</span>
+                      <Clock className="w-4 h-4 text-amber-600" />
+                    </div>
+                    <p className="text-sm font-semibold">Pending</p>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
@@ -315,7 +336,7 @@ const CSOReport = () => {
                       <span className="text-sm font-medium text-muted-foreground">Hosting</span>
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-semibold">UK-based</p>
+                    <p className="text-sm font-semibold">UK-only (AWS London via Supabase)</p>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
@@ -326,10 +347,10 @@ const CSOReport = () => {
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
-                      <span className="text-sm font-medium text-muted-foreground">CSO Review</span>
+                      <span className="text-sm font-medium text-muted-foreground">DPAs</span>
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
-                    <p className="text-sm font-semibold">Active</p>
+                    <p className="text-sm font-semibold">Completed (OpenAI, Supabase)</p>
                   </div>
                 </div>
               </div>
@@ -606,6 +627,317 @@ const CSOReport = () => {
                     </p>
                   </div>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* Hazard Log - DCB0129 */}
+        <section id="hazard-log" className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <AlertTriangle className="w-6 h-6 text-orange-600" />
+                Hazard Log – DCB0129 (Condensed and Proportionate)
+              </CardTitle>
+              <CardDescription>Summary of identified hazards with mitigations and residual risk assessments</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Hazard 1 */}
+              <div className="border rounded-lg p-5 bg-amber-50/50 dark:bg-amber-950/10">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <span className="bg-amber-100 dark:bg-amber-900 px-3 py-1 rounded text-sm">Hazard 1</span>
+                  Incorrect or Misleading AI Output (Admin/Governance Context)
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-semibold">Severity:</span>
+                    <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Minor</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Likelihood:</span>
+                    <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Medium</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Initial Risk:</span>
+                    <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Medium</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Residual Risk:</span>
+                    <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className="font-semibold text-sm">Mitigation:</span>
+                  <p className="text-sm text-muted-foreground mt-1">Human review required; editable outputs; disclaimers; restricted issuing permissions</p>
+                </div>
+              </div>
+
+              {/* Hazard 2 */}
+              <div className="border rounded-lg p-5 bg-amber-50/50 dark:bg-amber-950/10">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <span className="bg-amber-100 dark:bg-amber-900 px-3 py-1 rounded text-sm">Hazard 2</span>
+                  Misinterpretation of User Input by AI Models
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-semibold">Severity:</span>
+                    <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Minor</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Likelihood:</span>
+                    <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Medium</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Initial Risk:</span>
+                    <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Medium</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Residual Risk:</span>
+                    <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className="font-semibold text-sm">Mitigation:</span>
+                  <p className="text-sm text-muted-foreground mt-1">Human-in-the-loop; version history; guidance; training</p>
+                </div>
+              </div>
+
+              {/* Hazard 3 */}
+              <div className="border rounded-lg p-5 bg-red-50/50 dark:bg-red-950/10">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <span className="bg-red-100 dark:bg-red-900 px-3 py-1 rounded text-sm">Hazard 3</span>
+                  Data Privacy Breach Due to Incorrect Permissions
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-semibold">Severity:</span>
+                    <Badge className="ml-2" variant="destructive">Major</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Likelihood:</span>
+                    <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Initial Risk:</span>
+                    <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Medium</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Residual Risk:</span>
+                    <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className="font-semibold text-sm">Mitigation:</span>
+                  <p className="text-sm text-muted-foreground mt-1">RLS; RBAC; audit logs; session timeout; MFA options</p>
+                </div>
+              </div>
+
+              {/* Hazard 4 */}
+              <div className="border rounded-lg p-5 bg-amber-50/50 dark:bg-amber-950/10">
+                <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                  <span className="bg-amber-100 dark:bg-amber-900 px-3 py-1 rounded text-sm">Hazard 4</span>
+                  Transcription Inaccuracies Affecting Meeting Notes
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="font-semibold">Severity:</span>
+                    <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Minor</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Likelihood:</span>
+                    <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Medium</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Initial Risk:</span>
+                    <Badge className="ml-2 bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300">Medium</Badge>
+                  </div>
+                  <div>
+                    <span className="font-semibold">Residual Risk:</span>
+                    <Badge className="ml-2 bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
+                  </div>
+                </div>
+                <div className="mt-3">
+                  <span className="font-semibold text-sm">Mitigation:</span>
+                  <p className="text-sm text-muted-foreground mt-1">Human verification; audio replay; multiple output styles</p>
+                </div>
+              </div>
+
+              {/* Overall Statement */}
+              <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-5">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-green-900 dark:text-green-300 mb-2">Overall Statement</h4>
+                    <p className="text-sm text-green-800 dark:text-green-400 leading-relaxed">
+                      All identified hazards have effective mitigations in place. No residual high-risk hazards remain. NoteWell is suitable for limited NHS pilot deployment under CSO oversight.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/hazard-log">
+                    <FileText className="w-4 h-4 mr-2" />
+                    View Complete Hazard Log with Full Details
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+
+        {/* DPIA Summary */}
+        <section id="dpia-summary" className="mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-2xl flex items-center gap-2">
+                <Lock className="w-6 h-6" />
+                DPIA Summary – NoteWell AI (Updated 19/11/2025)
+              </CardTitle>
+              <CardDescription>Data Protection Impact Assessment summary for NHS primary care administrative workflows</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Purpose of Processing */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Purpose of Processing</h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Administrative and governance workflows in NHS primary care: meetings, complaints handling, document creation.
+                </p>
+              </div>
+
+              <Separator />
+
+              {/* Data Categories */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Data Categories</h3>
+                <ul className="space-y-2 text-sm">
+                  <li className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                    <span>Staff details</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                    <span>Patient information (complaints only)</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <ChevronRight className="w-4 h-4 mt-0.5 text-blue-600 flex-shrink-0" />
+                    <span>Meeting transcripts and governance documentation</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <XCircle className="w-4 h-4 mt-0.5 text-gray-600 flex-shrink-0" />
+                    <span><strong>No diagnostic or treatment data</strong></span>
+                  </li>
+                </ul>
+              </div>
+
+              <Separator />
+
+              {/* Lawful Basis */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Lawful Basis</h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-900 rounded-lg p-4">
+                    <h4 className="font-semibold text-sm mb-2 text-blue-900 dark:text-blue-300">Article 6(1)(e)</h4>
+                    <p className="text-sm text-blue-800 dark:text-blue-400">Public task</p>
+                  </div>
+                  <div className="bg-purple-50 dark:bg-purple-950/20 border border-purple-200 dark:border-purple-900 rounded-lg p-4">
+                    <h4 className="font-semibold text-sm mb-2 text-purple-900 dark:text-purple-300">Article 9(2)(h)</h4>
+                    <p className="text-sm text-purple-800 dark:text-purple-400">Health and social care management</p>
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground mt-3 italic">
+                  Complaints processing meets NHS Complaints Regulations 2009.
+                </p>
+              </div>
+
+              <Separator />
+
+              {/* Controls */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Controls</h3>
+                <div className="grid md:grid-cols-2 gap-3">
+                  <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">UK-only hosting</span>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">AES-256 at rest, TLS 1.2+ in transit</span>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Role-based access and RLS</span>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">Full audit logs</span>
+                  </div>
+                  <div className="flex items-start gap-2 p-3 bg-accent/50 rounded-lg">
+                    <CheckCircle className="w-4 h-4 text-green-600 flex-shrink-0 mt-0.5" />
+                    <span className="text-sm">No data used for training</span>
+                  </div>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Privacy Risks & Mitigations */}
+              <div>
+                <h3 className="font-semibold text-lg mb-3">Privacy Risks & Mitigations</h3>
+                <div className="space-y-3">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="font-semibold text-sm">Unauthorised access</span>
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Mitigation: RLS/RBAC/MFA</p>
+                  </div>
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="font-semibold text-sm">Excessive data capture</span>
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Mitigation: Access controls + retention</p>
+                  </div>
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="font-semibold text-sm">Complaint visibility</span>
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Mitigation: Masking + permissions</p>
+                  </div>
+                  <div className="border rounded-lg p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="font-semibold text-sm">Model prompts</span>
+                      <Badge className="bg-green-100 text-green-800 dark:bg-green-950 dark:text-green-300">Low</Badge>
+                    </div>
+                    <p className="text-sm text-muted-foreground">Mitigation: DPA with OpenAI + no PII guidance</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Conclusion */}
+              <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-5">
+                <div className="flex items-start gap-3">
+                  <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-semibold text-green-900 dark:text-green-300 mb-2">Conclusion</h4>
+                    <p className="text-sm text-green-800 dark:text-green-400 leading-relaxed">
+                      Residual privacy risk is low. DPIA supports controlled deployment, pending SIRO and Caldicott sign-off.
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-4">
+                <Button variant="outline" className="w-full" asChild>
+                  <Link to="/dpia">
+                    <FileText className="w-4 h-4 mr-2" />
+                    View Complete DPIA Documentation
+                  </Link>
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1539,8 +1871,9 @@ const CSOReport = () => {
                     { name: "Security Posture Overview", link: "/security-posture", isDownload: false },
                     { name: "Penetration Test Scope", link: null, isDownload: false },
                     { name: "Incident Response Policy", link: "/incident-response", isDownload: false },
-                    { name: "Cyber Essentials (in progress) documents", link: null, isDownload: false },
-                    { name: "Data Flow Diagram & Architecture Summary", link: "/data-flow-architecture", isDownload: false }
+                    { name: "Data Flow Diagram & Architecture Summary", link: "/data-flow-architecture", isDownload: false },
+                    { name: "DPAs with OpenAI & Supabase", link: null, isDownload: false },
+                    { name: "Cyber Essentials (in progress) documents", link: null, isDownload: false }
                   ].map((doc, idx) => (
                     <div key={idx} className="flex items-start gap-2 p-3 border rounded-lg bg-background hover:bg-muted/50 transition-colors">
                       <FileText className="w-4 h-4 text-primary flex-shrink-0 mt-0.5" />
