@@ -1575,48 +1575,76 @@ const CSOReport = () => {
               <CardDescription>Mandatory actions required before NHS deployment</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-2">
-                {preDeploymentChecklist.map((item, idx) => (
-                  <div key={idx} className="flex items-center justify-between p-3 border rounded-lg hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3 flex-1">
-                      {item.status === 'COMPLETE' ? (
-                        <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0" />
-                      ) : item.status === 'PARTIAL' ? (
-                        <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0" />
-                      ) : (
-                        <XCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-                      )}
-                      <div className="flex-1">
-                        <p className="font-medium">{item.item}</p>
-                        <p className="text-sm text-muted-foreground">Owner: {item.owner}</p>
+              {/* Group checklist by category */}
+              {Object.entries(
+                preDeploymentChecklist.reduce((acc, item) => {
+                  if (!acc[item.category]) {
+                    acc[item.category] = [];
+                  }
+                  acc[item.category].push(item);
+                  return acc;
+                }, {} as Record<string, typeof preDeploymentChecklist>)
+              ).map(([category, items], categoryIdx) => (
+                <div key={categoryIdx} className="mb-8 last:mb-0">
+                  <h3 className="text-lg font-semibold mb-4 text-primary">
+                    {categoryIdx + 1}. {category}
+                  </h3>
+                  <div className="space-y-3">
+                    {items.map((item, idx) => (
+                      <div key={idx} className="border rounded-lg p-4 hover:bg-muted/50 transition-colors">
+                        <div className="flex items-start justify-between gap-4 mb-2">
+                          <div className="flex items-start gap-3 flex-1">
+                            {item.status === 'COMPLETE' ? (
+                              <CheckCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                            ) : item.status === 'PARTIAL' ? (
+                              <Clock className="w-5 h-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                            ) : (
+                              <XCircle className="w-5 h-5 text-red-600 flex-shrink-0 mt-0.5" />
+                            )}
+                            <div className="flex-1">
+                              <p className="font-semibold mb-1">{item.item}</p>
+                              <div className="grid sm:grid-cols-2 gap-2 text-sm text-muted-foreground">
+                                <p><span className="font-medium">Owner:</span> {item.owner}</p>
+                                <p><span className="font-medium">Status:</span> {getStatusBadge(item.status)}</p>
+                              </div>
+                              {item.note && (
+                                <p className="text-sm text-muted-foreground mt-2 italic">
+                                  <span className="font-medium">Note:</span> {item.note}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <span className="text-sm text-muted-foreground">{item.targetDate}</span>
-                      {getStatusBadge(item.status)}
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
 
-              <div className="mt-6 grid md:grid-cols-3 gap-4">
-                <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-green-700 dark:text-green-400">
-                    {preDeploymentChecklist.filter(i => i.status === 'COMPLETE').length}
+              <Separator className="my-6" />
+
+              {/* Summary Statistics */}
+              <div>
+                <h3 className="text-lg font-semibold mb-4">Deployment Readiness Summary</h3>
+                <div className="grid md:grid-cols-3 gap-4">
+                  <div className="bg-green-50 dark:bg-green-950/20 border border-green-200 dark:border-green-900 rounded-lg p-4 text-center">
+                    <div className="text-3xl font-bold text-green-700 dark:text-green-400 mb-1">
+                      {preDeploymentChecklist.filter(i => i.status === 'COMPLETE').length}
+                    </div>
+                    <div className="text-sm font-medium text-green-700 dark:text-green-400">Complete</div>
                   </div>
-                  <div className="text-sm text-green-700 dark:text-green-400">Completed</div>
-                </div>
-                <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-yellow-700 dark:text-yellow-400">
-                    {preDeploymentChecklist.filter(i => i.status === 'PARTIAL').length}
+                  <div className="bg-yellow-50 dark:bg-yellow-950/20 border border-yellow-200 dark:border-yellow-900 rounded-lg p-4 text-center">
+                    <div className="text-3xl font-bold text-yellow-700 dark:text-yellow-400 mb-1">
+                      {preDeploymentChecklist.filter(i => i.status === 'PARTIAL').length}
+                    </div>
+                    <div className="text-sm font-medium text-yellow-700 dark:text-yellow-400">Partial</div>
                   </div>
-                  <div className="text-sm text-yellow-700 dark:text-yellow-400">In Progress</div>
-                </div>
-                <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg p-4 text-center">
-                  <div className="text-2xl font-bold text-red-700 dark:text-red-400">
-                    {preDeploymentChecklist.filter(i => i.status === 'OUTSTANDING').length}
+                  <div className="bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-900 rounded-lg p-4 text-center">
+                    <div className="text-3xl font-bold text-red-700 dark:text-red-400 mb-1">
+                      {preDeploymentChecklist.filter(i => i.status === 'OUTSTANDING').length}
+                    </div>
+                    <div className="text-sm font-medium text-red-700 dark:text-red-400">Outstanding</div>
                   </div>
-                  <div className="text-sm text-red-700 dark:text-red-400">Outstanding</div>
                 </div>
               </div>
             </CardContent>
