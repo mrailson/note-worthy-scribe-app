@@ -169,7 +169,7 @@ const CSOReport = () => {
             <Badge variant="outline" className="text-xs">NHS OFFICIAL-SENSITIVE</Badge>
           </div>
           <h1 className="text-3xl font-bold mb-2">Clinical Safety Officer & Data Protection Officer Assessment Report</h1>
-          <p className="text-xl text-muted-foreground mb-4">Notewell Healthcare Management System Services</p>
+          <p className="text-xl text-muted-foreground mb-4">Notewell AI System Services</p>
           <div className="flex flex-wrap gap-4 text-sm">
             <div><span className="font-semibold">Version:</span> 2.0</div>
             <div><span className="font-semibold">Date:</span> {new Date().toLocaleDateString('en-GB')}</div>
