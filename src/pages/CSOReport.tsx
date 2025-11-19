@@ -531,7 +531,7 @@ const CSOReport = () => {
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
-                      <span>Resolution of security warnings and penetration testing</span>
+                      <span>Resolution of any security warnings and plan penetration testing</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <ChevronRight className="w-4 h-4 mt-0.5 text-orange-600 flex-shrink-0" />
