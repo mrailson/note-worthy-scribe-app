@@ -336,13 +336,25 @@ const CSOReport = () => {
                       <CheckCircle className="w-4 h-4 text-green-600" />
                     </div>
                     <p className="text-sm font-semibold mb-2">Completed – Awaiting signature</p>
-                    <button
-                      onClick={() => scrollToSection('hazard-log')}
-                      className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
-                    >
-                      <FileText className="w-3 h-3" />
-                      <span className="underline">View Safety Case</span>
-                    </button>
+                    <div className="space-y-1">
+                      <button
+                        onClick={() => scrollToSection('hazard-log')}
+                        className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                      >
+                        <FileText className="w-3 h-3" />
+                        <span className="underline">View Safety Case</span>
+                      </button>
+                      <br />
+                      <a 
+                        href="/documents/MHRA_Class_1_Registration_Evidence.pdf" 
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 transition-colors"
+                      >
+                        <FileCheck className="w-3 h-3" />
+                        <span className="underline">MHRA Class 1 Medical Device Registration Evidence</span>
+                      </a>
+                    </div>
                   </div>
                   <div className="bg-white dark:bg-gray-900 rounded-md p-3 border border-blue-100 dark:border-blue-900">
                     <div className="flex items-start justify-between mb-1">
