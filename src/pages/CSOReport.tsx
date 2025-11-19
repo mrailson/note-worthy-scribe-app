@@ -259,8 +259,7 @@ const CSOReport = () => {
                     { id: "third-party", label: "Third Parties", icon: Users },
                     { id: "nhs-assurance", label: "NHS Assurance Pack & DTAC", icon: FileText },
                     { id: "checklist", label: "Checklist", icon: CheckCircle },
-                    { id: "roadmap", label: "Deployment Roadmap", icon: Calendar },
-                    { id: "recommendations", label: "Recommendations", icon: TrendingUp }
+                    { id: "roadmap", label: "Deployment Roadmap", icon: Calendar }
                   ].map((nav) => (
                     <Button
                       key={nav.id}
@@ -1971,61 +1970,6 @@ const CSOReport = () => {
                   ))}
                 </div>
               </div>
-            </CardContent>
-          </Card>
-        </section>
-
-        {/* Recommendations */}
-        <section id="recommendations" className="mb-8">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-2xl flex items-center gap-2">
-                <TrendingUp className="w-6 h-6" />
-                Recommendations
-              </CardTitle>
-              <CardDescription>Prioritised actions for successful NHS deployment</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="immediate" className="w-full">
-                <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="immediate">Immediate (Before Deployment)</TabsTrigger>
-                  <TabsTrigger value="short">Short-Term (3 Months)</TabsTrigger>
-                  <TabsTrigger value="long">Long-Term (12 Months)</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="immediate" className="mt-6">
-                  <div className="space-y-3">
-                    {recommendations.immediate.map((rec, idx) => (
-                      <div key={idx} className="flex items-start gap-3 p-3 border rounded-lg bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900">
-                        <AlertTriangle className="w-5 h-5 text-red-700 dark:text-red-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-red-900 dark:text-red-300">{rec}</p>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="short" className="mt-6">
-                  <div className="space-y-3">
-                    {recommendations.shortTerm.map((rec, idx) => (
-                      <div key={idx} className="flex items-start gap-3 p-3 border rounded-lg bg-yellow-50 dark:bg-yellow-950/20 border-yellow-200 dark:border-yellow-900">
-                        <Clock className="w-5 h-5 text-yellow-700 dark:text-yellow-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-yellow-900 dark:text-yellow-300">{rec}</p>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="long" className="mt-6">
-                  <div className="space-y-3">
-                    {recommendations.longTerm.map((rec, idx) => (
-                      <div key={idx} className="flex items-start gap-3 p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
-                        <TrendingUp className="w-5 h-5 text-blue-700 dark:text-blue-500 flex-shrink-0 mt-0.5" />
-                        <p className="text-sm text-blue-900 dark:text-blue-300">{rec}</p>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-              </Tabs>
             </CardContent>
           </Card>
         </section>
