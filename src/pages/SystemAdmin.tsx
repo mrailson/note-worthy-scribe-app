@@ -202,7 +202,8 @@ const SystemAdmin = () => {
       mic_test_service_access: false,
       api_testing_service_access: false,
       translation_service_access: false,
-      fridge_monitoring_access: false
+      fridge_monitoring_access: false,
+      cso_governance_access: false
     }
   });
   
@@ -342,7 +343,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
           // Get ALL user_roles for this user and take the first one for display
           const { data: roleData, error: roleError } = await supabase
             .from('user_roles')
-            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, show_consultation_examples')
+            .select('meeting_notes_access, gp_scribe_access, complaints_manager_access, enhanced_access, cqc_compliance_access, shared_drive_access, mic_test_service_access, api_testing_service_access, translation_service_access, fridge_monitoring_access, cso_governance_access, show_consultation_examples')
             .eq('user_id', user.user_id)
             .limit(1)
             .single();
@@ -379,6 +380,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
             api_testing_service_access: roleData?.api_testing_service_access ?? false,
             translation_service_access: roleData?.translation_service_access ?? false,
             fridge_monitoring_access: roleData?.fridge_monitoring_access ?? false,
+            cso_governance_access: roleData?.cso_governance_access ?? false,
             show_consultation_examples: roleData?.show_consultation_examples ?? null
           };
           
@@ -988,7 +990,8 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
         mic_test_service_access: false,
         api_testing_service_access: false,
         translation_service_access: false,
-        fridge_monitoring_access: false
+        fridge_monitoring_access: false,
+        cso_governance_access: false
       }
     });
     setShowUserModal(true);
@@ -1040,7 +1043,8 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
         mic_test_service_access: user.mic_test_service_access ?? false,
         api_testing_service_access: user.api_testing_service_access ?? false,
         translation_service_access: user.translation_service_access ?? false,
-        fridge_monitoring_access: user.fridge_monitoring_access ?? false
+        fridge_monitoring_access: user.fridge_monitoring_access ?? false,
+        cso_governance_access: user.cso_governance_access ?? false
       }
     };
     
@@ -1188,7 +1192,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
         mic_test_service_access: moduleKey === 'mic_test_service_access' ? checked : userFormData.module_access.mic_test_service_access,
         api_testing_service_access: moduleKey === 'api_testing_service_access' ? checked : userFormData.module_access.api_testing_service_access,
         translation_service_access: moduleKey === 'translation_service_access' ? checked : userFormData.module_access.translation_service_access,
-        fridge_monitoring_access: moduleKey === 'fridge_monitoring_access' ? checked : userFormData.module_access.fridge_monitoring_access
+        fridge_monitoring_access: moduleKey === 'fridge_monitoring_access' ? checked : userFormData.module_access.fridge_monitoring_access,
+        cso_governance_access: moduleKey === 'cso_governance_access' ? checked : userFormData.module_access.cso_governance_access
       };
       
       console.log('Auto-saving by inserting new role with data:', insertData);
@@ -1386,7 +1391,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             mic_test_service_access: currentFormData.module_access.mic_test_service_access,
             api_testing_service_access: currentFormData.module_access.api_testing_service_access,
             translation_service_access: currentFormData.module_access.translation_service_access,
-            fridge_monitoring_access: currentFormData.module_access.fridge_monitoring_access
+            fridge_monitoring_access: currentFormData.module_access.fridge_monitoring_access,
+            cso_governance_access: currentFormData.module_access.cso_governance_access
           };
           
           console.log('Inserting new role with data:', insertData);
@@ -1427,6 +1433,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               api_testing_service_access: currentFormData.module_access.api_testing_service_access,
               translation_service_access: currentFormData.module_access.translation_service_access,
               fridge_monitoring_access: currentFormData.module_access.fridge_monitoring_access,
+              cso_governance_access: currentFormData.module_access.cso_governance_access,
               role: currentFormData.role || 'user'
             };
             
@@ -1459,7 +1466,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               mic_test_service_access: currentFormData.module_access.mic_test_service_access,
               api_testing_service_access: currentFormData.module_access.api_testing_service_access,
               translation_service_access: currentFormData.module_access.translation_service_access,
-              fridge_monitoring_access: currentFormData.module_access.fridge_monitoring_access
+              fridge_monitoring_access: currentFormData.module_access.fridge_monitoring_access,
+              cso_governance_access: currentFormData.module_access.cso_governance_access
             };
             
             console.log('Inserting new role with data:', insertData);
@@ -4264,6 +4272,27 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                            }));
                            if (editingUser) {
                              await autoSaveModuleAccess('fridge_monitoring_access', checked);
+                           }
+                         }}
+                       />
+                     </div>
+
+                     <div className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <Label htmlFor="cso_governance_access">CSO Governance Access</Label>
+                        <p className="text-xs text-muted-foreground">Access to CSO Report, DPIA, Hazard Log, and sensitive clinical safety documentation</p>
+                      </div>
+                       <Switch
+                         id="cso_governance_access"
+                         checked={userFormData.module_access.cso_governance_access}
+                         onCheckedChange={async (checked) => {
+                           console.log('CSO Governance access changed to:', checked);
+                           setUserFormData(prevData => ({
+                             ...prevData, 
+                             module_access: {...prevData.module_access, cso_governance_access: checked}
+                           }));
+                           if (editingUser) {
+                             await autoSaveModuleAccess('cso_governance_access', checked);
                            }
                          }}
                        />
