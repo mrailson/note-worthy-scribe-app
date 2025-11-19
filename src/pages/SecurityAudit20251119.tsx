@@ -426,7 +426,7 @@ const SecurityAudit20251119 = () => {
               <h4 className="font-semibold mb-2">Limitations</h4>
               <p className="text-sm text-muted-foreground">
                 This audit is focused on database-layer security and does not cover application-level security, network security, 
-                infrastructure hardening, or third-party integrations. A comprehensive penetration test is recommended for complete 
+                infrastructure hardening, or third-party integrations. A proportionate penetration test is recommended for 
                 security assurance.
               </p>
             </div>
