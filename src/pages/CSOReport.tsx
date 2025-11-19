@@ -1135,7 +1135,7 @@ const CSOReport = () => {
                   <TabsTrigger value="complaints">Complaints ({complaintsRisks.length} Risks)</TabsTrigger>
                 </TabsList>
                 <TabsContent value="ai4gp" className="mt-6">
-                  <RiskTable risks={ai4gpRisks} title="AI4GP Service - Clinical Risk Assessment" />
+                  <RiskTable risks={ai4gpRisks} title="AI4GP Service (Out of Scope for Initial Pilot) - Clinical Risk Assessment" />
                 </TabsContent>
                 <TabsContent value="meeting" className="mt-6">
                   <RiskTable risks={meetingNotesRisks} title="Meeting Notes System - Clinical Risk Assessment" />
