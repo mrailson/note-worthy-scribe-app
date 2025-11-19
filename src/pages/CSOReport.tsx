@@ -24,7 +24,8 @@ import {
   ChevronRight,
   Download,
   ArrowUp,
-  ExternalLink
+  ExternalLink,
+  Gamepad2
 } from "lucide-react";
 import {
   services,
@@ -215,6 +216,17 @@ const CSOReport = () => {
                 <Link to="/dpia">
                   <Lock className="w-4 h-4 mr-2" />
                   DPIA
+                </Link>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="justify-start"
+                asChild
+              >
+                <Link to="/nhs-quest">
+                  <Gamepad2 className="w-4 h-4 mr-2" />
+                  NHS Quest
                 </Link>
               </Button>
             </div>
