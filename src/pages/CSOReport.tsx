@@ -1128,20 +1128,20 @@ const CSOReport = () => {
               <CardDescription>Clinical risk assessment for each service following DCB0129 methodology</CardDescription>
             </CardHeader>
             <CardContent>
-              <Tabs defaultValue="ai4gp" className="w-full">
+              <Tabs defaultValue="meeting" className="w-full">
                 <TabsList className="grid w-full grid-cols-3">
-                  <TabsTrigger value="ai4gp">AI4GP ({ai4gpRisks.length} Risks)</TabsTrigger>
                   <TabsTrigger value="meeting">Meeting Notes ({meetingNotesRisks.length} Risks)</TabsTrigger>
                   <TabsTrigger value="complaints">Complaints ({complaintsRisks.length} Risks)</TabsTrigger>
+                  <TabsTrigger value="ai4gp">AI4GP ({ai4gpRisks.length} Risks)</TabsTrigger>
                 </TabsList>
-                <TabsContent value="ai4gp" className="mt-6">
-                  <RiskTable risks={ai4gpRisks} title="AI4GP Service (Out of Scope for Initial Pilot) - Clinical Risk Assessment" />
-                </TabsContent>
                 <TabsContent value="meeting" className="mt-6">
                   <RiskTable risks={meetingNotesRisks} title="Meeting Notes System - Clinical Risk Assessment" />
                 </TabsContent>
                 <TabsContent value="complaints" className="mt-6">
                   <RiskTable risks={complaintsRisks} title="Complaints Management System - Clinical Risk Assessment" />
+                </TabsContent>
+                <TabsContent value="ai4gp" className="mt-6">
+                  <RiskTable risks={ai4gpRisks} title="AI4GP Service (Out of Scope for Initial Pilot) - Clinical Risk Assessment" />
                 </TabsContent>
               </Tabs>
 
