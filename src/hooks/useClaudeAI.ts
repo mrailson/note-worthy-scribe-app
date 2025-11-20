@@ -103,12 +103,16 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
     if (!meetingId) return;
     
     try {
+      // Enhance content with Meeting Coach assignments before saving
+      const { enhanceMeetingNotesWithAssignments } = await import('@/utils/meetingCoachIntegration');
+      const enhancedContent = enhanceMeetingNotesWithAssignments(content, meetingId);
+      
       // Save to meeting_summaries table (correct location)
       const { error } = await supabase
         .from('meeting_summaries')
         .upsert({
           meeting_id: meetingId,
-          summary: content,
+          summary: enhancedContent,
           ai_generated: true,
           updated_at: new Date().toISOString()
         });
@@ -119,7 +123,7 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
       await supabase
         .from('meetings')
         .update({ 
-          description: content.substring(0, 1000)
+          description: enhancedContent.substring(0, 1000)
         })
         .eq('id', meetingId);
         

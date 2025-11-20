@@ -1934,11 +1934,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     if (!meeting?.id) return;
     
     try {
+      // Enhance content with Meeting Coach assignments before saving
+      const { enhanceMeetingNotesWithAssignments } = await import('@/utils/meetingCoachIntegration');
+      const enhancedContent = enhanceMeetingNotesWithAssignments(content, meeting.id);
+      
       const { error } = await supabase
         .from('meeting_summaries')
         .upsert({
           meeting_id: meeting.id,
-          summary: content,
+          summary: enhancedContent,
           key_points: [],
           action_items: [],
           decisions: [],

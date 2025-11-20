@@ -389,15 +389,16 @@ ${currentInsight.overview.decisions.map(d => `- ${d}`).join('\n')}
 ${currentInsight.overview.actionItems.map((item, index) => {
   const cleanItem = cleanActionItemText(item);
   const itemId = generateActionItemId(item, index);
+  
+  // Skip removed actions
+  if (removedActions.has(itemId)) return null;
+  
   const assignment = assignments.get(itemId);
-  if (assignment) {
-    const parts = [];
-    if (assignment.assignee) parts.push(`[${assignment.assignee}]`);
-    if (assignment.dueDate) parts.push(`[${assignment.dueDate}]`);
-    return `- ${parts.join(' ')} ${cleanItem}`;
-  }
-  return `- ${cleanItem}`;
-}).join('\n')}
+  const assignee = assignment?.assignee || 'TBC';
+  const dueDate = assignment?.dueDate || 'TBC';
+  
+  return `- [${assignee}] [${dueDate}] ${cleanItem}`;
+}).filter(Boolean).join('\n')}
 
 ## ⚠️ Items Requiring Follow-Up
 
