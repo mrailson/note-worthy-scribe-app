@@ -12,6 +12,10 @@ export interface ActionItemAssignment {
  * Retrieve Meeting Coach assignments from sessionStorage
  */
 export const getMeetingCoachAssignments = (meetingId: string): Map<string, ActionItemAssignment> => {
+  if (!meetingId || meetingId === 'temp') {
+    return new Map();
+  }
+  
   try {
     const storageKey = `meetingCoach-assignments-${meetingId}`;
     const saved = sessionStorage.getItem(storageKey);
@@ -31,6 +35,10 @@ export const getMeetingCoachAssignments = (meetingId: string): Map<string, Actio
  * Get removed action items from sessionStorage
  */
 export const getRemovedActionItems = (meetingId: string): Set<string> => {
+  if (!meetingId || meetingId === 'temp') {
+    return new Set();
+  }
+  
   try {
     const removedKey = `meetingCoach-removedActions-${meetingId}`;
     const savedRemoved = sessionStorage.getItem(removedKey);
@@ -49,15 +57,19 @@ export const getRemovedActionItems = (meetingId: string): Set<string> => {
  * Generate a consistent ID for an action item
  */
 export const generateActionItemId = (item: string, index: number): string => {
-  const cleaned = item.replace(/^\*\*\d+\.\*\*\s*|\d+\.\s*|^[-•]\s*/i, '').trim();
+  const cleaned = cleanActionItemText(item);
   return `${cleaned.substring(0, 50)}-${index}`;
 };
 
 /**
- * Clean action item text by removing numbering and formatting
+ * Clean action item text by removing numbering, formatting, and speaker prefixes
  */
 export const cleanActionItemText = (item: string): string => {
-  return item.replace(/^\*\*\d+\.\*\*\s*|\d+\.\s*|^[-•]\s*/i, '').trim();
+  // Remove speaker prefixes like "Facilitator/Unknown:", "Speaker:", "Participant:", etc.
+  let cleaned = item.replace(/^(Facilitator\/Unknown|Speaker|Participant|Attendee|Unknown):\s*/i, '').trim();
+  // Remove numbering and formatting
+  cleaned = cleaned.replace(/^\*\*\d+\.\*\*\s*|\d+\.\s*|^[-•]\s*/i, '').trim();
+  return cleaned;
 };
 
 /**
