@@ -1735,12 +1735,25 @@ const ComplaintDetails = () => {
 
           {/* Complaint Workflow Tabs */}
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="details">Details</TabsTrigger>
-              <TabsTrigger value="workflow">Correspondence</TabsTrigger>
-              <TabsTrigger value="investigation">Investigation Evidence</TabsTrigger>
-              <TabsTrigger value="compliance">Compliance</TabsTrigger>
-              <TabsTrigger value="audit">Audit Log</TabsTrigger>
+            <TabsList className="flex w-full overflow-x-auto scrollbar-hide sm:grid sm:grid-cols-5 gap-1">
+              <TabsTrigger value="details" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
+                Details
+              </TabsTrigger>
+              <TabsTrigger value="workflow" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
+                <span className="hidden sm:inline">Correspondence</span>
+                <span className="sm:hidden">Response</span>
+              </TabsTrigger>
+              <TabsTrigger value="investigation" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
+                <span className="hidden sm:inline">Investigation Evidence</span>
+                <span className="sm:hidden">Investigation</span>
+              </TabsTrigger>
+              <TabsTrigger value="compliance" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
+                Compliance
+              </TabsTrigger>
+              <TabsTrigger value="audit" className="flex-shrink-0 min-w-[80px] px-3 py-2 text-sm whitespace-nowrap touch-manipulation active:scale-95">
+                <span className="hidden sm:inline">Audit Log</span>
+                <span className="sm:hidden">Audit</span>
+              </TabsTrigger>
             </TabsList>
 
             {/* Details Tab */}
