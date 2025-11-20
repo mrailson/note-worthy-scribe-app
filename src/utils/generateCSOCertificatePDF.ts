@@ -88,12 +88,6 @@ export const generateCSOCertificatePDF = (data: CertificateData): Blob => {
   });
   doc.text(`Date of Completion: ${formattedDate}`, pageWidth / 2, 143, { align: 'center' });
 
-  // No expiry text
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(11);
-  doc.setTextColor(...accentColor);
-  doc.text('This certificate does not expire', pageWidth / 2, 153, { align: 'center' });
-
   // Horizontal line
   doc.setDrawColor(...accentColor);
   doc.setLineWidth(0.5);

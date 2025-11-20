@@ -171,7 +171,6 @@ export default function CSOCertificate() {
             <div className="pt-6 space-y-2">
               <p className="font-semibold">Certificate Number: {certificate.certificate_number}</p>
               <p className="text-muted-foreground">Date of Completion: {formattedDate}</p>
-              <p className="text-sm text-primary font-medium">This certificate does not expire</p>
             </div>
 
             <div className="pt-6 border-t">
