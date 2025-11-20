@@ -25,16 +25,41 @@ export default function CSOCertificate() {
 
   useEffect(() => {
     const fetchOrGenerateCertificate = async () => {
-      if (!assessmentId || !registration?.id) return;
+      if (!assessmentId) return;
 
       try {
+        // First, get the assessment to find the registration_id
+        const { data: assessment, error: assessmentError } = await supabase
+          .from('cso_assessments')
+          .select('registration_id, passed')
+          .eq('id', assessmentId)
+          .single();
+
+        if (assessmentError || !assessment) {
+          throw new Error('Assessment not found');
+        }
+
+        if (!assessment.passed) {
+          throw new Error('Assessment must be passed to view certificate');
+        }
+
+        // Get registration details
+        const { data: reg, error: regError } = await supabase
+          .from('cso_registrations')
+          .select('*')
+          .eq('id', assessment.registration_id)
+          .single();
+
+        if (regError || !reg) {
+          throw new Error('Registration not found');
+        }
+
         // Check if certificate already exists
         const { data: existing, error: fetchError } = await supabase
           .from('cso_certificates')
           .select('*')
           .eq('assessment_id', assessmentId)
-          .eq('registration_id', registration.id)
-          .single();
+          .maybeSingle();
 
         if (existing && !fetchError) {
           setCertificate(existing);
@@ -47,7 +72,7 @@ export default function CSOCertificate() {
         const { data, error } = await supabase.functions.invoke('generate-cso-certificate', {
           body: {
             assessmentId,
-            registrationId: registration.id
+            registrationId: assessment.registration_id
           }
         });
 
@@ -66,7 +91,7 @@ export default function CSOCertificate() {
     };
 
     fetchOrGenerateCertificate();
-  }, [assessmentId, registration?.id]);
+  }, [assessmentId, navigate]);
 
   const handleDownload = () => {
     if (!certificate || !registration) return;
