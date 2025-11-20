@@ -12,13 +12,17 @@ export default function CSOTestCertificate() {
   const generateTestCertificate = async () => {
     setIsGenerating(true);
     try {
+      // Generate unique test data
+      const timestamp = Date.now();
+      const uniqueGmc = String(1000000 + Math.floor(Math.random() * 8999999)); // 7-digit number
+      
       // Create test registration
       const { data: registration, error: regError } = await supabase
         .from('cso_registrations')
         .insert({
           full_name: 'Dr Test User',
-          gmc_number: '1234567',
-          email: `test${Date.now()}@example.com`,
+          gmc_number: uniqueGmc,
+          email: `test${timestamp}@example.com`,
           practice_name: 'Test Practice',
           practice_address: '123 Test Street',
           practice_postcode: 'TE1 1ST'
