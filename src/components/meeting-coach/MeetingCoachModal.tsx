@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { showToast } from '@/utils/toastWrapper';
 import { 
   Activity, 
@@ -20,6 +21,7 @@ import {
   Download,
   ChevronDown
 } from 'lucide-react';
+import { ActionItemAssigner, ActionItemAssignment, Attendee } from './ActionItemAssigner';
 
 interface CoachInsight {
   realTime: {
@@ -52,6 +54,7 @@ interface MeetingCoachModalProps {
     title?: string;
     type?: string;
     participants?: string[];
+    chair?: string;
   };
 }
 
@@ -62,6 +65,7 @@ export function MeetingCoachModal({
   getLiveTranscript,
   meetingContext
 }: MeetingCoachModalProps) {
+  const { user } = useAuth();
   const [currentInsight, setCurrentInsight] = useState<CoachInsight | null>(null);
   const [insightHistory, setInsightHistory] = useState<CoachInsight[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -73,6 +77,93 @@ export function MeetingCoachModal({
     const stored = sessionStorage.getItem('meetingCoachWrapUpOpen');
     return stored === 'true';
   });
+  
+  // Assignment state
+  const [assignments, setAssignments] = useState<Map<string, ActionItemAssignment>>(new Map());
+  const [recentlyUsed, setRecentlyUsed] = useState<string[]>([]);
+  const [availableAttendees, setAvailableAttendees] = useState<Attendee[]>([]);
+  const meetingId = sessionStorage.getItem('currentMeetingId') || 'temp';
+
+  // Load attendees from database
+  useEffect(() => {
+    const loadAttendees = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('attendees')
+          .select('id, name, email, title, organization, role')
+          .eq('user_id', user.id)
+          .order('name');
+        
+        if (error) throw error;
+        if (data) {
+          setAvailableAttendees(data as Attendee[]);
+        }
+      } catch (error) {
+        console.error('Error loading attendees:', error);
+      }
+    };
+    
+    loadAttendees();
+  }, [user]);
+
+  // Load saved assignments from sessionStorage
+  useEffect(() => {
+    const storageKey = `meetingCoach-assignments-${meetingId}`;
+    const recentKey = `meetingCoach-recentlyUsed-${meetingId}`;
+    
+    try {
+      const saved = sessionStorage.getItem(storageKey);
+      const savedRecent = sessionStorage.getItem(recentKey);
+      
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setAssignments(new Map(Object.entries(parsed)));
+      }
+      
+      if (savedRecent) {
+        setRecentlyUsed(JSON.parse(savedRecent));
+      }
+    } catch (error) {
+      console.error('Error loading assignments:', error);
+    }
+  }, [meetingId]);
+
+  // Save assignments to sessionStorage
+  useEffect(() => {
+    const storageKey = `meetingCoach-assignments-${meetingId}`;
+    const recentKey = `meetingCoach-recentlyUsed-${meetingId}`;
+    
+    try {
+      const assignmentsObj = Object.fromEntries(assignments);
+      sessionStorage.setItem(storageKey, JSON.stringify(assignmentsObj));
+      sessionStorage.setItem(recentKey, JSON.stringify(recentlyUsed));
+    } catch (error) {
+      console.error('Error saving assignments:', error);
+    }
+  }, [assignments, recentlyUsed, meetingId]);
+
+  const handleAssign = (assignment: ActionItemAssignment) => {
+    setAssignments(prev => new Map(prev).set(assignment.id, assignment));
+    
+    // Add to recently used if not already there
+    if (assignment.assignee && !recentlyUsed.includes(assignment.assignee)) {
+      setRecentlyUsed(prev => [assignment.assignee!, ...prev].slice(0, 3));
+    }
+  };
+
+  const handleRemoveAssignment = (actionItemId: string) => {
+    setAssignments(prev => {
+      const next = new Map(prev);
+      next.delete(actionItemId);
+      return next;
+    });
+  };
+
+  const generateActionItemId = (item: string, index: number): string => {
+    return `${item.slice(0, 30).replace(/\s+/g, '-')}-${index}`;
+  };
 
   const getLastNSeconds = (fullTranscript: string, seconds: number): string => {
     const estimatedChars = seconds * 16.67; // ~500 chars per 30s
@@ -242,7 +333,11 @@ ${currentInsight.overview.mainTopics.map(t => `- ${t}`).join('\n')}
 ${currentInsight.overview.decisions.map(d => `- ${d}`).join('\n')}
 
 ## Action Items
-${currentInsight.overview.actionItems.map(a => `- ${a}`).join('\n')}
+${currentInsight.overview.actionItems.map((item, index) => {
+  const itemId = generateActionItemId(item, index);
+  const assignment = assignments.get(itemId);
+  return assignment ? `- [${assignment.assignee}] ${item}` : `- ${item}`;
+}).join('\n')}
 
 ## ⚠️ Items Requiring Follow-Up
 
@@ -420,10 +515,27 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                   {currentInsight.overview.actionItems.length > 0 && (
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">📋 Action Items ({currentInsight.overview.actionItems.length})</p>
-                      <ul className="space-y-1">
-                        {currentInsight.overview.actionItems.map((item, i) => (
-                          <li key={i}>• {item}</li>
-                        ))}
+                      <ul className="space-y-3">
+                        {currentInsight.overview.actionItems.map((item, i) => {
+                          const itemId = generateActionItemId(item, i);
+                          return (
+                            <li key={i} className="flex flex-col gap-1">
+                              <span>• {item}</span>
+                              <ActionItemAssigner
+                                actionItem={item}
+                                actionItemId={itemId}
+                                currentAssignment={assignments.get(itemId) || null}
+                                currentUserName={user?.email?.split('@')[0] || 'Me'}
+                                chairName={meetingContext.chair}
+                                meetingParticipants={meetingContext.participants || []}
+                                availableAttendees={availableAttendees}
+                                recentlyUsed={recentlyUsed}
+                                onAssign={handleAssign}
+                                onRemove={handleRemoveAssignment}
+                              />
+                            </li>
+                          );
+                        })}
                       </ul>
                     </div>
                   )}
