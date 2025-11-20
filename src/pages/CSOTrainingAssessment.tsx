@@ -25,16 +25,11 @@ export default function CSOTrainingAssessment() {
       navigate('/cso-training-register');
       return;
     }
-    
-    if (!regLoading && !areAllModulesComplete()) {
-      navigate('/cso-training-dashboard');
-      return;
-    }
 
-    if (currentQuestions.length === 0) {
+    if (!regLoading && currentQuestions.length === 0) {
       startAssessment();
     }
-  }, [registration, regLoading, areAllModulesComplete, currentQuestions.length]);
+  }, [registration, regLoading, currentQuestions.length, startAssessment, navigate]);
 
   if (regLoading || currentQuestions.length === 0) {
     return (
