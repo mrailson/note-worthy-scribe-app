@@ -82,7 +82,28 @@ export function MeetingCoachModal({
   const [assignments, setAssignments] = useState<Map<string, ActionItemAssignment>>(new Map());
   const [recentlyUsed, setRecentlyUsed] = useState<string[]>([]);
   const [availableAttendees, setAvailableAttendees] = useState<Attendee[]>([]);
-  const meetingId = sessionStorage.getItem('currentMeetingId') || 'temp';
+  const [meetingId, setMeetingId] = useState<string>(() => {
+    return sessionStorage.getItem('currentMeetingId') || 'temp';
+  });
+
+  // Monitor currentMeetingId changes in sessionStorage
+  useEffect(() => {
+    const checkMeetingId = () => {
+      const currentId = sessionStorage.getItem('currentMeetingId');
+      if (currentId && currentId !== meetingId) {
+        console.log('Meeting ID updated:', currentId);
+        setMeetingId(currentId);
+      }
+    };
+
+    // Check immediately
+    checkMeetingId();
+
+    // Check periodically in case it changes
+    const interval = setInterval(checkMeetingId, 500);
+
+    return () => clearInterval(interval);
+  }, [meetingId]);
 
   // Load attendees from database
   useEffect(() => {
