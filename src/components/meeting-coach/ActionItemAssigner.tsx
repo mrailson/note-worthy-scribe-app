@@ -37,6 +37,7 @@ interface ActionItemAssignerProps {
   onAssign: (assignment: ActionItemAssignment) => void;
   onRemove: (actionItemId: string) => void;
   onUpdateDueDate: (actionItemId: string, dueDate: string) => void;
+  onRemoveAction: (actionItemId: string) => void;
 }
 
 export function ActionItemAssigner({
@@ -51,6 +52,7 @@ export function ActionItemAssigner({
   onAssign,
   onRemove,
   onUpdateDueDate,
+  onRemoveAction,
 }: ActionItemAssignerProps) {
   const [assignOpen, setAssignOpen] = useState(false);
   const [dueDateOpen, setDueDateOpen] = useState(false);
@@ -90,6 +92,11 @@ export function ActionItemAssigner({
 
   const handleRemove = () => {
     onRemove(actionItemId);
+  };
+
+  const handleRemoveAction = () => {
+    onRemoveAction(actionItemId);
+    setAssignOpen(false);
   };
 
   const filteredResults = useMemo(() => {
@@ -212,6 +219,15 @@ export function ActionItemAssigner({
                     ))}
                   </CommandGroup>
                 )}
+
+                <CommandGroup>
+                  <CommandItem
+                    onSelect={handleRemoveAction}
+                    className="text-destructive"
+                  >
+                    Remove Action
+                  </CommandItem>
+                </CommandGroup>
               </CommandList>
             </Command>
           </PopoverContent>
@@ -330,6 +346,15 @@ export function ActionItemAssigner({
                 ))}
               </CommandGroup>
             )}
+
+            <CommandGroup>
+              <CommandItem
+                onSelect={handleRemoveAction}
+                className="text-destructive"
+              >
+                Remove Action
+              </CommandItem>
+            </CommandGroup>
           </CommandList>
         </Command>
       </PopoverContent>
