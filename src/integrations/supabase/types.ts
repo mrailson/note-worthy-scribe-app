@@ -2351,6 +2351,184 @@ export type Database = {
         }
         Relationships: []
       }
+      cso_assessments: {
+        Row: {
+          attempt_number: number
+          completed_at: string
+          created_at: string
+          id: string
+          passed: boolean
+          percentage: number
+          questions_answered: Json
+          registration_id: string
+          score: number
+          started_at: string
+          total_questions: number
+        }
+        Insert: {
+          attempt_number: number
+          completed_at?: string
+          created_at?: string
+          id?: string
+          passed: boolean
+          percentage: number
+          questions_answered: Json
+          registration_id: string
+          score: number
+          started_at?: string
+          total_questions: number
+        }
+        Update: {
+          attempt_number?: number
+          completed_at?: string
+          created_at?: string
+          id?: string
+          passed?: boolean
+          percentage?: number
+          questions_answered?: Json
+          registration_id?: string
+          score?: number
+          started_at?: string
+          total_questions?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cso_assessments_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "cso_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cso_certificates: {
+        Row: {
+          assessment_id: string
+          certificate_number: string
+          created_at: string
+          id: string
+          issued_date: string
+          pdf_url: string | null
+          registration_id: string
+        }
+        Insert: {
+          assessment_id: string
+          certificate_number: string
+          created_at?: string
+          id?: string
+          issued_date?: string
+          pdf_url?: string | null
+          registration_id: string
+        }
+        Update: {
+          assessment_id?: string
+          certificate_number?: string
+          created_at?: string
+          id?: string
+          issued_date?: string
+          pdf_url?: string | null
+          registration_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cso_certificates_assessment_id_fkey"
+            columns: ["assessment_id"]
+            isOneToOne: false
+            referencedRelation: "cso_assessments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "cso_certificates_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "cso_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      cso_registrations: {
+        Row: {
+          access_token: string
+          created_at: string
+          email: string
+          full_name: string
+          gmc_number: string
+          id: string
+          phone: string | null
+          practice_address: string
+          practice_name: string
+          practice_postcode: string
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string
+          created_at?: string
+          email: string
+          full_name: string
+          gmc_number: string
+          id?: string
+          phone?: string | null
+          practice_address: string
+          practice_name: string
+          practice_postcode: string
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string
+          created_at?: string
+          email?: string
+          full_name?: string
+          gmc_number?: string
+          id?: string
+          phone?: string | null
+          practice_address?: string
+          practice_name?: string
+          practice_postcode?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      cso_training_progress: {
+        Row: {
+          completed: boolean
+          completed_at: string | null
+          created_at: string
+          id: string
+          module_id: string
+          registration_id: string
+          time_spent_seconds: number
+          updated_at: string
+        }
+        Insert: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          module_id: string
+          registration_id: string
+          time_spent_seconds?: number
+          updated_at?: string
+        }
+        Update: {
+          completed?: boolean
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          module_id?: string
+          registration_id?: string
+          time_spent_seconds?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cso_training_progress_registration_id_fkey"
+            columns: ["registration_id"]
+            isOneToOne: false
+            referencedRelation: "cso_registrations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       curated_news_pages: {
         Row: {
           created_at: string
