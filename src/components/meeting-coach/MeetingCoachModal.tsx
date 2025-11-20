@@ -77,6 +77,61 @@ export function MeetingCoachModal({
     return text.trim().split(/\s+/).filter(w => w.length > 0).length;
   };
 
+  const getTranscriptFromChunksOrLive = async (): Promise<string> => {
+    // Prefer reconstructed transcript from meeting_transcription_chunks, fallback to live transcript
+    const liveTranscript = getLiveTranscript();
+
+    try {
+      const meetingId = sessionStorage.getItem('currentMeetingId');
+      if (!meetingId) {
+        return liveTranscript || '';
+      }
+
+      const { data: chunks, error } = await supabase
+        .from('meeting_transcription_chunks')
+        .select('transcription_text')
+        .eq('meeting_id', meetingId)
+        .order('chunk_number', { ascending: true });
+
+      if (error || !chunks || chunks.length === 0) {
+        if (error) {
+          console.warn('MeetingCoach: error loading chunks, falling back to live transcript', error);
+        }
+        return liveTranscript || '';
+      }
+
+      let fullTranscript = '';
+      let allSegments: any[] = [];
+
+      // Lazily import segment utilities to avoid bundling cost until needed
+      const { mergeByTimestamps, segmentsToPlainText } = await import('@/lib/segmentMerge');
+
+      for (const chunk of chunks) {
+        try {
+          const parsed = JSON.parse(chunk.transcription_text as any);
+          if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].text) {
+            allSegments = mergeByTimestamps(allSegments, parsed);
+          } else {
+            fullTranscript = fullTranscript + (fullTranscript ? ' ' : '') + String(chunk.transcription_text || '');
+          }
+        } catch {
+          // Legacy plain text - append directly
+          fullTranscript = fullTranscript + (fullTranscript ? ' ' : '') + String(chunk.transcription_text || '');
+        }
+      }
+
+      if (allSegments.length > 0) {
+        fullTranscript = segmentsToPlainText(allSegments);
+      }
+
+      const finalText = (fullTranscript || '').trim();
+      return finalText || liveTranscript || '';
+    } catch (err) {
+      console.error('MeetingCoach: failed to rebuild transcript from chunks, falling back to live transcript', err);
+      return liveTranscript || '';
+    }
+  };
+
   const analyzeTranscript = async (recentChunk: string, fullTranscript: string) => {
     setIsAnalyzing(true);
     
@@ -118,9 +173,8 @@ export function MeetingCoachModal({
       setIsAnalyzing(false);
     }
   };
-
   const handleManualAnalysis = async () => {
-    const transcript = getLiveTranscript();
+    const transcript = await getTranscriptFromChunksOrLive();
     if (transcript.length < 50) {
       showToast.info('Not enough transcript to analyse yet');
       return;
@@ -135,7 +189,7 @@ export function MeetingCoachModal({
     if (!isRecording || !isOpen || isMinimized) return;
     
     const analyzeInterval = setInterval(async () => {
-      const transcript = getLiveTranscript();
+      const transcript = await getTranscriptFromChunksOrLive();
       const wordsSinceLastAnalysis = countWords(transcript) - lastWordCount;
       
       if (wordsSinceLastAnalysis < 30) {
