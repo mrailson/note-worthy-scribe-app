@@ -5,6 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from '@/utils/toastWrapper';
 import { 
@@ -16,7 +17,8 @@ import {
   RefreshCw,
   CheckCircle2,
   Clock,
-  Download
+  Download,
+  ChevronDown
 } from 'lucide-react';
 
 interface CoachInsight {
@@ -67,6 +69,10 @@ export function MeetingCoachModal({
   const [meetingStartTime] = useState(Date.now());
   const [isMinimized, setIsMinimized] = useState(false);
   const [lastWordCount, setLastWordCount] = useState(0);
+  const [wrapUpOpen, setWrapUpOpen] = useState(() => {
+    const stored = sessionStorage.getItem('meetingCoachWrapUpOpen');
+    return stored === 'true';
+  });
 
   const getLastNSeconds = (fullTranscript: string, seconds: number): string => {
     const estimatedChars = seconds * 16.67; // ~500 chars per 30s
@@ -366,7 +372,7 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
               <div className="p-4 bg-destructive/10 border-l-4 border-destructive rounded">
                 <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
                   <Activity className="h-4 w-4" />
-                  REAL-TIME (Last 30s)
+                  REAL-TIME
                 </h3>
                 <div className="space-y-3">
                   <div>
@@ -425,81 +431,104 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
               </div>
 
               {/* Section 3: Wrap-Up Assistant */}
-              <div className="p-4 bg-warning/10 border-l-4 border-warning rounded">
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4" />
-                  WRAP-UP ASSISTANT
-                </h3>
-                
-                <div className="mb-4">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-xs text-muted-foreground">Meeting Completeness:</span>
-                    <span className="text-sm font-bold">{currentInsight.wrapUp.completenessScore}%</span>
+              <Collapsible 
+                open={wrapUpOpen} 
+                onOpenChange={(open) => {
+                  setWrapUpOpen(open);
+                  sessionStorage.setItem('meetingCoachWrapUpOpen', String(open));
+                }}
+              >
+                <div className="p-4 bg-warning/10 border-l-4 border-warning rounded">
+                  <CollapsibleTrigger className="w-full">
+                    <h3 className="font-semibold text-sm mb-3 flex items-center gap-2 justify-between">
+                      <span className="flex items-center gap-2">
+                        <AlertCircle className="h-4 w-4" />
+                        WRAP-UP ASSISTANT
+                      </span>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${wrapUpOpen ? 'rotate-180' : ''}`} />
+                    </h3>
+                  </CollapsibleTrigger>
+                  
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs text-muted-foreground">Meeting Completeness:</span>
+                      <span className="text-sm font-bold">{currentInsight.wrapUp.completenessScore}%</span>
+                    </div>
+                    <Progress value={currentInsight.wrapUp.completenessScore} className="h-2" />
                   </div>
-                  <Progress value={currentInsight.wrapUp.completenessScore} className="h-2" />
+
+                  <CollapsibleContent>
+                    <div className="space-y-3 text-sm">
+                      {(() => {
+                        // Combine all wrap-up items and prioritize
+                        const allItems: Array<{ text: string; type: 'question' | 'issue' | 'clarification'; priority: number }> = [
+                          ...currentInsight.wrapUp.unansweredQuestions.map(q => ({ 
+                            text: q, 
+                            type: 'question' as const, 
+                            priority: 1 
+                          })),
+                          ...currentInsight.wrapUp.unresolvedIssues.map(i => ({ 
+                            text: i, 
+                            type: 'issue' as const, 
+                            priority: 1 
+                          })),
+                          ...currentInsight.wrapUp.needsClarification.map(c => ({ 
+                            text: c, 
+                            type: 'clarification' as const, 
+                            priority: 2 
+                          }))
+                        ];
+
+                        // Sort by priority and take top 5
+                        const topItems = allItems
+                          .sort((a, b) => a.priority - b.priority)
+                          .slice(0, 5);
+
+                        return topItems.length > 0 ? (
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              🎯 Top Priority Items (Showing {topItems.length} of {allItems.length})
+                            </p>
+                            <ul className="space-y-1">
+                              {topItems.map((item, i) => (
+                                <li 
+                                  key={i} 
+                                  className={item.type === 'clarification' ? 'text-warning' : 'text-destructive'}
+                                >
+                                  {item.type === 'question' && '❓ '}
+                                  {item.type === 'issue' && '🔧 '}
+                                  {item.type === 'clarification' && '💡 '}
+                                  {item.text}
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ) : null;
+                      })()}
+
+                      {currentInsight.wrapUp.suggestedFinalQuestions.length > 0 && (
+                        <div className="bg-background p-3 rounded border mt-3">
+                          <p className="text-xs text-muted-foreground mb-2">💡 Suggested Final Questions:</p>
+                          <ol className="space-y-1.5 list-decimal list-inside">
+                            {currentInsight.wrapUp.suggestedFinalQuestions.slice(0, 5).map((q, i) => (
+                              <li key={i} className="font-medium">{q}</li>
+                            ))}
+                          </ol>
+                        </div>
+                      )}
+
+                      {currentInsight.wrapUp.completenessScore >= 90 && (
+                        <div className="bg-success/10 p-3 rounded border border-success">
+                          <p className="text-success font-medium flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4" />
+                            Meeting appears complete! All topics addressed.
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CollapsibleContent>
                 </div>
-
-                <div className="space-y-3 text-sm">
-                  {currentInsight.wrapUp.unansweredQuestions.length > 0 && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">
-                        ❓ Unanswered Questions ({currentInsight.wrapUp.unansweredQuestions.length})
-                      </p>
-                      <ul className="space-y-1">
-                        {currentInsight.wrapUp.unansweredQuestions.map((q, i) => (
-                          <li key={i} className="text-destructive">• {q}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {currentInsight.wrapUp.unresolvedIssues.length > 0 && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">
-                        🔧 Issues Needing Resolution ({currentInsight.wrapUp.unresolvedIssues.length})
-                      </p>
-                      <ul className="space-y-1">
-                        {currentInsight.wrapUp.unresolvedIssues.map((issue, i) => (
-                          <li key={i} className="text-destructive">• {issue}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {currentInsight.wrapUp.needsClarification.length > 0 && (
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">
-                        💡 Needs Clarification ({currentInsight.wrapUp.needsClarification.length})
-                      </p>
-                      <ul className="space-y-1">
-                        {currentInsight.wrapUp.needsClarification.map((item, i) => (
-                          <li key={i} className="text-warning">• {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {currentInsight.wrapUp.suggestedFinalQuestions.length > 0 && (
-                    <div className="bg-background p-3 rounded border mt-3">
-                      <p className="text-xs text-muted-foreground mb-2">💡 Suggested Final Questions:</p>
-                      <ol className="space-y-1.5 list-decimal list-inside">
-                        {currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => (
-                          <li key={i} className="font-medium">{q}</li>
-                        ))}
-                      </ol>
-                    </div>
-                  )}
-
-                  {currentInsight.wrapUp.completenessScore >= 90 && (
-                    <div className="bg-success/10 p-3 rounded border border-success">
-                      <p className="text-success font-medium flex items-center gap-2">
-                        <CheckCircle2 className="h-4 w-4" />
-                        Meeting appears complete! All topics addressed.
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
+              </Collapsible>
             </div>
           )}
         </ScrollArea>
