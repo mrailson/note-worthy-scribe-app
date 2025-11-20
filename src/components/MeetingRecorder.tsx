@@ -3693,6 +3693,41 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       console.log('🚨 DATABASE UPDATE RESULT:');
       console.log('🚨 SaveError:', saveError);
       console.log('🚨 SavedMeeting:', savedMeeting);
+
+      // Safety Net 1: Consolidate transcript chunks before generating notes
+      setStopRecordingStep('Consolidating transcript chunks...');
+      try {
+        console.log('🔄 Safety Net 1: Consolidating transcript chunks for meeting:', meetingId);
+        
+        // Get chunk count first
+        const { count: chunkCount, error: countError } = await supabase
+          .from('meeting_transcription_chunks')
+          .select('*', { count: 'exact', head: true })
+          .eq('meeting_id', meetingId);
+        
+        if (countError) {
+          console.error('Error counting chunks:', countError);
+        } else if (chunkCount && chunkCount > 0) {
+          console.log(`📊 Found ${chunkCount} chunks to consolidate`);
+          
+          // Call consolidation edge function
+          const { data: consolidationData, error: consolidationError } = await supabase.functions.invoke('consolidate-meeting-chunks', {
+            body: { meetingId }
+          });
+          
+          if (consolidationError) {
+            console.error('❌ Consolidation failed:', consolidationError);
+            showToast.warning('Transcript consolidation had issues, but continuing...');
+          } else {
+            console.log('✅ Consolidation result:', consolidationData);
+            showToast.success(`Consolidated ${consolidationData.chunksProcessed} transcript chunks`);
+          }
+        } else {
+          console.log('ℹ️ No chunks to consolidate');
+        }
+      } catch (error) {
+        console.error('❌ Exception during chunk consolidation:', error);
+      }
       
       // Format duration for display (MM:SS format)
       const minutes = Math.floor(duration / 60);
