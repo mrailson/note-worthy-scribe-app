@@ -46,6 +46,7 @@ import { ChunkSaveStatus } from "@/components/ChunkSaveStatus";
 import { MeetingImporter } from "@/components/meeting-dashboard/MeetingImporter";
 import { RecordingContextDialog, MeetingContext } from "@/components/meeting/RecordingContextDialog";
 import { PostMeetingActionsModal } from "@/components/PostMeetingActionsModal";
+import { MeetingCoachModal } from "@/components/meeting-coach/MeetingCoachModal";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -302,6 +303,9 @@ export const MeetingRecorder = ({
   const [showContextDialog, setShowContextDialog] = useState(false);
   const [meetingContext, setMeetingContext] = useState<MeetingContext | undefined>();
   const [hasContext, setHasContext] = useState(false);
+  
+  // Meeting Coach state
+  const [coachModalOpen, setCoachModalOpen] = useState(false);
   
   
   // Meeting settings - use from useMeetingData hook
@@ -4716,6 +4720,25 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                              </Tooltip>
                            )}
                            
+                           {/* Meeting Coach Button - Desktop only */}
+                           {!isIOS && (
+                             <Tooltip>
+                               <TooltipTrigger asChild>
+                                 <Button
+                                   onClick={() => setCoachModalOpen(true)}
+                                   variant="ghost"
+                                   size="sm"
+                                   className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                                 >
+                                   <Sparkles className="h-4 w-4" />
+                                 </Button>
+                               </TooltipTrigger>
+                               <TooltipContent side="bottom" align="center" className="z-50">
+                                 <p>Meeting Coach</p>
+                               </TooltipContent>
+                             </Tooltip>
+                           )}
+                           
                            {/* Show/Hide Live Speech Toggle - Hidden on Edge */}
                           {!/Edg/.test(navigator.userAgent) && (
                             <Tooltip>
@@ -5478,6 +5501,19 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           }}
         />
       )}
+      
+      {/* Meeting Coach Modal */}
+      <MeetingCoachModal
+        isOpen={coachModalOpen}
+        onClose={() => setCoachModalOpen(false)}
+        isRecording={isRecording}
+        getLiveTranscript={() => liveTranscriptRef.current?.getCurrentTranscript() || ''}
+        meetingContext={{
+          title: meetingSettings?.title,
+          type: meetingSettings?.meetingStyle,
+          participants: meetingSettings?.attendees?.split(',').map(a => a.trim())
+        }}
+      />
       
       {/* Post-Meeting Actions Modal */}
       <PostMeetingActionsModal
