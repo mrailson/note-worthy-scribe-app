@@ -170,6 +170,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGeneratingStyle2, setIsGeneratingStyle2] = useState(false);
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
   const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
+  const [noteStylesLoaded, setNoteStylesLoaded] = useState(false);
   
   // Standard Minutes format variations
   const [selectedFormatVariation, setSelectedFormatVariation] = useState<string>('standard');
@@ -268,9 +269,29 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
   }, [activeNotesStyleTab, notesStyle4, fontSizeStyle1]);
   
+  // Reset note styles when meeting changes to prevent showing stale data
+  useEffect(() => {
+    if (!isOpen || !meeting?.id) return;
+
+    // Clear all note styles and rendered HTML when switching meetings
+    console.log('🔄 Meeting changed - clearing note styles for:', meeting.id);
+    setNoteStylesLoaded(false);
+    setNotesStyle2("");
+    setNotesStyle3("");
+    setNotesStyle4("");
+    setMinutesHtml("");
+    setExecHtml("");
+  }, [isOpen, meeting?.id]);
+
   // Generate Minutes (Standard) HTML lazily - only when tab becomes active, with cache
   useEffect(() => {
     if (activeNotesStyleTab !== 'style1') {
+      return;
+    }
+
+    // Don't render minutes until note styles are loaded to prevent using stale data
+    if (!noteStylesLoaded) {
+      setMinutesHtml("");
       return;
     }
 
@@ -305,7 +326,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       }
     }, { timeout: 100 });
     return () => cancelIdleCallback(id);
-  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1]);
+  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
@@ -608,52 +629,56 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
          return;
        }
 
-       // Validate we're still on the same meeting before updating state
-       if (meeting?.id !== currentMeetingId) {
-         console.warn('⚠️ Meeting changed during note styles loading, discarding results');
-         return;
-       }
-
-        if (meetingData) {
-          if (meetingData.notes_style_2) {
-            setNotesStyle2(meetingData.notes_style_2);
-          }
-          if (meetingData.notes_style_3) {
-            setNotesStyle3(meetingData.notes_style_3);
-          }
-          if (meetingData.notes_style_4) {
-            setNotesStyle4(meetingData.notes_style_4);
-          }
+        // Validate we're still on the same meeting before updating state
+        if (meeting?.id !== currentMeetingId) {
+          console.warn('⚠️ Meeting changed during note styles loading, discarding results');
+          return;
         }
 
-        // Fallback: if Standard notes not stored on meetings table yet, pull latest from meeting_summaries
-        if (!meetingData?.notes_style_3) {
-          const { data: summaryRow, error: summaryErr } = await supabase
-            .from('meeting_summaries')
-            .select('summary')
-            .eq('meeting_id', currentMeetingId)
-            .order('updated_at', { ascending: false })
-            .maybeSingle();
+         if (meetingData) {
+           if (meetingData.notes_style_2) {
+             setNotesStyle2(meetingData.notes_style_2);
+           }
+           if (meetingData.notes_style_3) {
+             setNotesStyle3(meetingData.notes_style_3);
+           }
+           if (meetingData.notes_style_4) {
+             setNotesStyle4(meetingData.notes_style_4);
+           }
+           // Mark note styles as loaded after applying data
+           setNoteStylesLoaded(true);
+         }
 
-          if (!summaryErr && summaryRow?.summary) {
-            setNotesStyle3(summaryRow.summary);
-            // Persist for next time to keep UI consistent
-            void saveNoteStyleToDatabase(3, summaryRow.summary);
-            console.log('✅ Loaded Standard notes from meeting_summaries fallback');
-          }
-        }
+         // Fallback: if Standard notes not stored on meetings table yet, pull latest from meeting_summaries
+         if (!meetingData?.notes_style_3) {
+           const { data: summaryRow, error: summaryErr } = await supabase
+             .from('meeting_summaries')
+             .select('summary')
+             .eq('meeting_id', currentMeetingId)
+             .order('updated_at', { ascending: false })
+             .maybeSingle();
 
-       // Load executive notes from multi-type notes table (takes priority)
-       if (multiNotesData && multiNotesData.length > 0) {
-          multiNotesData.forEach(note => {
-            if (note.note_type === 'executive' && note.content) {
-              setNotesStyle4(note.content);
-              console.log('✅ Loaded executive notes from meeting_notes_multi');
-            }
-          });
-        }
+           if (!summaryErr && summaryRow?.summary) {
+             setNotesStyle3(summaryRow.summary);
+             // Persist for next time to keep UI consistent
+             void saveNoteStyleToDatabase(3, summaryRow.summary);
+             console.log('✅ Loaded Standard notes from meeting_summaries fallback');
+             setNoteStylesLoaded(true);
+           }
+         }
 
-       console.log('✅ Loaded existing note styles for meeting:', currentMeetingId);
+        // Load executive notes from multi-type notes table (takes priority)
+        if (multiNotesData && multiNotesData.length > 0) {
+           multiNotesData.forEach(note => {
+             if (note.note_type === 'executive' && note.content) {
+               setNotesStyle4(note.content);
+               console.log('✅ Loaded executive notes from meeting_notes_multi');
+             }
+           });
+         }
+
+        console.log('✅ Loaded existing note styles for meeting:', currentMeetingId);
+        setNoteStylesLoaded(true);
      } catch (error) {
        console.error('Error loading note styles:', error);
      }
@@ -3385,7 +3410,20 @@ ${transcriptToUse}`;
                       )}
                       
                        <TabsContent value="style1" className="flex-1 overflow-auto pb-6">
-                         {isEditing && editingTab === "notes-style1" ? (
+                         {!noteStylesLoaded ? (
+                           <div className="flex items-center justify-center h-full">
+                             <div className="text-center space-y-3">
+                               <div className="flex items-center justify-center gap-2">
+                                 <div className="flex gap-1">
+                                   <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0s_infinite]"></span>
+                                   <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.2s_infinite]"></span>
+                                   <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.4s_infinite]"></span>
+                                 </div>
+                               </div>
+                               <p className="text-sm text-muted-foreground">Loading meeting notes...</p>
+                             </div>
+                           </div>
+                         ) : isEditing && editingTab === "notes-style1" ? (
                            <RichTextEditor
                              content={editingContent}
                              onChange={setEditingContent}
