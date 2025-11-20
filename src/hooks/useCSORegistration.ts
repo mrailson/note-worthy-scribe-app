@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 
 export interface CSORegistrationData {
   id: string;
@@ -91,11 +90,9 @@ export const useCSORegistration = () => {
 
       setRegistration(newRegistration);
       setStoredToken(newRegistration.access_token);
-      toast.success('Registration successful!');
       return newRegistration;
     } catch (error: any) {
       console.error('Registration error:', error);
-      toast.error(error.message || 'Registration failed');
       throw error;
     }
   };
@@ -103,7 +100,6 @@ export const useCSORegistration = () => {
   const logout = () => {
     clearStoredToken();
     setRegistration(null);
-    toast.info('Logged out successfully');
   };
 
   return {

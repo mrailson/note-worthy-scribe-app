@@ -7,7 +7,6 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { BookOpen, Shield, FileText, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function CSOTrainingRegister() {
   const navigate = useNavigate();
@@ -28,20 +27,17 @@ export default function CSOTrainingRegister() {
     e.preventDefault();
 
     if (!agreedToTerms) {
-      toast.error('Please accept the terms and conditions');
       return;
     }
 
     // Validate GMC number format (7 digits)
     if (!/^\d{7}$/.test(formData.gmc_number)) {
-      toast.error('GMC number must be exactly 7 digits');
       return;
     }
 
     // Validate UK postcode format
     const postcodeRegex = /^[A-Z]{1,2}\d{1,2}[A-Z]?\s?\d[A-Z]{2}$/i;
     if (!postcodeRegex.test(formData.practice_postcode)) {
-      toast.error('Please enter a valid UK postcode');
       return;
     }
 
