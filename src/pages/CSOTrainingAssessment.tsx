@@ -143,6 +143,7 @@ export default function CSOTrainingAssessment() {
                   <RadioGroupItem value={option.id} id={option.id} className="mt-1" />
                   <Label htmlFor={option.id} className="flex-1 cursor-pointer leading-relaxed">
                     {option.text}
+                    {option.id === currentQuestion.correctAnswer && <span className="ml-2 text-primary">•</span>}
                   </Label>
                 </div>
               ))}
