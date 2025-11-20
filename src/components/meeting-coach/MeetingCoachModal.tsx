@@ -5,7 +5,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { showToast } from '@/utils/toastWrapper';
@@ -73,10 +73,7 @@ export function MeetingCoachModal({
   const [meetingStartTime] = useState(Date.now());
   const [isMinimized, setIsMinimized] = useState(false);
   const [lastWordCount, setLastWordCount] = useState(0);
-  const [wrapUpOpen, setWrapUpOpen] = useState(() => {
-    const stored = sessionStorage.getItem('meetingCoachWrapUpOpen');
-    return stored === 'true';
-  });
+  const [activeTab, setActiveTab] = useState('realtime');
   
   // Assignment state
   const [assignments, setAssignments] = useState<Map<string, ActionItemAssignment>>(new Map());
@@ -485,128 +482,129 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
 
         <Separator />
 
-        <ScrollArea className="flex-1 px-6 py-4">
-          {!currentInsight && !isAnalyzing && (
-            <div className="flex flex-col items-center justify-center h-full text-center py-12">
-              <Sparkles className="h-12 w-12 text-muted-foreground mb-4" />
-              <p className="text-muted-foreground">
-                Start recording to get AI-powered meeting insights
-              </p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Analysis will begin automatically every 30 seconds
-              </p>
-            </div>
-          )}
+        {!currentInsight && !isAnalyzing && (
+          <div className="flex flex-col items-center justify-center h-full text-center py-12 px-6">
+            <Sparkles className="h-12 w-12 text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">
+              Start recording to get AI-powered meeting insights
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              Analysis will begin automatically every 30 seconds
+            </p>
+          </div>
+        )}
 
-          {isAnalyzing && !currentInsight && (
-            <div className="flex flex-col items-center justify-center h-full">
-              <RefreshCw className="h-8 w-8 animate-spin text-primary mb-4" />
-              <p className="text-muted-foreground">Analysing meeting...</p>
-            </div>
-          )}
+        {isAnalyzing && !currentInsight && (
+          <div className="flex flex-col items-center justify-center h-full">
+            <RefreshCw className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">Analysing meeting...</p>
+          </div>
+        )}
 
-          {currentInsight && (
-            <div className="space-y-6">
-              {/* Section 1: Real-Time */}
-              <div className="p-4 bg-destructive/10 border-l-4 border-destructive rounded">
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <Activity className="h-4 w-4" />
-                  REAL-TIME
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">Just Discussed:</p>
-                    <ul className="text-sm space-y-1">
-                      {currentInsight.realTime.recentSummary.map((point, i) => (
-                        <li key={i}>• {point}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  <div className="bg-background p-3 rounded border">
-                    <p className="text-xs text-muted-foreground mb-1">❓ Ask Right Now:</p>
-                    <p className="text-sm font-medium">{currentInsight.realTime.suggestedQuestion}</p>
-                  </div>
-                </div>
-              </div>
+        {currentInsight && (
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
+            <TabsList className="mx-6 mt-4">
+              <TabsTrigger value="realtime" className="flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Real-Time
+              </TabsTrigger>
+              <TabsTrigger value="overview" className="flex items-center gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Overview
+              </TabsTrigger>
+              <TabsTrigger value="wrapup" className="flex items-center gap-2">
+                <AlertCircle className="h-4 w-4" />
+                Wrap-Up
+                {currentInsight.wrapUp.completenessScore < 70 && (
+                  <Badge variant="destructive" className="ml-1 h-5 px-1 text-xs">
+                    {currentInsight.wrapUp.completenessScore}%
+                  </Badge>
+                )}
+              </TabsTrigger>
+            </TabsList>
 
-              {/* Section 2: Meeting Overview */}
-              <div className="p-4 bg-primary/10 border-l-4 border-primary rounded">
-                <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-                  <BarChart3 className="h-4 w-4" />
-                  MEETING OVERVIEW (So Far)
-                </h3>
-                <div className="space-y-3 text-sm">
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">🎯 Main Topics ({currentInsight.overview.mainTopics.length})</p>
-                    <ul className="space-y-1">
-                      {currentInsight.overview.mainTopics.map((topic, i) => (
-                        <li key={i}>• {topic}</li>
-                      ))}
-                    </ul>
-                  </div>
-                  
-                  {currentInsight.overview.decisions.length > 0 && (
+            <TabsContent value="realtime" className="flex-1 mt-0">
+              <ScrollArea className="h-[calc(85vh-220px)] px-6 py-4">
+                <div className="p-4 bg-destructive/10 border-l-4 border-destructive rounded">
+                  <div className="space-y-3">
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">✅ Decisions Made ({currentInsight.overview.decisions.length})</p>
-                      <ul className="space-y-1">
-                        {currentInsight.overview.decisions.map((decision, i) => (
-                          <li key={i}>• {decision}</li>
+                      <p className="text-xs text-muted-foreground mb-1">Just Discussed:</p>
+                      <ul className="text-sm space-y-1">
+                        {currentInsight.realTime.recentSummary.map((point, i) => (
+                          <li key={i}>• {point}</li>
                         ))}
                       </ul>
                     </div>
-                  )}
-                  
-                  {currentInsight.overview.actionItems.length > 0 && (
+                    <div className="bg-background p-3 rounded border">
+                      <p className="text-xs text-muted-foreground mb-1">❓ Ask Right Now:</p>
+                      <p className="text-sm font-medium">{currentInsight.realTime.suggestedQuestion}</p>
+                    </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="overview" className="flex-1 mt-0">
+              <ScrollArea className="h-[calc(85vh-220px)] px-6 py-4">
+                <div className="p-4 bg-primary/10 border-l-4 border-primary rounded">
+                  <div className="space-y-3 text-sm">
                     <div>
-                      <p className="text-xs text-muted-foreground mb-1">📋 Action Items ({currentInsight.overview.actionItems.length})</p>
-                      <ul className="space-y-3">
-                        {currentInsight.overview.actionItems.map((item, i) => {
-                          const cleanItem = cleanActionItemText(item);
-                          const itemId = generateActionItemId(item, i);
-                          return (
-                            <li key={i} className="flex flex-col gap-1">
-                              <span>• {cleanItem}</span>
-                              <ActionItemAssigner
-                                actionItem={cleanItem}
-                                actionItemId={itemId}
-                                currentAssignment={assignments.get(itemId) || null}
-                                currentUserName={user?.email?.split('@')[0] || 'Me'}
-                                chairName={meetingContext.chair}
-                                meetingParticipants={meetingContext.participants || []}
-                                availableAttendees={availableAttendees}
-                                recentlyUsed={recentlyUsed}
-                                onAssign={handleAssign}
-                                onRemove={handleRemoveAssignment}
-                                onUpdateDueDate={handleUpdateDueDate}
-                              />
-                            </li>
-                          );
-                        })}
+                      <p className="text-xs text-muted-foreground mb-1">🎯 Main Topics ({currentInsight.overview.mainTopics.length})</p>
+                      <ul className="space-y-1">
+                        {currentInsight.overview.mainTopics.map((topic, i) => (
+                          <li key={i}>• {topic}</li>
+                        ))}
                       </ul>
                     </div>
-                  )}
+                    
+                    {currentInsight.overview.decisions.length > 0 && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">✅ Decisions Made ({currentInsight.overview.decisions.length})</p>
+                        <ul className="space-y-1">
+                          {currentInsight.overview.decisions.map((decision, i) => (
+                            <li key={i}>• {decision}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    
+                    {currentInsight.overview.actionItems.length > 0 && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">📋 Action Items ({currentInsight.overview.actionItems.length})</p>
+                        <ul className="space-y-3">
+                          {currentInsight.overview.actionItems.map((item, i) => {
+                            const cleanItem = cleanActionItemText(item);
+                            const itemId = generateActionItemId(item, i);
+                            return (
+                              <li key={i} className="flex flex-col gap-1">
+                                <span>• {cleanItem}</span>
+                                <ActionItemAssigner
+                                  actionItem={cleanItem}
+                                  actionItemId={itemId}
+                                  currentAssignment={assignments.get(itemId) || null}
+                                  currentUserName={user?.email?.split('@')[0] || 'Me'}
+                                  chairName={meetingContext.chair}
+                                  meetingParticipants={meetingContext.participants || []}
+                                  availableAttendees={availableAttendees}
+                                  recentlyUsed={recentlyUsed}
+                                  onAssign={handleAssign}
+                                  onRemove={handleRemoveAssignment}
+                                  onUpdateDueDate={handleUpdateDueDate}
+                                />
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+              </ScrollArea>
+            </TabsContent>
 
-              {/* Section 3: Wrap-Up Assistant */}
-              <Collapsible 
-                open={wrapUpOpen} 
-                onOpenChange={(open) => {
-                  setWrapUpOpen(open);
-                  sessionStorage.setItem('meetingCoachWrapUpOpen', String(open));
-                }}
-              >
+            <TabsContent value="wrapup" className="flex-1 mt-0">
+              <ScrollArea className="h-[calc(85vh-220px)] px-6 py-4">
                 <div className="p-4 bg-warning/10 border-l-4 border-warning rounded">
-                  <CollapsibleTrigger className="w-full">
-                    <h3 className="font-semibold text-sm mb-3 flex items-center gap-2 justify-between">
-                      <span className="flex items-center gap-2">
-                        <AlertCircle className="h-4 w-4" />
-                        WRAP-UP ASSISTANT
-                      </span>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${wrapUpOpen ? 'rotate-180' : ''}`} />
-                    </h3>
-                  </CollapsibleTrigger>
-                  
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-muted-foreground">Meeting Completeness:</span>
@@ -615,81 +613,70 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                     <Progress value={currentInsight.wrapUp.completenessScore} className="h-2" />
                   </div>
 
-                  <CollapsibleContent>
-                    <div className="space-y-3 text-sm">
-                      {(() => {
-                        // Combine all wrap-up items and prioritize
-                        const allItems: Array<{ text: string; type: 'question' | 'issue' | 'clarification'; priority: number }> = [
-                          ...currentInsight.wrapUp.unansweredQuestions.map(q => ({ 
-                            text: q, 
-                            type: 'question' as const, 
-                            priority: 1 
-                          })),
-                          ...currentInsight.wrapUp.unresolvedIssues.map(i => ({ 
-                            text: i, 
-                            type: 'issue' as const, 
-                            priority: 1 
-                          })),
-                          ...currentInsight.wrapUp.needsClarification.map(c => ({ 
-                            text: c, 
-                            type: 'clarification' as const, 
-                            priority: 2 
-                          }))
-                        ];
+                  <div className="space-y-3 text-sm">
+                    {(() => {
+                      const allItems: Array<{ text: string; type: 'question' | 'issue' | 'clarification'; priority: number }> = [
+                        ...currentInsight.wrapUp.unansweredQuestions.map(q => ({ 
+                          text: q, 
+                          type: 'question' as const, 
+                          priority: 1 
+                        })),
+                        ...currentInsight.wrapUp.unresolvedIssues.map(i => ({ 
+                          text: i, 
+                          type: 'issue' as const, 
+                          priority: 1 
+                        })),
+                        ...currentInsight.wrapUp.needsClarification.map(c => ({ 
+                          text: c, 
+                          type: 'clarification' as const, 
+                          priority: 2 
+                        }))
+                      ];
 
-                        // Sort by priority and take top 5
-                        const topItems = allItems
-                          .sort((a, b) => a.priority - b.priority)
-                          .slice(0, 5);
+                      const topItems = allItems
+                        .sort((a, b) => a.priority - b.priority)
+                        .slice(0, 5);
 
-                        return topItems.length > 0 ? (
-                          <div>
-                            <p className="text-xs text-muted-foreground mb-1">
-                              🎯 Top Priority Items (Showing {topItems.length} of {allItems.length})
-                            </p>
-                            <ul className="space-y-1">
-                              {topItems.map((item, i) => (
-                                <li 
-                                  key={i} 
-                                  className={item.type === 'clarification' ? 'text-warning' : 'text-destructive'}
-                                >
-                                  {item.type === 'question' && '❓ '}
-                                  {item.type === 'issue' && '🔧 '}
-                                  {item.type === 'clarification' && '💡 '}
-                                  {item.text}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null;
-                      })()}
-
-                      {currentInsight.wrapUp.suggestedFinalQuestions.length > 0 && (
-                        <div className="bg-background p-3 rounded border mt-3">
-                          <p className="text-xs text-muted-foreground mb-2">💡 Suggested Final Questions:</p>
-                          <ol className="space-y-1.5 list-decimal list-inside">
-                            {currentInsight.wrapUp.suggestedFinalQuestions.slice(0, 5).map((q, i) => (
-                              <li key={i} className="font-medium">{q}</li>
-                            ))}
-                          </ol>
-                        </div>
-                      )}
-
-                      {currentInsight.wrapUp.completenessScore >= 90 && (
-                        <div className="bg-success/10 p-3 rounded border border-success">
-                          <p className="text-success font-medium flex items-center gap-2">
-                            <CheckCircle2 className="h-4 w-4" />
-                            Meeting appears complete! All topics addressed.
+                      return topItems.length > 0 ? (
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            🎯 Top Priority Items (Showing {topItems.length} of {allItems.length})
                           </p>
+                          <ul className="space-y-1">
+                            {topItems.map((item, i) => (
+                              <li 
+                                key={i} 
+                                className={item.type === 'clarification' ? 'text-warning' : 'text-destructive'}
+                              >
+                                {item.type === 'question' && '❓ '}
+                                {item.type === 'issue' && '🔧 '}
+                                {item.type === 'clarification' && '💡 '}
+                                {item.text}
+                              </li>
+                            ))}
+                          </ul>
                         </div>
-                      )}
-                    </div>
-                  </CollapsibleContent>
+                      ) : null;
+                    })()}
+
+                    {currentInsight.wrapUp.suggestedFinalQuestions.length > 0 && (
+                      <div>
+                        <p className="text-xs text-muted-foreground mb-1">
+                          💬 Suggested Closing Questions ({Math.min(5, currentInsight.wrapUp.suggestedFinalQuestions.length)})
+                        </p>
+                        <ul className="space-y-1">
+                          {currentInsight.wrapUp.suggestedFinalQuestions.slice(0, 5).map((q, i) => (
+                            <li key={i}>• {q}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </Collapsible>
-            </div>
-          )}
-        </ScrollArea>
+              </ScrollArea>
+            </TabsContent>
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
   );
