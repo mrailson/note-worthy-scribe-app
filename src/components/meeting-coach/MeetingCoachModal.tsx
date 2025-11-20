@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -22,6 +22,7 @@ import {
   ChevronDown
 } from 'lucide-react';
 import { ActionItemAssigner, ActionItemAssignment, Attendee } from './ActionItemAssigner';
+import { generateActionItemId, cleanActionItemText } from '@/utils/meetingCoachIntegration';
 
 interface CoachInsight {
   realTime: {
@@ -84,13 +85,47 @@ export function MeetingCoachModal({
     return sessionStorage.getItem('currentMeetingId') || 'temp';
   });
 
+  // Memoized badge counts for action items
+  const actionItemCounts = useMemo(() => {
+    if (!currentInsight) {
+      return { total: 0, unassigned: 0, assigned: 0 };
+    }
+    
+    let total = 0;
+    let unassigned = 0;
+    let assigned = 0;
+    
+    currentInsight.overview.actionItems.forEach((item, index) => {
+      const itemId = generateActionItemId(item, index);
+      
+      // Skip removed items
+      if (removedActions.has(itemId)) {
+        return;
+      }
+      
+      total++;
+      
+      if (assignments.has(itemId)) {
+        assigned++;
+      } else {
+        unassigned++;
+      }
+    });
+    
+    return { total, unassigned, assigned };
+  }, [currentInsight, assignments, removedActions]);
+
   // Monitor currentMeetingId changes in sessionStorage
   useEffect(() => {
     const checkMeetingId = () => {
-      const currentId = sessionStorage.getItem('currentMeetingId');
-      if (currentId && currentId !== meetingId) {
-        console.log('Meeting ID updated:', currentId);
-        setMeetingId(currentId);
+      try {
+        const currentId = sessionStorage.getItem('currentMeetingId');
+        if (currentId && currentId !== meetingId) {
+          console.log('Meeting ID updated:', currentId);
+          setMeetingId(currentId);
+        }
+      } catch (error) {
+        console.error('Failed to check meeting ID:', error);
       }
     };
 
@@ -129,6 +164,8 @@ export function MeetingCoachModal({
 
   // Load saved assignments from sessionStorage
   useEffect(() => {
+    if (!meetingId || meetingId === 'temp') return;
+    
     const storageKey = `meetingCoach-assignments-${meetingId}`;
     const recentKey = `meetingCoach-recentlyUsed-${meetingId}`;
     const removedKey = `meetingCoach-removedActions-${meetingId}`;
@@ -151,12 +188,15 @@ export function MeetingCoachModal({
         setRemovedActions(new Set(JSON.parse(savedRemoved)));
       }
     } catch (error) {
-      console.error('Error loading assignments:', error);
+      console.error('Failed to load Meeting Coach data from sessionStorage:', error);
+      showToast.error('Failed to load saved assignments');
     }
   }, [meetingId]);
 
   // Save assignments to sessionStorage
   useEffect(() => {
+    if (!meetingId || meetingId === 'temp') return;
+    
     const storageKey = `meetingCoach-assignments-${meetingId}`;
     const recentKey = `meetingCoach-recentlyUsed-${meetingId}`;
     const removedKey = `meetingCoach-removedActions-${meetingId}`;
@@ -167,7 +207,7 @@ export function MeetingCoachModal({
       sessionStorage.setItem(recentKey, JSON.stringify(recentlyUsed));
       sessionStorage.setItem(removedKey, JSON.stringify(Array.from(removedActions)));
     } catch (error) {
-      console.error('Error saving assignments:', error);
+      console.error('Failed to save assignments to sessionStorage:', error);
     }
   }, [assignments, recentlyUsed, removedActions, meetingId]);
 
@@ -207,15 +247,6 @@ export function MeetingCoachModal({
       next.delete(actionItemId);
       return next;
     });
-  };
-
-  const generateActionItemId = (item: string, index: number): string => {
-    return `${item.slice(0, 30).replace(/\s+/g, '-')}-${index}`;
-  };
-
-  const cleanActionItemText = (item: string): string => {
-    // Remove prefixes like "Facilitator/Unknown:", "Speaker:", "Participant:", etc.
-    return item.replace(/^(Facilitator\/Unknown|Speaker|Participant|Attendee|Unknown):\s*/i, '').trim();
   };
 
   const getLastNSeconds = (fullTranscript: string, seconds: number): string => {
@@ -535,16 +566,16 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
               <TabsTrigger value="actions" className="flex items-center gap-1 flex-wrap">
                 <span className="whitespace-nowrap">Action Items</span>
                 <div className="flex items-center gap-0.5">
-                  {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i)) && !assignments.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length > 0 && (
+                  {actionItemCounts.unassigned > 0 && (
                     <>
                       <Badge className="h-4 px-1 text-[10px] bg-orange-500 hover:bg-orange-600 text-white">
-                        {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i)) && !assignments.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length}
+                        {actionItemCounts.unassigned}
                       </Badge>
                       <span className="text-[10px] text-muted-foreground">=</span>
                     </>
                   )}
                   <Badge variant="secondary" className="h-4 px-1 text-[10px]">
-                    {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length}
+                    {actionItemCounts.total}
                   </Badge>
                 </div>
               </TabsTrigger>
