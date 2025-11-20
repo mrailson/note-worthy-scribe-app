@@ -53,42 +53,69 @@ serve(async (req) => {
       )
     }
 
-    // Generate certificate number
-    const year = new Date().getFullYear()
-    
-    // Get the max certificate number for this year
-    const { data: maxCert } = await supabaseClient
-      .from('cso_certificates')
-      .select('certificate_number')
-      .like('certificate_number', `CSO-${year}-%`)
-      .order('certificate_number', { ascending: false })
-      .limit(1)
-      .single()
+    // Generate certificate number with retry logic for race conditions
+    let certificateNumber = ''
+    let certificate = null
+    let attempts = 0
+    const maxAttempts = 5
 
-    let nextNumber = 1
-    if (maxCert && maxCert.certificate_number) {
-      const parts = maxCert.certificate_number.split('-')
-      if (parts.length === 3) {
-        nextNumber = parseInt(parts[2]) + 1
+    while (attempts < maxAttempts) {
+      try {
+        const year = new Date().getFullYear()
+        
+        // Get the max certificate number for this year
+        const { data: maxCert } = await supabaseClient
+          .from('cso_certificates')
+          .select('certificate_number')
+          .like('certificate_number', `CSO-${year}-%`)
+          .order('certificate_number', { ascending: false })
+          .limit(1)
+          .maybeSingle()
+
+        let nextNumber = 1
+        if (maxCert && maxCert.certificate_number) {
+          const parts = maxCert.certificate_number.split('-')
+          if (parts.length === 3) {
+            nextNumber = parseInt(parts[2]) + 1
+          }
+        }
+
+        certificateNumber = `CSO-${year}-${nextNumber.toString().padStart(5, '0')}`
+
+        // Try to create certificate record
+        const { data: newCert, error: certError } = await supabaseClient
+          .from('cso_certificates')
+          .insert({
+            registration_id: registrationId,
+            assessment_id: assessmentId,
+            certificate_number: certificateNumber,
+            issued_date: new Date().toISOString().split('T')[0]
+          })
+          .select()
+          .single()
+
+        if (certError) {
+          // If duplicate key error, retry with next number
+          if (certError.code === '23505') {
+            attempts++
+            console.log(`Duplicate certificate number ${certificateNumber}, retrying... (attempt ${attempts})`)
+            continue
+          }
+          throw certError
+        }
+
+        certificate = newCert
+        break
+      } catch (error) {
+        if (attempts >= maxAttempts - 1) {
+          throw error
+        }
+        attempts++
       }
     }
 
-    const certificateNumber = `CSO-${year}-${nextNumber.toString().padStart(5, '0')}`
-
-    // Create certificate record
-    const { data: certificate, error: certError } = await supabaseClient
-      .from('cso_certificates')
-      .insert({
-        registration_id: registrationId,
-        assessment_id: assessmentId,
-        certificate_number: certificateNumber,
-        issued_date: new Date().toISOString().split('T')[0]
-      })
-      .select()
-      .single()
-
-    if (certError) {
-      throw certError
+    if (!certificate) {
+      throw new Error('Failed to generate unique certificate number after multiple attempts')
     }
 
     console.log('Certificate generated:', certificateNumber)
