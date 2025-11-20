@@ -79,6 +79,7 @@ export function MeetingCoachModal({
   const [assignments, setAssignments] = useState<Map<string, ActionItemAssignment>>(new Map());
   const [recentlyUsed, setRecentlyUsed] = useState<string[]>([]);
   const [availableAttendees, setAvailableAttendees] = useState<Attendee[]>([]);
+  const [removedActions, setRemovedActions] = useState<Set<string>>(new Set());
   const [meetingId, setMeetingId] = useState<string>(() => {
     return sessionStorage.getItem('currentMeetingId') || 'temp';
   });
@@ -130,10 +131,12 @@ export function MeetingCoachModal({
   useEffect(() => {
     const storageKey = `meetingCoach-assignments-${meetingId}`;
     const recentKey = `meetingCoach-recentlyUsed-${meetingId}`;
+    const removedKey = `meetingCoach-removedActions-${meetingId}`;
     
     try {
       const saved = sessionStorage.getItem(storageKey);
       const savedRecent = sessionStorage.getItem(recentKey);
+      const savedRemoved = sessionStorage.getItem(removedKey);
       
       if (saved) {
         const parsed = JSON.parse(saved);
@@ -142,6 +145,10 @@ export function MeetingCoachModal({
       
       if (savedRecent) {
         setRecentlyUsed(JSON.parse(savedRecent));
+      }
+
+      if (savedRemoved) {
+        setRemovedActions(new Set(JSON.parse(savedRemoved)));
       }
     } catch (error) {
       console.error('Error loading assignments:', error);
@@ -152,15 +159,17 @@ export function MeetingCoachModal({
   useEffect(() => {
     const storageKey = `meetingCoach-assignments-${meetingId}`;
     const recentKey = `meetingCoach-recentlyUsed-${meetingId}`;
+    const removedKey = `meetingCoach-removedActions-${meetingId}`;
     
     try {
       const assignmentsObj = Object.fromEntries(assignments);
       sessionStorage.setItem(storageKey, JSON.stringify(assignmentsObj));
       sessionStorage.setItem(recentKey, JSON.stringify(recentlyUsed));
+      sessionStorage.setItem(removedKey, JSON.stringify(Array.from(removedActions)));
     } catch (error) {
       console.error('Error saving assignments:', error);
     }
-  }, [assignments, recentlyUsed, meetingId]);
+  }, [assignments, recentlyUsed, removedActions, meetingId]);
 
   const handleAssign = (assignment: ActionItemAssignment) => {
     setAssignments(prev => new Map(prev).set(assignment.id, assignment));
@@ -183,6 +192,16 @@ export function MeetingCoachModal({
   };
 
   const handleRemoveAssignment = (actionItemId: string) => {
+    setAssignments(prev => {
+      const next = new Map(prev);
+      next.delete(actionItemId);
+      return next;
+    });
+  };
+
+  const handleRemoveAction = (actionItemId: string) => {
+    setRemovedActions(prev => new Set(prev).add(actionItemId));
+    // Also remove any assignment
     setAssignments(prev => {
       const next = new Map(prev);
       next.delete(actionItemId);
@@ -570,11 +589,15 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                     
                     {currentInsight.overview.actionItems.length > 0 && (
                       <div>
-                        <p className="text-xs text-muted-foreground mb-1">📋 Action Items ({currentInsight.overview.actionItems.length})</p>
+                        <p className="text-xs text-muted-foreground mb-1">📋 Action Items ({currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length})</p>
                         <ul className="space-y-3">
                           {currentInsight.overview.actionItems.map((item, i) => {
                             const cleanItem = cleanActionItemText(item);
                             const itemId = generateActionItemId(item, i);
+                            
+                            // Filter out removed actions
+                            if (removedActions.has(itemId)) return null;
+                            
                             return (
                               <li key={i} className="flex flex-col gap-1">
                                 <span>• {cleanItem}</span>
@@ -590,6 +613,7 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                                   onAssign={handleAssign}
                                   onRemove={handleRemoveAssignment}
                                   onUpdateDueDate={handleUpdateDueDate}
+                                  onRemoveAction={handleRemoveAction}
                                 />
                               </li>
                             );
