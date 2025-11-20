@@ -99,6 +99,9 @@ import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 import { medicalTermCorrector } from '@/utils/MedicalTermCorrector';
 import { exportConsultationToWord } from '@/utils/consultationWordExport';
 
+// Maximum length for Standard minutes rendering - skip expensive formatting for very long notes
+const MAX_MINUTES_RENDER_LENGTH = 12000;
+
 interface Meeting {
   id: string;
   title: string;
@@ -299,6 +302,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
     if (!notesStyle3?.trim()) {
       setMinutesHtml("");
+      setIsRenderingMinutes(false);
+      return;
+    }
+
+    // Hard limit: Skip expensive rendering for very long notes
+    if (notesStyle3.length > MAX_MINUTES_RENDER_LENGTH) {
+      console.warn(`⚠️ Note length (${notesStyle3.length}) exceeds limit (${MAX_MINUTES_RENDER_LENGTH}), using basic rendering`);
+      setMinutesHtml(notesStyle3);
       setIsRenderingMinutes(false);
       return;
     }
