@@ -281,6 +281,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setNotesStyle4("");
     setMinutesHtml("");
     setExecHtml("");
+    setIsRenderingMinutes(false); // Reset rendering state
   }, [isOpen, meeting?.id]);
 
   // Generate Minutes (Standard) HTML lazily - only when tab becomes active, with cache
@@ -292,6 +293,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     // Don't render minutes until note styles are loaded to prevent using stale data
     if (!noteStylesLoaded) {
       setMinutesHtml("");
+      setIsRenderingMinutes(false);
       return;
     }
 
@@ -307,25 +309,46 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const cached = localStorage.getItem(key);
       if (cached) {
         setMinutesHtml(cached);
+        setIsRenderingMinutes(false);
         return; // skip rendering
       }
     }
 
-    setIsRenderingMinutes(true);
-    const id = requestIdleCallback(() => {
-      try {
-        const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
-        setMinutesHtml(html);
-        if (key) localStorage.setItem(key, html);
-      } catch (e) {
-        console.error('Error rendering Standard minutes:', e);
+    // Defer rendering to avoid blocking modal open
+    const deferTimeout = setTimeout(() => {
+      setIsRenderingMinutes(true);
+      
+      // Add a safety timeout to prevent infinite hang
+      const safetyTimeout = setTimeout(() => {
+        console.warn('⚠️ Minutes rendering timed out after 5s, using plain markdown');
         setMinutesHtml(notesStyle3);
-        if (key) localStorage.setItem(key, notesStyle3);
-      } finally {
         setIsRenderingMinutes(false);
-      }
-    }, { timeout: 100 });
-    return () => cancelIdleCallback(id);
+      }, 5000);
+
+      const id = requestIdleCallback(() => {
+        clearTimeout(safetyTimeout);
+        try {
+          console.log('🎨 Rendering minutes for meeting:', meeting?.id, 'length:', notesStyle3.length);
+          const html = renderMinutesMarkdown(notesStyle3, fontSizeStyle1);
+          setMinutesHtml(html);
+          if (key) localStorage.setItem(key, html);
+          console.log('✅ Minutes rendered successfully');
+        } catch (e) {
+          console.error('Error rendering Standard minutes:', e);
+          setMinutesHtml(notesStyle3);
+          if (key) localStorage.setItem(key, notesStyle3);
+        } finally {
+          setIsRenderingMinutes(false);
+        }
+      }, { timeout: 500 }); // Longer timeout for heavy rendering
+      
+      return () => {
+        clearTimeout(safetyTimeout);
+        cancelIdleCallback(id);
+      };
+    }, 300); // Small delay to let modal settle
+
+    return () => clearTimeout(deferTimeout);
   }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
