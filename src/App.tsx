@@ -68,6 +68,12 @@ import SecurityReport from "./pages/SecurityReport";
 import SecurityAudit20251119 from "./pages/SecurityAudit20251119";
 import NHSQuest from "./pages/NHSQuest";
 import DCB0129 from "./pages/DCB0129";
+import CSOTrainingRegister from "./pages/CSOTrainingRegister";
+import CSOTrainingDashboard from "./pages/CSOTrainingDashboard";
+import CSOTrainingModule from "./pages/CSOTrainingModule";
+import CSOTrainingAssessment from "./pages/CSOTrainingAssessment";
+import CSOTrainingResults from "./pages/CSOTrainingResults";
+import CSOCertificate from "./pages/CSOCertificate";
 
 const App = () => {
   useSessionActivity();
@@ -193,6 +199,12 @@ const App = () => {
                   <DCB0129 />
                 </ProtectedRoute>
               } />
+              <Route path="/cso-training-register" element={<CSOTrainingRegister />} />
+              <Route path="/cso-training-dashboard" element={<CSOTrainingDashboard />} />
+              <Route path="/cso-training-module/:moduleId" element={<CSOTrainingModule />} />
+              <Route path="/cso-training-assessment" element={<CSOTrainingAssessment />} />
+              <Route path="/cso-training-results/:assessmentId" element={<CSOTrainingResults />} />
+              <Route path="/cso-certificate/:assessmentId" element={<CSOCertificate />} />
               <Route path="/security-posture" element={
                 <ProtectedRoute requiredModule="cso_governance_access">
                   <SecurityPostureOverview />

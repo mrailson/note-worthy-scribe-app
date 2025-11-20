@@ -177,77 +177,68 @@ verify_jwt = false
 [functions.generate-standard-minutes-variations]
 verify_jwt = true
 
-[functions.translate-text-simple]
+[functions.generate-meeting-notes-claude]
+verify_jwt = true
+
+[functions.enhance-meeting-minutes]
+verify_jwt = true
+
+[functions.generate-contractor-recommendation]
+verify_jwt = true
+
+[functions.extract-contractor-data]
+verify_jwt = true
+
+[functions.gp-consultation-summary]
+verify_jwt = true
+
+[functions.gp-consultation-guidance]
+verify_jwt = true
+
+[functions.generate-referral-letter]
+verify_jwt = true
+
+[functions.generate-ppt-from-content]
+verify_jwt = true
+
+[functions.send-staff-response-request]
+verify_jwt = true
+
+[functions.verify-staff-token]
 verify_jwt = false
 
-[functions.translate-text]
+[functions.submit-staff-response]
 verify_jwt = false
 
-[functions.generate-style-previews]
+[functions.generate-complaint-outcome]
 verify_jwt = true
 
-[functions.persist-standard-minutes]
+[functions.send-complaint-outcome-questionnaire]
 verify_jwt = true
 
-[functions.regenerate-acknowledgement-letter]
-verify_jwt = true
-
-[functions.get-client-info]
+[functions.submit-complaint-questionnaire]
 verify_jwt = false
-
-[functions.repair-transcript-chunks]
-verify_jwt = true
-
-[functions.elevenlabs-tts]
-verify_jwt = true
-
-[functions.deepgram-tts]
-verify_jwt = false
-
-[functions.generate-audio-overview]
-verify_jwt = true
 
 [functions.generate-complaint-audio-overview]
 verify_jwt = true
 
-[functions.manage-demo-responses]
+[functions.proxy-elevenlabs]
+verify_jwt = true
+
+[functions.generate-investigation-findings]
+verify_jwt = true
+
+[functions.generate-investigation-decision]
+verify_jwt = true
+
+[functions.generate-cqc-evidence]
+verify_jwt = true
+
+[functions.nres-patient-identification]
+verify_jwt = true
+
+[functions.test-complex-care]
 verify_jwt = false
 
-[functions.import-complaint-data]
-verify_jwt = true
-
-[functions.analyze-complaint-outcome]
-verify_jwt = true
-
-[functions.generate-complaint-outcome-letter]
-verify_jwt = true
-
-[functions.upload-to-text]
-verify_jwt = true
-
-[functions.auto-close-inactive-meetings]
+[functions.generate-cso-certificate]
 verify_jwt = false
-
-[functions.system-monitoring]
-verify_jwt = false
-
-[functions.complaint-review-agent]
-verify_jwt = true
-
-[functions.process-review-conversation]
-verify_jwt = true
-
-[functions.generate-demo-response]
-verify_jwt = true
-
-[functions.generate-staff-demo-notes]
-verify_jwt = false
-
-[functions.generate-complaint-ai-report]
-verify_jwt = true
-
-[functions.consolidate-meeting-chunks]
-verify_jwt = true
-
-[functions.meeting-coach-analyze]
-verify_jwt = true
