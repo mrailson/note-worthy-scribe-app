@@ -856,5 +856,13 @@ export const LiveTranscript = forwardRef<LiveTranscriptHandle, LiveTranscriptPro
     }
   };
 
+  // Expose getCurrentTranscript method via ref for Meeting Coach
+  useImperativeHandle(ref, () => ({
+    getCurrentTranscript: () => {
+      // Return cleaned transcript if available, fallback to live transcript
+      return cleanedTranscript || liveTranscriptText || '';
+    }
+  }));
+
   return null;
 });
