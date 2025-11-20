@@ -186,6 +186,11 @@ export function MeetingCoachModal({
     return `${item.slice(0, 30).replace(/\s+/g, '-')}-${index}`;
   };
 
+  const cleanActionItemText = (item: string): string => {
+    // Remove prefixes like "Facilitator/Unknown:", "Speaker:", "Participant:", etc.
+    return item.replace(/^(Facilitator\/Unknown|Speaker|Participant|Attendee|Unknown):\s*/i, '').trim();
+  };
+
   const getLastNSeconds = (fullTranscript: string, seconds: number): string => {
     const estimatedChars = seconds * 16.67; // ~500 chars per 30s
     return fullTranscript.slice(-estimatedChars);
@@ -355,9 +360,10 @@ ${currentInsight.overview.decisions.map(d => `- ${d}`).join('\n')}
 
 ## Action Items
 ${currentInsight.overview.actionItems.map((item, index) => {
+  const cleanItem = cleanActionItemText(item);
   const itemId = generateActionItemId(item, index);
   const assignment = assignments.get(itemId);
-  return assignment ? `- [${assignment.assignee}] ${item}` : `- ${item}`;
+  return assignment ? `- [${assignment.assignee}] ${cleanItem}` : `- ${cleanItem}`;
 }).join('\n')}
 
 ## ⚠️ Items Requiring Follow-Up
@@ -538,12 +544,13 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                       <p className="text-xs text-muted-foreground mb-1">📋 Action Items ({currentInsight.overview.actionItems.length})</p>
                       <ul className="space-y-3">
                         {currentInsight.overview.actionItems.map((item, i) => {
+                          const cleanItem = cleanActionItemText(item);
                           const itemId = generateActionItemId(item, i);
                           return (
                             <li key={i} className="flex flex-col gap-1">
-                              <span>• {item}</span>
+                              <span>• {cleanItem}</span>
                               <ActionItemAssigner
-                                actionItem={item}
+                                actionItem={cleanItem}
                                 actionItemId={itemId}
                                 currentAssignment={assignments.get(itemId) || null}
                                 currentUserName={user?.email?.split('@')[0] || 'Me'}
