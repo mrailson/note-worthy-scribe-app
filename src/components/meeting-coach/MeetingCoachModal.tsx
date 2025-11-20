@@ -174,6 +174,17 @@ export function MeetingCoachModal({
     }
   };
 
+  const handleUpdateDueDate = (actionItemId: string, dueDate: string) => {
+    setAssignments(prev => {
+      const current = prev.get(actionItemId);
+      if (current) {
+        const updated = { ...current, dueDate };
+        return new Map(prev).set(actionItemId, updated);
+      }
+      return prev;
+    });
+  };
+
   const handleRemoveAssignment = (actionItemId: string) => {
     setAssignments(prev => {
       const next = new Map(prev);
@@ -363,7 +374,13 @@ ${currentInsight.overview.actionItems.map((item, index) => {
   const cleanItem = cleanActionItemText(item);
   const itemId = generateActionItemId(item, index);
   const assignment = assignments.get(itemId);
-  return assignment ? `- [${assignment.assignee}] ${cleanItem}` : `- ${cleanItem}`;
+  if (assignment) {
+    const parts = [];
+    if (assignment.assignee) parts.push(`[${assignment.assignee}]`);
+    if (assignment.dueDate) parts.push(`[${assignment.dueDate}]`);
+    return `- ${parts.join(' ')} ${cleanItem}`;
+  }
+  return `- ${cleanItem}`;
 }).join('\n')}
 
 ## ⚠️ Items Requiring Follow-Up
@@ -560,6 +577,7 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                                 recentlyUsed={recentlyUsed}
                                 onAssign={handleAssign}
                                 onRemove={handleRemoveAssignment}
+                                onUpdateDueDate={handleUpdateDueDate}
                               />
                             </li>
                           );
