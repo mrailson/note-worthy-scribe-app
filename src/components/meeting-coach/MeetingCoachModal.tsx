@@ -19,10 +19,19 @@ import {
   CheckCircle2,
   Clock,
   Download,
-  ChevronDown
+  ChevronDown,
+  Pencil
 } from 'lucide-react';
 import { ActionItemAssigner, ActionItemAssignment, Attendee } from './ActionItemAssigner';
 import { generateActionItemId, cleanActionItemText } from '@/utils/meetingCoachIntegration';
+import { 
+  CorrectionRule, 
+  loadCorrections, 
+  addCorrection, 
+  removeCorrection, 
+  applyCorrectionsToInsight 
+} from '@/utils/meetingCoachCorrections';
+import { CorrectionDialog } from './CorrectionDialog';
 
 interface CoachInsight {
   realTime: {
@@ -85,9 +94,22 @@ export function MeetingCoachModal({
     return sessionStorage.getItem('currentMeetingId') || 'temp';
   });
 
+  // Correction state
+  const [corrections, setCorrections] = useState<CorrectionRule[]>([]);
+  const [showCorrectionDialog, setShowCorrectionDialog] = useState(false);
+  const [selectedTextForCorrection, setSelectedTextForCorrection] = useState('');
+
+  // Apply corrections to current insight
+  const correctedInsight = useMemo(() => {
+    if (!currentInsight || corrections.length === 0) {
+      return currentInsight;
+    }
+    return applyCorrectionsToInsight(currentInsight, corrections);
+  }, [currentInsight, corrections]);
+
   // Memoized badge counts for action items
   const actionItemCounts = useMemo(() => {
-    if (!currentInsight) {
+    if (!correctedInsight) {
       return { total: 0, unassigned: 0, assigned: 0 };
     }
     
@@ -95,7 +117,7 @@ export function MeetingCoachModal({
     let unassigned = 0;
     let assigned = 0;
     
-    currentInsight.overview.actionItems.forEach((item, index) => {
+    correctedInsight.overview.actionItems.forEach((item, index) => {
       const itemId = generateActionItemId(item, index);
       
       // Skip removed items
@@ -113,7 +135,27 @@ export function MeetingCoachModal({
     });
     
     return { total, unassigned, assigned };
-  }, [currentInsight, assignments, removedActions]);
+  }, [correctedInsight, assignments, removedActions]);
+
+  // Get all insight text for correction preview
+  const getAllInsightText = (): string => {
+    if (!currentInsight) return '';
+    
+    const parts = [
+      ...currentInsight.realTime.recentSummary,
+      currentInsight.realTime.suggestedQuestion,
+      ...currentInsight.overview.mainTopics,
+      ...currentInsight.overview.decisions,
+      ...currentInsight.overview.actionItems,
+      ...currentInsight.overview.keyPoints,
+      ...currentInsight.wrapUp.unansweredQuestions,
+      ...currentInsight.wrapUp.unresolvedIssues,
+      ...currentInsight.wrapUp.needsClarification,
+      ...currentInsight.wrapUp.suggestedFinalQuestions
+    ];
+    
+    return parts.join(' ');
+  };
 
   // Monitor currentMeetingId changes in sessionStorage
   useEffect(() => {
@@ -191,6 +233,17 @@ export function MeetingCoachModal({
       console.error('Failed to load Meeting Coach data from sessionStorage:', error);
       showToast.error('Failed to load saved assignments');
     }
+  }, [meetingId]);
+
+  // Load corrections from sessionStorage
+  useEffect(() => {
+    if (!meetingId || meetingId === 'temp') {
+      setCorrections([]);
+      return;
+    }
+    
+    const loaded = loadCorrections(meetingId);
+    setCorrections(loaded);
   }, [meetingId]);
 
   // Save assignments to sessionStorage
@@ -401,23 +454,40 @@ export function MeetingCoachModal({
     return `${minutes}m ${seconds}s`;
   };
 
+  const handleSaveCorrection = (correction: CorrectionRule): void => {
+    const updated = addCorrection(meetingId, correction);
+    setCorrections(updated);
+    showToast.success(`Correction saved: ${correction.find} → ${correction.replace}`);
+  };
+
+  const handleDeleteCorrection = (correctionId: string): void => {
+    const updated = removeCorrection(meetingId, correctionId);
+    setCorrections(updated);
+    showToast.success('Correction removed');
+  };
+
+  const openCorrectionDialog = (text: string): void => {
+    setSelectedTextForCorrection(text);
+    setShowCorrectionDialog(true);
+  };
+
   const exportCoachNotes = (): void => {
-    if (!currentInsight) return;
+    if (!correctedInsight) return;
     
     const notes = `
 # Meeting Coach Summary
 Generated: ${new Date().toLocaleString('en-GB')}
 
-## Meeting Completeness: ${currentInsight.wrapUp.completenessScore}%
+## Meeting Completeness: ${correctedInsight.wrapUp.completenessScore}%
 
 ## Main Topics Covered
-${currentInsight.overview.mainTopics.map(t => `- ${t}`).join('\n')}
+${correctedInsight.overview.mainTopics.map(t => `- ${t}`).join('\n')}
 
 ## Decisions Made
-${currentInsight.overview.decisions.map(d => `- ${d}`).join('\n')}
+${correctedInsight.overview.decisions.map(d => `- ${d}`).join('\n')}
 
 ## Action Items
-${currentInsight.overview.actionItems.map((item, index) => {
+${correctedInsight.overview.actionItems.map((item, index) => {
   const cleanItem = cleanActionItemText(item);
   const itemId = generateActionItemId(item, index);
   
@@ -434,16 +504,16 @@ ${currentInsight.overview.actionItems.map((item, index) => {
 ## ⚠️ Items Requiring Follow-Up
 
 ### Unanswered Questions
-${currentInsight.wrapUp.unansweredQuestions.map(q => `- ${q}`).join('\n')}
+${correctedInsight.wrapUp.unansweredQuestions.map(q => `- ${q}`).join('\n')}
 
 ### Unresolved Issues
-${currentInsight.wrapUp.unresolvedIssues.map(i => `- ${i}`).join('\n')}
+${correctedInsight.wrapUp.unresolvedIssues.map(i => `- ${i}`).join('\n')}
 
 ### Needs Clarification
-${currentInsight.wrapUp.needsClarification.map(c => `- ${c}`).join('\n')}
+${correctedInsight.wrapUp.needsClarification.map(c => `- ${c}`).join('\n')}
 
 ## Suggested Follow-Up Questions
-${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).join('\n')}
+${correctedInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).join('\n')}
     `.trim();
 
     const blob = new Blob([notes], { type: 'text/plain' });
@@ -592,14 +662,34 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Just Discussed:</p>
                       <ul className="text-sm space-y-1">
-                        {currentInsight.realTime.recentSummary.map((point, i) => (
-                          <li key={i}>• {point}</li>
+                        {correctedInsight.realTime.recentSummary.map((point, i) => (
+                          <li key={i} className="flex items-start gap-2 group">
+                            <span className="flex-1">• {point}</span>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              onClick={() => openCorrectionDialog(point)}
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </Button>
+                          </li>
                         ))}
                       </ul>
                     </div>
                     <div className="bg-background p-3 rounded border">
                       <p className="text-xs text-muted-foreground mb-1">❓ Ask Right Now:</p>
-                      <p className="text-sm font-medium">{currentInsight.realTime.suggestedQuestion}</p>
+                      <div className="flex items-start gap-2 group">
+                        <p className="text-sm font-medium flex-1">{correctedInsight.realTime.suggestedQuestion}</p>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => openCorrectionDialog(correctedInsight.realTime.suggestedQuestion)}
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -639,9 +729,9 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
               <ScrollArea className="h-[calc(85vh-220px)] px-6 py-4">
                 <div className="p-4 bg-primary/10 border-l-4 border-primary rounded">
                   <div className="space-y-3">
-                    {currentInsight.overview.actionItems.length > 0 ? (
+                    {correctedInsight.overview.actionItems.length > 0 ? (
                       <ul className="space-y-3">
-                        {currentInsight.overview.actionItems.map((item, i) => {
+                        {correctedInsight.overview.actionItems.map((item, i) => {
                           const cleanItem = cleanActionItemText(item);
                           const itemId = generateActionItemId(item, i);
                           
@@ -652,7 +742,17 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                           
                           return (
                             <li key={i} className="flex flex-col gap-1 p-3 bg-background/50 rounded border border-border/50">
-                              <span className="text-sm">• {cleanItem}</span>
+                              <div className="flex items-start gap-2 group">
+                                <span className="text-sm flex-1">• {cleanItem}</span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => openCorrectionDialog(cleanItem)}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              </div>
                               <ActionItemAssigner
                                 actionItem={cleanItem}
                                 actionItemId={itemId}
@@ -685,25 +785,25 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                   <div className="mb-4">
                     <div className="flex items-center justify-between mb-1">
                       <span className="text-xs text-muted-foreground">Meeting Completeness:</span>
-                      <span className="text-sm font-bold">{currentInsight.wrapUp.completenessScore}%</span>
+                      <span className="text-sm font-bold">{correctedInsight.wrapUp.completenessScore}%</span>
                     </div>
-                    <Progress value={currentInsight.wrapUp.completenessScore} className="h-2" />
+                    <Progress value={correctedInsight.wrapUp.completenessScore} className="h-2" />
                   </div>
 
                   <div className="space-y-3 text-sm">
                     {(() => {
                       const allItems: Array<{ text: string; type: 'question' | 'issue' | 'clarification'; priority: number }> = [
-                        ...currentInsight.wrapUp.unansweredQuestions.map(q => ({ 
+                        ...correctedInsight.wrapUp.unansweredQuestions.map(q => ({ 
                           text: q, 
                           type: 'question' as const, 
                           priority: 1 
                         })),
-                        ...currentInsight.wrapUp.unresolvedIssues.map(i => ({ 
+                        ...correctedInsight.wrapUp.unresolvedIssues.map(i => ({ 
                           text: i, 
                           type: 'issue' as const, 
                           priority: 1 
                         })),
-                        ...currentInsight.wrapUp.needsClarification.map(c => ({ 
+                        ...correctedInsight.wrapUp.needsClarification.map(c => ({ 
                           text: c, 
                           type: 'clarification' as const, 
                           priority: 2 
@@ -723,12 +823,22 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                             {topItems.map((item, i) => (
                               <li 
                                 key={i} 
-                                className={item.type === 'clarification' ? 'text-warning' : 'text-destructive'}
+                                className={`flex items-start gap-2 group ${item.type === 'clarification' ? 'text-warning' : 'text-destructive'}`}
                               >
-                                {item.type === 'question' && '❓ '}
-                                {item.type === 'issue' && '🔧 '}
-                                {item.type === 'clarification' && '💡 '}
-                                {item.text}
+                                <span className="flex-1">
+                                  {item.type === 'question' && '❓ '}
+                                  {item.type === 'issue' && '🔧 '}
+                                  {item.type === 'clarification' && '💡 '}
+                                  {item.text}
+                                </span>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  onClick={() => openCorrectionDialog(item.text)}
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
                               </li>
                             ))}
                           </ul>
@@ -736,14 +846,24 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                       ) : null;
                     })()}
 
-                    {currentInsight.wrapUp.suggestedFinalQuestions.length > 0 && (
+                    {correctedInsight.wrapUp.suggestedFinalQuestions.length > 0 && (
                       <div>
                         <p className="text-xs text-muted-foreground mb-1">
-                          💬 Suggested Closing Questions ({Math.min(5, currentInsight.wrapUp.suggestedFinalQuestions.length)})
+                          💬 Suggested Closing Questions ({Math.min(5, correctedInsight.wrapUp.suggestedFinalQuestions.length)})
                         </p>
                         <ul className="space-y-1">
-                          {currentInsight.wrapUp.suggestedFinalQuestions.slice(0, 5).map((q, i) => (
-                            <li key={i}>• {q}</li>
+                          {correctedInsight.wrapUp.suggestedFinalQuestions.slice(0, 5).map((q, i) => (
+                            <li key={i} className="flex items-start gap-2 group">
+                              <span className="flex-1">• {q}</span>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={() => openCorrectionDialog(q)}
+                              >
+                                <Pencil className="h-3 w-3" />
+                              </Button>
+                            </li>
                           ))}
                         </ul>
                       </div>
@@ -755,6 +875,14 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
           </Tabs>
         )}
       </DialogContent>
+
+      <CorrectionDialog
+        isOpen={showCorrectionDialog}
+        onClose={() => setShowCorrectionDialog(false)}
+        onSave={handleSaveCorrection}
+        prefilledText={selectedTextForCorrection}
+        insightText={getAllInsightText()}
+      />
     </Dialog>
   );
 }
