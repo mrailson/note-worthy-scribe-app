@@ -24,6 +24,9 @@ const cleanMarkdown = (text: string): string => {
 
 export const generateWordDocument = async (content: string, title: string = 'AI Generated Document', saveFile: boolean = true): Promise<Blob> => {
   try {
+    // Import action item extraction utility
+    const { extractActionItemsForTable } = await import('./meetingCoachIntegration');
+    
     // Function to process text with inline formatting (bold, italic, code, links)
     const processFormattedText = (text: string) => {
       const children: any[] = [];
@@ -181,13 +184,113 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
       });
     };
 
-    // Process content into paragraphs and detect tables
+    // Process content into paragraphs and detect tables and action items
     const sections = content.split('\n\n');
     const documentElements: any[] = [];
+    let inActionItemsSection = false;
 
     for (const section of sections) {
       const trimmedSection = section.trim();
       if (!trimmedSection) continue;
+
+      // Check if this is the start of ACTION ITEMS section
+      const actionItemsHeaderMatch = trimmedSection.match(/^(#{1,6}\s*)?ACTION\s*ITEMS?\s*$/i);
+      
+      if (actionItemsHeaderMatch) {
+        inActionItemsSection = true;
+        // Add the heading
+        documentElements.push(new Paragraph({
+          children: [new TextRun({
+            text: 'ACTION ITEMS',
+            size: 28,
+            bold: true,
+            color: '2E5C8A'
+          })],
+          heading: 'Heading2',
+          spacing: { before: 360, after: 180 }
+        }));
+        continue;
+      }
+
+      // Check if we're leaving the action items section (new heading)
+      if (inActionItemsSection && trimmedSection.match(/^#{1,6}\s+/)) {
+        inActionItemsSection = false;
+      }
+
+      // If we're in action items section, look for action items with assignments
+      if (inActionItemsSection) {
+        const actionItems = extractActionItemsForTable(section);
+        
+        if (actionItems.length > 0) {
+          // Create table for action items
+          const tableRows = [
+            // Header row
+            new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({
+                    children: [new TextRun({ text: 'Assignee', bold: true })],
+                  })],
+                  margins: { top: 100, bottom: 100, left: 150, right: 150 },
+                }),
+                new TableCell({
+                  children: [new Paragraph({
+                    children: [new TextRun({ text: 'Due Date', bold: true })],
+                  })],
+                  margins: { top: 100, bottom: 100, left: 150, right: 150 },
+                }),
+                new TableCell({
+                  children: [new Paragraph({
+                    children: [new TextRun({ text: 'Action', bold: true })],
+                  })],
+                  margins: { top: 100, bottom: 100, left: 150, right: 150 },
+                }),
+              ],
+              tableHeader: true,
+            }),
+            // Data rows
+            ...actionItems.map(item => new TableRow({
+              children: [
+                new TableCell({
+                  children: [new Paragraph({
+                    children: processFormattedText(item.assignee),
+                  })],
+                  margins: { top: 100, bottom: 100, left: 150, right: 150 },
+                }),
+                new TableCell({
+                  children: [new Paragraph({
+                    children: processFormattedText(item.dueDate),
+                  })],
+                  margins: { top: 100, bottom: 100, left: 150, right: 150 },
+                }),
+                new TableCell({
+                  children: [new Paragraph({
+                    children: processFormattedText(item.action),
+                  })],
+                  margins: { top: 100, bottom: 100, left: 150, right: 150 },
+                }),
+              ],
+            })),
+          ];
+
+          documentElements.push(new Table({
+            rows: tableRows,
+            width: {
+              size: 100,
+              type: WidthType.PERCENTAGE,
+            },
+            borders: {
+              top: { style: BorderStyle.SINGLE, size: 1, color: '2E5C8A' },
+              bottom: { style: BorderStyle.SINGLE, size: 1, color: '2E5C8A' },
+              left: { style: BorderStyle.SINGLE, size: 1, color: '2E5C8A' },
+              right: { style: BorderStyle.SINGLE, size: 1, color: '2E5C8A' },
+              insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+              insideVertical: { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' },
+            }
+          }));
+          continue;
+        }
+      }
 
       // Check if this section contains a table
       const lines = trimmedSection.split('\n');
