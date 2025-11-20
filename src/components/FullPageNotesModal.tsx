@@ -2001,6 +2001,61 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     // Save current version before regenerating
     saveCurrentVersion('ai-regenerate', 'notes');
     setIsGenerating(true);
+
+    // Safety Net 2: Ensure all chunks are consolidated into transcript
+    try {
+      console.log('🔍 Safety Net 2: Checking chunk consolidation for meeting:', meeting.id);
+      
+      // Check chunk count
+      const { count: chunkCount, error: countError } = await supabase
+        .from('meeting_transcription_chunks')
+        .select('*', { count: 'exact', head: true })
+        .eq('meeting_id', meeting.id);
+      
+      if (countError) {
+        console.error('Error counting chunks:', countError);
+      } else if (chunkCount && chunkCount > 0) {
+        console.log(`📊 Found ${chunkCount} chunks in database`);
+        
+        // Check current transcript
+        const { data: meetingData, error: meetingError } = await supabase
+          .from('meetings')
+          .select('live_transcript_text, whisper_transcript_text, word_count')
+          .eq('id', meeting.id)
+          .single();
+        
+        if (!meetingError && meetingData) {
+          const currentTranscript = meetingData.live_transcript_text || meetingData.whisper_transcript_text || '';
+          const currentWordCount = meetingData.word_count || 0;
+          
+          console.log(`📝 Current transcript: ${currentTranscript.length} chars, ${currentWordCount} words`);
+          
+          // If we have chunks but no/little transcript, consolidate
+          if (currentTranscript.length < 100 || currentWordCount < 50) {
+            console.log('⚠️ Chunks exist but transcript is missing/short - consolidating now');
+            toast.info('Consolidating transcript chunks...', { duration: 3000 });
+            
+            const { data: consolidationData, error: consolidationError } = await supabase.functions.invoke('consolidate-meeting-chunks', {
+              body: { meetingId: meeting.id }
+            });
+            
+            if (consolidationError) {
+              console.error('❌ Consolidation failed:', consolidationError);
+              toast.error('Failed to consolidate chunks');
+            } else {
+              console.log('✅ Chunks consolidated before regeneration:', consolidationData);
+              toast.success(`Consolidated ${consolidationData.chunksProcessed} transcript chunks`);
+            }
+          } else {
+            console.log('✅ Transcript appears complete');
+          }
+        }
+      } else {
+        console.log('ℹ️ No chunks to consolidate');
+      }
+    } catch (error) {
+      console.error('❌ Exception checking chunk consolidation:', error);
+    }
     
     try {
       // Ensure transcript is loaded before regenerating
