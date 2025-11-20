@@ -12,6 +12,7 @@ export interface ActionItemAssignment {
   assignee: string | null;
   assigneeId: string | null;
   assigneeType: 'me' | 'chair' | 'attendee' | 'meeting-participant' | 'custom';
+  dueDate: string | null;
   timestamp: number;
 }
 
@@ -35,6 +36,7 @@ interface ActionItemAssignerProps {
   recentlyUsed: string[];
   onAssign: (assignment: ActionItemAssignment) => void;
   onRemove: (actionItemId: string) => void;
+  onUpdateDueDate: (actionItemId: string, dueDate: string) => void;
 }
 
 export function ActionItemAssigner({
@@ -48,9 +50,19 @@ export function ActionItemAssigner({
   recentlyUsed,
   onAssign,
   onRemove,
+  onUpdateDueDate,
 }: ActionItemAssignerProps) {
-  const [open, setOpen] = useState(false);
+  const [assignOpen, setAssignOpen] = useState(false);
+  const [dueDateOpen, setDueDateOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  const dueDateOptions = [
+    'TBC',
+    'End of Week',
+    'End of Month',
+    'By Next Meeting',
+    'ASAP'
+  ];
 
   const handleAssign = (
     assignee: string,
@@ -63,11 +75,17 @@ export function ActionItemAssigner({
       assignee,
       assigneeId,
       assigneeType,
+      dueDate: currentAssignment?.dueDate || null,
       timestamp: Date.now(),
     };
     onAssign(assignment);
-    setOpen(false);
+    setAssignOpen(false);
     setSearchQuery('');
+  };
+
+  const handleDueDateSelect = (dueDate: string) => {
+    onUpdateDueDate(actionItemId, dueDate);
+    setDueDateOpen(false);
   };
 
   const handleRemove = () => {
@@ -116,31 +134,12 @@ export function ActionItemAssigner({
 
   if (currentAssignment) {
     return (
-      <div className="flex items-center gap-2 mt-1">
-        <Badge 
-          variant="secondary" 
-          className="flex items-center gap-1 pl-1.5 pr-1 py-0.5 text-xs"
-        >
-          {getAssigneeIcon()}
-          <span className="max-w-[120px] truncate">{currentAssignment.assignee}</span>
-          <button
-            onClick={handleRemove}
-            className="ml-1 hover:bg-muted rounded-sm p-0.5 transition-colors"
-            aria-label="Remove assignment"
-          >
-            <X className="h-3 w-3" />
-          </button>
-        </Badge>
-        <Popover open={open} onOpenChange={setOpen}>
+      <div className="flex items-center gap-1.5 mt-1 text-xs">
+        <Popover open={assignOpen} onOpenChange={setAssignOpen}>
           <PopoverTrigger asChild>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-2 text-xs text-muted-foreground hover:text-foreground"
-            >
-              Change
-              <ChevronDown className="h-3 w-3 ml-1" />
-            </Button>
+            <button className="text-muted-foreground hover:text-foreground underline decoration-dotted hover:decoration-solid transition-all">
+              {currentAssignment.assignee}
+            </button>
           </PopoverTrigger>
           <PopoverContent className="w-[320px] p-0" align="start">
             <Command>
@@ -217,22 +216,49 @@ export function ActionItemAssigner({
             </Command>
           </PopoverContent>
         </Popover>
+        <span className="text-muted-foreground">|</span>
+        <Popover open={dueDateOpen} onOpenChange={setDueDateOpen}>
+          <PopoverTrigger asChild>
+            <button className="text-muted-foreground hover:text-foreground underline decoration-dotted hover:decoration-solid transition-all">
+              {currentAssignment.dueDate || 'Set due date'}
+            </button>
+          </PopoverTrigger>
+          <PopoverContent className="w-[200px] p-0" align="start">
+            <Command>
+              <CommandList>
+                <CommandGroup>
+                  {dueDateOptions.map((option) => (
+                    <CommandItem
+                      key={option}
+                      onSelect={() => handleDueDateSelect(option)}
+                    >
+                      {option}
+                    </CommandItem>
+                  ))}
+                </CommandGroup>
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
+        <button
+          onClick={handleRemove}
+          className="text-muted-foreground hover:text-destructive transition-colors"
+          aria-label="Remove assignment"
+        >
+          <X className="h-3 w-3" />
+        </button>
       </div>
     );
   }
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        <Button
-          variant="outline"
-          size="sm"
-          className="h-7 mt-1 px-2 text-xs"
-        >
-          Assign to
-          <ChevronDown className="h-3 w-3 ml-1" />
-        </Button>
-      </PopoverTrigger>
+    <div className="flex items-center gap-1.5 mt-1 text-xs">
+      <Popover open={assignOpen} onOpenChange={setAssignOpen}>
+        <PopoverTrigger asChild>
+          <button className="text-muted-foreground hover:text-foreground underline decoration-dotted hover:decoration-solid transition-all">
+            Assign to
+          </button>
+        </PopoverTrigger>
       <PopoverContent className="w-[320px] p-0" align="start">
         <Command>
           <CommandInput 
@@ -308,5 +334,47 @@ export function ActionItemAssigner({
         </Command>
       </PopoverContent>
     </Popover>
+    <span className="text-muted-foreground">|</span>
+    <Popover open={dueDateOpen} onOpenChange={setDueDateOpen}>
+      <PopoverTrigger asChild>
+        <button className="text-muted-foreground hover:text-foreground underline decoration-dotted hover:decoration-solid transition-all">
+          Action by
+        </button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[200px] p-0" align="start">
+        <Command>
+          <CommandList>
+            <CommandGroup>
+              {dueDateOptions.map((option) => (
+                <CommandItem
+                  key={option}
+                  onSelect={() => {
+                    // Create assignment if it doesn't exist
+                    if (!currentAssignment) {
+                      const newAssignment: ActionItemAssignment = {
+                        id: actionItemId,
+                        originalText: actionItem,
+                        assignee: null,
+                        assigneeId: null,
+                        assigneeType: 'custom',
+                        dueDate: option,
+                        timestamp: Date.now(),
+                      };
+                      onAssign(newAssignment);
+                    } else {
+                      handleDueDateSelect(option);
+                    }
+                    setDueDateOpen(false);
+                  }}
+                >
+                  {option}
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  </div>
   );
 }
