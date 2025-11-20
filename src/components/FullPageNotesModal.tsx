@@ -287,6 +287,35 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsRenderingMinutes(false); // Reset rendering state
   }, [isOpen, meeting?.id]);
 
+  // Determine if this is a long meeting (60+ minutes) to skip expensive rendering
+  const isLongMeeting = React.useMemo(() => {
+    if (!meeting) return false;
+
+    // Prefer stored duration if available
+    if (typeof meeting.duration_minutes === "number") {
+      return meeting.duration_minutes >= 60;
+    }
+
+    // Fallback: compute from start_time / end_time if possible
+    if (meeting.start_time && meeting.end_time) {
+      const start = new Date(meeting.start_time).getTime();
+      const end = new Date(meeting.end_time).getTime();
+      if (!Number.isNaN(start) && !Number.isNaN(end) && end > start) {
+        const diffMinutes = (end - start) / (1000 * 60);
+        return diffMinutes >= 60;
+      }
+    }
+
+    return false;
+  }, [meeting?.id, meeting?.duration_minutes, meeting?.start_time, meeting?.end_time]);
+
+  // Log for debugging
+  useEffect(() => {
+    if (meeting) {
+      console.log("⏱ isLongMeeting:", isLongMeeting, "duration_minutes:", meeting.duration_minutes);
+    }
+  }, [isLongMeeting, meeting?.duration_minutes, meeting?.id]);
+
   // Generate Minutes (Standard) HTML lazily - only when tab becomes active, with cache
   useEffect(() => {
     if (activeNotesStyleTab !== 'style1') {
@@ -306,7 +335,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       return;
     }
 
-    // Hard limit: Skip expensive rendering for very long notes
+    // Primary rule: Skip expensive rendering for long meetings (60+ minutes)
+    if (isLongMeeting) {
+      console.log("⏱ Long meeting detected – skipping Standard minutes formatter, using basic rendering only");
+      setMinutesHtml("");
+      setIsRenderingMinutes(false);
+      return;
+    }
+
+    // Secondary safeguard: Skip expensive rendering for very long notes
     if (notesStyle3.length > MAX_MINUTES_RENDER_LENGTH) {
       console.warn(`⚠️ Note length (${notesStyle3.length}) exceeds limit (${MAX_MINUTES_RENDER_LENGTH}), using basic rendering`);
       setMinutesHtml(notesStyle3);
@@ -360,7 +397,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }, 300); // Small delay to let modal settle
 
     return () => clearTimeout(deferTimeout);
-  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded]);
+  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded, isLongMeeting]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
@@ -3506,75 +3543,93 @@ ${transcriptToUse}`;
                                           </div>
                                         </div>
                                        )}
-                                      {isLoadingVariation ? (
-                                        <div className="flex items-center justify-center h-32">
-                                          <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
+                                       
+                                      {isLongMeeting ? (
+                                        /* Long meeting: Show basic/plain view without heavy formatting */
+                                        <div className="flex flex-col h-full space-y-2">
+                                          <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
+                                            This meeting is over 60 minutes long. Showing basic text notes to keep things responsive.
+                                          </div>
+
+                                          <ScrollArea className="flex-1 rounded border bg-white p-4">
+                                            <pre className="whitespace-pre-wrap text-sm font-nhs text-slate-900 leading-relaxed">
+                                              {notesStyle3 || "No standard notes are available for this meeting."}
+                                            </pre>
+                                          </ScrollArea>
                                         </div>
-                                      ) : (isRenderingMinutes && !minutesHtml) ? (
-                                        <div className="flex items-center justify-center min-h-[500px]">
-                                          <div className="flex flex-col items-center gap-4 animate-fade-in">
-                                            <div className="relative">
-                                              <Sparkles className="h-12 w-12 text-primary animate-pulse" />
-                                              <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                                      ) : (
+                                        /* Short meeting: Use existing formatted view */
+                                        <>
+                                          {isLoadingVariation ? (
+                                            <div className="flex items-center justify-center h-32">
+                                              <RefreshCw className="h-6 w-6 animate-spin text-muted-foreground" />
                                             </div>
-                                            <div className="text-center space-y-2">
-                                              <p className="text-lg font-semibold">Loading Meeting Minutes</p>
-                                              <div className="flex items-center gap-2">
-                                                <p className="text-sm text-muted-foreground">Formatting your notes</p>
-                                                <div className="flex gap-1">
-                                                  <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0s_infinite]"></span>
-                                                  <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.2s_infinite]"></span>
-                                                  <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.4s_infinite]"></span>
+                                          ) : (isRenderingMinutes && !minutesHtml && notesStyle3?.trim()) ? (
+                                            <div className="flex items-center justify-center min-h-[500px]">
+                                              <div className="flex flex-col items-center gap-4 animate-fade-in">
+                                                <div className="relative">
+                                                  <Sparkles className="h-12 w-12 text-primary animate-pulse" />
+                                                  <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+                                                </div>
+                                                <div className="text-center space-y-2">
+                                                  <p className="text-lg font-semibold">Loading Meeting Minutes</p>
+                                                  <div className="flex items-center gap-2">
+                                                    <p className="text-sm text-muted-foreground">Formatting your notes</p>
+                                                    <div className="flex gap-1">
+                                                      <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0s_infinite]"></span>
+                                                      <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.2s_infinite]"></span>
+                                                      <span className="w-2 h-2 bg-primary rounded-full animate-[bounce_1s_ease-in-out_0.4s_infinite]"></span>
+                                                    </div>
+                                                  </div>
                                                 </div>
                                               </div>
                                             </div>
-                                          </div>
-                                        </div>
-                                      ) : (
-                                        <>
-                                         <div 
-                                           className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}
-                                           style={{ 
-                                             fontSize: `${fontSizeStyle1}px`, 
-                                             lineHeight: `${fontSizeStyle1 * 1.6}px`,
-                                             ['--base-font-size' as string]: `${fontSizeStyle1}px`
-                                           }}
-                                         >
-                                           <style>
-                                             {`
-                                               .max-w-none .minutes-content, .max-w-none .minutes-content * { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
-                                               .max-w-none h1 { font-size: ${fontSizeStyle1 * 1.8}px !important; }
-                                               .max-w-none h2 { font-size: ${fontSizeStyle1 * 1.5}px !important; }
-                                               .max-w-none h3 { font-size: ${fontSizeStyle1 * 1.3}px !important; }
-                                               .max-w-none h4 { font-size: ${fontSizeStyle1 * 1.1}px !important; }
-                                               .max-w-none p, .max-w-none li, .max-w-none td, .max-w-none th { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
-                                               .max-w-none ul, .max-w-none ol { font-size: ${fontSizeStyle1}px !important; }
-                                             `}
-                                           </style>
-                                            <div 
-                                              ref={minutesContainerRef}
-                                              dangerouslySetInnerHTML={{ 
-                                                __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
-                                                  selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                  selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                  selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                  selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                  selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3, fontSizeStyle1) :
-                                                  (minutesHtml || '')
-                                                )) : ''
-                                              }}
-                                            />
-                                         </div>
-                                           <InlineWordCorrector
-                                            content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
-                                             allTabsContent={{
-                                               style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
-                                               style4: notesStyle4
-                                             }}
-                                            onApplyCorrection={handleInlineCorrection}
-                                            isActive={!isEditing && activeNotesStyleTab === 'style1'}
-                                            selectionRootRef={minutesContainerRef}
-                                          />
+                                          ) : (
+                                            <>
+                                             <div 
+                                               className={`max-w-none transition-opacity duration-300 ${isGeneratingStyle3 ? 'opacity-50' : 'opacity-100'}`}
+                                               style={{ 
+                                                 fontSize: `${fontSizeStyle1}px`, 
+                                                 lineHeight: `${fontSizeStyle1 * 1.6}px`,
+                                                 ['--base-font-size' as string]: `${fontSizeStyle1}px`
+                                               }}
+                                             >
+                                               <style>
+                                                 {`
+                                                   .max-w-none .minutes-content, .max-w-none .minutes-content * { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
+                                                   .max-w-none h1 { font-size: ${fontSizeStyle1 * 1.8}px !important; }
+                                                   .max-w-none h2 { font-size: ${fontSizeStyle1 * 1.5}px !important; }
+                                                   .max-w-none h3 { font-size: ${fontSizeStyle1 * 1.3}px !important; }
+                                                   .max-w-none h4 { font-size: ${fontSizeStyle1 * 1.1}px !important; }
+                                                   .max-w-none p, .max-w-none li, .max-w-none td, .max-w-none th { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
+                                                 `}
+                                               </style>
+                                                <div 
+                                                  ref={minutesContainerRef}
+                                                  dangerouslySetInnerHTML={{ 
+                                                    __html: activeNotesStyleTab === 'style1' ? (selectedFormatVariation === 'standard' ? (minutesHtml || '') : (
+                                                      selectedFormatVariation === 'no_actions' ? renderMinutesNoActions(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                      selectedFormatVariation === 'black_white' ? renderMinutesBlackWhite(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                      selectedFormatVariation === 'concise' ? renderMinutesConcise(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                      selectedFormatVariation === 'detailed' ? renderMinutesDetailed(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                      selectedFormatVariation === 'executive_brief' ? renderMinutesExecutiveBrief(formatVariationContent || notesStyle3, fontSizeStyle1) :
+                                                      (minutesHtml || '')
+                                                    )) : ''
+                                                  }}
+                                                />
+                                             </div>
+                                               <InlineWordCorrector
+                                                content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
+                                                 allTabsContent={{
+                                                   style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
+                                                   style4: notesStyle4
+                                                 }}
+                                                onApplyCorrection={handleInlineCorrection}
+                                                isActive={!isEditing && activeNotesStyleTab === 'style1'}
+                                                selectionRootRef={minutesContainerRef}
+                                              />
+                                            </>
+                                          )}
                                         </>
                                       )}
                                   </div>
