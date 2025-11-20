@@ -549,11 +549,6 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
               <TabsTrigger value="wrapup" className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
                 Wrap-Up
-                {currentInsight.wrapUp.completenessScore < 70 && (
-                  <Badge variant="destructive" className="ml-1 h-5 px-1 text-xs">
-                    {currentInsight.wrapUp.completenessScore}%
-                  </Badge>
-                )}
               </TabsTrigger>
             </TabsList>
 
