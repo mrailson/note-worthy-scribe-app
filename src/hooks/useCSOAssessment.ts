@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { calculateScore, getRandomQuestions, AssessmentQuestion } from '@/data/csoAssessmentQuestions';
 
 export interface AssessmentAttempt {
@@ -37,12 +36,12 @@ export const useCSOAssessment = (registrationId?: string) => {
 
   const submitAssessment = async (): Promise<AssessmentAttempt | null> => {
     if (!registrationId) {
-      toast.error('Registration ID is required');
+      console.error('Registration ID is required');
       return null;
     }
 
     if (Object.keys(currentAnswers).length !== currentQuestions.length) {
-      toast.error('Please answer all questions before submitting');
+      console.error('Please answer all questions before submitting');
       return null;
     }
 
@@ -85,16 +84,9 @@ export const useCSOAssessment = (registrationId?: string) => {
 
       if (insertError) throw insertError;
 
-      if (result.passed) {
-        toast.success(`Congratulations! You passed with ${result.percentage}%`);
-      } else {
-        toast.error(`You scored ${result.percentage}%. You need 80% to pass. Please try again.`);
-      }
-
       return assessment;
     } catch (error) {
       console.error('Error submitting assessment:', error);
-      toast.error('Failed to submit assessment');
       return null;
     } finally {
       setIsSubmitting(false);
@@ -116,7 +108,6 @@ export const useCSOAssessment = (registrationId?: string) => {
       setAttempts(data || []);
     } catch (error) {
       console.error('Error fetching attempts:', error);
-      toast.error('Failed to load assessment history');
     }
   };
 

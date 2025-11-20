@@ -12,7 +12,6 @@ import {
   BookOpen, Shield, Factory, AlertTriangle, TrendingUp, 
   FileText, Activity, AlertCircle, CheckCircle2, Clock, Award 
 } from 'lucide-react';
-import { toast } from 'sonner';
 
 const moduleIcons: Record<string, any> = {
   introduction: BookOpen,

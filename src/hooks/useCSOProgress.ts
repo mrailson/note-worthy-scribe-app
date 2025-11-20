@@ -1,6 +1,5 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import { csoTrainingModules } from '@/data/csoTrainingContent';
 
 export interface ModuleProgress {
@@ -37,7 +36,6 @@ export const useCSOProgress = (registrationId?: string) => {
       setProgress(progressMap);
     } catch (error) {
       console.error('Error fetching progress:', error);
-      toast.error('Failed to load training progress');
     } finally {
       setIsLoading(false);
     }
@@ -99,11 +97,8 @@ export const useCSOProgress = (registrationId?: string) => {
         ...prev,
         [moduleId]: data
       }));
-
-      toast.success('Module completed!');
     } catch (error) {
       console.error('Error completing module:', error);
-      toast.error('Failed to mark module as complete');
     }
   };
 
