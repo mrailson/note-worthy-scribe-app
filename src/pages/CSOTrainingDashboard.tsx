@@ -294,13 +294,7 @@ export default function CSOTrainingDashboard() {
 
               <Button
                 disabled={hasPassedAssessment}
-                onClick={() => {
-                  if (!allModulesComplete) {
-                    toast.error('Please complete all training modules before taking the assessment');
-                    return;
-                  }
-                  navigate('/cso-training-assessment');
-                }}
+                onClick={() => navigate('/cso-training-assessment')}
               >
                 {hasPassedAssessment ? 'Assessment Passed' : 'Take Assessment'}
               </Button>
