@@ -534,13 +534,14 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
               <TabsTrigger value="actions" className="flex items-center gap-1 flex-wrap">
                 <span className="whitespace-nowrap">Action Items</span>
                 <div className="flex items-center gap-0.5">
-                  <Badge className="h-4 px-1 text-[10px] bg-orange-500 hover:bg-orange-600 text-white">
-                    {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i)) && !assignments.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length}
-                  </Badge>
-                  <Badge className="h-4 px-1 text-[10px] bg-blue-500 hover:bg-blue-600 text-white">
-                    {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i)) && assignments.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length}
-                  </Badge>
-                  <span className="text-[10px] text-muted-foreground">=</span>
+                  {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i)) && !assignments.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length > 0 && (
+                    <>
+                      <Badge className="h-4 px-1 text-[10px] bg-orange-500 hover:bg-orange-600 text-white">
+                        {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i)) && !assignments.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length}
+                      </Badge>
+                      <span className="text-[10px] text-muted-foreground">=</span>
+                    </>
+                  )}
                   <Badge variant="secondary" className="h-4 px-1 text-[10px]">
                     {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length}
                   </Badge>
