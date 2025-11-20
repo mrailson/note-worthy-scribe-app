@@ -522,7 +522,7 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
 
         {currentInsight && (
           <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1 flex flex-col">
-            <TabsList className="mx-6 mt-4">
+            <TabsList className="mx-6 mt-4 grid grid-cols-4">
               <TabsTrigger value="realtime" className="flex items-center gap-2">
                 <Activity className="h-4 w-4" />
                 Real-Time
@@ -530,6 +530,21 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
               <TabsTrigger value="overview" className="flex items-center gap-2">
                 <BarChart3 className="h-4 w-4" />
                 Overview
+              </TabsTrigger>
+              <TabsTrigger value="actions" className="flex items-center gap-1 flex-wrap">
+                <span className="whitespace-nowrap">Action Items</span>
+                <div className="flex items-center gap-0.5">
+                  <Badge className="h-4 px-1 text-[10px] bg-orange-500 hover:bg-orange-600 text-white">
+                    {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i)) && !assignments.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length}
+                  </Badge>
+                  <Badge className="h-4 px-1 text-[10px] bg-blue-500 hover:bg-blue-600 text-white">
+                    {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i)) && assignments.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length}
+                  </Badge>
+                  <span className="text-[10px] text-muted-foreground">=</span>
+                  <Badge variant="secondary" className="h-4 px-1 text-[10px]">
+                    {currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length}
+                  </Badge>
+                </div>
               </TabsTrigger>
               <TabsTrigger value="wrapup" className="flex items-center gap-2">
                 <AlertCircle className="h-4 w-4" />
@@ -587,39 +602,49 @@ ${currentInsight.wrapUp.suggestedFinalQuestions.map((q, i) => `${i+1}. ${q}`).jo
                       </div>
                     )}
                     
-                    {currentInsight.overview.actionItems.length > 0 && (
-                      <div>
-                        <p className="text-xs text-muted-foreground mb-1">📋 Action Items ({currentInsight.overview.actionItems.filter((_, i) => !removedActions.has(generateActionItemId(currentInsight.overview.actionItems[i], i))).length})</p>
-                        <ul className="space-y-3">
-                          {currentInsight.overview.actionItems.map((item, i) => {
-                            const cleanItem = cleanActionItemText(item);
-                            const itemId = generateActionItemId(item, i);
-                            
-                            // Filter out removed actions
-                            if (removedActions.has(itemId)) return null;
-                            
-                            return (
-                              <li key={i} className="flex flex-col gap-1">
-                                <span>• {cleanItem}</span>
-                                <ActionItemAssigner
-                                  actionItem={cleanItem}
-                                  actionItemId={itemId}
-                                  currentAssignment={assignments.get(itemId) || null}
-                                  currentUserName={user?.email?.split('@')[0] || 'Me'}
-                                  chairName={meetingContext.chair}
-                                  meetingParticipants={meetingContext.participants || []}
-                                  availableAttendees={availableAttendees}
-                                  recentlyUsed={recentlyUsed}
-                                  onAssign={handleAssign}
-                                  onRemove={handleRemoveAssignment}
-                                  onUpdateDueDate={handleUpdateDueDate}
-                                  onRemoveAction={handleRemoveAction}
-                                />
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
+                  </div>
+                </div>
+              </ScrollArea>
+            </TabsContent>
+
+            <TabsContent value="actions" className="flex-1 mt-0">
+              <ScrollArea className="h-[calc(85vh-220px)] px-6 py-4">
+                <div className="p-4 bg-primary/10 border-l-4 border-primary rounded">
+                  <div className="space-y-3">
+                    {currentInsight.overview.actionItems.length > 0 ? (
+                      <ul className="space-y-3">
+                        {currentInsight.overview.actionItems.map((item, i) => {
+                          const cleanItem = cleanActionItemText(item);
+                          const itemId = generateActionItemId(item, i);
+                          
+                          // Filter out removed actions
+                          if (removedActions.has(itemId)) return null;
+                          
+                          const assignment = assignments.get(itemId);
+                          
+                          return (
+                            <li key={i} className="flex flex-col gap-1 p-3 bg-background/50 rounded border border-border/50">
+                              <span className="text-sm">• {cleanItem}</span>
+                              <ActionItemAssigner
+                                actionItem={cleanItem}
+                                actionItemId={itemId}
+                                currentAssignment={assignment || null}
+                                currentUserName={user?.email?.split('@')[0] || 'Me'}
+                                chairName={meetingContext.chair}
+                                meetingParticipants={meetingContext.participants || []}
+                                availableAttendees={availableAttendees}
+                                recentlyUsed={recentlyUsed}
+                                onAssign={handleAssign}
+                                onRemove={handleRemoveAssignment}
+                                onUpdateDueDate={handleUpdateDueDate}
+                                onRemoveAction={handleRemoveAction}
+                              />
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">No action items identified yet...</p>
                     )}
                   </div>
                 </div>
