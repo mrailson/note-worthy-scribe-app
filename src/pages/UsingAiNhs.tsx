@@ -83,7 +83,7 @@ const UsingAiNhs = () => {
                   </div>
                   <div className="flex-1">
                     <h4 className="font-semibold mb-1">CSO Practitioner Course</h4>
-                    <p className="text-sm text-muted-foreground">Foundation clinical safety training - £408</p>
+                    <p className="text-sm text-muted-foreground">Foundation clinical safety training - 6-hour online course (all on the same day) - £408</p>
                   </div>
                   <Button 
                     variant="outline"
