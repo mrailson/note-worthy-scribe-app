@@ -249,6 +249,34 @@ const Index = () => {
         <Header onNewMeeting={handleNewMeeting} />
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
           <MaintenanceBanner />
+          
+          {/* Prominent CSO Training Section */}
+          <div className="mb-8 max-w-3xl mx-auto">
+            <Link 
+              to="/usingai_nhs" 
+              className="block bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 rounded-xl p-6 hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
+            >
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                <div className="flex-shrink-0 w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
+                  <Building2 className="w-6 h-6 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
+                    Using AI in Your GP Practice & CSO Training
+                  </h2>
+                  <p className="text-muted-foreground">
+                    Watch our explainer video and access free CSO training resources for NHS practices
+                  </p>
+                </div>
+                <div className="sm:ml-auto">
+                  <span className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm">
+                    View Resources →
+                  </span>
+                </div>
+              </div>
+            </Link>
+          </div>
+          
           <LoginForm />
         </div>
       </div>
