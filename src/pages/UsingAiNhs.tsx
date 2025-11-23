@@ -17,12 +17,17 @@ const UsingAiNhs = () => {
           <CardContent>
             <video 
               controls 
+              preload="metadata"
               className="w-full rounded-lg border shadow-lg"
-              poster={videoUrl}
+              crossOrigin="anonymous"
             >
               <source src={videoUrl} type="video/mp4" />
               Your browser does not support the video tag.
             </video>
+            
+            <p className="text-sm text-muted-foreground mt-4">
+              If the video doesn't play, <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">download it here</a>.
+            </p>
           </CardContent>
         </Card>
       </div>
