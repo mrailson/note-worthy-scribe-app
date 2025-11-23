@@ -17,18 +17,21 @@ const UsingAiNhs = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <video 
-              src={videoUrl}
-              controls 
-              preload="metadata"
-              className="w-full rounded-lg border shadow-lg"
-            >
-              Your browser does not support the video tag.
-            </video>
-            
-            <p className="text-sm text-muted-foreground">
-              If the video doesn't play, <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">open it in a new tab or download it here</a>.
-            </p>
+            <div>
+              <h3 className="text-lg font-semibold mb-3">Start by Watching this Video to understand what the CSO Role is and why it's needed</h3>
+              <video 
+                src={videoUrl}
+                controls 
+                preload="metadata"
+                className="w-full rounded-lg border shadow-lg"
+              >
+                Your browser does not support the video tag.
+              </video>
+              
+              <p className="text-sm text-muted-foreground mt-2">
+                If the video doesn't play, <a href={videoUrl} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">open it in a new tab or download it here</a>.
+              </p>
+            </div>
 
             <div className="space-y-4 pt-4 border-t">
               <h3 className="text-xl font-semibold">Related Training Modules</h3>
