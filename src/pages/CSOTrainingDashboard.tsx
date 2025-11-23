@@ -162,24 +162,46 @@ export default function CSOTrainingDashboard() {
           </Card>
         )}
 
-        {/* External e-Learning Resource */}
-        <Card className="p-6 mb-8 bg-accent/5 border-accent">
-          <div className="flex items-center gap-4">
-            <div className="p-3 bg-accent/10 rounded-lg">
-              <BookOpen className="h-8 w-8 text-accent-foreground" />
+        {/* External e-Learning Resources */}
+        <div className="mb-8 space-y-4">
+          <h2 className="text-2xl font-semibold">External e-Learning Resources</h2>
+          
+          <Card className="p-6 bg-accent/5 border-accent">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-accent/10 rounded-lg">
+                <BookOpen className="h-8 w-8 text-accent-foreground" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold mb-1">Stage 1 - Essentials of Digital Clinical Safety</h3>
+                <p className="text-muted-foreground">Complete the official e-Learning for Healthcare (e-LfH) module</p>
+              </div>
+              <Button 
+                variant="outline"
+                onClick={() => window.open('https://portal.e-lfh.org.uk/Component/Details/794802', '_blank')}
+              >
+                Access e-LfH Portal
+              </Button>
             </div>
-            <div className="flex-1">
-              <h3 className="text-xl font-semibold mb-1">Stage 1 - Essentials of Digital Clinical Safety</h3>
-              <p className="text-muted-foreground">Complete the official e-Learning for Healthcare (e-LfH) module</p>
+          </Card>
+
+          <Card className="p-6 bg-accent/5 border-accent">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-accent/10 rounded-lg">
+                <Shield className="h-8 w-8 text-accent-foreground" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-semibold mb-1">Intermediate - Digital Clinical Safety</h3>
+                <p className="text-muted-foreground">Advanced topics in clinical safety management</p>
+              </div>
+              <Button 
+                variant="outline"
+                onClick={() => window.open('https://portal.e-lfh.org.uk/Component/Details/[URL_NEEDED]', '_blank')}
+              >
+                Access e-LfH Portal
+              </Button>
             </div>
-            <Button 
-              variant="outline"
-              onClick={() => window.open('https://portal.e-lfh.org.uk/Component/Details/794802', '_blank')}
-            >
-              Access e-LfH Portal
-            </Button>
-          </div>
-        </Card>
+          </Card>
+        </div>
 
         {/* Training Modules */}
         <div className="mb-8">
