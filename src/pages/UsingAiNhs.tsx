@@ -11,7 +11,7 @@ const UsingAiNhs = () => {
       <div className="max-w-4xl mx-auto">
         <Card>
           <CardHeader>
-            <CardTitle className="text-3xl">AI in the NHS Clinic</CardTitle>
+            <CardTitle className="text-3xl">Using AI in your GP Practice and the CSO Role (explainer video and CSO training links)</CardTitle>
             <CardDescription>
               Learn about using AI technology in clinical practice
             </CardDescription>
