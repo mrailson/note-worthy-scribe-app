@@ -2,6 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { BookOpen, Shield } from 'lucide-react';
+import notewellLogo from '@/assets/notewell-logo.png';
 
 const UsingAiNhs = () => {
   const videoUrl = "https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/demo-videos/AI_in_the_Clinic.mp4";
@@ -9,6 +10,9 @@ const UsingAiNhs = () => {
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
+        <div className="flex justify-end mb-4">
+          <img src={notewellLogo} alt="Notewell AI" className="h-12 object-contain" />
+        </div>
         <Card>
           <CardHeader>
             <CardTitle className="text-3xl">AI in the NHS Clinic</CardTitle>
