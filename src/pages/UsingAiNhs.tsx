@@ -75,6 +75,25 @@ const UsingAiNhs = () => {
                   </Button>
                 </div>
               </Card>
+
+              <Card className="p-4 bg-accent/5 border-accent">
+                <div className="flex items-center gap-4">
+                  <div className="p-2 bg-accent/10 rounded-lg">
+                    <BookOpen className="h-6 w-6 text-accent-foreground" />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="font-semibold mb-1">CSO Practitioner Course</h4>
+                    <p className="text-sm text-muted-foreground">Foundation clinical safety training - £408</p>
+                  </div>
+                  <Button 
+                    variant="outline"
+                    size="sm"
+                    onClick={() => window.open('https://ethos.co.im/training-and-event/foundation-clinical-safety-training-december/', '_blank')}
+                  >
+                    Book Course
+                  </Button>
+                </div>
+              </Card>
             </div>
           </CardContent>
         </Card>
