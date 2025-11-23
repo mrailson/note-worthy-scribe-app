@@ -19,14 +19,15 @@ const UsingAiNhs = () => {
           <CardContent className="space-y-6">
             <div>
               <h3 className="text-lg font-semibold mb-3">Start by Watching this Video to understand what the CSO Role is and why it's needed</h3>
-              <div className="aspect-video w-full rounded-lg overflow-hidden border shadow-lg bg-black">
-                <iframe
+              <div className="aspect-video w-full rounded-lg overflow-hidden border shadow-lg bg-black flex items-center justify-center">
+                <video
                   src={videoUrl}
-                  title="AI in the Clinic"
+                  controls
+                  preload="metadata"
                   className="w-full h-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                  allowFullScreen
-                />
+                >
+                  Your browser does not support the video tag.
+                </video>
               </div>
               
               <p className="text-sm text-muted-foreground mt-2">
