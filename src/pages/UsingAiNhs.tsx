@@ -36,7 +36,7 @@ const UsingAiNhs = () => {
             </div>
 
             <div className="space-y-4 pt-4 border-t">
-              <h3 className="text-xl font-semibold">To Begin your CSO Training, please completed Stage 1 and Intermediate eLFH on the links below (Free):</h3>
+              <h3 className="text-xl font-semibold">To Begin your CSO Training, please complete the following courses - Stage 1 and Intermediate eLFH are free:</h3>
               
               <Card className="p-4 bg-accent/5 border-accent">
                 <div className="flex items-center gap-4">
