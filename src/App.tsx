@@ -76,6 +76,7 @@ import CSOTrainingResults from "./pages/CSOTrainingResults";
 import CSOCertificate from "./pages/CSOCertificate";
 import CSOTestCertificate from "./pages/CSOTestCertificate";
 import CSOTrainingContentExport from "./pages/CSOTrainingContentExport";
+import UsingAiNhs from "./pages/UsingAiNhs";
 
 const App = () => {
   useSessionActivity();
@@ -209,6 +210,7 @@ const App = () => {
           <Route path="/cso-certificate/:assessmentId" element={<CSOCertificate />} />
           <Route path="/cso-test-certificate" element={<CSOTestCertificate />} />
           <Route path="/CSO_TRAINING_CONTENT_EXPORT.md" element={<CSOTrainingContentExport />} />
+          <Route path="/usingai_nhs" element={<UsingAiNhs />} />
               <Route path="/security-posture" element={
                 <ProtectedRoute requiredModule="cso_governance_access">
                   <SecurityPostureOverview />
