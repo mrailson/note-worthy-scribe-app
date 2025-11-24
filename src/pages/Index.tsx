@@ -273,6 +273,43 @@ const Index = () => {
 
               {/* Demo Video Section */}
               <DemoVideoSection />
+              
+              {/* Complaints Management Info */}
+              <div className="p-4 border border-border rounded-lg bg-card">
+                <div className="flex items-start gap-3 mb-3">
+                  <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                    <Building2 className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-base mb-1">Complaints Management System</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Comprehensive patient complaint management system with automated workflows and NHS compliance
+                    </p>
+                  </div>
+                </div>
+                <ul className="space-y-1.5 ml-11">
+                  <li className="flex items-center gap-2 text-xs">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                    <span>Automated complaint tracking</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-xs">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                    <span>Response template library</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-xs">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                    <span>NHS compliance monitoring</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-xs">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                    <span>Performance analytics</span>
+                  </li>
+                  <li className="flex items-center gap-2 text-xs">
+                    <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
+                    <span>Multi-channel complaint capture</span>
+                  </li>
+                </ul>
+              </div>
             </div>
 
             {/* Right Column: Login Form */}

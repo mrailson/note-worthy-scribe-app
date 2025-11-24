@@ -70,7 +70,7 @@ export const ServiceOverview = () => {
   ];
 
   // Show only key services on the logged-out page
-  const allowedServices = new Set(['AI4GP Service','Meeting Recording & Management','Translation Service','Complaints Management System']);
+  const allowedServices = new Set(['AI4GP Service','Meeting Recording & Management']);
   const displayedServices = services.filter(s => allowedServices.has(s.title));
 
 
