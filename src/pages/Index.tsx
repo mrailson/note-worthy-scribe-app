@@ -17,19 +17,23 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
 import { Building2 } from "lucide-react";
-
 const Index = () => {
-  const { user, loading, hasModuleAccess } = useAuth();
+  const {
+    user,
+    loading,
+    hasModuleAccess
+  } = useAuth();
   const isMobile = useIsMobile();
-  
+
   // Enable meeting auto-close service (runs every 5 minutes)
-  useMeetingAutoClose({ enabled: !!user, intervalMinutes: 5 });
-  
+  useMeetingAutoClose({
+    enabled: !!user,
+    intervalMinutes: 5
+  });
   const [searchParams] = useSearchParams();
   const location = useLocation();
   const navigate = useNavigate();
   const editMeetingId = searchParams.get('edit');
-  
   const [currentView, setCurrentView] = useState<"recording" | "summary">("recording");
   const [transcript, setTranscript] = useState("");
   const [duration, setDuration] = useState("00:00");
@@ -72,38 +76,38 @@ const Index = () => {
   // Conditional homepage redirect: AI4GP users → AI4GP, others → Meeting Manager
   useEffect(() => {
     if (user && !loading && !editMeetingId && hasModuleAccess('ai4gp_access')) {
-      navigate('/ai4gp', { replace: true });
+      navigate('/ai4gp', {
+        replace: true
+      });
     }
   }, [user, loading, editMeetingId, hasModuleAccess, navigate]);
-
   const loadMeetingForEditing = async (meetingId: string) => {
     try {
-      const { data: meeting, error: meetingError } = await supabase
-        .from('meetings')
-        .select('*')
-        .eq('id', meetingId)
-        .eq('user_id', user?.id)
-        .single();
-
+      const {
+        data: meeting,
+        error: meetingError
+      } = await supabase.from('meetings').select('*').eq('id', meetingId).eq('user_id', user?.id).single();
       if (meetingError) throw meetingError;
 
       // Load transcripts - try chunks first (higher fidelity), then fallback to meeting_transcripts
       let fullTranscript = "";
-      
+
       // Try to reconstruct from chunks
-      const { data: chunks, error: chunksError } = await supabase
-        .from('meeting_transcription_chunks')
-        .select('transcription_text')
-        .eq('meeting_id', meetingId)
-        .order('chunk_number', { ascending: true });
-      
+      const {
+        data: chunks,
+        error: chunksError
+      } = await supabase.from('meeting_transcription_chunks').select('transcription_text').eq('meeting_id', meetingId).order('chunk_number', {
+        ascending: true
+      });
       if (!chunksError && chunks && chunks.length > 0) {
         console.log(`📦 Reconstructing from ${chunks.length} chunks...`);
-        
+
         // Import segment merge utilities
-        const { mergeByTimestamps, segmentsToPlainText } = await import('@/lib/segmentMerge');
+        const {
+          mergeByTimestamps,
+          segmentsToPlainText
+        } = await import('@/lib/segmentMerge');
         let allSegments: any[] = [];
-        
         for (const chunk of chunks) {
           try {
             // Try to parse as JSON segments
@@ -116,32 +120,31 @@ const Index = () => {
             fullTranscript = fullTranscript + (fullTranscript ? ' ' : '') + chunk.transcription_text;
           }
         }
-        
+
         // Convert segments to text if we have any
         if (allSegments.length > 0) {
           fullTranscript = segmentsToPlainText(allSegments);
           console.log(`✅ Reconstructed from ${allSegments.length} segments`);
         }
       }
-      
+
       // Fallback to meeting_transcripts if chunks didn't work
       if (!fullTranscript) {
-        const { data: transcripts, error: transcriptError } = await supabase
-          .from('meeting_transcripts')
-          .select('*')
-          .eq('meeting_id', meetingId)
-          .order('timestamp_seconds', { ascending: true });
-
+        const {
+          data: transcripts,
+          error: transcriptError
+        } = await supabase.from('meeting_transcripts').select('*').eq('meeting_id', meetingId).order('timestamp_seconds', {
+          ascending: true
+        });
         if (transcriptError) throw transcriptError;
         fullTranscript = transcripts?.map(t => t.content).join('\n') || "";
       }
 
       // Load summary
-      const { data: summary, error: summaryError } = await supabase
-        .from('meeting_summaries')
-        .select('*')
-        .eq('meeting_id', meetingId)
-        .maybeSingle();
+      const {
+        data: summary,
+        error: summaryError
+      } = await supabase.from('meeting_summaries').select('*').eq('meeting_id', meetingId).maybeSingle();
 
       // Set meeting data
       setMeetingSettings({
@@ -152,51 +155,42 @@ const Index = () => {
         practiceId: meeting.practice_id || "",
         meetingFormat: "teams"
       });
-      
       setCurrentMeetingId(meetingId);
       setDuration(meeting.duration_minutes ? `${Math.floor(meeting.duration_minutes / 60).toString().padStart(2, '0')}:${(meeting.duration_minutes % 60).toString().padStart(2, '0')}` : "00:00");
-      
+
       // Set reconstructed transcript
       setTranscript(fullTranscript);
       setWordCount(fullTranscript.split(' ').filter(word => word.length > 0).length);
-
       if (summary) {
         setCurrentView("summary");
       }
-
       toast.success(`Meeting loaded: ${meeting.title}`);
     } catch (error: any) {
       toast.error(`Error loading meeting: ${error.message}`);
     }
   };
-
   const handleAudioImported = (audioFile: File) => {
     // Handle the imported audio file
     // This could be extended to process the audio file for transcription
     toast.success(`Audio file imported: ${audioFile.name}`);
     console.log("Audio file imported:", audioFile);
   };
-
   const handleTranscriptImported = (importedTranscript: ImportedTranscript) => {
     // Set the imported transcript content
     setTranscript(importedTranscript.content);
     setWordCount(importedTranscript.wordCount);
-    
+
     // Set duration if available
     if (importedTranscript.duration) {
       setDuration(importedTranscript.duration);
     }
-    
     setImportedTranscript(importedTranscript);
-    
     toast.success(`Transcript imported successfully! ${importedTranscript.wordCount} words loaded.`);
   };
-
   const parseDurationToMinutes = (duration: string): number => {
     const [hours, minutes] = duration.split(':').map(Number);
     return (hours || 0) * 60 + (minutes || 0);
   };
-
   const handleNewMeeting = () => {
     setCurrentView("recording");
     setTranscript("");
@@ -214,8 +208,6 @@ const Index = () => {
     // Clear URL parameters
     window.history.replaceState({}, '', '/');
   };
-
-
   const handleViewSummary = () => {
     // Navigate to the dedicated summary page with the meeting data
     const meetingData = {
@@ -223,31 +215,25 @@ const Index = () => {
       duration,
       wordCount,
       transcript,
-      speakerCount: 1, // Default speaker count
+      speakerCount: 1,
+      // Default speaker count
       startTime: new Date().toISOString(),
       extractedSettings: importedTranscript?.extractedSettings
     };
-
-    navigate('/meeting-summary', { 
-      state: meetingData 
+    navigate('/meeting-summary', {
+      state: meetingData
     });
   };
-
-
   if (loading) {
-    return (
-      <div className="min-h-[100dvh] bg-gradient-background flex items-center justify-center">
+    return <div className="min-h-[100dvh] bg-gradient-background flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
           <p className="mt-2 text-muted-foreground">Loading...</p>
         </div>
-      </div>
-    );
+      </div>;
   }
-
   if (!user) {
-    return (
-      <div className="min-h-[100dvh] bg-gradient-background">
+    return <div className="min-h-[100dvh] bg-gradient-background">
         <Header onNewMeeting={handleNewMeeting} />
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 max-w-6xl">
           <MaintenanceBanner />
@@ -258,17 +244,11 @@ const Index = () => {
             <div className="space-y-8">
               {/* Hero Section */}
               <div className="text-center lg:text-left space-y-4 animate-fade-in">
-                <div className="flex justify-center lg:justify-start mb-4">
-                  <div className="p-3 rounded-xl bg-primary/10">
-                    <Building2 className="w-8 h-8 text-primary" />
-                  </div>
-                </div>
+                
                 <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
                   Welcome to Notewell AI
                 </h1>
-                <p className="text-lg text-muted-foreground">
-                  AI-powered complaints management and practice administration tools designed specifically for NHS GP practices
-                </p>
+                
               </div>
 
               {/* Combined Demo & Complaints Section */}
@@ -277,13 +257,8 @@ const Index = () => {
                   <h2 className="text-xl font-semibold text-foreground mb-1">
                     See Notewell AI Complaints Service in Action
                   </h2>
-                  <p className="text-sm text-muted-foreground mb-3">
-                    Watch our quick demo
-                  </p>
-                  <Link
-                    to="/demos"
-                    className="inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shadow border border-border"
-                  >
+                  
+                  <Link to="/demos" className="inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shadow border border-border">
                     View Complaints Service System
                   </Link>
                 </div>
@@ -338,10 +313,7 @@ const Index = () => {
 
             {/* CSO Training Section - Refined */}
             <div className="animate-fade-in">
-              <Link 
-                to="/usingai_nhs" 
-                className="block"
-              >
+              <Link to="/usingai_nhs" className="block">
                 <div className="p-6 border border-border rounded-lg bg-card hover:shadow-lg transition-all hover:border-primary/50">
                   <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
@@ -369,43 +341,22 @@ const Index = () => {
             <ServiceOverview />
           </div>
         </div>
-      </div>
-    );
+      </div>;
   }
-
-  return (
-    <div className="min-h-[100dvh] bg-gradient-background">
-      <SEO 
-        title="NoteWell AI | AI-Powered GP Documentation & Practice Management"
-        description="Transform your GP practice with AI-powered meeting notes, consultation transcription, and comprehensive practice management tools designed for NHS primary care."
-        canonical="https://www.gpnotewell.co.uk/"
-        keywords="GP practices, AI meeting notes, NHS primary care, clinical documentation, practice management, GP surgery software, medical recording"
-      />
+  return <div className="min-h-[100dvh] bg-gradient-background">
+      <SEO title="NoteWell AI | AI-Powered GP Documentation & Practice Management" description="Transform your GP practice with AI-powered meeting notes, consultation transcription, and comprehensive practice management tools designed for NHS primary care." canonical="https://www.gpnotewell.co.uk/" keywords="GP practices, AI meeting notes, NHS primary care, clinical documentation, practice management, GP surgery software, medical recording" />
       <Header onNewMeeting={handleNewMeeting} />
       
         <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">
           <MaintenanceBanner />
           
-          <MeetingRecorder
-            onTranscriptUpdate={setTranscript}
-            onDurationUpdate={setDuration}
-            onWordCountUpdate={setWordCount}
-            initialSettings={meetingSettings}
-          />
+          <MeetingRecorder onTranscriptUpdate={setTranscript} onDurationUpdate={setDuration} onWordCountUpdate={setWordCount} initialSettings={meetingSettings} />
         </div>
 
         {/* Discreet floating icon for Executive Overview - mobile only */}
-        {isMobile && user && (
-          <Link
-            to="/executive-overview"
-            className="fixed bottom-32 right-4 z-40 flex items-center justify-center w-11 h-11 rounded-full bg-background border border-border shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95"
-            aria-label="Executive Overview"
-          >
+        {isMobile && user && <Link to="/executive-overview" className="fixed bottom-32 right-4 z-40 flex items-center justify-center w-11 h-11 rounded-full bg-background border border-border shadow-lg hover:shadow-xl transition-all hover:scale-105 active:scale-95" aria-label="Executive Overview">
             <Building2 className="w-5 h-5 text-primary" />
-          </Link>
-        )}
-    </div>
-  );
+          </Link>}
+    </div>;
 };
-
 export default Index;
