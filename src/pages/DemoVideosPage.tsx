@@ -78,7 +78,7 @@ const DemoVideosPage: React.FC = () => {
 
         {/* Explainer Video */}
         <section className="mb-12">
-          <h2 className="text-2xl font-semibold text-foreground mb-4 text-center">See It In Action</h2>
+          <h2 className="text-2xl font-semibold text-foreground mb-4 text-center">Using AI for Complaints - Explainer Video (5 Mins)</h2>
           <div className="max-w-4xl mx-auto">
             <div className="relative rounded-lg overflow-hidden shadow-xl bg-muted aspect-video">
               <video 
