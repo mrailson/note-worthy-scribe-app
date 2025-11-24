@@ -253,6 +253,9 @@ const Index = () => {
           <MaintenanceBanner />
           
           <div className="space-y-8">
+            {/* Login Form - First visible element */}
+            <LoginForm />
+
             {/* Hero Section */}
             <div className="text-center space-y-4 animate-fade-in">
               <div className="flex justify-center mb-4">
@@ -281,7 +284,7 @@ const Index = () => {
                 className="block"
               >
                 <div className="p-6 border border-border rounded-lg bg-card hover:shadow-lg transition-all hover:border-primary/50">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-centre gap-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
                     <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
                       <Building2 className="w-5 h-5 text-primary" />
                     </div>
@@ -302,9 +305,6 @@ const Index = () => {
                 </div>
               </Link>
             </div>
-
-            {/* Login Form */}
-            <LoginForm />
           </div>
         </div>
       </div>
