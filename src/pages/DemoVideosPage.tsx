@@ -95,7 +95,7 @@ const DemoVideosPage: React.FC = () => {
 
         {/* Featured Loom Demo */}
         <section className="mb-8">
-          <h2 className="text-2xl font-semibold text-foreground mb-4 text-center">Full Walkthrough Demo</h2>
+          <h2 className="text-2xl font-semibold text-foreground mb-4 text-center">Watch the Notewell AI Complaint System in Action - a Demo of a full complaint life cycle:</h2>
         <div className="max-w-4xl mx-auto">
           <a
             href="https://www.loom.com/share/58d3d16963224dddac2ea8211bd2b90d"
