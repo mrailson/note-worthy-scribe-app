@@ -284,7 +284,7 @@ export default function NRESPresentationPage() {
               ) : (
                 <video
                   ref={videoRef}
-                  className="w-full aspect-video"
+                  className="w-full"
                   controls
                   src={videoUrl}
                 >
