@@ -6768,6 +6768,7 @@ export type Database = {
       cleanup_ai4gp_chat_history: { Args: never; Returns: number }
       cleanup_expired_sessions: { Args: never; Returns: number }
       cleanup_old_sessions: { Args: { days_old?: number }; Returns: number }
+      cleanup_old_transcription_chunks: { Args: never; Returns: number }
       cleanup_stuck_meetings: {
         Args: never
         Returns: {
