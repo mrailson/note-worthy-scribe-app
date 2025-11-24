@@ -1,12 +1,16 @@
 import { useState, useRef, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize, Video, FileText } from 'lucide-react';
+import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize, Video, FileText, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import * as pdfjsLib from 'pdfjs-dist';
 import { SEO } from '@/components/SEO';
 
-// Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure PDF.js worker - use the bundled worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
+  'pdfjs-dist/build/pdf.worker.min.mjs',
+  import.meta.url
+).toString();
 
 type ViewMode = 'video' | 'slides' | 'split';
 
@@ -16,6 +20,8 @@ export default function NRESPresentationPage() {
   const [totalSlides, setTotalSlides] = useState(0);
   const [isVideoFullscreen, setIsVideoFullscreen] = useState(false);
   const [isSlidesFullscreen, setIsSlidesFullscreen] = useState(false);
+  const [videoError, setVideoError] = useState(false);
+  const [pdfError, setPdfError] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
@@ -27,6 +33,7 @@ export default function NRESPresentationPage() {
   useEffect(() => {
     const loadPdf = async () => {
       try {
+        setPdfError(false);
         const loadingTask = pdfjsLib.getDocument('/Rural_Collaboration_Governance_Framework.pdf');
         const pdf = await loadingTask.promise;
         pdfDocRef.current = pdf;
@@ -34,10 +41,33 @@ export default function NRESPresentationPage() {
         renderSlide(1);
       } catch (error) {
         console.error('Error loading PDF:', error);
+        setPdfError(true);
       }
     };
 
     loadPdf();
+  }, []);
+
+  // Handle video errors
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleError = () => {
+      setVideoError(true);
+    };
+
+    const handleCanPlay = () => {
+      setVideoError(false);
+    };
+
+    video.addEventListener('error', handleError);
+    video.addEventListener('canplay', handleCanPlay);
+
+    return () => {
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('canplay', handleCanPlay);
+    };
   }, []);
 
   const renderSlide = async (pageNum: number) => {
@@ -207,29 +237,48 @@ export default function NRESPresentationPage() {
               ref={videoContainerRef}
               className="relative bg-black rounded-lg overflow-hidden shadow-lg"
             >
-              <video
-                ref={videoRef}
-                className="w-full aspect-video"
-                controls
-                src="/videos/nres25nov25.mp4"
-              >
-                Your browser does not support the video tag.
-              </video>
+              {videoError ? (
+                <div className="w-full aspect-video bg-muted flex items-center justify-center p-8">
+                  <Alert className="max-w-md">
+                    <Upload className="h-4 w-4" />
+                    <AlertDescription>
+                      <p className="font-semibold mb-2">Video file not found</p>
+                      <p className="text-sm mb-3">
+                        Please upload your video file named <code className="bg-background px-1 py-0.5 rounded">nres25nov25.mp4</code> to the <code className="bg-background px-1 py-0.5 rounded">public/videos/</code> folder.
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        The placeholder file needs to be replaced with your actual MP4 video.
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                </div>
+              ) : (
+                <video
+                  ref={videoRef}
+                  className="w-full aspect-video"
+                  controls
+                  src="/videos/nres25nov25.mp4"
+                >
+                  Your browser does not support the video tag.
+                </video>
+              )}
               
-              <Button
-                variant="secondary"
-                size="icon"
-                className="absolute top-4 right-4 opacity-80 hover:opacity-100"
-                onClick={toggleVideoFullscreen}
-              >
-                {isVideoFullscreen ? (
-                  <Minimize className="w-4 h-4" />
-                ) : (
-                  <Maximize className="w-4 h-4" />
-                )}
-              </Button>
+              {!videoError && (
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="absolute top-4 right-4 opacity-80 hover:opacity-100"
+                  onClick={toggleVideoFullscreen}
+                >
+                  {isVideoFullscreen ? (
+                    <Minimize className="w-4 h-4" />
+                  ) : (
+                    <Maximize className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
 
-              {viewMode === 'video' && (
+              {viewMode === 'video' && !videoError && (
                 <div className="p-4 bg-card">
                   <h2 className="text-xl font-semibold mb-2">NRES Presentation Video</h2>
                   <p className="text-sm text-muted-foreground">
@@ -247,10 +296,25 @@ export default function NRESPresentationPage() {
               className="relative bg-card rounded-lg overflow-hidden shadow-lg"
             >
               <div className="relative aspect-[4/3] bg-muted flex items-center justify-center">
-                <canvas 
-                  ref={canvasRef}
-                  className="max-w-full max-h-full"
-                />
+                {pdfError ? (
+                  <div className="p-8 text-center">
+                    <Alert>
+                      <AlertDescription>
+                        <p className="font-semibold mb-2">Error loading PDF</p>
+                        <p className="text-sm">
+                          Unable to load the presentation slides. Please check that the PDF file exists and is accessible.
+                        </p>
+                      </AlertDescription>
+                    </Alert>
+                  </div>
+                ) : totalSlides === 0 ? (
+                  <div className="text-muted-foreground">Loading slides...</div>
+                ) : (
+                  <canvas 
+                    ref={canvasRef}
+                    className="max-w-full max-h-full"
+                  />
+                )}
               </div>
 
               {/* Slide Controls */}
