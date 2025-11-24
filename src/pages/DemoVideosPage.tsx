@@ -1,9 +1,13 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
-import { Play, Shield, Clock, FileText, CheckCircle } from 'lucide-react';
+import { Play, Shield, Clock, FileText, CheckCircle, Home } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 const DemoVideosPage: React.FC = () => {
+  const navigate = useNavigate();
+  
   return (
     <>
       <Helmet>
@@ -13,6 +17,15 @@ const DemoVideosPage: React.FC = () => {
       </Helmet>
 
       <main className="container mx-auto px-4 py-8 max-w-6xl">
+        <Button
+          onClick={() => navigate('/')}
+          variant="ghost"
+          size="sm"
+          className="gap-2 mb-4"
+        >
+          <Home className="h-4 w-4" />
+          Back to Notewell AI
+        </Button>
         <header className="mb-8 text-center">
           <h1 className="text-3xl sm:text-4xl font-bold text-foreground mb-3">Notewell AI Complaints Manager</h1>
           <p className="text-lg text-muted-foreground max-w-3xl mx-auto">
