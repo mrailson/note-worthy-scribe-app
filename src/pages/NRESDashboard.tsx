@@ -10,9 +10,11 @@ import { PatientDetailModal } from "@/components/nres/PatientDetailModal";
 import { WorkflowModal } from "@/components/nres/WorkflowModal";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
 import { HubConsultation } from "@/types/nresTypes";
-import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info } from "lucide-react";
+import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 const NRESDashboard = () => {
   const { toast } = useToast();
@@ -66,6 +68,16 @@ const NRESDashboard = () => {
             Full integration with SystmOne and EMIS is required for live data and operational features.
           </AlertDescription>
         </Alert>
+
+        {/* Presentation Link */}
+        <div className="flex justify-end">
+          <Link to="/nres-presentation">
+            <Button variant="outline" size="sm">
+              <Presentation className="w-4 h-4 mr-2" />
+              View NRES Presentation
+            </Button>
+          </Link>
+        </div>
         <DashboardHeader
           selectedPractice={selectedPractice}
           onPracticeChange={setSelectedPractice}
