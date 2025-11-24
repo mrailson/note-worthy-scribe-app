@@ -23,6 +23,9 @@ export default function NRESPresentationPage() {
   const [videoError, setVideoError] = useState(false);
   const [pdfError, setPdfError] = useState(false);
   
+  // Video URL - update this to your Supabase storage URL
+  const videoUrl = "https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/demo-videos/nres25nov25.mp4";
+  
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -254,10 +257,10 @@ export default function NRESPresentationPage() {
                     <AlertDescription>
                       <p className="font-semibold mb-2">Video file not found</p>
                       <p className="text-sm mb-3">
-                        Please upload your video file named <code className="bg-background px-1 py-0.5 rounded">nres25nov25.mp4</code> to the <code className="bg-background px-1 py-0.5 rounded">public/videos/</code> folder.
+                        Upload your video file <code className="bg-background px-1 py-0.5 rounded">nres25nov25.mp4</code> to Supabase Storage in the <code className="bg-background px-1 py-0.5 rounded">demo-videos</code> bucket.
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        The placeholder file needs to be replaced with your actual MP4 video.
+                        Current URL: {videoUrl}
                       </p>
                     </AlertDescription>
                   </Alert>
@@ -267,7 +270,7 @@ export default function NRESPresentationPage() {
                   ref={videoRef}
                   className="w-full aspect-video"
                   controls
-                  src="/videos/nres25nov25.mp4"
+                  src={videoUrl}
                 >
                   Your browser does not support the video tag.
                 </video>
