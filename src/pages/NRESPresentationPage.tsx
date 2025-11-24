@@ -83,8 +83,14 @@ export default function NRESPresentationPage() {
       if (!container) return;
       
       const containerWidth = container.clientWidth;
+      const containerHeight = container.clientHeight;
       const viewport = page.getViewport({ scale: 1 });
-      const scale = (containerWidth * 0.95) / viewport.width;
+      
+      // Calculate scale to fit both width and height
+      const scaleWidth = (containerWidth * 0.95) / viewport.width;
+      const scaleHeight = (containerHeight * 0.95) / viewport.height;
+      const scale = Math.min(scaleWidth, scaleHeight);
+      
       const scaledViewport = page.getViewport({ scale });
 
       canvas.height = scaledViewport.height;
@@ -136,19 +142,23 @@ export default function NRESPresentationPage() {
     }
   };
 
-  const toggleSlidesFullscreen = () => {
+  const toggleSlidesFullscreen = async () => {
     if (!slidesContainerRef.current) return;
 
     if (!isSlidesFullscreen) {
       if (slidesContainerRef.current.requestFullscreen) {
-        slidesContainerRef.current.requestFullscreen();
+        await slidesContainerRef.current.requestFullscreen();
+        setIsSlidesFullscreen(true);
+        // Re-render slide after entering fullscreen to scale properly
+        setTimeout(() => renderSlide(currentSlide), 100);
       }
-      setIsSlidesFullscreen(true);
     } else {
       if (document.exitFullscreen) {
-        document.exitFullscreen();
+        await document.exitFullscreen();
+        setIsSlidesFullscreen(false);
+        // Re-render slide after exiting fullscreen
+        setTimeout(() => renderSlide(currentSlide), 100);
       }
-      setIsSlidesFullscreen(false);
     }
   };
 
@@ -293,9 +303,9 @@ export default function NRESPresentationPage() {
           {(viewMode === 'slides' || viewMode === 'split') && (
             <div 
               ref={slidesContainerRef}
-              className="relative bg-card rounded-lg overflow-hidden shadow-lg"
+              className="relative bg-card rounded-lg overflow-hidden shadow-lg fullscreen:bg-black"
             >
-              <div className="relative aspect-[4/3] bg-muted flex items-center justify-center">
+              <div className="relative aspect-[4/3] bg-muted flex items-center justify-center fullscreen:aspect-auto fullscreen:h-screen fullscreen:w-screen">
                 {pdfError ? (
                   <div className="p-8 text-center">
                     <Alert>
@@ -312,7 +322,7 @@ export default function NRESPresentationPage() {
                 ) : (
                   <canvas 
                     ref={canvasRef}
-                    className="max-w-full max-h-full"
+                    className="max-w-full max-h-full object-contain"
                   />
                 )}
               </div>
