@@ -106,8 +106,8 @@ export default function NRESPresentationPage() {
       const viewport = page.getViewport({ scale: 1 });
       
       // Calculate scale to fit both width and height
-      const scaleWidth = (containerWidth * 0.95) / viewport.width;
-      const scaleHeight = (containerHeight * 0.95) / viewport.height;
+      const scaleWidth = (containerWidth * 0.98) / viewport.width;
+      const scaleHeight = (containerHeight * 0.98) / viewport.height;
       const scale = Math.min(scaleWidth, scaleHeight);
       
       const scaledViewport = page.getViewport({ scale });
@@ -340,7 +340,7 @@ export default function NRESPresentationPage() {
               ref={slidesContainerRef}
               className="relative bg-card rounded-lg overflow-hidden shadow-lg fullscreen:bg-black"
             >
-              <div className="relative bg-muted flex items-center justify-center min-h-[400px] fullscreen:h-screen fullscreen:w-screen">
+              <div className="relative bg-muted flex items-center justify-center h-[calc(100vh-280px)] fullscreen:h-screen fullscreen:w-screen">
                 {pdfError ? (
                   <div className="p-8 text-center">
                     <Alert>
