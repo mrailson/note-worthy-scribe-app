@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ArrowLeft, ChevronLeft, ChevronRight, Maximize, Minimize, Video, FileText, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { supabase } from '@/integrations/supabase/client';
 import * as pdfjsLib from 'pdfjs-dist';
 import { SEO } from '@/components/SEO';
 
@@ -22,12 +23,30 @@ export default function NRESPresentationPage() {
   const [isSlidesFullscreen, setIsSlidesFullscreen] = useState(false);
   const [videoError, setVideoError] = useState(false);
   const [pdfError, setPdfError] = useState(false);
+  const [videoUrl, setVideoUrl] = useState<string>('');
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const slidesContainerRef = useRef<HTMLDivElement>(null);
   const pdfDocRef = useRef<any>(null);
+
+  // Get video URL from Supabase storage
+  useEffect(() => {
+    const getVideoUrl = () => {
+      const { data } = supabase.storage
+        .from('demo-videos')
+        .getPublicUrl('NRES24nov25.mp4');
+      
+      if (data?.publicUrl) {
+        setVideoUrl(data.publicUrl);
+      } else {
+        setVideoError(true);
+      }
+    };
+    
+    getVideoUrl();
+  }, []);
 
   // Load PDF
   useEffect(() => {
@@ -254,10 +273,10 @@ export default function NRESPresentationPage() {
                     <AlertDescription>
                       <p className="font-semibold mb-2">Video file not found</p>
                       <p className="text-sm mb-3">
-                        Please upload your video file named <code className="bg-background px-1 py-0.5 rounded">nres24nov25.mp4</code> to the <code className="bg-background px-1 py-0.5 rounded">public/Demo-videos/</code> folder.
+                        Please upload your video file named <code className="bg-background px-1 py-0.5 rounded">NRES24nov25.mp4</code> to the Supabase storage bucket <code className="bg-background px-1 py-0.5 rounded">demo-videos</code>.
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        The placeholder file needs to be replaced with your actual MP4 video.
+                        The video should be accessible from the demo-videos bucket.
                       </p>
                     </AlertDescription>
                   </Alert>
@@ -267,7 +286,7 @@ export default function NRESPresentationPage() {
                   ref={videoRef}
                   className="w-full aspect-video"
                   controls
-                  src="/Demo-videos/nres24nov25.mp4"
+                  src={videoUrl}
                 >
                   Your browser does not support the video tag.
                 </video>
