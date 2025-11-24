@@ -181,6 +181,22 @@ export default function NRESPresentationPage() {
     }
   };
 
+  // Handle fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const isFullscreen = !!document.fullscreenElement;
+      setIsSlidesFullscreen(isFullscreen);
+      
+      // Re-render slide when fullscreen state changes
+      if (isFullscreen || !isFullscreen) {
+        setTimeout(() => renderSlide(currentSlide), 100);
+      }
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, [currentSlide]);
+
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
