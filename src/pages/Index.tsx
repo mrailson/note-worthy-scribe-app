@@ -8,6 +8,8 @@ import { MeetingRecorder } from "@/components/MeetingRecorder";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
+import { ServiceOverview } from "@/components/ServiceOverview";
+import { DemoVideoSection } from "@/components/DemoVideoSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
@@ -247,37 +249,63 @@ const Index = () => {
     return (
       <div className="min-h-[100dvh] bg-gradient-background">
         <Header onNewMeeting={handleNewMeeting} />
-        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8">
+        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 max-w-4xl">
           <MaintenanceBanner />
           
-          {/* Prominent CSO Training Section */}
-          <div className="mb-8 max-w-3xl mx-auto">
-            <Link 
-              to="/usingai_nhs" 
-              className="block bg-gradient-to-r from-primary/10 to-accent/10 border-2 border-primary/30 rounded-xl p-6 hover:shadow-xl transition-all hover:scale-[1.02] active:scale-[0.98]"
-            >
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                <div className="flex-shrink-0 w-12 h-12 bg-primary/20 rounded-lg flex items-center justify-center">
-                  <Building2 className="w-6 h-6 text-primary" />
-                </div>
-                <div className="flex-1">
-                  <h2 className="text-xl sm:text-2xl font-bold text-foreground mb-2">
-                    Using AI in Your GP Practice & CSO Training
-                  </h2>
-                  <p className="text-muted-foreground">
-                    Watch our explainer video and access free CSO training resources for NHS practices
-                  </p>
-                </div>
-                <div className="sm:ml-auto">
-                  <span className="inline-flex items-center px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold text-sm">
-                    View Resources →
-                  </span>
+          <div className="space-y-8">
+            {/* Hero Section */}
+            <div className="text-center space-y-4 animate-fade-in">
+              <div className="flex justify-center mb-4">
+                <div className="p-3 rounded-xl bg-primary/10">
+                  <Building2 className="w-8 h-8 text-primary" />
                 </div>
               </div>
-            </Link>
+              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
+                Welcome to Notewell AI
+              </h1>
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                AI-powered complaints management and practice administration tools designed specifically for NHS GP practices
+              </p>
+            </div>
+
+            {/* Demo Video Section */}
+            <DemoVideoSection />
+
+            {/* Service Overview */}
+            <ServiceOverview />
+
+            {/* CSO Training Section - Refined */}
+            <div className="animate-fade-in">
+              <Link 
+                to="/usingai_nhs" 
+                className="block"
+              >
+                <div className="p-6 border border-border rounded-lg bg-card hover:shadow-lg transition-all hover:border-primary/50">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-centre gap-4">
+                    <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
+                      <Building2 className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-semibold text-foreground mb-1">
+                        Using AI in Your GP Practice & CSO Training
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        Watch our explainer video and access free CSO training resources for NHS practices
+                      </p>
+                    </div>
+                    <div className="sm:ml-auto self-center">
+                      <span className="inline-flex items-center px-3 py-1.5 bg-primary/10 text-primary rounded-md font-medium text-sm hover:bg-primary/20 transition-colors">
+                        View Resources →
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </div>
+
+            {/* Login Form */}
+            <LoginForm />
           </div>
-          
-          <LoginForm />
         </div>
       </div>
     );
