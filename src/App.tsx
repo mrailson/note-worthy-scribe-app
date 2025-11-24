@@ -68,6 +68,7 @@ import SecurityReport from "./pages/SecurityReport";
 import SecurityAudit20251119 from "./pages/SecurityAudit20251119";
 import NHSQuest from "./pages/NHSQuest";
 import DCB0129 from "./pages/DCB0129";
+import NRESPresentationPage from "./pages/NRESPresentationPage";
 import CSOTrainingRegister from "./pages/CSOTrainingRegister";
 import CSOTrainingDashboard from "./pages/CSOTrainingDashboard";
 import CSOTrainingModule from "./pages/CSOTrainingModule";
@@ -99,6 +100,7 @@ const App = () => {
               <Route path="/executive-overview" element={<ExecutiveOverview />} />
               <Route path="/demos" element={<DemoVideosPage />} />
               <Route path="/nres" element={<NRESDashboard />} />
+              <Route path="/nres-presentation" element={<NRESPresentationPage />} />
               <Route path="/nres/complex-care" element={<ProactiveComplexCareDashboard />} />
               <Route path="/nres/comms-strategy" element={<CommsStrategyDashboard />} />
               <Route path="/ai4gp" element={<AI4GP />} />
