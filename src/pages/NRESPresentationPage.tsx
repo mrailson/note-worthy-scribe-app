@@ -340,7 +340,7 @@ export default function NRESPresentationPage() {
               ref={slidesContainerRef}
               className="relative bg-card rounded-lg overflow-hidden shadow-lg fullscreen:bg-black"
             >
-              <div className="relative aspect-[4/3] bg-muted flex items-center justify-center fullscreen:aspect-auto fullscreen:h-screen fullscreen:w-screen">
+              <div className="relative bg-muted flex items-center justify-center min-h-[400px] fullscreen:h-screen fullscreen:w-screen">
                 {pdfError ? (
                   <div className="p-8 text-center">
                     <Alert>
