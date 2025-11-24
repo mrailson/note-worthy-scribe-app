@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Loader2, RotateCcw, AlertTriangle, CheckCircle, Trash2 } from 'lucide-react';
+import { Loader2, RotateCcw, AlertTriangle, CheckCircle, Trash2, Download } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
 
@@ -180,6 +180,33 @@ export const AudioBackupManager = () => {
     } catch (error) {
       console.error('Error updating auto-delete setting:', error);
       toast.error('Failed to update setting');
+    }
+  };
+
+  const downloadAudio = async (backup: AudioBackup) => {
+    try {
+      toast.info('Downloading audio backup...');
+      
+      const { data, error } = await supabase.storage
+        .from('meeting-audio-backups')
+        .download(backup.file_path);
+
+      if (error) throw error;
+
+      // Create download link
+      const url = URL.createObjectURL(data);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `audio_backup_${backup.meeting_id}_${new Date(backup.created_at).toISOString().split('T')[0]}.webm`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success('Audio backup downloaded successfully');
+    } catch (error) {
+      console.error('Error downloading audio backup:', error);
+      toast.error('Failed to download audio backup');
     }
   };
 
@@ -360,6 +387,14 @@ export const AudioBackupManager = () => {
                 )}
 
                 <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => downloadAudio(backup)}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download Audio
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
