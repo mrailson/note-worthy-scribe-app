@@ -264,7 +264,7 @@ export default function NRESPresentationPage() {
           {(viewMode === 'video' || viewMode === 'split') && (
             <div 
               ref={videoContainerRef}
-              className="relative bg-black rounded-lg overflow-hidden shadow-lg"
+              className="relative rounded-lg overflow-hidden shadow-lg"
             >
               {videoError ? (
                 <div className="w-full aspect-video bg-muted flex items-center justify-center p-8">
