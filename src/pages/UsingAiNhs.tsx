@@ -1,14 +1,25 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { BookOpen, Shield } from 'lucide-react';
+import { BookOpen, Shield, Home } from 'lucide-react';
 
 const UsingAiNhs = () => {
+  const navigate = useNavigate();
   const videoUrl = "https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/demo-videos/AI_in_the_Clinic.mp4";
 
   return (
     <div className="min-h-screen bg-background p-6">
       <div className="max-w-4xl mx-auto">
+        <Button
+          onClick={() => navigate('/')}
+          variant="ghost"
+          size="sm"
+          className="gap-2 mb-4"
+        >
+          <Home className="h-4 w-4" />
+          Back to Notewell AI
+        </Button>
         <Card>
           <CardHeader>
             <CardTitle className="text-3xl">Using AI in your GP Practice and the CSO Role (explainer video and CSO training links)</CardTitle>
