@@ -249,30 +249,40 @@ const Index = () => {
     return (
       <div className="min-h-[100dvh] bg-gradient-background">
         <Header onNewMeeting={handleNewMeeting} />
-        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 max-w-4xl">
+        <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 max-w-6xl">
           <MaintenanceBanner />
           
-          <div className="space-y-8">
-            {/* Login Form - First visible element */}
-            <LoginForm />
-
-            {/* Hero Section */}
-            <div className="text-center space-y-4 animate-fade-in">
-              <div className="flex justify-center mb-4">
-                <div className="p-3 rounded-xl bg-primary/10">
-                  <Building2 className="w-8 h-8 text-primary" />
+          {/* Two-column layout: Welcome content left, Login right */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+            {/* Left Column: Welcome Content */}
+            <div className="space-y-8">
+              {/* Hero Section */}
+              <div className="text-center lg:text-left space-y-4 animate-fade-in">
+                <div className="flex justify-center lg:justify-start mb-4">
+                  <div className="p-3 rounded-xl bg-primary/10">
+                    <Building2 className="w-8 h-8 text-primary" />
+                  </div>
                 </div>
+                <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
+                  Welcome to Notewell AI
+                </h1>
+                <p className="text-lg text-muted-foreground">
+                  AI-powered complaints management and practice administration tools designed specifically for NHS GP practices
+                </p>
               </div>
-              <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
-                Welcome to Notewell AI
-              </h1>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                AI-powered complaints management and practice administration tools designed specifically for NHS GP practices
-              </p>
+
+              {/* Demo Video Section */}
+              <DemoVideoSection />
             </div>
 
-            {/* Demo Video Section */}
-            <DemoVideoSection />
+            {/* Right Column: Login Form */}
+            <div className="lg:sticky lg:top-8 h-fit">
+              <LoginForm />
+            </div>
+          </div>
+
+          {/* Full-width sections below */}
+          <div className="space-y-8">
 
             {/* Service Overview */}
             <ServiceOverview />
