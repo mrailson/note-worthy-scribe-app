@@ -336,9 +336,6 @@ const Index = () => {
           {/* Full-width sections below */}
           <div className="space-y-8">
 
-            {/* Service Overview */}
-            <ServiceOverview />
-
             {/* CSO Training Section - Refined */}
             <div className="animate-fade-in">
               <Link 
@@ -367,6 +364,9 @@ const Index = () => {
                 </div>
               </Link>
             </div>
+
+            {/* Service Overview */}
+            <ServiceOverview />
           </div>
         </div>
       </div>
