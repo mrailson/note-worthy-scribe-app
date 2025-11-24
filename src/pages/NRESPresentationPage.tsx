@@ -254,7 +254,7 @@ export default function NRESPresentationPage() {
                     <AlertDescription>
                       <p className="font-semibold mb-2">Video file not found</p>
                       <p className="text-sm mb-3">
-                        Please upload your video file named <code className="bg-background px-1 py-0.5 rounded">nres25nov25.mp4</code> to the <code className="bg-background px-1 py-0.5 rounded">public/videos/</code> folder.
+                        Please upload your video file named <code className="bg-background px-1 py-0.5 rounded">nres24nov25.mp4</code> to the <code className="bg-background px-1 py-0.5 rounded">public/Demo-videos/</code> folder.
                       </p>
                       <p className="text-xs text-muted-foreground">
                         The placeholder file needs to be replaced with your actual MP4 video.
@@ -267,7 +267,7 @@ export default function NRESPresentationPage() {
                   ref={videoRef}
                   className="w-full aspect-video"
                   controls
-                  src="/videos/nres25nov25.mp4"
+                  src="/Demo-videos/nres24nov25.mp4"
                 >
                   Your browser does not support the video tag.
                 </video>
