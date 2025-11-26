@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { UploadedFile } from '@/types/ai4gp';
+import type { PresentationContent, GenerationMetadata } from '@/types/presentation';
 
 interface SlideDeckPanelProps {
   uploadedFiles: UploadedFile[];
@@ -34,6 +35,10 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [slideCount, setSlideCount] = useState('10');
   const [selectedVoice, setSelectedVoice] = useState(BRITISH_VOICES[0].id);
+  const [preloadedContent, setPreloadedContent] = useState<{
+    presentation: PresentationContent;
+    metadata: GenerationMetadata;
+  } | undefined>(undefined);
 
   const handleQuickGenerate = async () => {
     if (uploadedFiles.length === 0) {
@@ -64,9 +69,13 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
 
       if (error) throw error;
 
-      if (data?.success) {
+      if (data?.success && data?.presentation && data?.metadata) {
         toast.success('Executive overview generated successfully!');
-        // Open the full generator to show preview
+        // Set preloaded content and open modal
+        setPreloadedContent({
+          presentation: data.presentation,
+          metadata: data.metadata
+        });
         setIsOpen(true);
       } else {
         throw new Error(data?.error || 'Failed to generate presentation');
@@ -76,6 +85,14 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
       toast.error(error.message || 'Failed to generate executive overview');
     } finally {
       setIsGenerating(false);
+    }
+  };
+
+  const handleOpenChange = (open: boolean) => {
+    setIsOpen(open);
+    // Clear preloaded content when modal closes
+    if (!open) {
+      setPreloadedContent(undefined);
     }
   };
 
@@ -186,7 +203,8 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
 
       <PowerPointGenerator
         open={isOpen}
-        onOpenChange={setIsOpen}
+        onOpenChange={handleOpenChange}
+        preloadedContent={preloadedContent}
       />
     </div>
   );

@@ -31,6 +31,10 @@ import defaultPptBackground from "@/assets/default-ppt-background.jpg";
 interface PowerPointGeneratorProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  preloadedContent?: {
+    presentation: PresentationContent;
+    metadata: GenerationMetadata;
+  };
 }
 
 // Types are now imported from types/presentation.ts
@@ -53,7 +57,7 @@ const complexityLevels = [
   { value: "advanced", label: "Advanced", description: "Detailed, technical content" }
 ];
 
-export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorProps) => {
+export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: PowerPointGeneratorProps) => {
   const [currentStep, setCurrentStep] = useState<'input' | 'generating' | 'preview' | 'download'>('input');
   const [topic, setTopic] = useState("");
   const [presentationType, setPresentationType] = useState("Executive Overview");
@@ -65,6 +69,18 @@ export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorP
   const [generationProgress, setGenerationProgress] = useState(0);
   const [presentationContent, setPresentationContent] = useState<PresentationContent | null>(null);
   const [metadata, setMetadata] = useState<GenerationMetadata | null>(null);
+
+  // Load preloaded content when modal opens
+  React.useEffect(() => {
+    if (open && preloadedContent) {
+      setPresentationContent(preloadedContent.presentation);
+      setMetadata(preloadedContent.metadata);
+      setCurrentStep('preview');
+      setTopic(preloadedContent.metadata.topic);
+      setPresentationType(preloadedContent.metadata.presentationType);
+      setSlideCount(preloadedContent.metadata.slideCount);
+    }
+  }, [open, preloadedContent]);
   const [editingSlideIndex, setEditingSlideIndex] = useState<number | null>(null);
   const [editingSlide, setEditingSlide] = useState<SlideContent | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
