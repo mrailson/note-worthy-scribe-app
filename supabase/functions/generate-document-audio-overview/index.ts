@@ -5,6 +5,20 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper function to convert ArrayBuffer to base64 in chunks
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+  const bytes = new Uint8Array(buffer);
+  const chunkSize = 8192; // Process 8KB at a time
+  let binary = '';
+  
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+    binary += String.fromCharCode.apply(null, Array.from(chunk));
+  }
+  
+  return btoa(binary);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -96,10 +110,14 @@ serve(async (req) => {
       throw new Error(`Text-to-speech generation failed: ${ttsResponse.status}`);
     }
 
-    // Convert audio to base64 and create data URL
+    console.log('Converting audio to base64...');
     const audioBuffer = await ttsResponse.arrayBuffer();
-    const base64Audio = btoa(String.fromCharCode(...new Uint8Array(audioBuffer)));
+    console.log('Audio buffer size:', audioBuffer.byteLength, 'bytes');
+    
+    // Convert audio to base64 using chunked processing to avoid stack overflow
+    const base64Audio = arrayBufferToBase64(audioBuffer);
     const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
+    console.log('Audio conversion complete');
 
     const estimatedDuration = Math.ceil(narrativeText.split(' ').length / 2.5);
 
