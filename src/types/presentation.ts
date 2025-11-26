@@ -5,6 +5,26 @@ export interface SlideAnimation {
   elementOrder: boolean; // true for sequential, false for simultaneous
 }
 
+export interface MetricData {
+  value: string;
+  label: string;
+  trend?: 'up' | 'down' | 'stable';
+  changePercent?: string;
+}
+
+export interface ActionItem {
+  priority: number;
+  action: string;
+  owner?: string;
+  deadline?: string;
+}
+
+export interface TimelineStep {
+  phase: string;
+  duration: string;
+  description: string;
+}
+
 export interface SlideContent {
   title: string;
   type: string;
@@ -13,6 +33,9 @@ export interface SlideContent {
   meetingSection?: string;
   animation?: SlideAnimation;
   imageDescription?: string;
+  metrics?: MetricData[];
+  actions?: ActionItem[];
+  timeline?: TimelineStep[];
 }
 
 export interface PresentationContent {

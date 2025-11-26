@@ -38,6 +38,7 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
   const [preloadedContent, setPreloadedContent] = useState<{
     presentation: PresentationContent;
     metadata: GenerationMetadata;
+    slideImages?: { [key: number]: string };
   } | undefined>(undefined);
 
   const handleQuickGenerate = async () => {
@@ -70,11 +71,56 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
       if (error) throw error;
 
       if (data?.success && data?.presentation && data?.metadata) {
-        toast.success('Executive overview generated successfully!');
-        // Set preloaded content and open modal
+        toast.success('Presentation structure generated!');
+        
+        // Generate AI images for slides with imageDescription
+        const slidesWithImages = data.presentation.slides
+          .map((slide: any, index: number) => ({ slide, index }))
+          .filter(({ slide }: any) => slide.imageDescription);
+        
+        const slideImages: { [key: number]: string } = {};
+        
+        if (slidesWithImages.length > 0) {
+          toast.info(`Generating ${slidesWithImages.length} slide images...`);
+          
+          // Generate images sequentially to avoid overwhelming the API
+          for (let i = 0; i < slidesWithImages.length; i++) {
+            const { slide, index } = slidesWithImages[i];
+            
+            try {
+              toast.loading(`Generating image ${i + 1}/${slidesWithImages.length}...`, {
+                id: 'image-gen-progress'
+              });
+              
+              const { data: imageData, error: imageError } = await supabase.functions.invoke(
+                'generate-slide-images',
+                {
+                  body: {
+                    imageDescription: slide.imageDescription,
+                    slideTitle: slide.title
+                  }
+                }
+              );
+              
+              if (!imageError && imageData?.success && imageData?.imageUrl) {
+                slideImages[index] = imageData.imageUrl;
+              } else {
+                console.warn(`Failed to generate image for slide ${index}:`, imageError);
+              }
+            } catch (err) {
+              console.warn(`Error generating image for slide ${index}:`, err);
+            }
+          }
+          
+          toast.dismiss('image-gen-progress');
+          toast.success(`Generated ${Object.keys(slideImages).length} images!`);
+        }
+        
+        // Set preloaded content with generated images
         setPreloadedContent({
           presentation: data.presentation,
-          metadata: data.metadata
+          metadata: data.metadata,
+          slideImages
         });
         setIsOpen(true);
       } else {

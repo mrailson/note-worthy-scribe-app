@@ -34,6 +34,7 @@ interface PowerPointGeneratorProps {
   preloadedContent?: {
     presentation: PresentationContent;
     metadata: GenerationMetadata;
+    slideImages?: { [key: number]: string };
   };
 }
 
@@ -69,12 +70,14 @@ export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: Po
   const [generationProgress, setGenerationProgress] = useState(0);
   const [presentationContent, setPresentationContent] = useState<PresentationContent | null>(null);
   const [metadata, setMetadata] = useState<GenerationMetadata | null>(null);
+  const [preloadedImages, setPreloadedImages] = useState<{ [key: number]: string } | undefined>(undefined);
 
   // Load preloaded content when modal opens
   React.useEffect(() => {
     if (open && preloadedContent) {
       setPresentationContent(preloadedContent.presentation);
       setMetadata(preloadedContent.metadata);
+      setPreloadedImages(preloadedContent.slideImages);
       setCurrentStep('preview');
       setTopic(preloadedContent.metadata.topic);
       setPresentationType(preloadedContent.metadata.presentationType);
@@ -304,7 +307,8 @@ export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: Po
         metadata,
         titleFontSize,
         contentFontSize,
-        globalAnimation: globalAnimation.type !== 'none' ? globalAnimation : undefined
+        globalAnimation: globalAnimation.type !== 'none' ? globalAnimation : undefined,
+        slideImages: preloadedImages
       });
       
       toast.success("Enhanced PowerPoint presentation downloaded successfully!");
