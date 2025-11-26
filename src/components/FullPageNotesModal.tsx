@@ -1206,7 +1206,12 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     if (meeting?.id) {
       console.log('🔍 Meeting changed to:', meeting.id, '- Clearing previous transcript');
       setTranscript(''); // Clear previous transcript immediately
-      setActiveTab('notes'); // Reset to notes tab
+      // Respect the desired initial tab when a meeting is opened
+      if (initialTab) {
+        setActiveTab(initialTab);
+      } else {
+        setActiveTab('notes'); // Default to notes tab
+      }
       setIsEditing(false); // Exit edit mode
       setEditingContent(''); // Clear editing content
       setEditingTab(''); // Clear editing tab
@@ -1218,7 +1223,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       // Clear version history when meeting changes
       clearVersionHistory();
     }
-  }, [meeting?.id]);
+  }, [meeting?.id, initialTab]);
 
   // Get current content based on active tab and sub-tab
   const getCurrentContent = () => {
