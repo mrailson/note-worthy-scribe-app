@@ -50,16 +50,25 @@ interface MobileNotesSheetProps {
   onOpenChange: (open: boolean) => void;
   meeting: Meeting | null;
   notes: string;
+  initialTab?: 'notes' | 'transcript';
 }
 
 export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
   isOpen,
   onOpenChange,
   meeting,
-  notes
+  notes,
+  initialTab
 }) => {
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState("standard");
+  const [activeTab, setActiveTab] = useState(initialTab === 'transcript' ? 'transcript' : 'standard');
+  
+  // Update active tab when initialTab prop changes
+  useEffect(() => {
+    if (initialTab && isOpen) {
+      setActiveTab(initialTab === 'transcript' ? 'transcript' : 'standard');
+    }
+  }, [initialTab, isOpen]);
   const isIOS = detectDevice().isIOS;
   const [notesStyle2, setNotesStyle2] = useState("");
   const [notesStyle3, setNotesStyle3] = useState("");

@@ -436,6 +436,7 @@ export const MeetingHistoryList = ({
   const [selectedMeetingForNotes, setSelectedMeetingForNotes] = useState<Meeting | null>(null);
   const [desktopNotesOpen, setDesktopNotesOpen] = useState(false);
   const [meetingNotes, setMeetingNotes] = useState("");
+  const [initialTabForModal, setInitialTabForModal] = useState<'notes' | 'transcript'>('notes');
   const isMobile = useIsMobile();
   
   // Add state for signed URLs
@@ -2289,6 +2290,7 @@ export const MeetingHistoryList = ({
                     
                     console.log('📱 Click event - calling handleViewNotes for meeting:', meeting.id);
                     try {
+                      setInitialTabForModal('notes'); // Reset to notes tab
                       handleViewNotesWithDeduplication(meeting, 'click');
                     } catch (error) {
                       console.error('❌ Error:', error);
@@ -2355,6 +2357,21 @@ export const MeetingHistoryList = ({
                       >
                         <Mail className="h-4 w-4 mr-2" />
                         Email Meeting Notes
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          if (!isResourceOperationSafe()) {
+                            toast.error("Cannot view transcript while recording is active.");
+                            return;
+                          }
+                          setInitialTabForModal('transcript');
+                          handleViewNotesWithDeduplication(meeting, 'click');
+                        }}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Transcript
                       </DropdownMenuItem>
                       <DropdownMenuItem 
                         onSelect={(e) => {
