@@ -12,6 +12,7 @@ export interface SlideContent {
   notes?: string;
   meetingSection?: string;
   animation?: SlideAnimation;
+  imageDescription?: string;
 }
 
 export interface PresentationContent {

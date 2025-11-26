@@ -24,6 +24,7 @@ interface SlideContent {
   content: string[];
   notes?: string;
   meetingSection?: string;
+  imageDescription?: string;
 }
 
 interface PresentationContent {
@@ -46,8 +47,22 @@ serve(async (req) => {
 
     console.log(`Generating PowerPoint for topic: ${topic}, type: ${presentationType}, with ${supportingFiles.length} supporting files`);
 
+    // Auto-extract topic if not provided but files exist
+    let finalTopic = topic;
+    if ((!topic || topic.trim() === '') && supportingFiles.length > 0) {
+      finalTopic = `Executive Overview: ${supportingFiles[0].name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ')}`;
+      console.log(`Auto-generated topic: ${finalTopic}`);
+    }
+
     // Define presentation-specific prompts
     const typePrompts = {
+      'Executive Overview': `Create a high-level executive overview presentation focusing on strategic insights, key metrics, data-driven recommendations, and actionable next steps. Structure:
+- Executive Summary slide with 3-4 critical takeaways
+- Key Metrics slides with quantifiable data points
+- Strategic Insights with evidence-based analysis
+- Recommendations with clear action items
+- Implementation Roadmap with timeline
+Keep bullet points concise (maximum 4 per slide). Use professional British English. Each slide MUST include an imageDescription field describing a relevant professional icon, chart representation, or abstract business visual.`,
       'Clinical Guidelines': 'Create a clinical guidelines presentation focusing on evidence-based recommendations, implementation steps, and clinical pathways.',
       'Patient Education': 'Create a patient-friendly educational presentation with clear explanations, visual aids, and actionable advice.',
       'Training Materials': 'Create a comprehensive training presentation with learning objectives, key concepts, and practical exercises.',
@@ -67,7 +82,7 @@ serve(async (req) => {
       supportingFiles.forEach((file, index) => {
         supportingContext += `\n=== Document ${index + 1}: ${file.name} ===\n${file.content}\n`;
       });
-      supportingContext += '\nPlease incorporate relevant information from these supporting documents into the presentation content where appropriate.\n';
+      supportingContext += '\nPlease incorporate relevant information from these supporting documents into the presentation content where appropriate. Extract key data, metrics, and insights.\n';
     }
 
     // Generate presentation content using Claude
@@ -85,19 +100,22 @@ serve(async (req) => {
           role: "user", 
           content: `${specificPrompt}
           
-          Topic: "${topic}"
+          Topic: "${finalTopic}"
           Complexity Level: ${complexityLevel}
           Target Slide Count: ${slideCount}${supportingContext}
           
-          IMPORTANT: Use British English throughout all content, including:
-          - British spelling (organisation, realise, colour, centre, etc.)
-          - British terminology (GP, surgery, A&E, NHS terminology)
-          - British healthcare context and references
-          - Professional tone suitable for UK healthcare settings
+          CRITICAL REQUIREMENTS:
+          - Use British English throughout (organisation, realise, colour, centre, etc.)
+          - British healthcare terminology (GP, surgery, A&E, NHS)
+          - Professional tone suitable for UK healthcare executives
+          - Maximum 4 bullet points per slide
+          - Each bullet must be concise and actionable
+          - Each slide MUST include an "imageDescription" field describing a professional visual
           
-          For meeting-type presentations, include appropriate governance structure, decision-making frameworks, and action item tracking.
-          
-          Create a comprehensive presentation outline with detailed content for each slide using British English.
+          For Executive Overview presentations:
+          - Focus on strategic value and business impact
+          - Include data/metrics from documents where available
+          - Clear slide types: "executive-summary", "key-metrics", "insights", "recommendations", "next-steps"
           
           Return ONLY valid JSON with this exact structure:
           {
@@ -105,15 +123,15 @@ serve(async (req) => {
             "slides": [
               {
                 "title": "Slide Title",
-                "type": "title|agenda|metrics|content|comparison|decisions|actions|summary", 
+                "type": "executive-summary|key-metrics|insights|recommendations|next-steps|content", 
                 "content": ["bullet point 1", "bullet point 2", "bullet point 3"],
-                "notes": "detailed presenter notes for this slide",
-                "meetingSection": "governance|performance|strategic|operational"
+                "notes": "detailed presenter notes",
+                "imageDescription": "Description of professional image/icon/chart visual for this slide"
               }
             ]
           }
           
-          Ensure each slide has 3-5 meaningful bullet points and comprehensive presenter notes.`
+          Ensure imageDescription is always present and describes a relevant, professional visual.`
         }]
       })
     });
@@ -128,10 +146,7 @@ serve(async (req) => {
     let presentationContent: PresentationContent;
 
     try {
-      // Extract the content from Claude's response
       const contentText = claudeData.content[0].text;
-      
-      // Find JSON within the response (handle any extra text)
       const jsonMatch = contentText.match(/\{[\s\S]*\}/);
       if (!jsonMatch) {
         throw new Error('No valid JSON found in Claude response');
@@ -146,12 +161,11 @@ serve(async (req) => {
 
     console.log(`Generated presentation: "${presentationContent.title}" with ${presentationContent.slides.length} slides`);
 
-    // Generate PowerPoint file data structure (to be processed by frontend)
     const response = {
       success: true,
       presentation: presentationContent,
       metadata: {
-        topic,
+        topic: finalTopic,
         presentationType,
         slideCount: presentationContent.slides.length,
         complexityLevel,

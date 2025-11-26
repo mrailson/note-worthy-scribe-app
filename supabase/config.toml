@@ -251,3 +251,9 @@ verify_jwt = true
 
 [functions.generate-document-audio-overview]
 verify_jwt = true
+
+[functions.generate-slide-images]
+verify_jwt = true
+
+[functions.generate-powerpoint]
+verify_jwt = true
