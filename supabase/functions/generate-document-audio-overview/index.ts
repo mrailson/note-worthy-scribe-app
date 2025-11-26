@@ -51,10 +51,12 @@ serve(async (req) => {
         messages: [
           {
             role: 'system',
-            content: `You are a professional podcast narrator creating an engaging audio overview. 
+            content: `You are a professional narrator creating an engaging audio overview. 
             Create a natural, conversational summary that sounds great when spoken aloud.
             Target length: approximately ${targetWords} words.
-            Use clear transitions and maintain an engaging tone throughout.`
+            Use clear transitions and maintain an engaging tone throughout.
+            IMPORTANT: Write only spoken words - NO stage directions, sound effects, music cues, or script notations like "(music fades in)". 
+            Just write the actual narrative text that should be spoken.`
           },
           {
             role: 'user',
