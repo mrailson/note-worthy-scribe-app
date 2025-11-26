@@ -122,6 +122,7 @@ interface FullPageNotesModalProps {
   meeting: Meeting | null;
   notes: string;
   onNotesChange: (notes: string) => void;
+  initialTab?: 'notes' | 'transcript';
 }
 
 interface ContentVersion {
@@ -136,7 +137,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   onClose,
   meeting,
   notes,
-  onNotesChange
+  onNotesChange,
+  initialTab
 }) => {
   const { user, canViewConsultationExamples } = useAuth();
   const { isRecording, isResourceOperationSafe } = useRecording();
@@ -165,8 +167,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   // Safety constants for large content handling
   const MAX_CONTENT_LENGTH = 20000; // characters
   const ENHANCEMENT_TIMEOUT = 60000; // 60 seconds
-  const [activeTab, setActiveTab] = useState("notes");
+  const [activeTab, setActiveTab] = useState(initialTab || "notes");
   const [activeNotesStyleTab, setActiveNotesStyleTab] = useState("style1");
+  
+  // Update active tab when initialTab prop changes
+  useEffect(() => {
+    if (initialTab && isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [initialTab, isOpen]);
   const [notesStyle2, setNotesStyle2] = useState("");
   const [notesStyle3, setNotesStyle3] = useState("");
   const [notesStyle4, setNotesStyle4] = useState("");
@@ -382,9 +391,15 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
           if (key) localStorage.setItem(key, html);
           console.log('✅ Minutes rendered successfully');
         } catch (e) {
-          console.error('Error rendering Standard minutes:', e);
-          setMinutesHtml(notesStyle3);
-          if (key) localStorage.setItem(key, notesStyle3);
+          console.error('❌ Critical error rendering Standard minutes:', e);
+          // Fallback to plain markdown if rendering fails
+          const fallbackHtml = `<div class="p-4 bg-yellow-50 border border-yellow-200 rounded mb-4">
+            <p class="text-yellow-800 text-sm">⚠️ Unable to render formatted minutes. Displaying plain content.</p>
+          </div>
+          <div class="whitespace-pre-wrap">${notesStyle3}</div>`;
+          setMinutesHtml(fallbackHtml);
+          if (key) localStorage.setItem(key, fallbackHtml);
+          toast.error('Formatting error - displaying plain notes');
         } finally {
           setIsRenderingMinutes(false);
         }
@@ -524,10 +539,23 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
             return;
           }
           
-          if (transcriptError) {
-            console.error('❌ Error fetching transcript for meeting', currentMeetingId, ':', transcriptError);
-          } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
-            console.log('✅ Transcript fetched for meeting', currentMeetingId, ':', transcriptData.length, 'segments');
+           if (transcriptError) {
+             console.error('❌ Error fetching transcript for meeting', currentMeetingId, ':', transcriptError);
+             // Check for specific database errors
+             if (transcriptError.message?.includes('structure of query does not match')) {
+               console.error('⚠️ Database function schema mismatch detected');
+               toast.error('Transcript fetch error - please try again');
+             }
+           } else if (transcriptData && Array.isArray(transcriptData) && transcriptData.length > 0) {
+             // Check if RPC returned an error response
+             const firstResult = transcriptData[0];
+             if (firstResult?.source === 'error') {
+               console.error('❌ RPC returned error:', firstResult);
+               toast.error('Error loading transcript');
+               return;
+             }
+             
+             console.log('✅ Transcript fetched for meeting', currentMeetingId, ':', transcriptData.length, 'segments');
             
             // Calculate size early to detect large transcripts
             const rawSize = JSON.stringify(transcriptData).length;
@@ -3282,7 +3310,10 @@ ${transcriptToUse}`;
                 setEditingContent("");
                 setEditingTab("");
               }
-              setActiveTab(value);
+              // Type guard to ensure value is valid before setting
+              if (value === 'notes' || value === 'transcript') {
+                setActiveTab(value);
+              }
             }} className="h-full flex flex-col">
               <div className="px-3 pt-4 flex-shrink-0">
                 <div className="flex items-center gap-2">
