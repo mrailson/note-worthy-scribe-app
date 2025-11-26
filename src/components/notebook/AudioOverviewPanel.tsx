@@ -14,10 +14,13 @@ interface AudioOverviewPanelProps {
 }
 
 const VOICE_OPTIONS = [
-  { id: 'nPczCjzI2devNBz1zQrb', name: 'Brian (Male, Professional)', provider: 'elevenlabs' },
-  { id: 'pFZP5JQG7iQjIQuC4Bku', name: 'Lily (Female, Warm)', provider: 'elevenlabs' },
-  { id: 'TX3LPaxmHKxFdv7VOQHJ', name: 'Liam (Male, Energetic)', provider: 'elevenlabs' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George (Male, Professional)', provider: 'elevenlabs' },
+  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum (Male, Warm)', provider: 'elevenlabs' },
   { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte (Female, Clear)', provider: 'elevenlabs' },
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice (Female, Friendly)', provider: 'elevenlabs' },
+  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda (Female, Articulate)', provider: 'elevenlabs' },
+  { id: 'bIHbv24MWmeRgasZH58o', name: 'Will (Male, Confident)', provider: 'elevenlabs' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel (Male, Authoritative)', provider: 'elevenlabs' },
 ];
 
 export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) => {
