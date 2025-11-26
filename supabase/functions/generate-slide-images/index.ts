@@ -26,6 +26,27 @@ serve(async (req) => {
 
     console.log(`Generating image for slide: ${slideTitle}`);
 
+    // Determine slide type from title/description to customize visual style
+    const lowerDesc = imageDescription.toLowerCase();
+    const lowerTitle = slideTitle.toLowerCase();
+    
+    let stylePrompt = "modern, minimal, professional, flat design illustration";
+    let colorScheme = "using a sophisticated blue and grey corporate color palette";
+    
+    if (lowerDesc.includes('metric') || lowerDesc.includes('dashboard') || lowerTitle.includes('metric')) {
+      stylePrompt = "abstract data visualization, infographic style, geometric shapes representing analytics";
+      colorScheme = "using vibrant blue, green, and purple accent colors on light background";
+    } else if (lowerDesc.includes('action') || lowerDesc.includes('recommendation') || lowerTitle.includes('recommendation')) {
+      stylePrompt = "goal-oriented visual, upward arrows, achievement icons, action-focused composition";
+      colorScheme = "using energetic orange, blue, and green colors";
+    } else if (lowerDesc.includes('timeline') || lowerDesc.includes('roadmap') || lowerTitle.includes('next step')) {
+      stylePrompt = "horizontal timeline visualization, connected pathway, progression concept";
+      colorScheme = "using sequential blue gradient tones";
+    } else if (lowerDesc.includes('insight') || lowerDesc.includes('analysis')) {
+      stylePrompt = "analytical concept, lightbulb moment, strategic thinking visualization";
+      colorScheme = "using warm amber and teal professional tones";
+    }
+
     // Generate image using Lovable AI (Nano banana model)
     const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -38,7 +59,18 @@ serve(async (req) => {
         messages: [
           {
             role: "user",
-            content: `Create a professional, clean business image for an executive presentation slide. ${imageDescription}. Style: modern, minimal, professional, suitable for corporate PowerPoint presentations. No text or labels in the image.`
+            content: `Create a professional, clean business image for an executive presentation slide about: ${imageDescription}. 
+            
+Style requirements:
+- ${stylePrompt}
+- ${colorScheme}
+- Suitable for corporate PowerPoint presentations
+- NO text, labels, or words in the image
+- Clean white or subtle gradient background
+- Professional iconography
+- Modern flat design aesthetic
+- High contrast for visibility
+- Simple and impactful composition`
           }
         ],
         modalities: ["image", "text"]

@@ -56,13 +56,37 @@ serve(async (req) => {
 
     // Define presentation-specific prompts
     const typePrompts = {
-      'Executive Overview': `Create a high-level executive overview presentation focusing on strategic insights, key metrics, data-driven recommendations, and actionable next steps. Structure:
-- Executive Summary slide with 3-4 critical takeaways
-- Key Metrics slides with quantifiable data points
-- Strategic Insights with evidence-based analysis
-- Recommendations with clear action items
-- Implementation Roadmap with timeline
-Keep bullet points concise (maximum 4 per slide). Use professional British English. Each slide MUST include an imageDescription field describing a relevant professional icon, chart representation, or abstract business visual.`,
+      'Executive Overview': `Create a high-level executive overview presentation focusing on strategic insights, key metrics, data-driven recommendations, and actionable next steps.
+
+SLIDE STRUCTURE REQUIREMENTS:
+
+1. Executive Summary (type: "executive-summary"):
+   - 3-4 critical takeaways as bullet points
+   - imageDescription: professional business concept or strategic icon
+
+2. Key Metrics (type: "key-metrics"):
+   - Include structured "metrics" array with 3-4 metrics
+   - Each metric: {"value": "87%", "label": "Patient Satisfaction", "trend": "up", "changePercent": "+12%"}
+   - Content as summary bullets
+   - imageDescription: abstract data visualization or dashboard concept
+
+3. Strategic Insights (type: "insights"):
+   - Evidence-based analysis points
+   - imageDescription: analytical or insight-related visual
+
+4. Recommendations (type: "recommendations"):
+   - Include structured "actions" array with 3-4 items
+   - Each action: {"priority": 1, "action": "Implement X system", "owner": "Clinical Lead", "deadline": "Q2 2025"}
+   - Content as supporting detail bullets
+   - imageDescription: action-oriented or goal-focused visual
+
+5. Next Steps/Timeline (type: "next-steps"):
+   - Include structured "timeline" array with 3-4 phases
+   - Each step: {"phase": "Phase 1: Planning", "duration": "2 months", "description": "Requirements gathering"}
+   - Content as supporting bullets
+   - imageDescription: timeline or roadmap visual
+
+Keep bullet points concise (maximum 4 per slide). Use professional British English.`,
       'Clinical Guidelines': 'Create a clinical guidelines presentation focusing on evidence-based recommendations, implementation steps, and clinical pathways.',
       'Patient Education': 'Create a patient-friendly educational presentation with clear explanations, visual aids, and actionable advice.',
       'Training Materials': 'Create a comprehensive training presentation with learning objectives, key concepts, and practical exercises.',
@@ -126,12 +150,19 @@ Keep bullet points concise (maximum 4 per slide). Use professional British Engli
                 "type": "executive-summary|key-metrics|insights|recommendations|next-steps|content", 
                 "content": ["bullet point 1", "bullet point 2", "bullet point 3"],
                 "notes": "detailed presenter notes",
-                "imageDescription": "Description of professional image/icon/chart visual for this slide"
+                "imageDescription": "Description of professional image/icon/chart visual for this slide",
+                "metrics": [{"value": "87%", "label": "Metric Name", "trend": "up", "changePercent": "+12%"}],
+                "actions": [{"priority": 1, "action": "Action description", "owner": "Owner", "deadline": "Q2 2025"}],
+                "timeline": [{"phase": "Phase 1", "duration": "2 months", "description": "Phase description"}]
               }
             ]
           }
           
-          Ensure imageDescription is always present and describes a relevant, professional visual.`
+          CRITICAL: 
+          - For key-metrics slides, INCLUDE the "metrics" array
+          - For recommendations slides, INCLUDE the "actions" array  
+          - For next-steps slides, INCLUDE the "timeline" array
+          - Always include imageDescription for visual generation`
         }]
       })
     });

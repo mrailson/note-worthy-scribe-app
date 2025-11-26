@@ -328,6 +328,189 @@ class TemplateRenderer {
     this.addTemplateFooter(slide);
   }
   
+  private addMetricCard(slide: any, metric: any, x: number, y: number, w: number, h: number) {
+    // Card background
+    slide.addShape(this.pptx.ShapeType.rect, {
+      x, y, w, h,
+      fill: { color: this.template.secondaryColor, transparency: 20 },
+      line: { width: 1, color: this.template.primaryColor }
+    });
+    
+    // Large metric value
+    slide.addText(metric.value, {
+      x: x + 0.1,
+      y: y + 0.2,
+      w: w - 0.2,
+      h: h * 0.5,
+      fontSize: 36,
+      bold: true,
+      color: this.template.primaryColor,
+      fontFace: this.template.fonts.heading,
+      align: 'center'
+    });
+    
+    // Metric label
+    slide.addText(metric.label, {
+      x: x + 0.1,
+      y: y + h * 0.6,
+      w: w - 0.2,
+      h: h * 0.25,
+      fontSize: 14,
+      color: this.template.textColor,
+      fontFace: this.template.fonts.body,
+      align: 'center'
+    });
+    
+    // Trend indicator if available
+    if (metric.trend && metric.changePercent) {
+      const trendColor = metric.trend === 'up' ? '00AA00' : metric.trend === 'down' ? 'DD0000' : '888888';
+      const trendSymbol = metric.trend === 'up' ? '↑' : metric.trend === 'down' ? '↓' : '→';
+      slide.addText(`${trendSymbol} ${metric.changePercent}`, {
+        x: x + 0.1,
+        y: y + h * 0.85,
+        w: w - 0.2,
+        h: 0.2,
+        fontSize: 11,
+        color: trendColor,
+        fontFace: this.template.fonts.body,
+        align: 'center',
+        bold: true
+      });
+    }
+  }
+
+  private addActionCard(slide: any, action: any, x: number, y: number, w: number, h: number) {
+    // Priority badge
+    const priorityColors = ['DD3333', 'FF8800', '0088DD', '888888'];
+    const priorityColor = priorityColors[Math.min(action.priority - 1, 3)];
+    
+    slide.addShape(this.pptx.ShapeType.ellipse, {
+      x: x + 0.1,
+      y: y + 0.1,
+      w: 0.4,
+      h: 0.4,
+      fill: { color: priorityColor },
+      line: { width: 0 }
+    });
+    
+    slide.addText(action.priority.toString(), {
+      x: x + 0.1,
+      y: y + 0.1,
+      w: 0.4,
+      h: 0.4,
+      fontSize: 18,
+      bold: true,
+      color: 'FFFFFF',
+      fontFace: this.template.fonts.heading,
+      align: 'center',
+      valign: 'middle'
+    });
+    
+    // Action background card
+    slide.addShape(this.pptx.ShapeType.rect, {
+      x: x + 0.6,
+      y,
+      w: w - 0.7,
+      h,
+      fill: { color: this.template.backgroundColor, transparency: 10 },
+      line: { width: 1, color: priorityColor }
+    });
+    
+    // Action text
+    slide.addText(action.action, {
+      x: x + 0.7,
+      y: y + 0.1,
+      w: w - 0.9,
+      h: h * 0.5,
+      fontSize: 14,
+      bold: true,
+      color: this.template.textColor,
+      fontFace: this.template.fonts.body,
+      valign: 'top'
+    });
+    
+    // Owner and deadline
+    if (action.owner || action.deadline) {
+      const detailText = [action.owner, action.deadline].filter(Boolean).join(' • ');
+      slide.addText(detailText, {
+        x: x + 0.7,
+        y: y + h * 0.6,
+        w: w - 0.9,
+        h: h * 0.3,
+        fontSize: 11,
+        color: this.template.accentColor,
+        fontFace: this.template.fonts.body,
+        italic: true
+      });
+    }
+  }
+
+  private addTimelineStep(slide: any, step: any, x: number, y: number, w: number, isLast: boolean) {
+    const nodeSize = 0.35;
+    const nodeY = y;
+    
+    // Timeline node
+    slide.addShape(this.pptx.ShapeType.ellipse, {
+      x: x,
+      y: nodeY,
+      w: nodeSize,
+      h: nodeSize,
+      fill: { color: this.template.primaryColor },
+      line: { width: 2, color: this.template.accentColor }
+    });
+    
+    // Connecting line to next node
+    if (!isLast) {
+      slide.addShape(this.pptx.ShapeType.line, {
+        x: x + nodeSize,
+        y: nodeY + nodeSize / 2,
+        w: w - nodeSize - 0.1,
+        h: 0,
+        line: { width: 3, color: this.template.primaryColor }
+      });
+    }
+    
+    // Phase label above
+    slide.addText(step.phase, {
+      x: x - 0.3,
+      y: nodeY - 0.5,
+      w: nodeSize + 0.6,
+      h: 0.3,
+      fontSize: 13,
+      bold: true,
+      color: this.template.headingColor,
+      fontFace: this.template.fonts.heading,
+      align: 'center'
+    });
+    
+    // Duration below node
+    slide.addText(step.duration, {
+      x: x - 0.3,
+      y: nodeY + nodeSize + 0.05,
+      w: nodeSize + 0.6,
+      h: 0.25,
+      fontSize: 11,
+      color: this.template.accentColor,
+      fontFace: this.template.fonts.body,
+      align: 'center',
+      italic: true
+    });
+    
+    // Description below
+    slide.addText(step.description, {
+      x: x - 0.5,
+      y: nodeY + nodeSize + 0.35,
+      w: Math.min(w + 0.4, 2.5),
+      h: 0.6,
+      fontSize: 10,
+      color: this.template.textColor,
+      fontFace: this.template.fonts.body,
+      align: 'center',
+      valign: 'top',
+      wrap: true
+    });
+  }
+
   createContentSlide(slideData: SlideContent, slideNumber: number, totalSlides: number, titleFontSize: number = 28, contentFontSize: number = 16, imageData?: string) {
     const slide = this.pptx.addSlide();
     this.addTemplateBackground(slide);
@@ -366,51 +549,166 @@ class TemplateRenderer {
       }
     }
     
-    // Content with optimized layout
-    if (slideData.content && slideData.content.length > 0) {
-      const layout = LayoutEngine.calculateOptimalLayout(slideData.content);
+    // Render content based on slide type
+    const slideType = slideData.type.toLowerCase();
+    
+    if (slideType === 'key-metrics' && slideData.metrics && slideData.metrics.length > 0) {
+      // Dashboard layout for metrics
+      const metricsPerRow = 2;
+      const cardWidth = 3.0;
+      const cardHeight = 1.8;
+      const cardSpacingX = 3.5;
+      const cardSpacingY = 2.2;
+      const startX = 1.5;
+      const startY = 2.0;
       
-      // If content needs multiple slides, only show first batch and add continuation note
-      const contentToShow = layout.slides[0].content;
-      
-      contentToShow.forEach((point, index) => {
-        const cleanText = LayoutEngine.formatTextForPowerPoint(point);
-        const optimizedText = LayoutEngine.optimizeTextForSlide(cleanText, hasImage ? 60 : 85);
-        
-        const textConfig: any = {
-          x: 1,
-          y: 1.8 + (index * 0.35),
-          w: contentWidth,
-          h: 0.3,
-          fontSize: contentFontSize,
-          fontFace: this.template.fonts.body,
-          bullet: { type: 'bullet' },
-          lineSpacing: 20,
-          wrap: true,
-          breakLine: true,
-          color: this.template.textColor
-        };
-        
-        // Alternate bullet colors for bright theme
-        if (this.template.style === 'bright' && index % 2 === 1) {
-          textConfig.color = this.template.accentColor;
-        }
-        
-        slide.addText(optimizedText, textConfig);
+      slideData.metrics.slice(0, 4).forEach((metric, index) => {
+        const row = Math.floor(index / metricsPerRow);
+        const col = index % metricsPerRow;
+        this.addMetricCard(
+          slide,
+          metric,
+          startX + (col * cardSpacingX),
+          startY + (row * cardSpacingY),
+          cardWidth,
+          cardHeight
+        );
       });
       
-      // Add continuation note if content was truncated (adjusted for widescreen)
-      if (layout.slides.length > 1) {
-        slide.addText('(Content continues...)', {
+    } else if (slideType === 'recommendations' && slideData.actions && slideData.actions.length > 0) {
+      // Action cards layout
+      const cardHeight = 0.9;
+      const cardSpacing = 1.1;
+      const startY = 2.0;
+      
+      slideData.actions.slice(0, 4).forEach((action, index) => {
+        this.addActionCard(
+          slide,
+          action,
+          1.0,
+          startY + (index * cardSpacing),
+          hasImage ? 6.5 : 11.0,
+          cardHeight
+        );
+      });
+      
+    } else if (slideType === 'next-steps' && slideData.timeline && slideData.timeline.length > 0) {
+      // Timeline layout
+      const steps = slideData.timeline.slice(0, 4);
+      const stepWidth = (hasImage ? 6.5 : 10.5) / steps.length;
+      const startX = 1.5;
+      const timelineY = 2.5;
+      
+      steps.forEach((step, index) => {
+        this.addTimelineStep(
+          slide,
+          step,
+          startX + (index * stepWidth),
+          timelineY,
+          stepWidth,
+          index === steps.length - 1
+        );
+      });
+      
+    } else if (slideType === 'executive-summary') {
+      // Hero card for executive summary
+      if (slideData.content && slideData.content.length > 0) {
+        // Main takeaway card
+        slide.addShape(this.pptx.ShapeType.rect, {
           x: 1.5,
-          y: 6.0,
-          w: contentWidth,
-          h: 0.3,
-          fontSize: 14,
-          fontFace: this.template.fonts.body,
-          color: this.template.footerColor,
-          italic: true
+          y: 2.0,
+          w: hasImage ? 5.5 : 10.0,
+          h: 2.0,
+          fill: { color: this.template.primaryColor, transparency: 10 },
+          line: { width: 0 }
         });
+        
+        slide.addText(slideData.content[0], {
+          x: 1.8,
+          y: 2.3,
+          w: hasImage ? 5.0 : 9.5,
+          h: 1.5,
+          fontSize: 18,
+          bold: true,
+          color: this.template.headingColor,
+          fontFace: this.template.fonts.heading,
+          valign: 'middle',
+          wrap: true
+        });
+        
+        // Additional takeaway boxes
+        const remainingItems = slideData.content.slice(1, 4);
+        const boxWidth = (hasImage ? 5.5 : 10.0) / remainingItems.length - 0.2;
+        
+        remainingItems.forEach((item, index) => {
+          const boxX = 1.5 + (index * (boxWidth + 0.2));
+          
+          slide.addShape(this.pptx.ShapeType.rect, {
+            x: boxX,
+            y: 4.5,
+            w: boxWidth,
+            h: 1.5,
+            fill: { color: this.template.secondaryColor, transparency: 30 },
+            line: { width: 1, color: this.template.primaryColor }
+          });
+          
+          slide.addText(item, {
+            x: boxX + 0.1,
+            y: 4.7,
+            w: boxWidth - 0.2,
+            h: 1.1,
+            fontSize: 12,
+            color: this.template.textColor,
+            fontFace: this.template.fonts.body,
+            valign: 'top',
+            wrap: true
+          });
+        });
+      }
+      
+    } else {
+      // Standard bullet point layout for other slide types
+      if (slideData.content && slideData.content.length > 0) {
+        const layout = LayoutEngine.calculateOptimalLayout(slideData.content);
+        const contentToShow = layout.slides[0].content;
+        
+        contentToShow.forEach((point, index) => {
+          const cleanText = LayoutEngine.formatTextForPowerPoint(point);
+          const optimizedText = LayoutEngine.optimizeTextForSlide(cleanText, hasImage ? 60 : 85);
+          
+          const textConfig: any = {
+            x: 1,
+            y: 1.8 + (index * 0.35),
+            w: contentWidth,
+            h: 0.3,
+            fontSize: contentFontSize,
+            fontFace: this.template.fonts.body,
+            bullet: { type: 'bullet' },
+            lineSpacing: 20,
+            wrap: true,
+            breakLine: true,
+            color: this.template.textColor
+          };
+          
+          if (this.template.style === 'bright' && index % 2 === 1) {
+            textConfig.color = this.template.accentColor;
+          }
+          
+          slide.addText(optimizedText, textConfig);
+        });
+        
+        if (layout.slides.length > 1) {
+          slide.addText('(Content continues...)', {
+            x: 1.5,
+            y: 6.0,
+            w: contentWidth,
+            h: 0.3,
+            fontSize: 14,
+            fontFace: this.template.fonts.body,
+            color: this.template.footerColor,
+            italic: true
+          });
+        }
       }
     }
     
