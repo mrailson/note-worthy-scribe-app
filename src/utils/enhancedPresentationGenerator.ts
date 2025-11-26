@@ -15,6 +15,7 @@ export interface EnhancedGenerationOptions {
   titleFontSize?: number;
   contentFontSize?: number;
   globalAnimation?: SlideAnimation;
+  slideImages?: { [slideIndex: number]: string };
 }
 
 class LayoutEngine {
@@ -327,15 +328,19 @@ class TemplateRenderer {
     this.addTemplateFooter(slide);
   }
   
-  createContentSlide(slideData: SlideContent, slideNumber: number, totalSlides: number, titleFontSize: number = 28, contentFontSize: number = 16) {
+  createContentSlide(slideData: SlideContent, slideNumber: number, totalSlides: number, titleFontSize: number = 28, contentFontSize: number = 16, imageData?: string) {
     const slide = this.pptx.addSlide();
     this.addTemplateBackground(slide);
+    
+    // Determine if we have an image to display
+    const hasImage = imageData && imageData.length > 0;
+    const contentWidth = hasImage ? 6.5 : 11.33;
     
     // Title with template styling and custom font size (adjusted for widescreen)
     const titleConfig: any = {
       x: 1,
       y: 0.8,
-      w: 11.33,
+      w: contentWidth + 0.33,
       h: 0.8,
       fontSize: this.template.style === 'bright' ? titleFontSize + 4 : titleFontSize,
       bold: true,
@@ -344,6 +349,22 @@ class TemplateRenderer {
     };
     
     slide.addText(slideData.title, titleConfig);
+    
+    // Add image if available (right side)
+    if (hasImage) {
+      try {
+        slide.addImage({
+          data: imageData,
+          x: 8.5,
+          y: 1.8,
+          w: 4.0,
+          h: 4.0,
+          sizing: { type: 'contain', w: 4.0, h: 4.0 }
+        });
+      } catch (error) {
+        console.error('Error adding image to slide:', error);
+      }
+    }
     
     // Content with optimized layout
     if (slideData.content && slideData.content.length > 0) {
@@ -354,12 +375,12 @@ class TemplateRenderer {
       
       contentToShow.forEach((point, index) => {
         const cleanText = LayoutEngine.formatTextForPowerPoint(point);
-        const optimizedText = LayoutEngine.optimizeTextForSlide(cleanText, 85);
+        const optimizedText = LayoutEngine.optimizeTextForSlide(cleanText, hasImage ? 60 : 85);
         
         const textConfig: any = {
           x: 1,
           y: 1.8 + (index * 0.35),
-          w: 11.33,
+          w: contentWidth,
           h: 0.3,
           fontSize: contentFontSize,
           fontFace: this.template.fonts.body,
@@ -383,7 +404,7 @@ class TemplateRenderer {
         slide.addText('(Content continues...)', {
           x: 1.5,
           y: 6.0,
-          w: 10.33,
+          w: contentWidth,
           h: 0.3,
           fontSize: 14,
           fontFace: this.template.fonts.body,
@@ -426,7 +447,7 @@ class TemplateRenderer {
 }
 
 export const generateEnhancedPowerPoint = async (options: EnhancedGenerationOptions): Promise<void> => {
-  const { template, content, metadata, titleFontSize = 32, contentFontSize = 16, globalAnimation } = options;
+  const { template, content, metadata, titleFontSize = 32, contentFontSize = 16, globalAnimation, slideImages = {} } = options;
   
   try {
     const renderer = new TemplateRenderer(template);
@@ -443,18 +464,21 @@ export const generateEnhancedPowerPoint = async (options: EnhancedGenerationOpti
       titleFontSize
     );
     
-    // Create content slides with global animation if specified
+    // Create content slides with global animation and images if specified
     content.slides.forEach((slideData, index) => {
       const slideWithGlobalAnimation = globalAnimation 
         ? { ...slideData, animation: slideData.animation || globalAnimation }
         : slideData;
+      
+      const slideImageData = slideImages[index];
       
       renderer.createContentSlide(
         slideWithGlobalAnimation, 
         index + 2, 
         content.slides.length + 1,
         titleFontSize,
-        contentFontSize
+        contentFontSize,
+        slideImageData
       );
     });
     

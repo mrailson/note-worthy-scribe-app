@@ -36,6 +36,7 @@ interface PowerPointGeneratorProps {
 // Types are now imported from types/presentation.ts
 
 const presentationTypes = [
+  { value: "Executive Overview", label: "Executive Overview", description: "High-level strategic summary with key insights, metrics, and recommendations" },
   { value: "Clinical Guidelines", label: "Clinical Guidelines", description: "Evidence-based medical guidelines and protocols" },
   { value: "Patient Education", label: "Patient Education", description: "Patient-friendly educational materials" },
   { value: "Training Materials", label: "Training Materials", description: "Staff training and development content" },
@@ -55,7 +56,7 @@ const complexityLevels = [
 export const PowerPointGenerator = ({ open, onOpenChange }: PowerPointGeneratorProps) => {
   const [currentStep, setCurrentStep] = useState<'input' | 'generating' | 'preview' | 'download'>('input');
   const [topic, setTopic] = useState("");
-  const [presentationType, setPresentationType] = useState("");
+  const [presentationType, setPresentationType] = useState("Executive Overview");
   const [complexityLevel, setComplexityLevel] = useState("intermediate");
   const [slideCount, setSlideCount] = useState(10);
   const [selectedTemplate, setSelectedTemplate] = useState(PRESENTATION_TEMPLATES[0].id);
