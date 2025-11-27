@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { PowerPointGenerator } from '@/components/PowerPointGenerator';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { Presentation, FileText, Sparkles, Loader2 } from 'lucide-react';
+import { Presentation, FileText, Sparkles, Loader2, History } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
@@ -10,9 +11,13 @@ import { supabase } from '@/integrations/supabase/client';
 import type { UploadedFile } from '@/types/ai4gp';
 import type { PresentationContent, GenerationMetadata } from '@/types/presentation';
 import { PRESENTATION_TEMPLATES } from '@/utils/presentationTemplates';
+import { SlideHistoryPanel } from './SlideHistoryPanel';
+import type { PresentationSession } from '@/hooks/usePresentationHistory';
 
 interface SlideDeckPanelProps {
   uploadedFiles: UploadedFile[];
+  onLoadSession?: (session: PresentationSession) => void;
+  loadedSession?: PresentationSession | null;
 }
 
 const BRITISH_VOICES = [
@@ -40,7 +45,7 @@ const PRESENTATION_TYPES = [
   { value: 'Custom Topic', label: 'Custom Topic', description: 'General healthcare' }
 ];
 
-export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
+export const SlideDeckPanel = ({ uploadedFiles, onLoadSession, loadedSession }: SlideDeckPanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [slideCount, setSlideCount] = useState(6);
@@ -52,6 +57,7 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
     metadata: GenerationMetadata;
     slideImages?: { [key: number]: string };
     voiceId?: string;
+    sessionId?: string;
   } | undefined>(undefined);
 
   const handleQuickGenerate = async () => {
@@ -157,9 +163,46 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
     }
   };
 
+  const handleLoadSession = (session: PresentationSession) => {
+    // Load session into PowerPoint Generator
+    setPreloadedContent({
+      presentation: {
+        title: session.title,
+        slides: session.slides
+      },
+      metadata: {
+        topic: session.topic,
+        presentationType: session.presentation_type,
+        slideCount: session.slide_count,
+        complexityLevel: session.complexity_level,
+        generatedAt: session.created_at
+      },
+      slideImages: session.slide_images,
+      voiceId: session.voice_id,
+      sessionId: session.id
+    });
+    setIsOpen(true);
+    if (onLoadSession) {
+      onLoadSession(session);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <Card>
+      <Tabs defaultValue="create" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="create" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Create
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            History
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="create" className="mt-6">
+          <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Presentation className="h-5 w-5" />
@@ -304,7 +347,13 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
             </>
           )}
         </CardContent>
-      </Card>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <SlideHistoryPanel onLoadSession={handleLoadSession} />
+        </TabsContent>
+      </Tabs>
 
       <PowerPointGenerator
         open={isOpen}
