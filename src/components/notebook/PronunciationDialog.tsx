@@ -59,17 +59,26 @@ export const PronunciationDialog = ({
 
       if (data.audioUrl) {
         const audio = new Audio();
-        
-        // Wait for audio to load before playing
-        await new Promise<void>((resolve, reject) => {
-          audio.onloadeddata = () => resolve();
-          audio.onerror = (e) => reject(new Error('Failed to load audio'));
-          audio.src = data.audioUrl;
-        });
-
         setTestAudio(audio);
-        await audio.play();
-        toast.success('Playing pronunciation test');
+        
+        // Set up handlers before setting src
+        audio.oncanplaythrough = async () => {
+          try {
+            await audio.play();
+            toast.success('Playing pronunciation test');
+          } catch (playError) {
+            console.error('Play error:', playError);
+            toast.error('Click to enable audio playback');
+          }
+        };
+        
+        audio.onerror = (e) => {
+          console.error('Audio error:', e);
+          toast.error('Failed to load audio - try again');
+        };
+        
+        // Set source (data URLs load immediately)
+        audio.src = data.audioUrl;
       } else {
         throw new Error('No audio returned');
       }
