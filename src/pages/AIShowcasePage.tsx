@@ -244,7 +244,17 @@ const AIShowcasePage: React.FC = () => {
                       </li>
                       <li className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
                         <ArrowRight className="w-4 h-4 text-red-600 dark:text-red-400 mt-1 flex-shrink-0" />
-                        <span className="text-red-700 dark:text-red-300 font-medium">6 practices identified with critical anomalies where patient ratings conflict with telephony performance</span>
+                        <div>
+                          <span className="text-red-700 dark:text-red-300 font-medium">6 practices identified with critical anomalies where patient ratings conflict with telephony performance:</span>
+                          <ul className="mt-2 ml-4 space-y-1 text-sm">
+                            <li>• The Surgery, The Pines</li>
+                            <li>• Brook Medical Centre, The Pines</li>
+                            <li>• Dr Abbas & Partners</li>
+                            <li>• The Cottons Medical Centre</li>
+                            <li>• The Brook Health Centre</li>
+                            <li>• Daventry Health Centre</li>
+                          </ul>
+                        </div>
                       </li>
                     </ul>
                   </div>
