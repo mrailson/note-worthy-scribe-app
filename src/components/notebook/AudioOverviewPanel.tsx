@@ -95,14 +95,20 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
     // If already previewed, just play cached audio
     if (voicePreviews[voiceId]) {
       if (previewingVoice === voiceId) {
-        setPreviewingVoice(null);
+        stopPreview();
         return;
       }
       const audio = new Audio(voicePreviews[voiceId]);
       audio.addEventListener('ended', () => setPreviewingVoice(null));
       setPreviewAudio(audio);
-      audio.play();
-      setPreviewingVoice(voiceId);
+      audio
+        .play()
+        .then(() => setPreviewingVoice(voiceId))
+        .catch((err) => {
+          console.error('Preview playback failed:', err);
+          toast.error('Browser blocked audio playback. Please interact with the page and try again.');
+          setPreviewingVoice(null);
+        });
       return;
     }
 
@@ -127,8 +133,14 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
         const audio = new Audio(data.audioUrl);
         audio.addEventListener('ended', () => setPreviewingVoice(null));
         setPreviewAudio(audio);
-        audio.play();
-        setPreviewingVoice(voiceId);
+        audio
+          .play()
+          .then(() => setPreviewingVoice(voiceId))
+          .catch((err) => {
+            console.error('Preview playback failed:', err);
+            toast.error('Browser blocked audio playback. Please interact with the page and try again.');
+            setPreviewingVoice(null);
+          });
       } else {
         throw new Error('No audio URL returned');
       }
@@ -191,15 +203,28 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
       const audio = new Audio(audioUrl);
       audio.addEventListener('ended', () => setIsPlaying(false));
       setAudioElement(audio);
-      audio.play();
-      setIsPlaying(true);
+      audio
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch((err) => {
+          console.error('Playback failed:', err);
+          toast.error('Browser blocked audio playback. Please interact with the page and try again.');
+          setIsPlaying(false);
+        });
     } else {
       if (isPlaying) {
         audioElement.pause();
+        setIsPlaying(false);
       } else {
-        audioElement.play();
+        audioElement
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch((err) => {
+            console.error('Playback failed:', err);
+            toast.error('Browser blocked audio playback. Please interact with the page and try again.');
+            setIsPlaying(false);
+          });
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
