@@ -251,7 +251,7 @@ const AIShowcasePage: React.FC = () => {
               <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart3 className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-semibold text-primary">AI-Generated Data Visualisation</span>
+                  <span className="text-sm font-semibold text-primary">AI-Generated Data Visualisation by Notebook LM</span>
                 </div>
                 <CardTitle className="text-2xl">
                   October 2025 Performance Snapshot: Best vs. Worst Performers
