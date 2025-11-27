@@ -78,10 +78,6 @@ const NotebookStudio = () => {
                     <FileText className="h-4 w-4" />
                     <span className="hidden sm:inline">Upload</span>
                   </TabsTrigger>
-                  <TabsTrigger value="qa" className="flex items-center gap-2">
-                    <MessageSquare className="h-4 w-4" />
-                    <span className="hidden sm:inline">Q&A</span>
-                  </TabsTrigger>
                   <TabsTrigger value="audio" className="flex items-center gap-2">
                     <Mic className="h-4 w-4" />
                     <span className="hidden sm:inline">Audio</span>
@@ -89,6 +85,10 @@ const NotebookStudio = () => {
                   <TabsTrigger value="audio-history" className="flex items-center gap-2">
                     <Mic className="h-4 w-4" />
                     <span className="hidden sm:inline">History</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="qa" className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="hidden sm:inline">Q&A</span>
                   </TabsTrigger>
                   <TabsTrigger value="slides" className="flex items-center gap-2">
                     <Presentation className="h-4 w-4" />
