@@ -431,7 +431,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                              className="cursor-pointer py-3"
                            >
                              <Presentation className="h-4 w-4 mr-2" />
-                             Notebook Studio
+                             Notewell Studio
                            </DropdownMenuItem>
                          </DropdownMenuSubContent>
                      </DropdownMenuSub>
