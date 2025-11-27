@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, BookOpen, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -47,6 +47,7 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
   const [previewingVoice, setPreviewingVoice] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState<string | null>(null);
   const [previewAudio, setPreviewAudio] = useState<HTMLAudioElement | null>(null);
+  const [preloadingPreviews, setPreloadingPreviews] = useState(false);
   
   // Final audio state
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -99,6 +100,53 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
       setIsGeneratingScript(false);
     }
   };
+
+  // Preload all voice previews when script is generated
+  const preloadAllVoices = async () => {
+    setPreloadingPreviews(true);
+    const sampleText = "Welcome to your audio notebook. This is a preview of how this voice sounds.";
+    
+    for (const voice of VOICE_OPTIONS) {
+      // Skip if already cached
+      if (voicePreviews[voice.id]) continue;
+      
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-document-audio-overview', {
+          body: {
+            text: sampleText,
+            voiceId: voice.id,
+            voiceProvider: 'elevenlabs',
+            mode: 'audio-only',
+            previewLength: 10
+          }
+        });
+
+        if (error) {
+          console.error(`Failed to preload ${voice.name}:`, error);
+          continue;
+        }
+
+        if (data.audioUrl) {
+          setVoicePreviews(prev => ({
+            ...prev,
+            [voice.id]: data.audioUrl
+          }));
+        }
+      } catch (error) {
+        console.error(`Error preloading ${voice.name}:`, error);
+      }
+    }
+    
+    setPreloadingPreviews(false);
+    toast.success('Voice previews ready');
+  };
+
+  // Preload when script is first generated
+  useEffect(() => {
+    if (scriptGenerated && Object.keys(voicePreviews).length === 0) {
+      preloadAllVoices();
+    }
+  }, [scriptGenerated]);
 
   const handlePreviewVoice = async (voiceId: string) => {
     // Stop any currently playing preview
@@ -515,6 +563,13 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
               </CardDescription>
             </CardHeader>
             <CardContent>
+              {preloadingPreviews && (
+                <div className="flex items-center gap-2 p-4 bg-muted rounded-lg mb-4">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  <span className="text-sm">Preparing voice previews...</span>
+                </div>
+              )}
+              
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
                 {VOICE_OPTIONS.map(voice => (
                   <Card 
@@ -550,7 +605,7 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
                           variant={previewingVoice === voice.id ? "default" : "outline"}
                           size="sm"
                           className="flex-1"
-                          disabled={isGeneratingPreview === voice.id}
+                          disabled={isGeneratingPreview === voice.id || (!voicePreviews[voice.id] && preloadingPreviews)}
                         >
                           {isGeneratingPreview === voice.id ? (
                             <>
@@ -561,6 +616,11 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
                             <>
                               <Pause className="h-4 w-4 mr-2" />
                               Stop
+                            </>
+                          ) : !voicePreviews[voice.id] && preloadingPreviews ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Preparing...
                             </>
                           ) : (
                             <>
