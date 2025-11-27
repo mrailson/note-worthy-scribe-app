@@ -27,6 +27,8 @@ serve(async (req) => {
   try {
     const { content, voiceProvider, voiceId, targetDuration, mode = 'full', text, previewLength } = await req.json();
 
+    console.log('Request params:', { mode, voiceId, hasContent: !!content, hasText: !!text, previewLength });
+
     // Validate inputs based on mode
     if (mode === 'script-only' || mode === 'full') {
       if (!content || !content.trim()) {
@@ -126,6 +128,8 @@ serve(async (req) => {
     if (!elevenLabsKey) {
       throw new Error('ElevenLabs API key not configured');
     }
+
+    console.log('Generating audio with voice:', voiceId, 'Text length:', narrativeText.length);
 
     const ttsResponse = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
