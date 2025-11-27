@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, Play, Pause, Edit, Trash2, Copy, Calendar, Clock, FileText, Mic, Briefcase, GraduationCap, ClipboardList, Radio, FileCode, HeartPulse } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,12 +30,22 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
 
+  // Cleanup audio elements on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(audioElements).forEach(audio => {
+        audio.pause();
+        audio.src = '';
+      });
+    };
+  }, [audioElements]);
+
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     loadSessions(query);
   };
 
-  const handlePlayPause = (session: AudioSession) => {
+  const handlePlayPause = async (session: AudioSession) => {
     if (!session.audio_url) {
       toast.error('No audio available for this session');
       return;
@@ -43,8 +53,11 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
 
     if (playingAudio === session.id) {
       // Pause current
-      audioElements[session.id]?.pause();
-      setPlayingAudio(null);
+      const currentAudio = audioElements[session.id];
+      if (currentAudio) {
+        currentAudio.pause();
+        setPlayingAudio(null);
+      }
     } else {
       // Stop any currently playing audio
       if (playingAudio && audioElements[playingAudio]) {
@@ -52,21 +65,42 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
       }
 
       // Play this audio
-      if (!audioElements[session.id]) {
-        const audio = new Audio(session.audio_url);
-        audio.addEventListener('ended', () => setPlayingAudio(null));
-        setAudioElements(prev => ({ ...prev, [session.id]: audio }));
-        audio.play().catch(err => {
-          console.error('Playback failed:', err);
+      let audio = audioElements[session.id];
+      
+      if (!audio) {
+        try {
+          audio = new Audio(session.audio_url);
+          
+          // Set up event listeners
+          audio.addEventListener('ended', () => {
+            setPlayingAudio(null);
+          });
+          
+          audio.addEventListener('error', (e) => {
+            console.error('Audio error:', e);
+            toast.error('Failed to load audio');
+            setPlayingAudio(null);
+          });
+          
+          // Update state with new audio element
+          setAudioElements(prev => ({ ...prev, [session.id]: audio }));
+        } catch (err) {
+          console.error('Failed to create audio element:', err);
           toast.error('Failed to play audio');
-        });
-      } else {
-        audioElements[session.id].play().catch(err => {
-          console.error('Playback failed:', err);
-          toast.error('Failed to play audio');
-        });
+          return;
+        }
       }
+
+      // Set playing state first, then play
       setPlayingAudio(session.id);
+      
+      try {
+        await audio.play();
+      } catch (err) {
+        console.error('Playback failed:', err);
+        toast.error('Failed to play audio');
+        setPlayingAudio(null);
+      }
     }
   };
 
