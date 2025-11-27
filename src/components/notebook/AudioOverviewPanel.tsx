@@ -143,10 +143,10 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
 
   // Preload when script is first generated
   useEffect(() => {
-    if (scriptGenerated && Object.keys(voicePreviews).length === 0) {
+    if (scriptGenerated && !audioUrl && Object.keys(voicePreviews).length === 0) {
       preloadAllVoices();
     }
-  }, [scriptGenerated]);
+  }, [scriptGenerated, audioUrl]);
 
   const handlePreviewVoice = async (voiceId: string) => {
     // Stop any currently playing preview
