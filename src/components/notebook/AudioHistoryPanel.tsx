@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Search, Play, Pause, Edit, Trash2, Copy, Calendar, Clock, FileText, Mic, Briefcase, GraduationCap, ClipboardList, Radio, FileCode, HeartPulse } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -25,84 +25,15 @@ interface AudioHistoryPanelProps {
 export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => {
   const { sessions, loading, loadSessions, deleteSession, duplicateSession } = useAudioOverviewHistory();
   const [searchQuery, setSearchQuery] = useState('');
-  const [playingAudio, setPlayingAudio] = useState<string | null>(null);
-  const [audioElements, setAudioElements] = useState<Record<string, HTMLAudioElement>>({});
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
-
-  // Cleanup audio elements on unmount
-  useEffect(() => {
-    return () => {
-      Object.values(audioElements).forEach(audio => {
-        audio.pause();
-        audio.src = '';
-      });
-    };
-  }, [audioElements]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     loadSessions(query);
   };
 
-  const handlePlayPause = async (session: AudioSession) => {
-    if (!session.audio_url) {
-      toast.error('No audio available for this session');
-      return;
-    }
-
-    if (playingAudio === session.id) {
-      // Pause current
-      const currentAudio = audioElements[session.id];
-      if (currentAudio) {
-        currentAudio.pause();
-        setPlayingAudio(null);
-      }
-    } else {
-      // Stop any currently playing audio
-      if (playingAudio && audioElements[playingAudio]) {
-        audioElements[playingAudio].pause();
-      }
-
-      // Play this audio
-      let audio = audioElements[session.id];
-      
-      if (!audio) {
-        try {
-          audio = new Audio(session.audio_url);
-          
-          // Set up event listeners
-          audio.addEventListener('ended', () => {
-            setPlayingAudio(null);
-          });
-          
-          audio.addEventListener('error', (e) => {
-            console.error('Audio error:', e);
-            toast.error('Failed to load audio');
-            setPlayingAudio(null);
-          });
-          
-          // Update state with new audio element
-          setAudioElements(prev => ({ ...prev, [session.id]: audio }));
-        } catch (err) {
-          console.error('Failed to create audio element:', err);
-          toast.error('Failed to play audio');
-          return;
-        }
-      }
-
-      // Set playing state first, then play
-      setPlayingAudio(session.id);
-      
-      try {
-        await audio.play();
-      } catch (err) {
-        console.error('Playback failed:', err);
-        toast.error('Failed to play audio');
-        setPlayingAudio(null);
-      }
-    }
-  };
+  // Legacy inline audio playback removed – sessions now open in the main Audio Overview player
 
   const handleDelete = async () => {
     if (sessionToDelete) {
@@ -266,20 +197,14 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
                           <Button
                             size="sm"
                             variant="outline"
-                            onClick={() => handlePlayPause(session)}
-                            className="w-20"
+                            onClick={() => {
+                              onLoadSession(session);
+                              toast.success('Session loaded into Audio Overview. Use the main player to listen.');
+                            }}
+                            className="w-32"
                           >
-                            {playingAudio === session.id ? (
-                              <>
-                                <Pause className="h-3 w-3 mr-1" />
-                                Pause
-                              </>
-                            ) : (
-                              <>
-                                <Play className="h-3 w-3 mr-1" />
-                                Play
-                              </>
-                            )}
+                            <Play className="h-3 w-3 mr-1" />
+                            Open in player
                           </Button>
                         )}
                         <Button
