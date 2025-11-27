@@ -56,7 +56,7 @@ const AIShowcasePage: React.FC = () => {
                   className="w-full"
                   preload="metadata"
                 >
-                  <source src="/audio/notewell-2-minute-overview.mp3" type="audio/mpeg" />
+                  <source src="/audio/notewell-demo.mp3" type="audio/mpeg" />
                   Your browser does not support the audio element.
                 </audio>
                 <div className="mt-4 p-3 bg-primary/5 rounded-lg">
