@@ -34,6 +34,12 @@ serve(async (req) => {
       }
     }
     
+    if (mode === 'audio-only' || mode === 'full') {
+      if (!voiceId) {
+        throw new Error('Voice ID is required for audio generation');
+      }
+    }
+    
     if (mode === 'audio-only') {
       if (!text || !text.trim()) {
         throw new Error('Text is required for audio-only mode');
