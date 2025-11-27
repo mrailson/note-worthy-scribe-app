@@ -4,7 +4,18 @@ export class PowerPointProcessor {
   static async extractText(file: File): Promise<string> {
     try {
       const arrayBuffer = await file.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      
+      // Convert to base64 in chunks to avoid stack overflow with large files
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let base64 = '';
+      const chunkSize = 8192;
+      
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+        base64 += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      base64 = btoa(base64);
+      
       const dataUrl = `data:application/vnd.ms-powerpoint;base64,${base64}`;
       
       console.log('Extracting text from PowerPoint...');
