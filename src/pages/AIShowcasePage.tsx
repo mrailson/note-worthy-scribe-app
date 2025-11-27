@@ -321,13 +321,14 @@ const AIShowcasePage: React.FC = () => {
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="border border-green-500/20 bg-green-500/5 rounded-lg p-4">
                         <h4 className="font-semibold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
-                          <span className="text-xl">🏆</span> Top 4 Performers
+                          <span className="text-xl">🏆</span> Top 5 Performers
                         </h4>
                         <ol className="space-y-1 text-sm">
-                          <li>1. Kingsthorpe Medical Centre</li>
-                          <li>2. Woodview Medical Centre</li>
-                          <li>3. The Buckby Practice</li>
-                          <li>4. Long Practice</li>
+                          <li>1. Kingsthorpe Medical Ctr.</li>
+                          <li>2. Nene Valley Surgery</li>
+                          <li>3. Brackley Medical Centre</li>
+                          <li>4. Dryland Medical Centre</li>
+                          <li>5. Woodview Medical Centre</li>
                         </ol>
                       </div>
                       <div className="border border-red-500/20 bg-red-500/5 rounded-lg p-4">
