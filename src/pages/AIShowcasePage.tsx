@@ -75,7 +75,7 @@ const AIShowcasePage: React.FC = () => {
                 <div>
                   <div className="flex items-center gap-2 mb-2">
                     <FileText className="w-5 h-5 text-primary" />
-                    <span className="text-sm font-semibold text-primary">Educational Video</span>
+                    <span className="text-sm font-semibold text-primary">Educational Video produced by AI - Notebook LM</span>
                   </div>
                   <CardTitle className="text-xl">
                     Understanding GP Access: Patient Perspective on Telephony Data
