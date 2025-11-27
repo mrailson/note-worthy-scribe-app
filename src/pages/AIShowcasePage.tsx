@@ -129,11 +129,13 @@ const AIShowcasePage: React.FC = () => {
                 </div>
                 <div className="mt-4 flex justify-center">
                   <Button
-                    onClick={() => downloadFile('/documents/Saxon_Spires_ICB_Benchmarking_Report.docx', 'Saxon_Spires_ICB_Benchmarking_Report.docx')}
+                    asChild
                     className="gap-2"
                   >
-                    <Download className="w-4 h-4" />
-                    Download Full Report (Word)
+                    <a href="/documents/Saxon_Spires_ICB_Benchmarking_Report.docx" download="Saxon_Spires_ICB_Benchmarking_Report.docx">
+                      <Download className="w-4 h-4" />
+                      Download Full Report (Word)
+                    </a>
                   </Button>
                 </div>
               </CardContent>
