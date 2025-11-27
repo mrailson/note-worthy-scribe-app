@@ -79,6 +79,7 @@ import CSOTestCertificate from "./pages/CSOTestCertificate";
 import CSOTrainingContentExport from "./pages/CSOTrainingContentExport";
 import UsingAiNhs from "./pages/UsingAiNhs";
 import NotebookStudio from "./pages/NotebookStudio";
+import AIShowcasePage from "./pages/AIShowcasePage";
 
 const App = () => {
   useSessionActivity();
@@ -100,6 +101,7 @@ const App = () => {
               <Route path="/auth" element={<Auth />} />
               <Route path="/executive-overview" element={<ExecutiveOverview />} />
               <Route path="/demos" element={<DemoVideosPage />} />
+              <Route path="/ai-showcase" element={<AIShowcasePage />} />
               <Route path="/nres" element={<NRESDashboard />} />
               <Route path="/nres-presentation" element={<NRESPresentationPage />} />
               <Route path="/nres/complex-care" element={<ProactiveComplexCareDashboard />} />
