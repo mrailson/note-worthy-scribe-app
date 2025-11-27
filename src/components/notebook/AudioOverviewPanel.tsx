@@ -117,7 +117,7 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
             voiceId: voice.id,
             voiceProvider: 'elevenlabs',
             mode: 'audio-only',
-            previewLength: 10
+            previewLength: 30
           }
         });
 
@@ -171,7 +171,7 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
           voiceId,
           voiceProvider: 'elevenlabs',
           mode: 'audio-only',
-          previewLength: 50 // ~20 seconds
+          previewLength: 150 // ~10 seconds
         }
       });
 
