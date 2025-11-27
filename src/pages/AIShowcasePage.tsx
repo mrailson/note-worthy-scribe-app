@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Brain, TrendingUp, FileText, BarChart3, ArrowRight, Download } from 'lucide-react';
 import gpCallSnapshot from '@/assets/gp-call-performance-snapshot.png';
+import icbComparison from '@/assets/icb-comparison.png';
 import { downloadFile } from '@/utils/downloadFile';
 
 const AIShowcasePage: React.FC = () => {
@@ -112,36 +113,28 @@ const AIShowcasePage: React.FC = () => {
                   <span className="text-sm font-semibold text-primary">AI-Generated Data Visualisation by Notebook LM</span>
                 </div>
                 <CardTitle className="text-2xl">
-                  October 2025 Performance Snapshot: Best vs. Worst Performers
+                  Saxon Spires Practice vs. ICB Average: A Telephony Performance Snapshot
                 </CardTitle>
                 <p className="text-muted-foreground text-sm">
-                  AI analysis identifying top and bottom performers from the October 2025 dataset, highlighting key success factors
+                  Comparative analysis of Saxon Spires Practice performance against NHS Northamptonshire ICB benchmarks
                 </p>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="bg-white rounded-lg overflow-hidden">
                   <img 
-                    src={gpCallSnapshot} 
-                    alt="GP Call Performance Comparison showing Kingsthorpe Medical Centre (#1 rank) with 4.2% call abandonment versus The Pines Surgery (#52 rank) with 22.5% abandonment"
+                    src={icbComparison} 
+                    alt="Saxon Spires Practice vs ICB Average showing call answer rates, missed call rates, and wait times comparison"
                     className="w-full h-auto"
                   />
                 </div>
-                <div className="mt-4 p-4 bg-primary/5 rounded-lg">
-                  <h4 className="font-semibold mb-2">Key Insights from Visualisation</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <ArrowRight className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span>Best in class: 4.2% call abandonment with 69.5% answered in under 2 minutes</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ArrowRight className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span>Needs improvement: 22.5% abandonment indicating significant patient frustration</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ArrowRight className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span>Success factors: Effective staffing, smart triage systems, modern telephony features</span>
-                    </li>
-                  </ul>
+                <div className="mt-4 flex justify-center">
+                  <Button
+                    onClick={() => downloadFile('/documents/Saxon_Spires_ICB_Benchmarking_Report.docx', 'Saxon_Spires_ICB_Benchmarking_Report.docx')}
+                    className="gap-2"
+                  >
+                    <Download className="w-4 h-4" />
+                    Download Full Report (Word)
+                  </Button>
                 </div>
               </CardContent>
             </Card>
