@@ -16,8 +16,10 @@ export class PDFProcessor {
 
       console.log('📄 Starting PDF text extraction for:', file.name, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
       
-      // First, try client-side text extraction with PDF.js
+      // Read the file as ArrayBuffer
       const arrayBuffer = await file.arrayBuffer();
+      // Create a copy for potential OCR use (since PDF.js may detach the original)
+      const arrayBufferCopy = arrayBuffer.slice(0);
       
       try {
         console.log('🔍 Attempting PDF.js text extraction...');
@@ -35,8 +37,8 @@ export class PDFProcessor {
         console.log('📸 Falling back to OCR method...');
       }
       
-      // If PDF.js didn't extract much text or failed, fall back to OCR
-      return await this.extractTextWithOCR(arrayBuffer, file.name);
+      // If PDF.js didn't extract much text or failed, fall back to OCR using the copy
+      return await this.extractTextWithOCR(arrayBufferCopy, file.name);
       
     } catch (error) {
       console.error('❌ PDF processing error:', error);
