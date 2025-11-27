@@ -59,8 +59,6 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   // Final audio state
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   
   const [duration, setDuration] = useState([3]); // Default 3 minutes
   const [selectedScriptStyle, setSelectedScriptStyle] = useState<ScriptStyle>('executive');
@@ -259,38 +257,6 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
     toast.success('Script reset to original');
   };
 
-  const togglePlayPause = () => {
-    if (!audioUrl) return;
-
-    if (!audioElement) {
-      const audio = new Audio(audioUrl);
-      audio.addEventListener('ended', () => setIsPlaying(false));
-      setAudioElement(audio);
-      audio
-        .play()
-        .then(() => setIsPlaying(true))
-        .catch((err) => {
-          console.error('Playback failed:', err);
-          toast.error('Browser blocked audio playback. Please interact with the page and try again.');
-          setIsPlaying(false);
-        });
-    } else {
-      if (isPlaying) {
-        audioElement.pause();
-        setIsPlaying(false);
-      } else {
-        audioElement
-          .play()
-          .then(() => setIsPlaying(true))
-          .catch((err) => {
-            console.error('Playback failed:', err);
-            toast.error('Browser blocked audio playback. Please interact with the page and try again.');
-            setIsPlaying(false);
-          });
-      }
-    }
-  };
-
   const handleDownload = () => {
     if (!audioUrl) return;
     
@@ -367,7 +333,6 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
           title: sourceDocNames.length > 0 ? `${sourceDocNames[0]} - ${new Date().toLocaleDateString('en-GB')}` : `Audio Session - ${new Date().toLocaleDateString('en-GB')}`,
           edited_script: editedText,
           audio_url: audioUrl,
-          duration_seconds: audioUrl && audioElement ? Math.floor(audioElement.duration) : undefined,
           pronunciation_rules: pronunciationRules,
         });
       } else {
@@ -379,7 +344,6 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
           audio_url: audioUrl,
           voice_id: selectedVoice,
           voice_name: voiceName,
-          duration_seconds: audioUrl && audioElement ? Math.floor(audioElement.duration) : undefined,
           source_documents: sourceDocNames,
           pronunciation_rules: pronunciationRules,
           target_duration_minutes: duration[0],
@@ -818,18 +782,21 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label>Audio player with timeline</Label>
+              <audio
+                key={audioUrl}
+                controls
+                src={audioUrl}
+                className="w-full"
+                onError={(e) => {
+                  console.error('Audio playback error:', e);
+                  toast.error('Unable to play audio in this browser. Please use the Download button instead.');
+                }}
+              />
+            </div>
+
             <div className="flex items-center gap-4 flex-wrap">
-              <Button
-                onClick={togglePlayPause}
-                size="lg"
-                variant="outline"
-              >
-                {isPlaying ? (
-                  <Pause className="h-5 w-5" />
-                ) : (
-                  <Play className="h-5 w-5" />
-                )}
-              </Button>
               <Button
                 onClick={handleDownload}
                 size="lg"
