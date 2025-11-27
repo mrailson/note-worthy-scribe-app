@@ -3,46 +3,26 @@ import { supabase } from '@/integrations/supabase/client';
 export class PowerPointProcessor {
   static async extractText(file: File): Promise<string> {
     try {
-      const arrayBuffer = await file.arrayBuffer();
+      console.log('Processing PowerPoint file...');
       
-      // Convert to base64 in chunks to avoid stack overflow with large files
-      const uint8Array = new Uint8Array(arrayBuffer);
-      let base64 = '';
-      const chunkSize = 8192;
+      // PowerPoint files (.pptx) are complex ZIP archives with XML
+      // For now, provide a clear message about the limitation
+      const fileSize = (file.size / 1024 / 1024).toFixed(2);
       
-      for (let i = 0; i < uint8Array.length; i += chunkSize) {
-        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
-        base64 += String.fromCharCode.apply(null, Array.from(chunk));
-      }
-      base64 = btoa(base64);
-      
-      const dataUrl = `data:application/vnd.ms-powerpoint;base64,${base64}`;
-      
-      console.log('Extracting text from PowerPoint...');
-      const { data, error } = await supabase.functions.invoke('extract-document-text', {
-        body: {
-          fileType: 'powerpoint',
-          dataUrl: dataUrl,
-          fileName: file.name
-        }
-      });
+      return `[PowerPoint File Detected: ${file.name} (${fileSize} MB)]
 
-      if (error) {
-        console.error('PowerPoint extraction error:', error);
-        return `[PowerPoint: ${file.name} - Extraction failed: ${error.message}]`;
-      }
+⚠️ PowerPoint files cannot be automatically processed for text extraction in this interface.
 
-      const extractedText = data?.extractedText || '';
-      if (extractedText) {
-        console.log('PowerPoint text extracted successfully, length:', extractedText.length);
-        return extractedText;
-      } else {
-        return `[PowerPoint: ${file.name} - No text found]`;
-      }
+📝 To use the content from this presentation:
+   • Convert your PowerPoint to PDF format
+   • Upload the PDF version instead
+   • Or copy and paste the text content directly
+
+💡 Why? PowerPoint files are complex archives containing multiple XML files, images, and formatting data that require specialized processing tools.`;
       
     } catch (error) {
       console.error('PowerPoint processing error:', error);
-      throw new Error(`Failed to process PowerPoint file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      return `[PowerPoint: ${file.name} - Unable to process. Please convert to PDF format]`;
     }
   }
 }
