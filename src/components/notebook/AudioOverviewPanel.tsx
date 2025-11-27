@@ -28,12 +28,9 @@ interface AudioOverviewPanelProps {
 }
 
 const VOICE_OPTIONS = [
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', description: 'Male, Professional' },
-  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum', description: 'Male, Warm' },
-  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', description: 'Female, Clear' },
   { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', description: 'Female, Friendly' },
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda', description: 'Female, Articulate' },
-  { id: 'bIHbv24MWmeRgasZH58o', name: 'Will', description: 'Male, Confident' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', description: 'Male, Professional' },
+  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', description: 'Female, Clear' },
   { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'Male, Authoritative' },
 ];
 
