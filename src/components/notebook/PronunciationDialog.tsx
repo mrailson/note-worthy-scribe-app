@@ -58,7 +58,15 @@ export const PronunciationDialog = ({
       if (error) throw error;
 
       if (data.audioUrl) {
-        const audio = new Audio(data.audioUrl);
+        const audio = new Audio();
+        
+        // Wait for audio to load before playing
+        await new Promise<void>((resolve, reject) => {
+          audio.onloadeddata = () => resolve();
+          audio.onerror = (e) => reject(new Error('Failed to load audio'));
+          audio.src = data.audioUrl;
+        });
+
         setTestAudio(audio);
         await audio.play();
         toast.success('Playing pronunciation test');
