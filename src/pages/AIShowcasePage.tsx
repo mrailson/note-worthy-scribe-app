@@ -199,7 +199,7 @@ const AIShowcasePage: React.FC = () => {
               <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
                 <div className="flex items-center gap-2 mb-2">
                   <FileText className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-semibold text-primary">AI Analysis #1 • Comprehensive Deep-Dive</span>
+                  <span className="text-sm font-semibold text-primary">AI Analysis by Claude</span>
                 </div>
                 <CardTitle className="text-2xl mb-2">
                   October 2025 NHS Telephony: Executive Analysis Report
