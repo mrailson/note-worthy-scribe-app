@@ -38,7 +38,7 @@ const AIShowcasePage: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Brain className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-semibold text-primary">AI-Generated Audio Briefing</span>
+                      <span className="text-sm font-semibold text-primary">AI-Generated Audio Briefing - Notewell AI</span>
                     </div>
                     <CardTitle className="text-xl">
                       Notewell AI: 2 Minute Overview of October 2025 Telephony Data
