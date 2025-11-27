@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, BookOpen, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, BookOpen, Plus, Trash2, ChevronDown, ChevronUp, Save } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -18,9 +18,12 @@ import {
   countPronunciationMatches,
   type PronunciationRule 
 } from '@/utils/pronunciationLibrary';
+import { useAudioOverviewHistory, type AudioSession } from '@/hooks/useAudioOverviewHistory';
 
 interface AudioOverviewPanelProps {
   uploadedFiles: UploadedFile[];
+  loadedSession?: AudioSession | null;
+  onSessionLoaded?: () => void;
 }
 
 const VOICE_OPTIONS = [
@@ -33,7 +36,10 @@ const VOICE_OPTIONS = [
   { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'Male, Authoritative' },
 ];
 
-export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) => {
+export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoaded }: AudioOverviewPanelProps) => {
+  const { saveSession, updateSession } = useAudioOverviewHistory();
+  const [currentSessionId, setCurrentSessionId] = useState<string | null>(null);
+  
   // Script generation state
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [scriptGenerated, setScriptGenerated] = useState(false);
@@ -338,6 +344,65 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
       setTestingPronunciation(null);
     }
   };
+
+  const handleSaveSession = async () => {
+    if (!scriptGenerated || !editedText) {
+      toast.error('Generate a script first');
+      return;
+    }
+
+    const voiceName = VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name || 'Unknown';
+    const sourceDocNames = uploadedFiles.map(f => f.name);
+
+    if (currentSessionId) {
+      // Update existing session
+      await updateSession(currentSessionId, {
+        title: sourceDocNames.length > 0 ? `${sourceDocNames[0]} - ${new Date().toLocaleDateString()}` : `Audio Session - ${new Date().toLocaleDateString()}`,
+        edited_script: editedText,
+        audio_url: audioUrl,
+        duration_seconds: audioUrl && audioElement ? Math.floor(audioElement.duration) : undefined,
+        pronunciation_rules: pronunciationRules,
+      });
+    } else {
+      // Save new session
+      const savedSession = await saveSession({
+        title: sourceDocNames.length > 0 ? `${sourceDocNames[0]} - ${new Date().toLocaleDateString()}` : `Audio Session - ${new Date().toLocaleDateString()}`,
+        original_script: originalText,
+        edited_script: editedText,
+        audio_url: audioUrl,
+        voice_id: selectedVoice,
+        voice_name: voiceName,
+        duration_seconds: audioUrl && audioElement ? Math.floor(audioElement.duration) : undefined,
+        source_documents: sourceDocNames,
+        pronunciation_rules: pronunciationRules,
+        target_duration_minutes: duration[0],
+      });
+
+      if (savedSession) {
+        setCurrentSessionId(savedSession.id);
+      }
+    }
+  };
+
+  // Load session when loadedSession prop changes
+  useEffect(() => {
+    if (loadedSession) {
+      setCurrentSessionId(loadedSession.id);
+      setOriginalText(loadedSession.original_script);
+      setEditedText(loadedSession.edited_script || loadedSession.original_script);
+      setSelectedVoice(loadedSession.voice_id);
+      setAudioUrl(loadedSession.audio_url);
+      setPronunciationRules(loadedSession.pronunciation_rules || []);
+      setScriptGenerated(true);
+      
+      if (loadedSession.target_duration_minutes) {
+        setDuration([loadedSession.target_duration_minutes]);
+      }
+      
+      toast.success(`Loaded: ${loadedSession.title}`);
+      onSessionLoaded?.();
+    }
+  }, [loadedSession]);
 
   const wordCount = editedText.split(' ').filter(w => w.length > 0).length;
   const estimatedDuration = Math.ceil(wordCount / 2.5);
@@ -733,7 +798,7 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 flex-wrap">
               <Button
                 onClick={togglePlayPause}
                 size="lg"
@@ -752,6 +817,14 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
               >
                 <Download className="h-5 w-5 mr-2" />
                 Download
+              </Button>
+              <Button
+                onClick={handleSaveSession}
+                size="lg"
+                variant="default"
+              >
+                <Save className="h-5 w-5 mr-2" />
+                {currentSessionId ? 'Update' : 'Save to History'}
               </Button>
             </div>
 

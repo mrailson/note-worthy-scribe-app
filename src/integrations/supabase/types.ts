@@ -313,6 +313,60 @@ export type Database = {
           },
         ]
       }
+      audio_overview_sessions: {
+        Row: {
+          audio_url: string | null
+          created_at: string
+          duration_seconds: number | null
+          edited_script: string | null
+          id: string
+          original_script: string
+          pronunciation_rules: Json | null
+          source_documents: Json | null
+          target_duration_minutes: number | null
+          title: string
+          updated_at: string
+          user_id: string
+          voice_id: string
+          voice_name: string
+          word_count: number
+        }
+        Insert: {
+          audio_url?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          edited_script?: string | null
+          id?: string
+          original_script: string
+          pronunciation_rules?: Json | null
+          source_documents?: Json | null
+          target_duration_minutes?: number | null
+          title: string
+          updated_at?: string
+          user_id: string
+          voice_id: string
+          voice_name: string
+          word_count: number
+        }
+        Update: {
+          audio_url?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          edited_script?: string | null
+          id?: string
+          original_script?: string
+          pronunciation_rules?: Json | null
+          source_documents?: Json | null
+          target_duration_minutes?: number | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+          voice_id?: string
+          voice_name?: string
+          word_count?: number
+        }
+        Relationships: []
+      }
       audio_sessions: {
         Row: {
           created_at: string | null

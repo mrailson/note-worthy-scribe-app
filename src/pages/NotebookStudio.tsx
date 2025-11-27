@@ -8,14 +8,17 @@ import { useNavigate } from 'react-router-dom';
 import { DocumentUploadPanel } from '@/components/notebook/DocumentUploadPanel';
 import { DocumentQAPanel } from '@/components/notebook/DocumentQAPanel';
 import { AudioOverviewPanel } from '@/components/notebook/AudioOverviewPanel';
+import { AudioHistoryPanel } from '@/components/notebook/AudioHistoryPanel';
 import { SlideDeckPanel } from '@/components/notebook/SlideDeckPanel';
 import { SlideVideoGenerator } from '@/components/notebook/SlideVideoGenerator';
 import type { UploadedFile } from '@/types/ai4gp';
+import type { AudioSession } from '@/hooks/useAudioOverviewHistory';
 
 const NotebookStudio = () => {
   const navigate = useNavigate();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [activeTab, setActiveTab] = useState('upload');
+  const [loadedAudioSession, setLoadedAudioSession] = useState<AudioSession | null>(null);
 
   const handleFilesUploaded = (files: UploadedFile[]) => {
     setUploadedFiles(prev => [...prev, ...files]);
@@ -23,6 +26,11 @@ const NotebookStudio = () => {
 
   const handleRemoveFile = (fileName: string) => {
     setUploadedFiles(prev => prev.filter(f => f.name !== fileName));
+  };
+
+  const handleLoadAudioSession = (session: AudioSession) => {
+    setLoadedAudioSession(session);
+    setActiveTab('audio');
   };
 
   return (
@@ -65,7 +73,7 @@ const NotebookStudio = () => {
           <Card className="border-2 shadow-xl">
             <CardContent className="p-6">
               <Tabs value={activeTab} onValueChange={setActiveTab}>
-                <TabsList className="grid grid-cols-5 w-full mb-6">
+                <TabsList className="grid grid-cols-6 w-full mb-6">
                   <TabsTrigger value="upload" className="flex items-center gap-2">
                     <FileText className="h-4 w-4" />
                     <span className="hidden sm:inline">Upload</span>
@@ -77,6 +85,10 @@ const NotebookStudio = () => {
                   <TabsTrigger value="audio" className="flex items-center gap-2">
                     <Mic className="h-4 w-4" />
                     <span className="hidden sm:inline">Audio</span>
+                  </TabsTrigger>
+                  <TabsTrigger value="audio-history" className="flex items-center gap-2">
+                    <Mic className="h-4 w-4" />
+                    <span className="hidden sm:inline">History</span>
                   </TabsTrigger>
                   <TabsTrigger value="slides" className="flex items-center gap-2">
                     <Presentation className="h-4 w-4" />
@@ -101,7 +113,15 @@ const NotebookStudio = () => {
                 </TabsContent>
 
                 <TabsContent value="audio" className="space-y-4">
-                  <AudioOverviewPanel uploadedFiles={uploadedFiles} />
+                  <AudioOverviewPanel 
+                    uploadedFiles={uploadedFiles}
+                    loadedSession={loadedAudioSession}
+                    onSessionLoaded={() => setLoadedAudioSession(null)}
+                  />
+                </TabsContent>
+
+                <TabsContent value="audio-history" className="space-y-4">
+                  <AudioHistoryPanel onLoadSession={handleLoadAudioSession} />
                 </TabsContent>
 
                 <TabsContent value="slides" className="space-y-4">
