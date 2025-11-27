@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState } from 'react';
 import { Search, Play, Pause, Edit, Trash2, Copy, Calendar, Clock, FileText, Mic, Briefcase, GraduationCap, ClipboardList, Radio, FileCode, HeartPulse } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,42 +27,13 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
-  const [playingSessionId, setPlayingSessionId] = useState<string | null>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     loadSessions(query);
   };
 
-  const handlePlayPause = (session: AudioSession) => {
-    if (!session.audio_url) return;
-
-    if (playingSessionId === session.id) {
-      // Pause current audio
-      audioRef.current?.pause();
-      setPlayingSessionId(null);
-    } else {
-      // Play new audio
-      if (audioRef.current) {
-        audioRef.current.src = session.audio_url;
-        audioRef.current.play();
-        setPlayingSessionId(session.id);
-      }
-    }
-  };
-
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const handleEnded = () => {
-      setPlayingSessionId(null);
-    };
-
-    audio.addEventListener('ended', handleEnded);
-    return () => audio.removeEventListener('ended', handleEnded);
-  }, []);
+  // Legacy inline audio playback removed – sessions now open in the main Audio Overview player
 
   const handleDelete = async () => {
     if (sessionToDelete) {
@@ -225,21 +196,15 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
                         {session.audio_url && (
                           <Button
                             size="sm"
-                            variant={playingSessionId === session.id ? "default" : "outline"}
-                            onClick={() => handlePlayPause(session)}
+                            variant="outline"
+                            onClick={() => {
+                              onLoadSession(session);
+                              toast.success('Session loaded into Audio Overview. Use the main player to listen.');
+                            }}
                             className="w-32"
                           >
-                            {playingSessionId === session.id ? (
-                              <>
-                                <Pause className="h-3 w-3 mr-1" />
-                                Pause
-                              </>
-                            ) : (
-                              <>
-                                <Play className="h-3 w-3 mr-1" />
-                                Play Audio
-                              </>
-                            )}
+                            <Play className="h-3 w-3 mr-1" />
+                            Open in player
                           </Button>
                         )}
                         <Button
@@ -281,9 +246,6 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
           )}
         </CardContent>
       </Card>
-
-      {/* Hidden audio element for playback */}
-      <audio ref={audioRef} className="hidden" />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
