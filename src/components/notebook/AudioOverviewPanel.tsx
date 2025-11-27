@@ -58,7 +58,8 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   
   // Final audio state
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
-  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null); // original (e.g. base64) URL used for saving
+  const [audioPlaybackUrl, setAudioPlaybackUrl] = useState<string | null>(null); // browser-friendly blob URL for playback
   
   const [duration, setDuration] = useState([3]); // Default 3 minutes
   const [selectedScriptStyle, setSelectedScriptStyle] = useState<ScriptStyle>('executive');
@@ -156,6 +157,67 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
       preloadAllVoices();
     }
   }, [scriptGenerated, audioUrl]);
+
+  // Create a blob/object URL for playback when we have a base64 data URL
+  useEffect(() => {
+    try {
+      // Clean up any previous playback URL
+      return () => {
+        if (audioPlaybackUrl) {
+          URL.revokeObjectURL(audioPlaybackUrl);
+        }
+      };
+    } catch {
+      // Ignore cleanup errors
+    }
+  }, [audioPlaybackUrl]);
+
+  useEffect(() => {
+    if (!audioUrl) {
+      // When audio is cleared, also clear playback URL
+      if (audioPlaybackUrl) {
+        URL.revokeObjectURL(audioPlaybackUrl);
+      }
+      setAudioPlaybackUrl(null);
+      return;
+    }
+
+    if (!audioUrl.startsWith('data:audio')) {
+      // For normal URLs (already streamable), just use them directly
+      if (audioPlaybackUrl) {
+        URL.revokeObjectURL(audioPlaybackUrl);
+        setAudioPlaybackUrl(null);
+      }
+      return;
+    }
+
+    try {
+      const base64Part = audioUrl.split(',')[1];
+      if (!base64Part) return;
+
+      const binary = atob(base64Part);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      const blob = new Blob([bytes], { type: 'audio/mpeg' });
+      const objectUrl = URL.createObjectURL(blob);
+
+      if (audioPlaybackUrl) {
+        URL.revokeObjectURL(audioPlaybackUrl);
+      }
+
+      setAudioPlaybackUrl(objectUrl);
+    } catch (error) {
+      console.error('Failed to create playback URL from base64 audio:', error);
+      if (audioPlaybackUrl) {
+        URL.revokeObjectURL(audioPlaybackUrl);
+      }
+      setAudioPlaybackUrl(null);
+    }
+  }, [audioUrl]);
 
   const handlePreviewVoice = async (voiceId: string) => {
     // If already previewed, just wire up the player bar
@@ -785,9 +847,9 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
             <div className="space-y-2">
               <Label>Audio player with timeline</Label>
               <audio
-                key={audioUrl}
+                key={audioPlaybackUrl || audioUrl || 'audio-player'}
                 controls
-                src={audioUrl}
+                src={audioPlaybackUrl || audioUrl || undefined}
                 className="w-full"
                 onError={(e) => {
                   console.error('Audio playback error:', e);
