@@ -1,13 +1,23 @@
 import { useState } from 'react';
-import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio } from 'lucide-react';
+import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, BookOpen, Plus, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { UploadedFile } from '@/types/ai4gp';
+import { PronunciationDialog } from './PronunciationDialog';
+import { 
+  loadPronunciationLibrary, 
+  addPronunciationRule, 
+  removePronunciationRule, 
+  applyPronunciations, 
+  countPronunciationMatches,
+  type PronunciationRule 
+} from '@/utils/pronunciationLibrary';
 
 interface AudioOverviewPanelProps {
   uploadedFiles: UploadedFile[];
@@ -45,6 +55,11 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   
   const [duration, setDuration] = useState([3]); // Default 3 minutes
+
+  // Pronunciation library state
+  const [pronunciationRules, setPronunciationRules] = useState<PronunciationRule[]>(() => loadPronunciationLibrary());
+  const [showPronunciationDialog, setShowPronunciationDialog] = useState(false);
+  const [pronunciationExpanded, setPronunciationExpanded] = useState(false);
 
   const handleGenerateScript = async () => {
     if (uploadedFiles.length === 0) {
@@ -112,13 +127,18 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
       return;
     }
 
-    // Generate preview
+    // Generate preview with pronunciation rules applied
     setIsGeneratingPreview(voiceId);
 
     try {
+      const textWithPronunciations = applyPronunciations(editedText, pronunciationRules);
+      const appliedCount = pronunciationRules.filter(rule => 
+        countPronunciationMatches(editedText, rule) > 0
+      ).length;
+
       const { data, error } = await supabase.functions.invoke('generate-document-audio-overview', {
         body: {
-          text: editedText,
+          text: textWithPronunciations,
           voiceId,
           voiceProvider: 'elevenlabs',
           mode: 'audio-only',
@@ -135,7 +155,12 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
         setPreviewAudio(audio);
         audio
           .play()
-          .then(() => setPreviewingVoice(voiceId))
+          .then(() => {
+            setPreviewingVoice(voiceId);
+            if (appliedCount > 0) {
+              toast.success(`Applied ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`);
+            }
+          })
           .catch((err) => {
             console.error('Preview playback failed:', err);
             toast.error('Browser blocked audio playback. Please interact with the page and try again.');
@@ -165,9 +190,14 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
     setAudioUrl(null);
 
     try {
+      const textWithPronunciations = applyPronunciations(editedText, pronunciationRules);
+      const appliedCount = pronunciationRules.filter(rule => 
+        countPronunciationMatches(editedText, rule) > 0
+      ).length;
+
       const { data, error } = await supabase.functions.invoke('generate-document-audio-overview', {
         body: {
-          text: editedText,
+          text: textWithPronunciations,
           voiceId: selectedVoice,
           voiceProvider: 'elevenlabs',
           mode: 'audio-only'
@@ -178,7 +208,11 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
 
       if (data.audioUrl) {
         setAudioUrl(data.audioUrl);
-        toast.success('Full audio generated successfully!');
+        if (appliedCount > 0) {
+          toast.success(`Audio generated with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}!`);
+        } else {
+          toast.success('Full audio generated successfully!');
+        }
       } else {
         throw new Error('No audio URL returned');
       }
@@ -240,8 +274,22 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
     toast.success('Audio downloaded!');
   };
 
+  const handleAddPronunciation = (rule: Omit<PronunciationRule, 'id' | 'createdAt'>) => {
+    const updatedRules = addPronunciationRule(rule);
+    setPronunciationRules(updatedRules);
+  };
+
+  const handleRemovePronunciation = (id: string) => {
+    const updatedRules = removePronunciationRule(id);
+    setPronunciationRules(updatedRules);
+    toast.success('Pronunciation rule removed');
+  };
+
   const wordCount = editedText.split(' ').filter(w => w.length > 0).length;
   const estimatedDuration = Math.ceil(wordCount / 2.5);
+  const activeRulesCount = pronunciationRules.filter(rule => 
+    countPronunciationMatches(editedText, rule) > 0
+  ).length;
 
   return (
     <div className="space-y-6">
@@ -354,6 +402,98 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
                 Regenerate Script
               </Button>
             </CardContent>
+          </Card>
+
+          {/* Pronunciation Guide */}
+          <Card>
+            <CardHeader 
+              className="cursor-pointer" 
+              onClick={() => setPronunciationExpanded(!pronunciationExpanded)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <BookOpen className="h-5 w-5" />
+                  <CardTitle>Pronunciation Guide</CardTitle>
+                  {activeRulesCount > 0 && (
+                    <Badge variant="secondary">{activeRulesCount} active</Badge>
+                  )}
+                </div>
+                {pronunciationExpanded ? (
+                  <ChevronUp className="h-5 w-5" />
+                ) : (
+                  <ChevronDown className="h-5 w-5" />
+                )}
+              </div>
+              <CardDescription>
+                Help the AI pronounce names and places correctly
+              </CardDescription>
+            </CardHeader>
+            
+            {pronunciationExpanded && (
+              <CardContent className="space-y-4">
+                {pronunciationRules.length > 0 ? (
+                  <div className="space-y-2">
+                    {pronunciationRules.map(rule => {
+                      const matchCount = countPronunciationMatches(editedText, rule);
+                      return (
+                        <div 
+                          key={rule.id} 
+                          className={`p-3 rounded-lg border ${
+                            matchCount > 0 ? 'bg-primary/5 border-primary/20' : 'bg-muted border-border'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-medium">"{rule.original}"</span>
+                                <span className="text-muted-foreground">→</span>
+                                <span className="font-medium">"{rule.pronounceAs}"</span>
+                                {matchCount > 0 && (
+                                  <Badge variant="outline" className="text-xs">
+                                    ×{matchCount}
+                                  </Badge>
+                                )}
+                              </div>
+                              <p className="text-xs text-muted-foreground capitalize">
+                                {rule.category}
+                                {rule.caseInsensitive && ' • Case insensitive'}
+                              </p>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemovePronunciation(rule.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground text-center py-4">
+                    No pronunciation rules yet. Add rules to fix mispronounced words.
+                  </p>
+                )}
+
+                <Button
+                  onClick={() => setShowPronunciationDialog(true)}
+                  variant="outline"
+                  className="w-full"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Pronunciation Rule
+                </Button>
+
+                {activeRulesCount > 0 && (
+                  <p className="text-xs text-muted-foreground text-center">
+                    💡 {activeRulesCount} rule{activeRulesCount > 1 ? 's' : ''} will be applied when generating audio
+                  </p>
+                )}
+              </CardContent>
+            )}
           </Card>
 
           {/* Step 3: Voice Selection with Previews */}
@@ -504,6 +644,14 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
           </CardContent>
         </Card>
       )}
+
+      {/* Pronunciation Dialog */}
+      <PronunciationDialog
+        open={showPronunciationDialog}
+        onOpenChange={setShowPronunciationDialog}
+        onAdd={handleAddPronunciation}
+        selectedVoiceId={selectedVoice}
+      />
     </div>
   );
 };
