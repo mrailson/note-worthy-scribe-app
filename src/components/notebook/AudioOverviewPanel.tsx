@@ -161,22 +161,18 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
         stopPreview();
         return;
       }
-      
+
       const audio = new Audio(voicePreviews[voiceId]);
       audio.addEventListener('ended', () => setPreviewingVoice(null));
       setPreviewAudio(audio);
-      
-      // Try to play, handling potential autoplay blocks
+
       try {
         await audio.play();
         setPreviewingVoice(voiceId);
       } catch (err) {
         console.error('Preview playback failed:', err);
-        // Keep audio ready for manual play on next click
-        toast.info('Click Preview again to play', {
-          duration: 3000
-        });
-        // Don't set previewingVoice to null - keep audio ready
+        toast.error('Browser blocked audio playback. Please click anywhere on the page and try again.');
+        setPreviewingVoice(null);
       }
       return;
     }
@@ -203,18 +199,21 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
       if (error) throw error;
 
       if (data.audioUrl) {
-        // Cache the preview audio
         setVoicePreviews(prev => ({ ...prev, [voiceId]: data.audioUrl }));
         const audio = new Audio(data.audioUrl);
         audio.addEventListener('ended', () => setPreviewingVoice(null));
         setPreviewAudio(audio);
 
-        // Do NOT auto-play here to avoid browser autoplay blocking, especially after network awaits.
-        // Instead, ask the user to click Preview again, which will use the cached branch above.
-        if (appliedCount > 0) {
-          toast.success(`Preview ready with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}. Click Preview again to play.`);
-        } else {
-          toast.success('Preview ready. Click Preview again to play.');
+        try {
+          await audio.play();
+          setPreviewingVoice(voiceId);
+          if (appliedCount > 0) {
+            toast.success(`Applied ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`);
+          }
+        } catch (err) {
+          console.error('Preview playback failed:', err);
+          toast.error('Browser blocked audio playback. Please click anywhere on the page and try again.');
+          setPreviewingVoice(null);
         }
       } else {
         throw new Error('No audio URL returned');
