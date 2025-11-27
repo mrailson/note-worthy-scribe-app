@@ -26,7 +26,7 @@ const AIShowcasePage: React.FC = () => {
               Transforming Complex Healthcare Data into Clear Insights
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              See how AI solutions turn detailed, dry data analysis into accessible understanding for better decision-making
+              Examples to show how AI solutions could be used to turn detailed, dry data analysis into accessible understanding for better decision-making
             </p>
           </div>
 
