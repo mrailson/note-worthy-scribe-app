@@ -42,7 +42,7 @@ const AIShowcasePage: React.FC = () => {
                       <span className="text-sm font-semibold text-primary">AI-Generated Audio Briefing - Notewell AI</span>
                     </div>
                     <CardTitle className="text-xl">
-                      Notewell AI: Overview of October 2025 Telephony Data aimed at ICB Audience
+                      Notewell AI: Overview of October 2025 Telephony Data for ICB Review
                     </CardTitle>
                     <p className="text-sm text-muted-foreground mt-2">
                       AI transforms 403,282 call records into an executive audio briefing with key insights and recommendations
