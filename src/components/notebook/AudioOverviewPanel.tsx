@@ -817,6 +817,7 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                   <audio
                     key={previewBarUrl}
                     controls
+                    autoPlay
                     src={previewBarUrl}
                     className="w-full"
                     onError={(e) => {
