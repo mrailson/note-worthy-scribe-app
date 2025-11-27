@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Brain, TrendingUp, FileText, BarChart3, ArrowRight, Download } from 'lucide-react';
 import gpCallSnapshot from '@/assets/gp-call-performance-snapshot.png';
+import { downloadFile } from '@/utils/downloadFile';
 
 const AIShowcasePage: React.FC = () => {
   return (
@@ -209,16 +210,13 @@ const AIShowcasePage: React.FC = () => {
                       AI-powered comprehensive analysis identifying performance patterns across 52 practices and 15 PCNs
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <a
-                      href="/reports/Northamptonshire_GP_Telephony_Executive_Report.docx"
-                      download="Northamptonshire_GP_Telephony_Executive_Report.docx"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </a>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => downloadFile('/reports/Northamptonshire_GP_Telephony_Executive_Report.docx', 'Northamptonshire_GP_Telephony_Executive_Report.docx')}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
                   </Button>
                 </div>
               </CardHeader>
@@ -324,16 +322,13 @@ const AIShowcasePage: React.FC = () => {
                       NotebookLM comparative analysis identifying improvement opportunities from October 2025 telephony data
                     </p>
                   </div>
-                  <Button variant="outline" size="sm" asChild>
-                    <a
-                      href="/reports/Improving_Patient_Access_Benchmarking.pdf"
-                      download="Improving_Patient_Access_Benchmarking.pdf"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </a>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => downloadFile('/reports/Improving_Patient_Access_Benchmarking.pdf', 'Improving_Patient_Access_Benchmarking.pdf')}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download
                   </Button>
                 </div>
               </CardHeader>
@@ -427,11 +422,12 @@ const AIShowcasePage: React.FC = () => {
                       Published data covering 52 GP practices, 15 PCNs, and 403,282 patient calls
                     </p>
                   </div>
-                  <Button asChild className="shrink-0">
-                    <a href="/data/Cloud_Based_Telephony_Publication_Summary_October_2025.xlsx" download>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download Source Data
-                    </a>
+                  <Button 
+                    className="shrink-0"
+                    onClick={() => downloadFile('/data/Cloud_Based_Telephony_Publication_Summary_October_2025.xlsx', 'Cloud_Based_Telephony_Publication_Summary_October_2025.xlsx')}
+                  >
+                    <Download className="w-4 h-4 mr-2" />
+                    Download Source Data
                   </Button>
                 </div>
               </CardContent>
