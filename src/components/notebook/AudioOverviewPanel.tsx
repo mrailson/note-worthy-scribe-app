@@ -19,6 +19,7 @@ import {
   type PronunciationRule 
 } from '@/utils/pronunciationLibrary';
 import { useAudioOverviewHistory, type AudioSession } from '@/hooks/useAudioOverviewHistory';
+import { AudioScriptStyleSelector, type ScriptStyle } from './AudioScriptStyleSelector';
 
 interface AudioOverviewPanelProps {
   uploadedFiles: UploadedFile[];
@@ -62,6 +63,7 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
   
   const [duration, setDuration] = useState([3]); // Default 3 minutes
+  const [selectedScriptStyle, setSelectedScriptStyle] = useState<ScriptStyle>('executive');
 
   // Pronunciation library state
   const [pronunciationRules, setPronunciationRules] = useState<PronunciationRule[]>(() => loadPronunciationLibrary());
@@ -87,7 +89,8 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
         body: {
           content: combinedContent,
           targetDuration: duration[0] * 60,
-          mode: 'script-only'
+          mode: 'script-only',
+          scriptStyle: selectedScriptStyle
         }
       });
 
@@ -376,6 +379,7 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
         source_documents: sourceDocNames,
         pronunciation_rules: pronunciationRules,
         target_duration_minutes: duration[0],
+        script_style: selectedScriptStyle,
       });
 
       if (savedSession) {
@@ -397,6 +401,10 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
       
       if (loadedSession.target_duration_minutes) {
         setDuration([loadedSession.target_duration_minutes]);
+      }
+      
+      if (loadedSession.script_style) {
+        setSelectedScriptStyle(loadedSession.script_style as ScriptStyle);
       }
       
       toast.success(`Loaded: ${loadedSession.title}`);
@@ -437,7 +445,12 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
               </p>
             </div>
 
-            <Button 
+            <AudioScriptStyleSelector 
+              selectedStyle={selectedScriptStyle}
+              onStyleSelect={setSelectedScriptStyle}
+            />
+
+            <Button
               onClick={handleGenerateScript} 
               disabled={isGeneratingScript || uploadedFiles.length === 0}
               className="w-full"
