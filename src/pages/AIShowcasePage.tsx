@@ -80,6 +80,37 @@ const AIShowcasePage: React.FC = () => {
           </div>
         </section>
 
+        {/* Data Source Section */}
+        <section className="container mx-auto px-4 py-8 bg-primary/5">
+          <div className="max-w-5xl mx-auto">
+            <Card className="border-primary/30">
+              <CardContent className="p-6">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-4 justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <FileText className="w-5 h-5 text-primary" />
+                      <h3 className="text-lg font-semibold">Source Data</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      All AI analysis and reports on this page are based on the official NHS Northamptonshire ICB 
+                      Cloud-Based Telephony Publication for October 2025
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Published data covering 52 GP practices, 15 PCNs, and 403,282 patient calls
+                    </p>
+                  </div>
+                  <Button asChild className="shrink-0">
+                    <a href="/data/Cloud_Based_Telephony_Publication_Summary_October_2025.xlsx" download>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Source Data
+                    </a>
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
         {/* Overview Section */}
         <section className="container mx-auto px-4 py-12 bg-muted/30">
           <div className="max-w-5xl mx-auto">
