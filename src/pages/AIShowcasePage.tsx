@@ -34,10 +34,20 @@ const AIShowcasePage: React.FC = () => {
           <div className="max-w-4xl mx-auto mb-12">
             <Card className="overflow-hidden border-primary/20">
               <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
-                <CardTitle className="flex items-center gap-2">
-                  <Brain className="w-5 h-5 text-primary" />
-                  Notewell AI 2 Minute Overview
-                </CardTitle>
+                <div className="flex items-start justify-between flex-wrap gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-2">
+                      <Brain className="w-5 h-5 text-primary" />
+                      <span className="text-sm font-semibold text-primary">AI-Generated Audio Briefing</span>
+                    </div>
+                    <CardTitle className="text-xl">
+                      Notewell AI: 2 Minute Overview of October 2025 Telephony Data
+                    </CardTitle>
+                    <p className="text-sm text-muted-foreground mt-2">
+                      AI transforms 403,282 call records into an executive audio briefing with key insights and recommendations
+                    </p>
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="p-6">
                 <audio 
@@ -48,9 +58,12 @@ const AIShowcasePage: React.FC = () => {
                   <source src="/audio/notewell-2-minute-overview.mp3" type="audio/mpeg" />
                   Your browser does not support the audio element.
                 </audio>
-                <p className="text-sm text-muted-foreground mt-4 text-center">
-                  AI-generated audio briefing on GP telephony performance metrics
-                </p>
+                <div className="mt-4 p-3 bg-primary/5 rounded-lg">
+                  <p className="text-xs text-muted-foreground">
+                    <strong>What this demonstrates:</strong> AI's ability to process large datasets and create accessible audio summaries 
+                    for busy healthcare leaders, turning complex spreadsheets into clear, actionable intelligence.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -59,10 +72,18 @@ const AIShowcasePage: React.FC = () => {
           <div className="max-w-4xl mx-auto mb-12">
             <Card className="overflow-hidden border-primary/20">
               <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
-                <CardTitle className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary" />
-                  Understanding GP Access: A Patient Perspective
-                </CardTitle>
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <FileText className="w-5 h-5 text-primary" />
+                    <span className="text-sm font-semibold text-primary">Educational Video</span>
+                  </div>
+                  <CardTitle className="text-xl">
+                    Understanding GP Access: Patient Perspective on Telephony Data
+                  </CardTitle>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Context video explaining the patient experience behind the October 2025 telephony statistics
+                  </p>
+                </div>
               </CardHeader>
               <CardContent className="p-0">
                 <div className="aspect-video bg-muted">
@@ -164,13 +185,13 @@ const AIShowcasePage: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <FileText className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-semibold text-primary">AI-Generated Report #1</span>
+                      <span className="text-sm font-semibold text-primary">AI Analysis #1 • Comprehensive Deep-Dive</span>
                     </div>
                     <CardTitle className="text-2xl mb-2">
-                      NHS Cloud-Based Telephony: Executive Deep-Dive Report
+                      October 2025 NHS Telephony: Executive Analysis Report
                     </CardTitle>
                     <p className="text-muted-foreground text-sm">
-                      Comprehensive analysis of GP telephony performance across Northamptonshire
+                      AI-powered comprehensive analysis identifying performance patterns across 52 practices and 15 PCNs
                     </p>
                   </div>
                   <Button variant="outline" size="sm" asChild>
@@ -261,13 +282,13 @@ const AIShowcasePage: React.FC = () => {
               <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
                 <div className="flex items-center gap-2 mb-2">
                   <BarChart3 className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-semibold text-primary">AI-Generated Visualisation</span>
+                  <span className="text-sm font-semibold text-primary">AI-Generated Data Visualisation</span>
                 </div>
                 <CardTitle className="text-2xl">
-                  Who's Answering? GP Call Performance Snapshot
+                  October 2025 Performance Snapshot: Best vs. Worst Performers
                 </CardTitle>
                 <p className="text-muted-foreground text-sm">
-                  Comparing best and worst performers in Northamptonshire
+                  AI analysis identifying top and bottom performers from the October 2025 dataset, highlighting key success factors
                 </p>
               </CardHeader>
               <CardContent className="p-6">
@@ -309,13 +330,13 @@ const AIShowcasePage: React.FC = () => {
                   <div>
                     <div className="flex items-center gap-2 mb-2">
                       <Brain className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-semibold text-primary">AI-Generated Report #2 • NotebookLM</span>
+                      <span className="text-sm font-semibold text-primary">AI Analysis #2 • NotebookLM Benchmarking</span>
                     </div>
                     <CardTitle className="text-2xl mb-2">
-                      Improving Patient Access: Benchmarking Analysis
+                      October 2025 Patient Access: AI-Powered Benchmarking Report
                     </CardTitle>
                     <p className="text-muted-foreground text-sm">
-                      AI-powered comparative analysis identifying opportunities for system-wide improvement
+                      NotebookLM comparative analysis identifying improvement opportunities from October 2025 telephony data
                     </p>
                   </div>
                   <Button variant="outline" size="sm" asChild>
