@@ -245,7 +245,7 @@ const AIShowcasePage: React.FC = () => {
                       <li className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
                         <ArrowRight className="w-4 h-4 text-red-600 dark:text-red-400 mt-1 flex-shrink-0" />
                         <div>
-                          <span className="text-red-700 dark:text-red-300 font-medium">6 practices identified with critical anomalies where patient ratings conflict with telephony performance:</span>
+                          <span className="text-red-700 dark:text-red-300 font-medium">7 practices identified with critical anomalies where patient ratings conflict with telephony performance:</span>
                           <ul className="mt-2 ml-4 space-y-1 text-sm">
                             <li>• The Surgery, The Pines</li>
                             <li>• Brook Medical Centre, The Pines</li>
@@ -253,6 +253,7 @@ const AIShowcasePage: React.FC = () => {
                             <li>• The Cottons Medical Centre</li>
                             <li>• The Brook Health Centre</li>
                             <li>• Daventry Health Centre</li>
+                            <li>• St Lukes Primary Care Centre</li>
                           </ul>
                         </div>
                       </li>
@@ -370,14 +371,13 @@ const AIShowcasePage: React.FC = () => {
                     <div className="grid sm:grid-cols-2 gap-4">
                       <div className="border border-green-500/20 bg-green-500/5 rounded-lg p-4">
                         <h4 className="font-semibold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2">
-                          <span className="text-xl">🏆</span> Top 5 Performers
+                          <span className="text-xl">🏆</span> Top 4 Performers
                         </h4>
                         <ol className="space-y-1 text-sm">
                           <li>1. Kingsthorpe Medical Centre</li>
                           <li>2. Woodview Medical Centre</li>
-                          <li>3. St Lukes Primary Care Centre</li>
-                          <li>4. The Buckby Practice</li>
-                          <li>5. Long Practice</li>
+                          <li>3. The Buckby Practice</li>
+                          <li>4. Long Practice</li>
                         </ol>
                       </div>
                       <div className="border border-red-500/20 bg-red-500/5 rounded-lg p-4">
