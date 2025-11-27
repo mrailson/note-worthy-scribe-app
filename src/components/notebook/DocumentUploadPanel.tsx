@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { Upload, FileText, X, Loader2 } from 'lucide-react';
+import { Upload, FileText, X, Loader2, Plus } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Textarea } from '@/components/ui/textarea';
 import { useFileUpload } from '@/hooks/useFileUpload';
 import { toast } from 'sonner';
 import type { UploadedFile } from '@/types/ai4gp';
@@ -19,6 +20,8 @@ export const DocumentUploadPanel = ({
 }: DocumentUploadPanelProps) => {
   const { processFiles, isProcessing } = useFileUpload();
   const [isDragging, setIsDragging] = useState(false);
+  const [directText, setDirectText] = useState('');
+  const [textCounter, setTextCounter] = useState(1);
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -58,6 +61,25 @@ export const DocumentUploadPanel = ({
 
   const handleDragLeave = () => {
     setIsDragging(false);
+  };
+
+  const handleAddDirectText = () => {
+    if (!directText.trim()) {
+      toast.error('Please enter some text first');
+      return;
+    }
+
+    const textFile: UploadedFile = {
+      name: `Direct Text Input ${textCounter}`,
+      content: directText,
+      type: 'text/plain',
+      size: new Blob([directText]).size,
+    };
+
+    onFilesUploaded([textFile]);
+    toast.success('Text added to source material');
+    setDirectText('');
+    setTextCounter(prev => prev + 1);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -125,6 +147,31 @@ export const DocumentUploadPanel = ({
               </div>
             )}
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Add Text Directly</CardTitle>
+          <CardDescription>
+            Paste or type text content to include in your source material
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Textarea
+            placeholder="Paste or type your text here..."
+            value={directText}
+            onChange={(e) => setDirectText(e.target.value)}
+            className="min-h-[150px] font-mono text-sm"
+          />
+          <Button 
+            onClick={handleAddDirectText}
+            disabled={!directText.trim()}
+            className="w-full"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Text to Source Material
+          </Button>
         </CardContent>
       </Card>
 
