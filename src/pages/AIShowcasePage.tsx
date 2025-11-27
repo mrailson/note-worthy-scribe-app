@@ -247,8 +247,8 @@ const AIShowcasePage: React.FC = () => {
                         <div>
                           <span className="text-red-700 dark:text-red-300 font-medium">7 practices identified with critical anomalies where patient ratings conflict with telephony performance:</span>
                           <ul className="mt-2 ml-4 space-y-1 text-sm">
-                            <li>• The Surgery, The Pines</li>
-                            <li>• Brook Medical Centre, The Pines</li>
+                            <li>• The Pines</li>
+                            <li>• Brook Medical Centre</li>
                             <li>• Dr Abbas & Partners</li>
                             <li>• The Cottons Medical Centre</li>
                             <li>• The Brook Health Centre</li>
