@@ -72,7 +72,7 @@ export const DocumentUploadPanel = ({
         <CardHeader>
           <CardTitle>Upload Documents</CardTitle>
           <CardDescription>
-            Upload PDFs, Word documents, PowerPoint presentations, Excel files, or images to get started
+            Upload PDFs, Word documents, Excel files, or images to get started
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -116,11 +116,11 @@ export const DocumentUploadPanel = ({
                     multiple
                     className="hidden"
                     onChange={handleFileSelect}
-                    accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.webp"
+                    accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.webp"
                   />
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Supports: PDF, Word, PowerPoint, Excel, Images, Text (max 15MB per file)
+                  Supports: PDF, Word, Excel, Images, Text (max 15MB per file)
                 </p>
               </div>
             )}
