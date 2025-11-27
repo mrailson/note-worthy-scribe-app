@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Play, Pause, Edit, Trash2, Copy, Calendar, Clock, FileText, Mic } from 'lucide-react';
+import { Search, Play, Pause, Edit, Trash2, Copy, Calendar, Clock, FileText, Mic, Briefcase, GraduationCap, ClipboardList, Radio, FileCode, HeartPulse } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -89,6 +89,31 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const getStyleIcon = (style: string | null) => {
+    const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
+      executive: Briefcase,
+      training: GraduationCap,
+      meeting: ClipboardList,
+      podcast: Radio,
+      technical: FileCode,
+      patient: HeartPulse
+    };
+    const Icon = iconMap[style || 'executive'] || Briefcase;
+    return <Icon className="h-3 w-3" />;
+  };
+
+  const getStyleLabel = (style: string | null) => {
+    const labelMap: Record<string, string> = {
+      executive: 'Executive',
+      training: 'Training',
+      meeting: 'Meeting',
+      podcast: 'Podcast',
+      technical: 'Technical',
+      patient: 'Patient Info'
+    };
+    return labelMap[style || 'executive'] || 'Executive';
+  };
+
   if (loading && sessions.length === 0) {
     return (
       <Card>
@@ -155,6 +180,10 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
 
                         {/* Metadata */}
                         <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground mb-3">
+                          <Badge variant="outline" className="gap-1">
+                            {getStyleIcon(session.script_style)}
+                            <span>{getStyleLabel(session.script_style)}</span>
+                          </Badge>
                           <div className="flex items-center gap-1">
                             <Calendar className="h-3 w-3" />
                             {format(new Date(session.created_at), 'dd MMM yyyy, HH:mm')}

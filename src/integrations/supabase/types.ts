@@ -322,6 +322,7 @@ export type Database = {
           id: string
           original_script: string
           pronunciation_rules: Json | null
+          script_style: string | null
           source_documents: Json | null
           target_duration_minutes: number | null
           title: string
@@ -339,6 +340,7 @@ export type Database = {
           id?: string
           original_script: string
           pronunciation_rules?: Json | null
+          script_style?: string | null
           source_documents?: Json | null
           target_duration_minutes?: number | null
           title: string
@@ -356,6 +358,7 @@ export type Database = {
           id?: string
           original_script?: string
           pronunciation_rules?: Json | null
+          script_style?: string | null
           source_documents?: Json | null
           target_duration_minutes?: number | null
           title?: string

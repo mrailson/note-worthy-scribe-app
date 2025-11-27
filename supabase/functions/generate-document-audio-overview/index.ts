@@ -25,7 +25,7 @@ serve(async (req) => {
   }
 
   try {
-    const { content, voiceProvider, voiceId, targetDuration, mode = 'full', text, previewLength } = await req.json();
+    const { content, voiceProvider, voiceId, targetDuration, mode = 'full', text, previewLength, scriptStyle = 'executive' } = await req.json();
 
     console.log('Request params:', { mode, voiceId, hasContent: !!content, hasText: !!text, previewLength });
 
@@ -57,6 +57,52 @@ serve(async (req) => {
         throw new Error('LOVABLE_API_KEY not configured');
       }
 
+      // Style-specific system prompts
+      const stylePrompts: Record<string, string> = {
+        executive: `You are creating an executive audio briefing. Focus on:
+- Key strategic points and business impact
+- High-level decisions and outcomes
+- Critical metrics and performance indicators
+- Actionable insights for leadership
+Use confident, authoritative language suitable for senior stakeholders.`,
+        
+        training: `You are creating educational audio content. Focus on:
+- Clear, step-by-step explanations
+- Define technical terms when first used
+- Use examples and analogies
+- Summarise key learning points
+Maintain an encouraging, instructive tone.`,
+        
+        meeting: `You are creating a meeting recap audio. Focus on:
+- Key discussion points and context
+- Decisions made and their rationale
+- Action items and owners
+- Next steps and deadlines
+Keep it concise and factual.`,
+        
+        podcast: `You are creating an engaging podcast segment. Focus on:
+- Conversational, friendly tone
+- Storytelling elements and flow
+- Thought-provoking insights
+- Natural transitions between topics
+Make it interesting and easy to listen to.`,
+        
+        technical: `You are creating a technical briefing audio. Focus on:
+- Precise terminology and accuracy
+- Detailed technical information
+- Process and methodology explanations
+- Specifications and data points
+Use formal, professional language.`,
+        
+        patient: `You are creating patient-friendly audio content. Focus on:
+- Clear, jargon-free language
+- Empathetic and reassuring tone
+- Practical guidance and next steps
+- Important information repeated for clarity
+Ensure accessibility for all understanding levels.`
+      };
+
+      const systemPrompt = stylePrompts[scriptStyle] || stylePrompts.executive;
       const targetWords = (targetDuration || 180) * 2.5; // ~2.5 words per second
       
       const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -70,12 +116,13 @@ serve(async (req) => {
           messages: [
             {
               role: 'system',
-              content: `You are a professional narrator creating an engaging audio overview. 
-              Create a natural, conversational summary that sounds great when spoken aloud.
-              Target length: approximately ${targetWords} words.
-              Use clear transitions and maintain an engaging tone throughout.
-              IMPORTANT: Write only spoken words - NO stage directions, sound effects, music cues, or script notations like "(music fades in)". 
-              Just write the actual narrative text that should be spoken.`
+              content: `${systemPrompt}
+
+Create a natural, conversational summary that sounds great when spoken aloud.
+Target length: approximately ${targetWords} words.
+Use clear transitions and maintain an appropriate tone throughout.
+IMPORTANT: Write only spoken words - NO stage directions, sound effects, music cues, or script notations like "(music fades in)". 
+Just write the actual narrative text that should be spoken.`
             },
             {
               role: 'user',
