@@ -101,6 +101,52 @@ const AIShowcasePage: React.FC = () => {
           </div>
         </section>
 
+        {/* Visual Infographic Section */}
+        <section className="container mx-auto px-4 py-12 bg-muted/30">
+          <div className="max-w-5xl mx-auto">
+            <Card className="border-primary/20 overflow-hidden">
+              <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
+                <div className="flex items-center gap-2 mb-2">
+                  <BarChart3 className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-semibold text-primary">AI-Generated Data Visualisation by Notebook LM</span>
+                </div>
+                <CardTitle className="text-2xl">
+                  October 2025 Performance Snapshot: Best vs. Worst Performers
+                </CardTitle>
+                <p className="text-muted-foreground text-sm">
+                  AI analysis identifying top and bottom performers from the October 2025 dataset, highlighting key success factors
+                </p>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="bg-white rounded-lg overflow-hidden">
+                  <img 
+                    src={gpCallSnapshot} 
+                    alt="GP Call Performance Comparison showing Kingsthorpe Medical Centre (#1 rank) with 4.2% call abandonment versus The Pines Surgery (#52 rank) with 22.5% abandonment"
+                    className="w-full h-auto"
+                  />
+                </div>
+                <div className="mt-4 p-4 bg-primary/5 rounded-lg">
+                  <h4 className="font-semibold mb-2">Key Insights from Visualisation</h4>
+                  <ul className="space-y-2 text-sm text-muted-foreground">
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span>Best in class: 4.2% call abandonment with 69.5% answered in under 2 minutes</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span>Needs improvement: 22.5% abandonment indicating significant patient frustration</span>
+                    </li>
+                    <li className="flex items-start gap-2">
+                      <ArrowRight className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
+                      <span>Success factors: Effective staffing, smart triage systems, modern telephony features</span>
+                    </li>
+                  </ul>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </section>
+
         {/* Overview Section */}
         <section className="container mx-auto px-4 py-12 bg-muted/30">
           <div className="max-w-5xl mx-auto">
@@ -238,52 +284,6 @@ const AIShowcasePage: React.FC = () => {
                       transparency milestone, enabling evidence-based assessment of primary care telephone access."
                     </p>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </section>
-
-        {/* Visual Infographic Section */}
-        <section className="container mx-auto px-4 py-12 bg-muted/30">
-          <div className="max-w-5xl mx-auto">
-            <Card className="border-primary/20 overflow-hidden">
-              <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
-                <div className="flex items-center gap-2 mb-2">
-                  <BarChart3 className="w-5 h-5 text-primary" />
-                  <span className="text-sm font-semibold text-primary">AI-Generated Data Visualisation by Notebook LM</span>
-                </div>
-                <CardTitle className="text-2xl">
-                  October 2025 Performance Snapshot: Best vs. Worst Performers
-                </CardTitle>
-                <p className="text-muted-foreground text-sm">
-                  AI analysis identifying top and bottom performers from the October 2025 dataset, highlighting key success factors
-                </p>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="bg-white rounded-lg overflow-hidden">
-                  <img 
-                    src={gpCallSnapshot} 
-                    alt="GP Call Performance Comparison showing Kingsthorpe Medical Centre (#1 rank) with 4.2% call abandonment versus The Pines Surgery (#52 rank) with 22.5% abandonment"
-                    className="w-full h-auto"
-                  />
-                </div>
-                <div className="mt-4 p-4 bg-primary/5 rounded-lg">
-                  <h4 className="font-semibold mb-2">Key Insights from Visualisation</h4>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li className="flex items-start gap-2">
-                      <ArrowRight className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span>Best in class: 4.2% call abandonment with 69.5% answered in under 2 minutes</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ArrowRight className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span>Needs improvement: 22.5% abandonment indicating significant patient frustration</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <ArrowRight className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                      <span>Success factors: Effective staffing, smart triage systems, modern telephony features</span>
-                    </li>
-                  </ul>
                 </div>
               </CardContent>
             </Card>
