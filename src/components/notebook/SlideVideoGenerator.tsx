@@ -16,12 +16,9 @@ interface SlideVideoGeneratorProps {
 }
 
 const VOICE_OPTIONS = [
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George (Male, Professional)' },
-  { id: 'N2lVS1w4EtoT3dr4eOWO', name: 'Callum (Male, Warm)' },
-  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte (Female, Clear)' },
   { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice (Female, Friendly)' },
-  { id: 'XrExE9yKIg1WjnnlVkGX', name: 'Matilda (Female, Articulate)' },
-  { id: 'bIHbv24MWmeRgasZH58o', name: 'Will (Male, Confident)' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George (Male, Professional)' },
+  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte (Female, Clear)' },
   { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel (Male, Authoritative)' },
 ];
 
