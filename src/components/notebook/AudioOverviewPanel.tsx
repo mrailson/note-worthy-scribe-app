@@ -348,43 +348,50 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
     }
   };
 
+  const [isSaving, setIsSaving] = useState(false);
+
   const handleSaveSession = async () => {
     if (!scriptGenerated || !editedText) {
       toast.error('Generate a script first');
       return;
     }
 
-    const voiceName = VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name || 'Unknown';
-    const sourceDocNames = uploadedFiles.map(f => f.name);
+    setIsSaving(true);
+    try {
+      const voiceName = VOICE_OPTIONS.find(v => v.id === selectedVoice)?.name || 'Unknown';
+      const sourceDocNames = uploadedFiles.map(f => f.name);
 
-    if (currentSessionId) {
-      // Update existing session
-      await updateSession(currentSessionId, {
-        title: sourceDocNames.length > 0 ? `${sourceDocNames[0]} - ${new Date().toLocaleDateString()}` : `Audio Session - ${new Date().toLocaleDateString()}`,
-        edited_script: editedText,
-        audio_url: audioUrl,
-        duration_seconds: audioUrl && audioElement ? Math.floor(audioElement.duration) : undefined,
-        pronunciation_rules: pronunciationRules,
-      });
-    } else {
-      // Save new session
-      const savedSession = await saveSession({
-        title: sourceDocNames.length > 0 ? `${sourceDocNames[0]} - ${new Date().toLocaleDateString()}` : `Audio Session - ${new Date().toLocaleDateString()}`,
-        original_script: originalText,
-        edited_script: editedText,
-        audio_url: audioUrl,
-        voice_id: selectedVoice,
-        voice_name: voiceName,
-        duration_seconds: audioUrl && audioElement ? Math.floor(audioElement.duration) : undefined,
-        source_documents: sourceDocNames,
-        pronunciation_rules: pronunciationRules,
-        target_duration_minutes: duration[0],
-        script_style: selectedScriptStyle,
-      });
+      if (currentSessionId) {
+        // Update existing session
+        await updateSession(currentSessionId, {
+          title: sourceDocNames.length > 0 ? `${sourceDocNames[0]} - ${new Date().toLocaleDateString('en-GB')}` : `Audio Session - ${new Date().toLocaleDateString('en-GB')}`,
+          edited_script: editedText,
+          audio_url: audioUrl,
+          duration_seconds: audioUrl && audioElement ? Math.floor(audioElement.duration) : undefined,
+          pronunciation_rules: pronunciationRules,
+        });
+      } else {
+        // Save new session
+        const savedSession = await saveSession({
+          title: sourceDocNames.length > 0 ? `${sourceDocNames[0]} - ${new Date().toLocaleDateString('en-GB')}` : `Audio Session - ${new Date().toLocaleDateString('en-GB')}`,
+          original_script: originalText,
+          edited_script: editedText,
+          audio_url: audioUrl,
+          voice_id: selectedVoice,
+          voice_name: voiceName,
+          duration_seconds: audioUrl && audioElement ? Math.floor(audioElement.duration) : undefined,
+          source_documents: sourceDocNames,
+          pronunciation_rules: pronunciationRules,
+          target_duration_minutes: duration[0],
+          script_style: selectedScriptStyle,
+        });
 
-      if (savedSession) {
-        setCurrentSessionId(savedSession.id);
+        if (savedSession) {
+          setCurrentSessionId(savedSession.id);
+        }
       }
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -835,11 +842,33 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                 onClick={handleSaveSession}
                 size="lg"
                 variant="default"
+                disabled={isSaving}
               >
-                <Save className="h-5 w-5 mr-2" />
-                {currentSessionId ? 'Update' : 'Save to History'}
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : currentSessionId ? (
+                  <>
+                    <Check className="h-5 w-5 mr-2" />
+                    Update Session
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-5 w-5 mr-2" />
+                    Save to History
+                  </>
+                )}
               </Button>
             </div>
+
+            {currentSessionId && (
+              <Badge variant="secondary" className="w-fit">
+                <Check className="h-3 w-3 mr-1" />
+                Saved to history
+              </Badge>
+            )}
 
             <div className="p-4 bg-muted rounded-lg">
               <p className="text-sm font-medium mb-2">Final Narration Text:</p>
