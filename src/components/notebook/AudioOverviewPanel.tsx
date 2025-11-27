@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, BookOpen, Plus, Trash2, ChevronDown, ChevronUp, Save } from 'lucide-react';
+import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, BookOpen, Plus, Trash2, ChevronDown, ChevronUp, Save, Copy } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -544,18 +544,38 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label>Narration Text</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Label>Narration Text</Label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={async () => {
+                        try {
+                          await navigator.clipboard.writeText(editedText || '');
+                          toast.success('Narration text copied');
+                        } catch (error) {
+                          console.error('Failed to copy narration text:', error);
+                          toast.error('Unable to copy text to clipboard');
+                        }
+                      }}
+                      title="Copy narration text"
+                    >
+                      <Copy className="h-4 w-4" />
+                    </Button>
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     {wordCount} words • ~{Math.floor(estimatedDuration / 60)}:{(estimatedDuration % 60).toString().padStart(2, '0')} duration
                   </p>
                 </div>
-                <Textarea
-                  value={editedText}
-                  onChange={(e) => setEditedText(e.target.value)}
-                  className="min-h-[200px] font-mono text-sm"
-                  disabled={!isEditing}
-                />
+                 <Textarea
+                   value={editedText}
+                   onChange={(e) => setEditedText(e.target.value)}
+                   className="min-h-[200px] font-mono text-sm"
+                   disabled={!isEditing}
+                 />
               </div>
 
               <Button 
