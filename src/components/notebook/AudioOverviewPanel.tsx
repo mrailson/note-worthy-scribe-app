@@ -61,6 +61,8 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
   const [pronunciationRules, setPronunciationRules] = useState<PronunciationRule[]>(() => loadPronunciationLibrary());
   const [showPronunciationDialog, setShowPronunciationDialog] = useState(false);
   const [pronunciationExpanded, setPronunciationExpanded] = useState(false);
+  const [testingPronunciation, setTestingPronunciation] = useState<string | null>(null);
+  const [pronunciationTestUrl, setPronunciationTestUrl] = useState<string | null>(null);
 
   const handleGenerateScript = async () => {
     if (uploadedFiles.length === 0) {
@@ -303,6 +305,40 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
     toast.success('Pronunciation rule removed');
   };
 
+  const handleTestPronunciation = async (rule: PronunciationRule) => {
+    setTestingPronunciation(rule.id);
+    setPronunciationTestUrl(null);
+
+    try {
+      // Create a test sentence using the word
+      const testText = `The word is ${rule.original}. When pronounced correctly, it sounds like ${rule.pronounceAs}.`;
+      
+      const { data, error } = await supabase.functions.invoke('generate-document-audio-overview', {
+        body: {
+          text: testText,
+          voiceId: selectedVoice,
+          voiceProvider: 'elevenlabs',
+          mode: 'audio-only',
+          previewLength: 50 // Short test
+        }
+      });
+
+      if (error) throw error;
+
+      if (data.audioUrl) {
+        setPronunciationTestUrl(data.audioUrl);
+        toast.success('Test audio ready. Use player below to listen.');
+      } else {
+        throw new Error('No audio URL returned');
+      }
+    } catch (error: any) {
+      console.error('Pronunciation test error:', error);
+      toast.error(error.message || 'Failed to generate test audio');
+    } finally {
+      setTestingPronunciation(null);
+    }
+  };
+
   const wordCount = editedText.split(' ').filter(w => w.length > 0).length;
   const estimatedDuration = Math.ceil(wordCount / 2.5);
   const activeRulesCount = pronunciationRules.filter(rule => 
@@ -477,14 +513,31 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
                                 {rule.caseInsensitive && ' • Case insensitive'}
                               </p>
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleRemovePronunciation(rule.id)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleTestPronunciation(rule)}
+                                disabled={testingPronunciation === rule.id || !selectedVoice}
+                                className="h-8 w-8 p-0"
+                                title="Test pronunciation"
+                              >
+                                {testingPronunciation === rule.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Play className="h-4 w-4" />
+                                )}
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleRemovePronunciation(rule.id)}
+                                className="h-8 w-8 p-0"
+                                title="Remove rule"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -504,6 +557,22 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
                   <Plus className="h-4 w-4 mr-2" />
                   Add Pronunciation Rule
                 </Button>
+
+                {pronunciationTestUrl && (
+                  <div className="space-y-2 pt-2">
+                    <Label>Pronunciation test player</Label>
+                    <audio
+                      key={pronunciationTestUrl}
+                      controls
+                      src={pronunciationTestUrl}
+                      className="w-full"
+                      onError={(e) => {
+                        console.error('Pronunciation test audio error:', e);
+                        toast.error('Unable to play test audio.');
+                      }}
+                    />
+                  </div>
+                )}
 
                 {activeRulesCount > 0 && (
                   <p className="text-xs text-muted-foreground text-center">
