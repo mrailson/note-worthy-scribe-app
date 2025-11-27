@@ -116,14 +116,19 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
       const audio = new Audio(voicePreviews[voiceId]);
       audio.addEventListener('ended', () => setPreviewingVoice(null));
       setPreviewAudio(audio);
-      audio
-        .play()
-        .then(() => setPreviewingVoice(voiceId))
-        .catch((err) => {
-          console.error('Preview playback failed:', err);
-          toast.error('Browser blocked audio playback. Please interact with the page and try again.');
-          setPreviewingVoice(null);
-        });
+      const playPromise = audio.play();
+      
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => setPreviewingVoice(voiceId))
+          .catch((err) => {
+            console.error('Preview playback failed:', err);
+            toast.info('Preview ready - click Download to save or try playing again', {
+              duration: 5000
+            });
+            setPreviewingVoice(null);
+          });
+      }
       return;
     }
 
@@ -153,19 +158,24 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
         const audio = new Audio(data.audioUrl);
         audio.addEventListener('ended', () => setPreviewingVoice(null));
         setPreviewAudio(audio);
-        audio
-          .play()
-          .then(() => {
-            setPreviewingVoice(voiceId);
-            if (appliedCount > 0) {
-              toast.success(`Applied ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`);
-            }
-          })
-          .catch((err) => {
-            console.error('Preview playback failed:', err);
-            toast.error('Browser blocked audio playback. Please interact with the page and try again.');
-            setPreviewingVoice(null);
-          });
+        const playPromise = audio.play();
+        
+        if (playPromise !== undefined) {
+          playPromise
+            .then(() => {
+              setPreviewingVoice(voiceId);
+              if (appliedCount > 0) {
+                toast.success(`Applied ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`);
+              }
+            })
+            .catch((err) => {
+              console.error('Preview playback failed:', err);
+              toast.info('Preview ready - click Download to save or try playing again', {
+                duration: 5000
+              });
+              setPreviewingVoice(null);
+            });
+        }
       } else {
         throw new Error('No audio URL returned');
       }
@@ -531,33 +541,54 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
                           )}
                         </div>
                       </div>
-                      <Button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handlePreviewVoice(voice.id);
-                        }}
-                        variant={previewingVoice === voice.id ? "default" : "outline"}
-                        size="sm"
-                        className="w-full"
-                        disabled={isGeneratingPreview === voice.id}
-                      >
-                        {isGeneratingPreview === voice.id ? (
-                          <>
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                            Loading...
-                          </>
-                        ) : previewingVoice === voice.id ? (
-                          <>
-                            <Pause className="h-4 w-4 mr-2" />
-                            Stop Preview
-                          </>
-                        ) : (
-                          <>
-                            <Play className="h-4 w-4 mr-2" />
-                            Preview
-                          </>
+                      <div className="flex gap-2">
+                        <Button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handlePreviewVoice(voice.id);
+                          }}
+                          variant={previewingVoice === voice.id ? "default" : "outline"}
+                          size="sm"
+                          className="flex-1"
+                          disabled={isGeneratingPreview === voice.id}
+                        >
+                          {isGeneratingPreview === voice.id ? (
+                            <>
+                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                              Loading...
+                            </>
+                          ) : previewingVoice === voice.id ? (
+                            <>
+                              <Pause className="h-4 w-4 mr-2" />
+                              Stop
+                            </>
+                          ) : (
+                            <>
+                              <Play className="h-4 w-4 mr-2" />
+                              Preview
+                            </>
+                          )}
+                        </Button>
+                        {voicePreviews[voice.id] && (
+                          <Button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const link = document.createElement('a');
+                              link.href = voicePreviews[voice.id];
+                              link.download = `preview-${voice.name.toLowerCase()}.mp3`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              toast.success('Download started');
+                            }}
+                            variant="outline"
+                            size="sm"
+                            title="Download preview"
+                          >
+                            <Download className="h-4 w-4" />
+                          </Button>
                         )}
-                      </Button>
+                      </div>
                     </CardContent>
                   </Card>
                 ))}
