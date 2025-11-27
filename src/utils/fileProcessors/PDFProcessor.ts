@@ -1,8 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
 import * as pdfjsLib from 'pdfjs-dist';
 
-// Configure PDF.js worker - using a fixed version for stability
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4.0.379/build/pdf.worker.min.js';
+// Configure PDF.js worker - using the bundled version from node_modules
+const pdfjsVersion = '5.4.296';
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsVersion}/build/pdf.worker.min.mjs`;
 
 export class PDFProcessor {
   private static readonly MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB limit
