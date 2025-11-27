@@ -242,9 +242,9 @@ const AIShowcasePage: React.FC = () => {
                         <ArrowRight className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
                         <span>Average missed call rate: 11.8% — approximately 47,500 patients had their calls missed</span>
                       </li>
-                      <li className="flex items-start gap-2">
-                        <ArrowRight className="w-4 h-4 text-primary mt-1 flex-shrink-0" />
-                        <span>6 practices identified with critical anomalies where patient ratings conflict with telephony performance</span>
+                      <li className="flex items-start gap-2 p-3 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800">
+                        <ArrowRight className="w-4 h-4 text-red-600 dark:text-red-400 mt-1 flex-shrink-0" />
+                        <span className="text-red-700 dark:text-red-300 font-medium">6 practices identified with critical anomalies where patient ratings conflict with telephony performance</span>
                       </li>
                     </ul>
                   </div>
