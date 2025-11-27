@@ -796,7 +796,7 @@ export const ComplaintOutcomeQuestionnaire = ({
             body: { 
               complaintId,
               voiceProvider: 'elevenlabs',
-              voiceId: 'G17SuINrv2H9FC6nvetn' // Chris voice
+              voiceId: 'Xb7hH8MSUJpSbSDYk0k2' // Alice voice (default)
             }
           });
           
