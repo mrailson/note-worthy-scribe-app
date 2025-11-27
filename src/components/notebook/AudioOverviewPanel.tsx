@@ -617,7 +617,16 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
               {previewBarUrl && (
                 <div className="mt-4 space-y-2">
                   <Label>Voice preview player</Label>
-                  <audio controls src={previewBarUrl} className="w-full" />
+                  <audio
+                    key={previewBarUrl}
+                    controls
+                    src={previewBarUrl}
+                    className="w-full"
+                    onError={(e) => {
+                      console.error('Preview audio element error:', e);
+                      toast.error('Unable to play preview in this browser. Please use the Download button instead.');
+                    }}
+                  />
                 </div>
               )}
 
