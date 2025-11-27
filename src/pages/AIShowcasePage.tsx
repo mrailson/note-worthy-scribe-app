@@ -197,28 +197,16 @@ const AIShowcasePage: React.FC = () => {
           <div className="max-w-5xl mx-auto">
             <Card className="border-primary/20 mb-8">
               <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <FileText className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-semibold text-primary">AI Analysis #1 • Comprehensive Deep-Dive</span>
-                    </div>
-                    <CardTitle className="text-2xl mb-2">
-                      October 2025 NHS Telephony: Executive Analysis Report
-                    </CardTitle>
-                    <p className="text-muted-foreground text-sm">
-                      AI-powered comprehensive analysis identifying performance patterns across 52 practices and 15 PCNs
-                    </p>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => downloadFile('/reports/Northamptonshire_GP_Telephony_Executive_Report.docx', 'Northamptonshire_GP_Telephony_Executive_Report.docx')}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
+                <div className="flex items-center gap-2 mb-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-semibold text-primary">AI Analysis #1 • Comprehensive Deep-Dive</span>
                 </div>
+                <CardTitle className="text-2xl mb-2">
+                  October 2025 NHS Telephony: Executive Analysis Report
+                </CardTitle>
+                <p className="text-muted-foreground text-sm">
+                  AI-powered comprehensive analysis identifying performance patterns across 52 practices and 15 PCNs
+                </p>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-6">
@@ -309,28 +297,16 @@ const AIShowcasePage: React.FC = () => {
           <div className="max-w-5xl mx-auto">
             <Card className="border-primary/20">
               <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Brain className="w-5 h-5 text-primary" />
-                      <span className="text-sm font-semibold text-primary">AI Analysis #2 • NotebookLM Benchmarking</span>
-                    </div>
-                    <CardTitle className="text-2xl mb-2">
-                      October 2025 Patient Access: AI-Powered Benchmarking Report
-                    </CardTitle>
-                    <p className="text-muted-foreground text-sm">
-                      NotebookLM comparative analysis identifying improvement opportunities from October 2025 telephony data
-                    </p>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => downloadFile('/reports/Improving_Patient_Access_Benchmarking.pdf', 'Improving_Patient_Access_Benchmarking.pdf')}
-                  >
-                    <Download className="w-4 h-4 mr-2" />
-                    Download
-                  </Button>
+                <div className="flex items-center gap-2 mb-2">
+                  <Brain className="w-5 h-5 text-primary" />
+                  <span className="text-sm font-semibold text-primary">AI Analysis #2 • NotebookLM Benchmarking</span>
                 </div>
+                <CardTitle className="text-2xl mb-2">
+                  October 2025 Patient Access: AI-Powered Benchmarking Report
+                </CardTitle>
+                <p className="text-muted-foreground text-sm">
+                  NotebookLM comparative analysis identifying improvement opportunities from October 2025 telephony data
+                </p>
               </CardHeader>
               <CardContent className="p-6">
                 <div className="space-y-6">
