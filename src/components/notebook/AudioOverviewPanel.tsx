@@ -161,21 +161,22 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
         stopPreview();
         return;
       }
+      
       const audio = new Audio(voicePreviews[voiceId]);
       audio.addEventListener('ended', () => setPreviewingVoice(null));
       setPreviewAudio(audio);
-      const playPromise = audio.play();
       
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => setPreviewingVoice(voiceId))
-          .catch((err) => {
-            console.error('Preview playback failed:', err);
-            toast.info('Preview ready - click Download to save or try playing again', {
-              duration: 5000
-            });
-            setPreviewingVoice(null);
-          });
+      // Try to play, handling potential autoplay blocks
+      try {
+        await audio.play();
+        setPreviewingVoice(voiceId);
+      } catch (err) {
+        console.error('Preview playback failed:', err);
+        // Keep audio ready for manual play on next click
+        toast.info('Click Preview again to play', {
+          duration: 3000
+        });
+        // Don't set previewingVoice to null - keep audio ready
       }
       return;
     }
@@ -206,23 +207,18 @@ export const AudioOverviewPanel = ({ uploadedFiles }: AudioOverviewPanelProps) =
         const audio = new Audio(data.audioUrl);
         audio.addEventListener('ended', () => setPreviewingVoice(null));
         setPreviewAudio(audio);
-        const playPromise = audio.play();
         
-        if (playPromise !== undefined) {
-          playPromise
-            .then(() => {
-              setPreviewingVoice(voiceId);
-              if (appliedCount > 0) {
-                toast.success(`Applied ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`);
-              }
-            })
-            .catch((err) => {
-              console.error('Preview playback failed:', err);
-              toast.info('Preview ready - click Download to save or try playing again', {
-                duration: 5000
-              });
-              setPreviewingVoice(null);
-            });
+        try {
+          await audio.play();
+          setPreviewingVoice(voiceId);
+          if (appliedCount > 0) {
+            toast.success(`Applied ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`);
+          }
+        } catch (err) {
+          console.error('Preview playback failed:', err);
+          toast.info('Preview ready - click Preview again to play', {
+            duration: 3000
+          });
         }
       } else {
         throw new Error('No audio URL returned');
