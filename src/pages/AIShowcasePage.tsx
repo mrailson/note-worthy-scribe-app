@@ -164,7 +164,7 @@ const AIShowcasePage: React.FC = () => {
                     </p>
                   </div>
                   <Button variant="outline" size="sm" asChild>
-                    <a href="/reports/Northamptonshire_GP_Telephony_Executive_Report.docx" download>
+                    <a href="/reports/Northamptonshire_GP_Telephony_Executive_Report.docx" download="Northamptonshire_GP_Telephony_Executive_Report.docx">
                       <Download className="w-4 h-4 mr-2" />
                       Download
                     </a>
