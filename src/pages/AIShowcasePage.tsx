@@ -419,33 +419,6 @@ const AIShowcasePage: React.FC = () => {
           </div>
         </section>
 
-        {/* Call to Action */}
-        <section className="container mx-auto px-4 py-16">
-          <div className="max-w-3xl mx-auto text-center">
-            <div className="bg-gradient-to-r from-primary/10 to-accent/10 rounded-2xl p-8">
-              <Brain className="w-12 h-12 text-primary mx-auto mb-4" />
-              <h2 className="text-3xl font-bold mb-4">Transform Your Data with AI</h2>
-              <p className="text-muted-foreground mb-6">
-                These reports demonstrate how AI can transform complex, dry datasets into clear, 
-                actionable insights for leadership decision-making. From hundreds of thousands of data points 
-                to strategic recommendations in minutes.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                <Button size="lg" asChild>
-                  <a href="/">
-                    Explore Notewell AI
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </a>
-                </Button>
-                <Button size="lg" variant="outline" asChild>
-                  <a href="/demos">
-                    View More Demos
-                  </a>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </section>
       </main>
     </>
   );
