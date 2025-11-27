@@ -9,33 +9,49 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import type { UploadedFile } from '@/types/ai4gp';
 import type { PresentationContent, GenerationMetadata } from '@/types/presentation';
+import { PRESENTATION_TEMPLATES } from '@/utils/presentationTemplates';
 
 interface SlideDeckPanelProps {
   uploadedFiles: UploadedFile[];
 }
 
 const BRITISH_VOICES = [
-  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice (Female, Friendly)' },
-  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George (Male, Professional)' },
-  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte (Female, Clear)' },
-  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel (Male, Authoritative)' },
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', description: 'British Female - Friendly' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', description: 'British Male - Professional' },
+  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', description: 'British Female - Clear' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'British Male - Authoritative' },
 ];
 
 const SLIDE_COUNT_OPTIONS = [
-  { value: '6', label: '6 slides (Quick overview)' },
-  { value: '10', label: '10 slides (Standard)' },
-  { value: '15', label: '15 slides (Comprehensive)' },
+  { value: 6, label: '6 Slides', description: 'Quick overview' },
+  { value: 10, label: '10 Slides', description: 'Standard depth' },
+  { value: 15, label: '15 Slides', description: 'Comprehensive' },
+];
+
+const PRESENTATION_TYPES = [
+  { value: 'Executive Overview', label: 'Executive Overview', description: 'High-level strategic summary' },
+  { value: 'Training Materials', label: 'Training Materials', description: 'Staff training content' },
+  { value: 'Clinical Guidelines', label: 'Clinical Guidelines', description: 'Medical protocols' },
+  { value: 'Patient Education', label: 'Patient Education', description: 'Patient-friendly materials' },
+  { value: 'Research Presentation', label: 'Research Presentation', description: 'Academic findings' },
+  { value: 'PCN Board Meetings', label: 'PCN Board Meeting', description: 'Governance meetings' },
+  { value: 'Practice Partnership Meetings', label: 'Practice Partnership', description: 'Operational meetings' },
+  { value: 'Neighbourhood Meetings', label: 'Neighbourhood Meeting', description: 'Community collaboration' },
+  { value: 'Custom Topic', label: 'Custom Topic', description: 'General healthcare' }
 ];
 
 export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [slideCount, setSlideCount] = useState('10');
+  const [slideCount, setSlideCount] = useState(6);
   const [selectedVoice, setSelectedVoice] = useState(BRITISH_VOICES[0].id);
+  const [selectedTemplate, setSelectedTemplate] = useState('nhs-branded-background');
+  const [presentationType, setPresentationType] = useState('Executive Overview');
   const [preloadedContent, setPreloadedContent] = useState<{
     presentation: PresentationContent;
     metadata: GenerationMetadata;
     slideImages?: { [key: number]: string };
+    voiceId?: string;
   } | undefined>(undefined);
 
   const handleQuickGenerate = async () => {
@@ -54,9 +70,10 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
       const { data, error } = await supabase.functions.invoke('generate-powerpoint', {
         body: {
           topic: autoTopic,
-          presentationType: 'Executive Overview',
-          slideCount: parseInt(slideCount),
+          presentationType,
+          slideCount,
           complexityLevel: 'intermediate',
+          templateId: selectedTemplate,
           supportingFiles: uploadedFiles.map(file => ({
             name: file.name,
             content: file.content,
@@ -117,7 +134,8 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
         setPreloadedContent({
           presentation: data.presentation,
           metadata: data.metadata,
-          slideImages
+          slideImages,
+          voiceId: selectedVoice
         });
         setIsOpen(true);
       } else {
@@ -177,14 +195,17 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <Label htmlFor="slideCount" className="text-xs">Slide Count</Label>
-                      <Select value={slideCount} onValueChange={setSlideCount}>
+                      <Select value={slideCount.toString()} onValueChange={(v) => setSlideCount(parseInt(v))}>
                         <SelectTrigger id="slideCount" className="h-9">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           {SLIDE_COUNT_OPTIONS.map((option) => (
-                            <SelectItem key={option.value} value={option.value}>
-                              {option.label}
+                            <SelectItem key={option.value} value={option.value.toString()}>
+                              <div>
+                                <div className="font-medium text-xs">{option.label}</div>
+                                <div className="text-[10px] text-muted-foreground">{option.description}</div>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -192,7 +213,45 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="voice" className="text-xs">Narration Voice</Label>
+                      <Label htmlFor="presentationType" className="text-xs">Type</Label>
+                      <Select value={presentationType} onValueChange={setPresentationType}>
+                        <SelectTrigger id="presentationType" className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRESENTATION_TYPES.map((type) => (
+                            <SelectItem key={type.value} value={type.value}>
+                              <div>
+                                <div className="font-medium text-xs">{type.label}</div>
+                                <div className="text-[10px] text-muted-foreground">{type.description}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="templateStyle" className="text-xs">Template</Label>
+                      <Select value={selectedTemplate} onValueChange={setSelectedTemplate}>
+                        <SelectTrigger id="templateStyle" className="h-9">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {PRESENTATION_TEMPLATES.map((template) => (
+                            <SelectItem key={template.id} value={template.id}>
+                              <div>
+                                <div className="font-medium text-xs">{template.name}</div>
+                                <div className="text-[10px] text-muted-foreground">{template.description}</div>
+                              </div>
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="voice" className="text-xs">Voice</Label>
                       <Select value={selectedVoice} onValueChange={setSelectedVoice}>
                         <SelectTrigger id="voice" className="h-9">
                           <SelectValue />
@@ -200,7 +259,10 @@ export const SlideDeckPanel = ({ uploadedFiles }: SlideDeckPanelProps) => {
                         <SelectContent>
                           {BRITISH_VOICES.map((voice) => (
                             <SelectItem key={voice.id} value={voice.id}>
-                              {voice.name}
+                              <div>
+                                <div className="font-medium text-xs">{voice.name}</div>
+                                <div className="text-[10px] text-muted-foreground">{voice.description}</div>
+                              </div>
                             </SelectItem>
                           ))}
                         </SelectContent>
