@@ -920,7 +920,27 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
             )}
 
             <div className="p-4 bg-muted rounded-lg">
-              <p className="text-sm font-medium mb-2">Final Narration Text:</p>
+              <div className="flex items-center gap-2 mb-2">
+                <p className="text-sm font-medium">Final Narration Text:</p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="h-7 w-7"
+                  onClick={async () => {
+                    try {
+                      await navigator.clipboard.writeText(editedText || '');
+                      toast.success('Final narration text copied');
+                    } catch (error) {
+                      console.error('Failed to copy narration text:', error);
+                      toast.error('Unable to copy text to clipboard');
+                    }
+                  }}
+                  title="Copy narration text"
+                >
+                  <Copy className="h-3.5 w-3.5" />
+                </Button>
+              </div>
               <p className="text-sm text-muted-foreground whitespace-pre-wrap">
                 {editedText}
               </p>
