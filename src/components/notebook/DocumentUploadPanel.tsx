@@ -90,90 +90,92 @@ export const DocumentUploadPanel = ({
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Upload Documents</CardTitle>
-          <CardDescription>
-            Upload PDFs, Word documents, Excel files, or images to get started
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div
-            className={`
-              border-2 border-dashed rounded-lg p-12 text-center transition-colors
-              ${isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
-            `}
-            onDrop={handleDrop}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-          >
-            {isProcessing ? (
-              <div className="flex flex-col items-center gap-4">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-                <p className="text-muted-foreground">Processing your files...</p>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center gap-4">
-                <div className="rounded-full bg-primary/10 p-6">
-                  <Upload className="h-12 w-12 text-primary" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Upload Documents</CardTitle>
+            <CardDescription>
+              Upload PDFs, Word documents, Excel files, or images to get started
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div
+              className={`
+                border-2 border-dashed rounded-lg p-12 text-center transition-colors
+                ${isDragging ? 'border-primary bg-primary/5' : 'border-border hover:border-primary/50'}
+              `}
+              onDrop={handleDrop}
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+            >
+              {isProcessing ? (
+                <div className="flex flex-col items-center gap-4">
+                  <Loader2 className="h-12 w-12 animate-spin text-primary" />
+                  <p className="text-muted-foreground">Processing your files...</p>
                 </div>
-                <div>
-                  <p className="text-lg font-medium mb-2">
-                    Drag and drop your files here
+              ) : (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="rounded-full bg-primary/10 p-6">
+                    <Upload className="h-12 w-12 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-lg font-medium mb-2">
+                      Drag and drop your files here
+                    </p>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      or click to browse
+                    </p>
+                    <label htmlFor="file-upload">
+                      <Button asChild variant="outline">
+                        <span>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Choose Files
+                        </span>
+                      </Button>
+                    </label>
+                    <input
+                      id="file-upload"
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={handleFileSelect}
+                      accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.webp"
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Supports: PDF, Word, Excel, Images, Text (max 15MB per file)
                   </p>
-                  <p className="text-sm text-muted-foreground mb-4">
-                    or click to browse
-                  </p>
-                  <label htmlFor="file-upload">
-                    <Button asChild variant="outline">
-                      <span>
-                        <Upload className="h-4 w-4 mr-2" />
-                        Choose Files
-                      </span>
-                    </Button>
-                  </label>
-                  <input
-                    id="file-upload"
-                    type="file"
-                    multiple
-                    className="hidden"
-                    onChange={handleFileSelect}
-                    accept=".pdf,.doc,.docx,.xls,.xlsx,.txt,.jpg,.jpeg,.png,.gif,.webp"
-                  />
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  Supports: PDF, Word, Excel, Images, Text (max 15MB per file)
-                </p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+              )}
+            </div>
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Add Text Directly</CardTitle>
-          <CardDescription>
-            Paste or type text content to include in your source material
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Textarea
-            placeholder="Paste or type your text here..."
-            value={directText}
-            onChange={(e) => setDirectText(e.target.value)}
-            className="min-h-[150px] font-mono text-sm"
-          />
-          <Button 
-            onClick={handleAddDirectText}
-            disabled={!directText.trim()}
-            className="w-full"
-          >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Text to Source Material
-          </Button>
-        </CardContent>
-      </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle>Add Text Directly</CardTitle>
+            <CardDescription>
+              Paste or type text content to include in your source material
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Textarea
+              placeholder="Paste or type your text here..."
+              value={directText}
+              onChange={(e) => setDirectText(e.target.value)}
+              className="min-h-[150px] font-mono text-sm"
+            />
+            <Button 
+              onClick={handleAddDirectText}
+              disabled={!directText.trim()}
+              className="w-full"
+            >
+              <Plus className="h-4 w-4 mr-2" />
+              Add Text to Source Material
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
 
       {uploadedFiles.length > 0 && (
         <Card>
