@@ -4991,6 +4991,63 @@ export type Database = {
           },
         ]
       }
+      presentation_sessions: {
+        Row: {
+          background_image: string | null
+          complexity_level: string
+          created_at: string
+          id: string
+          presentation_type: string
+          slide_count: number
+          slide_images: Json | null
+          slides: Json
+          source_documents: Json | null
+          template_id: string
+          title: string
+          topic: string
+          updated_at: string
+          user_id: string
+          voice_id: string
+          voice_name: string
+        }
+        Insert: {
+          background_image?: string | null
+          complexity_level: string
+          created_at?: string
+          id?: string
+          presentation_type: string
+          slide_count: number
+          slide_images?: Json | null
+          slides?: Json
+          source_documents?: Json | null
+          template_id: string
+          title: string
+          topic: string
+          updated_at?: string
+          user_id: string
+          voice_id: string
+          voice_name: string
+        }
+        Update: {
+          background_image?: string | null
+          complexity_level?: string
+          created_at?: string
+          id?: string
+          presentation_type?: string
+          slide_count?: number
+          slide_images?: Json | null
+          slides?: Json
+          source_documents?: Json | null
+          template_id?: string
+          title?: string
+          topic?: string
+          updated_at?: string
+          user_id?: string
+          voice_id?: string
+          voice_name?: string
+        }
+        Relationships: []
+      }
       primary_care_networks: {
         Row: {
           created_at: string

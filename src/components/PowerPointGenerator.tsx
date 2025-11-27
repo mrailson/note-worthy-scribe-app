@@ -10,7 +10,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Progress } from "@/components/ui/progress";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Presentation, Loader2, Eye, Edit2, CheckCircle, Mic, FileUp, ChevronDown, X, Palette, FileText } from "lucide-react";
+import { Download, Presentation, Loader2, Eye, Edit2, CheckCircle, Mic, FileUp, ChevronDown, X, Palette, FileText, Save } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { VoiceRecorder } from "@/components/VoiceRecorder";
@@ -21,6 +21,7 @@ import { AnimationPicker } from "@/components/AnimationPicker";
 import { GlobalDesignControls } from "@/components/GlobalDesignControls";
 import { DocumentContextPanel } from "@/components/DocumentContextPanel";
 import { useFileUpload } from "@/hooks/useFileUpload";
+import { usePresentationHistory } from "@/hooks/usePresentationHistory";
 import { UploadedFile } from "@/types/ai4gp";
 import { SlideContent, PresentationContent, GenerationMetadata, SlideAnimation } from "@/types/presentation";
 import { generateEnhancedPowerPoint } from "@/utils/enhancedPresentationGenerator";
@@ -36,10 +37,18 @@ interface PowerPointGeneratorProps {
     metadata: GenerationMetadata;
     slideImages?: { [key: number]: string };
     voiceId?: string;
+    sessionId?: string;
   };
 }
 
 // Types are now imported from types/presentation.ts
+
+const BRITISH_VOICES = [
+  { id: 'Xb7hH8MSUJpSbSDYk0k2', name: 'Alice', description: 'British Female - Friendly' },
+  { id: 'JBFqnCBsd6RMkjVDRZzb', name: 'George', description: 'British Male - Professional' },
+  { id: 'XB0fDUnXU5powFXDhCwa', name: 'Charlotte', description: 'British Female - Clear' },
+  { id: 'onwK4e9ZLuTAKqWW03F9', name: 'Daniel', description: 'British Male - Authoritative' },
+];
 
 const presentationTypes = [
   { value: "Executive Overview", label: "Executive Overview", description: "High-level strategic summary with key insights, metrics, and recommendations" },
@@ -73,6 +82,8 @@ export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: Po
   const [metadata, setMetadata] = useState<GenerationMetadata | null>(null);
   const [preloadedImages, setPreloadedImages] = useState<{ [key: number]: string } | undefined>(undefined);
   const [selectedVoiceId, setSelectedVoiceId] = useState<string>('Xb7hH8MSUJpSbSDYk0k2'); // Alice default
+  const [savedSessionId, setSavedSessionId] = useState<string | null>(null);
+  const { saveSession, updateSession } = usePresentationHistory();
 
   // Load preloaded content when modal opens
   React.useEffect(() => {
@@ -82,6 +93,9 @@ export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: Po
       setPreloadedImages(preloadedContent.slideImages);
       if (preloadedContent.voiceId) {
         setSelectedVoiceId(preloadedContent.voiceId);
+      }
+      if (preloadedContent.sessionId) {
+        setSavedSessionId(preloadedContent.sessionId);
       }
       setCurrentStep('preview');
       setTopic(preloadedContent.metadata.topic);
@@ -291,6 +305,57 @@ export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: Po
       updated[slideIndex] = animation;
       return updated;
     });
+  };
+
+  const handleSavePresentation = async () => {
+    if (!presentationContent || !metadata) {
+      toast.error("No presentation to save");
+      return;
+    }
+
+    try {
+      const voiceName = BRITISH_VOICES.find(v => v.id === selectedVoiceId)?.name || 'Alice';
+      const sourceDocuments = uploadedFiles.map(f => f.name);
+
+      if (savedSessionId) {
+        // Update existing session
+        await updateSession(savedSessionId, {
+          title: presentationContent.title,
+          topic: metadata.topic,
+          presentation_type: metadata.presentationType,
+          template_id: selectedTemplate,
+          slide_count: presentationContent.slides.length,
+          complexity_level: metadata.complexityLevel,
+          voice_id: selectedVoiceId,
+          voice_name: voiceName,
+          slides: presentationContent.slides,
+          slide_images: preloadedImages,
+          source_documents: sourceDocuments,
+          background_image: backgroundImage
+        });
+      } else {
+        // Create new session
+        const result = await saveSession({
+          title: presentationContent.title,
+          topic: metadata.topic,
+          presentation_type: metadata.presentationType,
+          template_id: selectedTemplate,
+          slide_count: presentationContent.slides.length,
+          complexity_level: metadata.complexityLevel,
+          voice_id: selectedVoiceId,
+          voice_name: voiceName,
+          slides: presentationContent.slides,
+          slide_images: preloadedImages,
+          source_documents: sourceDocuments,
+          background_image: backgroundImage
+        });
+        if (result) {
+          setSavedSessionId(result.id);
+        }
+      }
+    } catch (error) {
+      console.error("Error saving presentation:", error);
+    }
   };
 
   const downloadPowerPoint = async () => {
@@ -628,6 +693,10 @@ export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: Po
           <Button variant="outline" onClick={() => setCurrentStep('input')}>
             <Edit2 className="w-4 h-4 mr-2" />
             Edit Details
+          </Button>
+          <Button variant="outline" onClick={handleSavePresentation}>
+            <Save className="w-4 h-4 mr-2" />
+            {savedSessionId ? 'Update' : 'Save to History'}
           </Button>
           <Button onClick={downloadPowerPoint}>
             <Download className="w-4 h-4 mr-2" />

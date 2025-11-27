@@ -13,12 +13,14 @@ import { SlideDeckPanel } from '@/components/notebook/SlideDeckPanel';
 import { SlideVideoGenerator } from '@/components/notebook/SlideVideoGenerator';
 import type { UploadedFile } from '@/types/ai4gp';
 import type { AudioSession } from '@/hooks/useAudioOverviewHistory';
+import type { PresentationSession } from '@/hooks/usePresentationHistory';
 
 const NotebookStudio = () => {
   const navigate = useNavigate();
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [activeTab, setActiveTab] = useState('upload');
   const [loadedAudioSession, setLoadedAudioSession] = useState<AudioSession | null>(null);
+  const [loadedPresentationSession, setLoadedPresentationSession] = useState<PresentationSession | null>(null);
 
   const handleFilesUploaded = (files: UploadedFile[]) => {
     setUploadedFiles(prev => [...prev, ...files]);
@@ -31,6 +33,11 @@ const NotebookStudio = () => {
   const handleLoadAudioSession = (session: AudioSession) => {
     setLoadedAudioSession(session);
     setActiveTab('audio');
+  };
+
+  const handleLoadPresentationSession = (session: PresentationSession) => {
+    setLoadedPresentationSession(session);
+    setActiveTab('slides');
   };
 
   return (
@@ -125,7 +132,11 @@ const NotebookStudio = () => {
                 </TabsContent>
 
                 <TabsContent value="slides" className="space-y-4">
-                  <SlideDeckPanel uploadedFiles={uploadedFiles} />
+                  <SlideDeckPanel 
+                    uploadedFiles={uploadedFiles}
+                    onLoadSession={handleLoadPresentationSession}
+                    loadedSession={loadedPresentationSession}
+                  />
                 </TabsContent>
 
                 <TabsContent value="video" className="space-y-4">
