@@ -58,27 +58,43 @@ export const PronunciationDialog = ({
       if (error) throw error;
 
       if (data.audioUrl) {
-        const audio = new Audio();
-        setTestAudio(audio);
-        
-        // Set up handlers before setting src
-        audio.oncanplaythrough = async () => {
-          try {
-            await audio.play();
-            toast.success('Playing pronunciation test');
-          } catch (playError) {
-            console.error('Play error:', playError);
-            toast.error('Click to enable audio playback');
+        // Some browsers can be picky with long data URLs, so convert to a Blob URL
+        let objectUrl: string | null = null;
+        try {
+          const [, base64Part] = (data.audioUrl as string).split(',');
+          const base64 = base64Part || data.audioUrl;
+          const binary = atob(base64);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
           }
-        };
-        
-        audio.onerror = (e) => {
-          console.error('Audio error:', e);
-          toast.error('Failed to load audio - try again');
-        };
-        
-        // Set source (data URLs load immediately)
-        audio.src = data.audioUrl;
+          const blob = new Blob([bytes], { type: 'audio/mpeg' });
+          objectUrl = URL.createObjectURL(blob);
+
+          const audio = new Audio();
+          setTestAudio(audio);
+
+          audio.oncanplaythrough = async () => {
+            try {
+              await audio.play();
+              toast.success('Playing pronunciation test');
+            } catch (playError) {
+              console.error('Play error:', playError);
+              toast.info('Preview ready – click play in your browser controls if it does not start.');
+            }
+          };
+
+          audio.onerror = (e) => {
+            console.error('Audio error:', e);
+            toast.error('Failed to load audio – please try again.');
+          };
+
+          audio.src = objectUrl;
+        } catch (conversionError) {
+          console.error('Audio conversion error:', conversionError);
+          toast.error('Failed to prepare audio – please try again.');
+          if (objectUrl) URL.revokeObjectURL(objectUrl);
+        }
       } else {
         throw new Error('No audio returned');
       }
@@ -89,7 +105,6 @@ export const PronunciationDialog = ({
       setIsTesting(false);
     }
   };
-
   const handleSave = () => {
     if (!original.trim() || !pronounceAs.trim()) {
       toast.error('Both fields are required');
