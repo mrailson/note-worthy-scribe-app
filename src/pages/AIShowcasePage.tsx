@@ -30,7 +30,32 @@ const AIShowcasePage: React.FC = () => {
             </p>
           </div>
 
-          {/* Video Section */}
+        {/* Audio Overview Section */}
+          <div className="max-w-4xl mx-auto mb-12">
+            <Card className="overflow-hidden border-primary/20">
+              <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
+                <CardTitle className="flex items-center gap-2">
+                  <Brain className="w-5 h-5 text-primary" />
+                  Notewell AI 2 Minute Overview
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <audio 
+                  controls 
+                  className="w-full"
+                  preload="metadata"
+                >
+                  <source src="/audio/notewell-2-minute-overview.mp3" type="audio/mpeg" />
+                  Your browser does not support the audio element.
+                </audio>
+                <p className="text-sm text-muted-foreground mt-4 text-center">
+                  AI-generated audio briefing on GP telephony performance metrics
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+        {/* Video Section */}
           <div className="max-w-4xl mx-auto mb-12">
             <Card className="overflow-hidden border-primary/20">
               <CardHeader className="bg-gradient-to-r from-primary/10 to-accent/10">
