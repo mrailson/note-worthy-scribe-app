@@ -210,7 +210,12 @@ const AIShowcasePage: React.FC = () => {
                     </p>
                   </div>
                   <Button variant="outline" size="sm" asChild>
-                    <a href="/reports/Northamptonshire_GP_Telephony_Executive_Report.docx" download="Northamptonshire_GP_Telephony_Executive_Report.docx">
+                    <a
+                      href="/reports/Northamptonshire_GP_Telephony_Executive_Report.docx"
+                      download="Northamptonshire_GP_Telephony_Executive_Report.docx"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Download
                     </a>
@@ -309,7 +314,12 @@ const AIShowcasePage: React.FC = () => {
                     </p>
                   </div>
                   <Button variant="outline" size="sm" asChild>
-                    <a href="/reports/Improving_Patient_Access_Benchmarking.pdf" download>
+                    <a
+                      href="/reports/Improving_Patient_Access_Benchmarking.pdf"
+                      download="Improving_Patient_Access_Benchmarking.pdf"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <Download className="w-4 h-4 mr-2" />
                       Download
                     </a>
