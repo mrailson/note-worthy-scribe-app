@@ -1,10 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Helmet } from 'react-helmet-async';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, TrendingUp, FileText, BarChart3, ArrowRight, Download } from 'lucide-react';
+import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
+import { Brain, TrendingUp, FileText, BarChart3, ArrowRight, Download, Maximize2 } from 'lucide-react';
 import gpCallSnapshot from '@/assets/gp-call-performance-snapshot.png';
 import icbComparison from '@/assets/icb-comparison.png';
+import performanceRankings from '@/assets/performance-rankings-table.png';
 import { downloadFile } from '@/utils/downloadFile';
 
 const AIShowcasePage: React.FC = () => {
@@ -313,6 +315,37 @@ const AIShowcasePage: React.FC = () => {
                           Clear identification of practices needing intervention
                         </p>
                       </div>
+                    </div>
+
+                    {/* Performance Rankings Table - Expandable */}
+                    <div className="mt-6">
+                      <h4 className="text-sm font-semibold mb-3">Full Performance Rankings</h4>
+                      <Dialog>
+                        <DialogTrigger asChild>
+                          <div className="relative cursor-pointer group border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
+                            <img 
+                              src={performanceRankings}
+                              alt="Complete performance rankings table showing all 51 practices sorted by answered rate"
+                              className="w-full h-auto"
+                            />
+                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
+                              <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-primary text-primary-foreground rounded-full p-3">
+                                <Maximize2 className="w-6 h-6" />
+                              </div>
+                            </div>
+                            <div className="absolute bottom-2 right-2 bg-background/90 text-xs px-2 py-1 rounded">
+                              Click to expand
+                            </div>
+                          </div>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-6xl max-h-[90vh] overflow-auto">
+                          <img 
+                            src={performanceRankings}
+                            alt="Complete performance rankings table showing all 51 practices sorted by answered rate"
+                            className="w-full h-auto"
+                          />
+                        </DialogContent>
+                      </Dialog>
                     </div>
                   </div>
 
