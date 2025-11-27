@@ -335,11 +335,11 @@ const AIShowcasePage: React.FC = () => {
                           <span className="text-xl">⚠️</span> Bottom 5 Performers
                         </h4>
                         <ol className="space-y-1 text-sm">
-                          <li>48. The Brook Health Centre</li>
-                          <li>49. The Cottons Medical Centre</li>
-                          <li>50. Dr Abbas</li>
-                          <li>51. Brook Medical Centre Pines</li>
-                          <li>52. The Surgery</li>
+                          <li>47. Leicester Tce Healthcare Ctr</li>
+                          <li>48. The Mounts Medical Centre</li>
+                          <li>49. Parklands Medical Centre</li>
+                          <li>50. Greens Norton & Weedon</li>
+                          <li>51. St Lukes Primary Care Centre</li>
                         </ol>
                       </div>
                     </div>
