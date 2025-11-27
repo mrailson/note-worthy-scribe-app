@@ -3,7 +3,6 @@ import { ExcelProcessor } from './ExcelProcessor';
 import { PDFProcessor } from './PDFProcessor';
 import { ImageProcessor } from './ImageProcessor';
 import { TextProcessor } from './TextProcessor';
-import { PowerPointProcessor } from './PowerPointProcessor';
 
 export interface ProcessedFile {
   name: string;
@@ -33,10 +32,6 @@ export class FileProcessorManager {
     
     // PDF files
     '.pdf': 'pdf',
-    
-    // PowerPoint files
-    '.ppt': 'powerpoint',
-    '.pptx': 'powerpoint',
     
     // Images
     '.jpg': 'image',
@@ -85,10 +80,6 @@ export class FileProcessorManager {
           
         case 'pdf':
           content = await PDFProcessor.extractText(file);
-          break;
-          
-        case 'powerpoint':
-          content = await PowerPointProcessor.extractText(file);
           break;
           
         case 'image':
