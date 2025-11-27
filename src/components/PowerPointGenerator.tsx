@@ -35,6 +35,7 @@ interface PowerPointGeneratorProps {
     presentation: PresentationContent;
     metadata: GenerationMetadata;
     slideImages?: { [key: number]: string };
+    voiceId?: string;
   };
 }
 
@@ -71,6 +72,7 @@ export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: Po
   const [presentationContent, setPresentationContent] = useState<PresentationContent | null>(null);
   const [metadata, setMetadata] = useState<GenerationMetadata | null>(null);
   const [preloadedImages, setPreloadedImages] = useState<{ [key: number]: string } | undefined>(undefined);
+  const [selectedVoiceId, setSelectedVoiceId] = useState<string>('Xb7hH8MSUJpSbSDYk0k2'); // Alice default
 
   // Load preloaded content when modal opens
   React.useEffect(() => {
@@ -78,6 +80,9 @@ export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: Po
       setPresentationContent(preloadedContent.presentation);
       setMetadata(preloadedContent.metadata);
       setPreloadedImages(preloadedContent.slideImages);
+      if (preloadedContent.voiceId) {
+        setSelectedVoiceId(preloadedContent.voiceId);
+      }
       setCurrentStep('preview');
       setTopic(preloadedContent.metadata.topic);
       setPresentationType(preloadedContent.metadata.presentationType);
@@ -301,6 +306,48 @@ export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: Po
         return;
       }
 
+      // Generate audio narration for slides with speaker notes
+      let slideAudio: { [slideIndex: number]: string } = {};
+      const slidesWithNotes = presentationContent.slides.filter(slide => slide.notes);
+      
+      if (slidesWithNotes.length > 0) {
+        toast.info("Generating narration...");
+        
+        try {
+          const audioPromises = presentationContent.slides.map(async (slide, index) => {
+            if (!slide.notes) return null;
+            
+            const { data, error } = await supabase.functions.invoke('generate-slide-narration', {
+              body: {
+                slideNumber: index + 1,
+                slideContent: slide.content?.join(' ') || slide.title,
+                speakerNotes: slide.notes,
+                voiceId: selectedVoiceId
+              }
+            });
+            
+            if (error) {
+              console.error(`Error generating audio for slide ${index + 1}:`, error);
+              return null;
+            }
+            
+            return { index, audioBase64: data.audioBase64 };
+          });
+          
+          const audioResults = await Promise.all(audioPromises);
+          audioResults.forEach(result => {
+            if (result) {
+              slideAudio[result.index] = result.audioBase64;
+            }
+          });
+          
+          toast.success("Narration generated successfully!");
+        } catch (audioError) {
+          console.error("Error generating audio:", audioError);
+          toast.warning("Continuing without audio narration");
+        }
+      }
+
       await generateEnhancedPowerPoint({
         template: backgroundImage ? { ...template, backgroundImage } : template,
         content: presentationContent,
@@ -308,7 +355,8 @@ export const PowerPointGenerator = ({ open, onOpenChange, preloadedContent }: Po
         titleFontSize,
         contentFontSize,
         globalAnimation: globalAnimation.type !== 'none' ? globalAnimation : undefined,
-        slideImages: preloadedImages
+        slideImages: preloadedImages,
+        slideAudio
       });
       
       toast.success("Enhanced PowerPoint presentation downloaded successfully!");

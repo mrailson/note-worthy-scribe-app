@@ -43,7 +43,7 @@ serve(async (req) => {
       throw new Error('Claude API key not configured');
     }
 
-    const { topic, presentationType, slideCount = 10, complexityLevel = 'intermediate', supportingFiles = [] }: PresentationRequest = await req.json();
+    const { topic, presentationType, slideCount = 10, complexityLevel = 'intermediate', templateId, supportingFiles = [] }: PresentationRequest = await req.json();
 
     console.log(`Generating PowerPoint for topic: ${topic}, type: ${presentationType}, with ${supportingFiles.length} supporting files`);
 
@@ -200,7 +200,8 @@ Keep bullet points concise (maximum 4 per slide). Use professional British Engli
         presentationType,
         slideCount: presentationContent.slides.length,
         complexityLevel,
-        generatedAt: new Date().toISOString()
+        generatedAt: new Date().toISOString(),
+        templateId: templateId || 'nhs-branded-background'
       }
     };
 

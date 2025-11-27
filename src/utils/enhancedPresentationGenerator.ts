@@ -16,6 +16,7 @@ export interface EnhancedGenerationOptions {
   contentFontSize?: number;
   globalAnimation?: SlideAnimation;
   slideImages?: { [slideIndex: number]: string };
+  slideAudio?: { [slideIndex: number]: string };
 }
 
 class LayoutEngine {
@@ -511,7 +512,7 @@ class TemplateRenderer {
     });
   }
 
-  createContentSlide(slideData: SlideContent, slideNumber: number, totalSlides: number, titleFontSize: number = 28, contentFontSize: number = 16, imageData?: string) {
+  createContentSlide(slideData: SlideContent, slideNumber: number, totalSlides: number, titleFontSize: number = 28, contentFontSize: number = 16, imageData?: string, audioData?: string) {
     const slide = this.pptx.addSlide();
     this.addTemplateBackground(slide);
     
@@ -630,7 +631,7 @@ class TemplateRenderer {
           h: 1.5,
           fontSize: 18,
           bold: true,
-          color: this.template.headingColor,
+          color: 'FFFFFF', // Always white for contrast on dark primary background
           fontFace: this.template.fonts.heading,
           valign: 'middle',
           wrap: true
@@ -658,7 +659,7 @@ class TemplateRenderer {
             w: boxWidth - 0.2,
             h: 1.1,
             fontSize: 12,
-            color: this.template.textColor,
+            color: this.template.style === 'dark' ? 'FFFFFF' : this.template.textColor,
             fontFace: this.template.fonts.body,
             valign: 'top',
             wrap: true
@@ -733,6 +734,22 @@ class TemplateRenderer {
     if (slideData.notes) {
       slide.addNotes(slideData.notes);
     }
+    
+    // Add audio narration if available
+    if (audioData) {
+      try {
+        slide.addMedia({
+          type: 'audio',
+          data: `data:audio/mpeg;base64,${audioData}`,
+          x: 0.1,
+          y: 0.1,
+          w: 0.5,
+          h: 0.5
+        });
+      } catch (error) {
+        console.error('Error adding audio to slide:', error);
+      }
+    }
   }
   
   async generateFile(fileName: string): Promise<void> {
@@ -745,7 +762,7 @@ class TemplateRenderer {
 }
 
 export const generateEnhancedPowerPoint = async (options: EnhancedGenerationOptions): Promise<void> => {
-  const { template, content, metadata, titleFontSize = 32, contentFontSize = 16, globalAnimation, slideImages = {} } = options;
+  const { template, content, metadata, titleFontSize = 32, contentFontSize = 16, globalAnimation, slideImages = {}, slideAudio = {} } = options;
   
   try {
     const renderer = new TemplateRenderer(template);
@@ -762,13 +779,14 @@ export const generateEnhancedPowerPoint = async (options: EnhancedGenerationOpti
       titleFontSize
     );
     
-    // Create content slides with global animation and images if specified
+    // Create content slides with global animation, images, and audio if specified
     content.slides.forEach((slideData, index) => {
       const slideWithGlobalAnimation = globalAnimation 
         ? { ...slideData, animation: slideData.animation || globalAnimation }
         : slideData;
       
       const slideImageData = slideImages[index];
+      const slideAudioData = slideAudio[index];
       
       renderer.createContentSlide(
         slideWithGlobalAnimation, 
@@ -776,7 +794,8 @@ export const generateEnhancedPowerPoint = async (options: EnhancedGenerationOpti
         content.slides.length + 1,
         titleFontSize,
         contentFontSize,
-        slideImageData
+        slideImageData,
+        slideAudioData
       );
     });
     
