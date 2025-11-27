@@ -36,7 +36,7 @@ const NotebookStudio = () => {
   return (
     <>
       <Helmet>
-        <title>Notebook Studio | Create Audio, Slides & Videos</title>
+        <title>Notewell Studio | Create Audio, Slides & Videos</title>
         <meta name="description" content="AI-powered content creation studio for generating audio overviews, presentations, and videos from your documents" />
       </Helmet>
 
@@ -60,7 +60,7 @@ const NotebookStudio = () => {
               </div>
               <div>
                 <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
-                  Notebook Studio
+                  Notewell Studio
                 </h1>
                 <p className="text-muted-foreground mt-1">
                   Transform your documents into audio overviews, presentations, and videos
