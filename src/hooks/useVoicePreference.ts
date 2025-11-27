@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export type VoiceOption = 'chris' | 'alice';
+export type VoiceOption = 'alice' | 'george';
 
 interface VoiceConfig {
   id: string;
@@ -11,13 +11,6 @@ interface VoiceConfig {
 }
 
 export const VOICE_OPTIONS: Record<VoiceOption, VoiceConfig> = {
-  chris: {
-    id: 'elevenlabs-chris',
-    name: 'Chris',
-    provider: 'elevenlabs',
-    voiceId: 'G17SuINrv2H9FC6nvetn',
-    description: 'British Male - Natural',
-  },
   alice: {
     id: 'elevenlabs-alice',
     name: 'Alice',
@@ -25,20 +18,27 @@ export const VOICE_OPTIONS: Record<VoiceOption, VoiceConfig> = {
     voiceId: 'Xb7hH8MSUJpSbSDYk0k2',
     description: 'British Female - Friendly',
   },
+  george: {
+    id: 'elevenlabs-george',
+    name: 'George',
+    provider: 'elevenlabs',
+    voiceId: 'JBFqnCBsd6RMkjVDRZzb',
+    description: 'British Male - Professional',
+  },
 };
 
 export function useVoicePreference() {
   const [voicePreference, setVoicePreferenceState] = useState<VoiceOption>(() => {
     const stored = localStorage.getItem('audioVoiceSelection');
-    // Check if stored value matches Chris or Alice
-    if (stored === 'elevenlabs-chris' || stored?.includes('G17SuINrv2H9FC6nvetn')) {
-      return 'chris';
-    }
+    // Check if stored value matches Alice or George
     if (stored === 'elevenlabs-alice' || stored?.includes('Xb7hH8MSUJpSbSDYk0k2')) {
       return 'alice';
     }
-    // Default to Chris
-    return 'chris';
+    if (stored === 'elevenlabs-george' || stored?.includes('JBFqnCBsd6RMkjVDRZzb')) {
+      return 'george';
+    }
+    // Default to Alice
+    return 'alice';
   });
 
   const setVoicePreference = (voice: VoiceOption) => {

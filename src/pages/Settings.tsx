@@ -715,25 +715,25 @@ export default function Settings() {
                 <CardContent>
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      Choose between Chris (British Male) or Alice (British Female) for all audio summaries and overviews.
+                      Choose between Alice (British Female) or George (British Male) for all audio summaries and overviews.
                     </p>
                     <RadioGroup 
                       value={voicePreference} 
-                      onValueChange={(value) => setVoicePreference(value as 'chris' | 'alice')}
+                      onValueChange={(value) => setVoicePreference(value as 'alice' | 'george')}
                       className="space-y-3"
                     >
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
-                        <RadioGroupItem value="chris" id="voice-chris" />
-                        <Label htmlFor="voice-chris" className="flex-1 cursor-pointer">
-                          <div className="font-medium">Chris</div>
-                          <div className="text-sm text-muted-foreground">British Male - Natural voice</div>
-                        </Label>
-                      </div>
                       <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
                         <RadioGroupItem value="alice" id="voice-alice" />
                         <Label htmlFor="voice-alice" className="flex-1 cursor-pointer">
                           <div className="font-medium">Alice</div>
                           <div className="text-sm text-muted-foreground">British Female - Friendly voice</div>
+                        </Label>
+                      </div>
+                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
+                        <RadioGroupItem value="george" id="voice-george" />
+                        <Label htmlFor="voice-george" className="flex-1 cursor-pointer">
+                          <div className="font-medium">George</div>
+                          <div className="text-sm text-muted-foreground">British Male - Professional voice</div>
                         </Label>
                       </div>
                     </RadioGroup>
