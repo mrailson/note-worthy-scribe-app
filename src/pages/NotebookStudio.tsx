@@ -162,7 +162,7 @@ const NotebookStudio = () => {
                   <p className="text-2xl font-bold text-accent">
                     {Math.round(uploadedFiles.reduce((sum, f) => sum + (f.size || 0), 0) / 1024)} KB
                   </p>
-                  <p className="text-sm text-muted-foreground">Total Size</p>
+                  <p className="text-sm text-foreground font-medium">Total Size</p>
                 </CardContent>
               </Card>
               <Card className="border-secondary/20">
