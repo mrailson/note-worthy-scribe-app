@@ -25,9 +25,9 @@ serve(async (req) => {
   }
 
   try {
-    const { content, voiceProvider, voiceId, targetDuration, mode = 'full', text, previewLength, scriptStyle = 'executive' } = await req.json();
+    const { content, voiceProvider, voiceId, targetDuration, mode = 'full', text, previewLength, scriptStyle = 'executive', customDirections } = await req.json();
 
-    console.log('Request params:', { mode, voiceId, hasContent: !!content, hasText: !!text, previewLength });
+    console.log('Request params:', { mode, voiceId, hasContent: !!content, hasText: !!text, previewLength, hasCustomDirections: !!customDirections });
 
     // Validate inputs based on mode
     if (mode === 'script-only' || mode === 'full') {
@@ -118,6 +118,12 @@ Ensure accessibility for all understanding levels.`
               role: 'system',
               content: `${systemPrompt}
 
+${customDirections ? `
+ADDITIONAL USER DIRECTIONS:
+${customDirections}
+
+Please incorporate these specific directions into your narration while maintaining the overall style.
+` : ''}
 Create a natural, conversational summary that sounds great when spoken aloud.
 Target length: approximately ${targetWords} words.
 Use clear transitions and maintain an appropriate tone throughout.

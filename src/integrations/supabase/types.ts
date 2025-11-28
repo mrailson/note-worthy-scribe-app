@@ -317,6 +317,7 @@ export type Database = {
         Row: {
           audio_url: string | null
           created_at: string
+          custom_directions: string | null
           duration_seconds: number | null
           edited_script: string | null
           id: string
@@ -335,6 +336,7 @@ export type Database = {
         Insert: {
           audio_url?: string | null
           created_at?: string
+          custom_directions?: string | null
           duration_seconds?: number | null
           edited_script?: string | null
           id?: string
@@ -353,6 +355,7 @@ export type Database = {
         Update: {
           audio_url?: string | null
           created_at?: string
+          custom_directions?: string | null
           duration_seconds?: number | null
           edited_script?: string | null
           id?: string

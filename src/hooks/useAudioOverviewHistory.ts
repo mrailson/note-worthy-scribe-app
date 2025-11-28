@@ -17,6 +17,7 @@ export interface AudioSession {
   pronunciation_rules: any[];
   target_duration_minutes: number | null;
   script_style: string | null;
+  custom_directions: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -45,6 +46,7 @@ export function useAudioOverviewHistory() {
         ...session,
         source_documents: (session.source_documents as any) || [],
         pronunciation_rules: (session.pronunciation_rules as any) || [],
+        custom_directions: (session as any).custom_directions || null,
       }));
 
       // Client-side search if query provided
@@ -78,6 +80,7 @@ export function useAudioOverviewHistory() {
     pronunciation_rules: any[];
     target_duration_minutes: number;
     script_style?: string;
+    custom_directions?: string;
   }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -104,6 +107,7 @@ export function useAudioOverviewHistory() {
           pronunciation_rules: sessionData.pronunciation_rules,
           target_duration_minutes: sessionData.target_duration_minutes,
           script_style: sessionData.script_style || 'executive',
+          custom_directions: sessionData.custom_directions || null,
         })
         .select()
         .single();
@@ -126,6 +130,7 @@ export function useAudioOverviewHistory() {
     audio_url?: string;
     duration_seconds?: number;
     pronunciation_rules?: any[];
+    custom_directions?: string;
   }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return null;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, BookOpen, Plus, Trash2, ChevronDown, ChevronUp, Save, Copy } from 'lucide-react';
+import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, BookOpen, Plus, Trash2, ChevronDown, ChevronUp, Save, Copy, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,8 @@ import {
 } from '@/utils/pronunciationLibrary';
 import { useAudioOverviewHistory, type AudioSession } from '@/hooks/useAudioOverviewHistory';
 import { AudioScriptStyleSelector, type ScriptStyle } from './AudioScriptStyleSelector';
+import { SpeechToText } from '@/components/SpeechToText';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface AudioOverviewPanelProps {
   uploadedFiles: UploadedFile[];
@@ -60,6 +62,8 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   
   const [duration, setDuration] = useState([3]); // Default 3 minutes
   const [selectedScriptStyle, setSelectedScriptStyle] = useState<ScriptStyle>('executive');
+  const [customDirections, setCustomDirections] = useState('');
+  const [directionsExpanded, setDirectionsExpanded] = useState(false);
 
   // Pronunciation library state
   const [pronunciationRules, setPronunciationRules] = useState<PronunciationRule[]>(() => loadPronunciationLibrary());
@@ -86,7 +90,8 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
           content: combinedContent,
           targetDuration: duration[0] * 60,
           mode: 'script-only',
-          scriptStyle: selectedScriptStyle
+          scriptStyle: selectedScriptStyle,
+          customDirections: customDirections.trim() || undefined
         }
       });
 
@@ -393,6 +398,7 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
           edited_script: editedText,
           audio_url: audioUrl,
           pronunciation_rules: pronunciationRules,
+          custom_directions: customDirections.trim() || undefined,
         });
       } else {
         // Save new session
@@ -407,6 +413,7 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
           pronunciation_rules: pronunciationRules,
           target_duration_minutes: duration[0],
           script_style: selectedScriptStyle,
+          custom_directions: customDirections.trim() || undefined,
         });
 
         if (savedSession) {
@@ -435,6 +442,10 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
       
       if (loadedSession.script_style) {
         setSelectedScriptStyle(loadedSession.script_style as ScriptStyle);
+      }
+      
+      if (loadedSession.custom_directions) {
+        setCustomDirections(loadedSession.custom_directions);
       }
       
       toast.success(`Loaded: ${loadedSession.title}`);
@@ -479,6 +490,78 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
               selectedStyle={selectedScriptStyle}
               onStyleSelect={setSelectedScriptStyle}
             />
+
+            <Collapsible
+              open={directionsExpanded}
+              onOpenChange={setDirectionsExpanded}
+              className="space-y-2"
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="w-full justify-between"
+                  type="button"
+                >
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-4 w-4" />
+                    <span>Custom Directions</span>
+                    {customDirections && (
+                      <Badge variant="secondary" className="ml-2">
+                        {customDirections.length} chars
+                      </Badge>
+                    )}
+                  </div>
+                  {directionsExpanded ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-2">
+                <div className="space-y-2">
+                  <Label className="text-xs text-muted-foreground">
+                    Add specific instructions for the AI script generation (optional)
+                  </Label>
+                  <div className="relative">
+                    <Textarea
+                      value={customDirections}
+                      onChange={(e) => setCustomDirections(e.target.value)}
+                      placeholder="e.g., Focus on the financial implications, keep it upbeat and motivational, emphasise the patient safety aspects, use simple language suitable for a general audience..."
+                      className="min-h-[100px] pr-12 resize-y"
+                      maxLength={500}
+                    />
+                    <div className="absolute bottom-2 right-2">
+                      <SpeechToText
+                        onTranscription={(text) => {
+                          setCustomDirections(prev => {
+                            const newText = prev ? `${prev} ${text}` : text;
+                            return newText.slice(0, 500);
+                          });
+                        }}
+                        size="sm"
+                        className="h-8 w-8"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-between items-center text-xs text-muted-foreground">
+                    <span>
+                      {customDirections.length}/500 characters
+                    </span>
+                    {customDirections && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setCustomDirections('')}
+                        className="h-6 px-2"
+                      >
+                        Clear
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
 
             <Button
               onClick={handleGenerateScript} 
