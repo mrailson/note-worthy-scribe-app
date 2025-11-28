@@ -128,7 +128,9 @@ const NotebookStudio = () => {
                 </TabsContent>
 
                 <TabsContent value="audio-history" className="space-y-4">
-                  <AudioHistoryPanel onLoadSession={handleLoadAudioSession} />
+                  {activeTab === 'audio-history' && (
+                    <AudioHistoryPanel onLoadSession={handleLoadAudioSession} />
+                  )}
                 </TabsContent>
 
                 <TabsContent value="slides" className="space-y-4">

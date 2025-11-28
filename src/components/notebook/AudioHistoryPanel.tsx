@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Search, Play, Pause, Edit, Trash2, Copy, Calendar, Clock, FileText, Mic, Briefcase, GraduationCap, ClipboardList, Radio, FileCode, HeartPulse } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -27,10 +27,27 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
   const [searchQuery, setSearchQuery] = useState('');
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout>();
+
+  // Debounced search - only triggers API call after 300ms of no typing
+  useEffect(() => {
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    debounceTimerRef.current = setTimeout(() => {
+      loadSessions(searchQuery || undefined);
+    }, 300);
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
+  }, [searchQuery]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
-    loadSessions(query);
   };
 
   // Legacy inline audio playback removed – sessions now open in the main Audio Overview player
