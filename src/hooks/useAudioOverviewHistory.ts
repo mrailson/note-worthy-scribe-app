@@ -32,34 +32,49 @@ export function useAudioOverviewHistory() {
 
     setLoading(true);
     try {
+      // Only select columns needed for list view
       let query = supabase
         .from('audio_overview_sessions')
-        .select('*')
+        .select(`
+          id,
+          user_id,
+          title,
+          voice_id,
+          voice_name,
+          duration_seconds,
+          word_count,
+          source_documents,
+          pronunciation_rules,
+          script_style,
+          audio_url,
+          target_duration_minutes,
+          custom_directions,
+          created_at,
+          updated_at,
+          original_script,
+          edited_script
+        `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false });
+
+      // Server-side search using ilike for better performance
+      if (searchQuery && searchQuery.trim()) {
+        const searchPattern = `%${searchQuery}%`;
+        query = query.or(`title.ilike.${searchPattern},original_script.ilike.${searchPattern},edited_script.ilike.${searchPattern}`);
+      }
 
       const { data, error } = await query;
 
       if (error) throw error;
 
-      let filteredData = (data || []).map(session => ({
+      const processedData = (data || []).map(session => ({
         ...session,
         source_documents: (session.source_documents as any) || [],
         pronunciation_rules: (session.pronunciation_rules as any) || [],
         custom_directions: (session as any).custom_directions || null,
       }));
 
-      // Client-side search if query provided
-      if (searchQuery && searchQuery.trim()) {
-        const query = searchQuery.toLowerCase();
-        filteredData = filteredData.filter(session => 
-          session.title.toLowerCase().includes(query) ||
-          session.original_script.toLowerCase().includes(query) ||
-          (session.edited_script && session.edited_script.toLowerCase().includes(query))
-        );
-      }
-
-      setSessions(filteredData);
+      setSessions(processedData);
     } catch (error: any) {
       console.error('Error loading audio sessions:', error);
       toast.error('Failed to load audio history');
