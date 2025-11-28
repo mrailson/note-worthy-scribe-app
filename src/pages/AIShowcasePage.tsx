@@ -36,7 +36,7 @@ const AIShowcasePage: React.FC = () => {
             <div className="mt-6 max-w-3xl mx-auto">
               <div className="px-4 py-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
                 <p className="text-sm text-muted-foreground text-center">
-                  <strong className="text-foreground">Note:</strong> This data has not been verified and is provided as an example of how nationally published data could be presented into useful information for practices, PCNs, Neighbourhoods and ICBs.
+                  <strong className="text-foreground">Note:</strong> This data has not been verified and is provided as an example of how nationally published data could be presented into useful information for our patients, practices, PCNs, Neighbourhoods and ICBs.
                 </p>
               </div>
             </div>
