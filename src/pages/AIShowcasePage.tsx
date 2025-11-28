@@ -7,6 +7,7 @@ import { Brain, TrendingUp, FileText, BarChart3, ArrowRight, Download, Maximize2
 import gpCallSnapshot from '@/assets/gp-call-performance-snapshot.png';
 import icbComparison from '@/assets/icb-comparison.png';
 import performanceRankings from '@/assets/performance-rankings-table.png';
+import notewellDemoAudio from '@/assets/notewell-demo-audio.mp3';
 import { downloadFile } from '@/utils/downloadFile';
 
 const AIShowcasePage: React.FC = () => {
@@ -66,7 +67,7 @@ const AIShowcasePage: React.FC = () => {
                   className="w-full"
                   preload="metadata"
                 >
-                  <source src="/audio/notewell-demo.mp3" type="audio/mpeg" />
+                  <source src={notewellDemoAudio} type="audio/mpeg" />
                   Your browser does not support the audio element.
                 </audio>
                 <div className="mt-4 p-3 bg-primary/5 rounded-lg">
