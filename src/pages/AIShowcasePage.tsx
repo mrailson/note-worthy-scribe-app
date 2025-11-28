@@ -326,7 +326,10 @@ const AIShowcasePage: React.FC = () => {
 
                     {/* Performance Rankings Table - Expandable */}
                     <div className="mt-6">
-                      <h4 className="text-sm font-semibold mb-3">Full Performance Rankings</h4>
+                      <h4 className="text-sm font-semibold mb-2">AI-Calculated Performance Rankings</h4>
+                      <p className="text-xs text-muted-foreground mb-3">
+                        Based on 51 GP practices in publicly available data. <strong>Note:</strong> At least 20% of Northamptonshire GP practices are missing from this dataset.
+                      </p>
                       <Dialog>
                         <DialogTrigger asChild>
                           <div className="relative cursor-pointer group border rounded-lg overflow-hidden hover:shadow-lg transition-shadow">
