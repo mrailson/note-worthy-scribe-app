@@ -44,7 +44,7 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
         clearTimeout(debounceTimerRef.current);
       }
     };
-  }, [searchQuery]);
+  }, [searchQuery, loadSessions]);
 
   const handleSearch = (query: string) => {
     setSearchQuery(query);
