@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -26,7 +26,7 @@ export function useAudioOverviewHistory() {
   const [sessions, setSessions] = useState<AudioSession[]>([]);
   const [loading, setLoading] = useState(false);
 
-  const loadSessions = async (searchQuery?: string) => {
+  const loadSessions = useCallback(async (searchQuery?: string) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -81,7 +81,7 @@ export function useAudioOverviewHistory() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   const saveSession = async (sessionData: {
     title: string;
