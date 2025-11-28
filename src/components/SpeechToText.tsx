@@ -323,28 +323,16 @@ export const SpeechToText: React.FC<SpeechToTextProps> = ({
       onClick={toggleRecording}
       disabled={isProcessing}
       variant={isRecording ? "destructive" : "outline"}
-      size={size}
+      size="icon"
       className={`${className} ${isRecording ? 'bg-destructive hover:bg-destructive text-destructive-foreground' : ''} transition-all duration-200`}
-      title={isUsingBrowserSTT ? 
-        'High-accuracy speech recognition (Speak clearly, auto-stops in 15s)' : 
-        'Record audio for transcription'
-      }
+      title={isRecording ? 'Stop recording' : 'Click to speak'}
     >
       {isProcessing ? (
-        <>
-          <Loader2 className="h-4 w-4 animate-spin" />
-          {size !== 'sm' && <span className="ml-2">Processing...</span>}
-        </>
+        <Loader2 className="h-4 w-4 animate-spin" />
       ) : isRecording ? (
-        <>
-          <StopCircle className="h-4 w-4" />
-          {size !== 'sm' && <span className="ml-2 font-semibold">Stop Talking</span>}
-        </>
+        <StopCircle className="h-4 w-4" />
       ) : (
-        <>
-          <Mic className="h-4 w-4" />
-          {size !== 'sm' && <span className="ml-2">Talk</span>}
-        </>
+        <Mic className="h-4 w-4" />
       )}
     </Button>
   );
