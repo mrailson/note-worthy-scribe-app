@@ -3,11 +3,12 @@ import { Helmet } from 'react-helmet-async';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogTrigger } from '@/components/ui/dialog';
-import { Brain, TrendingUp, FileText, BarChart3, ArrowRight, Download, Maximize2 } from 'lucide-react';
+import { Brain, TrendingUp, FileText, BarChart3, ArrowRight, Download, Maximize2, Volume2 } from 'lucide-react';
 import gpCallSnapshot from '@/assets/gp-call-performance-snapshot.png';
 import icbComparison from '@/assets/icb-comparison.png';
 import performanceRankings from '@/assets/performance-rankings-table.png';
 import notewellDemoAudio from '@/assets/notewell-demo-audio.mp3';
+import saxonSpiresFeedback from '@/assets/saxon-spires-feedback.mp3';
 import { downloadFile } from '@/utils/downloadFile';
 
 const AIShowcasePage: React.FC = () => {
@@ -129,13 +130,32 @@ const AIShowcasePage: React.FC = () => {
                   Comparative analysis of Saxon Spires Practice performance against NHS Northamptonshire ICB benchmarks
                 </p>
               </CardHeader>
-              <CardContent className="p-6">
+              <CardContent className="p-6 space-y-6">
                 <div className="bg-white rounded-lg overflow-hidden">
                   <img 
                     src={icbComparison} 
                     alt="Saxon Spires Practice vs ICB Average showing call answer rates, missed call rates, and wait times comparison"
                     className="w-full h-auto"
                   />
+                </div>
+                
+                {/* Practice Level Audio Feedback */}
+                <div className="bg-muted/50 rounded-lg p-4 space-y-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Volume2 className="h-5 w-5 text-primary" />
+                    <h4 className="font-semibold text-foreground">Practice Level Feedback</h4>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-3">
+                    Listen to an AI-generated audio summary of the Saxon Spires Practice performance analysis
+                  </p>
+                  <audio 
+                    controls 
+                    className="w-full"
+                    preload="metadata"
+                  >
+                    <source src={saxonSpiresFeedback} type="audio/mpeg" />
+                    Your browser does not support the audio element.
+                  </audio>
                 </div>
               </CardContent>
             </Card>
