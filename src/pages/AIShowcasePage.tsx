@@ -104,7 +104,7 @@ const AIShowcasePage: React.FC = () => {
                     className="w-full h-full"
                     poster="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'%3E%3Crect fill='%23f1f5f9' width='100%25' height='100%25'/%3E%3C/svg%3E"
                   >
-                    <source src="https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/demo-videos/Calling_Your_GP.mp4" type="video/mp4" />
+                    <source src="https://dphcnbricafkbtizkoal.supabase.co/storage/v1/object/public/demo-videos/GP_Call_Handling_Analysis.mp4" type="video/mp4" />
                     Your browser does not support the video tag.
                   </video>
                 </div>
