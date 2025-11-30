@@ -124,7 +124,18 @@ serve(async (req) => {
     // Build messages for AI
     const systemPrompt = `You are a helpful AI assistant that answers questions about meetings based on the meeting transcript and notes.
 
-Be concise, accurate, and helpful. Use British English. Reference specific parts of the meeting when relevant.
+FORMATTING GUIDELINES:
+- Use proper markdown formatting
+- Put each bullet point or numbered item on its OWN LINE
+- Use a blank line between different sections
+- Format headings with ## or ### 
+- Use **bold** for emphasis on key terms
+- Keep paragraphs well-spaced with blank lines between them
+
+RESPONSE STYLE:
+- Be concise, accurate, and helpful
+- Use British English
+- Reference specific parts of the meeting when relevant
 
 Meeting Information:
 ${context}

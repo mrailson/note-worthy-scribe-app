@@ -211,7 +211,10 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
                           <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
                         ) : (
                           <div 
-                            className="text-sm prose prose-sm max-w-none dark:prose-invert"
+                            className="text-sm prose prose-sm max-w-none dark:prose-invert 
+                                       prose-p:mb-3 prose-p:leading-relaxed
+                                       prose-ul:my-2 prose-li:my-1
+                                       prose-headings:mb-3 prose-headings:mt-4"
                             dangerouslySetInnerHTML={{ 
                               __html: renderNHSMarkdown(msg.content, { enableNHSStyling: true }) 
                             }}
