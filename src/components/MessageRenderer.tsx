@@ -715,7 +715,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               {message.role === 'assistant' ? (
                 <div 
                   ref={contentRef}
-                  className={`message-content overflow-x-auto w-full ai4gp-text-scaled ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'}`}
+                  className={`message-content overflow-x-auto w-full ai4gp-text-scaled ${isModal ? 'prose-lg' : 'prose prose-sm max-w-none'} 
+                             dark:prose-invert
+                             prose-p:mb-3 prose-p:leading-relaxed
+                             prose-ul:my-2 prose-ul:space-y-1 prose-li:my-1
+                             prose-headings:mb-3 prose-headings:mt-4
+                             [&_.flex]:mb-3`}
                   style={{
                     maxWidth: 'none',
                     width: '100%',
