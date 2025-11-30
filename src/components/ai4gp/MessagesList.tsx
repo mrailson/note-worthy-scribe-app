@@ -36,6 +36,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   autoCollapseUserPrompts = false
 }) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const previousMessageCountRef = useRef(0);
   const deviceInfo = useDeviceInfo();
 
   const scrollToBottom = () => {
@@ -47,11 +48,15 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     }
   };
 
+  // Only scroll when a NEW message is added, not when existing messages update (streaming)
   useEffect(() => {
-    if (messages.length > 0) {
+    const currentMessageCount = messages.length;
+    
+    if (currentMessageCount > previousMessageCountRef.current) {
       scrollToBottom();
+      previousMessageCountRef.current = currentMessageCount;
     }
-  }, [messages]);
+  }, [messages.length]);
 
   return (
     <ScrollArea className={cn(
