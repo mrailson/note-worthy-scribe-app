@@ -35,6 +35,12 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // Fix cases where multiple bullet points are inline
     .replace(/(-\s+[^-\n]+?)\s+(-\s+)/g, '$1\n$2')
     
+    // Handle asterisk bullets that are inline (e.g., "* Item 1 * Item 2")
+    .replace(/(\*\s+[^*\n]+?)\s+(\*\s+)/g, '$1\n$2')
+    
+    // Handle cases where asterisks are at start without newlines
+    .replace(/([^*\n])\s*(\*\s+[A-Z])/g, '$1\n$2')
+    
     // Handle nested dosing patterns specifically
     .replace(/(-\s+[^:\n]+:)\s*(-\s+[^:\n]+:)/g, '$1\n  $2')
     
