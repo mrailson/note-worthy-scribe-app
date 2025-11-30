@@ -37,6 +37,7 @@ serve(async (req) => {
     // Get authorization header
     const authHeader = req.headers.get('authorization');
     if (!authHeader) {
+      console.error('No authorization header');
       return new Response(
         JSON.stringify({ error: 'Authorization required' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -46,26 +47,56 @@ serve(async (req) => {
     // Verify user
     const { data: { user }, error: authError } = await supabase.auth.getUser(authHeader.replace('Bearer ', ''));
     if (authError || !user) {
+      console.error('Auth error:', authError);
       return new Response(
         JSON.stringify({ error: 'Invalid authorization' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Fetch meeting data
+    console.log('User authenticated:', user.id);
+    console.log('Looking for meeting:', meetingId);
+
+    // Fetch meeting data - first check if meeting exists at all
+    const { data: meetingCheck, error: checkError } = await supabase
+      .from('meetings')
+      .select('id, user_id')
+      .eq('id', meetingId)
+      .single();
+
+    if (checkError || !meetingCheck) {
+      console.error('Meeting does not exist:', meetingId, checkError);
+      return new Response(
+        JSON.stringify({ error: 'Meeting not found' }),
+        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Check if user has access
+    if (meetingCheck.user_id !== user.id) {
+      console.error('Access denied - user:', user.id, 'meeting owner:', meetingCheck.user_id);
+      return new Response(
+        JSON.stringify({ error: 'Access denied to this meeting' }),
+        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Fetch full meeting data
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
       .select('id, title, transcript, created_at, start_time, meeting_type, meeting_style')
       .eq('id', meetingId)
-      .eq('user_id', user.id)
       .single();
 
     if (meetingError || !meeting) {
+      console.error('Error fetching meeting details:', meetingError);
       return new Response(
-        JSON.stringify({ error: 'Meeting not found or access denied' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Failed to fetch meeting details' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('Meeting found:', meeting.title);
 
     // Fetch meeting overview/notes
     const { data: summaryData } = await supabase
