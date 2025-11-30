@@ -238,10 +238,15 @@ const Index = () => {
         <div className="container mx-auto px-3 py-6 sm:px-4 sm:py-8 max-w-6xl">
           <MaintenanceBanner />
           
-          {/* Two-column layout: Welcome content left, Login right */}
+          {/* Two-column layout: Login first on mobile, then welcome content */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-            {/* Left Column: Welcome Content */}
-            <div className="space-y-8">
+            {/* Login Form - appears first on mobile, right on desktop */}
+            <div className="lg:sticky lg:top-8 h-fit lg:order-2">
+              <LoginForm />
+            </div>
+
+            {/* Welcome Content - appears second on mobile, left on desktop */}
+            <div className="space-y-8 lg:order-1">
               {/* Hero Section */}
               <div className="text-center lg:text-left space-y-4 animate-fade-in">
                 
@@ -300,11 +305,6 @@ const Index = () => {
                   </ul>
                 </div>
               </div>
-            </div>
-
-            {/* Right Column: Login Form */}
-            <div className="lg:sticky lg:top-8 h-fit">
-              <LoginForm />
             </div>
           </div>
 
