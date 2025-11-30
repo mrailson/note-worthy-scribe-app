@@ -19,7 +19,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
-import { Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download, Upload, Plus } from "lucide-react";
+import { Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download, Upload, Plus, FolderOpen } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import {
   AlertDialog,
@@ -46,6 +46,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 import { showToast } from "@/utils/toastWrapper";
+import { useMeetingFolders } from "@/hooks/useMeetingFolders";
+import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFoldersManager";
 
 interface Meeting {
   id: string;
@@ -66,6 +68,7 @@ interface Meeting {
   document_count?: number;
   notes_generation_status?: string;
   live_transcript_text?: string | null; // Add live transcript field
+  folder_id?: string | null;
   documents?: Array<{
     file_name: string;
     file_size: number | null;
@@ -206,6 +209,10 @@ const MeetingHistory = () => {
   
   // Import dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+
+  // Folder management
+  const { folders, assignMeetingToFolder } = useMeetingFolders();
+  const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
 
   // Component lifecycle logging
   useEffect(() => {
@@ -1239,6 +1246,7 @@ const MeetingHistory = () => {
           location,
           format,
           word_count,
+          folder_id,
           audio_backup_path,
           audio_backup_created_at,
           requires_audio_backup,
@@ -1397,6 +1405,15 @@ const MeetingHistory = () => {
 
     if (advancedFilters.format && advancedFilters.format !== "all") {
       filtered = filtered.filter(meeting => meeting.format === advancedFilters.format);
+    }
+
+    // Apply folder filter
+    if (advancedFilters.folderId && advancedFilters.folderId !== "all") {
+      if (advancedFilters.folderId === "unfiled") {
+        filtered = filtered.filter(meeting => !meeting.folder_id);
+      } else {
+        filtered = filtered.filter(meeting => meeting.folder_id === advancedFilters.folderId);
+      }
     }
     
     console.log('🚨 FILTERED MEETINGS RESULT:', filtered.length);
@@ -1607,20 +1624,33 @@ const MeetingHistory = () => {
              <p className="text-base sm:text-lg font-inter text-muted-foreground">
                View, edit, and manage your saved consultations
              </p>
-           </div>
-           
-           <Button
-             variant="default"
-             size="default"
-             onClick={() => setImportDialogOpen(true)}
-             className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
-           >
-             <Sparkles className="h-4 w-4" />
-             <span className="hidden lg:inline">Demonstration Meeting & Audio Import Service</span>
-             <span className="hidden sm:inline lg:hidden">Demo Import</span>
-             <span className="sm:hidden">Import</span>
-           </Button>
-         </div>
+            </div>
+            
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => setFoldersDialogOpen(true)}
+                className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
+              >
+                <FolderOpen className="h-4 w-4" />
+                <span className="hidden lg:inline">Manage Folders</span>
+                <span className="lg:hidden">Folders</span>
+              </Button>
+              
+              <Button
+                variant="default"
+                size="default"
+                onClick={() => setImportDialogOpen(true)}
+                className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden lg:inline">Demonstration Meeting & Audio Import Service</span>
+                <span className="hidden sm:inline lg:hidden">Demo Import</span>
+                <span className="sm:hidden">Import</span>
+              </Button>
+            </div>
+          </div>
 
           {/* Stats Cards - Hidden on mobile */}
           {!isMobile && (
@@ -1666,15 +1696,16 @@ const MeetingHistory = () => {
          {/* Search Bar */}
          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
            <div className="flex-1">
-             <MeetingSearchBar 
-               searchQuery={searchQuery}
-               onSearchChange={setSearchQuery}
-               resultsCount={filteredMeetings.length}
-               filterType={filterType}
-               onFilterChange={setFilterType}
-               onAdvancedFiltersChange={setAdvancedFilters}
-               advancedFilters={advancedFilters}
-             />
+            <MeetingSearchBar 
+              searchQuery={searchQuery}
+              onSearchChange={setSearchQuery}
+              resultsCount={filteredMeetings.length}
+              filterType={filterType}
+              onFilterChange={setFilterType}
+              onAdvancedFiltersChange={setAdvancedFilters}
+              advancedFilters={advancedFilters}
+              folders={folders}
+            />
            </div>
          </div>
 
@@ -2488,6 +2519,12 @@ const MeetingHistory = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Meeting Folders Manager Dialog */}
+        <MeetingFoldersManager
+          open={foldersDialogOpen}
+          onOpenChange={setFoldersDialogOpen}
+        />
 
       </div>
     </div>

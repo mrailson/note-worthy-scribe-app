@@ -3,7 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Search, X, Filter, Calendar, Clock, MapPin, Users, Monitor } from "lucide-react";
+import { Search, X, Filter, Calendar, Clock, MapPin, Users, Monitor, Folder } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +28,7 @@ export interface SearchFilters {
   durationMax: string;
   location: string;
   format: string;
+  folderId: string;
 }
 
 interface MeetingSearchBarProps {
@@ -38,6 +39,7 @@ interface MeetingSearchBarProps {
   onFilterChange?: (filterType: string) => void;
   onAdvancedFiltersChange?: (filters: Partial<SearchFilters>) => void;
   advancedFilters?: Partial<SearchFilters>;
+  folders?: Array<{ id: string; name: string; colour: string }>;
 }
 
 export const MeetingSearchBar = ({ 
@@ -47,7 +49,8 @@ export const MeetingSearchBar = ({
   filterType = "all",
   onFilterChange,
   onAdvancedFiltersChange,
-  advancedFilters = {}
+  advancedFilters = {},
+  folders = []
 }: MeetingSearchBarProps) => {
   const [localFilterType, setLocalFilterType] = useState<string>(filterType);
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
@@ -57,7 +60,8 @@ export const MeetingSearchBar = ({
     durationMin: advancedFilters.durationMin || "",
     durationMax: advancedFilters.durationMax || "",
     location: advancedFilters.location || "",
-    format: advancedFilters.format || "all"
+    format: advancedFilters.format || "all",
+    folderId: advancedFilters.folderId || "all"
   });
 
   const handleClearSearch = () => {
@@ -72,7 +76,8 @@ export const MeetingSearchBar = ({
       durationMin: "",
       durationMax: "",
       location: "",
-      format: "all"
+      format: "all",
+      folderId: "all"
     };
     setLocalAdvancedFilters(resetAdvancedFilters);
     onAdvancedFiltersChange?.(resetAdvancedFilters);
@@ -279,6 +284,34 @@ export const MeetingSearchBar = ({
                   </SelectContent>
                 </Select>
               </div>
+
+              {/* Folder Filter */}
+              <div className="space-y-2">
+                <Label className="text-xs font-medium flex items-center gap-1">
+                  <Folder className="h-3 w-3" />
+                  Folder
+                </Label>
+                <Select 
+                  value={localAdvancedFilters.folderId} 
+                  onValueChange={(value) => handleAdvancedFilterChange("folderId", value)}
+                >
+                  <SelectTrigger className="text-sm">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Folders</SelectItem>
+                    <SelectItem value="unfiled">Unfiled</SelectItem>
+                    {folders.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        <div className="flex items-center gap-2">
+                          <Folder className="h-3 w-3" style={{ color: folder.colour }} />
+                          {folder.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* Clear Advanced Filters */}
@@ -293,7 +326,8 @@ export const MeetingSearchBar = ({
                     durationMin: "",
                     durationMax: "",
                     location: "",
-                    format: "all"
+                    format: "all",
+                    folderId: "all"
                   };
                   setLocalAdvancedFilters(resetFilters);
                   onAdvancedFiltersChange?.(resetFilters);
@@ -359,6 +393,13 @@ export const MeetingSearchBar = ({
           {localAdvancedFilters.format !== "all" && (
             <Badge variant="outline">
               {currentFormat?.label}
+            </Badge>
+          )}
+
+          {localAdvancedFilters.folderId && localAdvancedFilters.folderId !== "all" && (
+            <Badge variant="outline" style={{ borderColor: folders.find(f => f.id === localAdvancedFilters.folderId)?.colour }}>
+              <Folder className="h-3 w-3 mr-1" />
+              {localAdvancedFilters.folderId === "unfiled" ? "Unfiled" : folders.find(f => f.id === localAdvancedFilters.folderId)?.name}
             </Badge>
           )}
         </div>

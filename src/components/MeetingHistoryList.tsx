@@ -92,6 +92,8 @@ import { useMeetingExport } from '@/hooks/useMeetingExport';
 import { toast } from 'sonner';
 import { TranscriptRepairButton } from '@/components/admin/TranscriptRepairButton';
 import { useVoicePreference } from '@/hooks/useVoicePreference';
+import { useMeetingFolders } from '@/hooks/useMeetingFolders';
+import { FolderBadge } from '@/components/meeting-folders/FolderBadge';
 
 
 interface Meeting {
@@ -127,6 +129,7 @@ interface Meeting {
   meeting_config?: any;
   meeting_format?: string;
   meeting_location?: string;
+  folder_id?: string | null;
   // Sharing fields
   access_type?: 'owner' | 'shared';
   access_level?: 'view' | 'download';
@@ -2410,6 +2413,29 @@ export const MeetingHistoryList = ({
                       })()}
                         {getProcessingButtonText(processingMeetings[meeting.id])}
                       </DropdownMenuItem>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <Folder className="h-4 w-4 mr-2" />
+                            Assign to Folder
+                          </DropdownMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="right" align="start">
+                          <DropdownMenuItem onClick={() => assignMeetingToFolder(meeting.id, null)}>
+                            None (Unfiled)
+                          </DropdownMenuItem>
+                          {folders.map((folder) => (
+                            <DropdownMenuItem 
+                              key={folder.id}
+                              onClick={() => assignMeetingToFolder(meeting.id, folder.id)}
+                            >
+                              <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
+                              {folder.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem 
