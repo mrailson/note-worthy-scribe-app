@@ -263,3 +263,6 @@ verify_jwt = true
 
 [functions.generate-audio-overview]
 verify_jwt = true
+
+[functions.meeting-qa-chat]
+verify_jwt = true
