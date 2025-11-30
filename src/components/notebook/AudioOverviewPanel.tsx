@@ -920,22 +920,41 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                        </Button>
                       
                       {voicePreviews[voice.id] && (
-                        <div className="mt-3 space-y-1">
-                          <p className="text-xs text-muted-foreground">Preview player:</p>
-                          <audio
-                            key={voicePreviews[voice.id]}
-                            controls
-                            src={voicePreviews[voice.id]}
-                            className="w-full"
-                            onLoadedData={(e) => {
-                              const audio = e.currentTarget;
-                              console.log('🎵 Audio loaded, duration:', audio.duration);
-                            }}
-                            onError={(e) => {
-                              console.error('❌ Audio error:', e);
-                              toast.error('Unable to play preview');
-                            }}
-                          />
+                        <div className="mt-3 space-y-2">
+                          <div className="flex items-center justify-between gap-2">
+                            <audio
+                              key={voicePreviews[voice.id]}
+                              controls
+                              src={voicePreviews[voice.id]}
+                              className="w-full"
+                              onLoadedData={(e) => {
+                                const audio = e.currentTarget;
+                                console.log('🎵 Preview audio loaded, duration (s):', audio.duration);
+                              }}
+                              onError={(e) => {
+                                console.error('❌ Audio error:', e);
+                                toast.error('Unable to play preview');
+                              }}
+                            />
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="outline"
+                              className="shrink-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const link = document.createElement('a');
+                                link.href = voicePreviews[voice.id];
+                                link.download = `${voice.name}-preview.mp3`;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                              title="Download preview audio"
+                            >
+                              <Download className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </div>
                       )}
                     </CardContent>
