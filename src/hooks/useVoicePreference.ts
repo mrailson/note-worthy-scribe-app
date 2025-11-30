@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 
-export type VoiceOption = 'alice' | 'george' | 'charlotte' | 'lily' | 'matilda' | 'brian';
+export type VoiceOption = 'alice' | 'george' | 'charlotte' | 'lily' | 'matilda' | 'brian' | 'daniel' | 'will';
 
 interface VoiceConfig {
   id: string;
@@ -53,6 +53,20 @@ export const VOICE_OPTIONS: Record<VoiceOption, VoiceConfig> = {
     voiceId: 'nPczCjzI2devNBz1zQrb',
     description: 'British Male - Authoritative',
   },
+  daniel: {
+    id: 'elevenlabs-daniel',
+    name: 'Daniel',
+    provider: 'elevenlabs',
+    voiceId: 'onwK4e9ZLuTAKqWW03F9',
+    description: 'British Male - Confident',
+  },
+  will: {
+    id: 'elevenlabs-will',
+    name: 'Will',
+    provider: 'elevenlabs',
+    voiceId: 'bIHbv24MWmeRgasZH58o',
+    description: 'British Male - Articulate',
+  },
 };
 
 export function useVoicePreference() {
@@ -76,6 +90,12 @@ export function useVoicePreference() {
     }
     if (stored === 'elevenlabs-brian' || stored?.includes('nPczCjzI2devNBz1zQrb')) {
       return 'brian';
+    }
+    if (stored === 'elevenlabs-daniel' || stored?.includes('onwK4e9ZLuTAKqWW03F9')) {
+      return 'daniel';
+    }
+    if (stored === 'elevenlabs-will' || stored?.includes('bIHbv24MWmeRgasZH58o')) {
+      return 'will';
     }
     // Default to Alice
     return 'alice';
