@@ -2387,16 +2387,6 @@ export const MeetingHistoryList = ({
                         onSelect={(e) => {
                           e.preventDefault();
                           setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          handleDownloadPDF(meeting);
-                        }}
-                      >
-                        <FileDown className="h-4 w-4 mr-2" />
-                        Download Meeting Notes (PDF)
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
                           handleUploadClick(meeting);
                         }}
                       >
