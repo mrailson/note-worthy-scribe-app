@@ -84,7 +84,7 @@ serve(async (req) => {
     // Fetch full meeting data
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
-      .select('id, title, assembly_transcript_text, whisper_transcript_text, primary_transcript_source, created_at, start_time, meeting_type, meeting_style, overview')
+      .select('id, title, assembly_transcript_text, whisper_transcript_text, primary_transcript_source, created_at, start_time, meeting_type, overview')
       .eq('id', meetingId)
       .single();
 
@@ -111,7 +111,6 @@ serve(async (req) => {
     context += `Meeting Date: ${meetingDate}\n`;
     context += `Meeting Time: ${meetingTime}\n`;
     if (meeting.meeting_type) context += `Meeting Type: ${meeting.meeting_type}\n`;
-    if (meeting.meeting_style) context += `Meeting Style: ${meeting.meeting_style}\n`;
     context += `\n---\n\n`;
     
     if (transcript) {
