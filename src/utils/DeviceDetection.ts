@@ -105,37 +105,3 @@ export function getRecommendedTranscriber(): string {
     return 'DesktopWhisperTranscriber';
   }
 }
-
-/**
- * Detect if device is likely NHS or corporate managed
- */
-export function isNHSOrCorporateDevice(): { isNHS: boolean; isCorporate: boolean } {
-  const hostname = window.location.hostname.toLowerCase();
-  const userAgent = navigator.userAgent.toLowerCase();
-  
-  const NHS_INDICATORS = [
-    'nhs.net',
-    'nhs.uk',
-    'nhsmail',
-    'england.nhs',
-    'pcnhs',
-  ];
-  
-  const CORPORATE_INDICATORS = [
-    'intune',
-    'azuread',
-    'managedpc',
-    'corporate',
-    'enterprise',
-  ];
-  
-  const isNHS = NHS_INDICATORS.some(
-    indicator => hostname.includes(indicator) || userAgent.includes(indicator)
-  );
-  
-  const isCorporate = CORPORATE_INDICATORS.some(
-    indicator => userAgent.includes(indicator)
-  );
-  
-  return { isNHS, isCorporate };
-}
