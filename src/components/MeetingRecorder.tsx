@@ -47,6 +47,8 @@ import { MeetingImporter } from "@/components/meeting-dashboard/MeetingImporter"
 import { RecordingContextDialog, MeetingContext } from "@/components/meeting/RecordingContextDialog";
 import { PostMeetingActionsModal } from "@/components/PostMeetingActionsModal";
 import { MeetingCoachModal } from "@/components/meeting-coach/MeetingCoachModal";
+import { AudioCapabilityWarning } from "@/components/recording/AudioCapabilityWarning";
+import { quickCapabilityCheck, checkAudioCapabilities, AudioCapabilities } from "@/utils/AudioCapabilityChecker";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -306,6 +308,10 @@ export const MeetingRecorder = ({
   
   // Meeting Coach state
   const [coachModalOpen, setCoachModalOpen] = useState(false);
+  
+  // Audio capability warning state
+  const [showCapabilityWarning, setShowCapabilityWarning] = useState(false);
+  const [audioCapabilities, setAudioCapabilities] = useState<AudioCapabilities | null>(null);
   
   
   // Meeting settings - use from useMeetingData hook
@@ -3017,6 +3023,19 @@ export const MeetingRecorder = ({
     try {
       console.log('Starting recording...');
       
+      // Audio capability check for NHS/corporate laptops
+      if (recordingMode === 'mic-and-system') {
+        console.log('🔍 Checking audio capabilities before starting...');
+        const capabilities = await quickCapabilityCheck();
+        
+        if (!capabilities.canCaptureSystemAudio) {
+          console.log('⚠️ System audio capture not available:', capabilities);
+          setShowCapabilityWarning(true);
+          setAudioCapabilities(capabilities);
+          return; // Don't start recording - wait for user choice
+        }
+      }
+      
       // Clear transcript handler
       if (transcriptHandler.current) {
         transcriptHandler.current.clear();
@@ -4565,6 +4584,23 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     updateMeetingSettings(newSettings);
   };
 
+  // Audio capability handlers
+  const handleContinueWithMicOnly = () => {
+    console.log('User chose to continue with mic-only mode');
+    setRecordingMode('mic-only');
+    setShowCapabilityWarning(false);
+    // Trigger recording start again with mic-only mode
+    setTimeout(() => startRecording(), 100);
+  };
+
+  const handleRunAudioTest = async () => {
+    console.log('Running audio capability test...');
+    setShowCapabilityWarning(false);
+    const capabilities = await checkAudioCapabilities();
+    setAudioCapabilities(capabilities);
+    setShowCapabilityWarning(true);
+  };
+
               
   return (
     <div className="space-y-6">
@@ -5530,6 +5566,17 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           // User is now ready to record again - recording state is already reset
         }}
       />
+      
+      {/* Audio Capability Warning for NHS/Corporate Laptops */}
+      {audioCapabilities && (
+        <AudioCapabilityWarning
+          open={showCapabilityWarning}
+          onOpenChange={setShowCapabilityWarning}
+          capabilities={audioCapabilities}
+          onContinueAnyway={handleContinueWithMicOnly}
+          onRunTest={handleRunAudioTest}
+        />
+      )}
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
     </div>
