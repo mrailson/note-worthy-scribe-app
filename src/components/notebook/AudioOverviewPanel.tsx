@@ -160,6 +160,15 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
     }
   }, [scriptGenerated, audioUrl]);
 
+  // Cleanup preview blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (previewBarUrl && previewBarUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(previewBarUrl);
+      }
+    };
+  }, [previewBarUrl]);
+
   // Create a blob/object URL for playback when we have a base64 data URL
   useEffect(() => {
     try {
@@ -225,7 +234,27 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
     // If already previewed, just wire up the player bar
     if (voicePreviews[voiceId]) {
       setPreviewBarVoiceId(voiceId);
-      setPreviewBarUrl(voicePreviews[voiceId]);
+      
+      // Convert base64 to blob URL if needed for better playback
+      const audioUrl = voicePreviews[voiceId];
+      if (audioUrl.startsWith('data:audio')) {
+        try {
+          const base64Part = audioUrl.split(',')[1];
+          const binary = atob(base64Part);
+          const bytes = new Uint8Array(binary.length);
+          for (let i = 0; i < binary.length; i++) {
+            bytes[i] = binary.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: 'audio/mpeg' });
+          const blobUrl = URL.createObjectURL(blob);
+          setPreviewBarUrl(blobUrl);
+        } catch (error) {
+          console.error('Failed to create blob URL:', error);
+          setPreviewBarUrl(audioUrl); // Fallback to original
+        }
+      } else {
+        setPreviewBarUrl(audioUrl);
+      }
       return;
     }
 
@@ -253,7 +282,26 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
       if (data.audioUrl) {
         setVoicePreviews(prev => ({ ...prev, [voiceId]: data.audioUrl }));
         setPreviewBarVoiceId(voiceId);
-        setPreviewBarUrl(data.audioUrl);
+        
+        // Convert base64 to blob URL if needed for better playback
+        if (data.audioUrl.startsWith('data:audio')) {
+          try {
+            const base64Part = data.audioUrl.split(',')[1];
+            const binary = atob(base64Part);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) {
+              bytes[i] = binary.charCodeAt(i);
+            }
+            const blob = new Blob([bytes], { type: 'audio/mpeg' });
+            const blobUrl = URL.createObjectURL(blob);
+            setPreviewBarUrl(blobUrl);
+          } catch (error) {
+            console.error('Failed to create blob URL:', error);
+            setPreviewBarUrl(data.audioUrl); // Fallback to original
+          }
+        } else {
+          setPreviewBarUrl(data.audioUrl);
+        }
 
         if (appliedCount > 0) {
           toast.success(`Preview ready with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}. Use the player below to listen.`);
@@ -272,6 +320,10 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   };
 
   const stopPreview = () => {
+    // Revoke blob URL if it exists to prevent memory leaks
+    if (previewBarUrl && previewBarUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(previewBarUrl);
+    }
     setPreviewBarUrl(null);
     setPreviewBarVoiceId(null);
   };
@@ -895,19 +947,29 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
               </div>
 
               {previewBarUrl && (
-                <div className="mt-4 space-y-2">
-                  <Label>Voice preview player</Label>
+                <div className="p-4 bg-muted rounded-lg space-y-2">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-medium">
+                      Preview: {VOICE_OPTIONS.find(v => v.id === previewBarVoiceId)?.name}
+                    </p>
+                    <Button onClick={stopPreview} variant="ghost" size="sm">
+                      Stop
+                    </Button>
+                  </div>
                   <audio
                     key={previewBarUrl}
                     controls
                     autoPlay
                     src={previewBarUrl}
                     className="w-full"
+                    onEnded={stopPreview}
                     onError={(e) => {
                       console.error('Preview audio element error:', e);
                       toast.error('Unable to play preview in this browser. Please use the Download button instead.');
                     }}
-                  />
+                  >
+                    Your browser does not support audio playback.
+                  </audio>
                 </div>
               )}
 
