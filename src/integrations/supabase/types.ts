@@ -4033,7 +4033,11 @@ export type Database = {
           id: string
           meeting_id: string
           overview: string
+          pronunciation_rules: Json | null
+          script_style: string | null
           updated_at: string
+          voice_id: string | null
+          voice_name: string | null
         }
         Insert: {
           audio_overview_duration?: number | null
@@ -4044,7 +4048,11 @@ export type Database = {
           id?: string
           meeting_id: string
           overview: string
+          pronunciation_rules?: Json | null
+          script_style?: string | null
           updated_at?: string
+          voice_id?: string | null
+          voice_name?: string | null
         }
         Update: {
           audio_overview_duration?: number | null
@@ -4055,7 +4063,11 @@ export type Database = {
           id?: string
           meeting_id?: string
           overview?: string
+          pronunciation_rules?: Json | null
+          script_style?: string | null
           updated_at?: string
+          voice_id?: string | null
+          voice_name?: string | null
         }
         Relationships: [
           {

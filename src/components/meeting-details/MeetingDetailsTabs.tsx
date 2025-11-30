@@ -3,25 +3,27 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { FileText, Headphones, FileDown } from "lucide-react";
 import { TextOverviewEditor } from "./TextOverviewEditor";
-import { AudioOverviewPlayer } from "./AudioOverviewPlayer";
+import { MeetingAudioStudio } from "./MeetingAudioStudio";
 import { MeetingDocumentsList } from "@/components/MeetingDocumentsList";
 import { supabase } from "@/integrations/supabase/client";
 
 interface MeetingDetailsTabsProps {
   meetingId: string;
+  meetingTitle: string;
   currentOverview: string;
   audioOverviewUrl?: string;
   audioOverviewText?: string;
   audioOverviewDuration?: number;
   meetingDurationMinutes?: number;
   onOverviewChange: (overview: string) => void;
-  onRegenerateAudio?: (voiceProvider?: string, voiceId?: string, updatedText?: string, targetDuration?: number) => void;
+  onRegenerateAudio?: () => void;
   onDocumentRemoved?: () => void;
   className?: string;
 }
 
 export const MeetingDetailsTabs = ({
   meetingId,
+  meetingTitle,
   currentOverview,
   audioOverviewUrl,
   audioOverviewText,
@@ -92,13 +94,14 @@ export const MeetingDetailsTabs = ({
         </TabsContent>
 
         <TabsContent value="audio" className="p-4">
-          <AudioOverviewPlayer
+          <MeetingAudioStudio
             meetingId={meetingId}
+            meetingTitle={meetingTitle}
             audioOverviewUrl={audioOverviewUrl}
             audioOverviewText={audioOverviewText}
             audioOverviewDuration={audioOverviewDuration}
             meetingDurationMinutes={meetingDurationMinutes}
-            onRegenerateAudio={onRegenerateAudio}
+            onAudioGenerated={onRegenerateAudio}
           />
         </TabsContent>
 
