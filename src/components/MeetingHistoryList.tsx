@@ -2464,6 +2464,7 @@ export const MeetingHistoryList = ({
               {/* Meeting Details Tabs */}
               <MeetingDetailsTabs
                 meetingId={meeting.id}
+                meetingTitle={meeting.title || "Meeting"}
                 currentOverview={meeting.overview || ""}
                 audioOverviewUrl={meeting.audio_overview_url || undefined}
                 audioOverviewText={meeting.audio_overview_text || undefined}
@@ -2475,24 +2476,9 @@ export const MeetingHistoryList = ({
                   ));
                   onRefresh?.();
                 }}
-                onRegenerateAudio={async (voiceProvider?: string, voiceId?: string, updatedText?: string, targetDuration?: number) => {
-                  toast.info('Generating audio overview...');
-                  const body: any = { meetingId: meeting.id };
-                  if (voiceProvider) body.voiceProvider = voiceProvider;
-                  if (voiceId) body.voiceId = voiceId;
-                  if (updatedText) body.overrideText = updatedText;
-                  if (targetDuration) body.targetDuration = targetDuration;
-                  
-                  const { data, error } = await supabase.functions.invoke('generate-audio-overview', {
-                    body
-                  });
-                  if (error) {
-                    toast.error('Failed to generate audio overview');
-                    console.error('Audio generation error:', error);
-                  } else {
-                    toast.success('Audio overview generated!');
-                    onRefresh?.();
-                  }
+                onRegenerateAudio={async () => {
+                  // Audio regeneration is now handled by MeetingAudioStudio component
+                  onRefresh?.();
                 }}
                 onDocumentRemoved={() => {
                   setDocListRefresh(prev => ({ ...prev, [meeting.id]: (prev[meeting.id] || 0) + 1 }));

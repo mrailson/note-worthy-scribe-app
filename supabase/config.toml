@@ -257,3 +257,9 @@ verify_jwt = true
 
 [functions.generate-powerpoint]
 verify_jwt = true
+
+[functions.generate-meeting-audio-script]
+verify_jwt = true
+
+[functions.generate-audio-overview]
+verify_jwt = true
