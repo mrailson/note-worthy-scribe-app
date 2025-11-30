@@ -29,7 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder } from "lucide-react";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
@@ -47,6 +47,8 @@ import { MeetingImporter } from "@/components/meeting-dashboard/MeetingImporter"
 import { RecordingContextDialog, MeetingContext } from "@/components/meeting/RecordingContextDialog";
 import { PostMeetingActionsModal } from "@/components/PostMeetingActionsModal";
 import { MeetingCoachModal } from "@/components/meeting-coach/MeetingCoachModal";
+import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFoldersManager";
+import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -306,6 +308,11 @@ export const MeetingRecorder = ({
   
   // Meeting Coach state
   const [coachModalOpen, setCoachModalOpen] = useState(false);
+  
+  // Folder management state
+  const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const { folders } = useMeetingFolders();
   
   
   // Meeting settings - use from useMeetingData hook
@@ -4217,13 +4224,19 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     };
   }, [user]);
 
-  // Filter meetings based on search query
+  // Filter meetings based on search query and folder
   useEffect(() => {
     let filtered = meetings;
     
+    // Apply folder filter
+    if (selectedFolderId) {
+      filtered = filtered.filter(meeting => meeting.folder_id === selectedFolderId);
+    }
+    
+    // Apply search filter
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
-      filtered = meetings.filter(meeting =>
+      filtered = filtered.filter(meeting =>
         meeting.title.toLowerCase().includes(query) ||
         meeting.description?.toLowerCase().includes(query) ||
         meeting.meeting_type.toLowerCase().includes(query)
@@ -4231,7 +4244,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     }
     
     setFilteredMeetings(filtered);
-  }, [meetings, searchQuery]);
+  }, [meetings, searchQuery, selectedFolderId]);
 
   // Meeting history handlers
   const handleEditMeeting = (meetingId: string) => {
@@ -5130,17 +5143,29 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 </p>
               </div>
             </div>
-            <Button
-              variant="default"
-              size="default"
-              onClick={() => setImportDialogOpen(true)}
-              className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
-            >
-              <Sparkles className="h-4 w-4" />
-              <span className="hidden lg:inline">Demonstration Meeting & Audio Import Service</span>
-              <span className="hidden sm:inline lg:hidden">Demo Import</span>
-              <span className="sm:hidden">Import</span>
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="default"
+                onClick={() => setFoldersDialogOpen(true)}
+                className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
+              >
+                <Folder className="h-4 w-4" />
+                <span className="hidden sm:inline">Manage Folders</span>
+                <span className="sm:hidden">Folders</span>
+              </Button>
+              <Button
+                variant="default"
+                size="default"
+                onClick={() => setImportDialogOpen(true)}
+                className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
+              >
+                <Sparkles className="h-4 w-4" />
+                <span className="hidden lg:inline">Demonstration Meeting & Audio Import Service</span>
+                <span className="hidden sm:inline lg:hidden">Demo Import</span>
+                <span className="sm:hidden">Import</span>
+              </Button>
+            </div>
           </div>
 
           {/* Stats Cards */}
@@ -5194,6 +5219,27 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   className="pl-10"
                 />
               </div>
+              {folders.length > 0 && (
+                <Select
+                  value={selectedFolderId || "all"}
+                  onValueChange={(value) => setSelectedFolderId(value === "all" ? null : value)}
+                >
+                  <SelectTrigger className="w-[180px]">
+                    <SelectValue placeholder="All folders" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All folders</SelectItem>
+                    {folders.map((folder) => (
+                      <SelectItem key={folder.id} value={folder.id}>
+                        <div className="flex items-center gap-2">
+                          <Folder className="h-3 w-3" style={{ color: folder.colour }} />
+                          {folder.name}
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
               <div className="flex gap-2">
                 <Button
                   variant="outline"
@@ -5529,6 +5575,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           setLastCompletedMeetingDuration('');
           // User is now ready to record again - recording state is already reset
         }}
+      />
+      
+      {/* Meeting Folders Manager */}
+      <MeetingFoldersManager
+        open={foldersDialogOpen}
+        onOpenChange={setFoldersDialogOpen}
       />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
