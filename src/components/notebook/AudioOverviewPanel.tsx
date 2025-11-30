@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, BookOpen, Plus, Trash2, ChevronDown, ChevronUp, Save, Copy, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -50,11 +50,8 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   // Voice preview state
   const [selectedVoice, setSelectedVoice] = useState(VOICE_OPTIONS[0].id);
   const [voicePreviews, setVoicePreviews] = useState<Record<string, string>>({});
-  const [previewBarVoiceId, setPreviewBarVoiceId] = useState<string | null>(null);
-  const [previewBarUrl, setPreviewBarUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState<string | null>(null);
   const [preloadingPreviews, setPreloadingPreviews] = useState(false);
-  const previewAudioRef = useRef<HTMLAudioElement>(null);
   
   // Final audio state
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -224,11 +221,10 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   }, [audioUrl]);
 
   const handlePreviewVoice = async (voiceId: string) => {
-    // If already previewed, just wire up the player bar
+    // If already previewed, we just show the inline player
     if (voicePreviews[voiceId]) {
-      setPreviewBarVoiceId(voiceId);
-      setPreviewBarUrl(voicePreviews[voiceId]);
       console.log('Using cached preview URL for voice', voiceId, voicePreviews[voiceId]?.slice(0, 50));
+      toast.success('Preview ready. Use the mini player in the card to listen.');
       return;
     }
 
@@ -256,13 +252,11 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
       if (data.audioUrl) {
         console.log('Received preview audio URL prefix:', data.audioUrl.slice(0, 50));
         setVoicePreviews(prev => ({ ...prev, [voiceId]: data.audioUrl }));
-        setPreviewBarVoiceId(voiceId);
-        setPreviewBarUrl(data.audioUrl);
 
         if (appliedCount > 0) {
-          toast.success(`Preview ready with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}. Use the player below to listen.`);
+          toast.success(`Preview ready with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}. Use the mini player in the card to listen.`);
         } else {
-          toast.success('Preview ready. Use the player below to listen.');
+          toast.success('Preview ready. Use the mini player in the card to listen.');
         }
       } else {
         throw new Error('No audio URL returned');
@@ -275,14 +269,6 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
     }
   };
 
-  const stopPreview = () => {
-    // Revoke blob URL if it exists to prevent memory leaks
-    if (previewBarUrl && previewBarUrl.startsWith('blob:')) {
-      URL.revokeObjectURL(previewBarUrl);
-    }
-    setPreviewBarUrl(null);
-    setPreviewBarVoiceId(null);
-  };
 
   const handleRegenerateWithVoice = async () => {
     setIsGeneratingAudio(true);
@@ -826,7 +812,6 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                       selectedVoice === voice.id ? 'border-primary border-2' : ''
                     }`}
                     onClick={() => {
-                      stopPreview();
                       setSelectedVoice(voice.id);
                     }}
                   >
@@ -846,55 +831,47 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                       </div>
                       <div className="flex gap-2">
                         <Button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handlePreviewVoice(voice.id);
-                          }}
-                          variant={previewBarVoiceId === voice.id ? "default" : "outline"}
-                          size="sm"
-                          className="flex-1"
-                          disabled={isGeneratingPreview === voice.id || (!voicePreviews[voice.id] && preloadingPreviews)}
-                        >
+                           onClick={(e) => {
+                             e.stopPropagation();
+                             handlePreviewVoice(voice.id);
+                           }}
+                           variant={voicePreviews[voice.id] ? 'default' : 'outline'}
+                           size="sm"
+                           className="flex-1"
+                           disabled={isGeneratingPreview === voice.id || (!voicePreviews[voice.id] && preloadingPreviews)}
+                         >
                           {isGeneratingPreview === voice.id ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Loading...
-                            </>
-                          ) : !voicePreviews[voice.id] && preloadingPreviews ? (
-                            <>
-                              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                              Preparing...
-                            </>
-                          ) : previewBarVoiceId === voice.id ? (
-                            <>
-                              <Check className="h-4 w-4 mr-2" />
-                              Loaded
-                            </>
-                          ) : (
-                            <>
-                              <Play className="h-4 w-4 mr-2" />
-                              Preview
-                            </>
-                          )}
-                        </Button>
+                             <>
+                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                               Loading...
+                             </>
+                           ) : !voicePreviews[voice.id] && preloadingPreviews ? (
+                             <>
+                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                               Preparing...
+                             </>
+                           ) : voicePreviews[voice.id] ? (
+                             <>
+                               <Play className="h-4 w-4 mr-2" />
+                               Replay Preview
+                             </>
+                           ) : (
+                             <>
+                               <Play className="h-4 w-4 mr-2" />
+                               Preview
+                             </>
+                           )}
+                         </Button>
                         {voicePreviews[voice.id] && (
-                          <Button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              const link = document.createElement('a');
-                              link.href = voicePreviews[voice.id];
-                              link.download = `preview-${voice.name.toLowerCase()}.mp3`;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                              toast.success('Download started');
+                          <audio
+                            controls
+                            src={voicePreviews[voice.id]}
+                            className="mt-2 w-full"
+                            onError={(e) => {
+                              console.error('Inline preview audio error:', e);
+                              toast.error('Unable to play this preview. Please try downloading it instead.');
                             }}
-                            variant="outline"
-                            size="sm"
-                            title="Download preview"
-                          >
-                            <Download className="h-4 w-4" />
-                          </Button>
+                          />
                         )}
                       </div>
                     </CardContent>
@@ -902,36 +879,6 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                 ))}
               </div>
 
-              {previewBarUrl && (
-                <div className="p-4 bg-muted rounded-lg space-y-2">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium">
-                      Preview: {VOICE_OPTIONS.find(v => v.id === previewBarVoiceId)?.name}
-                    </p>
-                    <Button onClick={stopPreview} variant="ghost" size="sm">
-                      Stop
-                    </Button>
-                  </div>
-                  <audio
-                    key={previewBarUrl || 'preview-audio-player'}
-                    ref={previewAudioRef}
-                    controls
-                    src={previewBarUrl || undefined}
-                    className="w-full"
-                    onEnded={stopPreview}
-                    onLoadedData={() => console.log('Preview audio loaded, src prefix:', previewBarUrl?.slice(0, 40))}
-                    onCanPlay={() => console.log('Preview audio can play')}
-                    onError={(e) => {
-                      console.error('Preview audio element error:', e);
-                      const target = e.currentTarget as HTMLAudioElement;
-                      console.error('Audio error details:', target.error);
-                      toast.error('Unable to play preview in this browser. Please use the Download button instead.');
-                    }}
-                  >
-                    Your browser does not support audio playback.
-                  </audio>
-                </div>
-              )}
 
               {/* Generate Full Audio Button */}
               <Button 
@@ -1056,7 +1003,6 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                 setEditedText('');
                 setOriginalText('');
                 setVoicePreviews({});
-                stopPreview();
               }}
               variant="outline"
               className="w-full"
