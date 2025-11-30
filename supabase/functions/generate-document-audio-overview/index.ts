@@ -210,6 +210,8 @@ Just write the actual narrative text that should be spoken.`
       throw new Error(`Text-to-speech generation failed: ${ttsResponse.status}`);
     }
 
+    console.log('Fetching audio from ElevenLabs...');
+    const audioBuffer = await ttsResponse.arrayBuffer();
     console.log('Received audio buffer, size (bytes):', audioBuffer.byteLength);
 
     // Upload preview audio to existing meeting-audio-overviews bucket for reliable playback
