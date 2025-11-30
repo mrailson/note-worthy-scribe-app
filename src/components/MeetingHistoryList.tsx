@@ -35,7 +35,8 @@ import {
   FileDown,
   Video,
   MonitorSpeaker,
-  Drama
+  Drama,
+  Folder
 } from "lucide-react";
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
@@ -191,6 +192,7 @@ export const MeetingHistoryList = ({
   const { isRecording, isResourceOperationSafe, setRecordingState } = useRecording();
   const { user, isSystemAdmin } = useAuth();
   const { voiceConfig } = useVoicePreference();
+  const { folders, assignMeetingToFolder } = useMeetingFolders();
   const userFullNameLower = (user?.user_metadata?.full_name || user?.user_metadata?.name || '').toLowerCase();
   const isIOS = detectDevice().isIOS;
   console.log('🚨 MeetingHistoryList render - meetings:', meetings.length);
