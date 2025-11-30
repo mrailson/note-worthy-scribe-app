@@ -47,7 +47,7 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   const [editedText, setEditedText] = useState('');
   const [isEditing, setIsEditing] = useState(false);
   
-  // Voice preview state
+  // Voice preview state - stores blob URLs for reliable playback
   const [selectedVoice, setSelectedVoice] = useState(VOICE_OPTIONS[0].id);
   const [voicePreviews, setVoicePreviews] = useState<Record<string, string>>({});
   const [isGeneratingPreview, setIsGeneratingPreview] = useState<string | null>(null);
@@ -111,6 +111,37 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
     }
   };
 
+  // Helper to convert data URL to blob URL for reliable playback
+  const dataUrlToObjectUrl = (dataUrl: string): string | null => {
+    try {
+      if (!dataUrl.startsWith('data:audio')) {
+        console.warn('Not a data URL, using as-is:', dataUrl.slice(0, 50));
+        return dataUrl;
+      }
+
+      const base64Part = dataUrl.split(',')[1];
+      if (!base64Part) {
+        console.error('No base64 data found in URL');
+        return null;
+      }
+
+      const binary = atob(base64Part);
+      const len = binary.length;
+      const bytes = new Uint8Array(len);
+      for (let i = 0; i < len; i++) {
+        bytes[i] = binary.charCodeAt(i);
+      }
+
+      const blob = new Blob([bytes], { type: 'audio/mpeg' });
+      const objectUrl = URL.createObjectURL(blob);
+      console.log('✅ Created blob URL:', objectUrl.slice(0, 50));
+      return objectUrl;
+    } catch (error) {
+      console.error('❌ Failed to convert data URL to blob:', error);
+      return null;
+    }
+  };
+
   // Preload all voice previews when script is generated
   const preloadAllVoices = async () => {
     setPreloadingPreviews(true);
@@ -137,10 +168,13 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
         }
 
         if (data.audioUrl) {
-          setVoicePreviews(prev => ({
-            ...prev,
-            [voice.id]: data.audioUrl
-          }));
+          const blobUrl = dataUrlToObjectUrl(data.audioUrl);
+          if (blobUrl) {
+            setVoicePreviews(prev => ({
+              ...prev,
+              [voice.id]: blobUrl
+            }));
+          }
         }
       } catch (error) {
         console.error(`Error preloading ${voice.name}:`, error);
@@ -157,6 +191,17 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
       preloadAllVoices();
     }
   }, [scriptGenerated, audioUrl]);
+
+  // Cleanup blob URLs on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(voicePreviews).forEach(url => {
+        if (url.startsWith('blob:')) {
+          URL.revokeObjectURL(url);
+        }
+      });
+    };
+  }, [voicePreviews]);
 
 
   // Create a blob/object URL for playback when we have a base64 data URL
@@ -221,10 +266,9 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   }, [audioUrl]);
 
   const handlePreviewVoice = async (voiceId: string) => {
-    // If already previewed, we just show the inline player
+    // If already previewed, player is already visible
     if (voicePreviews[voiceId]) {
-      console.log('Using cached preview URL for voice', voiceId, voicePreviews[voiceId]?.slice(0, 50));
-      toast.success('Preview ready. Use the mini player in the card to listen.');
+      console.log('✅ Using cached preview for', voiceId);
       return;
     }
 
@@ -250,19 +294,25 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
       if (error) throw error;
 
       if (data.audioUrl) {
-        console.log('Received preview audio URL prefix:', data.audioUrl.slice(0, 50));
-        setVoicePreviews(prev => ({ ...prev, [voiceId]: data.audioUrl }));
-
-        if (appliedCount > 0) {
-          toast.success(`Preview ready with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}. Use the mini player in the card to listen.`);
-        } else {
-          toast.success('Preview ready. Use the mini player in the card to listen.');
+        console.log('📥 Received audio, converting to blob...');
+        const blobUrl = dataUrlToObjectUrl(data.audioUrl);
+        
+        if (!blobUrl) {
+          throw new Error('Failed to convert audio to playable format');
         }
+
+        console.log('✅ Blob URL created, storing in state');
+        setVoicePreviews(prev => ({ ...prev, [voiceId]: blobUrl }));
+
+        const message = appliedCount > 0 
+          ? `Preview ready with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`
+          : 'Preview ready - play below';
+        toast.success(message);
       } else {
         throw new Error('No audio URL returned');
       }
     } catch (error: any) {
-      console.error('Preview generation error:', error);
+      console.error('❌ Preview generation error:', error);
       toast.error(error.message || 'Failed to generate preview');
     } finally {
       setIsGeneratingPreview(null);
@@ -312,6 +362,13 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   const handleResetScript = () => {
     setEditedText(originalText);
     setIsEditing(false);
+    // Clear voice previews to force regeneration
+    Object.values(voicePreviews).forEach(url => {
+      if (url.startsWith('blob:')) {
+        URL.revokeObjectURL(url);
+      }
+    });
+    setVoicePreviews({});
     toast.success('Script reset to original');
   };
 
@@ -829,51 +886,58 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                           onClick={(e) => {
-                             e.stopPropagation();
-                             handlePreviewVoice(voice.id);
-                           }}
-                           variant={voicePreviews[voice.id] ? 'default' : 'outline'}
-                           size="sm"
-                           className="flex-1"
-                           disabled={isGeneratingPreview === voice.id || (!voicePreviews[voice.id] && preloadingPreviews)}
-                         >
-                          {isGeneratingPreview === voice.id ? (
-                             <>
-                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                               Loading...
-                             </>
-                           ) : !voicePreviews[voice.id] && preloadingPreviews ? (
-                             <>
-                               <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                               Preparing...
-                             </>
-                           ) : voicePreviews[voice.id] ? (
-                             <>
-                               <Play className="h-4 w-4 mr-2" />
-                               Replay Preview
-                             </>
-                           ) : (
-                             <>
-                               <Play className="h-4 w-4 mr-2" />
-                               Preview
-                             </>
-                           )}
-                         </Button>
-                        {voicePreviews[voice.id] && (
+                      <Button
+                         onClick={(e) => {
+                           e.stopPropagation();
+                           handlePreviewVoice(voice.id);
+                         }}
+                         variant={voicePreviews[voice.id] ? 'default' : 'outline'}
+                         size="sm"
+                         className="w-full"
+                         disabled={isGeneratingPreview === voice.id || (!voicePreviews[voice.id] && preloadingPreviews)}
+                       >
+                        {isGeneratingPreview === voice.id ? (
+                           <>
+                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                             Loading...
+                           </>
+                         ) : !voicePreviews[voice.id] && preloadingPreviews ? (
+                           <>
+                             <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                             Preparing...
+                           </>
+                         ) : voicePreviews[voice.id] ? (
+                           <>
+                             <Play className="h-4 w-4 mr-2" />
+                             Preview Voice
+                           </>
+                         ) : (
+                           <>
+                             <Play className="h-4 w-4 mr-2" />
+                             Preview Voice
+                           </>
+                         )}
+                       </Button>
+                      
+                      {voicePreviews[voice.id] && (
+                        <div className="mt-3 space-y-1">
+                          <p className="text-xs text-muted-foreground">Preview player:</p>
                           <audio
+                            key={voicePreviews[voice.id]}
                             controls
                             src={voicePreviews[voice.id]}
-                            className="mt-2 w-full"
+                            className="w-full"
+                            onLoadedData={(e) => {
+                              const audio = e.currentTarget;
+                              console.log('🎵 Audio loaded, duration:', audio.duration);
+                            }}
                             onError={(e) => {
-                              console.error('Inline preview audio error:', e);
-                              toast.error('Unable to play this preview. Please try downloading it instead.');
+                              console.error('❌ Audio error:', e);
+                              toast.error('Unable to play preview');
                             }}
                           />
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 ))}
