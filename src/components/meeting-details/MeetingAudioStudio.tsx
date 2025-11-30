@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, Plus, Trash2, ChevronDown, ChevronUp, Save, Copy } from 'lucide-react';
+import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, Plus, Trash2, ChevronDown, ChevronUp, Save, Copy, Mail } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -65,6 +66,9 @@ export const MeetingAudioStudio = ({
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
   const [audioUrl, setAudioUrl] = useState<string | null>(audioOverviewUrl || null);
   const [audioDuration, setAudioDuration] = useState<number | null>(audioOverviewDuration || null);
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+  
+  const { user } = useAuth();
   
   const [duration, setDuration] = useState([3]); // Default 3 minutes
   const [selectedScriptStyle, setSelectedScriptStyle] = useState<ScriptStyle>('executive');
@@ -297,6 +301,34 @@ export const MeetingAudioStudio = ({
     toast.success('Script copied to clipboard');
   };
 
+  const handleSendToEmail = async () => {
+    if (!user?.email || !audioUrl) {
+      toast.error('Missing user email or audio URL');
+      return;
+    }
+    
+    setIsSendingEmail(true);
+    try {
+      const { error } = await supabase.functions.invoke('send-audio-email-resend', {
+        body: {
+          userEmail: user.email,
+          meetingTitle,
+          audioUrl,
+          scriptText: editedText
+        }
+      });
+      
+      if (error) throw error;
+      
+      toast.success('Audio summary sent to your email');
+    } catch (error: any) {
+      console.error('Email send error:', error);
+      toast.error(error.message || 'Failed to send email');
+    } finally {
+      setIsSendingEmail(false);
+    }
+  };
+
   const wordCount = editedText.split(' ').filter(w => w.length > 0).length;
   const estimatedDuration = Math.ceil(wordCount / 2.5);
   const activeRulesCount = pronunciationRules.filter(rule => 
@@ -326,10 +358,28 @@ export const MeetingAudioStudio = ({
               </audio>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 flex-wrap">
               <Button onClick={handleDownload} variant="outline" size="sm">
                 <Download className="h-4 w-4 mr-2" />
                 Download MP3
+              </Button>
+              <Button 
+                onClick={handleSendToEmail} 
+                variant="outline" 
+                size="sm"
+                disabled={isSendingEmail}
+              >
+                {isSendingEmail ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send to me
+                  </>
+                )}
               </Button>
               <Button onClick={handleStartOver} variant="outline" size="sm">
                 <RotateCcw className="h-4 w-4 mr-2" />

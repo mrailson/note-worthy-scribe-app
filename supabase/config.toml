@@ -266,3 +266,6 @@ verify_jwt = true
 
 [functions.meeting-qa-chat]
 verify_jwt = true
+
+[functions.send-audio-email-resend]
+verify_jwt = false
