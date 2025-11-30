@@ -84,7 +84,7 @@ serve(async (req) => {
     // Fetch full meeting data
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
-      .select('id, title, transcript, created_at, start_time, meeting_type, meeting_style')
+      .select('id, title, assembly_transcript_text, whisper_transcript_text, primary_transcript_source, created_at, start_time, meeting_type, meeting_style, overview')
       .eq('id', meetingId)
       .single();
 
@@ -98,16 +98,14 @@ serve(async (req) => {
 
     console.log('Meeting found:', meeting.title);
 
-    // Fetch meeting overview/notes
-    const { data: summaryData } = await supabase
-      .from('meeting_summaries')
-      .select('summary')
-      .eq('meeting_id', meetingId)
-      .single();
+    // Determine which transcript to use
+    const transcript = meeting.primary_transcript_source === 'assembly' 
+      ? meeting.assembly_transcript_text 
+      : meeting.whisper_transcript_text || meeting.assembly_transcript_text;
 
     // Build context from meeting data
     const meetingDate = meeting.created_at ? new Date(meeting.created_at).toLocaleDateString('en-GB') : 'N/A';
-    const meetingTime = meeting.start_time || 'N/A';
+    const meetingTime = meeting.start_time ? new Date(meeting.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : 'N/A';
     
     let context = `Meeting Title: ${meeting.title}\n`;
     context += `Meeting Date: ${meetingDate}\n`;
@@ -116,12 +114,12 @@ serve(async (req) => {
     if (meeting.meeting_style) context += `Meeting Style: ${meeting.meeting_style}\n`;
     context += `\n---\n\n`;
     
-    if (meeting.transcript) {
-      context += `Meeting Transcript:\n${meeting.transcript}\n\n---\n\n`;
+    if (transcript) {
+      context += `Meeting Transcript:\n${transcript}\n\n---\n\n`;
     }
     
-    if (summaryData?.summary) {
-      context += `Meeting Notes/Summary:\n${summaryData.summary}\n`;
+    if (meeting.overview) {
+      context += `Meeting Notes/Overview:\n${meeting.overview}\n`;
     }
 
     // Build messages for AI
