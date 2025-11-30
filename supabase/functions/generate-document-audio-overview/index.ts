@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -209,14 +210,44 @@ Just write the actual narrative text that should be spoken.`
       throw new Error(`Text-to-speech generation failed: ${ttsResponse.status}`);
     }
 
-    console.log('Converting audio to base64...');
-    const audioBuffer = await ttsResponse.arrayBuffer();
-    console.log('Audio buffer size:', audioBuffer.byteLength, 'bytes');
-    
-    // Convert audio to base64 using chunked processing to avoid stack overflow
-    const base64Audio = arrayBufferToBase64(audioBuffer);
-    const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
-    console.log('Audio conversion complete');
+    console.log('Received audio buffer, size (bytes):', audioBuffer.byteLength);
+
+    // Upload preview audio to existing meeting-audio-overviews bucket for reliable playback
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+    if (!supabaseUrl || !supabaseKey) {
+      throw new Error('Supabase storage environment not configured');
+    }
+
+    const supabase = createClient(supabaseUrl, supabaseKey);
+
+    const timestamp = Date.now();
+    const safeVoiceId = voiceId || 'unknown-voice';
+    const filePath = `document-previews/${safeVoiceId}/${timestamp}.mp3`;
+
+    const uint8Audio = new Uint8Array(audioBuffer);
+
+    console.log('Uploading preview audio to storage at path:', filePath);
+    const { error: uploadError } = await supabase.storage
+      .from('meeting-audio-overviews')
+      .upload(filePath, uint8Audio, {
+        contentType: 'audio/mpeg',
+        upsert: true,
+        cacheControl: '0',
+      });
+
+    if (uploadError) {
+      console.error('Error uploading preview audio:', uploadError);
+      throw new Error('Failed to upload preview audio');
+    }
+
+    const { data: urlData } = supabase.storage
+      .from('meeting-audio-overviews')
+      .getPublicUrl(filePath);
+
+    const audioUrl = `${urlData.publicUrl}?v=${Date.now()}`;
+    console.log('Preview audio URL:', audioUrl);
 
     const estimatedDuration = Math.ceil(narrativeText.split(' ').length / 2.5);
 
