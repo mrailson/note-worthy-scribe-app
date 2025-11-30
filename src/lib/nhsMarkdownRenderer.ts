@@ -188,12 +188,14 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     // Convert numbered list items
     .replace(/^(\d+)[\.)]\s+(.+)$/gm, `<div class="flex items-start mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed font-medium">$1.</span><span class="flex-1 leading-relaxed">$2</span></div>`)
     
-    // Convert nested bullet list items (indented with spaces)
-    .replace(/^  [-•]\s+(.+)$/gm, `<div class="flex items-start mb-1 ml-6 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-sm leading-relaxed">•</span><span class="flex-1 leading-relaxed text-sm">$1</span></div>`)
+    // Convert nested bullet list items (indented with spaces) - handle -, •, and *
+    .replace(/^  [-•*]\s+(.+)$/gm, `<div class="flex items-start mb-2 ml-6 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-sm leading-relaxed">•</span><span class="flex-1 leading-relaxed text-sm">$1</span></div>`)
     
-    // Convert bullet list items to dashes for consistent formatting
-    .replace(/^[-•]\s+(.+)$/gm, `<div class="flex items-start mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed">-</span><span class="flex-1 leading-relaxed">$1</span></div>`)
-    .replace(/^[-•]\s+(.+)$/gm, `<div class="flex items-start mb-2 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed">-</span><span class="flex-1 leading-relaxed">$1</span></div>`)
+    // Convert asterisk bullet list items
+    .replace(/^\*\s+(.+)$/gm, `<div class="flex items-start mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed font-semibold">•</span><span class="flex-1 leading-relaxed">$1</span></div>`)
+    
+    // Convert dash and bullet point list items
+    .replace(/^[-•]\s+(.+)$/gm, `<div class="flex items-start mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'}"><span class="mr-2 text-base leading-relaxed font-semibold">•</span><span class="flex-1 leading-relaxed">$1</span></div>`)
     
     // Line breaks for paragraphs
     .replace(/\n\n/g, `</p><p class="mb-3 ${isUserMessage ? 'text-white' : 'text-inherit'} leading-relaxed">`)
