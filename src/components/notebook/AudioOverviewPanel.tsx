@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Mic, Download, Loader2, Play, Pause, Edit, RotateCcw, Check, Radio, BookOpen, Plus, Trash2, ChevronDown, ChevronUp, Save, Copy, MessageSquare } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -54,6 +54,7 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
   const [previewBarUrl, setPreviewBarUrl] = useState<string | null>(null);
   const [isGeneratingPreview, setIsGeneratingPreview] = useState<string | null>(null);
   const [preloadingPreviews, setPreloadingPreviews] = useState(false);
+  const previewAudioRef = useRef<HTMLAudioElement>(null);
   
   // Final audio state
   const [isGeneratingAudio, setIsGeneratingAudio] = useState(false);
@@ -160,8 +161,29 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
     }
   }, [scriptGenerated, audioUrl]);
 
-  // Cleanup preview blob URL on unmount
+  // Cleanup preview blob URL on unmount and handle playback
   useEffect(() => {
+    const audioEl = previewAudioRef.current;
+    
+    if (previewBarUrl && audioEl) {
+      console.log('Loading preview audio:', previewBarUrl.substring(0, 50));
+      
+      // Load and play the audio
+      audioEl.load();
+      
+      const playPromise = audioEl.play();
+      if (playPromise !== undefined) {
+        playPromise
+          .then(() => {
+            console.log('Preview audio playing successfully');
+          })
+          .catch((error) => {
+            console.error('Preview audio play error:', error);
+            toast.error('Unable to play preview. Try downloading it instead.');
+          });
+      }
+    }
+    
     return () => {
       if (previewBarUrl && previewBarUrl.startsWith('blob:')) {
         URL.revokeObjectURL(previewBarUrl);
@@ -957,14 +979,17 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                     </Button>
                   </div>
                   <audio
-                    key={previewBarUrl}
+                    ref={previewAudioRef}
                     controls
-                    autoPlay
                     src={previewBarUrl}
                     className="w-full"
                     onEnded={stopPreview}
+                    onLoadedData={() => console.log('Preview audio loaded')}
+                    onCanPlay={() => console.log('Preview audio can play')}
                     onError={(e) => {
                       console.error('Preview audio element error:', e);
+                      const target = e.currentTarget as HTMLAudioElement;
+                      console.error('Audio error details:', target.error);
                       toast.error('Unable to play preview in this browser. Please use the Download button instead.');
                     }}
                   >
