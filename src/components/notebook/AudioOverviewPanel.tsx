@@ -161,34 +161,16 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
     }
   }, [scriptGenerated, audioUrl]);
 
-  // Cleanup preview blob URL on unmount and handle playback
+  // Handle preview playback when URL changes
   useEffect(() => {
     const audioEl = previewAudioRef.current;
     
     if (previewBarUrl && audioEl) {
       console.log('Loading preview audio:', previewBarUrl.substring(0, 50));
       
-      // Load and play the audio
+      // Load the audio so duration becomes available; user will press play
       audioEl.load();
-      
-      const playPromise = audioEl.play();
-      if (playPromise !== undefined) {
-        playPromise
-          .then(() => {
-            console.log('Preview audio playing successfully');
-          })
-          .catch((error) => {
-            console.error('Preview audio play error:', error);
-            toast.error('Unable to play preview. Try downloading it instead.');
-          });
-      }
     }
-    
-    return () => {
-      if (previewBarUrl && previewBarUrl.startsWith('blob:')) {
-        URL.revokeObjectURL(previewBarUrl);
-      }
-    };
   }, [previewBarUrl]);
 
   // Create a blob/object URL for playback when we have a base64 data URL
