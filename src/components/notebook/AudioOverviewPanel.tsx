@@ -161,17 +161,6 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
     }
   }, [scriptGenerated, audioUrl]);
 
-  // Handle preview playback when URL changes
-  useEffect(() => {
-    const audioEl = previewAudioRef.current;
-    
-    if (previewBarUrl && audioEl) {
-      console.log('Loading preview audio:', previewBarUrl.substring(0, 50));
-      
-      // Load the audio so duration becomes available; user will press play
-      audioEl.load();
-    }
-  }, [previewBarUrl]);
 
   // Create a blob/object URL for playback when we have a base64 data URL
   useEffect(() => {
@@ -238,27 +227,8 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
     // If already previewed, just wire up the player bar
     if (voicePreviews[voiceId]) {
       setPreviewBarVoiceId(voiceId);
-      
-      // Convert base64 to blob URL if needed for better playback
-      const audioUrl = voicePreviews[voiceId];
-      if (audioUrl.startsWith('data:audio')) {
-        try {
-          const base64Part = audioUrl.split(',')[1];
-          const binary = atob(base64Part);
-          const bytes = new Uint8Array(binary.length);
-          for (let i = 0; i < binary.length; i++) {
-            bytes[i] = binary.charCodeAt(i);
-          }
-          const blob = new Blob([bytes], { type: 'audio/mpeg' });
-          const blobUrl = URL.createObjectURL(blob);
-          setPreviewBarUrl(blobUrl);
-        } catch (error) {
-          console.error('Failed to create blob URL:', error);
-          setPreviewBarUrl(audioUrl); // Fallback to original
-        }
-      } else {
-        setPreviewBarUrl(audioUrl);
-      }
+      setPreviewBarUrl(voicePreviews[voiceId]);
+      console.log('Using cached preview URL for voice', voiceId, voicePreviews[voiceId]?.slice(0, 50));
       return;
     }
 
@@ -284,28 +254,10 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
       if (error) throw error;
 
       if (data.audioUrl) {
+        console.log('Received preview audio URL prefix:', data.audioUrl.slice(0, 50));
         setVoicePreviews(prev => ({ ...prev, [voiceId]: data.audioUrl }));
         setPreviewBarVoiceId(voiceId);
-        
-        // Convert base64 to blob URL if needed for better playback
-        if (data.audioUrl.startsWith('data:audio')) {
-          try {
-            const base64Part = data.audioUrl.split(',')[1];
-            const binary = atob(base64Part);
-            const bytes = new Uint8Array(binary.length);
-            for (let i = 0; i < binary.length; i++) {
-              bytes[i] = binary.charCodeAt(i);
-            }
-            const blob = new Blob([bytes], { type: 'audio/mpeg' });
-            const blobUrl = URL.createObjectURL(blob);
-            setPreviewBarUrl(blobUrl);
-          } catch (error) {
-            console.error('Failed to create blob URL:', error);
-            setPreviewBarUrl(data.audioUrl); // Fallback to original
-          }
-        } else {
-          setPreviewBarUrl(data.audioUrl);
-        }
+        setPreviewBarUrl(data.audioUrl);
 
         if (appliedCount > 0) {
           toast.success(`Preview ready with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}. Use the player below to listen.`);
