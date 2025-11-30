@@ -10,10 +10,16 @@ import {
   Image, 
   FileSpreadsheet, 
   FileType,
-  AlertCircle
+  AlertCircle,
+  Upload,
+  Plus
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useAuth } from '@/contexts/AuthContext';
+import { SimpleFileUpload } from '@/components/SimpleFileUpload';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +31,14 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface MeetingDocument {
   id?: string;
@@ -50,10 +64,15 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
   onDocumentRemoved,
   className = ""
 }) => {
+  const { user } = useAuth();
   const [documents, setDocuments] = useState<MeetingDocument[]>(initialDocuments || []);
   const [loading, setLoading] = useState(false);
   const [removing, setRemoving] = useState<string | null>(null);
   const [documentToDelete, setDocumentToDelete] = useState<MeetingDocument | null>(null);
+  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [uploadDescription, setUploadDescription] = useState('');
+  const [uploading, setUploading] = useState(false);
 
   // Fetch documents if not provided
   useEffect(() => {
@@ -218,6 +237,72 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
     }
   };
 
+  const handleFileUpload = (files: File[]) => {
+    setSelectedFiles(files);
+  };
+
+  const uploadDocuments = async () => {
+    if (selectedFiles.length === 0) {
+      toast.error('Please select files to upload');
+      return;
+    }
+
+    if (!user) {
+      toast.error('You must be logged in to upload documents');
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const uploadPromises = selectedFiles.map(async (file) => {
+        const fileExt = file.name.split('.').pop();
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+        const filePath = `${user.id}/${meetingId}/${fileName}`;
+
+        // Upload to storage
+        const { error: uploadError } = await supabase.storage
+          .from('meeting-documents')
+          .upload(filePath, file);
+
+        if (uploadError) throw uploadError;
+
+        // Save metadata to database
+        const { data, error: dbError } = await supabase
+          .from('meeting_documents')
+          .insert({
+            meeting_id: meetingId,
+            file_name: file.name,
+            file_type: file.type,
+            file_size: file.size,
+            file_path: filePath,
+            uploaded_by: user.id,
+            description: uploadDescription || null
+          })
+          .select()
+          .single();
+
+        if (dbError) throw dbError;
+        return data;
+      });
+
+      const uploadedDocs = await Promise.all(uploadPromises);
+      
+      // Update local state
+      setDocuments(prev => [...uploadedDocs, ...prev]);
+      
+      toast.success(`${selectedFiles.length} document(s) uploaded successfully`);
+      setUploadDialogOpen(false);
+      setSelectedFiles([]);
+      setUploadDescription('');
+      onDocumentRemoved?.(); // Refresh parent count
+    } catch (error) {
+      console.error('Error uploading documents:', error);
+      toast.error('Failed to upload documents');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className={`flex items-center justify-center p-4 ${className}`}>
@@ -227,16 +312,189 @@ export const MeetingDocumentsList: React.FC<MeetingDocumentsListProps> = ({
   }
 
   if (!documents || documents.length === 0) {
-    return null;
+    return (
+      <Card className={className}>
+        <CardContent className="pt-6">
+          <div className="flex flex-col items-center justify-center py-8 px-4 text-center space-y-4">
+            <div className="rounded-full bg-muted p-3">
+              <FileText className="h-8 w-8 text-muted-foreground" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="font-semibold text-lg">No Documents Yet</h3>
+              <p className="text-sm text-muted-foreground max-w-sm">
+                Upload supporting documents for this meeting such as agendas, presentations, reports, or reference materials.
+              </p>
+            </div>
+            <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+              <DialogTrigger asChild>
+                <Button className="gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload Document
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-2xl">
+                <DialogHeader>
+                  <DialogTitle>Upload Meeting Document</DialogTitle>
+                  <DialogDescription>
+                    Add supporting documents to this meeting
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <SimpleFileUpload
+                    onFileUpload={handleFileUpload}
+                    accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.txt,.jpg,.jpeg,.png,.gif,.webp,.ppt,.pptx"
+                    maxSize={20}
+                    multiple={true}
+                  />
+                  
+                  {selectedFiles.length > 0 && (
+                    <div className="space-y-2">
+                      <Label className="text-sm font-medium">Selected Files</Label>
+                      <div className="space-y-1">
+                        {selectedFiles.map((file, index) => (
+                          <div key={index} className="flex items-center gap-2 text-sm p-2 bg-muted rounded">
+                            <FileText className="h-4 w-4 text-muted-foreground" />
+                            <span className="flex-1 truncate">{file.name}</span>
+                            <span className="text-muted-foreground text-xs">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="space-y-2">
+                    <Label htmlFor="description" className="text-sm font-medium">
+                      Description (optional)
+                    </Label>
+                    <Textarea
+                      id="description"
+                      placeholder="Add a brief description of the document(s)..."
+                      value={uploadDescription}
+                      onChange={(e) => setUploadDescription(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2">
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setUploadDialogOpen(false);
+                        setSelectedFiles([]);
+                        setUploadDescription('');
+                      }}
+                      disabled={uploading}
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={uploadDocuments}
+                      disabled={selectedFiles.length === 0 || uploading}
+                      className="gap-2"
+                    >
+                      {uploading && <div className="h-4 w-4 animate-spin border-2 border-current border-t-transparent rounded-full" />}
+                      {uploading ? 'Uploading...' : 'Upload'}
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+            <p className="text-xs text-muted-foreground">
+              Supported: PDF, Word, Excel, PowerPoint, Images, Text files
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+    );
   }
 
   return (
     <Card className={className}>
       <CardHeader className="pb-3">
-        <CardTitle className="text-sm flex items-center gap-2">
-          <FileText className="h-4 w-4" />
-          Meeting Documents ({documents.length})
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-sm flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Meeting Documents ({documents.length})
+          </CardTitle>
+          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="sm" className="gap-2">
+                <Plus className="h-4 w-4" />
+                Add Document
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Upload Meeting Document</DialogTitle>
+                <DialogDescription>
+                  Add supporting documents to this meeting
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <SimpleFileUpload
+                  onFileUpload={handleFileUpload}
+                  accept=".pdf,.doc,.docx,.xlsx,.xls,.csv,.txt,.jpg,.jpeg,.png,.gif,.webp,.ppt,.pptx"
+                  maxSize={20}
+                  multiple={true}
+                />
+                
+                {selectedFiles.length > 0 && (
+                  <div className="space-y-2">
+                    <Label className="text-sm font-medium">Selected Files</Label>
+                    <div className="space-y-1">
+                      {selectedFiles.map((file, index) => (
+                        <div key={index} className="flex items-center gap-2 text-sm p-2 bg-muted rounded">
+                          <FileText className="h-4 w-4 text-muted-foreground" />
+                          <span className="flex-1 truncate">{file.name}</span>
+                          <span className="text-muted-foreground text-xs">
+                            {(file.size / 1024 / 1024).toFixed(2)} MB
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="description" className="text-sm font-medium">
+                    Description (optional)
+                  </Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Add a brief description of the document(s)..."
+                    value={uploadDescription}
+                    onChange={(e) => setUploadDescription(e.target.value)}
+                    rows={3}
+                  />
+                </div>
+
+                <div className="flex justify-end gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setUploadDialogOpen(false);
+                      setSelectedFiles([]);
+                      setUploadDescription('');
+                    }}
+                    disabled={uploading}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={uploadDocuments}
+                    disabled={selectedFiles.length === 0 || uploading}
+                    className="gap-2"
+                  >
+                    {uploading && <div className="h-4 w-4 animate-spin border-2 border-current border-t-transparent rounded-full" />}
+                    {uploading ? 'Uploading...' : 'Upload'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="space-y-2">
