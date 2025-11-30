@@ -3910,6 +3910,39 @@ export type Database = {
         }
         Relationships: []
       }
+      meeting_folders: {
+        Row: {
+          colour: string | null
+          created_at: string
+          description: string | null
+          display_order: number | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          colour?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          colour?: string | null
+          created_at?: string
+          description?: string | null
+          display_order?: number | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       meeting_notes_multi: {
         Row: {
           content: string
@@ -4382,6 +4415,7 @@ export type Database = {
           description: string | null
           duration_minutes: number | null
           end_time: string | null
+          folder_id: string | null
           format: string | null
           id: string
           import_metadata: Json | null
@@ -4437,6 +4471,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           end_time?: string | null
+          folder_id?: string | null
           format?: string | null
           id?: string
           import_metadata?: Json | null
@@ -4492,6 +4527,7 @@ export type Database = {
           description?: string | null
           duration_minutes?: number | null
           end_time?: string | null
+          folder_id?: string | null
           format?: string | null
           id?: string
           import_metadata?: Json | null
@@ -4535,6 +4571,13 @@ export type Database = {
           word_count?: number | null
         }
         Relationships: [
+          {
+            foreignKeyName: "meetings_folder_id_fkey"
+            columns: ["folder_id"]
+            isOneToOne: false
+            referencedRelation: "meeting_folders"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "meetings_practice_id_fkey"
             columns: ["practice_id"]
