@@ -913,12 +913,13 @@ export const AudioOverviewPanel = ({ uploadedFiles, loadedSession, onSessionLoad
                     </Button>
                   </div>
                   <audio
+                    key={previewBarUrl || 'preview-audio-player'}
                     ref={previewAudioRef}
                     controls
-                    src={previewBarUrl}
+                    src={previewBarUrl || undefined}
                     className="w-full"
                     onEnded={stopPreview}
-                    onLoadedData={() => console.log('Preview audio loaded')}
+                    onLoadedData={() => console.log('Preview audio loaded, src prefix:', previewBarUrl?.slice(0, 40))}
                     onCanPlay={() => console.log('Preview audio can play')}
                     onError={(e) => {
                       console.error('Preview audio element error:', e);
