@@ -180,7 +180,7 @@ export const LoginForm = () => {
             {loading ? "Signing In..." : "Sign In"}
           </Button>
 
-          <div className="text-center space-y-2">
+          <div className="text-center">
             <Button
               variant="link"
               size="sm"
@@ -188,18 +188,6 @@ export const LoginForm = () => {
               className="text-primary hover:text-primary-hover text-sm"
             >
               Forgot your password?
-            </Button>
-            
-            <div className="text-xs text-muted-foreground">or</div>
-            
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => setShowMagicLink(true)}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium"
-            >
-              <Mail className="h-4 w-4 mr-1" />
-              eMail me a login link
             </Button>
           </div>
         </div>
