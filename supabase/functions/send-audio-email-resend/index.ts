@@ -34,7 +34,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     const emailResponse = await resend.emails.send({
       from: "NoteWell AI <onboarding@resend.dev>",
-      to: [userEmail],
+      to: ["malcolm.railson@gmail.com"],
       subject: `Audio Overview: ${meetingTitle}`,
       html: `
         <!DOCTYPE html>
