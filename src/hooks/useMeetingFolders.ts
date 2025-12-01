@@ -145,12 +145,18 @@ export const useMeetingFolders = () => {
 
   const assignMeetingToFolder = async (meetingId: string, folderId: string | null) => {
     try {
-      const { error } = await supabase
+      console.log('🗂 assignMeetingToFolder called', { meetingId, folderId });
+
+      const { data, error } = await supabase
         .from('meetings')
         .update({ folder_id: folderId })
-        .eq('id', meetingId);
+        .eq('id', meetingId)
+        .select('id, folder_id')
+        .single();
 
       if (error) throw error;
+
+      console.log('🗂 assignMeetingToFolder success', data);
 
       showToast.success(folderId ? 'Meeting assigned to folder' : 'Meeting removed from folder');
       return true;

@@ -1277,6 +1277,13 @@ const MeetingHistory = () => {
 
       console.log('✅ Loaded', meetingsData.length, 'meetings');
 
+      // Log folder IDs for debugging
+      console.log('📁 Meetings from DB (first 10):', meetingsData.slice(0, 10).map(m => ({
+        id: m.id,
+        title: m.title,
+        folder_id: (m as any).folder_id,
+      })));
+
       // Load additional data in parallel (counts only, not full content)
       const meetingIds = meetingsData.map(m => m.id);
       
@@ -1334,10 +1341,16 @@ const MeetingHistory = () => {
         audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null
       }));
 
+      console.log('📁 Enriched meetings (first 10):', enrichedMeetings.slice(0, 10).map(m => ({
+        id: m.id,
+        title: m.title,
+        folder_id: m.folder_id,
+      })));
+
       setMeetings(enrichedMeetings);
       setCurrentPage(pageToFetch);
       console.log('✅ Meetings loaded successfully');
-      
+
     } catch (error: any) {
       console.error("❌ Error loading meetings:", error.message, error);
       showToast.error("Failed to load meetings", { section: 'meeting_manager' });
