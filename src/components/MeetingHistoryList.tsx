@@ -213,11 +213,22 @@ export const MeetingHistoryList = ({
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [folderSheetOpen, setFolderSheetOpen] = useState(false);
   const [selectedMeetingForFolder, setSelectedMeetingForFolder] = useState<Meeting | null>(null);
+  const [recentlyAssignedFolders, setRecentlyAssignedFolders] = useState<Record<string, boolean>>({});
   
-  // Sync localMeetings with meetings prop when it changes
+  // Sync localMeetings with meetings prop when it changes, but protect optimistic updates
   useEffect(() => {
-    setLocalMeetings(meetings);
-  }, [meetings]);
+    setLocalMeetings(prevLocal => {
+      // For each meeting in the new data, check if it was recently assigned a folder
+      return meetings.map(meeting => {
+        // If this meeting was recently assigned, keep the local version for 2 seconds
+        if (recentlyAssignedFolders[meeting.id]) {
+          const localVersion = prevLocal.find(m => m.id === meeting.id);
+          return localVersion || meeting;
+        }
+        return meeting;
+      });
+    });
+  }, [meetings, recentlyAssignedFolders]);
   
   // Fetch user practices and custom locations
   useEffect(() => {
@@ -2250,70 +2261,24 @@ export const MeetingHistoryList = ({
                 </div>
               </div>
 
-              {/* Action Buttons - Mobile Optimized */}
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-2">
+              {/* Action Buttons - Mobile Optimized - All inline */}
+              <div className="flex flex-wrap gap-2">
                 
                 {/* Show recording warning if operation blocked */}
                 {!isResourceOperationSafe() && (
                   <RecordingWarningBanner 
                     operation="Viewing meeting notes"
-                    className="mb-2"
+                    className="mb-2 w-full"
                   />
                 )}
                 
-                {/* View Notes button - now available on all devices when not recording */}
-                <div 
-                  style={{ 
-                    display: 'inline-block',
-                    minHeight: '44px',
-                    minWidth: '120px',
-                    touchAction: 'manipulation',
-                    cursor: 'pointer',
-                    border: '1px solid #ccc',
-                    borderRadius: '6px',
-                    padding: '8px 16px',
-                    backgroundColor: '#fff',
-                    textAlign: 'center',
-                    fontSize: '14px',
-                    position: 'relative',
-                    zIndex: 10
-                  }}
-                  onTouchStart={(e) => {
-                    e.currentTarget.style.backgroundColor = '#f0f0f0';
-                  }}
-                  onTouchEnd={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    e.currentTarget.style.backgroundColor = '#fff';
-                    
-                    console.log('📱 iPhone: Touch registered!');
-                    
-                    // Show immediate feedback
-                    setTimeout(() => {
-                      try {
-                        if (!isResourceOperationSafe()) {
-                          alert("Cannot view notes while recording is active.");
-                          return;
-                        }
-                        
-                        console.log('📱 iPhone: Touch end - calling handleViewNotes for meeting:', meeting.id);
-                        try {
-                          handleViewNotesWithDeduplication(meeting, 'touch');
-                        } catch (error) {
-                          console.error('❌ Error in handleViewNotes:', error);
-                          alert('Error: ' + error.message);
-                        }
-                      } catch (error) {
-                        console.error('❌ Error:', error);
-                        alert('Error opening notes: ' + error.message);
-                      }
-                    }, 50);
-                  }}
+                {/* View Notes button */}
+                <Button
+                  variant="default"
+                  size="sm"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
-                    
-                    console.log('📱 Click registered!');
                     
                     if (!isResourceOperationSafe()) {
                       alert("Cannot view notes while recording is active.");
@@ -2322,17 +2287,18 @@ export const MeetingHistoryList = ({
                     
                     console.log('📱 Click event - calling handleViewNotes for meeting:', meeting.id);
                     try {
-                      setInitialTabForModal('notes'); // Reset to notes tab
+                      setInitialTabForModal('notes');
                       handleViewNotesWithDeduplication(meeting, 'click');
                     } catch (error) {
                       console.error('❌ Error:', error);
                       alert('Error opening notes: ' + error.message);
                     }
                   }}
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px]"
                 >
-                  <FileText style={{ display: 'inline', width: '16px', height: '16px', marginRight: '8px' }} />
-                  View Meeting Notes
-                </div>
+                  <FileText className="h-4 w-4" />
+                  <span>View Meeting Notes</span>
+                </Button>
 
                 {/* Audio Backup Button - Only show if audio backup exists */}
                 {meeting.audio_backup_path && (
@@ -2346,22 +2312,18 @@ export const MeetingHistoryList = ({
                     <span>Audio Backup</span>
                   </Button>
                 )}
-                </div>
 
-                {/* Action Buttons - More compact on mobile */}
-                <div className={`flex ${isMobile ? 'flex-col gap-2' : 'flex-wrap gap-2'} mt-4`}>
-                {/* Attendees Button - Hide on mobile, available in Actions menu */}
-                {!isMobile && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleAttendeesClick(meeting)}
-                    className="flex items-center justify-center gap-2 touch-manipulation min-h-[44px] text-purple-600 hover:text-purple-700"
-                  >
-                    <Users className="h-4 w-4" />
-                    <span>Manage Attendees</span>
-                  </Button>
-                )}
+                {/* Manage Attendees Button - Always visible */}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleAttendeesClick(meeting)}
+                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-purple-600 hover:text-purple-700"
+                >
+                  <Users className="h-4 w-4" />
+                  <span className={isMobile ? 'hidden sm:inline' : ''}>Manage Attendees</span>
+                  {isMobile && <span className="sm:hidden">Attendees</span>}
+                </Button>
                 
                 {/* Actions Dropdown Menu */}
                 <AlertDialog>
@@ -2384,38 +2346,28 @@ export const MeetingHistoryList = ({
                       className="w-48 bg-popover border shadow-md z-50"
                       sideOffset={5}
                     >
-                      <DropdownMenuItem 
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          handleEmailMinutesClick(meeting);
-                        }}
-                      >
-                        <Mail className="h-4 w-4 mr-2" />
-                        Email Meeting Notes
-                      </DropdownMenuItem>
-
-                      {/* Manage Attendees - Show on mobile since we hid the standalone button */}
-                      {isMobile && (
-                        <DropdownMenuItem 
+                       <DropdownMenuItem 
                           onSelect={(e) => {
                             e.preventDefault();
                             setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                            handleAttendeesClick(meeting);
+                            handleEmailMinutesClick(meeting);
                           }}
                         >
-                          <Users className="h-4 w-4 mr-2" />
-                          Manage Attendees
+                          <Mail className="h-4 w-4 mr-2" />
+                          Email Meeting Notes
                         </DropdownMenuItem>
-                      )}
 
                       {isMobile ? (
                         <DropdownMenuItem 
                           onSelect={(e) => {
                             e.preventDefault();
-                            setSelectedMeetingForFolder(meeting);
-                            setFolderSheetOpen(true);
+                            // Close dropdown first
                             setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                            // Small delay to allow dropdown to close
+                            setTimeout(() => {
+                              setSelectedMeetingForFolder(meeting);
+                              setFolderSheetOpen(true);
+                            }, 100);
                           }}
                         >
                           <Folder className="h-4 w-4 mr-2" />
@@ -2430,33 +2382,41 @@ export const MeetingHistoryList = ({
                             </DropdownMenuItem>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent side="right" align="start" className="bg-popover border shadow-md z-50">
-                            <DropdownMenuItem onClick={async () => {
-                               await assignMeetingToFolder(meeting.id, null);
-                               setLocalMeetings(prev => prev.map(m => 
-                                 m.id === meeting.id ? { ...m, folder_id: null } : m
-                               ));
-                               onRefresh?.();
-                             }}>
-                               None (Unfiled)
-                             </DropdownMenuItem>
-                             {folders.map((folder) => (
-                               <DropdownMenuItem 
-                                 key={folder.id}
-                                 onClick={async () => {
-                                   await assignMeetingToFolder(meeting.id, folder.id);
-                                   setLocalMeetings(prev => prev.map(m => 
-                                     m.id === meeting.id ? { ...m, folder_id: folder.id } : m
-                                   ));
-                                   onRefresh?.();
-                                 }}
-                               >
-                                 <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
-                                 {folder.name}
-                               </DropdownMenuItem>
-                             ))}
-                           </DropdownMenuContent>
-                        </DropdownMenu>
-                      )}
+                             <DropdownMenuItem onClick={async () => {
+                                await assignMeetingToFolder(meeting.id, null);
+                                setLocalMeetings(prev => prev.map(m => 
+                                  m.id === meeting.id ? { ...m, folder_id: null } : m
+                                ));
+                                // Mark as recently assigned to protect optimistic update
+                                setRecentlyAssignedFolders(prev => ({ ...prev, [meeting.id]: true }));
+                                setTimeout(() => {
+                                  setRecentlyAssignedFolders(prev => ({ ...prev, [meeting.id]: false }));
+                                }, 2000);
+                              }}>
+                                None (Unfiled)
+                              </DropdownMenuItem>
+                              {folders.map((folder) => (
+                                <DropdownMenuItem 
+                                  key={folder.id}
+                                  onClick={async () => {
+                                    await assignMeetingToFolder(meeting.id, folder.id);
+                                    setLocalMeetings(prev => prev.map(m => 
+                                      m.id === meeting.id ? { ...m, folder_id: folder.id } : m
+                                    ));
+                                    // Mark as recently assigned to protect optimistic update
+                                    setRecentlyAssignedFolders(prev => ({ ...prev, [meeting.id]: true }));
+                                    setTimeout(() => {
+                                      setRecentlyAssignedFolders(prev => ({ ...prev, [meeting.id]: false }));
+                                    }, 2000);
+                                  }}
+                                >
+                                  <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
+                                  {folder.name}
+                                </DropdownMenuItem>
+                              ))}
+                            </DropdownMenuContent>
+                         </DropdownMenu>
+                       )}
 
                       <DropdownMenuItem 
                         onSelect={(e) => {
@@ -2974,7 +2934,11 @@ export const MeetingHistoryList = ({
             setLocalMeetings(prev => prev.map(m => 
               m.id === selectedMeetingForFolder.id ? { ...m, folder_id: folderId } : m
             ));
-            onRefresh?.();
+            // Mark as recently assigned to protect optimistic update
+            setRecentlyAssignedFolders(prev => ({ ...prev, [selectedMeetingForFolder.id]: true }));
+            setTimeout(() => {
+              setRecentlyAssignedFolders(prev => ({ ...prev, [selectedMeetingForFolder.id]: false }));
+            }, 2000);
           }
         }}
       />

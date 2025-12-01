@@ -36,7 +36,7 @@ export function FolderAssignmentSheet({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="bottom" className="h-[70vh]">
+      <SheetContent side="bottom" className="h-[60vh]">
         <SheetHeader>
           <SheetTitle>Assign to Folder</SheetTitle>
         </SheetHeader>
