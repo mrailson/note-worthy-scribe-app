@@ -323,6 +323,7 @@ export const MeetingRecorder = ({
   // Audio capture status monitoring
   const [micCaptured, setMicCaptured] = useState(false);
   const [systemAudioCaptured, setSystemAudioCaptured] = useState(false);
+  const [audioActivity, setAudioActivity] = useState(false);
   
   
   // Meeting settings - use from useMeetingData hook
@@ -2196,6 +2197,12 @@ export const MeetingRecorder = ({
       const audioContext = new AudioContext({ sampleRate: 24000 });
       const source = audioContext.createMediaStreamSource(stream);
       
+      // Create analyser node for activity detection
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+      
       // Create a gain node to amplify speaker audio
       const gainNode = audioContext.createGain();
       gainNode.gain.value = 10.0; // Much higher amplification for speaker audio
@@ -2211,6 +2218,16 @@ export const MeetingRecorder = ({
         const inputBuffer = event.inputBuffer;
         const inputData = inputBuffer.getChannelData(0);
         
+        // Check for audio activity
+        analyser.getByteTimeDomainData(dataArray);
+        let sum = 0;
+        for (let i = 0; i < bufferLength; i++) {
+          const normalized = (dataArray[i] - 128) / 128;
+          sum += normalized * normalized;
+        }
+        const rms = Math.sqrt(sum / bufferLength);
+        setAudioActivity(rms > 0.01); // Threshold for detecting audio
+        
         // Store audio data
         audioBuffer.push(new Float32Array(inputData));
         bufferDuration += inputBuffer.duration;
@@ -2224,7 +2241,8 @@ export const MeetingRecorder = ({
       };
       
       // Connect the audio pipeline
-      source.connect(gainNode);
+      source.connect(analyser);
+      analyser.connect(gainNode);
       gainNode.connect(processor);
       processor.connect(audioContext.destination);
       
@@ -4826,13 +4844,14 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                          </div>
                         </div>
                       
-                      {/* Audio Capture Status Indicator */}
-                      <AudioCaptureStatusIndicator
-                        micCaptured={micCaptured}
-                        systemAudioCaptured={systemAudioCaptured}
-                        recordingMode={recordingMode}
-                        isRecording={isRecording}
-                       />
+                       {/* Audio Capture Status Indicator */}
+                       <AudioCaptureStatusIndicator
+                         micCaptured={micCaptured}
+                         systemAudioCaptured={systemAudioCaptured}
+                         recordingMode={recordingMode}
+                         isRecording={isRecording}
+                         audioActivity={audioActivity}
+                        />
                         
                         {/* Ticker tape for live transcription - Hidden on Edge */}
                       {!/Edg/.test(navigator.userAgent) && (
