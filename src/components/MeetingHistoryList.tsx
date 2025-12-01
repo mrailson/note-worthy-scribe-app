@@ -2391,21 +2391,6 @@ export const MeetingHistoryList = ({
                         onSelect={(e) => {
                           e.preventDefault();
                           setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
-                          if (!isResourceOperationSafe()) {
-                            toast.error("Cannot view transcript while recording is active.");
-                            return;
-                          }
-                          setInitialTabForModal('transcript');
-                          handleViewNotesWithDeduplication(meeting, 'click');
-                        }}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        View Transcript
-                      </DropdownMenuItem>
-                      <DropdownMenuItem 
-                        onSelect={(e) => {
-                          e.preventDefault();
-                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
                           handleDownloadWord(meeting);
                         }}
                       >
@@ -2438,6 +2423,22 @@ export const MeetingHistoryList = ({
                           return <IconComponent className={`h-4 w-4 mr-2 ${shouldSpin ? 'animate-spin' : ''}`} />;
                       })()}
                         {getProcessingButtonText(processingMeetings[meeting.id])}
+                      </DropdownMenuItem>
+
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          if (!isResourceOperationSafe()) {
+                            toast.error("Cannot view transcript while recording is active.");
+                            return;
+                          }
+                          setInitialTabForModal('transcript');
+                          handleViewNotesWithDeduplication(meeting, 'click');
+                        }}
+                      >
+                        <FileText className="h-4 w-4 mr-2" />
+                        View Transcript
                       </DropdownMenuItem>
                       
                       <AlertDialogTrigger asChild>
