@@ -214,6 +214,17 @@ const MeetingHistory = () => {
   const { folders, assignMeetingToFolder } = useMeetingFolders();
   const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
 
+  // Handle folder assignment - update parent state immediately
+  const handleFolderAssigned = (meetingId: string, folderId: string | null) => {
+    console.log('🗂 Parent: handleFolderAssigned called', { meetingId, folderId });
+    // Immediately update the parent's meetings state (optimistic update)
+    setMeetings(prev => prev.map(meeting => 
+      meeting.id === meetingId 
+        ? { ...meeting, folder_id: folderId }
+        : meeting
+    ));
+  };
+
   // Component lifecycle logging
   useEffect(() => {
     console.log('🟢 MeetingHistory component MOUNTED');
@@ -2238,6 +2249,7 @@ const MeetingHistory = () => {
               }));
              }}
             showRecordingPlayback={micTestServiceVisible}
+            onFolderAssigned={handleFolderAssigned}
            />
         )}
 
