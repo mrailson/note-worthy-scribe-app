@@ -2363,6 +2363,30 @@ export const MeetingHistoryList = ({
                         <Mail className="h-4 w-4 mr-2" />
                         Email Meeting Notes
                       </DropdownMenuItem>
+
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                            <Folder className="h-4 w-4 mr-2" />
+                            Assign to Folder
+                          </DropdownMenuItem>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent side="right" align="start">
+                          <DropdownMenuItem onClick={() => assignMeetingToFolder(meeting.id, null)}>
+                            None (Unfiled)
+                          </DropdownMenuItem>
+                          {folders.map((folder) => (
+                            <DropdownMenuItem 
+                              key={folder.id}
+                              onClick={() => assignMeetingToFolder(meeting.id, folder.id)}
+                            >
+                              <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
+                              {folder.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+
                       <DropdownMenuItem 
                         onSelect={(e) => {
                           e.preventDefault();
@@ -2415,29 +2439,6 @@ export const MeetingHistoryList = ({
                       })()}
                         {getProcessingButtonText(processingMeetings[meeting.id])}
                       </DropdownMenuItem>
-
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <Folder className="h-4 w-4 mr-2" />
-                            Assign to Folder
-                          </DropdownMenuItem>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent side="right" align="start">
-                          <DropdownMenuItem onClick={() => assignMeetingToFolder(meeting.id, null)}>
-                            None (Unfiled)
-                          </DropdownMenuItem>
-                          {folders.map((folder) => (
-                            <DropdownMenuItem 
-                              key={folder.id}
-                              onClick={() => assignMeetingToFolder(meeting.id, folder.id)}
-                            >
-                              <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
-                              {folder.name}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
                       
                       <AlertDialogTrigger asChild>
                         <DropdownMenuItem 
