@@ -2268,7 +2268,7 @@ export const MeetingRecorder = ({
       const base64Audio = arrayBufferToBase64(wavBuffer);
       
       // Send to speech-to-text edge function
-      const response = await fetch('/functions/v1/speech-to-text', {
+      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/speech-to-text', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
