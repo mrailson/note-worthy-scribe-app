@@ -2214,6 +2214,7 @@ export const MeetingRecorder = ({
       let bufferDuration = 0;
       const targetDuration = 15; // Process every 15 seconds (matches microphone path)
       let systemAudioChunkNumber = 0;
+      let overlapBuffer: Float32Array | null = null; // Store last 250ms for overlap
       
       processor.onaudioprocess = (event) => {
         const inputBuffer = event.inputBuffer;
@@ -2236,7 +2237,38 @@ export const MeetingRecorder = ({
         // Process when we have enough audio
         if (bufferDuration >= targetDuration) {
           systemAudioChunkNumber++;
-          processAudioBuffer(audioBuffer, audioContext.sampleRate, systemAudioChunkNumber);
+          
+          // Prepend overlap from previous chunk if it exists
+          let bufferToProcess = audioBuffer;
+          if (overlapBuffer) {
+            bufferToProcess = [overlapBuffer, ...audioBuffer];
+            addDebugLog(`🔗 Added 250ms overlap to chunk #${systemAudioChunkNumber}`);
+          }
+          
+          processAudioBuffer(bufferToProcess, audioContext.sampleRate, systemAudioChunkNumber);
+          
+          // Save last 250ms for next chunk (250ms = 0.25s * sampleRate samples)
+          const overlapSamples = Math.floor(0.25 * audioContext.sampleRate);
+          const totalSamples = audioBuffer.reduce((acc, chunk) => acc + chunk.length, 0);
+          
+          if (totalSamples >= overlapSamples) {
+            // Extract last 250ms from current buffer
+            overlapBuffer = new Float32Array(overlapSamples);
+            let samplesNeeded = overlapSamples;
+            let sourceIndex = audioBuffer.length - 1;
+            let destOffset = overlapSamples;
+            
+            while (samplesNeeded > 0 && sourceIndex >= 0) {
+              const sourceChunk = audioBuffer[sourceIndex];
+              const copyLength = Math.min(samplesNeeded, sourceChunk.length);
+              const copyStart = sourceChunk.length - copyLength;
+              destOffset -= copyLength;
+              overlapBuffer.set(sourceChunk.slice(copyStart), destOffset);
+              samplesNeeded -= copyLength;
+              sourceIndex--;
+            }
+          }
+          
           audioBuffer = [];
           bufferDuration = 0;
         }
@@ -2274,10 +2306,11 @@ export const MeetingRecorder = ({
       
       // Check if audio has sufficient volume (speaker audio detection)
       const rms = Math.sqrt(combinedBuffer.reduce((acc, val) => acc + val * val, 0) / combinedBuffer.length);
-      const volumeThreshold = 0.0001; // Very low threshold to capture quiet speaker audio
+      const volumeThreshold = 0.00001; // Ultra-low threshold (10x more sensitive)
       
       if (rms < volumeThreshold) {
-        addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - likely no speaker audio`);
+        console.warn(`⚠️ CHUNK FILTERED: System audio chunk #${chunkNumber} too quiet (RMS: ${rms.toFixed(6)})`);
+        addDebugLog(`⚠️ Chunk #${chunkNumber} FILTERED - too quiet (RMS: ${rms.toFixed(6)}) - below threshold ${volumeThreshold}`);
         return;
       }
       

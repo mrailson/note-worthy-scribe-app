@@ -93,7 +93,7 @@ serve(async (req) => {
     formData.append('response_format', 'verbose_json');
     // Anti-hallucination parameters
     formData.append('temperature', '0');
-    formData.append('prompt', 'This is a recording that may contain medical or healthcare-related discussions. Please transcribe accurately.');
+    formData.append('prompt', 'NHS, PCN, ICB, TUPE, NHFT, Statutory Maternity Pay, Agenda for Change, AfC, TeamNet, Enhanced Access, Bugbrook, Mandy, Claire, Malcolm, Anya');
 
     console.log('📡 SPEECH-TO-TEXT: Sending request to OpenAI Whisper API...');
     
