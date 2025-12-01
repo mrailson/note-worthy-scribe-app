@@ -2118,6 +2118,16 @@ export const MeetingHistoryList = ({
                           Configured
                         </Badge>
                       )}
+                      
+                      {meeting.folder_id && (() => {
+                        const folder = folders.find(f => f.id === meeting.folder_id);
+                        return folder ? (
+                          <FolderBadge
+                            folderName={folder.name}
+                            folderColour={folder.colour}
+                          />
+                        ) : null;
+                      })()}
                     </div>
 
                     {/* Display Attendees */}
@@ -2372,13 +2382,23 @@ export const MeetingHistoryList = ({
                           </DropdownMenuItem>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="right" align="start">
-                          <DropdownMenuItem onClick={() => assignMeetingToFolder(meeting.id, null)}>
+                          <DropdownMenuItem onClick={async () => {
+                            await assignMeetingToFolder(meeting.id, null);
+                            setLocalMeetings(prev => prev.map(m => 
+                              m.id === meeting.id ? { ...m, folder_id: null } : m
+                            ));
+                          }}>
                             None (Unfiled)
                           </DropdownMenuItem>
                           {folders.map((folder) => (
                             <DropdownMenuItem 
                               key={folder.id}
-                              onClick={() => assignMeetingToFolder(meeting.id, folder.id)}
+                              onClick={async () => {
+                                await assignMeetingToFolder(meeting.id, folder.id);
+                                setLocalMeetings(prev => prev.map(m => 
+                                  m.id === meeting.id ? { ...m, folder_id: folder.id } : m
+                                ));
+                              }}
                             >
                               <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
                               {folder.name}
