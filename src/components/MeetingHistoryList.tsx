@@ -220,7 +220,18 @@ export const MeetingHistoryList = ({
   // Sync localMeetings with meetings prop - trust parent's state
   useEffect(() => {
     console.log('🔄 Child: Syncing localMeetings with parent meetings', meetings.length);
-    setLocalMeetings(meetings);
+    setLocalMeetings((prev) => {
+      // Preserve local folder assignments if parent data has not yet caught up
+      return meetings.map((incoming) => {
+        const existing = prev.find((m) => m.id === incoming.id);
+
+        if (existing && existing.folder_id && !incoming.folder_id) {
+          return { ...incoming, folder_id: existing.folder_id };
+        }
+
+        return incoming;
+      });
+    });
   }, [meetings]);
 
   // Fetch user practices and custom locations
