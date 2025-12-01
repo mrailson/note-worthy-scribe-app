@@ -16,11 +16,7 @@ export class iPhoneWhisperTranscriber {
   private audioChunks: Blob[] = [];
   private fullRecordingChunks: Blob[] = [];
   private transcriptionInterval: NodeJS.Timeout | null = null;
-  private overlapBuffer: Blob[] = [];
   private chunkTimeout: ReturnType<typeof setTimeout> | null = null;
-  private overlapDuration = 2000; // 2 seconds overlap between chunks
-  private lastChunkEndBuffer: Blob | null = null; // Store last 2s of previous chunk
-  private lastChunkMimeType: string = ''; // Store MIME type for overlap buffer
   private recordingStartTime = 0;
   private lastIntervalMs = 0;
   private meetingId: string | null = null;
@@ -269,14 +265,11 @@ export class iPhoneWhisperTranscriber {
     if (this.audioChunks.length === 0) return;
 
     try {
-      // Prepend last chunk's end buffer to create 2-second overlap
-      const chunksToProcess = this.lastChunkEndBuffer 
-        ? [this.lastChunkEndBuffer, ...this.audioChunks]
-        : this.audioChunks;
+      // For iPhone we no longer use an overlap buffer because slicing M4A containers can corrupt audio.
+      const chunksToProcess = [...this.audioChunks];
       
-      // Use stored MIME type from previous chunk if available, otherwise use current chunk's type
       const audioBlob = new Blob(chunksToProcess, { 
-        type: this.lastChunkMimeType || this.audioChunks[0]?.type || 'audio/mp4' 
+        type: this.audioChunks[0]?.type || 'audio/mp4' 
       });
       
       // Clear current chunks after combining with overlap
@@ -308,18 +301,8 @@ export class iPhoneWhisperTranscriber {
       //   return; // Skip transcription for silent chunks
       // }
       
-      // Save last 2 seconds of this chunk as buffer for next chunk (for overlap)
-      // Estimate: ~2KB per second for typical audio, so 4KB for 2 seconds
-      const estimatedBytesPerSecond = audioBlob.size / (this.lastIntervalMs / 1000);
-      const overlapBytes = Math.floor(estimatedBytesPerSecond * (this.overlapDuration / 1000));
-      
-      if (audioBlob.size > overlapBytes) {
-        const overlapStart = audioBlob.size - overlapBytes;
-        // Preserve MIME type when slicing for overlap buffer
-        this.lastChunkMimeType = audioBlob.type;
-        this.lastChunkEndBuffer = audioBlob.slice(overlapStart, audioBlob.size, audioBlob.type);
-        console.log(`💾 Saved ${overlapBytes} bytes (${this.overlapDuration}ms) as overlap buffer with MIME type ${audioBlob.type} for next chunk`);
-      }
+      // Overlap buffer removed for iPhone: using clean, independent chunks to avoid corrupting M4A audio.
+
       
       // Convert to base64 in chunks to prevent memory issues
       let binary = '';
