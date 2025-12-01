@@ -293,10 +293,12 @@ export class iPhoneWhisperTranscriber {
 
       console.log('📡 Sending audio to Whisper API...');
 
-      // Determine MIME type and filename so the edge function can pass correct format to OpenAI
-      const mimeType = this.audioChunks[0]?.type || 'audio/webm';
-      let extension = 'webm';
-      if (mimeType.includes('mp4') || mimeType.includes('aac')) {
+      // Determine MIME type from blob (before chunks were cleared)
+      const mimeType = audioBlob.type || 'audio/mp4'; // iOS default
+      let extension = 'm4a'; // Default to m4a for iOS
+      if (mimeType.includes('webm')) {
+        extension = 'webm';
+      } else if (mimeType.includes('mp4') || mimeType.includes('aac') || mimeType.includes('m4a')) {
         extension = 'm4a';
       } else if (mimeType.includes('wav')) {
         extension = 'wav';
@@ -304,6 +306,8 @@ export class iPhoneWhisperTranscriber {
         extension = 'ogg';
       }
       const fileName = `iphone-audio.${extension}`;
+      
+      console.log(`📱 iPhone audio format: ${mimeType}, extension: ${extension}`);
 
       // Send to Whisper API via Supabase edge function
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
