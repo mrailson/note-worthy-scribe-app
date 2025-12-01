@@ -2399,7 +2399,8 @@ export const MeetingHistoryList = ({
                           <DropdownMenuContent side="right" align="start" className="bg-popover border shadow-md z-50">
                              <DropdownMenuItem onClick={async () => {
                                 console.log('🗂 Child: Assigning meeting to no folder', meeting.id);
-                                await assignMeetingToFolder(meeting.id, null);
+                                const success = await assignMeetingToFolder(meeting.id, null);
+                                if (!success) return;
                                 // Notify parent immediately
                                 onFolderAssigned?.(meeting.id, null);
                                 // Optimistic local update for immediate feedback
@@ -2414,7 +2415,8 @@ export const MeetingHistoryList = ({
                                   key={folder.id}
                                   onClick={async () => {
                                     console.log('🗂 Child: Assigning meeting to folder', { meetingId: meeting.id, folderId: folder.id });
-                                    await assignMeetingToFolder(meeting.id, folder.id);
+                                    const success = await assignMeetingToFolder(meeting.id, folder.id);
+                                    if (!success) return;
                                     // Notify parent immediately
                                     onFolderAssigned?.(meeting.id, folder.id);
                                     // Optimistic local update for immediate feedback
@@ -2944,7 +2946,8 @@ export const MeetingHistoryList = ({
         onAssign={async (folderId) => {
           if (selectedMeetingForFolder) {
             console.log('🗂 Child: Mobile sheet assigning folder', { meetingId: selectedMeetingForFolder.id, folderId });
-            await assignMeetingToFolder(selectedMeetingForFolder.id, folderId);
+            const success = await assignMeetingToFolder(selectedMeetingForFolder.id, folderId);
+            if (!success) return;
             // Notify parent immediately
             onFolderAssigned?.(selectedMeetingForFolder.id, folderId);
             // Optimistic local update for immediate feedback
