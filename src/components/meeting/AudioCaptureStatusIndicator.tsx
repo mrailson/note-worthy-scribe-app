@@ -48,17 +48,6 @@ export const AudioCaptureStatusIndicator = ({
 
   return (
     <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg border">
-      {/* Audio Activity Indicator */}
-      {audioActivity && (
-        <div className="flex items-center gap-1">
-          <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-          <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-          <div className="w-1 h-5 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
-          <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '450ms' }} />
-          <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '600ms' }} />
-        </div>
-      )}
-      
       <Tooltip>
         <TooltipTrigger asChild>
           <Badge variant="outline" className={`flex items-center gap-1.5 cursor-help transition-all ${audioActivity ? 'ring-2 ring-green-500/50' : ''}`}>
@@ -88,6 +77,17 @@ export const AudioCaptureStatusIndicator = ({
             )}
           </TooltipContent>
         </Tooltip>
+      )}
+      
+      {/* Audio Activity Indicator */}
+      {audioActivity && (
+        <div className="flex items-center gap-1">
+          <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+          <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+          <div className="w-1 h-5 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+          <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '450ms' }} />
+          <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '600ms' }} />
+        </div>
       )}
     </div>
   );
