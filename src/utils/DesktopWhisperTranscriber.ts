@@ -175,8 +175,9 @@ export class DesktopWhisperTranscriber {
     const rms = Math.sqrt(sum / (audioData.length / 2));
     const dynamicRange = max - min;
     
-    // Filter out silence and low-quality audio
-    return rms >= 0.005 && dynamicRange >= 0.02;
+    // Filter out silence and low-quality audio with more sensitive thresholds
+    // Aligned with system audio sensitivity (0.00001) to capture all speech
+    return rms >= 0.00001 && dynamicRange >= 0.001;
   }
 
   setMeetingId(meetingId: string): void {
