@@ -146,23 +146,34 @@ export const useMeetingFolders = () => {
   const assignMeetingToFolder = async (meetingId: string, folderId: string | null) => {
     try {
       console.log('🗂 assignMeetingToFolder called', { meetingId, folderId });
-
+ 
       const { data, error } = await supabase
         .from('meetings')
         .update({ folder_id: folderId })
         .eq('id', meetingId)
-        .select('id, folder_id')
-        .single();
-
-      if (error) throw error;
-
-      console.log('🗂 assignMeetingToFolder success', data);
-
+        .select('id, folder_id, user_id')
+        .maybeSingle();
+ 
+      if (error) {
+        console.error('🛑 assignMeetingToFolder error:', {
+          message: error.message,
+          details: (error as any).details,
+          code: (error as any).code,
+        });
+        throw error;
+      }
+ 
+      console.log('✅ assignMeetingToFolder success - updated row:', data);
+ 
       showToast.success(folderId ? 'Meeting assigned to folder' : 'Meeting removed from folder');
       return true;
     } catch (error: any) {
-      console.error('Error assigning meeting to folder:', error);
-      showToast.error('Failed to assign meeting to folder');
+      console.error('Error assigning meeting to folder (caught):', {
+        message: error.message,
+        details: error.details,
+        code: error.code,
+      });
+      showToast.error(`Failed to assign meeting to folder: ${error.message || 'Unknown error'}`);
       return false;
     }
   };
