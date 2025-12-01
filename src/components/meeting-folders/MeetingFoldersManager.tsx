@@ -259,17 +259,23 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deletingFolder} onOpenChange={() => setDeletingFolder(null)}>
-        <AlertDialogContent>
+      <AlertDialog open={!!deletingFolder} onOpenChange={(open) => !open && setDeletingFolder(null)}>
+        <AlertDialogContent className="z-[100]">
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Folder</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete "{deletingFolder?.name}"? Meetings in this folder will not be deleted, just unfiled.
+              {deletingFolder && (
+                <>
+                  Are you sure you want to delete "{deletingFolder.name}"? Meetings in this folder will not be deleted, just unfiled.
+                </>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteFolder}>Delete</AlertDialogAction>
+            <AlertDialogCancel onClick={() => setDeletingFolder(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteFolder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
