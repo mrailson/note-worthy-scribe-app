@@ -2287,23 +2287,18 @@ export const MeetingRecorder = ({
       const wavBuffer = encodeWAV(combinedBuffer, sampleRate);
       const base64Audio = arrayBufferToBase64(wavBuffer);
       
-      // Send to speech-to-text edge function
-      const response = await fetch('https://dphcnbricafkbtizkoal.functions.supabase.co/functions/v1/speech-to-text', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await supabase.auth.getSession()).data.session?.access_token}`
-        },
-        body: JSON.stringify({ audio: base64Audio })
+      // Send to speech-to-text edge function using Supabase client (handles auth + URL)
+      const { data: result, error } = await supabase.functions.invoke('speech-to-text', {
+        body: { audio: base64Audio }
       });
-      
-      if (!response.ok) {
-        throw new Error(`Speech-to-text API error: ${response.status}`);
+
+      if (error) {
+        addDebugLog(`❌ Speech-to-text invoke error: ${error.message || 'Unknown error'}`);
+        console.error('Speech-to-text invoke error:', error);
+        return;
       }
-      
-      const result = await response.json();
-      
-      if (result.text && result.text.trim()) {
+
+      if (result?.text && result.text.trim()) {
         addDebugLog(`🎙️ System Audio Chunk #${chunkNumber}: "${result.text.substring(0, 50)}..."`);
         
         // Create transcript data with chunk info
