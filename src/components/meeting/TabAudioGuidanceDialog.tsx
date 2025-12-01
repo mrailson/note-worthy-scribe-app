@@ -1,5 +1,6 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { Monitor, Chrome, Headphones, AlertTriangle } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
+import screenShareGuide from "@/assets/screen-share-guide.png";
 
 interface TabAudioGuidanceDialogProps {
   open: boolean;
@@ -19,21 +20,28 @@ export const TabAudioGuidanceDialog = ({ open, onOpenChange, onConfirm, onCancel
           </div>
           <AlertDialogDescription className="space-y-4 pt-4">
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-              <p className="font-semibold text-foreground mb-2">Chrome can only capture audio from browser tabs, not applications</p>
-              <p className="text-sm">To record your Teams meeting audio, please follow these steps:</p>
+              <p className="font-semibold text-foreground mb-2">How to capture system audio in Chrome</p>
+              <p className="text-sm">Follow these 3 simple steps when the sharing prompt appears:</p>
             </div>
 
-            <div className="space-y-4">
+            <div className="flex justify-center my-4">
+              <img 
+                src={screenShareGuide} 
+                alt="Screen sharing guide showing the three steps" 
+                className="max-w-full h-auto rounded-lg border border-border shadow-sm"
+              />
+            </div>
+
+            <div className="space-y-3">
               <div className="flex gap-3 items-start">
                 <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold">
                   1
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-foreground mb-1 flex items-center gap-2">
-                    <Chrome className="h-4 w-4" />
-                    Open Teams in your browser
+                  <h4 className="font-semibold text-foreground mb-1">
+                    Click "Entire screen" tab
                   </h4>
-                  <p className="text-sm">Go to <span className="font-mono bg-secondary px-2 py-0.5 rounded">teams.microsoft.com</span> instead of using the Teams desktop app</p>
+                  <p className="text-sm">Select the "Entire screen" option at the top of the dialog</p>
                 </div>
               </div>
 
@@ -42,11 +50,10 @@ export const TabAudioGuidanceDialog = ({ open, onOpenChange, onConfirm, onCancel
                   2
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-foreground mb-1 flex items-center gap-2">
-                    <Monitor className="h-4 w-4" />
-                    Select "Chrome Tab" when prompted
+                  <h4 className="font-semibold text-foreground mb-1">
+                    Select your screen
                   </h4>
-                  <p className="text-sm">When you click "Start Recording", Chrome will ask what to share. Select <strong>"Chrome Tab"</strong> (not Window or Screen)</p>
+                  <p className="text-sm">Click on the screen preview image showing your desktop</p>
                 </div>
               </div>
 
@@ -55,17 +62,12 @@ export const TabAudioGuidanceDialog = ({ open, onOpenChange, onConfirm, onCancel
                   3
                 </div>
                 <div className="flex-1">
-                  <h4 className="font-semibold text-foreground mb-1 flex items-center gap-2">
-                    <Headphones className="h-4 w-4" />
-                    Tick "Also share tab audio"
+                  <h4 className="font-semibold text-foreground mb-1">
+                    Enable "Also share system audio"
                   </h4>
-                  <p className="text-sm">Make sure to <strong>tick the "Also share tab audio" checkbox</strong> at the bottom of the sharing dialog</p>
+                  <p className="text-sm">Slide the toggle at the bottom to <strong>ON</strong>, then click <strong>Share</strong></p>
                 </div>
               </div>
-            </div>
-
-            <div className="bg-blue-50 dark:bg-blue-950/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
-              <p className="text-sm"><strong>Alternative:</strong> If you can't open Teams in a browser, switch to "Microphone Only" mode. Your microphone will pick up the meeting audio acoustically from your speakers.</p>
             </div>
           </AlertDialogDescription>
         </AlertDialogHeader>
