@@ -95,6 +95,8 @@ import { TranscriptRepairButton } from '@/components/admin/TranscriptRepairButto
 import { useVoicePreference } from '@/hooks/useVoicePreference';
 import { useMeetingFolders } from '@/hooks/useMeetingFolders';
 import { FolderBadge } from '@/components/meeting-folders/FolderBadge';
+import { FolderAssignmentSheet } from '@/components/meeting-folders/FolderAssignmentSheet';
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 
 
 interface Meeting {
@@ -209,6 +211,13 @@ export const MeetingHistoryList = ({
   const [locationInputOpen, setLocationInputOpen] = useState<Record<string, boolean>>({});
   const [locationInputValues, setLocationInputValues] = useState<Record<string, string>>({});
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
+  const [folderSheetOpen, setFolderSheetOpen] = useState(false);
+  const [selectedMeetingForFolder, setSelectedMeetingForFolder] = useState<Meeting | null>(null);
+  
+  // Sync localMeetings with meetings prop when it changes
+  useEffect(() => {
+    setLocalMeetings(meetings);
+  }, [meetings]);
   
   // Fetch user practices and custom locations
   useEffect(() => {
@@ -2337,18 +2346,22 @@ export const MeetingHistoryList = ({
                     <span>Audio Backup</span>
                   </Button>
                 )}
-                
-                
-                {/* Attendees Button */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleAttendeesClick(meeting)}
-                  className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-purple-600 hover:text-purple-700"
-                >
-                  <Users className="h-4 w-4" />
-                  <span>Manage Attendees</span>
-                </Button>
+                </div>
+
+                {/* Action Buttons - More compact on mobile */}
+                <div className={`flex ${isMobile ? 'flex-col gap-2' : 'flex-wrap gap-2'} mt-4`}>
+                {/* Attendees Button - Hide on mobile, available in Actions menu */}
+                {!isMobile && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleAttendeesClick(meeting)}
+                    className="flex items-center justify-center gap-2 touch-manipulation min-h-[44px] text-purple-600 hover:text-purple-700"
+                  >
+                    <Users className="h-4 w-4" />
+                    <span>Manage Attendees</span>
+                  </Button>
+                )}
                 
                 {/* Actions Dropdown Menu */}
                 <AlertDialog>
@@ -2382,42 +2395,68 @@ export const MeetingHistoryList = ({
                         Email Meeting Notes
                       </DropdownMenuItem>
 
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
-                            <Folder className="h-4 w-4 mr-2" />
-                            Assign to Folder
-                          </DropdownMenuItem>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent side="right" align="start">
-                          <DropdownMenuItem onClick={async () => {
-                             await assignMeetingToFolder(meeting.id, null);
-                             setLocalMeetings(prev => prev.map(m => 
-                               m.id === meeting.id ? { ...m, folder_id: null } : m
-                             ));
-                             // Refresh parent data so folder filters use up-to-date folder_id
-                             onRefresh?.();
-                           }}>
-                             None (Unfiled)
-                           </DropdownMenuItem>
-                           {folders.map((folder) => (
-                             <DropdownMenuItem 
-                               key={folder.id}
-                               onClick={async () => {
-                                 await assignMeetingToFolder(meeting.id, folder.id);
-                                 setLocalMeetings(prev => prev.map(m => 
-                                   m.id === meeting.id ? { ...m, folder_id: folder.id } : m
-                                 ));
-                                 // Refresh parent data so folder filters use up-to-date folder_id
-                                 onRefresh?.();
-                               }}
-                             >
-                               <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
-                               {folder.name}
+                      {/* Manage Attendees - Show on mobile since we hid the standalone button */}
+                      {isMobile && (
+                        <DropdownMenuItem 
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                            handleAttendeesClick(meeting);
+                          }}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          Manage Attendees
+                        </DropdownMenuItem>
+                      )}
+
+                      {isMobile ? (
+                        <DropdownMenuItem 
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setSelectedMeetingForFolder(meeting);
+                            setFolderSheetOpen(true);
+                            setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          }}
+                        >
+                          <Folder className="h-4 w-4 mr-2" />
+                          Assign to Folder
+                        </DropdownMenuItem>
+                      ) : (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <DropdownMenuItem onSelect={(e) => e.preventDefault()}>
+                              <Folder className="h-4 w-4 mr-2" />
+                              Assign to Folder
+                            </DropdownMenuItem>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent side="right" align="start" className="bg-popover border shadow-md z-50">
+                            <DropdownMenuItem onClick={async () => {
+                               await assignMeetingToFolder(meeting.id, null);
+                               setLocalMeetings(prev => prev.map(m => 
+                                 m.id === meeting.id ? { ...m, folder_id: null } : m
+                               ));
+                               onRefresh?.();
+                             }}>
+                               None (Unfiled)
                              </DropdownMenuItem>
-                           ))}
-                         </DropdownMenuContent>
-                      </DropdownMenu>
+                             {folders.map((folder) => (
+                               <DropdownMenuItem 
+                                 key={folder.id}
+                                 onClick={async () => {
+                                   await assignMeetingToFolder(meeting.id, folder.id);
+                                   setLocalMeetings(prev => prev.map(m => 
+                                     m.id === meeting.id ? { ...m, folder_id: folder.id } : m
+                                   ));
+                                   onRefresh?.();
+                                 }}
+                               >
+                                 <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
+                                 {folder.name}
+                               </DropdownMenuItem>
+                             ))}
+                           </DropdownMenuContent>
+                        </DropdownMenu>
+                      )}
 
                       <DropdownMenuItem 
                         onSelect={(e) => {
@@ -2507,9 +2546,9 @@ export const MeetingHistoryList = ({
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+                </div> {/* Close action buttons container */}
               </div>
-            </div>
-          </CardHeader>
+            </CardHeader>
           
           <CardContent className="pt-0">
             <div className="space-y-3">
@@ -2922,6 +2961,23 @@ export const MeetingHistoryList = ({
           meetingTitle={selectedMeetingForAttendees.title}
         />
       )}
+
+      {/* Folder Assignment Sheet for Mobile */}
+      <FolderAssignmentSheet
+        open={folderSheetOpen}
+        onOpenChange={setFolderSheetOpen}
+        folders={folders}
+        currentFolderId={selectedMeetingForFolder?.folder_id}
+        onAssign={async (folderId) => {
+          if (selectedMeetingForFolder) {
+            await assignMeetingToFolder(selectedMeetingForFolder.id, folderId);
+            setLocalMeetings(prev => prev.map(m => 
+              m.id === selectedMeetingForFolder.id ? { ...m, folder_id: folderId } : m
+            ));
+            onRefresh?.();
+          }
+        }}
+      />
     </div>
     </TooltipProvider>
   );
