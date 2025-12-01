@@ -3185,6 +3185,9 @@ export const MeetingRecorder = ({
           const browserName = isChromeCheck ? 'Chrome' : 'Edge';
           addDebugLog(`🖥️ ${browserName} detected - using screen share for system audio...`);
           await startComputerAudioTranscription(realMeetingId);
+          // Also start microphone transcription for the mic audio
+          await startMicrophoneTranscription(realMeetingId);
+          setMicCaptured(true);
         } else {
           // Other browsers: Use stereo recording
           addDebugLog('🎧 Starting stereo recording (mic + system audio)...');
