@@ -44,6 +44,13 @@ export const useMeetingFolders = () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      // Check for duplicate folder name
+      const existingFolder = folders.find(f => f.name.toLowerCase() === name.toLowerCase());
+      if (existingFolder) {
+        showToast.error('A folder with this name already exists');
+        return null;
+      }
+
       const maxOrder = folders.length > 0 ? Math.max(...folders.map(f => f.display_order)) : 0;
 
       const { data, error } = await supabase
@@ -72,6 +79,17 @@ export const useMeetingFolders = () => {
 
   const updateFolder = async (id: string, updates: Partial<MeetingFolder>) => {
     try {
+      // Check for duplicate folder name when renaming (excluding current folder)
+      if (updates.name) {
+        const existingFolder = folders.find(f => 
+          f.id !== id && f.name.toLowerCase() === updates.name!.toLowerCase()
+        );
+        if (existingFolder) {
+          showToast.error('A folder with this name already exists');
+          return null;
+        }
+      }
+
       const { data, error } = await supabase
         .from('meeting_folders')
         .update(updates)
