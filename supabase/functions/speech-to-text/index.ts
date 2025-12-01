@@ -188,16 +188,35 @@ serve(async (req) => {
       ));
     }
 
+    let segments = result.segments || [];
+    let finalText: string = result.text || '';
+
+    // Detect and filter out obvious prompt-loop / repetitive hallucinations
+    if (finalText) {
+      const cleaned = finalText.replace(/[.,]/g, ' ').toLowerCase();
+      const words = cleaned.split(/\s+/).filter(Boolean);
+      const uniqueWordCount = new Set(words).size;
+      const isShortAndRepetitive = words.length >= 4 && uniqueWordCount <= 3 && finalText.length <= 200;
+      const looksLikePromptLoop = /pcn/i.test(finalText) && /nmht/i.test(finalText) && uniqueWordCount <= 4;
+
+      if ((isShortAndRepetitive || looksLikePromptLoop) && confidence < 0.5 && avg_logprob < -0.5) {
+        console.log('🚫 SPEECH-TO-TEXT: Detected likely hallucinated chunk, discarding transcript text');
+        finalText = '';
+        confidence = 0.0;
+        no_speech_prob = Math.max(no_speech_prob, 0.95);
+        segments = [];
+      }
+    }
+
     console.log('📊 SPEECH-TO-TEXT: Calculated confidence:', confidence);
     
     // DIAGNOSTIC FIX: Ensure segments always exists
-    let segments = result.segments || [];
-    if (segments.length === 0 && result.text) {
+    if (segments.length === 0 && finalText) {
       console.log('⚠️ SPEECH-TO-TEXT: No segments from Whisper, creating synthetic segment');
       segments = [{
         start: 0,
         end: result.duration || 1,
-        text: result.text,
+        text: finalText,
         avg_logprob: avg_logprob,
         no_speech_prob: no_speech_prob
       }];
@@ -207,7 +226,7 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ 
-        text: result.text || '',
+        text: finalText,
         confidence: confidence, // Real confidence from Whisper segments
         avg_logprob: avg_logprob,
         no_speech_prob: no_speech_prob,
