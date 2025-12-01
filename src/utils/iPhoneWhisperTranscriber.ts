@@ -27,7 +27,7 @@ export class iPhoneWhisperTranscriber {
   private lastSegmentEndTime = 0; // Track the last segment end time to avoid duplicates
   private totalProcessedDuration = 0; // Track cumulative audio duration for time offset
   private finalTranscript = ''; // Accumulated transcript for UI
-  private previousTranscription = ''; // Track what we've already transcribed to avoid duplicates
+  private lastProcessedChunkIndex = 0; // Track which chunks we've already processed
 
   // Audio activity monitoring
   private audioContext: AudioContext | null = null;
@@ -217,10 +217,10 @@ export class iPhoneWhisperTranscriber {
       console.log(`⏱️ Scheduling processing in ${interval}ms`);
       
       this.chunkTimeout = setTimeout(async () => {
-        if (this.isRecording && this.fullRecordingChunks.length > 0) {
-          console.log(`📤 Processing cumulative audio (${this.fullRecordingChunks.length} chunks)`);
+        if (this.isRecording && this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
+          console.log(`📤 Processing NEW audio chunks (${this.fullRecordingChunks.length - this.lastProcessedChunkIndex} new chunks)`);
           this.lastIntervalMs = interval;
-          await this.processCumulativeAudio(false);
+          await this.processNewAudioChunks();
           
           if (isFirstProcess) {
             isFirstProcess = false;
@@ -235,19 +235,20 @@ export class iPhoneWhisperTranscriber {
     scheduleProcessing();
   }
 
-  private async processCumulativeAudio(isFinalChunk = false) {
-    if (this.fullRecordingChunks.length === 0) return;
+  private async processNewAudioChunks() {
+    const newChunks = this.fullRecordingChunks.slice(this.lastProcessedChunkIndex);
+    if (newChunks.length === 0) return;
 
     try {
-      // Combine ALL chunks received so far into one valid M4A blob
-      const cumulativeBlob = new Blob(this.fullRecordingChunks, { 
+      // Combine only NEW chunks into a blob (will be a valid M4A since MediaRecorder is still running)
+      const audioBlob = new Blob(newChunks, { 
         type: this.selectedMimeType || 'audio/mp4' 
       });
       
-      console.log(`📏 Cumulative blob: ${cumulativeBlob.size} bytes from ${this.fullRecordingChunks.length} chunks`);
+      console.log(`📏 New audio blob: ${audioBlob.size} bytes from ${newChunks.length} new chunks`);
 
       // Convert to base64
-      const arrayBuffer = await cumulativeBlob.arrayBuffer();
+      const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
       // Convert to base64 in chunks to prevent memory issues
@@ -263,13 +264,13 @@ export class iPhoneWhisperTranscriber {
       }
       const base64Audio = btoa(binary);
 
-      console.log('📡 Sending cumulative audio to Whisper API...');
+      console.log('📡 Sending NEW audio segment to Whisper API...');
 
       // Send to Whisper
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
         body: {
           audio: base64Audio,
-          mimeType: cumulativeBlob.type,
+          mimeType: audioBlob.type,
           fileName: 'iphone-audio.m4a',
           language: 'en',
           temperature: 0,
@@ -283,20 +284,21 @@ export class iPhoneWhisperTranscriber {
         return;
       }
 
-      const fullText = data.text.trim();
+      const transcribedText = data.text.trim();
       
-      // Extract only NEW content (what wasn't in previous transcription)
-      const newText = this.extractNewContent(fullText, this.previousTranscription);
+      // Check for hallucination
+      if (this.isHallucination(transcribedText)) {
+        console.warn('⚠️ Hallucination detected, skipping chunk:', transcribedText.substring(0, 100));
+        this.lastProcessedChunkIndex = this.fullRecordingChunks.length;
+        return;
+      }
       
-      if (newText && newText.trim()) {
-        console.log(`📝 New transcription content (${newText.split(/\s+/).length} words): "${newText.substring(0, 80)}..."`);
+      if (transcribedText) {
+        console.log(`📝 Transcription (${transcribedText.split(/\s+/).length} words): "${transcribedText.substring(0, 80)}..."`);
         
-        // Update previous transcription for next comparison
-        this.previousTranscription = fullText;
-        
-        // Emit only the new content to the UI
+        // Emit to UI
         const transcriptData: TranscriptData = {
-          text: newText.trim(),
+          text: transcribedText,
           is_final: true,
           confidence: data.confidence || 0.9,
           speaker: 'Speaker'
@@ -304,8 +306,8 @@ export class iPhoneWhisperTranscriber {
         
         this.onTranscription(transcriptData);
         
-        // Update word count with new words only
-        const newWordCount = newText.split(/\s+/).filter(Boolean).length;
+        // Update word count
+        const newWordCount = transcribedText.split(/\s+/).filter(Boolean).length;
         this.totalWordCount += newWordCount;
         console.log(`📊 Word count: +${newWordCount} words (total: ${this.totalWordCount})`);
         
@@ -322,13 +324,13 @@ export class iPhoneWhisperTranscriber {
               data.segments = [{
                 start: this.lastSegmentEndTime,
                 end: this.lastSegmentEndTime + 1,
-                text: newText
+                text: transcribedText
               }];
             }
             
             console.log(`📦 Received ${data.segments.length} segments from API`);
             
-            // Calculate time offset - segments from Whisper are relative to the chunk, not the recording
+            // Calculate time offset
             const timeOffset = this.totalProcessedDuration;
             console.log(`⏰ Applying time offset: ${timeOffset.toFixed(2)}s to ${data.segments.length} segments`);
             
@@ -369,24 +371,6 @@ export class iPhoneWhisperTranscriber {
                 this.totalProcessedDuration += chunkDuration;
                 console.log(`💾 Stored ${newSegments.length} segments in chunk #${currentChunkNumber}, lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s, totalDuration: ${this.totalProcessedDuration.toFixed(2)}s`);
               }
-            } else {
-              const filteredCount = data.segments.length - newSegments.length;
-              const rejectionReason = `All segments already processed (filtered ${filteredCount} duplicate${filteredCount !== 1 ? 's' : ''})`;
-              console.log(`⏭️ Chunk ${currentChunkNumber}: ${rejectionReason}`);
-              
-              // Save chunk with rejection reason for tracking
-              await supabase
-                .from('meeting_transcription_chunks')
-                .insert({
-                  meeting_id: this.meetingId,
-                  session_id: this.sessionId,
-                  chunk_number: currentChunkNumber,
-                  transcription_text: JSON.stringify([]),
-                  confidence: transcriptData.confidence,
-                  is_final: true,
-                  user_id: user,
-                  merge_rejection_reason: rejectionReason
-                });
             }
           } else {
             console.warn('ℹ️ Skipping DB store: missing meetingId/sessionId/user');
@@ -394,54 +378,32 @@ export class iPhoneWhisperTranscriber {
         } catch (e) {
           console.warn('⚠️ Error while saving segments to DB:', e);
         }
-      } else {
-        console.log('ℹ️ No new content extracted from cumulative transcription');
       }
+      
+      // Mark these chunks as processed
+      this.lastProcessedChunkIndex = this.fullRecordingChunks.length;
+      console.log(`✅ Processed ${newChunks.length} chunks, lastProcessedChunkIndex now: ${this.lastProcessedChunkIndex}`);
+      
     } catch (error) {
-      console.error('❌ processCumulativeAudio error:', error);
+      console.error('❌ processNewAudioChunks error:', error);
       this.onError('Failed to process audio');
     }
   }
 
-  private extractNewContent(fullText: string, previousText: string): string {
-    if (!previousText) return fullText;
+  private isHallucination(text: string): boolean {
+    const words = text.split(/\s+/).filter(Boolean);
+    if (words.length < 5) return false;
     
-    // Simple approach: if full text starts with previous text, return the difference
-    const prevWords = previousText.split(/\s+/).filter(Boolean);
-    const fullWords = fullText.split(/\s+/).filter(Boolean);
+    // Check for repetition - less than 30% unique words = likely hallucination
+    const uniqueWords = new Set(words.map(w => w.toLowerCase()));
+    const uniqueRatio = uniqueWords.size / words.length;
     
-    if (fullWords.length <= prevWords.length) {
-      console.log('⚠️ New transcription is not longer than previous, returning empty');
-      return '';
+    if (uniqueRatio < 0.3) {
+      console.warn(`🚨 Hallucination detected: only ${(uniqueRatio * 100).toFixed(1)}% unique words`);
+      return true;
     }
     
-    // Find the best match point by checking if the beginning of fullText matches the end of previousText
-    // This handles cases where Whisper might slightly rephrase the beginning
-    let bestMatchIndex = 0;
-    const searchWindowSize = Math.min(30, prevWords.length); // Check last 30 words of previous
-    
-    for (let i = Math.max(0, prevWords.length - searchWindowSize); i < prevWords.length; i++) {
-      const prevTail = prevWords.slice(i).join(' ').toLowerCase();
-      const fullHead = fullWords.slice(0, prevWords.length - i).join(' ').toLowerCase();
-      
-      if (fullHead.includes(prevTail) || prevTail.includes(fullHead)) {
-        bestMatchIndex = prevWords.length - i;
-        break;
-      }
-    }
-    
-    // If no good match, assume previous transcription ended at prevWords.length
-    if (bestMatchIndex === 0) {
-      bestMatchIndex = prevWords.length;
-    }
-    
-    // Return everything after the match point
-    const newWords = fullWords.slice(bestMatchIndex);
-    const result = newWords.join(' ');
-    
-    console.log(`🔍 extractNewContent: prevWords=${prevWords.length}, fullWords=${fullWords.length}, matchIndex=${bestMatchIndex}, newWords=${newWords.length}`);
-    
-    return result;
+    return false;
   }
 
   private simpleSmartMerge(oldText: string, newText: string): string {
@@ -532,10 +494,10 @@ export class iPhoneWhisperTranscriber {
       // Wait for final ondataavailable to fire
       await new Promise(resolve => setTimeout(resolve, 500));
       
-      // Process final cumulative audio
-      if (this.fullRecordingChunks.length > 0) {
-        console.log('🔄 Processing final cumulative audio...');
-        await this.processCumulativeAudio(true);
+      // Process any remaining new audio chunks
+      if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
+        console.log('🔄 Processing final new audio chunks...');
+        await this.processNewAudioChunks();
       }
     }
 
