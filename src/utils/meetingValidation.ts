@@ -1,6 +1,6 @@
 // Meeting validation utilities to prevent data crossover
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 
 export interface MeetingValidationResult {
   isValid: boolean;
@@ -118,7 +118,7 @@ export const detectDataCrossover = async (): Promise<any[]> => {
     
     if (crossoverIssues.length > 0) {
       console.warn('⚠️ Potential data crossover detected:', crossoverIssues);
-      toast.error(`Detected ${crossoverIssues.length} potential data crossover issues`);
+      showToast.error(`Detected ${crossoverIssues.length} potential data crossover issues`);
     }
 
     return crossoverIssues;
