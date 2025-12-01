@@ -7,7 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { ArrowLeft, Download, CheckCircle2, Clock, AlertCircle, TrendingUp, ThumbsUp, RefreshCw, Mail } from 'lucide-react';
 import { ComplaintAudioOverviewPlayer } from '@/components/complaints/ComplaintAudioOverviewPlayer';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { format } from 'date-fns';
 import { downloadComplaintReport } from '@/utils/downloadComplaintReport';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, Table, TableRow, TableCell, WidthType } from 'docx';
@@ -99,13 +99,13 @@ export default function ComplaintAIReport() {
         console.error('Error loading report:', aiError);
         
         if (errorMessage.includes('Rate limit')) {
-          toast.error('AI service rate limit reached. Please try again in a few moments.');
+          showToast.error('AI service rate limit reached. Please try again in a few moments.');
         } else if (errorMessage.includes('credits exhausted')) {
-          toast.error('AI credits exhausted. Please add credits in your workspace settings.');
+          showToast.error('AI credits exhausted. Please add credits in your workspace settings.');
         } else if (errorMessage.includes('Failed to connect')) {
-          toast.error('Unable to connect to AI service. Please try again in a moment.');
+          showToast.error('Unable to connect to AI service. Please try again in a moment.');
         } else {
-          toast.error('Failed to generate AI report. Please try again.');
+          showToast.error('Failed to generate AI report. Please try again.');
         }
         throw aiError;
       }
@@ -113,7 +113,7 @@ export default function ComplaintAIReport() {
       setGeneratedAt(new Date());
     } catch (error) {
       console.error('Error loading report:', error);
-      toast.error('Failed to load AI report');
+      showToast.error('Failed to load AI report');
     } finally {
       setLoading(false);
     }
@@ -123,7 +123,7 @@ export default function ComplaintAIReport() {
     setRegenerating(true);
     await loadReportData();
     setRegenerating(false);
-    toast.success('Report regenerated successfully');
+    showToast.success('Report regenerated successfully', { section: 'complaints' });
   };
 
   const getStatusIcon = (status: string) => {
@@ -141,10 +141,10 @@ export default function ComplaintAIReport() {
     if (!reportData || !complaint) return;
     try {
       await downloadComplaintReport(reportData, complaint);
-      toast.success('Report downloaded successfully');
+      showToast.success('Report downloaded successfully', { section: 'complaints' });
     } catch (error) {
       console.error('Download error:', error);
-      toast.error('Failed to download report');
+      showToast.error('Failed to download report');
     }
   };
 
@@ -181,14 +181,14 @@ export default function ComplaintAIReport() {
 
       if (error) {
         console.error('Email error:', error);
-        toast.error('Failed to send email report');
+        showToast.error('Failed to send email report');
         return;
       }
 
-      toast.success('Report emailed to GP Partners successfully');
+      showToast.success('Report emailed to GP Partners successfully', { section: 'complaints' });
     } catch (error) {
       console.error('Email error:', error);
-      toast.error('Failed to send email report');
+      showToast.error('Failed to send email report');
     } finally {
       setEmailSending(false);
     }
