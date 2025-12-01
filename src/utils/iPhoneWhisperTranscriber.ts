@@ -20,6 +20,7 @@ export class iPhoneWhisperTranscriber {
   private chunkTimeout: ReturnType<typeof setTimeout> | null = null;
   private overlapDuration = 2000; // 2 seconds overlap between chunks
   private lastChunkEndBuffer: Blob | null = null; // Store last 2s of previous chunk
+  private lastChunkMimeType: string = ''; // Store MIME type for overlap buffer
   private recordingStartTime = 0;
   private lastIntervalMs = 0;
   private meetingId: string | null = null;
@@ -243,7 +244,10 @@ export class iPhoneWhisperTranscriber {
         ? [this.lastChunkEndBuffer, ...this.audioChunks]
         : this.audioChunks;
       
-      const audioBlob = new Blob(chunksToProcess, { type: this.audioChunks[0].type });
+      // Use stored MIME type from previous chunk if available, otherwise use current chunk's type
+      const audioBlob = new Blob(chunksToProcess, { 
+        type: this.lastChunkMimeType || this.audioChunks[0]?.type || 'audio/mp4' 
+      });
       
       // Clear current chunks after combining with overlap
       this.audioChunks = [];
@@ -274,8 +278,10 @@ export class iPhoneWhisperTranscriber {
       
       if (audioBlob.size > overlapBytes) {
         const overlapStart = audioBlob.size - overlapBytes;
-        this.lastChunkEndBuffer = audioBlob.slice(overlapStart);
-        console.log(`💾 Saved ${overlapBytes} bytes (${this.overlapDuration}ms) as overlap buffer for next chunk`);
+        // Preserve MIME type when slicing for overlap buffer
+        this.lastChunkMimeType = audioBlob.type;
+        this.lastChunkEndBuffer = audioBlob.slice(overlapStart, audioBlob.size, audioBlob.type);
+        console.log(`💾 Saved ${overlapBytes} bytes (${this.overlapDuration}ms) as overlap buffer with MIME type ${audioBlob.type} for next chunk`);
       }
       
       // Convert to base64 in chunks to prevent memory issues
