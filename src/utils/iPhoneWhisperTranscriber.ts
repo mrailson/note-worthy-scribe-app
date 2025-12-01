@@ -202,10 +202,15 @@ export class iPhoneWhisperTranscriber {
     
     console.log('📱 iPhone MediaRecorder started - will use requestData() for chunks');
 
-    const CHUNK_INTERVAL = 60000; // 60 seconds as user requested
+    const FIRST_CHUNK_INTERVAL = 15000; // 15 seconds for first chunk
+    const SUBSEQUENT_CHUNK_INTERVAL = 60000; // 60 seconds for all subsequent chunks
+    let isFirstChunk = true;
 
     const scheduleChunkExtraction = () => {
       if (!this.isRecording) return;
+      
+      const interval = isFirstChunk ? FIRST_CHUNK_INTERVAL : SUBSEQUENT_CHUNK_INTERVAL;
+      console.log(`⏱️ Scheduling next chunk extraction in ${interval}ms (${isFirstChunk ? 'first' : 'subsequent'} chunk)`);
       
       this.chunkTimeout = setTimeout(async () => {
         if (this.mediaRecorder && this.isRecording && 
@@ -217,13 +222,20 @@ export class iPhoneWhisperTranscriber {
           // Wait for ondataavailable to fire, then process
           setTimeout(async () => {
             if (this.audioChunks.length > 0) {
-              this.lastIntervalMs = CHUNK_INTERVAL;
+              this.lastIntervalMs = interval;
               await this.processAudioChunks(false);
             }
+            
+            // After first chunk is processed, switch to 60-second intervals
+            if (isFirstChunk) {
+              isFirstChunk = false;
+              console.log('✅ First chunk complete, switching to 60-second intervals');
+            }
+            
             scheduleChunkExtraction(); // Schedule next extraction
           }, 500);  // 500ms should be enough for ondataavailable
         }
-      }, CHUNK_INTERVAL);
+      }, interval);
     };
 
     scheduleChunkExtraction();
