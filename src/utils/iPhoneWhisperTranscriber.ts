@@ -253,13 +253,15 @@ export class iPhoneWhisperTranscriber {
       this.audioChunks = [];
       
       const elapsed = Date.now() - this.recordingStartTime;
+      console.log(`🎬 iPhone processAudioChunks called (isFinal=${isFinalChunk}) at ${elapsed}ms, rawChunks=${this.audioChunks.length}`);
 
-      // More permissive minimum size threshold to capture all content
-      const minSize = 2000; // 2KB minimum for all chunks
-      if (!isFinalChunk && audioBlob.size < minSize) {
-        console.log(`📱 Skipping small audio chunk (size=${audioBlob.size}, min=${minSize})`);
-        return;
-      }
+      // Previously we skipped very small blobs; for iPhone we now always send to Whisper
+      // to avoid losing short but important utterances.
+      // const minSize = 2000; // 2KB minimum for all chunks
+      // if (!isFinalChunk && audioBlob.size < minSize) {
+      //   console.log(`📱 Skipping small audio chunk (size=${audioBlob.size}, min=${minSize})`);
+      //   return;
+      // }
 
       // Convert blob to base64
       const arrayBuffer = await audioBlob.arrayBuffer();
