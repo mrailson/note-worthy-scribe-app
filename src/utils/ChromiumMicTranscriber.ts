@@ -302,20 +302,20 @@ export class ChromiumMicTranscriber {
           speaker: 'Speaker'
         };
 
-        // Phase 3: Apply confidence gating before sending to UI
-        if (meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
-          this.onTranscription(transcriptData);
-          this.logEvent('chromium_mic.transcription', {
-            text: transcriptData.text.substring(0, 50),
-            confidence: transcriptData.confidence
-          });
-        } else {
-          this.logEvent('chromium_mic.confidence_filtered', {
+        // Log quality for analysis but don't block - always show to user
+        if (!meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
+          this.logEvent('chromium_mic.low_confidence', {
             confidence: transcriptData.confidence,
             threshold: this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService],
             text: transcriptData.text.substring(0, 50)
           });
         }
+        
+        this.onTranscription(transcriptData);
+        this.logEvent('chromium_mic.transcription', {
+          text: transcriptData.text.substring(0, 50),
+          confidence: transcriptData.confidence
+        });
       }
 
     } catch (error) {

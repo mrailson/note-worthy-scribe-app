@@ -304,14 +304,13 @@ export class iPhoneWhisperTranscriber {
           speaker: 'Speaker'
         };
 
-        // Phase 3: Apply confidence gating before sending to UI
-        if (meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
-          console.log('✅ iPhone transcription:', t);
-          this.onTranscription(transcriptData);
-        } else {
-          console.log(`🚫 Filtered low-confidence iPhone transcription: ${transcriptData.confidence} < ${this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]}`);
-          return; // Don't process further if filtered
+        // Log quality for analysis but don't block - always show to user and save to DB
+        if (!meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
+          console.log(`ℹ️ Low-confidence iPhone transcription (still shown to user): ${transcriptData.confidence} < ${this.meetingSettings.transcriberThresholds[this.meetingSettings.transcriberService]}`);
         }
+        
+        console.log('✅ iPhone transcription:', t);
+        this.onTranscription(transcriptData);
 
         // Update running word count
         try {
