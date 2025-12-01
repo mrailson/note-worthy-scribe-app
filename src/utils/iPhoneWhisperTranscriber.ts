@@ -29,6 +29,7 @@ export class iPhoneWhisperTranscriber {
   private finalTranscript = ''; // Accumulated transcript for UI
   private lastProcessedChunkIndex = 0; // Track which chunks we've already processed
   private backupChunkCounter = 0; // Track incremental backup uploads
+  private headerChunk: Blob | null = null; // Preserve M4A header for valid audio files
 
   // Audio activity monitoring
   private audioContext: AudioContext | null = null;
@@ -167,6 +168,11 @@ export class iPhoneWhisperTranscriber {
 
       this.mediaRecorder.ondataavailable = (event) => {
         if (event.data.size > 0) {
+          // Capture first chunk as M4A header (contains container metadata)
+          if (!this.headerChunk) {
+            this.headerChunk = event.data;
+            console.log(`📦 iPhone: Captured M4A header chunk (${event.data.size} bytes)`);
+          }
           console.log(`📦 iPhone MediaRecorder ondataavailable: ${event.data.size} bytes`);
           this.audioChunks.push(event.data);
           this.fullRecordingChunks.push(event.data);
@@ -241,8 +247,13 @@ export class iPhoneWhisperTranscriber {
     if (newChunks.length === 0) return;
 
     try {
-      // Combine only NEW chunks into a blob (will be a valid M4A since MediaRecorder is still running)
-      const audioBlob = new Blob(newChunks, { 
+      // Build valid M4A: always prepend header + new chunks
+      // This ensures all audio blobs sent to Whisper have proper container structure
+      const chunksToProcess = this.headerChunk 
+        ? [this.headerChunk, ...newChunks.filter(c => c !== this.headerChunk)]
+        : newChunks;
+      
+      const audioBlob = new Blob(chunksToProcess, { 
         type: this.selectedMimeType || 'audio/mp4' 
       });
       
@@ -387,10 +398,11 @@ export class iPhoneWhisperTranscriber {
       
       // Upload and clear processed chunks to free memory
       await this.uploadAndClearProcessedChunks(processedChunks);
-      this.fullRecordingChunks = []; // Clear memory
+      const clearedCount = this.fullRecordingChunks.length;
+      this.fullRecordingChunks = []; // Clear memory (header preserved separately)
       this.lastProcessedChunkIndex = 0; // Reset index since array is now empty
       
-      console.log(`✅ Processed ${newChunks.length} chunks, memory cleared`);
+      console.log(`✅ Processed ${newChunks.length} chunks, cleared ${clearedCount} from memory (header preserved)`);
       
     } catch (error) {
       console.error('❌ processNewAudioChunks error:', error);
@@ -538,6 +550,7 @@ export class iPhoneWhisperTranscriber {
     this.mediaRecorder = null;
     this.audioChunks = [];
     this.fullRecordingChunks = []; // Clear any remaining chunks
+    this.headerChunk = null; // Clear header reference
 
     console.log(`✅ iPhone transcription stopped. ${this.backupChunkCounter} backup chunks uploaded during recording.`);
     this.onStatusChange('Stopped');
