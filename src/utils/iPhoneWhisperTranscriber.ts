@@ -31,11 +31,13 @@ export class iPhoneWhisperTranscriber {
   private lastSegmentEndTime = 0; // Track the last segment end time to avoid duplicates
   private totalProcessedDuration = 0; // Track cumulative audio duration for time offset
   private finalTranscript = ''; // Accumulated transcript for UI
-  
+
   // Audio activity monitoring
   private audioContext: AudioContext | null = null;
   private analyser: AnalyserNode | null = null;
   private activityCheckInterval: NodeJS.Timeout | null = null;
+
+  private selectedMimeType: string = 'audio/webm';
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
@@ -97,6 +99,40 @@ export class iPhoneWhisperTranscriber {
       this.audioContext = null;
     }
   }
+
+  private createMediaRecorder() {
+    if (!this.stream) {
+      throw new Error('No audio stream available for MediaRecorder');
+    }
+
+    const recorder = new MediaRecorder(this.stream, {
+      mimeType: this.selectedMimeType,
+      audioBitsPerSecond: 128000 // Higher bitrate to reduce artifacts on iOS
+    });
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        this.audioChunks.push(event.data);
+        this.fullRecordingChunks.push(event.data);
+      }
+    };
+
+    recorder.onstop = async () => {
+      if (this.audioChunks.length > 0) {
+        const isFinalChunk = !this.isRecording;
+        await this.processAudioChunks(isFinalChunk);
+      }
+    };
+
+    recorder.onerror = (event) => {
+      console.error('📱 MediaRecorder error:', event);
+      this.onError('Recording error occurred');
+    };
+
+    this.mediaRecorder = recorder;
+    console.log('🔄 Created new iPhone MediaRecorder instance with MIME type:', this.selectedMimeType);
+    return recorder;
+  }
   
   async startTranscription() {
     try {
@@ -149,59 +185,44 @@ export class iPhoneWhisperTranscriber {
         'audio/webm'
       ];
 
-      let selectedMimeType = 'audio/webm'; // fallback
+      this.selectedMimeType = 'audio/webm'; // fallback
       for (const mimeType of mimeTypes) {
         if (MediaRecorder.isTypeSupported(mimeType)) {
-          selectedMimeType = mimeType;
+          this.selectedMimeType = mimeType;
           console.log('📱 Using MIME type:', mimeType);
           break;
         }
       }
 
-      this.mediaRecorder = new MediaRecorder(this.stream, {
-        mimeType: selectedMimeType,
-        audioBitsPerSecond: 128000 // Higher bitrate to reduce artifacts on iOS
-      });
-
-      this.mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          this.audioChunks.push(event.data);
-          this.fullRecordingChunks.push(event.data);
-        }
-      };
-      this.mediaRecorder.onstop = async () => {
-        if (this.audioChunks.length > 0) {
-          await this.processAudioChunks();
-        }
-      };
-
-      this.mediaRecorder.onerror = (event) => {
-        console.error('📱 MediaRecorder error:', event);
-        this.onError('Recording error occurred');
-      };
+      // Create initial MediaRecorder instance
+      this.createMediaRecorder();
 
       // Wait briefly for audio stream to fully initialize (prevents missing first seconds)
       await new Promise(resolve => setTimeout(resolve, 200));
 
-      // Start recording and process in chunks every 60 seconds with overlap
+      // Start recording and process in chunks
       this.isRecording = true;
       this.startChunkedRecording();
       
       this.onStatusChange('Recording...');
       console.log('✅ iPhone transcription started');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('❌ Failed to start iPhone transcription:', error);
       this.onError(`Failed to start recording: ${error.message}`);
     }
   }
 
   private startChunkedRecording() {
-    if (!this.mediaRecorder || !this.isRecording) return;
+    if (!this.isRecording) return;
+
+    if (!this.mediaRecorder) {
+      this.createMediaRecorder();
+    }
 
     // Start recording and dynamically adjust chunking frequency
     this.recordingStartTime = Date.now();
-    this.mediaRecorder.start();
+    this.mediaRecorder!.start();
 
     // Fixed 15-second chunks for iPhone testing
     const getInterval = (elapsed: number) => {
@@ -209,7 +230,7 @@ export class iPhoneWhisperTranscriber {
     };
 
     const scheduleNext = () => {
-      if (!this.mediaRecorder || !this.isRecording) return;
+      if (!this.isRecording) return;
       const elapsed = Date.now() - this.recordingStartTime;
       const interval = getInterval(elapsed);
       console.log(`⏱️ Next iPhone chunk in ${interval}ms (elapsed ${elapsed}ms)`);
@@ -217,16 +238,25 @@ export class iPhoneWhisperTranscriber {
 
       this.chunkTimeout = setTimeout(() => {
         if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
+          console.log('🧩 Stopping current iPhone MediaRecorder for chunk rotation');
           this.mediaRecorder.stop();
-          // Start new recording immediately
+
+          // After stopping, create a fresh MediaRecorder for the next chunk
           setTimeout(() => {
-            if (this.mediaRecorder && this.isRecording) {
-              this.mediaRecorder.start();
-              scheduleNext();
+            if (!this.isRecording || !this.stream) {
+              return;
             }
-          }, 100);
-        } else {
-          // If not recording for any reason, try to reschedule
+
+            const newRecorder = this.createMediaRecorder();
+            console.log('▶️ Starting new iPhone MediaRecorder for next chunk');
+            newRecorder.start();
+            scheduleNext();
+          }, 200);
+        } else if (this.isRecording) {
+          // If not recording for any reason but still marked as recording, try to recreate
+          console.log('♻️ MediaRecorder not in recording state, recreating...');
+          const newRecorder = this.createMediaRecorder();
+          newRecorder.start();
           scheduleNext();
         }
       }, interval);
@@ -455,7 +485,7 @@ export class iPhoneWhisperTranscriber {
         } catch (e) {
           console.warn('⚠️ Error while saving iPhone segments to DB:', e);
         }
-        }
+      }
     } catch (error) {
       console.error('❌ Error processing audio:', error);
       this.onError('Failed to process audio');
