@@ -210,6 +210,11 @@ export const MeetingHistoryList = ({
   const [locationInputValues, setLocationInputValues] = useState<Record<string, string>>({});
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   
+  // Sync localMeetings with meetings prop when it changes
+  useEffect(() => {
+    setLocalMeetings(meetings);
+  }, [meetings]);
+  
   // Fetch user practices and custom locations
   useEffect(() => {
     const fetchPracticesAndLocations = async () => {
@@ -2387,6 +2392,7 @@ export const MeetingHistoryList = ({
                             setLocalMeetings(prev => prev.map(m => 
                               m.id === meeting.id ? { ...m, folder_id: null } : m
                             ));
+                            if (onRefresh) onRefresh();
                           }}>
                             None (Unfiled)
                           </DropdownMenuItem>
@@ -2398,6 +2404,7 @@ export const MeetingHistoryList = ({
                                 setLocalMeetings(prev => prev.map(m => 
                                   m.id === meeting.id ? { ...m, folder_id: folder.id } : m
                                 ));
+                                if (onRefresh) onRefresh();
                               }}
                             >
                               <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
