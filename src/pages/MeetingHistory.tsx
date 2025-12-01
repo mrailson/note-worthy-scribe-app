@@ -1885,7 +1885,7 @@ const MeetingHistory = () => {
                </AlertDialog>
              )}
 
-              {meetings.length > 0 && (
+              {meetings.length > 0 && !isMobile && (
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
                     <Button 
