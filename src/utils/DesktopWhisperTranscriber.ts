@@ -175,9 +175,16 @@ export class DesktopWhisperTranscriber {
     const rms = Math.sqrt(sum / (audioData.length / 2));
     const dynamicRange = max - min;
     
-    // Filter out silence and low-quality audio with more sensitive thresholds
-    // Aligned with system audio sensitivity (0.00001) to capture all speech
-    return rms >= 0.00001 && dynamicRange >= 0.001;
+    // Much more permissive thresholds to avoid dropping quiet speech
+    // We still filter absolute silence / flat-line noise, but accept almost all voice
+    const isNonSilent = rms >= 0.000001; // effectively "any real signal"
+    const hasSomeVariation = dynamicRange >= 0.0005;
+    
+    if (!isNonSilent || !hasSomeVariation) {
+      console.log(`🔇 Mic chunk filtered (rms=${rms.toFixed(6)}, range=${dynamicRange.toFixed(6)})`);
+    }
+    
+    return isNonSilent && hasSomeVariation;
   }
 
   setMeetingId(meetingId: string): void {
@@ -391,30 +398,30 @@ export class DesktopWhisperTranscriber {
 
       if (data.text && data.text.trim()) {
         // ChatGPT recommended guardrails: check quality metrics
-        const avgLogprob = data.avg_logprob || -0.3;
-        const noSpeechProb = data.no_speech_prob || 0.0;
+        const avgLogprob = data.avg_logprob ?? -0.3;
+        const noSpeechProb = data.no_speech_prob ?? 0.0;
         
         console.log(`📊 Quality metrics - avg_logprob: ${avgLogprob.toFixed(3)}, no_speech_prob: ${noSpeechProb.toFixed(3)}`);
         
-        // Apply more relaxed quality gates for continuous updates
-        if (avgLogprob < -1.0) {
-          console.log(`⚠️ Skipping chunk due to very low avg_logprob: ${avgLogprob}`);
-          return;
+        // Previously we hard-gated on these and dropped chunks.
+        // For completeness (especially in Mic + System mode), we now only LOG
+        // suspicious chunks but still pass them through so we don't lose speech.
+        if (avgLogprob < -1.5) {
+          console.log(`⚠️ Low avg_logprob (likely noisy / hard to hear), but keeping chunk for completeness`);
         }
         
-        if (noSpeechProb > 0.8) {
-          console.log(`⚠️ Skipping chunk due to very high no_speech_prob: ${noSpeechProb}`);
-          return;
+        if (noSpeechProb > 0.9) {
+          console.log(`⚠️ High no_speech_prob (model not confident speech is present), but keeping chunk for completeness`);
         }
         
         const cleanText = data.text.trim();
         
-        // Skip likely hallucinated/repetitive noise chunks (e.g., endless "ha ha ha")
+        // Skip only clearly hallucinated/repetitive noise chunks (e.g., endless "ha ha ha")
         if (this.isLikelyRepetitiveNoise(cleanText)) {
           console.log('🚫 Skipping likely hallucinated/repetitive chunk');
           return;
         }
-        
+
         // Use smart merge with de-duplication to avoid duplicates
         this.finalTranscript = this.smartMerge(this.finalTranscript, cleanText);
         
