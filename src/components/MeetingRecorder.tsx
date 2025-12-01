@@ -2122,7 +2122,6 @@ export const MeetingRecorder = ({
     try {
       // Try screen sharing with audio first
       let stream: MediaStream;
-      let useCustomProcessing = false;
       
       try {
         addDebugLog('🖥️ Requesting screen share with audio...');
@@ -2166,32 +2165,14 @@ export const MeetingRecorder = ({
         throw new Error('SCREEN_SHARE_FAILED');
       }
 
-      if (useCustomProcessing) {
-        // Use custom audio processing for better speaker audio capture
-        await startCustomAudioProcessing(stream);
-      } else {
-        // Use browser speech recognition for screen audio
-        const transcriber = new BrowserSpeechTranscriber(
-          handleBrowserTranscript,
-          handleTranscriptionError,
-          handleStatusChange,
-          handleLiveSummary,
-          meetingId
-        );
-
-        await transcriber.startTranscription();
-        browserTranscriberRef.current = transcriber;
-      }
+      // At this point we have a display stream with at least one audio track.
+      // Use custom audio processing that actually reads from the stream and
+      // sends audio to our speech-to-text function instead of the browser
+      // microphone-only SpeechRecognition API.
+      await startCustomAudioProcessing(stream);
       
-      addDebugLog('✅ Computer audio transcription started successfully');
-      
-      if (screenStreamRef.current) {
-        addDebugLog('💡 Screen audio capture active - should pick up Teams/YouTube audio');
-      } else {
-        addDebugLog('💡 Using WASAPI Desktop Audio processing - capturing real system audio');
-      }
-      
-      console.log('Recording started with computer audio transcription');
+      addDebugLog('✅ Computer audio transcription (custom processing) started successfully');
+      console.log('Recording started with computer audio transcription (custom processing)');
       
     } catch (error) {
       addDebugLog(`❌ Computer audio setup failed: ${error.message}`);
