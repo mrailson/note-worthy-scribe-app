@@ -1409,11 +1409,26 @@ const MeetingHistory = () => {
 
     // Apply folder filter
     if (advancedFilters.folderId && advancedFilters.folderId !== "all") {
+      console.log('🗂 Applying folder filter:', {
+        filterId: advancedFilters.folderId,
+        totalMeetings: filtered.length,
+        meetingsWithFolders: filtered.filter(m => m.folder_id).map(m => ({ 
+          id: m.id, 
+          title: m.title, 
+          folder_id: m.folder_id 
+        }))
+      });
+      
       if (advancedFilters.folderId === "unfiled") {
         filtered = filtered.filter(meeting => !meeting.folder_id);
       } else {
         filtered = filtered.filter(meeting => meeting.folder_id === advancedFilters.folderId);
       }
+      
+      console.log('🗂 After folder filter:', {
+        remainingMeetings: filtered.length,
+        meetings: filtered.map(m => ({ id: m.id, title: m.title, folder_id: m.folder_id }))
+      });
     }
     
     console.log('🚨 FILTERED MEETINGS RESULT:', filtered.length);
