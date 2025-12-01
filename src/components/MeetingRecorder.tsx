@@ -49,6 +49,8 @@ import { PostMeetingActionsModal } from "@/components/PostMeetingActionsModal";
 import { MeetingCoachModal } from "@/components/meeting-coach/MeetingCoachModal";
 import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFoldersManager";
 import { useMeetingFolders } from "@/hooks/useMeetingFolders";
+import { TabAudioGuidanceDialog } from "@/components/meeting/TabAudioGuidanceDialog";
+import { AudioCaptureStatusIndicator } from "@/components/meeting/AudioCaptureStatusIndicator";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -313,6 +315,14 @@ export const MeetingRecorder = ({
   const [foldersDialogOpen, setFoldersDialogOpen] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const { folders } = useMeetingFolders();
+  
+  // Audio capture guidance state
+  const [showTabAudioGuidance, setShowTabAudioGuidance] = useState(false);
+  const [pendingRecordingStart, setPendingRecordingStart] = useState(false);
+  
+  // Audio capture status monitoring
+  const [micCaptured, setMicCaptured] = useState(false);
+  const [systemAudioCaptured, setSystemAudioCaptured] = useState(false);
   
   
   // Meeting settings - use from useMeetingData hook
@@ -2132,32 +2142,28 @@ export const MeetingRecorder = ({
         // Check if we actually got audio tracks
         const audioTracks = stream.getAudioTracks();
         if (audioTracks.length === 0) {
-          throw new Error('No audio tracks in screen share');
+          throw new Error('NO_AUDIO_TRACKS');
         }
         
         addDebugLog(`🔊 Audio tracks found: ${audioTracks.length}`);
+        setSystemAudioCaptured(true);
         
-      } catch (screenError) {
+      } catch (screenError: any) {
         addDebugLog(`❌ Screen share failed: ${screenError.message}`);
-        addDebugLog('🎤 Using WASAPI Desktop Audio for system capture...');
+        console.error('Screen share error:', screenError);
         
-        // Use WASAPI Desktop Audio method that works
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: {
-            echoCancellation: false,
-            noiseSuppression: false,
-            autoGainControl: false,
-            sampleRate: 48000,
-            channelCount: 2,
-            // Windows-specific WASAPI hints for desktop audio
-            latency: 0.01,
-            deviceId: 'communications'
-          } as any
-        });
+        // Check if error is due to no audio tracks
+        if (screenError.message === 'NO_AUDIO_TRACKS') {
+          throw new Error('NO_TAB_AUDIO_SELECTED');
+        }
         
-        addDebugLog('✅ WASAPI Desktop Audio access granted for system capture');
-        micAudioStreamRef.current = stream;
-        useCustomProcessing = true;
+        // User cancelled or permission denied
+        if (screenError.name === 'NotAllowedError' || screenError.name === 'AbortError') {
+          throw new Error('SCREEN_SHARE_CANCELLED');
+        }
+        
+        // Show clear error instead of silent fallback to mic
+        throw new Error('SCREEN_SHARE_FAILED');
       }
 
       if (useCustomProcessing) {
@@ -3024,6 +3030,21 @@ export const MeetingRecorder = ({
     try {
       console.log('Starting recording...');
       
+      // Check if mic-and-system mode in Chrome/Edge - show guidance first
+      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
+      const isEdge = /Edg/.test(navigator.userAgent);
+      const needsScreenShare = isChrome || isEdge;
+      
+      if (recordingMode === 'mic-and-system' && needsScreenShare && !pendingRecordingStart) {
+        // Show guidance dialog first
+        setShowTabAudioGuidance(true);
+        setPendingRecordingStart(true);
+        return; // Exit early - will resume after user confirms
+      }
+      
+      // Clear the pending flag if we got here
+      setPendingRecordingStart(false);
+      
       // Clear transcript handler
       if (transcriptHandler.current) {
         transcriptHandler.current.clear();
@@ -3075,20 +3096,25 @@ export const MeetingRecorder = ({
         throw error;
       }
       
-      // Check recording mode and browser
-      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
-      const isEdge = /Edg/.test(navigator.userAgent);
-      const useScreenShare = isChrome || isEdge;
+      // Check recording mode and browser (recalculate in case user changed settings)
+      const isChromeCheck = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
+      const isEdgeCheck = /Edg/.test(navigator.userAgent);
+      const useScreenShare = isChromeCheck || isEdgeCheck;
+      
+      // Reset audio capture status
+      setMicCaptured(false);
+      setSystemAudioCaptured(false);
       
       if (recordingMode === 'mic-only') {
         // Microphone only mode
         addDebugLog('🎙️ Starting microphone-only recording...');
         await startMicrophoneTranscription(realMeetingId);
+        setMicCaptured(true);
       } else if (recordingMode === 'mic-and-system') {
         // Microphone + System audio mode
         if (useScreenShare) {
           // Chrome & Edge: Use screen share method for system audio
-          const browserName = isChrome ? 'Chrome' : 'Edge';
+          const browserName = isChromeCheck ? 'Chrome' : 'Edge';
           addDebugLog(`🖥️ ${browserName} detected - using screen share for system audio...`);
           await startComputerAudioTranscription(realMeetingId);
         } else {
@@ -3096,6 +3122,8 @@ export const MeetingRecorder = ({
           addDebugLog('🎧 Starting stereo recording (mic + system audio)...');
           await startStereoRecording();
           await startMicrophoneTranscription(realMeetingId);
+          setMicCaptured(true);
+          setSystemAudioCaptured(true);
         }
       }
       
@@ -3174,23 +3202,32 @@ export const MeetingRecorder = ({
       console.error('Failed to start recording:', error);
       addDebugLog(`❌ Failed to start: ${error.message}`);
       
-      // Provide specific error messages for screen share browsers
-      const isChrome = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
-      const isEdge = /Edg/.test(navigator.userAgent);
-      const useScreenShare = isChrome || isEdge;
+      // Provide specific error messages
+      const isChromeError = /Chrome/.test(navigator.userAgent) && !/Edg/.test(navigator.userAgent);
+      const isEdgeError = /Edg/.test(navigator.userAgent);
+      const browserName = isChromeError ? 'Chrome' : isEdgeError ? 'Edge' : 'your browser';
       
-      if (useScreenShare && recordingMode === 'mic-and-system') {
-        const browserName = isChrome ? 'Chrome' : 'Edge';
-        showToast.error(`Please allow screen sharing permission in ${browserName} to capture meeting audio. Try again and select a window/tab to share.`, { section: 'meeting_manager' });
-      } else {
-        showToast.error(error.message || 'Failed to start recording', { section: 'meeting_manager' });
+      let errorMessage = error.message || 'Failed to start recording';
+      
+      if (error.message === 'NO_TAB_AUDIO_SELECTED') {
+        errorMessage = `No meeting audio detected. You selected a Window or Screen instead of a Chrome Tab. Please restart and select a Chrome Tab with "Also share tab audio" ticked.`;
+      } else if (error.message === 'SCREEN_SHARE_CANCELLED') {
+        errorMessage = `Screen sharing cancelled. To record meeting audio, you must share a browser tab.`;
+      } else if (error.message === 'SCREEN_SHARE_FAILED') {
+        errorMessage = `Failed to access screen sharing. Please ensure you're using ${browserName} and select a browser tab with audio.`;
+      } else if (recordingMode === 'mic-and-system') {
+        errorMessage = `Failed to capture meeting audio in ${browserName}. Please ensure you select a Chrome Tab (not Window) and tick "Also share tab audio".`;
       }
+      
+      showToast.error(errorMessage, { section: 'meeting_manager', duration: 8000 });
       
       setIsRecording(false);
       isRecordingRef.current = false;
-      recordingStartTimeRef.current = null; // Reset recording start time
-      lastChunkEndTime.current = null; // Reset chunk timing
+      recordingStartTimeRef.current = null;
+      lastChunkEndTime.current = null;
       setConnectionStatus("Error");
+      setMicCaptured(false);
+      setSystemAudioCaptured(false);
     }
   };
 
@@ -4677,7 +4714,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                          Start Recording
                        </Button>
                      </div>
-                  ) : (
+                   ) : (
                       <div className="space-y-1">
                         
                        <div className="flex items-center justify-between gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
@@ -4749,35 +4786,43 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                                <TooltipContent side="bottom" align="center" className="z-50">
                                  <p>Meeting Coach</p>
                                </TooltipContent>
-                             </Tooltip>
-                           )}
-                           
-                           {/* Show/Hide Live Speech Toggle - Hidden on Edge */}
-                          {!/Edg/.test(navigator.userAgent) && (
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  onClick={() => setTickerEnabled(prev => { const next = !prev; if (!next) setShowTranscriptSnippet(false); return next; })}
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
-                                >
-                                  {tickerEnabled ? (
-                                    <Eye className="h-4 w-4" />
-                                  ) : (
-                                    <EyeOff className="h-4 w-4" />
-                                  )}
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          )}
+                              </Tooltip>
+                            )}
+                            
+                            {/* Show/Hide Live Speech Toggle - Hidden on Edge */}
+                            {!/Edg/.test(navigator.userAgent) && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    onClick={() => setTickerEnabled(prev => { const next = !prev; if (!next) setShowTranscriptSnippet(false); return next; })}
+                                    variant="ghost"
+                                    size="sm"
+                                    className="h-8 w-8 p-0 text-primary hover:bg-primary/10"
+                                  >
+                                    {tickerEnabled ? (
+                                      <Eye className="h-4 w-4" />
+                                    ) : (
+                                      <EyeOff className="h-4 w-4" />
+                                    )}
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  <p>{tickerEnabled ? "Hide Live Speech" : "Show Live Speech"}</p>
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                         </div>
                         </div>
-                      </div>
                       
-                      {/* Ticker tape for live transcription - Hidden on Edge */}
+                      {/* Audio Capture Status Indicator */}
+                      <AudioCaptureStatusIndicator
+                        micCaptured={micCaptured}
+                        systemAudioCaptured={systemAudioCaptured}
+                        recordingMode={recordingMode}
+                        isRecording={isRecording}
+                       />
+                        
+                        {/* Ticker tape for live transcription - Hidden on Edge */}
                       {!/Edg/.test(navigator.userAgent) && (
                         <div className={`transition-all duration-500 ${tickerEnabled ? (showTicker ? 'opacity-100 animate-fade-in' : 'hidden') : 'hidden'}`}>
                           <div className="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg p-3">
@@ -5581,6 +5626,21 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       <MeetingFoldersManager
         open={foldersDialogOpen}
         onOpenChange={setFoldersDialogOpen}
+      />
+      
+      {/* Tab Audio Guidance Dialog */}
+      <TabAudioGuidanceDialog
+        open={showTabAudioGuidance}
+        onOpenChange={setShowTabAudioGuidance}
+        onConfirm={() => {
+          setShowTabAudioGuidance(false);
+          // Resume recording start after user confirms
+          startRecording();
+        }}
+        onCancel={() => {
+          setShowTabAudioGuidance(false);
+          setPendingRecordingStart(false);
+        }}
       />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
