@@ -93,8 +93,12 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
   };
 
   const handleDeleteFolder = async (folder: MeetingFolder) => {
-    const result = await deleteFolder(folder.id);
-    return result;
+    const confirmed = window.confirm(
+      `Are you sure you want to delete "${folder.name}"? Meetings in this folder will not be deleted, just unfiled.`
+    );
+    if (!confirmed) return;
+
+    await deleteFolder(folder.id);
   };
 
   const startEditing = (folder: MeetingFolder) => {
@@ -170,33 +174,13 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <AlertDialog>
-                            <AlertDialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </AlertDialogTrigger>
-                            <AlertDialogContent>
-                              <AlertDialogHeader>
-                                <AlertDialogTitle>Delete Folder</AlertDialogTitle>
-                                <AlertDialogDescription>
-                                  Are you sure you want to delete "{folder.name}"? Meetings in this folder will not be deleted, just unfiled.
-                                </AlertDialogDescription>
-                              </AlertDialogHeader>
-                              <AlertDialogFooter>
-                                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction
-                                  onClick={() => handleDeleteFolder(folder)}
-                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                                >
-                                  Delete
-                                </AlertDialogAction>
-                              </AlertDialogFooter>
-                            </AlertDialogContent>
-                          </AlertDialog>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteFolder(folder)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
                     ))}
