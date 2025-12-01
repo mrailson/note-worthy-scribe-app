@@ -28,6 +28,7 @@ export class iPhoneWhisperTranscriber {
   private totalProcessedDuration = 0; // Track cumulative audio duration for time offset
   private finalTranscript = ''; // Accumulated transcript for UI
   private lastProcessedChunkIndex = 0; // Track which chunks we've already processed
+  private backupChunkCounter = 0; // Track incremental backup uploads
 
   // Audio activity monitoring
   private audioContext: AudioContext | null = null;
@@ -381,8 +382,15 @@ export class iPhoneWhisperTranscriber {
       }
       
       // Mark these chunks as processed
+      const processedChunks = this.fullRecordingChunks.slice(0, this.fullRecordingChunks.length);
       this.lastProcessedChunkIndex = this.fullRecordingChunks.length;
-      console.log(`✅ Processed ${newChunks.length} chunks, lastProcessedChunkIndex now: ${this.lastProcessedChunkIndex}`);
+      
+      // Upload and clear processed chunks to free memory
+      await this.uploadAndClearProcessedChunks(processedChunks);
+      this.fullRecordingChunks = []; // Clear memory
+      this.lastProcessedChunkIndex = 0; // Reset index since array is now empty
+      
+      console.log(`✅ Processed ${newChunks.length} chunks, memory cleared`);
       
     } catch (error) {
       console.error('❌ processNewAudioChunks error:', error);
@@ -404,6 +412,27 @@ export class iPhoneWhisperTranscriber {
     }
     
     return false;
+  }
+
+  private async uploadAndClearProcessedChunks(processedChunks: Blob[]) {
+    // Upload mini-backup to storage
+    const userId = (await supabase.auth.getUser()).data.user?.id;
+    if (!userId || !this.meetingId || processedChunks.length === 0) return;
+    
+    this.backupChunkCounter++;
+    const chunkBlob = new Blob(processedChunks, { type: this.selectedMimeType });
+    const ext = this.selectedMimeType.includes('mp4') ? 'm4a' : this.selectedMimeType.includes('aac') ? 'aac' : 'webm';
+    const fileName = `${userId}/${this.meetingId}_chunk_${String(this.backupChunkCounter).padStart(3, '0')}.${ext}`;
+    
+    const { error } = await supabase.storage
+      .from('meeting-audio-backups')
+      .upload(fileName, chunkBlob, { contentType: this.selectedMimeType });
+    
+    if (!error) {
+      console.log(`📤 Uploaded backup chunk #${this.backupChunkCounter} (${chunkBlob.size} bytes)`);
+    } else {
+      console.warn('⚠️ Failed to upload backup chunk:', error);
+    }
   }
 
   private simpleSmartMerge(oldText: string, newText: string): string {
@@ -508,59 +537,9 @@ export class iPhoneWhisperTranscriber {
 
     this.mediaRecorder = null;
     this.audioChunks = [];
+    this.fullRecordingChunks = []; // Clear any remaining chunks
 
-    // Upload full recording as backup to Supabase Storage and insert metadata
-    try {
-      if (this.fullRecordingChunks.length > 0 && this.meetingId) {
-        const fullBlobType = this.fullRecordingChunks[0]?.type || 'audio/webm';
-        const fullBlob = new Blob(this.fullRecordingChunks, { type: fullBlobType });
-        const durationSeconds = Math.max(1, Math.round((Date.now() - this.recordingStartTime) / 1000));
-        const userId = (await supabase.auth.getUser()).data.user?.id;
-
-        if (userId) {
-          const ext = fullBlobType.includes('mp4') ? 'm4a' : fullBlobType.includes('aac') ? 'aac' : 'webm';
-          const safeSession = this.sessionId || 'session';
-          const fileName = `${userId}/${this.meetingId}_${safeSession}_${Date.now()}.${ext}`;
-
-          console.log('📤 Uploading iPhone backup audio...', { fileName, fullBlobType, size: fullBlob.size });
-          const { data: uploadData, error: uploadErr } = await supabase.storage
-            .from('meeting-audio-backups')
-            .upload(fileName, fullBlob, { contentType: fullBlobType, upsert: false });
-
-          if (uploadErr) {
-            console.warn('⚠️ Failed to upload iPhone backup audio:', uploadErr);
-          } else if (uploadData?.path) {
-            console.log('✅ iPhone backup uploaded:', uploadData.path);
-            // Insert backup metadata (RLS now allows user-owned inserts)
-            const expectedWords = Math.max(this.totalWordCount, Math.round(durationSeconds * 2));
-            const { error: metaErr } = await supabase
-              .from('meeting_audio_backups')
-              .insert({
-                meeting_id: this.meetingId,
-                user_id: userId,
-                file_path: uploadData.path,
-                file_size: fullBlob.size,
-                duration_seconds: durationSeconds,
-                word_count: this.totalWordCount,
-                expected_word_count: expectedWords,
-                backup_reason: 'iphone_recorder'
-              });
-            if (metaErr) {
-              console.warn('⚠️ Failed to insert iPhone backup metadata:', metaErr);
-            } else {
-              console.log('💾 iPhone backup metadata stored');
-            }
-          }
-        } else {
-          console.warn('ℹ️ Skipping audio backup upload: no user context');
-        }
-      } else {
-        console.log('ℹ️ No full recording chunks or missing meetingId; skipping backup upload.');
-      }
-    } catch (e) {
-      console.warn('⚠️ Error during iPhone backup upload:', e);
-    }
-
+    console.log(`✅ iPhone transcription stopped. ${this.backupChunkCounter} backup chunks uploaded during recording.`);
     this.onStatusChange('Stopped');
   }
 
