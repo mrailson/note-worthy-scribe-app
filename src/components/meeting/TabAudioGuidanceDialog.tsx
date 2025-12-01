@@ -1,6 +1,7 @@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { AlertTriangle } from "lucide-react";
 import screenShareGuide from "@/assets/screen-share-guide.png";
+import { useEffect, useState } from "react";
 
 interface TabAudioGuidanceDialogProps {
   open: boolean;
@@ -10,17 +11,29 @@ interface TabAudioGuidanceDialogProps {
 }
 
 export const TabAudioGuidanceDialog = ({ open, onOpenChange, onConfirm, onCancel }: TabAudioGuidanceDialogProps) => {
+  const [browserName, setBrowserName] = useState<'Chrome' | 'Edge'>('Chrome');
+
+  useEffect(() => {
+    // Detect browser on mount
+    const userAgent = navigator.userAgent.toLowerCase();
+    if (userAgent.includes('edg/')) {
+      setBrowserName('Edge');
+    } else {
+      setBrowserName('Chrome');
+    }
+  }, []);
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-2xl">
         <AlertDialogHeader>
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-amber-500" />
-            <AlertDialogTitle>Important: How to Capture Teams Audio in Chrome</AlertDialogTitle>
+            <AlertDialogTitle>Important: How to Capture Teams Audio in {browserName}</AlertDialogTitle>
           </div>
           <AlertDialogDescription className="space-y-4 pt-4">
             <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
-              <p className="font-semibold text-foreground mb-2">How to capture system audio in Chrome</p>
+              <p className="font-semibold text-foreground mb-2">How to capture system audio in {browserName}</p>
               <p className="text-sm">Follow these 3 simple steps when the sharing prompt appears:</p>
             </div>
 
