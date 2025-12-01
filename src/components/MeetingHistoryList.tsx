@@ -173,6 +173,8 @@ interface MeetingHistoryListProps {
   showRecordingPlayback?: boolean;
   // Callback for when data needs to be refreshed
   onRefresh?: () => void;
+  // Callback for when a folder is assigned
+  onFolderAssigned?: (meetingId: string, folderId: string | null) => void;
 }
 
 export const MeetingHistoryList = ({ 
@@ -188,7 +190,8 @@ export const MeetingHistoryList = ({
   onMeetingUpdate,
   onDocumentsUploaded,
   showRecordingPlayback = true,
-  onRefresh
+  onRefresh,
+  onFolderAssigned
 }: MeetingHistoryListProps) => {
   const navigate = useNavigate();
   const { isRecording, isResourceOperationSafe, setRecordingState } = useRecording();
@@ -213,28 +216,11 @@ export const MeetingHistoryList = ({
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [folderSheetOpen, setFolderSheetOpen] = useState(false);
   const [selectedMeetingForFolder, setSelectedMeetingForFolder] = useState<Meeting | null>(null);
-  const [recentlyAssignedFolders, setRecentlyAssignedFolders] = useState<Record<string, boolean>>({});
   
-  // Sync localMeetings with meetings prop when it changes, but protect optimistic updates
+  // Sync localMeetings with meetings prop - trust parent's state
   useEffect(() => {
-    setLocalMeetings(prevLocal => {
-      // For each meeting in the new data, prefer any locally-set folder_id
-      // if the incoming data does not include one. This prevents the
-      // folder badge from disappearing after assignment when the parent
-      // meetings query doesn’t yet return folder_id.
-      return meetings.map(meeting => {
-        const localVersion = prevLocal.find(m => m.id === meeting.id) || meeting;
-
-        // If local has a folder_id and the fresh meeting data does not,
-        // keep the local folder assignment.
-        if (localVersion.folder_id && !meeting.folder_id) {
-          return { ...meeting, folder_id: localVersion.folder_id };
-        }
-
-        // Otherwise fall back to the latest meeting data.
-        return meeting;
-      });
-    });
+    console.log('🔄 Child: Syncing localMeetings with parent meetings', meetings.length);
+    setLocalMeetings(meetings);
   }, [meetings]);
 
   // Fetch user practices and custom locations
@@ -2401,15 +2387,14 @@ export const MeetingHistoryList = ({
                           </DropdownMenuTrigger>
                           <DropdownMenuContent side="right" align="start" className="bg-popover border shadow-md z-50">
                              <DropdownMenuItem onClick={async () => {
+                                console.log('🗂 Child: Assigning meeting to no folder', meeting.id);
                                 await assignMeetingToFolder(meeting.id, null);
+                                // Notify parent immediately
+                                onFolderAssigned?.(meeting.id, null);
+                                // Optimistic local update for immediate feedback
                                 setLocalMeetings(prev => prev.map(m => 
                                   m.id === meeting.id ? { ...m, folder_id: null } : m
                                 ));
-                                // Mark as recently assigned to protect optimistic update
-                                setRecentlyAssignedFolders(prev => ({ ...prev, [meeting.id]: true }));
-                                setTimeout(() => {
-                                  setRecentlyAssignedFolders(prev => ({ ...prev, [meeting.id]: false }));
-                                }, 2000);
                               }}>
                                 None (Unfiled)
                               </DropdownMenuItem>
@@ -2417,15 +2402,14 @@ export const MeetingHistoryList = ({
                                 <DropdownMenuItem 
                                   key={folder.id}
                                   onClick={async () => {
+                                    console.log('🗂 Child: Assigning meeting to folder', { meetingId: meeting.id, folderId: folder.id });
                                     await assignMeetingToFolder(meeting.id, folder.id);
+                                    // Notify parent immediately
+                                    onFolderAssigned?.(meeting.id, folder.id);
+                                    // Optimistic local update for immediate feedback
                                     setLocalMeetings(prev => prev.map(m => 
                                       m.id === meeting.id ? { ...m, folder_id: folder.id } : m
                                     ));
-                                    // Mark as recently assigned to protect optimistic update
-                                    setRecentlyAssignedFolders(prev => ({ ...prev, [meeting.id]: true }));
-                                    setTimeout(() => {
-                                      setRecentlyAssignedFolders(prev => ({ ...prev, [meeting.id]: false }));
-                                    }, 2000);
                                   }}
                                 >
                                   <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
@@ -2948,15 +2932,14 @@ export const MeetingHistoryList = ({
         currentFolderId={selectedMeetingForFolder?.folder_id}
         onAssign={async (folderId) => {
           if (selectedMeetingForFolder) {
+            console.log('🗂 Child: Mobile sheet assigning folder', { meetingId: selectedMeetingForFolder.id, folderId });
             await assignMeetingToFolder(selectedMeetingForFolder.id, folderId);
+            // Notify parent immediately
+            onFolderAssigned?.(selectedMeetingForFolder.id, folderId);
+            // Optimistic local update for immediate feedback
             setLocalMeetings(prev => prev.map(m => 
               m.id === selectedMeetingForFolder.id ? { ...m, folder_id: folderId } : m
             ));
-            // Mark as recently assigned to protect optimistic update
-            setRecentlyAssignedFolders(prev => ({ ...prev, [selectedMeetingForFolder.id]: true }));
-            setTimeout(() => {
-              setRecentlyAssignedFolders(prev => ({ ...prev, [selectedMeetingForFolder.id]: false }));
-            }, 2000);
           }
         }}
       />
