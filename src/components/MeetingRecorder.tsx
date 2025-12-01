@@ -2213,6 +2213,7 @@ export const MeetingRecorder = ({
       let audioBuffer: Float32Array[] = [];
       let bufferDuration = 0;
       const targetDuration = 3; // Process every 3 seconds
+      let systemAudioChunkNumber = 0;
       
       processor.onaudioprocess = (event) => {
         const inputBuffer = event.inputBuffer;
@@ -2234,7 +2235,8 @@ export const MeetingRecorder = ({
         
         // Process when we have enough audio
         if (bufferDuration >= targetDuration) {
-          processAudioBuffer(audioBuffer, audioContext.sampleRate);
+          systemAudioChunkNumber++;
+          processAudioBuffer(audioBuffer, audioContext.sampleRate, systemAudioChunkNumber);
           audioBuffer = [];
           bufferDuration = 0;
         }
@@ -2258,7 +2260,7 @@ export const MeetingRecorder = ({
   };
 
   // Process audio buffer and send to speech-to-text API
-  const processAudioBuffer = async (audioBuffer: Float32Array[], sampleRate: number) => {
+  const processAudioBuffer = async (audioBuffer: Float32Array[], sampleRate: number, chunkNumber: number) => {
     try {
       // Combine all audio chunks
       const totalLength = audioBuffer.reduce((acc, chunk) => acc + chunk.length, 0);
@@ -2279,7 +2281,7 @@ export const MeetingRecorder = ({
         return;
       }
       
-      addDebugLog(`🔊 Processing audio chunk (RMS: ${rms.toFixed(4)})`);
+      addDebugLog(`🔊 Processing system audio chunk #${chunkNumber} (RMS: ${rms.toFixed(4)})`);
       
       // Convert to WAV format
       const wavBuffer = encodeWAV(combinedBuffer, sampleRate);
@@ -2302,19 +2304,43 @@ export const MeetingRecorder = ({
       const result = await response.json();
       
       if (result.text && result.text.trim()) {
-        addDebugLog(`🎙️ Custom: "${result.text}"`);
+        addDebugLog(`🎙️ System Audio Chunk #${chunkNumber}: "${result.text.substring(0, 50)}..."`);
+        
+        // Create transcript data with chunk info
         const transcriptData: TranscriptData = {
           text: result.text,
-          speaker: 'Speaker Audio',
+          speaker: 'System Audio',
           isFinal: true,
           confidence: 0.85,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          chunkNumber: chunkNumber
         };
+        
+        // Process through transcript handler for display
         handleTranscript(transcriptData);
+        
+        // Also save as a database chunk 
+        const currentMeetingId = sessionStorage.getItem('currentMeetingId');
+        if (currentMeetingId) {
+          const chunkStartTime = new Date();
+          await supabase
+            .from('audio_chunks')
+            .insert({
+              meeting_id: currentMeetingId,
+              chunk_number: chunkNumber,
+              start_time: chunkStartTime.toISOString(),
+              end_time: new Date(chunkStartTime.getTime() + 3000).toISOString(),
+              processing_status: 'completed',
+              chunk_duration_ms: 3000
+            });
+          
+          addDebugLog(`💾 Saved system audio chunk #${chunkNumber} to database`);
+        }
       }
       
     } catch (error) {
       addDebugLog(`❌ Audio processing error: ${error.message}`);
+      console.error('System audio processing error:', error);
     }
   };
 
