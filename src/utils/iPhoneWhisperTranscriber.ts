@@ -18,6 +18,8 @@ export class iPhoneWhisperTranscriber {
   private transcriptionInterval: NodeJS.Timeout | null = null;
   private overlapBuffer: Blob[] = [];
   private chunkTimeout: ReturnType<typeof setTimeout> | null = null;
+  private overlapDuration = 2000; // 2 seconds overlap between chunks
+  private lastChunkEndBuffer: Blob | null = null; // Store last 2s of previous chunk
   private recordingStartTime = 0;
   private lastIntervalMs = 0;
   private meetingId: string | null = null;
@@ -232,20 +234,25 @@ export class iPhoneWhisperTranscriber {
     scheduleNext();
   }
 
-  private async processAudioChunks() {
+  private async processAudioChunks(isFinalChunk = false) {
     if (this.audioChunks.length === 0) return;
 
     try {
-      // No overlap buffer - process chunks as-is for timestamp-based deduplication
-      const audioBlob = new Blob(this.audioChunks, { type: this.audioChunks[0].type });
+      // Prepend last chunk's end buffer to create 2-second overlap
+      const chunksToProcess = this.lastChunkEndBuffer 
+        ? [this.lastChunkEndBuffer, ...this.audioChunks]
+        : this.audioChunks;
       
-      this.audioChunks = []; // Clear current chunks after processing
+      const audioBlob = new Blob(chunksToProcess, { type: this.audioChunks[0].type });
+      
+      // Clear current chunks after combining with overlap
+      this.audioChunks = [];
       
       const elapsed = Date.now() - this.recordingStartTime;
 
-      // Skip very small audio chunks, but allow smaller ones early for quick feedback
-      const minSize = elapsed < 5000 ? 3000 : elapsed < 20000 ? 5000 : elapsed < 60000 ? 12000 : 40000; // bytes
-      if (audioBlob.size < minSize) {
+      // More permissive minimum size threshold to capture all content
+      const minSize = 2000; // 2KB minimum for all chunks
+      if (!isFinalChunk && audioBlob.size < minSize) {
         console.log(`📱 Skipping small audio chunk (size=${audioBlob.size}, min=${minSize})`);
         return;
       }
@@ -254,10 +261,21 @@ export class iPhoneWhisperTranscriber {
       const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Phase 2: Check audio activity before transcription
-      if (!hasAudioActivity(uint8Array, 0.01)) {
+      // Phase 2: Check audio activity before transcription (lowered threshold for quiet speech)
+      if (!isFinalChunk && !hasAudioActivity(uint8Array, 0.001)) {
         console.log(`🔇 Skipping iPhone chunk due to low audio activity`);
         return; // Skip transcription for silent chunks
+      }
+      
+      // Save last 2 seconds of this chunk as buffer for next chunk (for overlap)
+      // Estimate: ~2KB per second for typical audio, so 4KB for 2 seconds
+      const estimatedBytesPerSecond = audioBlob.size / (this.lastIntervalMs / 1000);
+      const overlapBytes = Math.floor(estimatedBytesPerSecond * (this.overlapDuration / 1000));
+      
+      if (audioBlob.size > overlapBytes) {
+        const overlapStart = audioBlob.size - overlapBytes;
+        this.lastChunkEndBuffer = audioBlob.slice(overlapStart);
+        console.log(`💾 Saved ${overlapBytes} bytes (${this.overlapDuration}ms) as overlap buffer for next chunk`);
       }
       
       // Convert to base64 in chunks to prevent memory issues
@@ -495,10 +513,10 @@ export class iPhoneWhisperTranscriber {
       await new Promise(resolve => setTimeout(resolve, 100));
     }
 
-    // Process final chunk if any audio data remains
+    // Process final chunk if any audio data remains (force processing even if small)
     if (this.audioChunks.length > 0) {
       console.log('🔄 Processing final audio chunk before stopping...');
-      await this.processAudioChunks();
+      await this.processAudioChunks(true); // isFinalChunk = true bypasses size check
     }
 
     if (this.stream) {
