@@ -4820,12 +4820,23 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                       <div className="space-y-1">
                         
                        <div className="flex items-center justify-between gap-3 text-primary animate-pulse bg-gradient-to-r from-primary/10 to-primary/5 rounded-lg p-4 border border-primary/20">
-                        <div className="flex items-center gap-3">
-                          <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
-                          <span className="text-base font-semibold">
-                            {isPaused ? "Recording paused..." : "Recording in progress..."}
-                          </span>
-                        </div>
+                         <div className="flex items-center gap-3">
+                           <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse"></div>
+                           <span className="text-base font-semibold">
+                             {isPaused ? "Recording paused..." : "Recording in progress..."}
+                           </span>
+                           
+                           {/* Audio Activity Indicator */}
+                           {!isPaused && audioActivity && (
+                             <div className="flex items-center gap-1">
+                               <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+                               <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+                               <div className="w-1 h-5 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+                               <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '450ms' }} />
+                               <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '600ms' }} />
+                             </div>
+                           )}
+                         </div>
                         <div className="flex items-center gap-2">
                           {/* Pause/Unpause Button */}
                           <Tooltip>
