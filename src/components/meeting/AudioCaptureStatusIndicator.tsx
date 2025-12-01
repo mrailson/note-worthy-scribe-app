@@ -18,9 +18,16 @@ export const AudioCaptureStatusIndicator = ({
   if (!isRecording) return null;
 
   const getMicStatus = () => {
+    // In mic+system mode the microphone might not be required (e.g. recording a remote Teams call)
+    if (recordingMode === 'mic-and-system' && !micCaptured) {
+      return { icon: Mic, color: "text-muted-foreground", label: "Mic not used (system audio only)" };
+    }
+
     if (micCaptured) {
       return { icon: CheckCircle2, color: "text-green-500", label: "Mic Active" };
     }
+
+    // Only treat as an error in mic-only mode
     return { icon: XCircle, color: "text-red-500", label: "Mic Inactive" };
   };
 
