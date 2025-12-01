@@ -293,9 +293,28 @@ export class iPhoneWhisperTranscriber {
 
       console.log('📡 Sending audio to Whisper API...');
 
-      // Send to Whisper API
+      // Determine MIME type and filename so the edge function can pass correct format to OpenAI
+      const mimeType = this.audioChunks[0]?.type || 'audio/webm';
+      let extension = 'webm';
+      if (mimeType.includes('mp4') || mimeType.includes('aac')) {
+        extension = 'm4a';
+      } else if (mimeType.includes('wav')) {
+        extension = 'wav';
+      } else if (mimeType.includes('ogg')) {
+        extension = 'ogg';
+      }
+      const fileName = `iphone-audio.${extension}`;
+
+      // Send to Whisper API via Supabase edge function
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
-        body: { audio: base64Audio, language: 'en', temperature: 0, condition_on_previous_text: false }
+        body: {
+          audio: base64Audio,
+          mimeType,
+          fileName,
+          language: 'en',
+          temperature: 0,
+          condition_on_previous_text: false
+        }
       });
 
       if (error) {
