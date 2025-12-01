@@ -2314,11 +2314,20 @@ export const MeetingRecorder = ({
         // Process through transcript handler for display
         handleTranscript(transcriptData);
         
-        // Update word count tracking
-        setChunkSaveStatuses(prev => ({
-          ...prev,
-          [chunkNumber]: result.text
-        }));
+        // Update word count tracking by adding proper ChunkSaveStatus object
+        const chunkTime = Date.now();
+        setChunkSaveStatuses(prev => [...prev, {
+          id: `system-audio-${chunkNumber}-${chunkTime}`,
+          chunkNumber: chunkNumber,
+          text: result.text,
+          chunkLength: result.text.length,
+          saveStatus: 'saved',
+          saveTimestamp: new Date().toISOString(),
+          retryCount: 0,
+          confidence: result.confidence || 0.85,
+          startTime: (chunkTime - 15000) / 1000, // 15 seconds ago in seconds
+          endTime: chunkTime / 1000 // now in seconds
+        }]);
         
         // Also save as a database chunk 
         const currentMeetingId = sessionStorage.getItem('currentMeetingId');
