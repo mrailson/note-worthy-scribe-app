@@ -23,6 +23,7 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
+  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 
 interface MeetingFoldersManagerProps {
@@ -35,7 +36,6 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
   
   const [isCreating, setIsCreating] = useState(false);
   const [editingFolder, setEditingFolder] = useState<MeetingFolder | null>(null);
-  const [deletingFolder, setDeletingFolder] = useState<MeetingFolder | null>(null);
   
   const [folderName, setFolderName] = useState("");
   const [folderDescription, setFolderDescription] = useState("");
@@ -92,13 +92,9 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
     }
   };
 
-  const handleDeleteFolder = async () => {
-    if (!deletingFolder) return;
-    
-    const result = await deleteFolder(deletingFolder.id);
-    if (result) {
-      setDeletingFolder(null);
-    }
+  const handleDeleteFolder = async (folder: MeetingFolder) => {
+    const result = await deleteFolder(folder.id);
+    return result;
   };
 
   const startEditing = (folder: MeetingFolder) => {
@@ -174,13 +170,33 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setDeletingFolder(folder)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Delete Folder</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Are you sure you want to delete "{folder.name}"? Meetings in this folder will not be deleted, just unfiled.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteFolder(folder)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
+                                  Delete
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
                         </div>
                       </div>
                     ))}
@@ -259,26 +275,6 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deletingFolder} onOpenChange={(open) => !open && setDeletingFolder(null)}>
-        <AlertDialogContent className="z-[100]">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Folder</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deletingFolder && (
-                <>
-                  Are you sure you want to delete "{deletingFolder.name}"? Meetings in this folder will not be deleted, just unfiled.
-                </>
-              )}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeletingFolder(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteFolder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-              Delete
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 };
