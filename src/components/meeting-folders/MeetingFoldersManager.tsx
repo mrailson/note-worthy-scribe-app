@@ -40,6 +40,7 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
   const [folderName, setFolderName] = useState("");
   const [folderDescription, setFolderDescription] = useState("");
   const [folderColour, setFolderColour] = useState("#3b82f6");
+  const [nameError, setNameError] = useState("");
 
   const predefinedColours = [
     { name: "Blue", value: "#3b82f6" },
@@ -55,6 +56,13 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
   const handleCreateFolder = async () => {
     if (!folderName.trim()) return;
     
+    // Check for duplicate name
+    const duplicate = folders.find(f => f.name.toLowerCase() === folderName.trim().toLowerCase());
+    if (duplicate) {
+      setNameError("A folder with this name already exists");
+      return;
+    }
+    
     const result = await createFolder(folderName, folderDescription, folderColour);
     if (result) {
       resetForm();
@@ -63,6 +71,15 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
 
   const handleUpdateFolder = async () => {
     if (!editingFolder || !folderName.trim()) return;
+    
+    // Check for duplicate name (excluding current folder)
+    const duplicate = folders.find(f => 
+      f.id !== editingFolder.id && f.name.toLowerCase() === folderName.trim().toLowerCase()
+    );
+    if (duplicate) {
+      setNameError("A folder with this name already exists");
+      return;
+    }
     
     const result = await updateFolder(editingFolder.id, {
       name: folderName,
@@ -98,6 +115,7 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
     setFolderName("");
     setFolderDescription("");
     setFolderColour("#3b82f6");
+    setNameError("");
   };
 
   return (
@@ -177,8 +195,15 @@ export const MeetingFoldersManager = ({ open, onOpenChange }: MeetingFoldersMana
                     id="folder-name"
                     placeholder="e.g., PCN Board Meetings"
                     value={folderName}
-                    onChange={(e) => setFolderName(e.target.value)}
+                    onChange={(e) => {
+                      setFolderName(e.target.value);
+                      setNameError("");
+                    }}
+                    className={nameError ? "border-destructive" : ""}
                   />
+                  {nameError && (
+                    <p className="text-sm text-destructive">{nameError}</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">
