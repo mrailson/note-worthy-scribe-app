@@ -4778,34 +4778,55 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 <div className="text-center space-y-4">
                    {!isRecording ? (
                        <div className="space-y-4">
-                        {/* Recording Mode Selector */}
+                         {/* Recording Mode Slider */}
                         <div className="p-4 bg-secondary/30 rounded-lg border border-border/50">
-                          <Label className="text-sm font-semibold mb-3 block">Audio Source</Label>
-                          <div className="grid grid-cols-2 gap-3">
-                            <Button
-                              type="button"
-                              variant={recordingMode === 'mic-only' ? 'default' : 'outline'}
-                              onClick={() => setRecordingMode('mic-only')}
-                              className="flex flex-col items-center gap-2 h-auto py-3"
+                          <Label className="text-sm font-semibold mb-4 block text-center">Audio Source</Label>
+                          
+                          <div className="relative px-6">
+                            {/* Slider Track Background */}
+                            <div className="absolute inset-x-6 top-1/2 -translate-y-1/2 h-2 bg-border rounded-full" />
+                            
+                            {/* Active Track Fill */}
+                            <div 
+                              className="absolute top-1/2 -translate-y-1/2 h-2 bg-primary rounded-full transition-all duration-300"
+                              style={{
+                                left: recordingMode === 'mic-only' ? '1.5rem' : '50%',
+                                right: recordingMode === 'mic-and-system' ? '1.5rem' : '50%'
+                              }}
+                            />
+                            
+                            {/* Slider Handle */}
+                            <div 
+                              className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 transition-all duration-300"
+                              style={{ left: recordingMode === 'mic-only' ? '1.5rem' : 'calc(100% - 1.5rem)' }}
                             >
-                              <Mic className="h-5 w-5" />
-                              <div className="text-center">
-                                <div className="font-semibold text-sm">Microphone Only</div>
-                                <div className="text-xs opacity-80">In-person meetings</div>
-                              </div>
-                            </Button>
-                            <Button
-                              type="button"
-                              variant={recordingMode === 'mic-and-system' ? 'default' : 'outline'}
-                              onClick={() => setRecordingMode('mic-and-system')}
-                              className="flex flex-col items-center gap-2 h-auto py-3"
-                            >
-                              <MonitorSpeaker className="h-5 w-5" />
-                              <div className="text-center">
-                                <div className="font-semibold text-sm">Mic + System Audio</div>
-                                <div className="text-xs opacity-80">Teams/Zoom meetings</div>
-                              </div>
-                            </Button>
+                              <div className="w-6 h-6 rounded-full bg-primary border-4 border-background shadow-lg cursor-pointer hover:scale-110 transition-transform" />
+                            </div>
+                            
+                            {/* Click Areas */}
+                            <div className="relative flex justify-between items-center gap-4 py-8">
+                              <button
+                                type="button"
+                                onClick={() => setRecordingMode('mic-only')}
+                                className="flex-1 flex flex-col items-center gap-2 cursor-pointer group"
+                              >
+                                <Mic className={`h-5 w-5 transition-colors ${recordingMode === 'mic-only' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                                <span className={`text-sm font-medium transition-colors text-center ${recordingMode === 'mic-only' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                                  Microphone Only
+                                </span>
+                              </button>
+                              
+                              <button
+                                type="button"
+                                onClick={() => setRecordingMode('mic-and-system')}
+                                className="flex-1 flex flex-col items-center gap-2 cursor-pointer group"
+                              >
+                                <MonitorSpeaker className={`h-5 w-5 transition-colors ${recordingMode === 'mic-and-system' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
+                                <span className={`text-sm font-medium transition-colors text-center ${recordingMode === 'mic-and-system' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                                  Teams/Zoom Meetings
+                                </span>
+                              </button>
+                            </div>
                           </div>
                         </div>
                         
