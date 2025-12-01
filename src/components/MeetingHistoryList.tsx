@@ -273,10 +273,8 @@ export const MeetingHistoryList = ({
     fetchPracticesAndLocations();
   }, [user?.id]);
 
-  // Sync local meetings with prop changes and fetch attendees for visible meetings only
+  // Fetch attendees for visible meetings only (do not overwrite localMeetings here)
   useEffect(() => {
-    setLocalMeetings(meetings);
-    
     // Fetch attendees only for currently visible meetings (current page)
     const fetchAttendeesForVisibleMeetings = async () => {
       const meetingIds = meetings.map(m => m.id);
