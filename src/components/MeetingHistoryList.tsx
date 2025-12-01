@@ -218,18 +218,25 @@ export const MeetingHistoryList = ({
   // Sync localMeetings with meetings prop when it changes, but protect optimistic updates
   useEffect(() => {
     setLocalMeetings(prevLocal => {
-      // For each meeting in the new data, check if it was recently assigned a folder
+      // For each meeting in the new data, prefer any locally-set folder_id
+      // if the incoming data does not include one. This prevents the
+      // folder badge from disappearing after assignment when the parent
+      // meetings query doesn’t yet return folder_id.
       return meetings.map(meeting => {
-        // If this meeting was recently assigned, keep the local version for 2 seconds
-        if (recentlyAssignedFolders[meeting.id]) {
-          const localVersion = prevLocal.find(m => m.id === meeting.id);
-          return localVersion || meeting;
+        const localVersion = prevLocal.find(m => m.id === meeting.id) || meeting;
+
+        // If local has a folder_id and the fresh meeting data does not,
+        // keep the local folder assignment.
+        if (localVersion.folder_id && !meeting.folder_id) {
+          return { ...meeting, folder_id: localVersion.folder_id };
         }
+
+        // Otherwise fall back to the latest meeting data.
         return meeting;
       });
     });
-  }, [meetings, recentlyAssignedFolders]);
-  
+  }, [meetings]);
+
   // Fetch user practices and custom locations
   useEffect(() => {
     const fetchPracticesAndLocations = async () => {
