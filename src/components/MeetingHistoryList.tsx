@@ -2391,28 +2391,32 @@ export const MeetingHistoryList = ({
                         </DropdownMenuTrigger>
                         <DropdownMenuContent side="right" align="start">
                           <DropdownMenuItem onClick={async () => {
-                            await assignMeetingToFolder(meeting.id, null);
-                            setLocalMeetings(prev => prev.map(m => 
-                              m.id === meeting.id ? { ...m, folder_id: null } : m
-                            ));
-                          }}>
-                            None (Unfiled)
-                          </DropdownMenuItem>
-                          {folders.map((folder) => (
-                            <DropdownMenuItem 
-                              key={folder.id}
-                              onClick={async () => {
-                                await assignMeetingToFolder(meeting.id, folder.id);
-                                setLocalMeetings(prev => prev.map(m => 
-                                  m.id === meeting.id ? { ...m, folder_id: folder.id } : m
-                                ));
-                              }}
-                            >
-                              <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
-                              {folder.name}
-                            </DropdownMenuItem>
-                          ))}
-                        </DropdownMenuContent>
+                             await assignMeetingToFolder(meeting.id, null);
+                             setLocalMeetings(prev => prev.map(m => 
+                               m.id === meeting.id ? { ...m, folder_id: null } : m
+                             ));
+                             // Refresh parent data so folder filters use up-to-date folder_id
+                             onRefresh?.();
+                           }}>
+                             None (Unfiled)
+                           </DropdownMenuItem>
+                           {folders.map((folder) => (
+                             <DropdownMenuItem 
+                               key={folder.id}
+                               onClick={async () => {
+                                 await assignMeetingToFolder(meeting.id, folder.id);
+                                 setLocalMeetings(prev => prev.map(m => 
+                                   m.id === meeting.id ? { ...m, folder_id: folder.id } : m
+                                 ));
+                                 // Refresh parent data so folder filters use up-to-date folder_id
+                                 onRefresh?.();
+                               }}
+                             >
+                               <Folder className="h-3 w-3 mr-2" style={{ color: folder.colour }} />
+                               {folder.name}
+                             </DropdownMenuItem>
+                           ))}
+                         </DropdownMenuContent>
                       </DropdownMenu>
 
                       <DropdownMenuItem 
