@@ -4780,7 +4780,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                        <div className="space-y-4">
                          {/* Recording Mode Slider */}
                         <div className="p-4 bg-secondary/30 rounded-lg border border-border/50">
-                          <Label className="text-sm font-semibold mb-4 block text-center">Audio Source</Label>
+                          <Label className="text-sm font-semibold mb-4 block text-center">Audio Source/Meeting Type</Label>
                           
                           <div className="relative px-6">
                             {/* Slider Track Background */}
@@ -4812,7 +4812,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                               >
                                 <Mic className={`h-5 w-5 transition-colors ${recordingMode === 'mic-only' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`} />
                                 <span className={`text-sm font-medium transition-colors text-center ${recordingMode === 'mic-only' ? 'text-primary' : 'text-muted-foreground group-hover:text-foreground'}`}>
-                                  Microphone Only
+                                  Microphone Only/Face to Face Meeting
                                 </span>
                               </button>
                               
