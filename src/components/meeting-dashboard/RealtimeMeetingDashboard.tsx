@@ -8,6 +8,7 @@ import { SmartValidationTab } from "./tabs/SmartValidationTab";
 import { LiveNotesTab } from "./tabs/LiveNotesTab";
 import { DashboardProvider } from "./utils/DashboardContext";
 import { cn } from "@/lib/utils";
+import { detectDevice } from "@/utils/DeviceDetection";
 
 interface RealtimeMeetingDashboardProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export const RealtimeMeetingDashboard = ({
 }: RealtimeMeetingDashboardProps) => {
   const [activeTab, setActiveTab] = useState("setup");
   const [isMinimized, setIsMinimized] = useState(false);
+  const isIOS = detectDevice().isIOS;
 
   // Auto-switch to validation tab when recording starts
   useEffect(() => {
@@ -58,7 +60,8 @@ export const RealtimeMeetingDashboard = ({
     }
   ];
 
-  if (isMinimized) {
+  // Don't show minimized floating button on iOS
+  if (isMinimized && !isIOS) {
     return (
       <div className="fixed bottom-4 right-4 z-50">
         <Button 
@@ -89,13 +92,16 @@ export const RealtimeMeetingDashboard = ({
                 )}
               </DialogTitle>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setIsMinimized(true)}
-                >
-                  Minimize
-                </Button>
+                {/* Hide minimize button on iOS since floating button won't show */}
+                {!isIOS && (
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={() => setIsMinimized(true)}
+                  >
+                    Minimize
+                  </Button>
+                )}
                 <Button variant="ghost" size="icon" onClick={onClose}>
                   <X className="h-4 w-4" />
                 </Button>
