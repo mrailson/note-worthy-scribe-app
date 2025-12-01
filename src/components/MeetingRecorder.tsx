@@ -4851,16 +4851,16 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                              {isPaused ? "Recording paused..." : "Recording in progress..."}
                            </span>
                            
-                           {/* Audio Activity Indicator */}
-                           {!isPaused && audioActivity && (
-                             <div className="flex items-center gap-1">
-                               <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
-                               <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
-                               <div className="w-1 h-5 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
-                               <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '450ms' }} />
-                               <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '600ms' }} />
-                             </div>
-                           )}
+                            {/* Audio Activity Indicator - Hidden on iOS */}
+                            {!isPaused && audioActivity && !isIOS && (
+                              <div className="flex items-center gap-1">
+                                <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '0ms' }} />
+                                <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '150ms' }} />
+                                <div className="w-1 h-5 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '300ms' }} />
+                                <div className="w-1 h-4 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '450ms' }} />
+                                <div className="w-1 h-3 bg-green-500 rounded-full animate-pulse" style={{ animationDelay: '600ms' }} />
+                              </div>
+                            )}
                          </div>
                         <div className="flex items-center gap-2">
                           {/* Pause/Unpause Button */}
