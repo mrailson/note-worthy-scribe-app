@@ -96,39 +96,6 @@ export class iPhoneWhisperTranscriber {
     }
   }
 
-  private createMediaRecorder() {
-    if (!this.stream) {
-      throw new Error('No audio stream available for MediaRecorder');
-    }
-
-    const recorder = new MediaRecorder(this.stream, {
-      mimeType: this.selectedMimeType,
-      audioBitsPerSecond: 128000 // Higher bitrate to reduce artifacts on iOS
-    });
-
-    recorder.ondataavailable = (event) => {
-      if (event.data.size > 0) {
-        this.audioChunks.push(event.data);
-        this.fullRecordingChunks.push(event.data);
-      }
-    };
-
-    recorder.onstop = async () => {
-      if (this.audioChunks.length > 0) {
-        const isFinalChunk = !this.isRecording;
-        await this.processAudioChunks(isFinalChunk);
-      }
-    };
-
-    recorder.onerror = (event) => {
-      console.error('📱 MediaRecorder error:', event);
-      this.onError('Recording error occurred');
-    };
-
-    this.mediaRecorder = recorder;
-    console.log('🔄 Created new iPhone MediaRecorder instance with MIME type:', this.selectedMimeType);
-    return recorder;
-  }
   
   async startTranscription() {
     try {
@@ -190,8 +157,26 @@ export class iPhoneWhisperTranscriber {
         }
       }
 
-      // Create initial MediaRecorder instance
-      this.createMediaRecorder();
+      // Create single MediaRecorder that will run for entire session
+      this.mediaRecorder = new MediaRecorder(this.stream, {
+        mimeType: this.selectedMimeType,
+        audioBitsPerSecond: 128000 // Higher bitrate to reduce artifacts on iOS
+      });
+
+      this.mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          console.log(`📦 iPhone MediaRecorder ondataavailable: ${event.data.size} bytes`);
+          this.audioChunks.push(event.data);
+          this.fullRecordingChunks.push(event.data);
+        }
+      };
+
+      this.mediaRecorder.onerror = (event) => {
+        console.error('📱 MediaRecorder error:', event);
+        this.onError('Recording error occurred');
+      };
+
+      console.log('✅ Created single iPhone MediaRecorder instance with MIME type:', this.selectedMimeType);
 
       // Wait briefly for audio stream to fully initialize (prevents missing first seconds)
       await new Promise(resolve => setTimeout(resolve, 200));
@@ -210,55 +195,38 @@ export class iPhoneWhisperTranscriber {
   }
 
   private startChunkedRecording() {
-    if (!this.isRecording) return;
+    if (!this.isRecording || !this.mediaRecorder) return;
 
-    if (!this.mediaRecorder) {
-      this.createMediaRecorder();
-    }
-
-    // Start recording and dynamically adjust chunking frequency
     this.recordingStartTime = Date.now();
-    this.mediaRecorder!.start();
+    this.mediaRecorder.start();  // Start ONCE, never stop until user ends recording
+    
+    console.log('📱 iPhone MediaRecorder started - will use requestData() for chunks');
 
-    // Fixed 15-second chunks for iPhone testing
-    const getInterval = (elapsed: number) => {
-      return 15000; // Fixed 15-second interval
-    };
+    const CHUNK_INTERVAL = 60000; // 60 seconds as user requested
 
-    const scheduleNext = () => {
+    const scheduleChunkExtraction = () => {
       if (!this.isRecording) return;
-      const elapsed = Date.now() - this.recordingStartTime;
-      const interval = getInterval(elapsed);
-      console.log(`⏱️ Next iPhone chunk in ${interval}ms (elapsed ${elapsed}ms)`);
-      this.lastIntervalMs = interval;
-
-      this.chunkTimeout = setTimeout(() => {
-        if (this.mediaRecorder && this.isRecording && this.mediaRecorder.state === 'recording') {
-          console.log('🧩 Stopping current iPhone MediaRecorder for chunk rotation');
-          this.mediaRecorder.stop();
-
-          // After stopping, create a fresh MediaRecorder for the next chunk
-          setTimeout(() => {
-            if (!this.isRecording || !this.stream) {
-              return;
+      
+      this.chunkTimeout = setTimeout(async () => {
+        if (this.mediaRecorder && this.isRecording && 
+            this.mediaRecorder.state === 'recording') {
+          
+          console.log('📤 Calling requestData() to extract chunk...');
+          this.mediaRecorder.requestData();  // Triggers ondataavailable WITHOUT stopping
+          
+          // Wait for ondataavailable to fire, then process
+          setTimeout(async () => {
+            if (this.audioChunks.length > 0) {
+              this.lastIntervalMs = CHUNK_INTERVAL;
+              await this.processAudioChunks(false);
             }
-
-            const newRecorder = this.createMediaRecorder();
-            console.log('▶️ Starting new iPhone MediaRecorder for next chunk');
-            newRecorder.start();
-            scheduleNext();
-          }, 200);
-        } else if (this.isRecording) {
-          // If not recording for any reason but still marked as recording, try to recreate
-          console.log('♻️ MediaRecorder not in recording state, recreating...');
-          const newRecorder = this.createMediaRecorder();
-          newRecorder.start();
-          scheduleNext();
+            scheduleChunkExtraction(); // Schedule next extraction
+          }, 500);  // 500ms should be enough for ondataavailable
         }
-      }, interval);
+      }, CHUNK_INTERVAL);
     };
 
-    scheduleNext();
+    scheduleChunkExtraction();
   }
 
   private async processAudioChunks(isFinalChunk = false) {
@@ -550,22 +518,26 @@ export class iPhoneWhisperTranscriber {
       clearInterval(this.transcriptionInterval);
       this.transcriptionInterval = null;
     }
+    // Clear scheduled chunk extraction
     if (this.chunkTimeout) {
       clearTimeout(this.chunkTimeout);
       this.chunkTimeout = null;
     }
 
-    // Process any remaining audio chunks before stopping
-    if (this.mediaRecorder && this.mediaRecorder.state !== 'inactive') {
+    // Extract final data from the still-running recorder
+    if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      console.log('📤 Extracting final chunk via requestData()...');
+      this.mediaRecorder.requestData();
+      
+      // Wait for ondataavailable, then process final chunk
+      await new Promise(resolve => setTimeout(resolve, 500));
+      if (this.audioChunks.length > 0) {
+        console.log('🔄 Processing final audio chunk before stopping...');
+        await this.processAudioChunks(true);  // isFinal = true
+      }
+      
+      // NOW stop the recorder
       this.mediaRecorder.stop();
-      // Wait a moment for the final ondataavailable event
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-
-    // Process final chunk if any audio data remains (force processing even if small)
-    if (this.audioChunks.length > 0) {
-      console.log('🔄 Processing final audio chunk before stopping...');
-      await this.processAudioChunks(true); // isFinalChunk = true bypasses size check
     }
 
     if (this.stream) {
