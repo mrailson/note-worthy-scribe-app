@@ -2205,14 +2205,14 @@ export const MeetingRecorder = ({
       
       // Create a gain node to amplify speaker audio
       const gainNode = audioContext.createGain();
-      gainNode.gain.value = 10.0; // Much higher amplification for speaker audio
+      gainNode.gain.value = 2.0; // Moderate amplification for speaker audio
       
       // Create a processor for chunked audio processing
       const processor = audioContext.createScriptProcessor(4096, 1, 1);
       
       let audioBuffer: Float32Array[] = [];
       let bufferDuration = 0;
-      const targetDuration = 3; // Process every 3 seconds
+      const targetDuration = 15; // Process every 15 seconds (matches microphone path)
       let systemAudioChunkNumber = 0;
       
       processor.onaudioprocess = (event) => {
@@ -2274,7 +2274,7 @@ export const MeetingRecorder = ({
       
       // Check if audio has sufficient volume (speaker audio detection)
       const rms = Math.sqrt(combinedBuffer.reduce((acc, val) => acc + val * val, 0) / combinedBuffer.length);
-      const volumeThreshold = 0.001; // Much lower threshold for weak speaker audio
+      const volumeThreshold = 0.0001; // Very low threshold to capture quiet speaker audio
       
       if (rms < volumeThreshold) {
         addDebugLog(`🔇 Audio too quiet (RMS: ${rms.toFixed(6)}) - likely no speaker audio`);
@@ -2306,13 +2306,19 @@ export const MeetingRecorder = ({
           text: result.text,
           speaker: 'System Audio',
           isFinal: true,
-          confidence: 0.85,
+          confidence: result.confidence || 0.85, // Use actual confidence from API
           timestamp: new Date().toISOString(),
           chunkNumber: chunkNumber
         };
         
         // Process through transcript handler for display
         handleTranscript(transcriptData);
+        
+        // Update word count tracking
+        setChunkSaveStatuses(prev => ({
+          ...prev,
+          [chunkNumber]: result.text
+        }));
         
         // Also save as a database chunk 
         const currentMeetingId = sessionStorage.getItem('currentMeetingId');
@@ -2324,9 +2330,9 @@ export const MeetingRecorder = ({
               meeting_id: currentMeetingId,
               chunk_number: chunkNumber,
               start_time: chunkStartTime.toISOString(),
-              end_time: new Date(chunkStartTime.getTime() + 3000).toISOString(),
+              end_time: new Date(chunkStartTime.getTime() + 15000).toISOString(), // 15 seconds
               processing_status: 'completed',
-              chunk_duration_ms: 3000
+              chunk_duration_ms: 15000
             });
           
           addDebugLog(`💾 Saved system audio chunk #${chunkNumber} to database`);
