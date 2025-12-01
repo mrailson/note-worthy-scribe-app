@@ -202,9 +202,9 @@ export class iPhoneWhisperTranscriber {
     this.recordingStartTime = Date.now();
     this.mediaRecorder.start();
 
-    // Phase 2: Use optimal chunk intervals  
+    // Fixed 15-second chunks for iPhone testing
     const getInterval = (elapsed: number) => {
-      return getOptimalChunkInterval(elapsed, elapsed < 60000); // Early mode for first minute
+      return 15000; // Fixed 15-second interval
     };
 
     const scheduleNext = () => {
