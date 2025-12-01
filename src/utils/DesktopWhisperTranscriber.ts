@@ -33,13 +33,19 @@ export class DesktopWhisperTranscriber {
   private totalWordCount = 0;
   private chunkCounter = 0;
   private meetingSettings: MeetingSettingsWithThresholds;
+  
+  // Audio activity monitoring
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private activityCheckInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void,
     meetingSettings?: any,
-    meetingId?: string
+    meetingId?: string,
+    private onAudioActivity?: (hasActivity: boolean) => void
   ) {
     this.sessionId = meetingId || this.generateSessionId();
     this.meetingId = meetingId || null;
@@ -49,6 +55,41 @@ export class DesktopWhisperTranscriber {
 
   private generateSessionId(): string {
     return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+  
+  private startActivityMonitoring() {
+    if (!this.analyser || !this.onAudioActivity) return;
+    
+    const bufferLength = this.analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    this.activityCheckInterval = setInterval(() => {
+      if (!this.analyser) return;
+      
+      this.analyser.getByteTimeDomainData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const normalized = (dataArray[i] - 128) / 128;
+        sum += normalized * normalized;
+      }
+      const rms = Math.sqrt(sum / bufferLength);
+      
+      // Call callback with activity status
+      if (this.onAudioActivity) {
+        this.onAudioActivity(rms > 0.01);
+      }
+    }, 100); // Check every 100ms
+  }
+  
+  private stopActivityMonitoring() {
+    if (this.activityCheckInterval) {
+      clearInterval(this.activityCheckInterval);
+      this.activityCheckInterval = null;
+    }
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
   }
 
   private smartMerge(oldText: string, newText: string): string {
@@ -165,6 +206,19 @@ export class DesktopWhisperTranscriber {
           autoGainControl: false,  // Disabled - can create artifacts
         }
       });
+      
+      // Set up audio activity monitoring if callback provided
+      if (this.onAudioActivity) {
+        this.audioContext = new AudioContext({ sampleRate: 48000 });
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 256;
+        
+        const source = this.audioContext.createMediaStreamSource(this.stream);
+        source.connect(this.analyser);
+        
+        // Start checking for audio activity
+        this.startActivityMonitoring();
+      }
 
       // Check supported MIME types for desktop
       const mimeTypes = [
@@ -482,6 +536,9 @@ export class DesktopWhisperTranscriber {
 
   async stopTranscription(): Promise<void> {
     console.log('🛑 Stopping desktop Whisper transcription...');
+    
+    // Stop audio activity monitoring
+    this.stopActivityMonitoring();
     
     if (this.transcriptionTimeout) {
       clearTimeout(this.transcriptionTimeout);

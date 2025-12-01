@@ -28,13 +28,19 @@ export class iPhoneWhisperTranscriber {
   private lastSegmentEndTime = 0; // Track the last segment end time to avoid duplicates
   private totalProcessedDuration = 0; // Track cumulative audio duration for time offset
   private finalTranscript = ''; // Accumulated transcript for UI
+  
+  // Audio activity monitoring
+  private audioContext: AudioContext | null = null;
+  private analyser: AnalyserNode | null = null;
+  private activityCheckInterval: NodeJS.Timeout | null = null;
 
   constructor(
     private onTranscription: (data: TranscriptData) => void,
     private onError: (error: string) => void,
     private onStatusChange: (status: string) => void,
     meetingSettings?: any,
-    meetingId?: string
+    meetingId?: string,
+    private onAudioActivity?: (hasActivity: boolean) => void
   ) {
     this.meetingSettings = withDefaultThresholds(meetingSettings);
     if (meetingId) {
@@ -53,6 +59,42 @@ export class iPhoneWhisperTranscriber {
     this.sessionId = id;
     console.log('📎 iPhoneTranscriber session set:', id);
   }
+  
+  private startActivityMonitoring() {
+    if (!this.analyser || !this.onAudioActivity) return;
+    
+    const bufferLength = this.analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+    
+    this.activityCheckInterval = setInterval(() => {
+      if (!this.analyser) return;
+      
+      this.analyser.getByteTimeDomainData(dataArray);
+      let sum = 0;
+      for (let i = 0; i < bufferLength; i++) {
+        const normalized = (dataArray[i] - 128) / 128;
+        sum += normalized * normalized;
+      }
+      const rms = Math.sqrt(sum / bufferLength);
+      
+      // Call callback with activity status
+      if (this.onAudioActivity) {
+        this.onAudioActivity(rms > 0.01);
+      }
+    }, 100); // Check every 100ms
+  }
+  
+  private stopActivityMonitoring() {
+    if (this.activityCheckInterval) {
+      clearInterval(this.activityCheckInterval);
+      this.activityCheckInterval = null;
+    }
+    if (this.audioContext) {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+  }
+  
   async startTranscription() {
     try {
       this.onStatusChange('Starting iPhone transcription...');
@@ -81,6 +123,19 @@ export class iPhoneWhisperTranscriber {
           autoGainControl: false, // Disable AGC to reduce pumping/hallucinations
         }
       });
+      
+      // Set up audio activity monitoring if callback provided
+      if (this.onAudioActivity) {
+        this.audioContext = new AudioContext({ sampleRate: 16000 });
+        this.analyser = this.audioContext.createAnalyser();
+        this.analyser.fftSize = 256;
+        
+        const source = this.audioContext.createMediaStreamSource(this.stream);
+        source.connect(this.analyser);
+        
+        // Start checking for audio activity
+        this.startActivityMonitoring();
+      }
 
       // Check supported MIME types for iPhone
       const mimeTypes = [
@@ -421,6 +476,9 @@ export class iPhoneWhisperTranscriber {
   async stopTranscription() {
     console.log('🛑 Stopping iPhone transcription...');
     this.isRecording = false;
+    
+    // Stop audio activity monitoring
+    this.stopActivityMonitoring();
 
     if (this.transcriptionInterval) {
       clearInterval(this.transcriptionInterval);

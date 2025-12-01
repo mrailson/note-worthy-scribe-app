@@ -2070,7 +2070,8 @@ export const MeetingRecorder = ({
         handleTranscriptionError,
         handleStatusChange,
         meetingSettings, // Pass meeting settings for confidence gating
-        meetingId
+        meetingId,
+        (hasActivity: boolean) => setAudioActivity(hasActivity) // Callback for audio activity
       );
 
       console.log('📱 Starting transcription...');
@@ -2094,7 +2095,8 @@ export const MeetingRecorder = ({
       handleTranscriptionError,
       handleStatusChange,
       meetingSettings, // Pass meeting settings for confidence gating
-      meetingId
+      meetingId,
+      (hasActivity: boolean) => setAudioActivity(hasActivity) // Callback for audio activity
     );
 
     await transcriber.startTranscription();
