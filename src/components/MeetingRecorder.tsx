@@ -4686,6 +4686,37 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 <div className="text-center space-y-4">
                    {!isRecording ? (
                        <div className="space-y-4">
+                        {/* Recording Mode Selector */}
+                        <div className="p-4 bg-secondary/30 rounded-lg border border-border/50">
+                          <Label className="text-sm font-semibold mb-3 block">Audio Source</Label>
+                          <div className="grid grid-cols-2 gap-3">
+                            <Button
+                              type="button"
+                              variant={recordingMode === 'mic-only' ? 'default' : 'outline'}
+                              onClick={() => setRecordingMode('mic-only')}
+                              className="flex flex-col items-center gap-2 h-auto py-3"
+                            >
+                              <Mic className="h-5 w-5" />
+                              <div className="text-center">
+                                <div className="font-semibold text-sm">Microphone Only</div>
+                                <div className="text-xs opacity-80">In-person meetings</div>
+                              </div>
+                            </Button>
+                            <Button
+                              type="button"
+                              variant={recordingMode === 'mic-and-system' ? 'default' : 'outline'}
+                              onClick={() => setRecordingMode('mic-and-system')}
+                              className="flex flex-col items-center gap-2 h-auto py-3"
+                            >
+                              <MonitorSpeaker className="h-5 w-5" />
+                              <div className="text-center">
+                                <div className="font-semibold text-sm">Mic + System Audio</div>
+                                <div className="text-xs opacity-80">Teams/Zoom meetings</div>
+                              </div>
+                            </Button>
+                          </div>
+                        </div>
+                        
                         <Button
                          onClick={startRecording}
                          size="lg"
