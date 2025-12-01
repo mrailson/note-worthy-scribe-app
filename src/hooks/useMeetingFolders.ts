@@ -37,6 +37,21 @@ export const useMeetingFolders = () => {
 
   useEffect(() => {
     fetchFolders();
+
+    const channel = supabase
+      .channel('meeting_folders_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'meeting_folders' },
+        () => {
+          fetchFolders();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [fetchFolders]);
 
   const createFolder = async (name: string, description?: string, colour?: string) => {
