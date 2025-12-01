@@ -93,7 +93,8 @@ serve(async (req) => {
     formData.append('response_format', 'verbose_json');
     // Anti-hallucination parameters
     formData.append('temperature', '0');
-    formData.append('prompt', 'NHS, PCN, ICB, TUPE, NHFT, Statutory Maternity Pay, Agenda for Change, AfC, TeamNet, Enhanced Access, Bugbrook, Mandy, Claire, Malcolm, Anya');
+    // Generic medical terminology prompt - covers NHS meetings but doesn't force context
+    formData.append('prompt', 'Meeting, discussion, NHS, healthcare, medical, patient, clinical, staff, service, budget, policy, project, testing, review');
 
     console.log('📡 SPEECH-TO-TEXT: Sending request to OpenAI Whisper API...');
     
