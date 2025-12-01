@@ -58,11 +58,43 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { data: meeting } = await supabase
-      .from('meetings')
-      .select('meeting_format, meeting_location')
-      .eq('id', meetingId)
-      .single();
+    // Add retry logic for race conditions - wait for meeting to exist
+    let meeting;
+    let retryCount = 0;
+    const maxRetries = 3;
+    
+    while (retryCount < maxRetries) {
+      const { data: meetingData, error: meetingError } = await supabase
+        .from('meetings')
+        .select('meeting_format, meeting_location')
+        .eq('id', meetingId)
+        .maybeSingle();
+
+      if (meetingError) {
+        console.error('❌ Database error fetching meeting:', meetingError);
+        throw new Error(`Database error: ${meetingError.message}`);
+      }
+
+      if (meetingData) {
+        meeting = meetingData;
+        break;
+      }
+
+      retryCount++;
+      if (retryCount < maxRetries) {
+        console.log(`⏳ Meeting not found, retrying in 2s (${retryCount}/${maxRetries})`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+      } else {
+        console.error('❌ Meeting not found after all retries:', meetingId);
+        return new Response(JSON.stringify({ 
+          error: `Meeting not found with ID: ${meetingId}. Please ensure meeting is created before generating overview.`,
+          skipped: true 
+        }), {
+          status: 404,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      }
+    }
 
     // Build authoritative location context
     let locationContext = '';
