@@ -265,11 +265,16 @@ export class iPhoneWhisperTranscriber {
       const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Use very sensitive threshold for quiet iPhone speech
-      if (!isFinalChunk && !hasAudioActivity(uint8Array, 0.00001)) {
-        console.log(`🔇 Skipping iPhone chunk due to low audio activity`);
-        return; // Skip transcription for silent chunks
-      }
+      console.log(`📏 iPhone chunk size=${audioBlob.size} bytes, interval=${this.lastIntervalMs}ms, isFinalChunk=${isFinalChunk}`);
+      
+      // NOTE: For iPhone we now always send chunks to Whisper to avoid missing speech.
+      // If needed later, we can re-enable activity-based skipping once we're 100% confident.
+      // const hasActivity = hasAudioActivity(uint8Array, 0.00001);
+      // console.log(`🎚️ iPhone audio activity for chunk: ${hasActivity}`);
+      // if (!isFinalChunk && !hasActivity) {
+      //   console.log(`🔇 Skipping iPhone chunk due to low audio activity`);
+      //   return; // Skip transcription for silent chunks
+      // }
       
       // Save last 2 seconds of this chunk as buffer for next chunk (for overlap)
       // Estimate: ~2KB per second for typical audio, so 4KB for 2 seconds
