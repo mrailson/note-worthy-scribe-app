@@ -191,16 +191,22 @@ serve(async (req) => {
     let segments = result.segments || [];
     let finalText: string = result.text || '';
 
-    // Detect and filter out obvious prompt-loop / repetitive hallucinations
-    if (finalText) {
-      const cleaned = finalText.replace(/[.,]/g, ' ').toLowerCase();
-      const words = cleaned.split(/\s+/).filter(Boolean);
-      const uniqueWordCount = new Set(words).size;
-      const isShortAndRepetitive = words.length >= 4 && uniqueWordCount <= 3 && finalText.length <= 200;
-      const looksLikePromptLoop = /pcn/i.test(finalText) && /nmht/i.test(finalText) && uniqueWordCount <= 4;
-
-      if ((isShortAndRepetitive || looksLikePromptLoop) && confidence < 0.5 && avg_logprob < -0.5) {
-        console.log('🚫 SPEECH-TO-TEXT: Detected likely hallucinated chunk, discarding transcript text');
+    // Detect and filter out ONLY pure repetitive hallucinations (not legitimate mentions)
+    if (finalText && finalText.length < 150) {
+      const cleaned = finalText.replace(/[.,\s]/g, '').toLowerCase();
+      const words = finalText.toLowerCase().split(/\s+/).filter(Boolean);
+      
+      // Count occurrences of hallucination terms
+      const pcnCount = (finalText.match(/\bpcn\b/gi) || []).length;
+      const nmhtCount = (finalText.match(/\bnmht\b/gi) || []).length;
+      const totalHallucinationTerms = pcnCount + nmhtCount;
+      
+      // Only filter if it's MOSTLY these terms repeated (>70% of words)
+      const hallucinationRatio = totalHallucinationTerms / words.length;
+      const isPureRepetition = hallucinationRatio > 0.7 && totalHallucinationTerms >= 5;
+      
+      if (isPureRepetition && confidence < 0.4 && avg_logprob < -0.6) {
+        console.log('🚫 SPEECH-TO-TEXT: Detected pure repetitive hallucination (ratio:', hallucinationRatio.toFixed(2), ')');
         finalText = '';
         confidence = 0.0;
         no_speech_prob = Math.max(no_speech_prob, 0.95);
