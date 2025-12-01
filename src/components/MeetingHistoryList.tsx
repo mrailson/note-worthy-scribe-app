@@ -2154,12 +2154,25 @@ export const MeetingHistoryList = ({
 
                         if (!meeting.folder_id) return null;
                         const folder = folders.find(f => f.id === meeting.folder_id);
-                        return folder ? (
+                        
+                        // If we can't resolve the folder from the cached list,
+                        // still show a generic "In folder" badge so the assignment
+                        // persists visually after refresh.
+                        if (!folder) {
+                          return (
+                            <Badge variant="outline" className="text-xs">
+                              <Folder className="h-3 w-3 mr-1" />
+                              In folder
+                            </Badge>
+                          );
+                        }
+
+                        return (
                           <FolderBadge
                             folderName={folder.name}
                             folderColour={folder.colour}
                           />
-                        ) : null;
+                        );
                       })()}
                     </div>
 
