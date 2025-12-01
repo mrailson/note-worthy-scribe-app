@@ -1,5 +1,5 @@
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 /**
  * Utility to recover stuck meetings that failed to transition to completed status
@@ -11,7 +11,7 @@ export const recoverStuckMeeting = async (meetingId: string) => {
     // Check if user is authenticated first
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      toast.error('User not authenticated');
+      showToast.error('User not authenticated');
       return false;
     }
 
@@ -49,33 +49,33 @@ export const recoverStuckMeeting = async (meetingId: string) => {
       
       if (funcError) {
         console.error('❌ Edge function error:', funcError);
-        toast.error(`Failed to complete meeting: ${error.message}`);
+        showToast.error(`Failed to complete meeting: ${error.message}`);
         return false;
       }
       
       if (funcData?.success) {
         console.log('✅ Meeting completed via edge function');
-        toast.success('Meeting marked as completed successfully!');
+        showToast.success('Meeting marked as completed successfully!', { section: 'meeting_manager' });
         return true;
       } else {
-        toast.error(funcData?.error || 'Failed to complete meeting');
+        showToast.error(funcData?.error || 'Failed to complete meeting');
         return false;
       }
     }
 
     if (!data) {
       console.error('❌ No meeting found to update or access denied');
-      toast.error('Meeting not found or access denied');
+      showToast.error('Meeting not found or access denied');
       return false;
     }
 
     console.log('✅ Successfully completed meeting:', data);
-    toast.success('Meeting marked as completed successfully!');
+    showToast.success('Meeting marked as completed successfully!', { section: 'meeting_manager' });
     return true;
 
   } catch (error) {
     console.error('❌ Critical error in meeting recovery:', error);
-    toast.error(`Critical error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    showToast.error(`Critical error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     return false;
   }
 };
