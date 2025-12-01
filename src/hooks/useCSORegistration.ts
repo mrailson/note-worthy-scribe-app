@@ -71,9 +71,12 @@ export const useCSORegistration = () => {
     phone?: string;
   }) => {
     try {
+      // Generate access token for the registration
+      const access_token = crypto.randomUUID();
+      
       const { data: newRegistration, error } = await supabase
         .from('cso_registrations')
-        .insert([data])
+        .insert([{ ...data, access_token }])
         .select()
         .single();
 

@@ -2521,7 +2521,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
-          access_token?: string
+          access_token: string
           created_at?: string
           email: string
           full_name: string

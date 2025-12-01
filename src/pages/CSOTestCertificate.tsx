@@ -25,7 +25,8 @@ export default function CSOTestCertificate() {
           email: `test${timestamp}@example.com`,
           practice_name: 'Test Practice',
           practice_address: '123 Test Street',
-          practice_postcode: 'TE1 1ST'
+          practice_postcode: 'TE1 1ST',
+          access_token: crypto.randomUUID()
         })
         .select()
         .single();
