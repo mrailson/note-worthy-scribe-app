@@ -261,8 +261,8 @@ export class iPhoneWhisperTranscriber {
       const arrayBuffer = await audioBlob.arrayBuffer();
       const uint8Array = new Uint8Array(arrayBuffer);
       
-      // Phase 2: Check audio activity before transcription (lowered threshold for quiet speech)
-      if (!isFinalChunk && !hasAudioActivity(uint8Array, 0.001)) {
+      // Use very sensitive threshold for quiet iPhone speech
+      if (!isFinalChunk && !hasAudioActivity(uint8Array, 0.00001)) {
         console.log(`🔇 Skipping iPhone chunk due to low audio activity`);
         return; // Skip transcription for silent chunks
       }

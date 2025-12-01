@@ -51,20 +51,29 @@ serve(async (req) => {
     let detectedMimeType = mimeType || 'audio/wav';
     let fileExtension = 'wav';
     
-    // Map MIME types to file extensions
-    if (detectedMimeType.includes('mp3') || detectedMimeType.includes('mpeg')) {
+    // Map MIME types to file extensions (including iOS-friendly formats)
+    const lowerMime = (detectedMimeType || '').toLowerCase();
+    if (lowerMime.includes('mp3') || lowerMime.includes('mpeg')) {
       detectedMimeType = 'audio/mpeg';
       fileExtension = 'mp3';
-    } else if (detectedMimeType.includes('wav')) {
+    } else if (lowerMime.includes('wav')) {
       detectedMimeType = 'audio/wav';
       fileExtension = 'wav';
-    } else if (detectedMimeType.includes('m4a')) {
+    } else if (lowerMime.includes('m4a')) {
       detectedMimeType = 'audio/m4a';
       fileExtension = 'm4a';
-    } else if (detectedMimeType.includes('ogg')) {
+    } else if (lowerMime.includes('aac')) {
+      // iOS often records AAC in an MP4 container
+      detectedMimeType = 'audio/aac';
+      fileExtension = 'aac';
+    } else if (lowerMime.includes('mp4')) {
+      // Treat generic MP4 audio as m4a for Whisper
+      detectedMimeType = 'audio/mp4';
+      fileExtension = 'm4a';
+    } else if (lowerMime.includes('ogg')) {
       detectedMimeType = 'audio/ogg';
       fileExtension = 'ogg';
-    } else if (detectedMimeType.includes('webm')) {
+    } else if (lowerMime.includes('webm')) {
       detectedMimeType = 'audio/webm';
       fileExtension = 'webm';
     }
