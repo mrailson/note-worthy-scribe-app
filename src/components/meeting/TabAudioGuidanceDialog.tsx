@@ -28,7 +28,7 @@ export const TabAudioGuidanceDialog = ({ open, onOpenChange, onConfirm, onCancel
               <img 
                 src={screenShareGuide} 
                 alt="Screen sharing guide showing the three steps" 
-                className="max-w-full h-auto rounded-lg border border-border shadow-sm"
+                className="max-w-full max-h-[50vh] h-auto rounded-lg border border-border shadow-sm"
               />
             </div>
 
