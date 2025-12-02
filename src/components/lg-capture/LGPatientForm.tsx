@@ -61,7 +61,7 @@ export function LGPatientForm({ onSubmit, isLoading, defaultValues }: LGPatientF
   // Reset form when defaultValues change (e.g., when demo data is loaded)
   useEffect(() => {
     if (defaultValues) {
-      reset({ sex: 'unknown', ...defaultValues });
+      reset(defaultValues);
     }
   }, [defaultValues, reset]);
 
