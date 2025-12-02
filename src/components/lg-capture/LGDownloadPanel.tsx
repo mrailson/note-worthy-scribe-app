@@ -50,33 +50,35 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     return null;
   }
 
+  const nhsNumber = patient.nhs_number?.replace(/\s/g, '') || patient.id;
+
   const files = [
     {
       label: 'Lloyd George PDF',
       description: 'Searchable PDF with all pages',
       url: patient.pdf_url,
-      filename: `${patient.nhs_number.replace(/\s/g, '')}_lloyd-george.pdf`,
+      filename: `${nhsNumber}_lloyd-george.pdf`,
       icon: FileText,
     },
     {
       label: 'Clinical Summary',
       description: 'Structured JSON summary',
       url: patient.summary_json_url,
-      filename: `${patient.nhs_number.replace(/\s/g, '')}_summary.json`,
+      filename: `${nhsNumber}_summary.json`,
       icon: FileJson,
     },
     {
       label: 'SNOMED Codes (JSON)',
       description: 'Clinical codes for import',
       url: patient.snomed_json_url,
-      filename: `${patient.nhs_number.replace(/\s/g, '')}_snomed.json`,
+      filename: `${nhsNumber}_snomed.json`,
       icon: FileJson,
     },
     {
       label: 'SNOMED Codes (CSV)',
       description: 'Spreadsheet format',
       url: patient.snomed_csv_url,
-      filename: `${patient.nhs_number.replace(/\s/g, '')}_snomed.csv`,
+      filename: `${nhsNumber}_snomed.csv`,
       icon: FileSpreadsheet,
     },
   ];
