@@ -3300,6 +3300,110 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_audit_logs: {
+        Row: {
+          actor: string
+          actor_user_id: string | null
+          at: string | null
+          event: string
+          id: string
+          meta: Json | null
+          patient_id: string | null
+        }
+        Insert: {
+          actor: string
+          actor_user_id?: string | null
+          at?: string | null
+          event: string
+          id: string
+          meta?: Json | null
+          patient_id?: string | null
+        }
+        Update: {
+          actor?: string
+          actor_user_id?: string | null
+          at?: string | null
+          event?: string
+          id?: string
+          meta?: Json | null
+          patient_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "lg_audit_logs_patient_id_fkey"
+            columns: ["patient_id"]
+            isOneToOne: false
+            referencedRelation: "lg_patients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      lg_patients: {
+        Row: {
+          created_at: string | null
+          dob: string
+          error_message: string | null
+          id: string
+          images_count: number | null
+          job_status: string | null
+          nhs_number: string
+          patient_name: string
+          pdf_url: string | null
+          practice_ods: string
+          processing_completed_at: string | null
+          processing_started_at: string | null
+          sex: string
+          snomed_csv_url: string | null
+          snomed_json_url: string | null
+          summary_json_url: string | null
+          updated_at: string | null
+          uploader_name: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          dob: string
+          error_message?: string | null
+          id: string
+          images_count?: number | null
+          job_status?: string | null
+          nhs_number: string
+          patient_name: string
+          pdf_url?: string | null
+          practice_ods: string
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          sex: string
+          snomed_csv_url?: string | null
+          snomed_json_url?: string | null
+          summary_json_url?: string | null
+          updated_at?: string | null
+          uploader_name: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          dob?: string
+          error_message?: string | null
+          id?: string
+          images_count?: number | null
+          job_status?: string | null
+          nhs_number?: string
+          patient_name?: string
+          pdf_url?: string | null
+          practice_ods?: string
+          processing_completed_at?: string | null
+          processing_started_at?: string | null
+          sex?: string
+          snomed_csv_url?: string | null
+          snomed_json_url?: string | null
+          summary_json_url?: string | null
+          updated_at?: string | null
+          uploader_name?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       live_meeting_notes: {
         Row: {
           created_at: string

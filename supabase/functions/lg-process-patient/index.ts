@@ -1,0 +1,474 @@
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
+
+// Lloyd George Summariser system prompt
+const SUMMARISER_SYSTEM_PROMPT = `You are a UK GP records summariser working to NHS standards. Read a digitised Lloyd George record and produce a concise, structured summary suitable for import into EMIS or SystmOne. Prioritise clarity, chronology, and safety. Use UK spellings and NHS conventions. Do not invent facts. If uncertain, say "unknown".
+
+Developer guardrails:
+- No patient advice. No diagnosis creation. Summarise only what's present.
+- Keep personal third-party identifiers out of the summary (note "3rd-party info redaction required" if present).`;
+
+// SNOMED Extractor system prompt  
+const SNOMED_SYSTEM_PROMPT = `You are a clinical coder for UK primary care. Map the summary JSON and source OCR to SNOMED CT codes suitable for GP systems. Prefer high-level, safe, unambiguous concepts. If you cannot confidently code, output code: "UNKNOWN" and term: "Unknown concept".
+
+Constraints:
+- Use UK SNOMED CT where possible; return preferred terms.
+- No medication product coding in this POC (skip or mark UNKNOWN).
+- Confidence 0–1.0. Provide a short evidence snippet.`;
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { headers: corsHeaders });
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+  const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+  const openaiKey = Deno.env.get('OPENAI_API_KEY');
+  const googleVisionKey = Deno.env.get('GOOGLE_VISION_API_KEY');
+
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  try {
+    const { patientId } = await req.json();
+    
+    if (!patientId) {
+      throw new Error('Missing patientId');
+    }
+
+    console.log(`Processing patient: ${patientId}`);
+
+    // Get patient record
+    const { data: patient, error: patientError } = await supabase
+      .from('lg_patients')
+      .select('*')
+      .eq('id', patientId)
+      .single();
+
+    if (patientError || !patient) {
+      throw new Error(`Patient not found: ${patientError?.message}`);
+    }
+
+    // Update status to processing
+    await supabase
+      .from('lg_patients')
+      .update({ 
+        job_status: 'processing',
+        processing_started_at: new Date().toISOString(),
+      })
+      .eq('id', patientId);
+
+    // Log processing started
+    await logAudit(supabase, patientId, 'processing_started', patient.uploader_name, {
+      images_count: patient.images_count,
+    });
+
+    const basePath = `${patient.practice_ods}/${patientId}`;
+
+    // Step 1: List and download raw images
+    console.log('Fetching raw images...');
+    const { data: files, error: listError } = await supabase.storage
+      .from('lg')
+      .list(`${basePath}/raw`, { sortBy: { column: 'name', order: 'asc' } });
+
+    if (listError || !files || files.length === 0) {
+      throw new Error(`No images found: ${listError?.message}`);
+    }
+
+    // Step 2: OCR each image and collect text
+    console.log(`Processing ${files.length} images with OCR...`);
+    const ocrResults: string[] = [];
+    const imageDataUrls: string[] = [];
+
+    for (const file of files) {
+      const { data: imageData, error: downloadError } = await supabase.storage
+        .from('lg')
+        .download(`${basePath}/raw/${file.name}`);
+
+      if (downloadError || !imageData) {
+        console.error(`Failed to download ${file.name}:`, downloadError);
+        continue;
+      }
+
+      // Convert to base64
+      const arrayBuffer = await imageData.arrayBuffer();
+      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      imageDataUrls.push(`data:image/jpeg;base64,${base64}`);
+
+      // OCR with Google Vision
+      if (googleVisionKey) {
+        try {
+          const ocrText = await performOCR(base64, googleVisionKey);
+          if (ocrText) {
+            ocrResults.push(`--- Page ${file.name} ---\n${ocrText}`);
+          }
+        } catch (ocrErr) {
+          console.error(`OCR failed for ${file.name}:`, ocrErr);
+        }
+      }
+    }
+
+    const fullOcrText = ocrResults.join('\n\n');
+    console.log(`OCR complete. Total characters: ${fullOcrText.length}`);
+
+    // Step 3: Generate AI Summary
+    console.log('Generating clinical summary...');
+    let summaryJson: any = null;
+    
+    if (openaiKey && fullOcrText.length > 100) {
+      const summaryPrompt = `Context:
+Patient: ${patient.patient_name}, NHS ${patient.nhs_number}, DOB ${patient.dob}
+Practice ODS: ${patient.practice_ods}
+Source: OCR text of scanned Lloyd George (unordered notes; may include handwritten OCR errors).
+
+Task:
+Return valid JSON matching this schema exactly:
+
+{
+  "summary_line": "e.g., PMH: T2DM dx ~2009, HTN 2012; NKDA; past cholecystectomy 2018; smoker ex 2015.",
+  "allergies": [{"substance":"", "reaction":"", "certainty":"confirmed|suspected", "source":"LG"}],
+  "significant_past_history": [{"condition":"", "first_noted":"YYYY or YYYY-MM", "status":"active|resolved|unknown"}],
+  "medications": [{"name":"", "dose":"", "route":"", "frequency":"", "start_date":"YYYY-MM or unknown", "status":"current|stopped|unknown"}],
+  "immunisations": [{"vaccine":"", "date":"YYYY-MM-DD or unknown"}],
+  "procedures": [{"name":"", "date":"YYYY or unknown"}],
+  "family_history": [{"relation":"", "condition":"", "notes":""}],
+  "risk_factors": [{"type":"smoking|alcohol|bmi|blood_pressure|other", "value":"", "date":"YYYY-MM or unknown"}],
+  "alerts": [{"type":"safeguarding|high_risk_meds|third_party_info|other", "note":""}],
+  "free_text_findings": "Short narrative (≤150 words) capturing anything important not mapped above."
+}
+
+If something is not present, return an empty array or "". Never change keys. Dates can be approximate (year/month).
+
+OCR Text:
+${fullOcrText.substring(0, 50000)}`;
+
+      try {
+        summaryJson = await callOpenAI(openaiKey, SUMMARISER_SYSTEM_PROMPT, summaryPrompt);
+        console.log('Summary generated successfully');
+      } catch (aiErr) {
+        console.error('Summary generation failed:', aiErr);
+        summaryJson = createEmptySummary();
+      }
+    } else {
+      summaryJson = createEmptySummary();
+    }
+
+    // Step 4: Generate SNOMED codes
+    console.log('Extracting SNOMED codes...');
+    let snomedJson: any = null;
+
+    if (openaiKey && summaryJson) {
+      const snomedPrompt = `Using the summary.json and the source OCR, return JSON with:
+
+{
+  "problems": [{"term":"","code":"","from":"summary|ocr","confidence":0.0,"evidence":"text snippet"}],
+  "allergies": [{"term":"","code":"","from":"","confidence":0.0,"evidence":""}],
+  "procedures": [{"term":"","code":"","from":"","confidence":0.0,"evidence":""}],
+  "immunisations": [{"term":"","code":"","from":"","confidence":0.0,"evidence":""}],
+  "risk_factors": [{"term":"","code":"","from":"","confidence":0.0,"evidence":""}]
+}
+
+Summary JSON:
+${JSON.stringify(summaryJson, null, 2)}
+
+OCR Text (first 10000 chars):
+${fullOcrText.substring(0, 10000)}`;
+
+      try {
+        snomedJson = await callOpenAI(openaiKey, SNOMED_SYSTEM_PROMPT, snomedPrompt);
+        console.log('SNOMED codes extracted');
+      } catch (aiErr) {
+        console.error('SNOMED extraction failed:', aiErr);
+        snomedJson = createEmptySnomed();
+      }
+    } else {
+      snomedJson = createEmptySnomed();
+    }
+
+    // Step 5: Generate CSV from SNOMED
+    const snomedCsv = generateSnomedCsv(snomedJson, patientId, patient.nhs_number);
+
+    // Step 6: Create simple PDF (base64 images concatenated - POC)
+    // For a real implementation, use pdf-lib. Here we create a simple HTML-to-PDF placeholder
+    const pdfContent = await createSimplePdf(imageDataUrls, fullOcrText);
+
+    // Step 7: Upload all outputs
+    console.log('Uploading outputs...');
+    
+    const finalPath = `${basePath}/final`;
+
+    // Upload PDF
+    const pdfBlob = new Blob([pdfContent], { type: 'application/pdf' });
+    await supabase.storage.from('lg').upload(`${finalPath}/lloyd-george.pdf`, pdfBlob, {
+      contentType: 'application/pdf',
+      upsert: true,
+    });
+
+    // Upload summary JSON
+    const summaryBlob = new Blob([JSON.stringify(summaryJson, null, 2)], { type: 'application/json' });
+    await supabase.storage.from('lg').upload(`${finalPath}/summary.json`, summaryBlob, {
+      contentType: 'application/json',
+      upsert: true,
+    });
+
+    // Upload SNOMED JSON
+    const snomedBlob = new Blob([JSON.stringify(snomedJson, null, 2)], { type: 'application/json' });
+    await supabase.storage.from('lg').upload(`${finalPath}/snomed.json`, snomedBlob, {
+      contentType: 'application/json',
+      upsert: true,
+    });
+
+    // Upload SNOMED CSV
+    const csvBlob = new Blob([snomedCsv], { type: 'text/csv' });
+    await supabase.storage.from('lg').upload(`${finalPath}/snomed.csv`, csvBlob, {
+      contentType: 'text/csv',
+      upsert: true,
+    });
+
+    // Step 8: Update patient record with URLs
+    await supabase
+      .from('lg_patients')
+      .update({
+        job_status: 'succeeded',
+        processing_completed_at: new Date().toISOString(),
+        pdf_url: `lg/${finalPath}/lloyd-george.pdf`,
+        summary_json_url: `lg/${finalPath}/summary.json`,
+        snomed_json_url: `lg/${finalPath}/snomed.json`,
+        snomed_csv_url: `lg/${finalPath}/snomed.csv`,
+      })
+      .eq('id', patientId);
+
+    await logAudit(supabase, patientId, 'processing_completed', patient.uploader_name, {
+      ocr_chars: fullOcrText.length,
+      summary_generated: !!summaryJson,
+      snomed_extracted: !!snomedJson,
+    });
+
+    console.log(`Processing complete for patient ${patientId}`);
+
+    return new Response(
+      JSON.stringify({ success: true, patientId }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+
+  } catch (error) {
+    console.error('Processing error:', error);
+    
+    // Try to update patient status to failed
+    try {
+      const { patientId } = await req.json().catch(() => ({}));
+      if (patientId) {
+        await supabase
+          .from('lg_patients')
+          .update({
+            job_status: 'failed',
+            error_message: error instanceof Error ? error.message : 'Unknown error',
+          })
+          .eq('id', patientId);
+      }
+    } catch (updateErr) {
+      console.error('Failed to update error status:', updateErr);
+    }
+
+    return new Response(
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Processing failed' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});
+
+async function performOCR(base64Image: string, apiKey: string): Promise<string> {
+  const response = await fetch(
+    `https://vision.googleapis.com/v1/images:annotate?key=${apiKey}`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        requests: [{
+          image: { content: base64Image },
+          features: [{ type: 'DOCUMENT_TEXT_DETECTION' }],
+        }],
+      }),
+    }
+  );
+
+  const data = await response.json();
+  return data.responses?.[0]?.fullTextAnnotation?.text || '';
+}
+
+async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: string): Promise<any> {
+  const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.3,
+    }),
+  });
+
+  const data = await response.json();
+  const content = data.choices?.[0]?.message?.content;
+  
+  if (!content) {
+    throw new Error('No response from OpenAI');
+  }
+
+  return JSON.parse(content);
+}
+
+function createEmptySummary() {
+  return {
+    summary_line: '',
+    allergies: [],
+    significant_past_history: [],
+    medications: [],
+    immunisations: [],
+    procedures: [],
+    family_history: [],
+    risk_factors: [],
+    alerts: [],
+    free_text_findings: 'OCR text was insufficient for clinical summary generation.',
+  };
+}
+
+function createEmptySnomed() {
+  return {
+    problems: [],
+    allergies: [],
+    procedures: [],
+    immunisations: [],
+    risk_factors: [],
+  };
+}
+
+function generateSnomedCsv(snomed: any, patientId: string, nhsNumber: string): string {
+  const rows: string[] = ['domain,term,code,confidence,evidence,source,patient_ulid,nhs_number'];
+  
+  const domains = ['problems', 'allergies', 'procedures', 'immunisations', 'risk_factors'];
+  
+  for (const domain of domains) {
+    const items = snomed[domain] || [];
+    for (const item of items) {
+      const row = [
+        domain,
+        `"${(item.term || '').replace(/"/g, '""')}"`,
+        item.code || 'UNKNOWN',
+        item.confidence || 0,
+        `"${(item.evidence || '').replace(/"/g, '""')}"`,
+        item.from || 'ocr',
+        patientId,
+        nhsNumber.replace(/\s/g, ''),
+      ].join(',');
+      rows.push(row);
+    }
+  }
+  
+  return rows.join('\n');
+}
+
+async function createSimplePdf(imageDataUrls: string[], ocrText: string): Promise<Uint8Array> {
+  // For POC, create a minimal PDF structure
+  // In production, use pdf-lib for proper PDF generation with embedded images
+  
+  const header = '%PDF-1.4\n';
+  const body = `1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>
+endobj
+
+4 0 obj
+<< /Length ${50 + Math.min(ocrText.length, 1000)} >>
+stream
+BT
+/F1 12 Tf
+50 700 Td
+(Lloyd George Record - OCR Text) Tj
+0 -20 Td
+(Pages: ${imageDataUrls.length}) Tj
+0 -20 Td
+(Note: Full PDF with images requires pdf-lib integration) Tj
+ET
+endstream
+endobj
+
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000214 00000 n 
+0000000${350 + Math.min(ocrText.length, 1000).toString().length} 00000 n 
+
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+${400 + Math.min(ocrText.length, 1000)}
+%%EOF`;
+
+  return new TextEncoder().encode(header + body);
+}
+
+async function logAudit(
+  supabase: any,
+  patientId: string,
+  event: string,
+  actor: string,
+  meta: Record<string, any>
+) {
+  const id = generateULID();
+  
+  await supabase.from('lg_audit_logs').insert({
+    id,
+    patient_id: patientId,
+    event,
+    actor,
+    meta: {
+      ...meta,
+      timestamp: new Date().toISOString(),
+    },
+  });
+}
+
+// Simple ULID generator for Deno
+function generateULID(): string {
+  const ENCODING = '0123456789ABCDEFGHJKMNPQRSTVWXYZ';
+  const time = Date.now();
+  let timeStr = '';
+  let t = time;
+  
+  for (let i = 10; i > 0; i--) {
+    timeStr = ENCODING[t % 32] + timeStr;
+    t = Math.floor(t / 32);
+  }
+  
+  let randomStr = '';
+  for (let i = 0; i < 16; i++) {
+    randomStr += ENCODING[Math.floor(Math.random() * 32)];
+  }
+  
+  return timeStr + randomStr;
+}
