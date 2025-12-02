@@ -9,8 +9,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Download, Mail, PlayCircle, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
-import { useMeetingExport } from '@/hooks/useMeetingExport';
+import { FileText, PlayCircle, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from "@/utils/toastWrapper";
 
@@ -35,24 +34,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   const [notesStatus, setNotesStatus] = useState<'generating' | 'completed' | 'error'>('generating');
   const [meetingNotes, setMeetingNotes] = useState<string>('');
   const [meetingData, setMeetingData] = useState<any>(null);
-  const [isSendingEmail, setIsSendingEmail] = useState(false);
   const [transcriptLength, setTranscriptLength] = useState<number>(0);
-  const [emailSentTo, setEmailSentTo] = useState<string>('');
-  const [isDownloaded, setIsDownloaded] = useState(false);
-  
-  const { generateWordDocument, isExporting } = useMeetingExport(
-    meetingData,
-    {
-      title: meetingTitle,
-      description: '',
-      meetingType: 'meeting',
-      meetingStyle: '',
-      attendees: '',
-      agenda: '',
-      transcriberService: 'whisper' as 'whisper' | 'deepgram',
-      transcriberThresholds: { whisper: 0.5, deepgram: 0.5 }
-    }
-  );
 
   // Format number in K style (e.g., 4200 -> 4.2K)
   const formatNumberK = (num: number): string => {
@@ -61,14 +43,6 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     }
     return num.toString();
   };
-
-  // Reset email sent state and download state when modal opens/closes
-  useEffect(() => {
-    if (!isOpen) {
-      setEmailSentTo('');
-      setIsDownloaded(false);
-    }
-  }, [isOpen]);
 
   // Subscribe to notes generation status
   useEffect(() => {
@@ -198,245 +172,6 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     });
   };
 
-  const handleDownload = async () => {
-    if (!meetingData) {
-      showToast.error('Meeting data not loaded yet', { section: 'meeting_manager' });
-      return;
-    }
-    
-    try {
-      const content = meetingData.overview || meetingData.content || '';
-      const title = meetingData.title || meetingTitle; // Use updated title from database
-      await generateWordDocument(content, title);
-      setIsDownloaded(true);
-      showToast.success('Meeting notes downloaded!', { section: 'meeting_manager' });
-    } catch (error) {
-      console.error('Download error:', error);
-      showToast.error('Failed to download meeting notes', { section: 'meeting_manager' });
-    }
-  };
-
-  const handleEmail = async () => {
-    if (notesStatus !== 'completed') {
-      showToast.info('Meeting notes are still being generated. Please wait a moment.', { section: 'meeting_manager' });
-      return;
-    }
-    
-    if (!meetingData || !meetingNotes) {
-      showToast.error('Meeting data not available', { section: 'meeting_manager' });
-      return;
-    }
-    
-    setIsSendingEmail(true);
-    
-    try {
-      // Get user profile for email
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user?.email) {
-        showToast.error('User email not found', { section: 'meeting_manager' });
-        return;
-      }
-      
-      const { data: profileData } = await supabase
-        .from('profiles')
-        .select('email, full_name')
-        .eq('user_id', user.id)
-        .single();
-      
-      const userEmail = profileData?.email || user.email;
-      const userName = profileData?.full_name || 'User';
-      
-      // Generate NHS-styled Word document using the same utilities as standard minutes email
-      const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import('docx');
-      const { parseContentToDocxElements, stripTranscriptSection } = await import('@/utils/generateMeetingNotesDocx');
-      const { buildNHSStyles, buildNumbering, NHS_COLORS, FONTS } = await import('@/utils/wordTheme');
-      const { renderNHSMarkdown } = await import('@/lib/nhsMarkdownRenderer');
-      
-      // Strip transcript sections
-      const cleanedContent = stripTranscriptSection(meetingNotes);
-      
-      // Clean the title
-      const cleanTitle = meetingTitle.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
-      
-      // Build document children
-      const children: any[] = [];
-      
-      // Title
-      children.push(
-        new Paragraph({
-          children: [new TextRun({
-            text: cleanTitle,
-            bold: true,
-            size: FONTS.size.title,
-            color: NHS_COLORS.headingBlue,
-            font: FONTS.default,
-          })],
-          alignment: AlignmentType.CENTER,
-          spacing: { after: 240 },
-        })
-      );
-      
-      const meetingTime = meetingData?.startTime 
-        ? new Date(meetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-        : undefined;
-      
-      const meetingDate = meetingData.startTime 
-        ? new Date(meetingData.startTime).toLocaleDateString('en-GB')
-        : new Date().toLocaleDateString('en-GB');
-      
-      // Meeting details
-      if (meetingDate || meetingTime) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({
-              text: `Date: ${meetingDate}${meetingTime ? ` at ${meetingTime}` : ''}`,
-              size: FONTS.size.body,
-              color: NHS_COLORS.textGrey,
-              font: FONTS.default,
-            })],
-            spacing: { after: 120 },
-          })
-        );
-      }
-      
-      if (meetingData.duration) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({
-              text: `Duration: ${meetingData.duration}`,
-              size: FONTS.size.body,
-              color: NHS_COLORS.textGrey,
-              font: FONTS.default,
-            })],
-            spacing: { after: 120 },
-          })
-        );
-      }
-      
-      if (meetingData.attendees && meetingData.attendees.length > 0) {
-        children.push(
-          new Paragraph({
-            children: [new TextRun({
-              text: `Attendees: ${meetingData.attendees.join(', ')}`,
-              size: FONTS.size.body,
-              color: NHS_COLORS.textGrey,
-              font: FONTS.default,
-            })],
-            spacing: { after: 240 },
-          })
-        );
-      }
-      
-      // Parse and add content using NHS-styled elements
-      const contentElements = await parseContentToDocxElements(cleanedContent);
-      children.push(...contentElements);
-      
-      // Footer
-      const now = new Date();
-      const dateStr = now.toLocaleDateString('en-GB');
-      const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      
-      children.push(
-        new Paragraph({
-          children: [new TextRun({
-            text: `Generated on ${dateStr} ${timeStr}`,
-            italics: true,
-            size: FONTS.size.footer,
-            color: NHS_COLORS.textLightGrey,
-            font: FONTS.default,
-          })],
-          alignment: AlignmentType.CENTER,
-          spacing: { before: 480 },
-        })
-      );
-      
-      // Create document with NHS theme
-      const styles = buildNHSStyles();
-      const numbering = buildNumbering();
-      
-      const doc = new Document({
-        styles: styles,
-        numbering: numbering,
-        sections: [{
-          children,
-        }],
-      });
-      
-      const blob = await Packer.toBlob(doc);
-      
-      // Convert blob to base64
-      const reader = new FileReader();
-      const base64Promise = new Promise<string>((resolve, reject) => {
-        reader.onload = () => {
-          const base64 = (reader.result as string).split(',')[1];
-          resolve(base64);
-        };
-        reader.onerror = reject;
-      });
-      reader.readAsDataURL(blob);
-      const wordBase64 = await base64Promise;
-      
-      // Format meeting date and render HTML using NHS markdown renderer
-      const niceDate = meetingData.startTime 
-        ? new Date(meetingData.startTime).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-        : new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
-      
-      // Convert meeting notes to styled HTML using the same renderer as standard minutes
-      const renderedNotesHTML = renderNHSMarkdown(meetingNotes, { enableNHSStyling: false, isUserMessage: false });
-      
-      // Add email-specific CSS styling to match the standard minutes appearance
-      const emailCSS = `
-        <style>
-          body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif; line-height: 1.6; color: #1f2937; background-color: #ffffff; margin: 0; padding: 20px; }
-          .message-container { max-width: 700px; margin: 0 auto; background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 24px; }
-          h1 { color: #2563eb; font-size: 1.5rem; font-weight: bold; margin-bottom: 1rem; margin-top: 1.5rem; }
-          h2 { color: #2563eb; font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; margin-top: 1.25rem; }
-          h3 { color: #2563eb; font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; margin-top: 1rem; }
-          p { margin-bottom: 0.75rem; line-height: 1.6; color: inherit; }
-          strong { font-weight: 600; color: #1f2937; }
-        </style>
-      `;
-      
-      const styledMessage = `${emailCSS}<div class="message-container">
-        <p style="margin-bottom: 16px;">Dear ${userName},</p>
-        <p style="margin-bottom: 16px;">Please find attached the meeting notes for "${meetingTitle}".</p>
-        <hr style="border: none; border-top: 2px solid #e2e8f0; margin: 20px 0;" />
-        ${renderedNotesHTML}
-        <hr style="border: none; border-top: 2px solid #e2e8f0; margin: 20px 0;" />
-        <p style="margin-top: 16px;">Kind regards,<br>${userName}</p>
-      </div>`;
-      
-      // Send email via edge function
-      const { error } = await supabase.functions.invoke('send-email-via-emailjs', {
-        body: {
-          to_email: userEmail,
-          subject: `Meeting Minutes - ${meetingTitle} - ${niceDate}`,
-          message: styledMessage,
-          template_type: 'meeting_minutes',
-          from_name: 'GP Tools - Meeting Minutes',
-          reply_to: 'noreply@gp-tools.nhs.uk',
-          word_attachment: {
-            content: wordBase64,
-            filename: `${meetingTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`,
-          },
-        },
-      });
-      
-      if (error) {
-        throw error;
-      }
-      
-      // Store the email address and show success
-      setEmailSentTo(userEmail);
-      showToast.success(`Email sent to ${userEmail}!`, { section: 'meeting_manager' });
-    } catch (error) {
-      console.error('Email error:', error);
-      showToast.error('Failed to send email', { section: 'meeting_manager' });
-    } finally {
-      setIsSendingEmail(false);
-    }
-  };
-
   const handleStartNew = () => {
     onOpenChange(false);
     onStartNewMeeting();
@@ -520,59 +255,6 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
               <FileText className="h-5 w-5 mr-3" />
               View Meeting Notes
             </Button>
-
-            {/* Download and Email Row */}
-            <div className="grid grid-cols-2 gap-3">
-              <Button
-                onClick={handleDownload}
-                disabled={isExporting || notesStatus !== 'completed'}
-                variant="outline"
-                className="justify-start h-12 overflow-hidden"
-              >
-                {isExporting ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 flex-shrink-0 animate-spin" />
-                    <span className="text-sm truncate">Downloading...</span>
-                  </>
-                ) : isDownloaded ? (
-                  <>
-                    <Download className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="text-xs truncate">Meeting Notes Downloaded</span>
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="text-sm truncate">Download Notes (Word Docx)</span>
-                  </>
-                )}
-              </Button>
-
-              <Button
-                onClick={handleEmail}
-                disabled={notesStatus !== 'completed' || isSendingEmail}
-                variant="outline"
-                className="justify-start h-12 overflow-hidden"
-              >
-                {isSendingEmail ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 flex-shrink-0 animate-spin" />
-                    <span className="text-sm truncate">Sending...</span>
-                  </>
-                ) : emailSentTo ? (
-                  <>
-                    <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="text-xs truncate" title={`Email sent to ${emailSentTo}`}>
-                      Email sent to {emailSentTo}
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <Mail className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="text-sm truncate">Email Notes to me</span>
-                  </>
-                )}
-              </Button>
-            </div>
 
             {/* Start New Meeting Button */}
             <Button
