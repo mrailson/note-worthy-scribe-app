@@ -40,7 +40,10 @@ export function LGCameraCapture({
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        await videoRef.current.play();
+        // Wait for video to be ready before playing (iOS Safari fix)
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play().catch(console.error);
+        };
       }
       setIsCapturing(true);
     } catch (err) {
@@ -204,8 +207,8 @@ export function LGCameraCapture({
                 autoPlay
                 playsInline
                 muted
+                webkit-playsinline="true"
                 className="absolute inset-0 w-full h-full object-cover"
-                style={{ transform: 'scaleX(1)' }}
               />
               {glareWarning && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-yellow-500 text-black px-4 py-2 rounded-lg flex items-center gap-2">
