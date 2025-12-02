@@ -430,25 +430,33 @@ const handler = async (req: Request): Promise<Response> => {
     
     // Professional HTML email template for AI-generated content
     if (emailData.template_type === 'ai_generated_content') {
-      // Strip duplicate blocks FIRST before any processing
-      const cleanedContent = stripDuplicateBlocks(emailData.message || '');
+      const rawMessage = emailData.message || '';
       
-      const parsedContent = parseMeetingContent(cleanedContent, emailData.subject || '');
+      // Check if it's already HTML content (from LG Capture or similar)
+      const isAlreadyHTML = rawMessage.includes('<div') || rawMessage.includes('<table') || rawMessage.includes('<h1');
       
-      // Use the professional email template
-      templateParams.html_message = generateProfessionalEmailHTML(parsedContent);
-      
-      // Strip markdown formatting from message for plain text fallback
-      const cleanMessage = cleanedContent
-        .replace(/^#{1,6}\s+/gm, '') // Remove markdown headers
-        .replace(/\*\*\*(.*?)\*\*\*/g, '$1') // Remove bold+italic
-        .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
-        .replace(/\*(.*?)\*/g, '$1') // Remove italic
-        .replace(/`(.*?)`/g, '$1'); // Remove inline code
-      
-      templateParams.message = cleanMessage;
-      
-      console.log("ai_generated_content cleaned snippet:", cleanMessage.substring(0, 200));
+      if (isAlreadyHTML) {
+        // Pass through HTML as-is for pre-formatted content like LG summaries
+        templateParams.html_message = rawMessage;
+        templateParams.message = rawMessage;
+        console.log("ai_generated_content using pre-formatted HTML, length:", rawMessage.length);
+      } else {
+        // Parse and format meeting notes style content
+        const cleanedContent = stripDuplicateBlocks(rawMessage);
+        const parsedContent = parseMeetingContent(cleanedContent, emailData.subject || '');
+        templateParams.html_message = generateProfessionalEmailHTML(parsedContent);
+        
+        // Strip markdown formatting from message for plain text fallback
+        const cleanMessage = cleanedContent
+          .replace(/^#{1,6}\s+/gm, '') // Remove markdown headers
+          .replace(/\*\*\*(.*?)\*\*\*/g, '$1') // Remove bold+italic
+          .replace(/\*\*(.*?)\*\*/g, '$1') // Remove bold
+          .replace(/\*(.*?)\*/g, '$1') // Remove italic
+          .replace(/`(.*?)`/g, '$1'); // Remove inline code
+        
+        templateParams.message = cleanMessage;
+        console.log("ai_generated_content cleaned snippet:", cleanMessage.substring(0, 200));
+      }
     }
     
     // Clean meeting_minutes emails too
