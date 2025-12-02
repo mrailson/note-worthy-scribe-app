@@ -547,6 +547,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   </Button>
                                 </DrawerClose>
                               )}
+                              <DrawerClose asChild>
+                                <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/lg-capture')}>
+                                  <ImageIcon className="h-4 w-4 mr-2" />
+                                  LG Capture
+                                </Button>
+                              </DrawerClose>
                             </CollapsibleContent>
                           </Collapsible>
 
