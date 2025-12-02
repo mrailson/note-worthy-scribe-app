@@ -1,21 +1,21 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLGCapture, CapturedImage, LGPatient } from '@/hooks/useLGCapture';
+import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { LGCameraCapture } from '@/components/lg-capture/LGCameraCapture';
 import { LGPrivacyBanner } from '@/components/lg-capture/LGPrivacyBanner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LGCaptureCamera() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPatient, uploadImages, triggerProcessing } = useLGCapture();
+  const { getPatient } = useLGCapture();
+  const { queuePatient } = useLGUploadQueue();
   
   const [patient, setPatient] = useState<LGPatient | null>(null);
   const [images, setImages] = useState<CapturedImage[]>([]);
-  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     const loadPatient = async () => {
@@ -31,40 +31,20 @@ export default function LGCaptureCamera() {
     loadPatient();
   }, [id, getPatient, navigate]);
 
-  const handleFinish = async () => {
-    console.log('handleFinish called', { patient, imagesCount: images.length });
-    
+  const handleDoneNextPatient = () => {
     if (!patient || images.length === 0) {
       toast.error('Please capture at least one page');
       return;
     }
 
-    setUploading(true);
-    toast.info(`Uploading ${images.length} pages...`);
+    // Add to background queue (doesn't wait)
+    queuePatient(patient.id, patient.practice_ods, images);
     
-    try {
-      // Upload images
-      console.log('Starting upload...');
-      const uploadSuccess = await uploadImages(patient.id, patient.practice_ods, images);
-      console.log('Upload result:', uploadSuccess);
-      
-      if (!uploadSuccess) {
-        throw new Error('Upload failed');
-      }
-
-      // Trigger processing (fire and forget - don't await completion)
-      console.log('Triggering background processing...');
-      triggerProcessing(patient.id).catch(err => {
-        console.error('Background processing error:', err);
-      });
-
-      toast.success('Upload complete! Processing in background...');
-      navigate(`/lg-capture/results/${patient.id}`);
-    } catch (err) {
-      console.error('Finish error:', err);
-      toast.error('Failed to upload. Please try again.');
-      setUploading(false);
-    }
+    // Show confirmation
+    toast.success(`${images.length} pages queued for upload`);
+    
+    // Immediately navigate to start page for next patient
+    navigate('/lg-capture/start');
   };
 
   if (!patient) {
@@ -88,22 +68,12 @@ export default function LGCaptureCamera() {
 
       <LGPrivacyBanner />
 
-      {uploading ? (
-        <Card>
-          <CardContent className="p-8 text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary mx-auto mb-4" />
-            <p className="font-medium">Uploading {images.length} pages...</p>
-            <p className="text-sm text-muted-foreground">Please don't close this page</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <LGCameraCapture
-          images={images}
-          onImagesChange={setImages}
-          onFinish={handleFinish}
-          isProcessing={uploading}
-        />
-      )}
+      <LGCameraCapture
+        images={images}
+        onImagesChange={setImages}
+        onFinish={handleDoneNextPatient}
+        isProcessing={false}
+      />
     </div>
   );
 }

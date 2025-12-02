@@ -30,6 +30,7 @@ export interface LGPatient {
   sex: string;
   images_count: number;
   job_status: 'draft' | 'uploading' | 'queued' | 'processing' | 'succeeded' | 'failed';
+  upload_progress: number | null;
   pdf_url: string | null;
   summary_json_url: string | null;
   snomed_json_url: string | null;
