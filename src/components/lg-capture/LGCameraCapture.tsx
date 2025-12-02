@@ -203,14 +203,17 @@ export function LGCameraCapture({
       {isCapturing ? (
         <Card>
           <CardContent className="p-4 space-y-4">
-            <div className="relative aspect-[3/4] bg-black rounded-lg overflow-hidden">
+            <div 
+              className="relative aspect-[3/4] bg-black rounded-lg overflow-hidden cursor-pointer active:opacity-90"
+              onClick={captureImage}
+            >
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
                 webkit-playsinline="true"
-                className="absolute inset-0 w-full h-full object-cover"
+                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
               />
               {glareWarning && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-yellow-500 text-black px-4 py-2 rounded-lg flex items-center gap-2">
@@ -218,6 +221,10 @@ export function LGCameraCapture({
                   <span className="text-sm font-medium">Glare detected - adjust angle</span>
                 </div>
               )}
+              {/* Tap to capture hint */}
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm">
+                Tap to capture
+              </div>
             </div>
             
             <div className="flex gap-3">
