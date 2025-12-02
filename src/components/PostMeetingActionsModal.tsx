@@ -160,20 +160,8 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         (payload) => {
           console.log('📡 Meeting status updated:', payload);
           if (payload.new.notes_generation_status === 'completed') {
-            setNotesStatus('completed');
-            setMeetingNotes(payload.new.overview || '');
-            
-            // Update meeting data for export
-            setMeetingData({
-              title: payload.new.title,
-              startTime: payload.new.start_time,
-              duration: payload.new.duration_minutes ? `${payload.new.duration_minutes} minutes` : meetingDuration,
-              attendees: payload.new.participants || [],
-              meetingLocation: '',
-              overview: payload.new.overview || '',
-              content: payload.new.overview || '',
-            });
-            
+            // Re-fetch to get full notes_style_3 content (not just overview from payload)
+            fetchMeetingStatus();
             showToast.success('Meeting notes are ready!', { section: 'meeting_manager' });
           } else if (payload.new.notes_generation_status === 'error' || payload.new.notes_generation_status === 'failed') {
             setNotesStatus('error');
