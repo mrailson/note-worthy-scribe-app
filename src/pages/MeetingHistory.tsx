@@ -9,7 +9,6 @@ import { MeetingSearchBar, SearchFilters } from "@/components/MeetingSearchBar";
 import { MeetingImporter } from "@/components/meeting-dashboard/MeetingImporter";
 
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
-import { detectDevice } from "@/utils/DeviceDetection";
 import { useRecording } from "@/contexts/RecordingContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -42,7 +41,7 @@ import {
 } from "@/components/ui/dialog";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { useIsMobile } from "@/hooks/use-mobile";
+import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 import { useNavigate, useLocation } from "react-router-dom";
 import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 import { showToast } from "@/utils/toastWrapper";
@@ -154,7 +153,7 @@ const MeetingHistory = () => {
   const location = useLocation();
   
   // iPhone detection and view mode
-  const { isIPhone } = detectDevice();
+  const isIPhone = useIsIPhone();
   const [viewMode, setViewMode] = useState<'list' | 'folders'>('list');
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<Meeting[]>([]);
