@@ -94,9 +94,16 @@ serve(async (req) => {
         continue;
       }
 
-      // Convert to base64
+      // Convert to base64 (chunked to avoid stack overflow)
       const arrayBuffer = await imageData.arrayBuffer();
-      const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      const uint8Array = new Uint8Array(arrayBuffer);
+      let base64 = '';
+      const chunkSize = 8192;
+      for (let i = 0; i < uint8Array.length; i += chunkSize) {
+        const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+        base64 += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      base64 = btoa(base64);
       imageDataUrls.push(`data:image/jpeg;base64,${base64}`);
 
       // OCR with Google Vision
