@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Badge } from "@/components/ui/badge";
 import { Clock, FileText, Trash2, Edit, Edit2, Mail, RefreshCw, Square, CheckSquare, ChevronDown, Copy, Sparkles, Save, Download, Upload, Plus, FolderOpen } from "lucide-react";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType } from 'docx';
 import {
@@ -1695,9 +1696,15 @@ const MeetingHistory = () => {
             </div>
           </div>
 
-          {/* Stats Cards - Hidden on mobile */}
-          {!isMobile && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          {/* Stats - Compact badge for iPhone, full cards for desktop */}
+          {isIPhone ? (
+            <div className="mb-3">
+              <Badge variant="secondary" className="text-sm px-3 py-1.5 font-inter">
+                {meetings.length} {meetings.length === 1 ? 'meeting' : 'meetings'}
+              </Badge>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6">
               <Card className="bg-gradient-to-br from-primary/5 to-primary/10 border-primary/20 shadow-sm hover:shadow-md transition-all duration-300">
                 <CardContent className="p-6">
                   <div className="flex items-center justify-between mb-3">
