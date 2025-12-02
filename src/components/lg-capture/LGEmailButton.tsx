@@ -382,6 +382,10 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
   };
 
   const handleSend = async () => {
+    // Immediate debug - this will show even if everything else fails
+    alert('Email button clicked - starting process');
+    console.log('handleSend called');
+    
     if (!userEmail) {
       toast.error('No email address found. Please log in.');
       return;
