@@ -328,6 +328,89 @@ ${fullOcrText.substring(0, 10000)}`;
 
     console.log(`Processing complete for patient ${patientId}`);
 
+    // Step 10: Auto-send email with summary
+    console.log('Sending automatic email notification...');
+    try {
+      // Get user email from profiles
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name, email')
+        .eq('user_id', patient.user_id)
+        .single();
+
+      // Get user email from auth if not in profile
+      let userEmail = profile?.email;
+      let userName = profile?.full_name || 'User';
+      
+      if (!userEmail) {
+        const { data: { user: authUser } } = await supabase.auth.admin.getUserById(patient.user_id);
+        userEmail = authUser?.email;
+        if (!userName || userName === 'User') {
+          userName = userEmail?.split('@')[0] || 'User';
+        }
+      }
+
+      if (userEmail) {
+        // Build email HTML
+        const emailHtml = buildSummaryEmailHtml(
+          patientName,
+          nhsNumber,
+          dob,
+          patient.practice_ods,
+          patient.images_count || 0,
+          summaryJson,
+          snomedJson
+        );
+
+        // Send via EmailJS edge function
+        const emailResponse = await fetch(
+          `${supabaseUrl}/functions/v1/send-email-via-emailjs`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${supabaseServiceKey}`,
+            },
+            body: JSON.stringify({
+              to_email: userEmail,
+              to_name: userName,
+              subject: `Lloyd George Record Summary - ${patientName} (NHS: ${nhsNumber})`,
+              message: emailHtml,
+              template_type: 'ai_generated_content',
+            }),
+          }
+        );
+
+        if (emailResponse.ok) {
+          // Update email_sent_at
+          await supabase
+            .from('lg_patients')
+            .update({ email_sent_at: new Date().toISOString() })
+            .eq('id', patientId);
+          
+          console.log(`Email sent successfully to ${userEmail}`);
+          await logAudit(supabase, patientId, 'email_sent', patient.uploader_name, {
+            recipient: userEmail,
+          });
+        } else {
+          const errorText = await emailResponse.text();
+          console.error('Email sending failed:', errorText);
+          await supabase
+            .from('lg_patients')
+            .update({ email_error: `Failed to send: ${errorText.substring(0, 200)}` })
+            .eq('id', patientId);
+        }
+      } else {
+        console.log('No user email found, skipping auto-email');
+      }
+    } catch (emailErr) {
+      console.error('Auto-email error:', emailErr);
+      await supabase
+        .from('lg_patients')
+        .update({ email_error: `Email error: ${emailErr instanceof Error ? emailErr.message : 'Unknown'}` })
+        .eq('id', patientId);
+    }
+
     return new Response(
       JSON.stringify({ success: true, patientId }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -567,4 +650,127 @@ function generateULID(): string {
   }
   
   return timeStr + randomStr;
+}
+
+// Build HTML email for LG summary
+function buildSummaryEmailHtml(
+  patientName: string,
+  nhsNumber: string,
+  dob: string,
+  practiceOds: string,
+  imagesCount: number,
+  summaryJson: any,
+  snomedJson: any
+): string {
+  const safeString = (v: unknown): string => {
+    if (v === null || v === undefined) return '';
+    if (typeof v === 'string') return v;
+    return String(v);
+  };
+
+  const formatListItem = (item: unknown): string => {
+    if (typeof item === 'string') return item;
+    if (item === null || item === undefined) return '';
+    if (typeof item === 'object') {
+      const obj = item as Record<string, unknown>;
+      if (obj.name) return String(obj.name);
+      if (obj.term) return String(obj.term);
+      if (obj.description) return String(obj.description);
+      const entries = Object.entries(obj).filter(([_, v]) => v != null);
+      if (entries.length > 0) return entries.map(([k, v]) => `${k}: ${v}`).join(', ');
+    }
+    return String(item);
+  };
+
+  // Calculate low confidence SNOMED items
+  const snomedEntries: any[] = [];
+  if (snomedJson) {
+    for (const domain of ['problems', 'allergies', 'procedures', 'immunisations', 'risk_factors']) {
+      const items = snomedJson[domain] || [];
+      snomedEntries.push(...items.map((item: any) => ({ ...item, domain })));
+    }
+  }
+  const lowConfidenceCount = snomedEntries.filter(s => typeof s.confidence === 'number' && s.confidence < 0.6).length;
+
+  let html = `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+      <h1 style="color: #005EB8; border-bottom: 2px solid #005EB8; padding-bottom: 10px;">Lloyd George Record Summary</h1>
+      
+      <h2 style="color: #333;">Patient Details</h2>
+      <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
+        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Name</td><td style="padding: 8px; border: 1px solid #ddd;">${patientName}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">NHS Number</td><td style="padding: 8px; border: 1px solid #ddd;">${nhsNumber}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">DOB</td><td style="padding: 8px; border: 1px solid #ddd;">${dob}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Practice ODS</td><td style="padding: 8px; border: 1px solid #ddd;">${practiceOds}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Pages Scanned</td><td style="padding: 8px; border: 1px solid #ddd;">${imagesCount}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Items Requiring Review</td><td style="padding: 8px; border: 1px solid #ddd; ${lowConfidenceCount > 0 ? 'color: #DA291C; font-weight: bold;' : ''}">${lowConfidenceCount}</td></tr>
+      </table>
+  `;
+
+  if (summaryJson?.summary_line) {
+    html += `<h2 style="color: #333;">Clinical Summary</h2><p>${summaryJson.summary_line}</p>`;
+  }
+
+  if (summaryJson?.allergies?.length) {
+    html += `<h3 style="color: #DA291C;">⚠️ Allergies</h3><ul>${summaryJson.allergies.map((a: any) => `<li>${formatListItem(a)}</li>`).join('')}</ul>`;
+  }
+
+  if (summaryJson?.medications?.length) {
+    html += `<h3 style="color: #333;">Medications</h3><ul>${summaryJson.medications.map((m: any) => `<li>${formatListItem(m)}</li>`).join('')}</ul>`;
+  }
+
+  if (summaryJson?.significant_past_history?.length) {
+    html += `<h3 style="color: #333;">Significant Past History</h3><ul>${summaryJson.significant_past_history.map((h: any) => `<li>${formatListItem(h)}</li>`).join('')}</ul>`;
+  }
+
+  if (summaryJson?.procedures?.length) {
+    html += `<h3 style="color: #333;">Procedures</h3><ul>${summaryJson.procedures.map((p: any) => `<li>${formatListItem(p)}</li>`).join('')}</ul>`;
+  }
+
+  if (summaryJson?.immunisations?.length) {
+    html += `<h3 style="color: #333;">Immunisations</h3><ul>${summaryJson.immunisations.map((i: any) => `<li>${formatListItem(i)}</li>`).join('')}</ul>`;
+  }
+
+  if (summaryJson?.free_text_findings) {
+    html += `<h3 style="color: #333;">Additional Findings</h3><p>${summaryJson.free_text_findings}</p>`;
+  }
+
+  // SNOMED summary
+  if (snomedEntries.length > 0) {
+    html += `<h2 style="color: #333;">SNOMED CT Codes (${snomedEntries.length} identified)</h2>`;
+    
+    const domains = [...new Set(snomedEntries.map(s => s.domain))];
+    for (const domain of domains) {
+      const domainEntries = snomedEntries.filter(s => s.domain === domain);
+      html += `<h3 style="color: #005EB8;">${domain.charAt(0).toUpperCase() + domain.slice(1)}</h3>`;
+      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
+        <tr style="background: #005EB8; color: white;">
+          <th style="padding: 6px; text-align: left;">Term</th>
+          <th style="padding: 6px; text-align: left;">Code</th>
+          <th style="padding: 6px; text-align: center;">Confidence</th>
+        </tr>`;
+      
+      for (const entry of domainEntries) {
+        const confPercent = Math.round((typeof entry.confidence === 'number' ? entry.confidence : 0) * 100);
+        const confColor = confPercent >= 60 ? '#007F3B' : '#DA291C';
+        html += `<tr style="border-bottom: 1px solid #ddd;">
+          <td style="padding: 6px;">${safeString(entry.term)}</td>
+          <td style="padding: 6px; font-family: monospace;">${safeString(entry.code)}</td>
+          <td style="padding: 6px; text-align: center; color: ${confColor}; font-weight: bold;">${confPercent}%</td>
+        </tr>`;
+      }
+      html += `</table>`;
+    }
+  }
+
+  html += `
+      <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
+      <p style="color: #666; font-size: 12px; text-align: center;">
+        Generated by Notewell AI Lloyd George Capture Service<br>
+        ${new Date().toLocaleString('en-GB')}
+      </p>
+    </div>
+  `;
+
+  return html;
 }

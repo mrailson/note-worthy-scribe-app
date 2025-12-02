@@ -382,10 +382,6 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
   };
 
   const handleSend = async () => {
-    // Immediate debug - this will show even if everything else fails
-    alert('Email button clicked - starting process');
-    console.log('handleSend called');
-    
     if (!userEmail) {
       toast.error('No email address found. Please log in.');
       return;
@@ -537,25 +533,40 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
     return html;
   };
 
+  const wasEmailSent = !!patient.email_sent_at;
+  const emailError = (patient as any).email_error;
+
   return (
-    <Button 
-      variant="outline" 
-      className="w-full" 
-      onClick={handleSend}
-      disabled={sending || !userEmail}
-    >
-      {sending ? (
-        <>
-          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-          Sending...
-        </>
-      ) : (
-        <>
-          <Mail className="mr-2 h-4 w-4" />
-          Email Records
-        </>
+    <div className="space-y-2">
+      <Button 
+        variant="outline" 
+        className="w-full" 
+        onClick={handleSend}
+        disabled={sending || !userEmail}
+      >
+        {sending ? (
+          <>
+            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            Sending...
+          </>
+        ) : (
+          <>
+            <Mail className="mr-2 h-4 w-4" />
+            {wasEmailSent ? 'Resend Email' : 'Email Records'}
+          </>
+        )}
+      </Button>
+      {wasEmailSent && (
+        <p className="text-xs text-muted-foreground text-center">
+          Email sent automatically on {new Date(patient.email_sent_at!).toLocaleString('en-GB')}
+        </p>
       )}
-    </Button>
+      {emailError && (
+        <p className="text-xs text-destructive text-center">
+          Auto-email failed: {emailError}
+        </p>
+      )}
+    </div>
   );
 }
 
