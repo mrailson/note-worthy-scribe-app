@@ -14,8 +14,8 @@ export default function LGCaptureStart() {
   const navigate = useNavigate();
   const { createPatient, isLoading } = useLGCapture();
   
-  const [practiceOds, setPracticeOds] = useState('');
-  const [uploaderName, setUploaderName] = useState('');
+  const [practiceOds, setPracticeOds] = useState('K83042');
+  const [uploaderName, setUploaderName] = useState('Malcolm Railson');
   const [errors, setErrors] = useState<{ practiceOds?: string; uploaderName?: string }>({});
 
   useEffect(() => {
