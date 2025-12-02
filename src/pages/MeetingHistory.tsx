@@ -48,6 +48,7 @@ import { cleanLargeTranscript } from '@/utils/CleanTranscriptOrchestrator';
 import { showToast } from "@/utils/toastWrapper";
 import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFoldersManager";
+import { MeetingFolderView } from "@/components/meeting-folders/MeetingFolderView";
 
 interface Meeting {
   id: string;
@@ -151,6 +152,10 @@ const MeetingHistory = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const location = useLocation();
+  
+  // iPhone detection and view mode
+  const { isIPhone } = detectDevice();
+  const [viewMode, setViewMode] = useState<'list' | 'folders'>('list');
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [filteredMeetings, setFilteredMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
@@ -1732,6 +1737,26 @@ const MeetingHistory = () => {
             </div>
           )}
 
+          {/* iPhone view mode toggle */}
+          {isIPhone && (
+            <div className="flex gap-2 p-1 bg-muted rounded-lg mb-4">
+              <Button
+                variant={viewMode === 'list' ? 'secondary' : 'ghost'}
+                className="flex-1"
+                onClick={() => setViewMode('list')}
+              >
+                All Meetings
+              </Button>
+              <Button
+                variant={viewMode === 'folders' ? 'secondary' : 'ghost'}
+                className="flex-1"
+                onClick={() => setViewMode('folders')}
+              >
+                By Folder
+              </Button>
+            </div>
+          )}
+
          {/* Search Bar */}
          <div className="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center">
            <div className="flex-1">
@@ -2213,6 +2238,43 @@ const MeetingHistory = () => {
               </div>
             </CardContent>
           </Card>
+        ) : isIPhone && viewMode === 'folders' ? (
+          <MeetingFolderView
+            folders={folders}
+            meetings={filteredMeetings}
+            onEdit={handleMeetingEdit}
+            onViewSummary={handleViewMeetingSummary}
+            onViewTranscript={handleViewTranscript}
+            onDelete={handleMeetingDelete}
+            onRefresh={fetchMeetings}
+            loading={loading}
+            isSelectMode={isSelectMode}
+            selectedMeetings={selectedMeetings}
+            onSelectMeeting={handleSelectMeeting}
+            onMeetingUpdate={(meetingId, updatedTitle) => {
+              setMeetings(prev => prev.map(meeting => 
+                meeting.id === meetingId 
+                  ? { ...meeting, title: updatedTitle }
+                  : meeting
+              ));
+            }}
+            onDocumentsUploaded={(meetingId, uploadedFiles) => {
+              setMeetings(prev => prev.map(meeting => {
+                if (meeting.id === meetingId) {
+                  const existingDocuments = meeting.documents || [];
+                  const newDocuments = [...existingDocuments, ...uploadedFiles];
+                  return {
+                    ...meeting,
+                    document_count: newDocuments.length,
+                    documents: newDocuments
+                  };
+                }
+                return meeting;
+              }));
+            }}
+            showRecordingPlayback={micTestServiceVisible}
+            onFolderAssigned={handleFolderAssigned}
+          />
         ) : (
           <MeetingHistoryList 
             meetings={filteredMeetings}
@@ -2226,7 +2288,6 @@ const MeetingHistory = () => {
             selectedMeetings={selectedMeetings}
             onSelectMeeting={handleSelectMeeting}
             onMeetingUpdate={(meetingId, updatedTitle) => {
-              // Update the local meetings array
               setMeetings(prev => prev.map(meeting => 
                 meeting.id === meetingId 
                   ? { ...meeting, title: updatedTitle }
@@ -2234,7 +2295,6 @@ const MeetingHistory = () => {
               ));
             }}
             onDocumentsUploaded={(meetingId, uploadedFiles) => {
-              // Update the local meetings array with new documents
               setMeetings(prev => prev.map(meeting => {
                 if (meeting.id === meetingId) {
                   const existingDocuments = meeting.documents || [];
@@ -2247,10 +2307,10 @@ const MeetingHistory = () => {
                 }
                 return meeting;
               }));
-             }}
+            }}
             showRecordingPlayback={micTestServiceVisible}
             onFolderAssigned={handleFolderAssigned}
-           />
+          />
         )}
 
         {/* Pagination Controls */}
