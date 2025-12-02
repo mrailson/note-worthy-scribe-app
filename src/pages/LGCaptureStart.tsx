@@ -68,8 +68,6 @@ export default function LGCaptureStart() {
         Back
       </Button>
 
-      <LGPrivacyBanner />
-
       {/* Background upload indicator */}
       {activeUploads > 0 && (
         <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-700">
@@ -137,6 +135,8 @@ export default function LGCaptureStart() {
           </form>
         </CardContent>
       </Card>
+
+      <LGPrivacyBanner />
     </div>
   );
 }
