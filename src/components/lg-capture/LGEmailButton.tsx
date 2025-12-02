@@ -1,17 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog';
-import { Mail, Loader2, Send, Download } from 'lucide-react';
+import { Mail, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 import { toast } from 'sonner';
@@ -44,10 +33,26 @@ interface SnomedEntry {
 }
 
 export function LGEmailButton({ patient }: LGEmailButtonProps) {
-  const [open, setOpen] = useState(false);
   const [sending, setSending] = useState(false);
-  const [email, setEmail] = useState('');
-  const [name, setName] = useState('');
+  const [userEmail, setUserEmail] = useState<string | null>(null);
+  const [userName, setUserName] = useState<string>('');
+
+  useEffect(() => {
+    const fetchUserEmail = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.email) {
+        setUserEmail(user.email);
+        // Try to get user's name from profile
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('id', user.id)
+          .single();
+        setUserName(profile?.full_name || user.email.split('@')[0]);
+      }
+    };
+    fetchUserEmail();
+  }, []);
 
   const patientName = patient.ai_extracted_name || patient.patient_name || 'Unknown Patient';
   const nhsNumber = patient.ai_extracted_nhs || patient.nhs_number || 'Unknown';
@@ -367,8 +372,8 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
   };
 
   const handleSend = async () => {
-    if (!email.trim()) {
-      toast.error('Please enter an email address');
+    if (!userEmail) {
+      toast.error('No email address found. Please log in.');
       return;
     }
 
@@ -386,8 +391,8 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
       // Send via EmailJS edge function
       const { error } = await supabase.functions.invoke('send-email-via-emailjs', {
         body: {
-          to_email: email.trim(),
-          to_name: name.trim() || 'Recipient',
+          to_email: userEmail,
+          to_name: userName,
           subject: `Lloyd George Record Summary - ${patientName} (NHS: ${nhsNumber})`,
           message: emailHtml,
           template_type: 'ai_generated_content',
@@ -401,34 +406,12 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
 
       if (error) throw error;
 
-      toast.success('Email sent successfully');
-      setOpen(false);
-      setEmail('');
-      setName('');
+      toast.success(`Email sent to ${userEmail}`);
     } catch (err) {
       console.error('Failed to send email:', err);
       toast.error('Failed to send email. Please try again.');
     } finally {
       setSending(false);
-    }
-  };
-
-  const handleDownloadReport = async () => {
-    try {
-      const { summaryData, snomedData } = await fetchPatientData();
-      const wordBlob = await generateWordDocument(summaryData, snomedData);
-      
-      const url = URL.createObjectURL(wordBlob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `LG_Summary_${nhsNumber.replace(/\s/g, '')}_${new Date().toISOString().split('T')[0]}.docx`;
-      a.click();
-      URL.revokeObjectURL(url);
-      
-      toast.success('Report downloaded');
-    } catch (err) {
-      console.error('Failed to generate report:', err);
-      toast.error('Failed to generate report');
     }
   };
 
@@ -470,88 +453,24 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="w-full">
+    <Button 
+      variant="outline" 
+      className="w-full" 
+      onClick={handleSend}
+      disabled={sending || !userEmail}
+    >
+      {sending ? (
+        <>
+          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+          Sending...
+        </>
+      ) : (
+        <>
           <Mail className="mr-2 h-4 w-4" />
           Email Records
-        </Button>
-      </DialogTrigger>
-      <DialogContent className="sm:max-w-md">
-        <DialogHeader>
-          <DialogTitle>Email Patient Records</DialogTitle>
-          <DialogDescription>
-            Send the Lloyd George summary report with SNOMED codes to an email address.
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="space-y-4 py-4">
-          <div className="p-3 bg-muted rounded-lg text-sm">
-            <p className="font-medium">{patientName}</p>
-            <p className="text-muted-foreground font-mono text-xs">NHS: {nhsNumber}</p>
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="email">Recipient Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="doctor@nhs.net"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="name">Recipient Name (optional)</Label>
-            <Input
-              id="name"
-              placeholder="Dr. Smith"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-
-          <div className="text-xs text-muted-foreground">
-            <p className="font-medium mb-1">Email includes:</p>
-            <ul className="list-disc list-inside space-y-0.5">
-              <li>Patient details and clinical summary</li>
-              <li>SNOMED CT codes with confidence scores</li>
-              <li>Word document report attachment</li>
-            </ul>
-          </div>
-
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="w-full text-xs"
-            onClick={handleDownloadReport}
-          >
-            <Download className="mr-2 h-3 w-3" />
-            Preview/Download Report
-          </Button>
-        </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={() => setOpen(false)} disabled={sending}>
-            Cancel
-          </Button>
-          <Button onClick={handleSend} disabled={sending}>
-            {sending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Sending...
-              </>
-            ) : (
-              <>
-                <Send className="mr-2 h-4 w-4" />
-                Send Email
-              </>
-            )}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        </>
+      )}
+    </Button>
   );
 }
 
