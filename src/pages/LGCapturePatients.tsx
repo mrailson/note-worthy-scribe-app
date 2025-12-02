@@ -217,7 +217,7 @@ export default function LGCapturePatients() {
                       NHS: {patient.nhs_number || patient.ai_extracted_nhs || '—'}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      {format(new Date(patient.created_at), 'dd/MM/yyyy HH:mm')} • {patient.images_count} pages
+                      {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
