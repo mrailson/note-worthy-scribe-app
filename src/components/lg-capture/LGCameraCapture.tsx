@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, RotateCcw, Trash2, GripVertical, Upload, X, AlertTriangle, FastForward } from 'lucide-react';
+import { Camera, RotateCcw, Trash2, GripVertical, Upload, X, AlertTriangle, FastForward, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { generateULID } from '@/utils/ulid';
@@ -22,6 +22,7 @@ export function LGCameraCapture({
   isProcessing = false
 }: LGCameraCaptureProps) {
   const [isCapturing, setIsCapturing] = useState(false);
+  const [isCameraLoading, setIsCameraLoading] = useState(false);
   const [glareWarning, setGlareWarning] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,6 +31,7 @@ export function LGCameraCapture({
   const streamRef = useRef<MediaStream | null>(null);
 
   const startCamera = useCallback(async () => {
+    setIsCameraLoading(true);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -42,14 +44,23 @@ export function LGCameraCapture({
       streamRef.current = stream;
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
-        // Wait for video to be ready before playing (iOS Safari fix)
+        // Wait for video to be ready before playing AND showing UI (iOS Safari fix)
         videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play().catch(console.error);
+          videoRef.current?.play()
+            .then(() => {
+              setIsCapturing(true);
+              setIsCameraLoading(false);
+            })
+            .catch((err) => {
+              console.error('Video play error:', err);
+              setIsCameraLoading(false);
+              toast.error('Failed to start camera preview');
+            });
         };
       }
-      setIsCapturing(true);
     } catch (err) {
       console.error('Camera error:', err);
+      setIsCameraLoading(false);
       toast.error('Failed to access camera. Please use file upload instead.');
     }
   }, []);
@@ -250,16 +261,27 @@ export function LGCameraCapture({
         <div className="grid grid-cols-2 gap-3">
           <Button
             onClick={startCamera}
+            disabled={isCameraLoading}
             className="h-20 flex flex-col items-center justify-center gap-2"
             size="lg"
           >
-            <Camera className="h-8 w-8" />
-            <span>Use Camera</span>
+            {isCameraLoading ? (
+              <>
+                <Loader2 className="h-8 w-8 animate-spin" />
+                <span>Starting...</span>
+              </>
+            ) : (
+              <>
+                <Camera className="h-8 w-8" />
+                <span>Use Camera</span>
+              </>
+            )}
           </Button>
           
           <Button
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
+            disabled={isCameraLoading}
             className="h-20 flex flex-col items-center justify-center gap-2"
             size="lg"
           >
