@@ -436,8 +436,10 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
   };
 
   const buildEmailHtml = (summaryData: ClinicalSummary, snomedData: SnomedEntry[]) => {
+    // Ensure arrays are defined
+    const safeSnomedData = Array.isArray(snomedData) ? snomedData : [];
     // Calculate low confidence items (under 60%)
-    const lowConfidenceCount = snomedData.filter(s => s.confidence < 0.6).length;
+    const lowConfidenceCount = safeSnomedData.filter(s => typeof s.confidence === 'number' && s.confidence < 0.6).length;
     
     let html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -489,14 +491,14 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
       html += `<h3 style="color: #333;">Additional Findings</h3><p>${summaryData.free_text_findings}</p>`;
     }
 
-    if (snomedData.length > 0) {
-      html += `<h2 style="color: #333;">SNOMED CT Codes (${snomedData.length} identified)</h2>`;
+    if (safeSnomedData.length > 0) {
+      html += `<h2 style="color: #333;">SNOMED CT Codes (${safeSnomedData.length} identified)</h2>`;
       
       // Group by domain
-      const domains = [...new Set(snomedData.map(s => s.domain))];
+      const domains = [...new Set(safeSnomedData.map(s => s.domain))];
       
       for (const domain of domains) {
-        const domainEntries = snomedData.filter(s => s.domain === domain);
+        const domainEntries = safeSnomedData.filter(s => s.domain === domain);
         html += `<h3 style="color: #005EB8;">${domain.charAt(0).toUpperCase() + domain.slice(1)}</h3>`;
         html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
           <tr style="background: #005EB8; color: white;">
