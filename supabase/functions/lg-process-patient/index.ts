@@ -21,6 +21,27 @@ Constraints:
 - No medication product coding in this POC (skip or mark UNKNOWN).
 - Confidence 0–1.0. Provide a short evidence snippet.`;
 
+// Patient details extraction prompt
+const PATIENT_EXTRACTION_PROMPT = `You are extracting patient demographic details from scanned Lloyd George medical records. Extract ONLY what you can clearly see in the OCR text. Do not guess or invent information.
+
+Return valid JSON with this exact structure:
+{
+  "patient_name": "Full name as written on the records (or null if not found)",
+  "nhs_number": "10-digit NHS number, may have spaces (or null if not found)",
+  "date_of_birth": "YYYY-MM-DD format (or null if not found)",
+  "sex": "male" | "female" | "unknown",
+  "confidence": 0.0 to 1.0 (how confident you are in the extracted data)
+}
+
+Rules:
+- patient_name: Look for name fields, headers with patient name, or repeated mentions of a name
+- nhs_number: Look for a 10-digit number often labelled NHS No, NHS Number, etc. May have spaces like "123 456 7890"
+- date_of_birth: Look for DOB, Date of Birth, D.O.B., or birth date fields
+- sex: Look for M/F, Male/Female, Sex fields. Default to "unknown" if not clear
+- confidence: Set based on how clearly the information was visible (0.9+ if very clear, 0.5-0.8 if partially visible, below 0.5 if uncertain)
+
+Only extract what is clearly visible. Return null for any field you cannot confidently identify.`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -122,13 +143,62 @@ serve(async (req) => {
     const fullOcrText = ocrResults.join('\n\n');
     console.log(`OCR complete. Total characters: ${fullOcrText.length}`);
 
-    // Step 3: Generate AI Summary
+    // Step 3: Extract patient details from OCR text (NEW!)
+    console.log('Extracting patient details from OCR...');
+    let extractedPatient: any = null;
+    
+    if (openaiKey && fullOcrText.length > 50) {
+      try {
+        extractedPatient = await callOpenAI(openaiKey, PATIENT_EXTRACTION_PROMPT, 
+          `Extract patient details from this OCR text of Lloyd George records:\n\n${fullOcrText.substring(0, 30000)}`);
+        console.log('Patient details extracted:', extractedPatient);
+        
+        // Update patient record with extracted details
+        const updateData: any = {
+          ai_extracted_name: extractedPatient.patient_name || null,
+          ai_extracted_nhs: extractedPatient.nhs_number?.replace(/\s/g, '') || null,
+          ai_extracted_dob: extractedPatient.date_of_birth || null,
+          ai_extracted_sex: extractedPatient.sex || 'unknown',
+          ai_extraction_confidence: extractedPatient.confidence || 0,
+          requires_verification: (extractedPatient.confidence || 0) < 0.8,
+        };
+        
+        // Also populate the main fields if they're null
+        if (!patient.patient_name && extractedPatient.patient_name) {
+          updateData.patient_name = extractedPatient.patient_name;
+        }
+        if (!patient.nhs_number && extractedPatient.nhs_number) {
+          updateData.nhs_number = extractedPatient.nhs_number.replace(/\s/g, '');
+        }
+        if (!patient.dob && extractedPatient.date_of_birth) {
+          updateData.dob = extractedPatient.date_of_birth;
+        }
+        if (patient.sex === 'unknown' && extractedPatient.sex && extractedPatient.sex !== 'unknown') {
+          updateData.sex = extractedPatient.sex;
+        }
+        
+        await supabase
+          .from('lg_patients')
+          .update(updateData)
+          .eq('id', patientId);
+          
+      } catch (extractErr) {
+        console.error('Patient extraction failed:', extractErr);
+      }
+    }
+
+    // Step 4: Generate AI Summary
     console.log('Generating clinical summary...');
     let summaryJson: any = null;
     
+    // Use extracted patient name or placeholder
+    const patientName = extractedPatient?.patient_name || patient.patient_name || 'Unknown Patient';
+    const nhsNumber = extractedPatient?.nhs_number || patient.nhs_number || 'Unknown';
+    const dob = extractedPatient?.date_of_birth || patient.dob || 'Unknown';
+    
     if (openaiKey && fullOcrText.length > 100) {
       const summaryPrompt = `Context:
-Patient: ${patient.patient_name}, NHS ${patient.nhs_number}, DOB ${patient.dob}
+Patient: ${patientName}, NHS ${nhsNumber}, DOB ${dob}
 Practice ODS: ${patient.practice_ods}
 Source: OCR text of scanned Lloyd George (unordered notes; may include handwritten OCR errors).
 
@@ -164,7 +234,7 @@ ${fullOcrText.substring(0, 50000)}`;
       summaryJson = createEmptySummary();
     }
 
-    // Step 4: Generate SNOMED codes
+    // Step 5: Generate SNOMED codes
     console.log('Extracting SNOMED codes...');
     let snomedJson: any = null;
 
@@ -196,14 +266,13 @@ ${fullOcrText.substring(0, 10000)}`;
       snomedJson = createEmptySnomed();
     }
 
-    // Step 5: Generate CSV from SNOMED
-    const snomedCsv = generateSnomedCsv(snomedJson, patientId, patient.nhs_number);
+    // Step 6: Generate CSV from SNOMED
+    const snomedCsv = generateSnomedCsv(snomedJson, patientId, nhsNumber);
 
-    // Step 6: Create simple PDF (base64 images concatenated - POC)
-    // For a real implementation, use pdf-lib. Here we create a simple HTML-to-PDF placeholder
+    // Step 7: Create simple PDF (base64 images concatenated - POC)
     const pdfContent = await createSimplePdf(imageDataUrls, fullOcrText);
 
-    // Step 7: Upload all outputs
+    // Step 8: Upload all outputs
     console.log('Uploading outputs...');
     
     const finalPath = `${basePath}/final`;
@@ -236,7 +305,7 @@ ${fullOcrText.substring(0, 10000)}`;
       upsert: true,
     });
 
-    // Step 8: Update patient record with URLs
+    // Step 9: Update patient record with URLs
     await supabase
       .from('lg_patients')
       .update({
@@ -253,6 +322,7 @@ ${fullOcrText.substring(0, 10000)}`;
       ocr_chars: fullOcrText.length,
       summary_generated: !!summaryJson,
       snomed_extracted: !!snomedJson,
+      patient_extracted: !!extractedPatient,
     });
 
     console.log(`Processing complete for patient ${patientId}`);
@@ -376,7 +446,7 @@ function generateSnomedCsv(snomed: any, patientId: string, nhsNumber: string): s
         `"${(item.evidence || '').replace(/"/g, '""')}"`,
         item.from || 'ocr',
         patientId,
-        nhsNumber.replace(/\s/g, ''),
+        (nhsNumber || '').replace(/\s/g, ''),
       ].join(',');
       rows.push(row);
     }
