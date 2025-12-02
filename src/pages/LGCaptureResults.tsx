@@ -26,6 +26,13 @@ function formatUKDate(dateStr: string | null | undefined): string {
   return dateStr;
 }
 
+function formatNhsNumber(nhs: string | null | undefined): string {
+  if (!nhs) return '';
+  const cleaned = nhs.replace(/\s/g, '');
+  if (cleaned.length !== 10) return nhs;
+  return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+}
+
 export default function LGCaptureResults() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -155,7 +162,9 @@ export default function LGCaptureResults() {
               
               <span className="text-muted-foreground">NHS:</span>
               <span className="font-medium font-mono">
-                {patient.ai_extracted_nhs || patient.nhs_number || (
+                {patient.ai_extracted_nhs || patient.nhs_number ? (
+                  formatNhsNumber(patient.ai_extracted_nhs || patient.nhs_number)
+                ) : (
                   <span className="text-muted-foreground italic">Pending...</span>
                 )}
               </span>

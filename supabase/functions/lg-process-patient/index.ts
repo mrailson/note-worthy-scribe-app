@@ -669,6 +669,14 @@ function formatUKDate(dateStr: string | null | undefined): string {
   return dateStr;
 }
 
+// Format NHS number with spaces (123 456 7890)
+function formatNhsNumber(nhs: string | null | undefined): string {
+  if (!nhs) return 'Unknown';
+  const cleaned = nhs.replace(/\s/g, '');
+  if (cleaned.length !== 10) return nhs;
+  return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+}
+
 // Build HTML email for LG summary
 function buildSummaryEmailHtml(
   patientName: string,
@@ -716,7 +724,7 @@ function buildSummaryEmailHtml(
       <h2 style="color: #333;">Patient Details</h2>
       <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
         <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Name</td><td style="padding: 8px; border: 1px solid #ddd;">${patientName}</td></tr>
-        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">NHS Number</td><td style="padding: 8px; border: 1px solid #ddd;">${nhsNumber}</td></tr>
+        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">NHS Number</td><td style="padding: 8px; border: 1px solid #ddd;">${formatNhsNumber(nhsNumber)}</td></tr>
         <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">DOB</td><td style="padding: 8px; border: 1px solid #ddd;">${formatUKDate(dob)}</td></tr>
         <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Practice ODS</td><td style="padding: 8px; border: 1px solid #ddd;">${practiceOds}</td></tr>
         <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Pages Scanned</td><td style="padding: 8px; border: 1px solid #ddd;">${imagesCount}</td></tr>
