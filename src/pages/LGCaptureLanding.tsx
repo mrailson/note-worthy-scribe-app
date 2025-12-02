@@ -1,10 +1,36 @@
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { FileText, Camera, Brain, Download, List, ArrowRight } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { FileText, Camera, Brain, Download, List, ArrowRight, Settings } from 'lucide-react';
 
 export default function LGCaptureLanding() {
   const navigate = useNavigate();
+  const [practiceOds, setPracticeOds] = useState('');
+  const [uploaderName, setUploaderName] = useState('');
+  const [showSettings, setShowSettings] = useState(false);
+
+  useEffect(() => {
+    const savedOds = localStorage.getItem('lg_practice_ods') || '';
+    const savedName = localStorage.getItem('lg_uploader_name') || '';
+    setPracticeOds(savedOds);
+    setUploaderName(savedName);
+    
+    // Show settings if not configured
+    if (!savedOds || !savedName) {
+      setShowSettings(true);
+    }
+  }, []);
+
+  const saveSettings = () => {
+    localStorage.setItem('lg_practice_ods', practiceOds.trim());
+    localStorage.setItem('lg_uploader_name', uploaderName.trim());
+    setShowSettings(false);
+  };
+
+  const canStart = practiceOds.trim() && uploaderName.trim();
 
   const features = [
     {
@@ -39,10 +65,51 @@ export default function LGCaptureLanding() {
         <p className="text-xs text-muted-foreground">Proof of Concept</p>
       </div>
 
+      {/* Settings Section */}
+      <Card>
+        <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowSettings(!showSettings)}>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Capture Settings
+            </span>
+            <span className="text-xs font-normal text-muted-foreground">
+              {canStart ? `${uploaderName} • ${practiceOds}` : 'Not configured'}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        {showSettings && (
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="practiceOds">Practice ODS Code</Label>
+              <Input
+                id="practiceOds"
+                value={practiceOds}
+                onChange={(e) => setPracticeOds(e.target.value.toUpperCase())}
+                placeholder="e.g. K83042"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="uploaderName">Your Name</Label>
+              <Input
+                id="uploaderName"
+                value={uploaderName}
+                onChange={(e) => setUploaderName(e.target.value)}
+                placeholder="e.g. Malcolm Railson"
+              />
+            </div>
+            <Button onClick={saveSettings} className="w-full" disabled={!canStart}>
+              Save Settings
+            </Button>
+          </CardContent>
+        )}
+      </Card>
+
       <Button
         onClick={() => navigate('/lg-capture/start')}
         className="w-full h-14 text-lg"
         size="lg"
+        disabled={!canStart}
       >
         <Camera className="mr-2 h-6 w-6" />
         Start New Patient

@@ -1,8 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLGCapture } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
-import { LGPrivacyBanner } from '@/components/lg-capture/LGPrivacyBanner';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -14,18 +13,43 @@ export default function LGCaptureStart() {
   const navigate = useNavigate();
   const { createPatient, isLoading } = useLGCapture();
   const { activeUploads } = useLGUploadQueue();
+  const hasAutoStarted = useRef(false);
   
-  const [practiceOds, setPracticeOds] = useState('K83042');
-  const [uploaderName, setUploaderName] = useState('Malcolm Railson');
+  const [practiceOds, setPracticeOds] = useState('');
+  const [uploaderName, setUploaderName] = useState('');
   const [errors, setErrors] = useState<{ practiceOds?: string; uploaderName?: string }>({});
+  const [isAutoStarting, setIsAutoStarting] = useState(true);
 
   useEffect(() => {
-    // Load saved settings from localStorage
+    // Load saved settings and auto-start if both exist
     const savedOds = localStorage.getItem('lg_practice_ods');
     const savedName = localStorage.getItem('lg_uploader_name');
+    
     if (savedOds) setPracticeOds(savedOds);
     if (savedName) setUploaderName(savedName);
+    
+    // Auto-start capture if settings exist
+    if (savedOds && savedName && !hasAutoStarted.current) {
+      hasAutoStarted.current = true;
+      autoStartCapture(savedOds, savedName);
+    } else {
+      setIsAutoStarting(false);
+    }
   }, []);
+
+  const autoStartCapture = async (ods: string, name: string) => {
+    const patientId = await createPatient({
+      practice_ods: ods.trim(),
+      uploader_name: name.trim(),
+    });
+
+    if (patientId) {
+      navigate(`/lg-capture/capture/${patientId}`, { replace: true });
+    } else {
+      setIsAutoStarting(false);
+      toast.error('Failed to create session');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,6 +80,16 @@ export default function LGCaptureStart() {
       toast.error('Failed to create session');
     }
   };
+
+  // Show loading while auto-starting
+  if (isAutoStarting) {
+    return (
+      <div className="container max-w-2xl mx-auto py-8 px-4 flex flex-col items-center justify-center min-h-[50vh]">
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+        <p className="text-muted-foreground">Starting capture...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
@@ -136,7 +170,9 @@ export default function LGCaptureStart() {
         </CardContent>
       </Card>
 
-      <LGPrivacyBanner />
+      <p className="text-xs text-center text-muted-foreground">
+        Settings can be changed in the main LG Capture page
+      </p>
     </div>
   );
 }
