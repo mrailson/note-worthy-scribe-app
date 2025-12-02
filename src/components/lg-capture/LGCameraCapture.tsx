@@ -42,28 +42,45 @@ export function LGCameraCapture({
       });
       
       streamRef.current = stream;
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        // Wait for video to be ready before playing AND showing UI (iOS Safari fix)
-        videoRef.current.onloadedmetadata = () => {
-          videoRef.current?.play()
-            .then(() => {
-              setIsCapturing(true);
-              setIsCameraLoading(false);
-            })
-            .catch((err) => {
-              console.error('Video play error:', err);
-              setIsCameraLoading(false);
-              toast.error('Failed to start camera preview');
-            });
-        };
-      }
+      // Video element will be mounted after state update triggers re-render
+      // The useEffect below will handle setting srcObject
     } catch (err) {
       console.error('Camera error:', err);
       setIsCameraLoading(false);
       toast.error('Failed to access camera. Please use file upload instead.');
     }
   }, []);
+
+  // Effect to connect stream to video element when both are available
+  useEffect(() => {
+    if (isCameraLoading && streamRef.current && videoRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+      videoRef.current.onloadedmetadata = () => {
+        videoRef.current?.play()
+          .then(() => {
+            setIsCapturing(true);
+            setIsCameraLoading(false);
+          })
+          .catch((err) => {
+            console.error('Video play error:', err);
+            // Fallback: show UI anyway
+            setIsCapturing(true);
+            setIsCameraLoading(false);
+          });
+      };
+      
+      // Fallback timeout
+      const timeout = setTimeout(() => {
+        if (!isCapturing && isCameraLoading) {
+          console.warn('Camera init timeout - forcing UI show');
+          setIsCapturing(true);
+          setIsCameraLoading(false);
+        }
+      }, 3000);
+      
+      return () => clearTimeout(timeout);
+    }
+  }, [isCameraLoading, isCapturing]);
 
   // Auto-start camera on mount
   useEffect(() => {
@@ -210,13 +227,13 @@ export function LGCameraCapture({
 
   return (
     <div className="space-y-4">
-      {/* Camera View */}
-      {isCapturing ? (
+      {/* Camera View - shows loading, then camera, or buttons */}
+      {(isCapturing || isCameraLoading) ? (
         <Card>
           <CardContent className="p-4 space-y-4">
             <div 
               className="relative aspect-[3/4] bg-black rounded-lg overflow-hidden cursor-pointer active:opacity-90"
-              onClick={captureImage}
+              onClick={isCapturing ? captureImage : undefined}
             >
               <video
                 ref={videoRef}
@@ -224,64 +241,67 @@ export function LGCameraCapture({
                 playsInline
                 muted
                 webkit-playsinline="true"
-                className="absolute inset-0 w-full h-full object-cover pointer-events-none"
+                className={`absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity ${
+                  isCapturing ? 'opacity-100' : 'opacity-0'
+                }`}
               />
-              {glareWarning && (
+              {isCameraLoading && (
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <div className="text-center text-white">
+                    <Loader2 className="h-12 w-12 animate-spin mx-auto mb-3" />
+                    <p>Starting camera...</p>
+                  </div>
+                </div>
+              )}
+              {isCapturing && glareWarning && (
                 <div className="absolute top-4 left-1/2 -translate-x-1/2 bg-yellow-500 text-black px-4 py-2 rounded-lg flex items-center gap-2">
                   <AlertTriangle className="h-4 w-4" />
                   <span className="text-sm font-medium">Glare detected - adjust angle</span>
                 </div>
               )}
               {/* Tap to capture hint */}
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm">
-                Tap to capture
-              </div>
+              {isCapturing && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm">
+                  Tap to capture
+                </div>
+              )}
             </div>
             
-            <div className="flex gap-3">
-              <Button
-                onClick={captureImage}
-                className="flex-1 h-14 text-lg"
-                size="lg"
-              >
-                <Camera className="mr-2 h-6 w-6" />
-                Capture Page
-              </Button>
-              <Button
-                variant="outline"
-                onClick={stopCamera}
-                size="lg"
-              >
-                <X className="h-5 w-5" />
-              </Button>
-            </div>
+            {isCapturing && (
+              <div className="flex gap-3">
+                <Button
+                  onClick={captureImage}
+                  className="flex-1 h-14 text-lg"
+                  size="lg"
+                >
+                  <Camera className="mr-2 h-6 w-6" />
+                  Capture Page
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={stopCamera}
+                  size="lg"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
         <div className="grid grid-cols-2 gap-3">
           <Button
             onClick={startCamera}
-            disabled={isCameraLoading}
             className="h-20 flex flex-col items-center justify-center gap-2"
             size="lg"
           >
-            {isCameraLoading ? (
-              <>
-                <Loader2 className="h-8 w-8 animate-spin" />
-                <span>Starting...</span>
-              </>
-            ) : (
-              <>
-                <Camera className="h-8 w-8" />
-                <span>Use Camera</span>
-              </>
-            )}
+            <Camera className="h-8 w-8" />
+            <span>Use Camera</span>
           </Button>
           
           <Button
             variant="outline"
             onClick={() => fileInputRef.current?.click()}
-            disabled={isCameraLoading}
             className="h-20 flex flex-col items-center justify-center gap-2"
             size="lg"
           >
