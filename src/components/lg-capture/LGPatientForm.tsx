@@ -212,7 +212,7 @@ export function LGPatientForm({ onSubmit, isLoading, defaultValues }: LGPatientF
           <div className="space-y-2">
             <Label htmlFor="sex">Sex *</Label>
             <Select
-              defaultValue="unknown"
+              value={watchedValues.sex || 'unknown'}
               onValueChange={(value) => setValue('sex', value as PatientFormData['sex'])}
             >
               <SelectTrigger>
