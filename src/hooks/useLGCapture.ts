@@ -149,11 +149,27 @@ export function useLGCapture() {
         const path = `${practiceOds}/${patientId}/raw/${seq}.jpg`;
         
         console.log(`Uploading image ${i + 1}/${images.length} to path:`, path);
+        console.log(`DataUrl length: ${image.dataUrl?.length || 0}, starts with: ${image.dataUrl?.substring(0, 50)}`);
+        
+        // Validate data URL
+        if (!image.dataUrl || !image.dataUrl.startsWith('data:')) {
+          throw new Error(`Invalid image data for page ${i + 1}`);
+        }
         
         // Convert data URL to blob (more reliable method)
-        const blob = dataUrlToBlob(image.dataUrl);
+        let blob: Blob;
+        try {
+          blob = dataUrlToBlob(image.dataUrl);
+        } catch (convErr) {
+          console.error(`Failed to convert image ${i + 1}:`, convErr);
+          throw new Error(`Failed to process image ${i + 1}: ${convErr instanceof Error ? convErr.message : 'Unknown error'}`);
+        }
         
         console.log(`Blob size: ${blob.size}, type: ${blob.type}`);
+        
+        if (blob.size === 0) {
+          throw new Error(`Image ${i + 1} is empty - camera may not be working`);
+        }
         
         const { error: uploadError } = await supabase.storage
           .from('lg')
