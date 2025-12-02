@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
+import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -456,57 +457,74 @@ function generateSnomedCsv(snomed: any, patientId: string, nhsNumber: string): s
 }
 
 async function createSimplePdf(imageDataUrls: string[], ocrText: string): Promise<Uint8Array> {
-  // For POC, create a minimal PDF structure
-  // In production, use pdf-lib for proper PDF generation with embedded images
+  // Create PDF with embedded images using pdf-lib
+  const pdfDoc = await PDFDocument.create();
   
-  const header = '%PDF-1.4\n';
-  const body = `1 0 obj
-<< /Type /Catalog /Pages 2 0 R >>
-endobj
-
-2 0 obj
-<< /Type /Pages /Kids [3 0 R] /Count 1 >>
-endobj
-
-3 0 obj
-<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R >>
-endobj
-
-4 0 obj
-<< /Length ${50 + Math.min(ocrText.length, 1000)} >>
-stream
-BT
-/F1 12 Tf
-50 700 Td
-(Lloyd George Record - OCR Text) Tj
-0 -20 Td
-(Pages: ${imageDataUrls.length}) Tj
-0 -20 Td
-(Note: Full PDF with images requires pdf-lib integration) Tj
-ET
-endstream
-endobj
-
-5 0 obj
-<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
-endobj
-
-xref
-0 6
-0000000000 65535 f 
-0000000009 00000 n 
-0000000058 00000 n 
-0000000115 00000 n 
-0000000214 00000 n 
-0000000${350 + Math.min(ocrText.length, 1000).toString().length} 00000 n 
-
-trailer
-<< /Size 6 /Root 1 0 R >>
-startxref
-${400 + Math.min(ocrText.length, 1000)}
-%%EOF`;
-
-  return new TextEncoder().encode(header + body);
+  for (const dataUrl of imageDataUrls) {
+    try {
+      // Extract base64 data from data URL
+      const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+      const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+      
+      // Try to embed as JPEG first, then PNG
+      let image;
+      try {
+        image = await pdfDoc.embedJpg(imageBytes);
+      } catch {
+        try {
+          image = await pdfDoc.embedPng(imageBytes);
+        } catch (embedErr) {
+          console.error('Failed to embed image:', embedErr);
+          continue;
+        }
+      }
+      
+      // Calculate page dimensions to fit image (A4-ish)
+      const maxWidth = 595; // A4 width in points
+      const maxHeight = 842; // A4 height in points
+      
+      let width = image.width;
+      let height = image.height;
+      
+      // Scale to fit page while maintaining aspect ratio
+      const widthRatio = maxWidth / width;
+      const heightRatio = maxHeight / height;
+      const scale = Math.min(widthRatio, heightRatio, 1); // Don't upscale
+      
+      width = width * scale;
+      height = height * scale;
+      
+      // Create page with image dimensions
+      const page = pdfDoc.addPage([width, height]);
+      
+      // Draw image centered on page
+      page.drawImage(image, {
+        x: 0,
+        y: 0,
+        width: width,
+        height: height,
+      });
+    } catch (err) {
+      console.error('Error processing image for PDF:', err);
+    }
+  }
+  
+  // If no images were added, create a placeholder page
+  if (pdfDoc.getPageCount() === 0) {
+    const page = pdfDoc.addPage([595, 842]);
+    page.drawText('No images could be embedded in this PDF.', {
+      x: 50,
+      y: 700,
+      size: 14,
+    });
+    page.drawText(`OCR extracted ${ocrText.length} characters.`, {
+      x: 50,
+      y: 680,
+      size: 12,
+    });
+  }
+  
+  return await pdfDoc.save();
 }
 
 async function logAudit(
