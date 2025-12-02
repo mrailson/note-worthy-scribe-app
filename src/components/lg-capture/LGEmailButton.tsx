@@ -25,10 +25,17 @@ interface ClinicalSummary {
 
 function formatUKDate(dateStr: string): string {
   if (!dateStr || dateStr === 'Unknown') return dateStr;
-  // Try to parse and format as DD/MM/YYYY
-  const date = new Date(dateStr);
-  if (!isNaN(date.getTime())) {
-    return date.toLocaleDateString('en-GB');
+  // Try to parse and format as DD-MM-YYYY
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+  } catch {
+    // Return original if parsing fails
   }
   return dateStr;
 }

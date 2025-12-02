@@ -10,6 +10,22 @@ import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2,
 import { LGEmailButton } from '@/components/lg-capture/LGEmailButton';
 import { toast } from 'sonner';
 
+function formatUKDate(dateStr: string | null | undefined): string {
+  if (!dateStr || dateStr === 'Unknown') return dateStr || 'Pending...';
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+  } catch {
+    // Return original if parsing fails
+  }
+  return dateStr;
+}
+
 export default function LGCaptureResults() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -146,7 +162,9 @@ export default function LGCaptureResults() {
               
               <span className="text-muted-foreground">DOB:</span>
               <span className="font-medium">
-                {patient.ai_extracted_dob || patient.dob || (
+                {patient.ai_extracted_dob || patient.dob ? (
+                  formatUKDate(patient.ai_extracted_dob || patient.dob)
+                ) : (
                   <span className="text-muted-foreground italic">Pending...</span>
                 )}
               </span>
