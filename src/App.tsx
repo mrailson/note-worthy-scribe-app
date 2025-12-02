@@ -80,6 +80,11 @@ import CSOTrainingContentExport from "./pages/CSOTrainingContentExport";
 import UsingAiNhs from "./pages/UsingAiNhs";
 import NotebookStudio from "./pages/NotebookStudio";
 import AIShowcasePage from "./pages/AIShowcasePage";
+import LGCaptureLanding from "./pages/LGCaptureLanding";
+import LGCaptureStart from "./pages/LGCaptureStart";
+import LGCaptureCamera from "./pages/LGCaptureCamera";
+import LGCaptureResults from "./pages/LGCaptureResults";
+import LGCapturePatients from "./pages/LGCapturePatients";
 
 const App = () => {
   useSessionActivity();
@@ -236,6 +241,11 @@ const App = () => {
               <Route path="/security-report" element={<SecurityReport />} />
               <Route path="/compliance/security-audit-2025-11-19" element={<SecurityAudit20251119 />} />
               <Route path="/nhs-quest" element={<NHSQuest />} />
+              <Route path="/lg-capture" element={<LGCaptureLanding />} />
+              <Route path="/lg-capture/start" element={<LGCaptureStart />} />
+              <Route path="/lg-capture/capture/:id" element={<LGCaptureCamera />} />
+              <Route path="/lg-capture/results/:id" element={<LGCaptureResults />} />
+              <Route path="/lg-capture/patients" element={<LGCapturePatients />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
