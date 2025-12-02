@@ -1,16 +1,20 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLGCapture, LGPatient } from '@/hooks/useLGCapture';
+import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import { Progress } from '@/components/ui/progress';
+import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 
 export default function LGCapturePatients() {
   const navigate = useNavigate();
   const { listPatients, isLoading } = useLGCapture();
+  const { activeUploads, queue } = useLGUploadQueue();
   
   const [patients, setPatients] = useState<LGPatient[]>([]);
   const [search, setSearch] = useState('');
@@ -23,13 +27,67 @@ export default function LGCapturePatients() {
     load();
   }, [listPatients]);
 
+  // Real-time subscription for live status updates
+  useEffect(() => {
+    const channel = supabase
+      .channel('lg-patients-realtime')
+      .on('postgres_changes', {
+        event: '*',
+        schema: 'public',
+        table: 'lg_patients',
+      }, (payload) => {
+        if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+          const updated = payload.new as LGPatient;
+          setPatients(prev => {
+            const exists = prev.find(p => p.id === updated.id);
+            if (exists) {
+              return prev.map(p => p.id === updated.id ? updated : p);
+            } else {
+              return [updated, ...prev];
+            }
+          });
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
+
   const handleSearch = async () => {
     const data = await listPatients(search || undefined);
     setPatients(data);
   };
 
-  const getStatusBadge = (status: LGPatient['job_status']) => {
-    switch (status) {
+  const getStatusBadge = (patient: LGPatient) => {
+    // Check if this patient is in our local upload queue
+    const queueItem = queue.find(q => q.patientId === patient.id);
+    
+    if (queueItem) {
+      if (queueItem.status === 'uploading') {
+        return (
+          <div className="flex flex-col items-end gap-1">
+            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+              <Upload className="h-3 w-3 mr-1 animate-pulse" />
+              Uploading
+            </Badge>
+            <Progress value={queueItem.uploadProgress} className="w-20 h-1.5" />
+          </div>
+        );
+      }
+      if (queueItem.status === 'queued') {
+        return (
+          <Badge variant="secondary">
+            <Clock className="h-3 w-3 mr-1" />
+            Queued
+          </Badge>
+        );
+      }
+    }
+
+    // Fall back to database status
+    switch (patient.job_status) {
       case 'succeeded':
         return (
           <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
@@ -51,6 +109,18 @@ export default function LGCapturePatients() {
             Processing
           </Badge>
         );
+      case 'uploading':
+        return (
+          <div className="flex flex-col items-end gap-1">
+            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+              <Upload className="h-3 w-3 mr-1 animate-pulse" />
+              Uploading
+            </Badge>
+            {patient.upload_progress !== null && (
+              <Progress value={patient.upload_progress} className="w-20 h-1.5" />
+            )}
+          </div>
+        );
       case 'queued':
         return (
           <Badge variant="secondary">
@@ -61,7 +131,7 @@ export default function LGCapturePatients() {
       default:
         return (
           <Badge variant="outline">
-            {status}
+            {patient.job_status}
           </Badge>
         );
     }
@@ -89,6 +159,12 @@ export default function LGCapturePatients() {
         <p className="text-muted-foreground text-sm">
           Search by patient name or NHS number
         </p>
+        {activeUploads > 0 && (
+          <div className="mt-2 flex items-center gap-2 text-sm text-amber-600">
+            <Upload className="h-4 w-4 animate-pulse" />
+            <span>{activeUploads} upload{activeUploads > 1 ? 's' : ''} in progress...</span>
+          </div>
+        )}
       </div>
 
       {/* Search */}
@@ -134,16 +210,18 @@ export default function LGCapturePatients() {
               <CardContent className="p-4">
                 <div className="flex items-start justify-between">
                   <div className="space-y-1">
-                    <p className="font-medium">{patient.patient_name}</p>
+                    <p className="font-medium">
+                      {patient.patient_name || patient.ai_extracted_name || 'Extracting...'}
+                    </p>
                     <p className="text-sm text-muted-foreground font-mono">
-                      NHS: {patient.nhs_number}
+                      NHS: {patient.nhs_number || patient.ai_extracted_nhs || '—'}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(patient.created_at), 'dd/MM/yyyy HH:mm')} • {patient.images_count} pages
                     </p>
                   </div>
                   <div className="flex flex-col items-end gap-2">
-                    {getStatusBadge(patient.job_status)}
+                    {getStatusBadge(patient)}
                     <span className="text-xs text-muted-foreground">
                       {patient.practice_ods}
                     </span>

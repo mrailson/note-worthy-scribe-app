@@ -85,6 +85,7 @@ import LGCaptureStart from "./pages/LGCaptureStart";
 import LGCaptureCamera from "./pages/LGCaptureCamera";
 import LGCaptureResults from "./pages/LGCaptureResults";
 import LGCapturePatients from "./pages/LGCapturePatients";
+import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 
 const App = () => {
   useSessionActivity();
@@ -241,11 +242,11 @@ const App = () => {
               <Route path="/security-report" element={<SecurityReport />} />
               <Route path="/compliance/security-audit-2025-11-19" element={<SecurityAudit20251119 />} />
               <Route path="/nhs-quest" element={<NHSQuest />} />
-              <Route path="/lg-capture" element={<LGCaptureLanding />} />
-              <Route path="/lg-capture/start" element={<LGCaptureStart />} />
-              <Route path="/lg-capture/capture/:id" element={<LGCaptureCamera />} />
-              <Route path="/lg-capture/results/:id" element={<LGCaptureResults />} />
-              <Route path="/lg-capture/patients" element={<LGCapturePatients />} />
+              <Route path="/lg-capture" element={<LGUploadQueueProvider><LGCaptureLanding /></LGUploadQueueProvider>} />
+              <Route path="/lg-capture/start" element={<LGUploadQueueProvider><LGCaptureStart /></LGUploadQueueProvider>} />
+              <Route path="/lg-capture/capture/:id" element={<LGUploadQueueProvider><LGCaptureCamera /></LGUploadQueueProvider>} />
+              <Route path="/lg-capture/results/:id" element={<LGUploadQueueProvider><LGCaptureResults /></LGUploadQueueProvider>} />
+              <Route path="/lg-capture/patients" element={<LGUploadQueueProvider><LGCapturePatients /></LGUploadQueueProvider>} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

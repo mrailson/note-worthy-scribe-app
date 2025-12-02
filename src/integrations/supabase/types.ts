@@ -3363,6 +3363,7 @@ export type Database = {
           snomed_json_url: string | null
           summary_json_url: string | null
           updated_at: string | null
+          upload_progress: number | null
           uploader_name: string
           user_id: string | null
         }
@@ -3390,6 +3391,7 @@ export type Database = {
           snomed_json_url?: string | null
           summary_json_url?: string | null
           updated_at?: string | null
+          upload_progress?: number | null
           uploader_name: string
           user_id?: string | null
         }
@@ -3417,6 +3419,7 @@ export type Database = {
           snomed_json_url?: string | null
           summary_json_url?: string | null
           updated_at?: string | null
+          upload_progress?: number | null
           uploader_name?: string
           user_id?: string | null
         }

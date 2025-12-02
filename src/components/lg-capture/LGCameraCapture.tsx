@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, RotateCcw, Trash2, GripVertical, Upload, X, AlertTriangle, Loader2 } from 'lucide-react';
+import { Camera, RotateCcw, Trash2, GripVertical, Upload, X, AlertTriangle, FastForward } from 'lucide-react';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { generateULID } from '@/utils/ulid';
@@ -342,21 +342,11 @@ export function LGCameraCapture({
         <Button
           onClick={onFinish}
           disabled={isProcessing}
-          className={`w-full h-14 text-lg transition-all ${
-            isProcessing 
-              ? 'bg-muted text-muted-foreground cursor-not-allowed' 
-              : ''
-          }`}
+          className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
           size="lg"
         >
-          {isProcessing ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Processing {images.length} pages...
-            </>
-          ) : (
-            `Finish & Submit (${images.length} pages)`
-          )}
+          <FastForward className="mr-2 h-5 w-5" />
+          Done, Next Patient ({images.length} pages)
         </Button>
       )}
     </div>
