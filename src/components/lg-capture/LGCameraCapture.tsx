@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Camera, RotateCcw, Trash2, GripVertical, Upload, X, AlertTriangle } from 'lucide-react';
@@ -48,6 +48,16 @@ export function LGCameraCapture({
       toast.error('Failed to access camera. Please use file upload instead.');
     }
   }, []);
+
+  // Auto-start camera on mount
+  useEffect(() => {
+    startCamera();
+    return () => {
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+      }
+    };
+  }, [startCamera]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
