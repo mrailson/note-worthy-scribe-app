@@ -389,16 +389,25 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
 
     setSending(true);
     try {
+      console.log('Fetching patient data...');
       const { summaryData, snomedData } = await fetchPatientData();
+      console.log('Summary data:', summaryData);
+      console.log('SNOMED data:', snomedData);
       
       // Generate Word document
+      console.log('Generating Word document...');
       const wordBlob = await generateWordDocument(summaryData, snomedData);
+      console.log('Word blob size:', wordBlob.size);
       const wordBase64 = await blobToBase64(wordBlob);
+      console.log('Word base64 length:', wordBase64.length);
 
       // Build email HTML content
+      console.log('Building email HTML...');
       const emailHtml = buildEmailHtml(summaryData, snomedData);
+      console.log('Email HTML length:', emailHtml.length);
 
       // Send via EmailJS edge function
+      console.log('Invoking edge function...');
       const { error } = await supabase.functions.invoke('send-email-via-emailjs', {
         body: {
           to_email: userEmail,
@@ -419,6 +428,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
       toast.success(`Email sent to ${userEmail}`);
     } catch (err) {
       console.error('Failed to send email:', err);
+      console.error('Error details:', err instanceof Error ? err.stack : err);
       toast.error('Failed to send email. Please try again.');
     } finally {
       setSending(false);
