@@ -237,19 +237,42 @@ export function useLGCapture() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
-      const { error: invokeError } = await supabase.functions.invoke('lg-process-patient', {
-        body: { patientId },
-      });
+      console.log('Triggering processing for patient:', patientId);
+      
+      // Retry logic for network failures (common on iOS)
+      let lastError: Error | null = null;
+      for (let attempt = 1; attempt <= 3; attempt++) {
+        try {
+          console.log(`Processing attempt ${attempt}/3...`);
+          const { error: invokeError } = await supabase.functions.invoke('lg-process-patient', {
+            body: { patientId },
+          });
 
-      if (invokeError) throw invokeError;
+          if (invokeError) {
+            console.error(`Invoke error on attempt ${attempt}:`, invokeError);
+            throw invokeError;
+          }
 
-      await logAuditEvent(patientId, 'processing_started', user.email || 'unknown', user.id, {});
+          console.log('Processing triggered successfully');
+          await logAuditEvent(patientId, 'processing_started', user.email || 'unknown', user.id, {});
+          return true;
+        } catch (attemptErr) {
+          lastError = attemptErr instanceof Error ? attemptErr : new Error('Unknown error');
+          console.error(`Attempt ${attempt} failed:`, lastError.message);
+          
+          if (attempt < 3) {
+            // Wait before retry (exponential backoff)
+            await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+          }
+        }
+      }
 
-      return true;
+      throw lastError || new Error('Processing failed after 3 attempts');
     } catch (err) {
+      console.error('triggerProcessing error:', err);
       const message = err instanceof Error ? err.message : 'Failed to start processing';
       setError(message);
-      toast.error(message);
+      toast.error(`Processing failed: ${message}`);
       return false;
     } finally {
       setIsLoading(false);
