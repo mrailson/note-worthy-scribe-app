@@ -148,7 +148,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           spacing: { before: 300, after: 100 },
         }),
         ...summaryData.allergies.map(a => new Paragraph({
-          text: `• ${a}`,
+          text: `• ${formatListItem(a)}`,
           spacing: { after: 50 },
         }))
       );
@@ -163,7 +163,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           spacing: { before: 300, after: 100 },
         }),
         ...summaryData.medications.map(m => new Paragraph({
-          text: `• ${m}`,
+          text: `• ${formatListItem(m)}`,
           spacing: { after: 50 },
         }))
       );
@@ -178,7 +178,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           spacing: { before: 300, after: 100 },
         }),
         ...summaryData.significant_past_history.map(h => new Paragraph({
-          text: `• ${h}`,
+          text: `• ${formatListItem(h)}`,
           spacing: { after: 50 },
         }))
       );
@@ -193,7 +193,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           spacing: { before: 300, after: 100 },
         }),
         ...summaryData.procedures.map(p => new Paragraph({
-          text: `• ${p}`,
+          text: `• ${formatListItem(p)}`,
           spacing: { after: 50 },
         }))
       );
@@ -208,7 +208,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           spacing: { before: 300, after: 100 },
         }),
         ...summaryData.immunisations.map(i => new Paragraph({
-          text: `• ${i}`,
+          text: `• ${formatListItem(i)}`,
           spacing: { after: 50 },
         }))
       );
@@ -223,7 +223,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           spacing: { before: 300, after: 100 },
         }),
         ...summaryData.risk_factors.map(r => new Paragraph({
-          text: `• ${r}`,
+          text: `• ${formatListItem(r)}`,
           spacing: { after: 50 },
         }))
       );
@@ -238,7 +238,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           spacing: { before: 300, after: 100 },
         }),
         ...summaryData.family_history.map(f => new Paragraph({
-          text: `• ${f}`,
+          text: `• ${formatListItem(f)}`,
           spacing: { after: 50 },
         }))
       );
@@ -509,6 +509,25 @@ function safeString(value: unknown): string {
     }
   }
   return String(value);
+}
+
+function formatListItem(item: unknown): string {
+  if (typeof item === 'string') return item;
+  if (item === null || item === undefined) return '';
+  if (typeof item === 'object') {
+    // Handle common object structures from AI extraction
+    const obj = item as Record<string, unknown>;
+    if (obj.name) return String(obj.name);
+    if (obj.term) return String(obj.term);
+    if (obj.description) return String(obj.description);
+    if (obj.value) return String(obj.value);
+    // Fallback to readable key-value pairs
+    const entries = Object.entries(obj).filter(([_, v]) => v != null);
+    if (entries.length > 0) {
+      return entries.map(([k, v]) => `${k}: ${v}`).join(', ');
+    }
+  }
+  return String(item);
 }
 
 function createDataCell(text: string) {
