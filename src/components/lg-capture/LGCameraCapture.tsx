@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, RotateCcw, Trash2, GripVertical, Upload, X, AlertTriangle } from 'lucide-react';
+import { Camera, RotateCcw, Trash2, GripVertical, Upload, X, AlertTriangle, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { generateULID } from '@/utils/ulid';
@@ -11,13 +11,15 @@ interface LGCameraCaptureProps {
   onImagesChange: (images: CapturedImage[]) => void;
   onFinish: () => void;
   maxPages?: number;
+  isProcessing?: boolean;
 }
 
 export function LGCameraCapture({ 
   images, 
   onImagesChange, 
   onFinish,
-  maxPages = 300 
+  maxPages = 300,
+  isProcessing = false
 }: LGCameraCaptureProps) {
   const [isCapturing, setIsCapturing] = useState(false);
   const [glareWarning, setGlareWarning] = useState(false);
@@ -339,10 +341,22 @@ export function LGCameraCapture({
       {images.length > 0 && (
         <Button
           onClick={onFinish}
-          className="w-full h-14 text-lg"
+          disabled={isProcessing}
+          className={`w-full h-14 text-lg transition-all ${
+            isProcessing 
+              ? 'bg-muted text-muted-foreground cursor-not-allowed' 
+              : ''
+          }`}
           size="lg"
         >
-          End Patient & Process ({images.length} pages)
+          {isProcessing ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Processing {images.length} pages...
+            </>
+          ) : (
+            `End Patient & Process (${images.length} pages)`
+          )}
         </Button>
       )}
     </div>

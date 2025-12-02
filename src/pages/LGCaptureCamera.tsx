@@ -122,6 +122,7 @@ export default function LGCaptureCamera() {
           images={images}
           onImagesChange={setImages}
           onFinish={handleFinish}
+          isProcessing={uploading}
         />
       )}
     </div>
