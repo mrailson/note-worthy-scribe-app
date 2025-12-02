@@ -74,7 +74,14 @@ export function LGPatientForm({ onSubmit, isLoading, defaultValues }: LGPatientF
 
   const handleConfirm = async () => {
     if (formData) {
-      await onSubmit(formData);
+      await onSubmit({
+        practice_ods: formData.practice_ods!,
+        uploader_name: formData.uploader_name!,
+        patient_name: formData.patient_name!,
+        nhs_number: formData.nhs_number!,
+        dob: formData.dob!,
+        sex: formData.sex!,
+      });
     }
   };
 
