@@ -10,8 +10,8 @@ const DEMO_PATIENT = {
   nhs_number: '9434765919',
   dob: '1952-03-15',
   sex: 'male' as const,
-  practice_ods: 'Y02734',
-  uploader_name: 'Sarah Mitchell',
+  practice_ods: 'K83044',
+  uploader_name: 'Malcolm Railson',
 };
 
 export default function LGCaptureStart() {
