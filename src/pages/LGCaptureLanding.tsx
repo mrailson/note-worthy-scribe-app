@@ -1,8 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Camera, Brain, Download, List, ArrowRight } from 'lucide-react';
-import { LGPrivacyBanner } from '@/components/lg-capture/LGPrivacyBanner';
 
 export default function LGCaptureLanding() {
   const navigate = useNavigate();
@@ -40,7 +39,15 @@ export default function LGCaptureLanding() {
         <p className="text-xs text-muted-foreground">Proof of Concept</p>
       </div>
 
-      <LGPrivacyBanner />
+      <Button
+        onClick={() => navigate('/lg-capture/start')}
+        className="w-full h-14 text-lg"
+        size="lg"
+      >
+        <Camera className="mr-2 h-6 w-6" />
+        Start New Patient
+        <ArrowRight className="ml-2 h-5 w-5" />
+      </Button>
 
       <div className="grid grid-cols-2 gap-4">
         {features.map((feature) => (
@@ -54,26 +61,14 @@ export default function LGCaptureLanding() {
         ))}
       </div>
 
-      <div className="space-y-3">
-        <Button
-          onClick={() => navigate('/lg-capture/start')}
-          className="w-full h-14 text-lg"
-          size="lg"
-        >
-          <Camera className="mr-2 h-6 w-6" />
-          Start New Patient
-          <ArrowRight className="ml-2 h-5 w-5" />
-        </Button>
-
-        <Button
-          variant="outline"
-          onClick={() => navigate('/lg-capture/patients')}
-          className="w-full"
-        >
-          <List className="mr-2 h-4 w-4" />
-          View Recent Captures
-        </Button>
-      </div>
+      <Button
+        variant="outline"
+        onClick={() => navigate('/lg-capture/patients')}
+        className="w-full"
+      >
+        <List className="mr-2 h-4 w-4" />
+        View Recent Captures
+      </Button>
 
       <Card className="bg-muted/30">
         <CardHeader className="pb-3">
