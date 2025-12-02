@@ -355,7 +355,7 @@ export function LGCameraCapture({
               Processing {images.length} pages...
             </>
           ) : (
-            `End Patient & Process (${images.length} pages)`
+            `Finish & Submit (${images.length} pages)`
           )}
         </Button>
       )}

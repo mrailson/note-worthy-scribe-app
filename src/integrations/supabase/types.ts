@@ -3340,18 +3340,24 @@ export type Database = {
       }
       lg_patients: {
         Row: {
+          ai_extracted_dob: string | null
+          ai_extracted_name: string | null
+          ai_extracted_nhs: string | null
+          ai_extracted_sex: string | null
+          ai_extraction_confidence: number | null
           created_at: string | null
-          dob: string
+          dob: string | null
           error_message: string | null
           id: string
           images_count: number | null
           job_status: string | null
-          nhs_number: string
-          patient_name: string
+          nhs_number: string | null
+          patient_name: string | null
           pdf_url: string | null
           practice_ods: string
           processing_completed_at: string | null
           processing_started_at: string | null
+          requires_verification: boolean | null
           sex: string
           snomed_csv_url: string | null
           snomed_json_url: string | null
@@ -3361,19 +3367,25 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          ai_extracted_dob?: string | null
+          ai_extracted_name?: string | null
+          ai_extracted_nhs?: string | null
+          ai_extracted_sex?: string | null
+          ai_extraction_confidence?: number | null
           created_at?: string | null
-          dob: string
+          dob?: string | null
           error_message?: string | null
           id: string
           images_count?: number | null
           job_status?: string | null
-          nhs_number: string
-          patient_name: string
+          nhs_number?: string | null
+          patient_name?: string | null
           pdf_url?: string | null
           practice_ods: string
           processing_completed_at?: string | null
           processing_started_at?: string | null
-          sex: string
+          requires_verification?: boolean | null
+          sex?: string
           snomed_csv_url?: string | null
           snomed_json_url?: string | null
           summary_json_url?: string | null
@@ -3382,18 +3394,24 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          ai_extracted_dob?: string | null
+          ai_extracted_name?: string | null
+          ai_extracted_nhs?: string | null
+          ai_extracted_sex?: string | null
+          ai_extraction_confidence?: number | null
           created_at?: string | null
-          dob?: string
+          dob?: string | null
           error_message?: string | null
           id?: string
           images_count?: number | null
           job_status?: string | null
-          nhs_number?: string
-          patient_name?: string
+          nhs_number?: string | null
+          patient_name?: string | null
           pdf_url?: string | null
           practice_ods?: string
           processing_completed_at?: string | null
           processing_started_at?: string | null
+          requires_verification?: boolean | null
           sex?: string
           snomed_csv_url?: string | null
           snomed_json_url?: string | null

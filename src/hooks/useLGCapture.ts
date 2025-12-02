@@ -24,9 +24,9 @@ export interface LGPatient {
   user_id: string;
   practice_ods: string;
   uploader_name: string;
-  patient_name: string;
-  nhs_number: string;
-  dob: string;
+  patient_name: string | null;
+  nhs_number: string | null;
+  dob: string | null;
   sex: string;
   images_count: number;
   job_status: 'draft' | 'uploading' | 'queued' | 'processing' | 'succeeded' | 'failed';
@@ -37,6 +37,13 @@ export interface LGPatient {
   error_message: string | null;
   processing_started_at: string | null;
   processing_completed_at: string | null;
+  // AI extraction fields
+  ai_extracted_name: string | null;
+  ai_extracted_nhs: string | null;
+  ai_extracted_dob: string | null;
+  ai_extracted_sex: string | null;
+  ai_extraction_confidence: number | null;
+  requires_verification: boolean;
 }
 
 export interface CapturedImage {
@@ -46,13 +53,10 @@ export interface CapturedImage {
   hash?: string;
 }
 
+// Simplified input - only requires practice and uploader
 export interface CreatePatientInput {
   practice_ods: string;
   uploader_name: string;
-  patient_name: string;
-  nhs_number: string;
-  dob: string;
-  sex: string;
 }
 
 export function useLGCapture() {
@@ -74,20 +78,25 @@ export function useLGCapture() {
         .insert({
           id: patientId,
           user_id: user.id,
-          ...input,
+          practice_ods: input.practice_ods,
+          uploader_name: input.uploader_name,
+          // Leave patient details null - AI will extract them
+          patient_name: null,
+          nhs_number: null,
+          dob: null,
+          sex: 'unknown',
         });
 
       if (insertError) throw insertError;
 
       // Log audit event
-      await logAuditEvent(patientId, 'patient_created', user.email || 'unknown', user.id, {
+      await logAuditEvent(patientId, 'capture_started', user.email || 'unknown', user.id, {
         practice_ods: input.practice_ods,
-        nhs_number: input.nhs_number,
       });
 
       return patientId;
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to create patient';
+      const message = err instanceof Error ? err.message : 'Failed to create session';
       setError(message);
       toast.error(message);
       return null;
@@ -290,7 +299,7 @@ export function useLGCapture() {
         .order('created_at', { ascending: false });
 
       if (searchTerm) {
-        query = query.or(`patient_name.ilike.%${searchTerm}%,nhs_number.ilike.%${searchTerm}%`);
+        query = query.or(`patient_name.ilike.%${searchTerm}%,nhs_number.ilike.%${searchTerm}%,ai_extracted_name.ilike.%${searchTerm}%,ai_extracted_nhs.ilike.%${searchTerm}%`);
       }
 
       const { data, error: fetchError } = await query.limit(50);

@@ -4,14 +4,14 @@ import { useLGCapture, CapturedImage, LGPatient } from '@/hooks/useLGCapture';
 import { LGCameraCapture } from '@/components/lg-capture/LGCameraCapture';
 import { LGPrivacyBanner } from '@/components/lg-capture/LGPrivacyBanner';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LGCaptureCamera() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPatient, uploadImages, triggerProcessing, isLoading } = useLGCapture();
+  const { getPatient, uploadImages, triggerProcessing } = useLGCapture();
   
   const [patient, setPatient] = useState<LGPatient | null>(null);
   const [images, setImages] = useState<CapturedImage[]>([]);
@@ -24,7 +24,7 @@ export default function LGCaptureCamera() {
       if (data) {
         setPatient(data);
       } else {
-        toast.error('Patient not found');
+        toast.error('Session not found');
         navigate('/lg-capture');
       }
     };
@@ -52,21 +52,17 @@ export default function LGCaptureCamera() {
         throw new Error('Upload failed');
       }
 
-      // Trigger processing
-      console.log('Triggering processing...');
-      const processSuccess = await triggerProcessing(patient.id);
-      console.log('Processing result:', processSuccess);
-      
-      if (!processSuccess) {
-        throw new Error('Processing trigger failed');
-      }
+      // Trigger processing (fire and forget - don't await completion)
+      console.log('Triggering background processing...');
+      triggerProcessing(patient.id).catch(err => {
+        console.error('Background processing error:', err);
+      });
 
-      toast.success('Upload complete! Redirecting...');
+      toast.success('Upload complete! Processing in background...');
       navigate(`/lg-capture/results/${patient.id}`);
     } catch (err) {
       console.error('Finish error:', err);
-      toast.error('Failed to process. Please try again.');
-    } finally {
+      toast.error('Failed to upload. Please try again.');
       setUploading(false);
     }
   };
@@ -89,23 +85,6 @@ export default function LGCaptureCamera() {
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back
       </Button>
-
-      {/* Patient Info */}
-      <Card className="bg-muted/30">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-base">Capturing for</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">Patient:</span>
-            <span className="font-medium">{patient.patient_name}</span>
-            <span className="text-muted-foreground">NHS:</span>
-            <span className="font-medium font-mono">{patient.nhs_number}</span>
-            <span className="text-muted-foreground">DOB:</span>
-            <span className="font-medium">{patient.dob}</span>
-          </div>
-        </CardContent>
-      </Card>
 
       <LGPrivacyBanner />
 

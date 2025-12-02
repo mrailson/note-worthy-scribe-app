@@ -6,7 +6,7 @@ import { LGDownloadPanel } from '@/components/lg-capture/LGDownloadPanel';
 import { LGSummaryPreview } from '@/components/lg-capture/LGSummaryPreview';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, Plus, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function LGCaptureResults() {
@@ -32,13 +32,30 @@ export default function LGCaptureResults() {
 
   useEffect(() => {
     loadPatient();
+    
+    // Poll for updates while processing
+    const interval = setInterval(() => {
+      if (patient && ['queued', 'processing', 'uploading'].includes(patient.job_status)) {
+        loadPatient();
+      }
+    }, 3000);
+
+    return () => clearInterval(interval);
   }, [id]);
+
+  // Reload when status changes
+  useEffect(() => {
+    if (patient && ['queued', 'processing', 'uploading'].includes(patient.job_status)) {
+      const interval = setInterval(loadPatient, 3000);
+      return () => clearInterval(interval);
+    }
+  }, [patient?.job_status]);
 
   const handleStatusChange = (status: LGPatient['job_status']) => {
     if (patient) {
       setPatient({ ...patient, job_status: status });
     }
-    // Reload to get updated URLs
+    // Reload to get updated data
     if (status === 'succeeded' || status === 'failed') {
       loadPatient();
     }
@@ -61,6 +78,10 @@ export default function LGCaptureResults() {
     );
   }
 
+  // Check if we have AI-extracted data
+  const hasExtractedData = patient.ai_extracted_name || patient.ai_extracted_nhs || patient.ai_extracted_dob;
+  const isProcessing = ['queued', 'processing', 'uploading'].includes(patient.job_status);
+
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
       <Button
@@ -72,24 +93,82 @@ export default function LGCaptureResults() {
         Back to List
       </Button>
 
-      {/* Patient Info */}
-      <Card className="bg-muted/30">
+      {/* Patient Info - AI Extracted */}
+      <Card className={patient.requires_verification ? 'border-amber-500' : ''}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base">Patient Record</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <User className="h-4 w-4" />
+            Patient Details
+            {isProcessing && (
+              <span className="text-xs font-normal text-muted-foreground ml-2">
+                (Extracting from documents...)
+              </span>
+            )}
+            {patient.requires_verification && (
+              <span className="text-xs font-normal text-amber-600 ml-2 flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" />
+                Needs verification
+              </span>
+            )}
+            {hasExtractedData && !patient.requires_verification && patient.job_status === 'succeeded' && (
+              <span className="text-xs font-normal text-green-600 ml-2 flex items-center gap-1">
+                <CheckCircle2 className="h-3 w-3" />
+                AI Extracted
+              </span>
+            )}
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-2 text-sm">
-            <span className="text-muted-foreground">Patient:</span>
-            <span className="font-medium">{patient.patient_name}</span>
-            <span className="text-muted-foreground">NHS:</span>
-            <span className="font-medium font-mono">{patient.nhs_number}</span>
-            <span className="text-muted-foreground">DOB:</span>
-            <span className="font-medium">{patient.dob}</span>
-            <span className="text-muted-foreground">Pages:</span>
-            <span className="font-medium">{patient.images_count}</span>
-            <span className="text-muted-foreground">ID:</span>
-            <span className="font-mono text-xs">{patient.id}</span>
-          </div>
+          {isProcessing && !hasExtractedData ? (
+            <div className="flex items-center gap-3 py-4">
+              <Loader2 className="h-5 w-5 animate-spin text-primary" />
+              <div>
+                <p className="font-medium">Extracting patient details...</p>
+                <p className="text-sm text-muted-foreground">AI is reading the scanned documents</p>
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 text-sm">
+              <span className="text-muted-foreground">Patient:</span>
+              <span className="font-medium">
+                {patient.ai_extracted_name || patient.patient_name || (
+                  <span className="text-muted-foreground italic">Pending...</span>
+                )}
+              </span>
+              
+              <span className="text-muted-foreground">NHS:</span>
+              <span className="font-medium font-mono">
+                {patient.ai_extracted_nhs || patient.nhs_number || (
+                  <span className="text-muted-foreground italic">Pending...</span>
+                )}
+              </span>
+              
+              <span className="text-muted-foreground">DOB:</span>
+              <span className="font-medium">
+                {patient.ai_extracted_dob || patient.dob || (
+                  <span className="text-muted-foreground italic">Pending...</span>
+                )}
+              </span>
+              
+              <span className="text-muted-foreground">Pages:</span>
+              <span className="font-medium">{patient.images_count}</span>
+              
+              {patient.ai_extraction_confidence !== null && patient.ai_extraction_confidence !== undefined && (
+                <>
+                  <span className="text-muted-foreground">Confidence:</span>
+                  <span className={`font-medium ${
+                    patient.ai_extraction_confidence >= 0.8 ? 'text-green-600' : 
+                    patient.ai_extraction_confidence >= 0.5 ? 'text-amber-600' : 'text-red-600'
+                  }`}>
+                    {Math.round(patient.ai_extraction_confidence * 100)}%
+                  </span>
+                </>
+              )}
+              
+              <span className="text-muted-foreground">ID:</span>
+              <span className="font-mono text-xs">{patient.id}</span>
+            </div>
+          )}
         </CardContent>
       </Card>
 
