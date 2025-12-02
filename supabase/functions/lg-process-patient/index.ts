@@ -460,8 +460,13 @@ async function createSimplePdf(imageDataUrls: string[], ocrText: string): Promis
   // Create PDF with embedded images using pdf-lib
   const pdfDoc = await PDFDocument.create();
   
-  for (const dataUrl of imageDataUrls) {
+  console.log(`Creating PDF with ${imageDataUrls.length} images`);
+  
+  for (let i = 0; i < imageDataUrls.length; i++) {
+    const dataUrl = imageDataUrls[i];
     try {
+      console.log(`Processing image ${i + 1}/${imageDataUrls.length}`);
+      
       // Extract base64 data from data URL
       const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '');
       const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
@@ -474,40 +479,36 @@ async function createSimplePdf(imageDataUrls: string[], ocrText: string): Promis
         try {
           image = await pdfDoc.embedPng(imageBytes);
         } catch (embedErr) {
-          console.error('Failed to embed image:', embedErr);
+          console.error(`Failed to embed image ${i + 1}:`, embedErr);
           continue;
         }
       }
       
-      // Calculate page dimensions to fit image (A4-ish)
-      const maxWidth = 595; // A4 width in points
-      const maxHeight = 842; // A4 height in points
+      // Scale to 50% of original size
+      const scale = 0.5;
+      const width = image.width * scale;
+      const height = image.height * scale;
       
-      let width = image.width;
-      let height = image.height;
+      console.log(`Image ${i + 1}: original ${image.width}x${image.height}, scaled to ${width}x${height}`);
       
-      // Scale to fit page while maintaining aspect ratio
-      const widthRatio = maxWidth / width;
-      const heightRatio = maxHeight / height;
-      const scale = Math.min(widthRatio, heightRatio, 1); // Don't upscale
-      
-      width = width * scale;
-      height = height * scale;
-      
-      // Create page with image dimensions
+      // Create page with scaled image dimensions
       const page = pdfDoc.addPage([width, height]);
       
-      // Draw image centered on page
+      // Draw image on page
       page.drawImage(image, {
         x: 0,
         y: 0,
         width: width,
         height: height,
       });
+      
+      console.log(`Added page ${i + 1} to PDF`);
     } catch (err) {
-      console.error('Error processing image for PDF:', err);
+      console.error(`Error processing image ${i + 1} for PDF:`, err);
     }
   }
+  
+  console.log(`PDF complete with ${pdfDoc.getPageCount()} pages`);
   
   // If no images were added, create a placeholder page
   if (pdfDoc.getPageCount() === 0) {
