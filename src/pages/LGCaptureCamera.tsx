@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useLGCapture, CapturedImage, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { LGCameraCapture } from '@/components/lg-capture/LGCameraCapture';
-import { LGPrivacyBanner } from '@/components/lg-capture/LGPrivacyBanner';
+
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -65,8 +65,6 @@ export default function LGCaptureCamera() {
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back
       </Button>
-
-      <LGPrivacyBanner />
 
       <LGCameraCapture
         images={images}
