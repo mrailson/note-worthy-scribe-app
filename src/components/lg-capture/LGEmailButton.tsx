@@ -426,6 +426,9 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
   };
 
   const buildEmailHtml = (summaryData: ClinicalSummary, snomedData: SnomedEntry[]) => {
+    // Calculate low confidence items (under 60%)
+    const lowConfidenceCount = snomedData.filter(s => s.confidence < 0.6).length;
+    
     let html = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
         <h1 style="color: #005EB8; border-bottom: 2px solid #005EB8; padding-bottom: 10px;">Lloyd George Record Summary</h1>
@@ -435,6 +438,8 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Name</td><td style="padding: 8px; border: 1px solid #ddd;">${patientName}</td></tr>
           <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">NHS Number</td><td style="padding: 8px; border: 1px solid #ddd;">${nhsNumber}</td></tr>
           <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">DOB</td><td style="padding: 8px; border: 1px solid #ddd;">${dob}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Pages Scanned</td><td style="padding: 8px; border: 1px solid #ddd;">${patient.images_count || 0}</td></tr>
+          <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Items Requiring Review</td><td style="padding: 8px; border: 1px solid #ddd; ${lowConfidenceCount > 0 ? 'color: #DA291C; font-weight: bold;' : ''}">${lowConfidenceCount}</td></tr>
         </table>
     `;
 
@@ -446,15 +451,69 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
       html += `<h3 style="color: #DA291C;">⚠️ Allergies</h3><ul>${summaryData.allergies.map(a => `<li>${formatListItem(a)}</li>`).join('')}</ul>`;
     }
 
+    if (summaryData.medications?.length) {
+      html += `<h3 style="color: #333;">Medications</h3><ul>${summaryData.medications.map(m => `<li>${formatListItem(m)}</li>`).join('')}</ul>`;
+    }
+
+    if (summaryData.significant_past_history?.length) {
+      html += `<h3 style="color: #333;">Significant Past History</h3><ul>${summaryData.significant_past_history.map(h => `<li>${formatListItem(h)}</li>`).join('')}</ul>`;
+    }
+
+    if (summaryData.procedures?.length) {
+      html += `<h3 style="color: #333;">Procedures</h3><ul>${summaryData.procedures.map(p => `<li>${formatListItem(p)}</li>`).join('')}</ul>`;
+    }
+
+    if (summaryData.immunisations?.length) {
+      html += `<h3 style="color: #333;">Immunisations</h3><ul>${summaryData.immunisations.map(i => `<li>${formatListItem(i)}</li>`).join('')}</ul>`;
+    }
+
+    if (summaryData.risk_factors?.length) {
+      html += `<h3 style="color: #333;">Risk Factors</h3><ul>${summaryData.risk_factors.map(r => `<li>${formatListItem(r)}</li>`).join('')}</ul>`;
+    }
+
+    if (summaryData.family_history?.length) {
+      html += `<h3 style="color: #333;">Family History</h3><ul>${summaryData.family_history.map(f => `<li>${formatListItem(f)}</li>`).join('')}</ul>`;
+    }
+
+    if (summaryData.free_text_findings) {
+      html += `<h3 style="color: #333;">Additional Findings</h3><p>${summaryData.free_text_findings}</p>`;
+    }
+
     if (snomedData.length > 0) {
-      html += `<h2 style="color: #333;">SNOMED CT Codes Identified</h2><p>${snomedData.length} clinical codes extracted from records.</p>`;
+      html += `<h2 style="color: #333;">SNOMED CT Codes (${snomedData.length} identified)</h2>`;
+      
+      // Group by domain
+      const domains = [...new Set(snomedData.map(s => s.domain))];
+      
+      for (const domain of domains) {
+        const domainEntries = snomedData.filter(s => s.domain === domain);
+        html += `<h3 style="color: #005EB8;">${domain.charAt(0).toUpperCase() + domain.slice(1)}</h3>`;
+        html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
+          <tr style="background: #005EB8; color: white;">
+            <th style="padding: 6px; text-align: left;">Term</th>
+            <th style="padding: 6px; text-align: left;">Code</th>
+            <th style="padding: 6px; text-align: center;">Confidence</th>
+          </tr>`;
+        
+        for (const entry of domainEntries) {
+          const confPercent = Math.round((typeof entry.confidence === 'number' ? entry.confidence : 0) * 100);
+          const confColor = confPercent >= 60 ? '#007F3B' : '#DA291C';
+          html += `<tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 6px;">${safeString(entry.term)}</td>
+            <td style="padding: 6px; font-family: monospace;">${safeString(entry.code)}</td>
+            <td style="padding: 6px; text-align: center; color: ${confColor}; font-weight: bold;">${confPercent}%</td>
+          </tr>`;
+        }
+        html += `</table>`;
+      }
     }
 
     html += `
         <hr style="margin: 30px 0; border: none; border-top: 1px solid #ddd;">
         <p style="color: #666; font-size: 12px; text-align: center;">
           Full report attached as Word document.<br>
-          Generated by Notewell AI Lloyd George Capture Service
+          Generated by Notewell AI Lloyd George Capture Service<br>
+          ${new Date().toLocaleString('en-GB')}
         </p>
       </div>
     `;
