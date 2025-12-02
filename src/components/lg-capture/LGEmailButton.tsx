@@ -389,12 +389,13 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           to_email: email.trim(),
           to_name: name.trim() || 'Recipient',
           subject: `Lloyd George Record Summary - ${patientName} (NHS: ${nhsNumber})`,
-          html_content: emailHtml,
-          attachments: [{
+          message: emailHtml,
+          template_type: 'ai_generated_content',
+          word_attachment: {
             filename: `LG_Summary_${nhsNumber.replace(/\s/g, '')}_${new Date().toISOString().split('T')[0]}.docx`,
             content: wordBase64,
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          }],
+          },
         },
       });
 
