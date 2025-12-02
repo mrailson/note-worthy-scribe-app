@@ -40,6 +40,13 @@ function formatUKDate(dateStr: string): string {
   return dateStr;
 }
 
+function formatNhsNumber(nhs: string | null | undefined): string {
+  if (!nhs || nhs === 'Unknown') return nhs || 'Unknown';
+  const cleaned = nhs.replace(/\s/g, '');
+  if (cleaned.length !== 10) return nhs;
+  return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+}
+
 interface SnomedEntry {
   domain: string;
   term: string;
@@ -72,7 +79,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
   }, []);
 
   const patientName = patient.ai_extracted_name || patient.patient_name || 'Unknown Patient';
-  const nhsNumber = patient.ai_extracted_nhs || patient.nhs_number || 'Unknown';
+  const nhsNumber = formatNhsNumber(patient.ai_extracted_nhs || patient.nhs_number);
   const dob = formatUKDate(patient.ai_extracted_dob || patient.dob || 'Unknown');
 
   const fetchPatientData = async () => {

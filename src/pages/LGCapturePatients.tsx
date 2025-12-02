@@ -11,6 +11,13 @@ import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload } from 'lucide-react';
 import { format } from 'date-fns';
 
+function formatNhsNumber(nhs: string | null | undefined): string {
+  if (!nhs) return '—';
+  const cleaned = nhs.replace(/\s/g, '');
+  if (cleaned.length !== 10) return nhs;
+  return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+}
+
 export default function LGCapturePatients() {
   const navigate = useNavigate();
   const { listPatients, isLoading } = useLGCapture();
@@ -214,7 +221,7 @@ export default function LGCapturePatients() {
                       {patient.patient_name || patient.ai_extracted_name || 'Extracting...'}
                     </p>
                     <p className="text-sm text-muted-foreground font-mono">
-                      NHS: {patient.nhs_number || patient.ai_extracted_nhs || '—'}
+                      NHS: {formatNhsNumber(patient.nhs_number || patient.ai_extracted_nhs)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages
