@@ -116,11 +116,17 @@ export function useLGCapture() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('Not authenticated');
 
+      console.log('Starting upload for patient:', patientId, 'images:', images.length);
+
       // Update status to uploading
-      await supabase
+      const { error: statusError } = await supabase
         .from('lg_patients')
         .update({ job_status: 'uploading' })
         .eq('id', patientId);
+      
+      if (statusError) {
+        console.error('Failed to update status:', statusError);
+      }
 
       // Upload each image
       for (let i = 0; i < images.length; i++) {
@@ -128,9 +134,13 @@ export function useLGCapture() {
         const seq = String(i + 1).padStart(3, '0');
         const path = `${practiceOds}/${patientId}/raw/${seq}.jpg`;
         
+        console.log(`Uploading image ${i + 1}/${images.length} to path:`, path);
+        
         // Convert data URL to blob
         const response = await fetch(image.dataUrl);
         const blob = await response.blob();
+        
+        console.log(`Blob size: ${blob.size}, type: ${blob.type}`);
         
         const { error: uploadError } = await supabase.storage
           .from('lg')
@@ -139,7 +149,13 @@ export function useLGCapture() {
             upsert: true,
           });
 
-        if (uploadError) throw uploadError;
+        if (uploadError) {
+          console.error(`Upload error for image ${i + 1}:`, uploadError);
+          toast.error(`Upload failed: ${uploadError.message}`);
+          throw uploadError;
+        }
+
+        console.log(`Image ${i + 1} uploaded successfully`);
 
         // Log each page capture
         await logAuditEvent(patientId, 'page_uploaded', user.email || 'unknown', user.id, {
@@ -161,11 +177,13 @@ export function useLGCapture() {
         images_count: images.length,
       });
 
+      console.log('All images uploaded successfully');
       return true;
     } catch (err) {
+      console.error('Upload error:', err);
       const message = err instanceof Error ? err.message : 'Failed to upload images';
       setError(message);
-      toast.error(message);
+      toast.error(`Upload failed: ${message}`);
       
       // Update status to failed
       await supabase
