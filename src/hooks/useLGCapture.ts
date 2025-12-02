@@ -3,6 +3,20 @@ import { supabase } from '@/integrations/supabase/client';
 import { generateULID } from '@/utils/ulid';
 import { toast } from 'sonner';
 
+// Helper function to convert data URL to Blob (more reliable than fetch)
+function dataUrlToBlob(dataUrl: string): Blob {
+  const arr = dataUrl.split(',');
+  const mimeMatch = arr[0].match(/:(.*?);/);
+  const mime = mimeMatch ? mimeMatch[1] : 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+}
+
 export interface LGPatient {
   id: string;
   created_at: string;
@@ -136,9 +150,8 @@ export function useLGCapture() {
         
         console.log(`Uploading image ${i + 1}/${images.length} to path:`, path);
         
-        // Convert data URL to blob
-        const response = await fetch(image.dataUrl);
-        const blob = await response.blob();
+        // Convert data URL to blob (more reliable method)
+        const blob = dataUrlToBlob(image.dataUrl);
         
         console.log(`Blob size: ${blob.size}, type: ${blob.type}`);
         
