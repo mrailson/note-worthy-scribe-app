@@ -32,26 +32,36 @@ export default function LGCaptureCamera() {
   }, [id, getPatient, navigate]);
 
   const handleFinish = async () => {
+    console.log('handleFinish called', { patient, imagesCount: images.length });
+    
     if (!patient || images.length === 0) {
       toast.error('Please capture at least one page');
       return;
     }
 
     setUploading(true);
+    toast.info(`Uploading ${images.length} pages...`);
     
     try {
       // Upload images
+      console.log('Starting upload...');
       const uploadSuccess = await uploadImages(patient.id, patient.practice_ods, images);
+      console.log('Upload result:', uploadSuccess);
+      
       if (!uploadSuccess) {
         throw new Error('Upload failed');
       }
 
       // Trigger processing
+      console.log('Triggering processing...');
       const processSuccess = await triggerProcessing(patient.id);
+      console.log('Processing result:', processSuccess);
+      
       if (!processSuccess) {
         throw new Error('Processing trigger failed');
       }
 
+      toast.success('Upload complete! Redirecting...');
       navigate(`/lg-capture/results/${patient.id}`);
     } catch (err) {
       console.error('Finish error:', err);
