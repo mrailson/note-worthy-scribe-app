@@ -30,6 +30,26 @@ export function LGCameraCapture({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  // Callback ref to connect stream when video element mounts
+  const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
+    videoRef.current = el;
+    if (el && streamRef.current && isCameraLoading && !isCapturing) {
+      el.srcObject = streamRef.current;
+      el.onloadedmetadata = () => {
+        el.play()
+          .then(() => {
+            setIsCapturing(true);
+            setIsCameraLoading(false);
+          })
+          .catch((err) => {
+            console.error('Video play error:', err);
+            setIsCapturing(true);
+            setIsCameraLoading(false);
+          });
+      };
+    }
+  }, [isCameraLoading, isCapturing]);
+
   const startCamera = useCallback(async () => {
     setIsCameraLoading(true);
     try {
@@ -42,45 +62,41 @@ export function LGCameraCapture({
       });
       
       streamRef.current = stream;
-      // Video element will be mounted after state update triggers re-render
-      // The useEffect below will handle setting srcObject
+      
+      // If video element already exists, connect immediately
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          videoRef.current?.play()
+            .then(() => {
+              setIsCapturing(true);
+              setIsCameraLoading(false);
+            })
+            .catch((err) => {
+              console.error('Video play error:', err);
+              setIsCapturing(true);
+              setIsCameraLoading(false);
+            });
+        };
+      }
+      
+      // Fallback timeout
+      setTimeout(() => {
+        setIsCameraLoading(prev => {
+          if (prev) {
+            console.warn('Camera init timeout - forcing UI');
+            setIsCapturing(true);
+            return false;
+          }
+          return prev;
+        });
+      }, 3000);
     } catch (err) {
       console.error('Camera error:', err);
       setIsCameraLoading(false);
       toast.error('Failed to access camera. Please use file upload instead.');
     }
   }, []);
-
-  // Effect to connect stream to video element when both are available
-  useEffect(() => {
-    if (isCameraLoading && streamRef.current && videoRef.current) {
-      videoRef.current.srcObject = streamRef.current;
-      videoRef.current.onloadedmetadata = () => {
-        videoRef.current?.play()
-          .then(() => {
-            setIsCapturing(true);
-            setIsCameraLoading(false);
-          })
-          .catch((err) => {
-            console.error('Video play error:', err);
-            // Fallback: show UI anyway
-            setIsCapturing(true);
-            setIsCameraLoading(false);
-          });
-      };
-      
-      // Fallback timeout
-      const timeout = setTimeout(() => {
-        if (!isCapturing && isCameraLoading) {
-          console.warn('Camera init timeout - forcing UI show');
-          setIsCapturing(true);
-          setIsCameraLoading(false);
-        }
-      }, 3000);
-      
-      return () => clearTimeout(timeout);
-    }
-  }, [isCameraLoading, isCapturing]);
 
   // Auto-start camera on mount
   useEffect(() => {
@@ -236,7 +252,7 @@ export function LGCameraCapture({
               onClick={isCapturing ? captureImage : undefined}
             >
               <video
-                ref={videoRef}
+                ref={setVideoRef}
                 autoPlay
                 playsInline
                 muted
