@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -439,6 +439,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            >
                              <Brain className="h-4 w-4 mr-2" />
                              AI Showcase
+                           </DropdownMenuItem>
+                           <DropdownMenuItem 
+                             onClick={() => navigate('/cso-training-register')}
+                             className="cursor-pointer py-3"
+                           >
+                             <GraduationCap className="h-4 w-4 mr-2" />
+                             CSO Training
                            </DropdownMenuItem>
                          </DropdownMenuSubContent>
                      </DropdownMenuSub>
