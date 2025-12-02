@@ -6,7 +6,8 @@ import { LGDownloadPanel } from '@/components/lg-capture/LGDownloadPanel';
 import { LGSummaryPreview } from '@/components/lg-capture/LGSummaryPreview';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Mail } from 'lucide-react';
+import { LGEmailButton } from '@/components/lg-capture/LGEmailButton';
 import { toast } from 'sonner';
 
 export default function LGCaptureResults() {
@@ -191,6 +192,7 @@ export default function LGCaptureResults() {
       {patient.job_status === 'succeeded' && (
         <>
           <LGDownloadPanel patient={patient} />
+          <LGEmailButton patient={patient} />
           <LGSummaryPreview patient={patient} />
         </>
       )}
