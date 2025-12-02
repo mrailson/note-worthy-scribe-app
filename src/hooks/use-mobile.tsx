@@ -25,19 +25,11 @@ export function useIsIPhone() {
   React.useEffect(() => {
     const detectIPhone = () => {
       const userAgent = navigator.userAgent
-      const isIOSDevice = /iPad|iPhone|iPod/.test(userAgent)
-      const isSmallScreen = window.innerWidth <= IPHONE_BREAKPOINT
-      return isIOSDevice || isSmallScreen
+      // Check for iPhone specifically in user agent
+      return /iPhone/.test(userAgent)
     }
 
-    const mql = window.matchMedia(`(max-width: ${IPHONE_BREAKPOINT}px)`)
-    const onChange = () => {
-      setIsIPhone(detectIPhone())
-    }
-    
-    mql.addEventListener("change", onChange)
     setIsIPhone(detectIPhone())
-    return () => mql.removeEventListener("change", onChange)
   }, [])
 
   return isIPhone
