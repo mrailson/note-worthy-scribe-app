@@ -3347,6 +3347,8 @@ export type Database = {
           ai_extraction_confidence: number | null
           created_at: string | null
           dob: string | null
+          email_error: string | null
+          email_sent_at: string | null
           error_message: string | null
           id: string
           images_count: number | null
@@ -3375,6 +3377,8 @@ export type Database = {
           ai_extraction_confidence?: number | null
           created_at?: string | null
           dob?: string | null
+          email_error?: string | null
+          email_sent_at?: string | null
           error_message?: string | null
           id: string
           images_count?: number | null
@@ -3403,6 +3407,8 @@ export type Database = {
           ai_extraction_confidence?: number | null
           created_at?: string | null
           dob?: string | null
+          email_error?: string | null
+          email_sent_at?: string | null
           error_message?: string | null
           id?: string
           images_count?: number | null

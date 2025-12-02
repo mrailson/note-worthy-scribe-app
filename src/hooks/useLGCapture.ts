@@ -45,6 +45,9 @@ export interface LGPatient {
   ai_extracted_sex: string | null;
   ai_extraction_confidence: number | null;
   requires_verification: boolean;
+  // Email tracking fields
+  email_sent_at: string | null;
+  email_error: string | null;
 }
 
 export interface CapturedImage {
