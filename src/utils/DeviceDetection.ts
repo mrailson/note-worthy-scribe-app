@@ -23,7 +23,7 @@ export function detectDevice(): DeviceInfo {
   const userAgent = navigator.userAgent;
   
   const isIOS = /iPad|iPhone|iPod/.test(userAgent);
-  const isIPhone = /iPhone/.test(userAgent) || (isIOS && window.innerWidth <= 480);
+  const isIPhone = /iPhone/.test(userAgent) || (isIOS && window.innerWidth <= 768); // Increased threshold for modern iPhones
   const isSafari = /Safari/.test(userAgent) && !/Chrome|Edg/.test(userAgent);
   const isChromium = /Chrome|Edg/.test(userAgent);
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
