@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -48,6 +48,7 @@ export function LGPatientForm({ onSubmit, isLoading, defaultValues }: LGPatientF
     handleSubmit,
     setValue,
     watch,
+    reset,
     formState: { errors },
   } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
@@ -56,6 +57,13 @@ export function LGPatientForm({ onSubmit, isLoading, defaultValues }: LGPatientF
       ...defaultValues,
     },
   });
+
+  // Reset form when defaultValues change (e.g., when demo data is loaded)
+  useEffect(() => {
+    if (defaultValues) {
+      reset({ sex: 'unknown', ...defaultValues });
+    }
+  }, [defaultValues, reset]);
 
   const watchedValues = watch();
   const missingFields: string[] = [];
