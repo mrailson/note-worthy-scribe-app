@@ -217,18 +217,25 @@ export const MeetingHistoryList = ({
   const [folderSheetOpen, setFolderSheetOpen] = useState(false);
   const [selectedMeetingForFolder, setSelectedMeetingForFolder] = useState<Meeting | null>(null);
   
-  // Sync localMeetings with meetings prop - trust parent's state
+  // Sync localMeetings with meetings prop - always trust database values
   useEffect(() => {
     console.log('🔄 Child: Syncing localMeetings with parent meetings', meetings.length);
     setLocalMeetings((prev) => {
-      // Preserve local folder assignments if parent data has not yet caught up
       return meetings.map((incoming) => {
         const existing = prev.find((m) => m.id === incoming.id);
-
-        if (existing && existing.folder_id && !incoming.folder_id) {
+        
+        // If incoming has folder_id, always use it (database is source of truth)
+        if (incoming.folder_id) {
+          console.log(`✅ Using DB folder_id for meeting ${incoming.id}:`, incoming.folder_id);
+          return incoming;
+        }
+        
+        // Otherwise preserve local folder_id (optimistic update not yet synced)
+        if (existing?.folder_id) {
+          console.log(`⏳ Preserving local folder_id for meeting ${incoming.id}:`, existing.folder_id);
           return { ...incoming, folder_id: existing.folder_id };
         }
-
+        
         return incoming;
       });
     });
