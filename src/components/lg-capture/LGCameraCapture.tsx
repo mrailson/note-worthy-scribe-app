@@ -286,6 +286,19 @@ export function LGCameraCapture({
         <span className="text-muted-foreground ml-2">pages captured</span>
       </div>
 
+      {/* Finish Button - above images for better mobile layout */}
+      {images.length > 0 && (
+        <Button
+          onClick={onFinish}
+          disabled={isProcessing}
+          className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
+          size="lg"
+        >
+          <FastForward className="mr-2 h-5 w-5" />
+          Done, Next Patient ({images.length} pages)
+        </Button>
+      )}
+
       {/* Image Grid */}
       {images.length > 0 && (
         <div className="space-y-3">
@@ -342,19 +355,6 @@ export function LGCameraCapture({
             ))}
           </div>
         </div>
-      )}
-
-      {/* Finish Button */}
-      {images.length > 0 && (
-        <Button
-          onClick={onFinish}
-          disabled={isProcessing}
-          className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
-          size="lg"
-        >
-          <FastForward className="mr-2 h-5 w-5" />
-          Done, Next Patient ({images.length} pages)
-        </Button>
       )}
     </div>
   );
