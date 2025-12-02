@@ -12,15 +12,25 @@ interface LGEmailButtonProps {
 
 interface ClinicalSummary {
   summary_line?: string;
-  allergies?: string[];
-  significant_past_history?: string[];
-  medications?: string[];
-  immunisations?: string[];
-  procedures?: string[];
-  family_history?: string[];
-  risk_factors?: string[];
+  allergies?: unknown[];
+  significant_past_history?: unknown[];
+  medications?: unknown[];
+  immunisations?: unknown[];
+  procedures?: unknown[];
+  family_history?: unknown[];
+  risk_factors?: unknown[];
   alerts?: Array<{ type: string; description: string }>;
   free_text_findings?: string;
+}
+
+function formatUKDate(dateStr: string): string {
+  if (!dateStr || dateStr === 'Unknown') return dateStr;
+  // Try to parse and format as DD/MM/YYYY
+  const date = new Date(dateStr);
+  if (!isNaN(date.getTime())) {
+    return date.toLocaleDateString('en-GB');
+  }
+  return dateStr;
 }
 
 interface SnomedEntry {
@@ -56,7 +66,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
 
   const patientName = patient.ai_extracted_name || patient.patient_name || 'Unknown Patient';
   const nhsNumber = patient.ai_extracted_nhs || patient.nhs_number || 'Unknown';
-  const dob = patient.ai_extracted_dob || patient.dob || 'Unknown';
+  const dob = formatUKDate(patient.ai_extracted_dob || patient.dob || 'Unknown');
 
   const fetchPatientData = async () => {
     const basePath = `${patient.practice_ods}/${patient.id}`;
@@ -433,7 +443,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
     }
 
     if (summaryData.allergies?.length) {
-      html += `<h3 style="color: #DA291C;">⚠️ Allergies</h3><ul>${summaryData.allergies.map(a => `<li>${a}</li>`).join('')}</ul>`;
+      html += `<h3 style="color: #DA291C;">⚠️ Allergies</h3><ul>${summaryData.allergies.map(a => `<li>${formatListItem(a)}</li>`).join('')}</ul>`;
     }
 
     if (snomedData.length > 0) {
