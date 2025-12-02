@@ -320,10 +320,10 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
             ...domainEntries.map(entry => 
               new TableRow({
                 children: [
-                  createDataCell(entry.term),
-                  createDataCell(entry.code),
-                  createDataCell(`${Math.round(entry.confidence * 100)}%`),
-                  createDataCell(entry.evidence || '-'),
+                  createDataCell(safeString(entry.term)),
+                  createDataCell(safeString(entry.code)),
+                  createDataCell(`${Math.round((typeof entry.confidence === 'number' ? entry.confidence : 0) * 100)}%`),
+                  createDataCell(safeString(entry.evidence) || '-'),
                 ],
               })
             ),
@@ -497,9 +497,23 @@ function createHeaderCell(text: string) {
   });
 }
 
+function safeString(value: unknown): string {
+  if (value === null || value === undefined) return '';
+  if (typeof value === 'string') return value;
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '[complex data]';
+    }
+  }
+  return String(value);
+}
+
 function createDataCell(text: string) {
   return new TableCell({
-    children: [new Paragraph({ text, style: 'Normal' })],
+    children: [new Paragraph({ text: safeString(text), style: 'Normal' })],
     borders: {
       top: { style: BorderStyle.SINGLE, size: 1, color: 'DDDDDD' },
       bottom: { style: BorderStyle.SINGLE, size: 1, color: 'DDDDDD' },
