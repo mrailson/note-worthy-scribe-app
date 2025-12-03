@@ -620,19 +620,55 @@ function formatDobForFilename(dateStr: string): string {
 }
 
 function formatDobDisplay(dateStr: string): string {
+  return formatDateUK(dateStr);
+}
+
+// Universal date formatter for DD-MMM-YYYY format
+function formatDateUK(dateStr: string | undefined | null): string {
+  if (!dateStr || dateStr === 'Unknown' || dateStr === 'unknown') {
+    return dateStr || 'Unknown';
+  }
+  
+  // If already in correct format (DD-MMM-YYYY), return as-is
+  if (/^\d{2}-[A-Za-z]{3}-\d{4}$/.test(dateStr)) {
+    return dateStr;
+  }
+  
+  // If year only (e.g., "2018"), return as-is
+  if (/^\d{4}$/.test(dateStr)) {
+    return dateStr;
+  }
+  
+  // Try to parse various date formats
   try {
-    if (dateStr && dateStr !== 'Unknown') {
-      const date = new Date(dateStr);
-      if (!isNaN(date.getTime())) {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = months[date.getMonth()];
-        const year = date.getFullYear();
-        return `${day}-${month}-${year}`;
-      }
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    
+    // Handle YYYY-MM-DD format
+    const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (isoMatch) {
+      const year = isoMatch[1];
+      const month = months[parseInt(isoMatch[2], 10) - 1];
+      const day = isoMatch[3];
+      return `${day}-${month}-${year}`;
+    }
+    
+    // Handle Pre YYYY format or similar
+    if (dateStr.toLowerCase().startsWith('pre ')) {
+      return dateStr;
+    }
+    
+    // Try Date parsing as fallback
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
     }
   } catch {}
-  return dateStr || 'Unknown';
+  
+  // Return original if can't parse
+  return dateStr;
 }
 
 function buildFullSummaryEmailHtml(
@@ -693,7 +729,7 @@ function buildFullSummaryEmailHtml(
   if (summaryJson?.diagnoses?.length > 0) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Diagnoses</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
     for (const item of summaryJson.diagnoses) {
-      html += `<li><strong>${item.condition || 'Unknown'}</strong> - Date noted: ${item.date_noted || 'Unknown'}, Status: ${item.status || 'unknown'}</li>`;
+      html += `<li><strong>${item.condition || 'Unknown'}</strong> - ${formatDateUK(item.date_noted)} (${item.status || 'unknown'})</li>`;
     }
     html += `</ul>`;
   }
@@ -702,7 +738,7 @@ function buildFullSummaryEmailHtml(
   if (summaryJson?.surgeries?.length > 0) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Major Surgeries</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
     for (const surg of summaryJson.surgeries) {
-      html += `<li><strong>${surg.procedure || 'Unknown'}</strong> - ${surg.date || 'Unknown date'} ${surg.notes ? `(${surg.notes})` : ''}</li>`;
+      html += `<li><strong>${surg.procedure || 'Unknown'}</strong> - ${formatDateUK(surg.date)} ${surg.notes ? `(${surg.notes})` : ''}</li>`;
     }
     html += `</ul>`;
   }
@@ -720,7 +756,7 @@ function buildFullSummaryEmailHtml(
   if (summaryJson?.immunisations?.length > 0) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Immunisations</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
     for (const imm of summaryJson.immunisations) {
-      html += `<li><strong>${imm.vaccine || 'Unknown'}</strong> - ${imm.date || 'Unknown date'}</li>`;
+      html += `<li><strong>${imm.vaccine || 'Unknown'}</strong> - ${formatDateUK(imm.date)}</li>`;
     }
     html += `</ul>`;
   }
@@ -768,7 +804,7 @@ function buildFullSummaryEmailHtml(
   if (summaryJson?.hospital_findings?.length > 0) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Significant Hospital Findings</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
     for (const hf of summaryJson.hospital_findings) {
-      html += `<li><strong>${hf.condition || 'Unknown'}</strong> - ${hf.date || 'Unknown date'}${hf.outcome ? `: ${hf.outcome}` : ''}</li>`;
+      html += `<li><strong>${hf.condition || 'Unknown'}</strong> - ${formatDateUK(hf.date)}${hf.outcome ? `: ${hf.outcome}` : ''}</li>`;
     }
     html += `</ul>`;
   }
