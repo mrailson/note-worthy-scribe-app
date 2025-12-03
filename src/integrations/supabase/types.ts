@@ -5974,6 +5974,36 @@ export type Database = {
         }
         Relationships: []
       }
+      snomed_codes: {
+        Row: {
+          cluster_description: string
+          code_description: string
+          created_at: string | null
+          domain: string | null
+          id: string
+          snomed_code: string
+          source_document: string | null
+        }
+        Insert: {
+          cluster_description: string
+          code_description: string
+          created_at?: string | null
+          domain?: string | null
+          id?: string
+          snomed_code: string
+          source_document?: string | null
+        }
+        Update: {
+          cluster_description?: string
+          code_description?: string
+          created_at?: string | null
+          domain?: string | null
+          id?: string
+          snomed_code?: string
+          source_document?: string | null
+        }
+        Relationships: []
+      }
       specialist_services: {
         Row: {
           address: string | null
