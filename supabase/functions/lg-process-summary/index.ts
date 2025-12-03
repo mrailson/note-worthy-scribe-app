@@ -75,15 +75,31 @@ serve(async (req) => {
 
     const basePath = `${patient.practice_ods}/${patientId}`;
 
-    // Download merged OCR text
+    // Download merged OCR text with retry (storage propagation can take a moment)
     console.log('Downloading merged OCR text...');
     const ocrPath = `${basePath}/work/ocr_merged.txt`;
-    const { data: ocrData, error: ocrError } = await supabase.storage
-      .from('lg')
-      .download(ocrPath);
+    let ocrData: Blob | null = null;
+    let ocrError: any = null;
+    
+    for (let attempt = 0; attempt < 5; attempt++) {
+      const result = await supabase.storage
+        .from('lg')
+        .download(ocrPath);
+      
+      ocrData = result.data;
+      ocrError = result.error;
+      
+      if (ocrData) {
+        console.log(`OCR file downloaded on attempt ${attempt + 1}`);
+        break;
+      }
+      
+      console.log(`OCR file not found, retrying in 2s (attempt ${attempt + 1}/5)...`);
+      await new Promise(resolve => setTimeout(resolve, 2000));
+    }
 
     if (ocrError || !ocrData) {
-      throw new Error(`Failed to download OCR text: ${ocrError?.message}`);
+      throw new Error(`Failed to download OCR text after 5 attempts: ${JSON.stringify(ocrError)}`);
     }
 
     const fullOcrText = await ocrData.text();

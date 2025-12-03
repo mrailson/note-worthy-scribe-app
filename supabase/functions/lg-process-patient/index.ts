@@ -77,6 +77,38 @@ serve(async (req) => {
 
     const basePath = `${patient.practice_ods}/${patientId}`;
 
+    // =====================================================
+    // CHECK FOR RESUMABLE STATE: If OCR is complete but summary failed, resume from summary
+    // =====================================================
+    if (patient.processing_phase === 'summary' && 
+        patient.ocr_batches_completed > 0 && 
+        patient.ocr_batches_completed >= patient.ocr_batches_total) {
+      console.log(`Resuming from summary phase for patient: ${patientId}`);
+      
+      // Reset status for retry
+      await supabase
+        .from('lg_patients')
+        .update({ 
+          job_status: 'processing',
+          error_message: null,
+        })
+        .eq('id', patientId);
+      
+      // Directly invoke summary processing
+      await supabase.functions.invoke('lg-process-summary', {
+        body: { patientId },
+      });
+
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          patientId, 
+          mode: 'resumed-summary',
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // List raw images to determine processing path
     const { data: files, error: listError } = await supabase.storage
       .from('lg')
