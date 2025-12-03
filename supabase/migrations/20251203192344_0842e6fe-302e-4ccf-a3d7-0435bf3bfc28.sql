@@ -1,0 +1,28 @@
+-- Batch 161-166: More genetic and rare conditions
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('42925002', 'Neurofibromatosis type 1', 'Genetic'),
+('92503002', 'Neurofibromatosis type 2', 'Genetic'),
+('58756001', 'Huntington disease', 'Genetic'),
+('73297009', 'Muscular dystrophy', 'Genetic'),
+('76670001', 'Duchenne muscular dystrophy', 'Genetic'),
+('77267005', 'Myotonic dystrophy', 'Genetic'),
+('398943008', 'Hereditary haemochromatosis', 'Genetic'),
+('31323000', 'Wilson disease', 'Genetic'),
+('28728008', 'Alpha-1 antitrypsin deficiency', 'Genetic'),
+('76902006', 'Gilbert syndrome', 'Genetic'),
+('63144007', 'Haemophilia A', 'Genetic'),
+('28293008', 'Haemophilia B', 'Genetic'),
+('25744000', 'Von Willebrand disease', 'Genetic'),
+('127040003', 'Sickle cell disease', 'Genetic'),
+('417357006', 'Sickle cell trait', 'Genetic'),
+('40108008', 'Thalassaemia', 'Genetic'),
+('75451007', 'Beta thalassaemia major', 'Genetic'),
+('35434009', 'Beta thalassaemia minor', 'Genetic'),
+('26682008', 'Polycystic kidney disease', 'Genetic'),
+('111385000', 'Hereditary breast and ovarian cancer syndrome', 'Genetic'),
+('718220008', 'Lynch syndrome', 'Genetic'),
+('93143009', 'Familial adenomatous polyposis', 'Genetic'),
+('58150001', 'Long QT syndrome', 'Genetic'),
+('418818005', 'Brugada syndrome', 'Genetic'),
+('426783006', 'Hypertrophic cardiomyopathy', 'Genetic')
+ON CONFLICT (snomed_code) DO NOTHING;

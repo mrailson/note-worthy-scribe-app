@@ -1,0 +1,28 @@
+-- Batch 191-196: Functional status and disabilities
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('160684002', 'Lives alone', 'Functional Status'),
+('160693002', 'Lives in care home', 'Functional Status'),
+('160685001', 'Lives with spouse', 'Functional Status'),
+('224221001', 'Requires help with activities of daily living', 'Functional Status'),
+('160729005', 'Wheelchair user', 'Functional Status'),
+('160731001', 'Walking frame user', 'Functional Status'),
+('160730000', 'Walking stick user', 'Functional Status'),
+('129824006', 'Requires oxygen therapy', 'Functional Status'),
+('275984007', 'Long-term oxygen therapy', 'Functional Status'),
+('183523006', 'Home oxygen', 'Functional Status'),
+('129825007', 'CPAP therapy', 'Functional Status'),
+('129823000', 'Home ventilation', 'Functional Status'),
+('160728002', 'Housebound', 'Functional Status'),
+('160735005', 'Bed-bound', 'Functional Status'),
+('160732008', 'Requires assistance with mobility', 'Functional Status'),
+('64572001', 'Blindness', 'Disability'),
+('343087000', 'Partially sighted', 'Disability'),
+('15188001', 'Hearing impairment', 'Disability'),
+('267077000', 'Deafness', 'Disability'),
+('225729000', 'Deaf and blind', 'Disability'),
+('260412009', 'Communication impairment', 'Disability'),
+('87715008', 'Learning disability', 'Disability'),
+('110359009', 'Severe learning disability', 'Disability'),
+('161010008', 'Down syndrome', 'Disability'),
+('128188000', 'Cerebral palsy', 'Disability')
+ON CONFLICT (snomed_code) DO NOTHING;

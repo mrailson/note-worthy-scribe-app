@@ -1,0 +1,28 @@
+-- Batch 233-238: Common infections
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('36971009', 'Sinusitis', 'Infectious Disease'),
+('75498004', 'Acute sinusitis', 'Infectious Disease'),
+('40055000', 'Chronic sinusitis', 'Infectious Disease'),
+('195662009', 'Acute pharyngitis', 'Infectious Disease'),
+('90176007', 'Tonsillitis', 'Infectious Disease'),
+('43878008', 'Streptococcal pharyngitis', 'Infectious Disease'),
+('363746003', 'Acute otitis media', 'Infectious Disease'),
+('65363002', 'Otitis externa', 'Infectious Disease'),
+('78868004', 'Chronic otitis media', 'Infectious Disease'),
+('6142004', 'Influenza', 'Infectious Disease'),
+('82272006', 'Common cold', 'Infectious Disease'),
+('312099009', 'Upper respiratory tract infection', 'Infectious Disease'),
+('50417007', 'Lower respiratory tract infection', 'Infectious Disease'),
+('10509002', 'Acute bronchitis', 'Infectious Disease'),
+('233604007', 'Pneumonia', 'Infectious Disease'),
+('64572001', 'Community acquired pneumonia', 'Infectious Disease'),
+('128601007', 'Hospital acquired pneumonia', 'Infectious Disease'),
+('195528001', 'Viral pneumonia', 'Infectious Disease'),
+('53084003', 'Bacterial pneumonia', 'Infectious Disease'),
+('68566005', 'Urinary tract infection', 'Infectious Disease'),
+('312104005', 'Gastroenteritis', 'Infectious Disease'),
+('56718003', 'Norovirus infection', 'Infectious Disease'),
+('240350000', 'Campylobacter enteritis', 'Infectious Disease'),
+('302231008', 'Salmonella infection', 'Infectious Disease'),
+('4834000', 'E coli infection', 'Infectious Disease')
+ON CONFLICT (snomed_code) DO NOTHING;

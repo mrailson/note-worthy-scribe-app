@@ -1,0 +1,28 @@
+-- Batch 131-136: Surgical history
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('287664005', 'Bilateral knee replacement', 'Surgical History'),
+('179399005', 'Hip replacement', 'Surgical History'),
+('179411005', 'Knee replacement', 'Surgical History'),
+('287667003', 'Revision hip replacement', 'Surgical History'),
+('112728008', 'Coronary artery bypass graft', 'Surgical History'),
+('175045005', 'Coronary angioplasty', 'Surgical History'),
+('428488008', 'Percutaneous coronary intervention with stent', 'Surgical History'),
+('429639007', 'Percutaneous coronary intervention', 'Surgical History'),
+('232717009', 'Coronary artery bypass', 'Surgical History'),
+('174802005', 'Aortic valve replacement', 'Surgical History'),
+('174803000', 'Mitral valve replacement', 'Surgical History'),
+('232722009', 'Heart valve replacement', 'Surgical History'),
+('175135009', 'Carotid endarterectomy', 'Surgical History'),
+('287649008', 'Aortic aneurysm repair', 'Surgical History'),
+('233515006', 'Abdominal aortic aneurysm repair', 'Surgical History'),
+('174776001', 'Total gastrectomy', 'Surgical History'),
+('26390003', 'Total colectomy', 'Surgical History'),
+('116028008', 'Bowel resection', 'Surgical History'),
+('302540006', 'Right hemicolectomy', 'Surgical History'),
+('303410001', 'Left hemicolectomy', 'Surgical History'),
+('174041007', 'Cholecystectomy', 'Surgical History'),
+('38102005', 'Appendicectomy', 'Surgical History'),
+('236886002', 'Hysterectomy', 'Surgical History'),
+('116140006', 'Total abdominal hysterectomy', 'Surgical History'),
+('387643005', 'Partial nephrectomy', 'Surgical History')
+ON CONFLICT (snomed_code) DO NOTHING;
