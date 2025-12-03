@@ -362,12 +362,25 @@ ${fullOcrText.substring(0, 10000)}`;
           snomedJson
         );
 
-        // Send via EmailJS (no attachment support)
+        // Send via EmailJS with PDF attachment
         const emailjsServiceId = Deno.env.get('EMAILJS_SERVICE_ID');
         const emailjsTemplateId = Deno.env.get('EMAILJS_TEMPLATE_ID');
         const emailjsPublicKey = Deno.env.get('EMAILJS_PUBLIC_KEY');
         
         if (emailjsServiceId && emailjsTemplateId && emailjsPublicKey) {
+          // Convert PDF Uint8Array to base64 for attachment (chunked to avoid stack overflow)
+          let pdfBase64 = '';
+          const chunkSize = 8192;
+          for (let i = 0; i < pdfContent.length; i += chunkSize) {
+            const chunk = pdfContent.subarray(i, Math.min(i + chunkSize, pdfContent.length));
+            pdfBase64 += String.fromCharCode.apply(null, Array.from(chunk));
+          }
+          pdfBase64 = btoa(pdfBase64);
+          
+          // Create filename for attachment
+          const cleanNhs = (nhsNumber || 'unknown').replace(/\s/g, '');
+          const pdfFilename = `LG_Record_${cleanNhs}_${patientName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+          
           const emailjsResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -379,6 +392,8 @@ ${fullOcrText.substring(0, 10000)}`;
                 to_email: userEmail,
                 subject: `Lloyd George Record Summary - ${patientName} (NHS: ${formatNhsNumber(nhsNumber)})`,
                 message_html: emailHtml,
+                attachment: pdfBase64,
+                attachment_name: pdfFilename,
               },
             }),
           });
@@ -397,10 +412,10 @@ ${fullOcrText.substring(0, 10000)}`;
               .update({ email_sent_at: new Date().toISOString() })
               .eq('id', patientId);
             
-            console.log(`Email sent successfully to ${userEmail} (PDF available via download)`);
+            console.log(`Email with PDF attachment sent successfully to ${userEmail}`);
             await logAudit(supabase, patientId, 'email_sent', patient.uploader_name, {
               recipient: userEmail,
-              has_pdf_attachment: false,
+              has_pdf_attachment: true,
             });
           }
         } else {
