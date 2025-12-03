@@ -75,24 +75,9 @@ serve(async (req) => {
       throw new Error(`Patient not found: ${patientError?.message}`);
     }
 
-    // Update status to processing
-    await supabase
-      .from('lg_patients')
-      .update({ 
-        job_status: 'processing',
-        processing_started_at: new Date().toISOString(),
-      })
-      .eq('id', patientId);
-
-    // Log processing started
-    await logAudit(supabase, patientId, 'processing_started', patient.uploader_name, {
-      images_count: patient.images_count,
-    });
-
     const basePath = `${patient.practice_ods}/${patientId}`;
 
-    // Step 1: List and download raw images
-    console.log('Fetching raw images...');
+    // List raw images to determine processing path
     const { data: files, error: listError } = await supabase.storage
       .from('lg')
       .list(`${basePath}/raw`, { sortBy: { column: 'name', order: 'asc' } });
@@ -101,7 +86,55 @@ serve(async (req) => {
       throw new Error(`No images found: ${listError?.message}`);
     }
 
-    // Step 2: OCR each image and collect text
+    const imageCount = files.length;
+    const BATCH_THRESHOLD = 25; // Switch to batched processing above this
+    const BATCH_SIZE = 10;
+
+    // Update status to processing
+    await supabase
+      .from('lg_patients')
+      .update({ 
+        job_status: 'processing',
+        processing_started_at: new Date().toISOString(),
+        processing_phase: imageCount > BATCH_THRESHOLD ? 'ocr' : 'processing',
+        ocr_batches_total: imageCount > BATCH_THRESHOLD ? Math.ceil(imageCount / BATCH_SIZE) : 0,
+        ocr_batches_completed: 0,
+      })
+      .eq('id', patientId);
+
+    // Log processing started
+    await logAudit(supabase, patientId, 'processing_started', patient.uploader_name, {
+      images_count: imageCount,
+      processing_mode: imageCount > BATCH_THRESHOLD ? 'batched' : 'single-pass',
+    });
+
+    // =====================================================
+    // BRANCHING: Use batched processing for large records
+    // =====================================================
+    if (imageCount > BATCH_THRESHOLD) {
+      console.log(`Large record (${imageCount} pages) - using batched OCR processing`);
+      
+      // Trigger first OCR batch (fire-and-forget chain)
+      await supabase.functions.invoke('lg-ocr-batch', {
+        body: { patientId, batchNumber: 0 },
+      });
+
+      // Return immediately - batched processing continues in background
+      return new Response(
+        JSON.stringify({ 
+          success: true, 
+          patientId, 
+          mode: 'batched',
+          totalBatches: Math.ceil(imageCount / BATCH_SIZE),
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // =====================================================
+    // FAST PATH: Single-pass processing for ≤25 pages
+    // =====================================================
+    console.log(`Small record (${imageCount} pages) - using single-pass processing`);
     console.log(`Processing ${files.length} images with OCR...`);
     const ocrResults: string[] = [];
     const imageDataUrls: string[] = [];
