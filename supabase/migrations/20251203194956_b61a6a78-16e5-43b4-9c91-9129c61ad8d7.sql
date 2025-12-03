@@ -1,0 +1,127 @@
+-- Batch 443-470: Fractures, dislocations, soft tissue
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description, domain) VALUES
+('33737001', 'Fracture of rib', 'Musculoskeletal', 'surgeries'),
+('125605004', 'Fracture of bone', 'Musculoskeletal', 'surgeries'),
+('263102004', 'Fracture of pelvis', 'Musculoskeletal', 'surgeries'),
+('71620000', 'Fracture of femur', 'Musculoskeletal', 'surgeries'),
+('16114001', 'Fracture of ankle', 'Musculoskeletal', 'surgeries'),
+('34781009', 'Compression fracture of vertebra', 'Musculoskeletal', 'surgeries'),
+('269062008', 'Pathological fracture', 'Musculoskeletal', 'diagnoses'),
+('48794007', 'Stress fracture', 'Musculoskeletal', 'diagnoses'),
+('72704001', 'Fracture of radius', 'Musculoskeletal', 'surgeries'),
+('64665009', 'Fracture of ulna', 'Musculoskeletal', 'surgeries'),
+('417746004', 'Dislocation of shoulder', 'Musculoskeletal', 'diagnoses'),
+('73589005', 'Dislocation of hip', 'Musculoskeletal', 'diagnoses'),
+('72901003', 'Dislocation of patella', 'Musculoskeletal', 'diagnoses'),
+('44465007', 'Sprain', 'Musculoskeletal', 'diagnoses'),
+('69548002', 'Anterior cruciate ligament injury', 'Musculoskeletal', 'diagnoses'),
+('45087002', 'Posterior cruciate ligament injury', 'Musculoskeletal', 'diagnoses'),
+('239720000', 'Medial collateral ligament injury', 'Musculoskeletal', 'diagnoses'),
+('239721001', 'Lateral collateral ligament injury', 'Musculoskeletal', 'diagnoses'),
+('202855006', 'Meniscal tear', 'Musculoskeletal', 'diagnoses'),
+('399269003', 'Rotator cuff tear', 'Musculoskeletal', 'diagnoses'),
+('240193007', 'Tendon rupture', 'Musculoskeletal', 'diagnoses'),
+('34840004', 'Achilles tendon rupture', 'Musculoskeletal', 'diagnoses'),
+('239873007', 'Tennis elbow', 'Musculoskeletal', 'diagnoses'),
+('202856007', 'Golfers elbow', 'Musculoskeletal', 'diagnoses'),
+('81680005', 'Bursitis', 'Musculoskeletal', 'diagnoses'),
+('35185008', 'Prepatellar bursitis', 'Musculoskeletal', 'diagnoses'),
+('67566007', 'Olecranon bursitis', 'Musculoskeletal', 'diagnoses'),
+('268085006', 'Trochanteric bursitis', 'Musculoskeletal', 'diagnoses'),
+('239730002', 'Muscle strain', 'Musculoskeletal', 'diagnoses')
+ON CONFLICT (snomed_code) DO NOTHING;
+
+-- Batch 471-490: Trauma and burns
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description, domain) VALUES
+('82271004', 'Head injury', 'Trauma', 'diagnoses'),
+('127295002', 'Traumatic brain injury', 'Trauma', 'diagnoses'),
+('110030002', 'Concussion', 'Trauma', 'diagnoses'),
+('230690007', 'Subdural haematoma', 'Trauma', 'diagnoses'),
+('95453001', 'Epidural haematoma', 'Trauma', 'diagnoses'),
+('262706003', 'Skull fracture', 'Trauma', 'surgeries'),
+('6142004', 'Facial injury', 'Trauma', 'diagnoses'),
+('110028002', 'Nasal fracture', 'Trauma', 'surgeries'),
+('430984009', 'Orbital fracture', 'Trauma', 'surgeries'),
+('125666000', 'Burn injury', 'Trauma', 'diagnoses'),
+('48333001', 'Burn of skin', 'Trauma', 'diagnoses'),
+('262587005', 'Chemical burn', 'Trauma', 'diagnoses'),
+('39065001', 'Burn of hand', 'Trauma', 'diagnoses'),
+('262583003', 'Electrical burn', 'Trauma', 'diagnoses'),
+('403190006', 'Sunburn', 'Dermatology', 'diagnoses'),
+('200959003', 'Frostbite', 'Trauma', 'diagnoses'),
+('442012004', 'Smoke inhalation injury', 'Respiratory', 'diagnoses'),
+('406525003', 'Inhalation burn', 'Respiratory', 'diagnoses'),
+('284009009', 'Friction burn', 'Trauma', 'diagnoses')
+ON CONFLICT (snomed_code) DO NOTHING;
+
+-- Batch 491-510: Poisoning and symptoms
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description, domain) VALUES
+('75478009', 'Poisoning', 'Toxicology', 'diagnoses'),
+('55680006', 'Drug overdose', 'Toxicology', 'diagnoses'),
+('296289007', 'Paracetamol overdose', 'Toxicology', 'diagnoses'),
+('296282007', 'Opioid overdose', 'Toxicology', 'diagnoses'),
+('89765005', 'Alcohol poisoning', 'Toxicology', 'diagnoses'),
+('242383002', 'Carbon monoxide poisoning', 'Toxicology', 'diagnoses'),
+('75258004', 'Food poisoning', 'Toxicology', 'diagnoses'),
+('242670002', 'Lead poisoning', 'Toxicology', 'diagnoses'),
+('36971009', 'Insect bite', 'Toxicology', 'diagnoses'),
+('242610007', 'Snake bite', 'Toxicology', 'diagnoses'),
+('386661006', 'Fever', 'General', 'diagnoses'),
+('271807003', 'Rash', 'General', 'diagnoses'),
+('422587007', 'Nausea', 'General', 'diagnoses'),
+('422400008', 'Vomiting', 'General', 'diagnoses'),
+('62315008', 'Diarrhoea', 'General', 'diagnoses'),
+('21522001', 'Abdominal pain', 'General', 'diagnoses'),
+('25064002', 'Headache', 'General', 'diagnoses'),
+('271813007', 'Dyspnoea', 'General', 'diagnoses'),
+('29857009', 'Chest pain', 'General', 'diagnoses'),
+('22253000', 'Pain', 'General', 'diagnoses')
+ON CONFLICT (snomed_code) DO NOTHING;
+
+-- Batch 511-530: More symptoms and hepatology
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description, domain) VALUES
+('84229001', 'Fatigue', 'General', 'diagnoses'),
+('267036007', 'Dizziness', 'General', 'diagnoses'),
+('271594007', 'Syncope', 'General', 'diagnoses'),
+('404640003', 'Vertigo', 'General', 'diagnoses'),
+('162607003', 'Loss of appetite', 'General', 'diagnoses'),
+('161891005', 'Weight loss', 'General', 'diagnoses'),
+('8943002', 'Weight gain', 'General', 'diagnoses'),
+('247355005', 'Flank pain', 'General', 'diagnoses'),
+('16001004', 'Otalgia', 'ENT', 'diagnoses'),
+('162397003', 'Tinnitus', 'ENT', 'diagnoses'),
+('80146002', 'Appendicitis', 'Gastrointestinal', 'diagnoses'),
+('66071002', 'Hepatitis B', 'Hepatology', 'diagnoses'),
+('50711007', 'Hepatitis C', 'Hepatology', 'diagnoses'),
+('40468003', 'Hepatitis A', 'Hepatology', 'diagnoses'),
+('235869004', 'Chronic hepatitis C', 'Hepatology', 'diagnoses'),
+('235871004', 'Chronic hepatitis B', 'Hepatology', 'diagnoses'),
+('61977001', 'Chronic liver disease', 'Hepatology', 'diagnoses'),
+('197321007', 'Steatosis of liver', 'Hepatology', 'diagnoses'),
+('235856003', 'Non-alcoholic fatty liver disease', 'Hepatology', 'diagnoses'),
+('19943007', 'Cirrhosis of liver', 'Hepatology', 'diagnoses')
+ON CONFLICT (snomed_code) DO NOTHING;
+
+-- Batch 531-550: More hepatology and GI
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description, domain) VALUES
+('235494005', 'Primary biliary cholangitis', 'Hepatology', 'diagnoses'),
+('197315008', 'Primary sclerosing cholangitis', 'Hepatology', 'diagnoses'),
+('235495006', 'Autoimmune hepatitis', 'Hepatology', 'diagnoses'),
+('235919008', 'Hepatic encephalopathy', 'Hepatology', 'diagnoses'),
+('60046008', 'Oesophageal varices', 'Hepatology', 'diagnoses'),
+('266474003', 'Ascites', 'Hepatology', 'diagnoses'),
+('235880004', 'Hepatorenal syndrome', 'Hepatology', 'diagnoses'),
+('109819003', 'Hepatocellular carcinoma', 'Oncology', 'diagnoses'),
+('155852006', 'Cholelithiasis', 'Hepatology', 'diagnoses'),
+('65275009', 'Cholecystitis', 'Hepatology', 'diagnoses'),
+('45503006', 'Cholangitis', 'Hepatology', 'diagnoses'),
+('235917005', 'Biliary stricture', 'Hepatology', 'diagnoses'),
+('128302006', 'Cholangiocarcinoma', 'Oncology', 'diagnoses'),
+('109838007', 'Pancreatic cancer', 'Oncology', 'diagnoses'),
+('235653009', 'Pancreatitis', 'Gastrointestinal', 'diagnoses'),
+('235494005', 'Chronic pancreatitis', 'Gastrointestinal', 'diagnoses'),
+('73211009', 'Diabetes mellitus', 'Endocrine', 'diagnoses'),
+('44054006', 'Type 2 diabetes mellitus', 'Endocrine', 'diagnoses'),
+('46635009', 'Type 1 diabetes mellitus', 'Endocrine', 'diagnoses'),
+('11687002', 'Gestational diabetes', 'Endocrine', 'diagnoses')
+ON CONFLICT (snomed_code) DO NOTHING;
