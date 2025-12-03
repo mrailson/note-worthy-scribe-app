@@ -46,6 +46,21 @@ function formatNhsNumber(nhs: string | null | undefined): string {
   return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
 }
 
+function formatDobDisplay(dateStr: string | null | undefined): string {
+  if (!dateStr || dateStr === 'Unknown') return 'Unknown';
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+  } catch {}
+  return dateStr;
+}
+
 interface SnomedEntry {
   domain: string;
   term: string;
@@ -173,7 +188,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
         body: {
           to_email: userEmail,
           to_name: userName,
-          subject: `Lloyd George Record Summary - ${patientName} (NHS: ${nhsNumber})`,
+          subject: `Lloyd George Record Summary - ${patientName} (DOB: ${formatDobDisplay(dob)}) (NHS: ${nhsNumber})`,
           html_content: emailHtml,
           attachments: attachments.length > 0 ? attachments : undefined,
         },
