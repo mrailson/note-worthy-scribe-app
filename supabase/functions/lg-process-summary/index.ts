@@ -75,35 +75,67 @@ serve(async (req) => {
 
     const basePath = `${patient.practice_ods}/${patientId}`;
 
-    // Download merged OCR text with retry (storage propagation can take a moment)
+    // Download merged OCR text with retry, or merge batch files as fallback
     console.log('Downloading merged OCR text...');
     const ocrPath = `${basePath}/work/ocr_merged.txt`;
-    let ocrData: Blob | null = null;
-    let ocrError: any = null;
+    let fullOcrText = '';
     
-    for (let attempt = 0; attempt < 5; attempt++) {
-      const result = await supabase.storage
-        .from('lg')
-        .download(ocrPath);
+    // Try to download the merged file first
+    const { data: ocrData, error: ocrError } = await supabase.storage
+      .from('lg')
+      .download(ocrPath);
+    
+    if (ocrData) {
+      fullOcrText = await ocrData.text();
+      console.log(`OCR merged file downloaded. Length: ${fullOcrText.length} characters`);
+    } else {
+      // Fallback: merge batch files ourselves
+      console.log('Merged file not found, attempting to merge batch files...');
+      const totalBatches = patient.ocr_batches_total || Math.ceil((patient.images_count || 0) / 10);
       
-      ocrData = result.data;
-      ocrError = result.error;
-      
-      if (ocrData) {
-        console.log(`OCR file downloaded on attempt ${attempt + 1}`);
-        break;
+      const mergedParts: string[] = [];
+      for (let b = 0; b < totalBatches; b++) {
+        const batchPath = `${basePath}/work/ocr_batch_${b.toString().padStart(3, '0')}.txt`;
+        const { data: batchData, error: batchError } = await supabase.storage
+          .from('lg')
+          .download(batchPath);
+        
+        if (batchData) {
+          const text = await batchData.text();
+          mergedParts.push(text);
+          console.log(`Batch ${b} loaded (${text.length} chars)`);
+        } else {
+          console.error(`Failed to load batch ${b}:`, batchError);
+        }
       }
       
-      console.log(`OCR file not found, retrying in 2s (attempt ${attempt + 1}/5)...`);
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (mergedParts.length === 0) {
+        throw new Error('No OCR batch files found - OCR may not have completed');
+      }
+      
+      fullOcrText = mergedParts.join('\n\n');
+      console.log(`Merged ${mergedParts.length} batch files. Total: ${fullOcrText.length} characters`);
+      
+      // Save the merged file for next time
+      const mergedBlob = new Blob([fullOcrText], { type: 'application/octet-stream' });
+      await supabase.storage.from('lg').upload(ocrPath, mergedBlob, {
+        contentType: 'application/octet-stream',
+        upsert: true,
+      });
+      console.log('Merged OCR file saved');
+      
+      // Update patient record with OCR URL
+      await supabase
+        .from('lg_patients')
+        .update({ ocr_text_url: `lg/${ocrPath}` })
+        .eq('id', patientId);
     }
-
-    if (ocrError || !ocrData) {
-      throw new Error(`Failed to download OCR text after 5 attempts: ${JSON.stringify(ocrError)}`);
+    
+    if (!fullOcrText || fullOcrText.length < 50) {
+      throw new Error('OCR text is empty or too short');
     }
-
-    const fullOcrText = await ocrData.text();
-    console.log(`OCR text loaded. Length: ${fullOcrText.length} characters`);
+    
+    console.log(`OCR text ready. Length: ${fullOcrText.length} characters`);
 
     // Extract patient details
     console.log('Extracting patient details from OCR...');
