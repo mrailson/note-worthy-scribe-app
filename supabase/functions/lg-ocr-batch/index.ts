@@ -111,33 +111,24 @@ serve(async (req) => {
 
     const batchOcrText = ocrResults.join('\n\n');
 
-    // Save batch OCR text to storage with error checking
-    const batchPath = `${basePath}/work/ocr_batch_${batchNumber.toString().padStart(3, '0')}.txt`;
+    // Save batch OCR text to DATABASE instead of storage
+    console.log(`Saving batch ${batchNumber} OCR text (${batchOcrText.length} chars) to database...`);
     
-    console.log(`Uploading batch OCR text (${batchOcrText.length} chars) to ${batchPath}...`);
+    const { error: upsertError } = await supabase
+      .from('lg_ocr_batches')
+      .upsert({
+        patient_id: patientId,
+        batch_number: batchNumber,
+        ocr_text: batchOcrText,
+        pages_processed: batchFiles.length,
+      }, { onConflict: 'patient_id,batch_number' });
     
-    const batchBlob = new Blob([batchOcrText], { type: 'application/octet-stream' });
-    const { error: batchUploadError } = await supabase.storage.from('lg').upload(batchPath, batchBlob, {
-      contentType: 'application/octet-stream',
-      upsert: true,
-    });
-    
-    if (batchUploadError) {
-      console.error('Failed to upload batch OCR file:', batchUploadError);
-      throw new Error(`Failed to save OCR batch ${batchNumber}: ${JSON.stringify(batchUploadError)}`);
+    if (upsertError) {
+      console.error('Failed to save OCR batch to database:', upsertError);
+      throw new Error(`Failed to save OCR batch ${batchNumber}: ${JSON.stringify(upsertError)}`);
     }
     
-    // Verify upload succeeded
-    const { data: verifyData, error: verifyError } = await supabase.storage
-      .from('lg')
-      .download(batchPath);
-    
-    if (verifyError || !verifyData) {
-      console.error('Batch file verification failed:', verifyError);
-      throw new Error(`OCR batch file upload could not be verified: ${JSON.stringify(verifyError)}`);
-    }
-    
-    console.log(`Batch ${batchNumber} OCR file saved and verified`);
+    console.log(`Batch ${batchNumber} OCR saved to database successfully`);
 
     // Update patient record
     const totalBatches = Math.ceil(files.length / BATCH_SIZE);
@@ -155,62 +146,42 @@ serve(async (req) => {
 
     console.log(`Batch ${batchNumber} complete. ${completedBatches}/${totalBatches} batches done.`);
 
-    // If this is the last batch, merge all OCR texts and trigger summary phase
+    // If this is the last batch, merge all OCR texts from database and trigger summary phase
     if (isLastBatch) {
-      console.log('Last batch complete. Merging OCR texts...');
+      console.log('Last batch complete. Merging OCR texts from database...');
       
-      // Merge all OCR batch files
-      const mergedOcrParts: string[] = [];
-      for (let b = 0; b < totalBatches; b++) {
-        const batchFilePath = `${basePath}/work/ocr_batch_${b.toString().padStart(3, '0')}.txt`;
-        const { data: batchData } = await supabase.storage
-          .from('lg')
-          .download(batchFilePath);
-        
-        if (batchData) {
-          const text = await batchData.text();
-          mergedOcrParts.push(text);
-        }
+      // Merge all OCR batch texts from database
+      const { data: batches, error: fetchBatchesError } = await supabase
+        .from('lg_ocr_batches')
+        .select('batch_number, ocr_text')
+        .eq('patient_id', patientId)
+        .order('batch_number', { ascending: true });
+
+      if (fetchBatchesError || !batches || batches.length === 0) {
+        throw new Error(`Failed to fetch OCR batches from database: ${fetchBatchesError?.message}`);
       }
 
-      const mergedOcrText = mergedOcrParts.join('\n\n');
+      const mergedOcrText = batches.map(b => b.ocr_text).join('\n\n');
+      console.log(`Merged ${batches.length} batches. Total: ${mergedOcrText.length} characters`);
       
-      // Save merged OCR text with error checking
-      const mergedPath = `${basePath}/work/ocr_merged.txt`;
+      // Save merged OCR text as JSON (which IS allowed by storage)
+      const mergedPath = `${basePath}/work/ocr_merged.json`;
+      const mergedJson = JSON.stringify({ ocr_text: mergedOcrText });
       
-      console.log(`Uploading merged OCR text (${mergedOcrText.length} chars) to ${mergedPath}...`);
+      console.log(`Uploading merged OCR JSON (${mergedJson.length} chars) to ${mergedPath}...`);
       
-      const mergedBlob = new Blob([mergedOcrText], { type: 'application/octet-stream' });
-      const { error: uploadError } = await supabase.storage.from('lg').upload(mergedPath, mergedBlob, {
-        contentType: 'application/octet-stream',
+      const { error: uploadError } = await supabase.storage.from('lg').upload(mergedPath, 
+        new Blob([mergedJson], { type: 'application/json' }), {
+        contentType: 'application/json',
         upsert: true,
       });
 
       if (uploadError) {
-        console.error('Failed to upload merged OCR:', uploadError);
-        throw new Error(`Failed to upload merged OCR: ${JSON.stringify(uploadError)}`);
-      }
-      
-      console.log('Merged OCR file uploaded successfully');
-
-      // Verify the file exists before proceeding
-      let fileVerified = false;
-      for (let v = 0; v < 5; v++) {
-        const { data: checkData } = await supabase.storage
-          .from('lg')
-          .download(mergedPath);
-        
-        if (checkData) {
-          fileVerified = true;
-          console.log(`Verified merged OCR file exists (attempt ${v + 1})`);
-          break;
-        }
-        console.log(`Waiting for file propagation (attempt ${v + 1}/5)...`);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-      
-      if (!fileVerified) {
-        throw new Error('Merged OCR file upload succeeded but file not readable - storage issue');
+        console.error('Failed to upload merged OCR JSON:', uploadError);
+        // Don't throw - summary can still read from database
+        console.log('Will proceed - summary can read from database as fallback');
+      } else {
+        console.log('Merged OCR JSON file uploaded successfully');
       }
 
       // Update patient with OCR URL

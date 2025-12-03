@@ -3338,6 +3338,33 @@ export type Database = {
           },
         ]
       }
+      lg_ocr_batches: {
+        Row: {
+          batch_number: number
+          created_at: string | null
+          id: string
+          ocr_text: string
+          pages_processed: number
+          patient_id: string
+        }
+        Insert: {
+          batch_number: number
+          created_at?: string | null
+          id?: string
+          ocr_text: string
+          pages_processed?: number
+          patient_id: string
+        }
+        Update: {
+          batch_number?: number
+          created_at?: string | null
+          id?: string
+          ocr_text?: string
+          pages_processed?: number
+          patient_id?: string
+        }
+        Relationships: []
+      }
       lg_patients: {
         Row: {
           ai_extracted_dob: string | null
