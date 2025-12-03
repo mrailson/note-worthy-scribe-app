@@ -355,12 +355,6 @@ export function LGCameraCapture({
 
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Page Count */}
-      <div className="text-center py-2 bg-muted/50 rounded-lg">
-        <span className="text-2xl font-bold text-primary">{images.length}</span>
-        <span className="text-muted-foreground ml-2">pages captured</span>
-      </div>
-
       {/* Finish Button - above images for better mobile layout */}
       {images.length > 0 && (
         <Button
