@@ -7,19 +7,56 @@ import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users, Building2, 
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 
-// Format date as DD-MMM-YYYY (e.g., 07-Sep-2023)
+// Format date as MMM-YYYY or DD-MMM-YYYY depending on available info
 const formatUKDate = (dateStr: string | null | undefined): string => {
-  if (!dateStr || dateStr === 'unknown' || dateStr === 'Unknown') return dateStr || 'unknown';
+  if (!dateStr || dateStr === 'unknown' || dateStr === 'Unknown' || dateStr === '') return '';
+  
+  const str = dateStr.trim();
+  
+  // Check if it's just a year (4 digits)
+  if (/^\d{4}$/.test(str)) {
+    return str;
+  }
+  
+  // Check for month-year patterns like "Mar 2019", "March 2019", "03/2019", "2019-03"
+  const monthYearMatch = str.match(/^([A-Za-z]+)\s*[-/]?\s*(\d{4})$/) || 
+                         str.match(/^(\d{1,2})[-/](\d{4})$/) ||
+                         str.match(/^(\d{4})[-/](\d{1,2})$/);
+  if (monthYearMatch) {
+    try {
+      // Try parsing to get proper month name
+      const testDate = new Date(str);
+      if (!isNaN(testDate.getTime())) {
+        const month = testDate.toLocaleDateString('en-GB', { month: 'short' });
+        const year = testDate.getFullYear();
+        return `${month}-${year}`;
+      }
+      // If parsing fails, return as-is
+      return str;
+    } catch {
+      return str;
+    }
+  }
+  
   try {
-    // Handle various date formats
-    const date = new Date(dateStr);
-    if (isNaN(date.getTime())) return dateStr;
-    const day = String(date.getDate()).padStart(2, '0');
+    // Try full date parsing
+    const date = new Date(str);
+    if (isNaN(date.getTime())) return str;
+    
+    // Check if day is meaningful (not defaulted to 1st)
+    const originalHasDay = /\d{1,2}[-/]\d{1,2}[-/]\d{2,4}/.test(str) || 
+                          /\d{4}[-/]\d{1,2}[-/]\d{1,2}/.test(str);
+    
     const month = date.toLocaleDateString('en-GB', { month: 'short' });
     const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
+    
+    if (originalHasDay) {
+      const day = String(date.getDate()).padStart(2, '0');
+      return `${day}-${month}-${year}`;
+    }
+    return `${month}-${year}`;
   } catch {
-    return dateStr;
+    return str;
   }
 };
 
@@ -441,9 +478,7 @@ function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
                 <td className="py-2 px-2">{item.term}</td>
                 <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{item.code}</td>
                 <td className="py-2 px-2 text-muted-foreground">
-                  {item.date && item.date !== 'unknown' && item.date !== 'Unknown' 
-                    ? formatUKDate(item.date) 
-                    : <span className="text-xs italic">Date unknown</span>}
+                  {formatUKDate(item.date) || '-'}
                 </td>
                 <td className="py-2 px-2 text-right">
                   <Badge 
