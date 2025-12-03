@@ -7,6 +7,22 @@ import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users } from 'luci
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 
+// Format date as DD-MMM-YYYY (e.g., 07-Sep-2023)
+const formatUKDate = (dateStr: string | null | undefined): string => {
+  if (!dateStr || dateStr === 'unknown' || dateStr === 'Unknown') return dateStr || 'unknown';
+  try {
+    // Handle various date formats
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = date.toLocaleDateString('en-GB', { month: 'short' });
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch {
+    return dateStr;
+  }
+};
+
 interface SummaryData {
   summary_line: string;
   allergies: Array<{ substance: string; reaction: string; certainty: string; source: string }>;
@@ -145,7 +161,7 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
                       <div key={i} className="text-sm p-2 bg-muted/30 rounded flex justify-between">
                         <span>{item.condition}</span>
                         <span className="text-muted-foreground">
-                          {item.first_noted}
+                          {formatUKDate(item.first_noted)}
                           <Badge variant="outline" className="ml-2 text-xs">{item.status}</Badge>
                         </span>
                       </div>
@@ -187,7 +203,7 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
                     {summary.procedures.map((proc, i) => (
                       <div key={i} className="text-sm p-2 bg-muted/30 rounded flex justify-between">
                         <span>{proc.name}</span>
-                        <span className="text-muted-foreground">{proc.date}</span>
+                        <span className="text-muted-foreground">{formatUKDate(proc.date)}</span>
                       </div>
                     ))}
                   </div>
@@ -205,7 +221,7 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
                     {summary.immunisations.map((imm, i) => (
                       <div key={i} className="text-sm p-2 bg-muted/30 rounded flex justify-between">
                         <span>{imm.vaccine}</span>
-                        <span className="text-muted-foreground">{imm.date}</span>
+                        <span className="text-muted-foreground">{formatUKDate(imm.date)}</span>
                       </div>
                     ))}
                   </div>
@@ -240,7 +256,7 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
                     {summary.risk_factors.map((rf, i) => (
                       <div key={i} className="text-sm p-2 bg-muted/30 rounded flex justify-between">
                         <span>{rf.type}: {rf.value}</span>
-                        <span className="text-muted-foreground">{rf.date}</span>
+                        <span className="text-muted-foreground">{formatUKDate(rf.date)}</span>
                       </div>
                     ))}
                   </div>
