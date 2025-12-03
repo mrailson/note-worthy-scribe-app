@@ -223,15 +223,16 @@ export default function LGCaptureResults() {
       {/* Processing Status */}
       <LGProcessingStatus patient={patient} onStatusChange={handleStatusChange} />
 
-      {/* Retry Button for Failed */}
-      {patient.job_status === 'failed' && (
+      {/* Retry Button for Failed or Stuck Queued */}
+      {(patient.job_status === 'failed' || 
+        (patient.job_status === 'queued' && !patient.processing_started_at)) && (
         <Button
           onClick={handleRetry}
           variant="outline"
           className="w-full"
         >
           <RefreshCw className="mr-2 h-4 w-4" />
-          Retry Processing
+          {patient.job_status === 'failed' ? 'Retry Processing' : 'Start Processing'}
         </Button>
       )}
 
