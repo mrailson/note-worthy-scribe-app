@@ -172,7 +172,7 @@ export default function LGCaptureResults() {
               </div>
             </div>
           ) : (
-            <div className="grid grid-cols-2 gap-2 text-sm">
+            <div className="grid gap-2 text-sm" style={{ gridTemplateColumns: 'auto 1fr' }}>
               <span className="text-muted-foreground">Patient:</span>
               <span className="font-medium">
                 {patient.ai_extracted_name || patient.patient_name || (
