@@ -8,10 +8,16 @@ import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 
 // Format date as MMM-YYYY or DD-MMM-YYYY depending on available info
+// Handles "Pre" prefix for first-mention dates (e.g., "Pre Oct 2020")
 const formatUKDate = (dateStr: string | null | undefined): string => {
   if (!dateStr || dateStr === 'unknown' || dateStr === 'Unknown' || dateStr === '') return '';
   
   const str = dateStr.trim();
+  
+  // Pass through "Pre" dates without reformatting (e.g., "Pre Oct 2020", "Pre 2019")
+  if (str.toLowerCase().startsWith('pre')) {
+    return str;
+  }
   
   // Check if it's just a year (4 digits)
   if (/^\d{4}$/.test(str)) {
