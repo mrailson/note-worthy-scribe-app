@@ -17,39 +17,74 @@ export default function LGCaptureLanding() {
 
   useEffect(() => {
     const loadSettings = async () => {
-      // First try to load from database if user is logged in
-      if (user?.id) {
-        const { data } = await supabase
-          .from('user_settings')
-          .select('setting_value')
+      if (!user?.id) {
+        setShowSettings(true);
+        return;
+      }
+
+      let loadedOds = '';
+      let loadedName = '';
+
+      // 1. Try to load from lg_capture_defaults in user_settings
+      const { data: settingsData } = await supabase
+        .from('user_settings')
+        .select('setting_value')
+        .eq('user_id', user.id)
+        .eq('setting_key', 'lg_capture_defaults')
+        .maybeSingle();
+      
+      if (settingsData?.setting_value) {
+        const defaults = settingsData.setting_value as { practiceOds?: string; uploaderName?: string };
+        if (defaults.practiceOds) loadedOds = defaults.practiceOds;
+        if (defaults.uploaderName) loadedName = defaults.uploaderName;
+      }
+
+      // 2. If name not set, get from user profile
+      if (!loadedName) {
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('full_name, email')
           .eq('user_id', user.id)
-          .eq('setting_key', 'lg_capture_defaults')
           .maybeSingle();
         
-        if (data?.setting_value) {
-          const defaults = data.setting_value as { practiceOds?: string; uploaderName?: string };
-          if (defaults.practiceOds) {
-            setPracticeOds(defaults.practiceOds);
-            localStorage.setItem('lg_practice_ods', defaults.practiceOds);
-          }
-          if (defaults.uploaderName) {
-            setUploaderName(defaults.uploaderName);
-            localStorage.setItem('lg_uploader_name', defaults.uploaderName);
-          }
-          if (defaults.practiceOds && defaults.uploaderName) {
-            return; // Settings loaded from DB, don't show settings panel
-          }
+        if (profileData?.full_name) {
+          loadedName = profileData.full_name;
+        } else if (profileData?.email) {
+          // Fallback to email prefix if no name
+          loadedName = profileData.email.split('@')[0];
         }
       }
+
+      // 3. If ODS not set, try to get practice name from practice_details
+      if (!loadedOds) {
+        const { data: practiceData } = await supabase
+          .from('practice_details')
+          .select('practice_name')
+          .eq('user_id', user.id)
+          .eq('is_default', true)
+          .maybeSingle();
+        
+        if (practiceData?.practice_name) {
+          loadedOds = practiceData.practice_name;
+        }
+      }
+
+      // 4. Fall back to localStorage if still empty
+      if (!loadedOds) loadedOds = localStorage.getItem('lg_practice_ods') || '';
+      if (!loadedName) loadedName = localStorage.getItem('lg_uploader_name') || '';
+
+      // Set state
+      if (loadedOds) {
+        setPracticeOds(loadedOds);
+        localStorage.setItem('lg_practice_ods', loadedOds);
+      }
+      if (loadedName) {
+        setUploaderName(loadedName);
+        localStorage.setItem('lg_uploader_name', loadedName);
+      }
       
-      // Fall back to localStorage
-      const savedOds = localStorage.getItem('lg_practice_ods') || '';
-      const savedName = localStorage.getItem('lg_uploader_name') || '';
-      if (savedOds) setPracticeOds(savedOds);
-      if (savedName) setUploaderName(savedName);
-      
-      // Show settings if not configured
-      if (!savedOds || !savedName) {
+      // Show settings only if still not configured
+      if (!loadedOds || !loadedName) {
         setShowSettings(true);
       }
     };
