@@ -32,8 +32,18 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
       if (signedUrlError) throw signedUrlError;
       if (!signedUrlData?.signedUrl) throw new Error('No signed URL received');
       
-      // Open in new tab for viewing
-      window.open(signedUrlData.signedUrl, '_blank');
+      // iOS Safari blocks window.open after async - use anchor click instead
+      if (isIPhone) {
+        const link = document.createElement('a');
+        link.href = signedUrlData.signedUrl;
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      } else {
+        window.open(signedUrlData.signedUrl, '_blank');
+      }
     } catch (err) {
       console.error('Open file error:', err);
       toast.error('Failed to open file');
