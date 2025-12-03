@@ -1,0 +1,28 @@
+-- Batch 251-256: Head and neck cancers
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('255055008', 'Head and neck cancer', 'Oncology'),
+('363396004', 'Malignant neoplasm of nasopharynx', 'Oncology'),
+('363419009', 'Malignant neoplasm of hypopharynx', 'Oncology'),
+('363420003', 'Malignant neoplasm of larynx', 'Oncology'),
+('363403001', 'Malignant neoplasm of trachea', 'Oncology'),
+('363505006', 'Malignant neoplasm of tongue', 'Oncology'),
+('363506007', 'Malignant neoplasm of floor of mouth', 'Oncology'),
+('363502004', 'Malignant neoplasm of lip', 'Oncology'),
+('363503009', 'Malignant neoplasm of palate', 'Oncology'),
+('363504003', 'Malignant neoplasm of gum', 'Oncology'),
+('363508008', 'Malignant neoplasm of buccal mucosa', 'Oncology'),
+('363512006', 'Malignant neoplasm of tonsil', 'Oncology'),
+('363513001', 'Malignant neoplasm of oropharynx', 'Oncology'),
+('363414005', 'Malignant neoplasm of parotid gland', 'Oncology'),
+('363415006', 'Malignant neoplasm of submandibular gland', 'Oncology'),
+('363364009', 'Malignant neoplasm of thyroid', 'Oncology'),
+('372143007', 'Papillary thyroid carcinoma', 'Oncology'),
+('372144001', 'Follicular thyroid carcinoma', 'Oncology'),
+('372145000', 'Medullary thyroid carcinoma', 'Oncology'),
+('372146004', 'Anaplastic thyroid carcinoma', 'Oncology'),
+('363366006', 'Malignant neoplasm of adrenal gland', 'Oncology'),
+('93785007', 'Adrenal cortical carcinoma', 'Oncology'),
+('363367002', 'Malignant neoplasm of parathyroid', 'Oncology'),
+('363368007', 'Malignant neoplasm of pituitary', 'Oncology'),
+('93725000', 'Pineal gland tumour', 'Oncology')
+ON CONFLICT (snomed_code) DO NOTHING;

@@ -1,0 +1,28 @@
+-- Batch 245-250: Additional immunisations
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('170433008', 'Pneumococcal vaccination', 'Immunisation'),
+('170378007', 'Shingles vaccination', 'Immunisation'),
+('170391009', 'Tetanus vaccination', 'Immunisation'),
+('170395000', 'Diphtheria vaccination', 'Immunisation'),
+('170399006', 'Pertussis vaccination', 'Immunisation'),
+('170407005', 'Polio vaccination', 'Immunisation'),
+('170411002', 'Measles vaccination', 'Immunisation'),
+('170417003', 'Mumps vaccination', 'Immunisation'),
+('170421006', 'Rubella vaccination', 'Immunisation'),
+('170343003', 'Hepatitis B vaccination', 'Immunisation'),
+('170363000', 'Hepatitis A vaccination', 'Immunisation'),
+('170370001', 'Meningococcal vaccination', 'Immunisation'),
+('170387005', 'Haemophilus influenzae type b vaccination', 'Immunisation'),
+('170431005', 'Rotavirus vaccination', 'Immunisation'),
+('170436000', 'Human papillomavirus vaccination', 'Immunisation'),
+('170445000', 'BCG vaccination', 'Immunisation'),
+('170370001', 'MenACWY vaccination', 'Immunisation'),
+('170370001', 'MenB vaccination', 'Immunisation'),
+('170450006', 'Yellow fever vaccination', 'Immunisation'),
+('170454002', 'Typhoid vaccination', 'Immunisation'),
+('170458004', 'Cholera vaccination', 'Immunisation'),
+('170462009', 'Japanese encephalitis vaccination', 'Immunisation'),
+('170466007', 'Rabies vaccination', 'Immunisation'),
+('170470004', 'Tick-borne encephalitis vaccination', 'Immunisation'),
+('171054004', 'Influenza vaccination', 'Immunisation')
+ON CONFLICT (snomed_code) DO NOTHING;

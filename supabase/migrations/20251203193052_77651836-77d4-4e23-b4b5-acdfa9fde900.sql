@@ -1,0 +1,28 @@
+-- Batch 329-334: More investigation findings
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('365812005', 'Finding of TSH level', 'Investigation'),
+('365763004', 'Finding of INR', 'Investigation'),
+('271737000', 'Finding of haemoglobin level', 'Investigation'),
+('271649006', 'Finding of blood glucose', 'Investigation'),
+('271653008', 'Finding of creatinine level', 'Investigation'),
+('365766001', 'Finding of urea level', 'Investigation'),
+('365770003', 'Finding of potassium level', 'Investigation'),
+('365774007', 'Finding of sodium level', 'Investigation'),
+('365829003', 'Finding of vitamin D level', 'Investigation'),
+('365788005', 'Finding of iron level', 'Investigation'),
+('365783004', 'Finding of ferritin level', 'Investigation'),
+('365824008', 'Finding of B12 level', 'Investigation'),
+('365825009', 'Finding of folate level', 'Investigation'),
+('365755003', 'Finding of PSA level', 'Investigation'),
+('415945006', 'Abnormal result', 'Finding'),
+('281900007', 'No abnormality detected', 'Finding'),
+('439401001', 'Diagnosis confirmed', 'Finding'),
+('713427006', 'Abnormal ECG', 'Finding'),
+('164854000', 'Abnormal chest X-ray', 'Finding'),
+('164961007', 'Abnormal CT scan', 'Finding'),
+('164816008', 'Abnormal MRI', 'Finding'),
+('168731009', 'Abnormal ultrasound', 'Finding'),
+('167227005', 'Abnormal blood test', 'Finding'),
+('167231001', 'Abnormal urine test', 'Finding'),
+('168141000', 'Positive FOBT', 'Finding')
+ON CONFLICT (snomed_code) DO NOTHING;

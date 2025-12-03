@@ -1,0 +1,28 @@
+-- Batch 425-430: Wound care and skin procedures
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('225358003', 'Wound care', 'Wound Care'),
+('225359006', 'Wound dressing', 'Wound Care'),
+('225360001', 'Wound debridement', 'Wound Care'),
+('225361002', 'Wound irrigation', 'Wound Care'),
+('225362009', 'Wound closure', 'Wound Care'),
+('225363004', 'Suturing', 'Wound Care'),
+('225364005', 'Stapling', 'Wound Care'),
+('225365006', 'Adhesive closure', 'Wound Care'),
+('225366007', 'Skin graft', 'Wound Care'),
+('225367003', 'Split thickness graft', 'Wound Care'),
+('225368008', 'Full thickness graft', 'Wound Care'),
+('225369000', 'Negative pressure wound therapy', 'Wound Care'),
+('225370004', 'Compression therapy', 'Wound Care'),
+('225371000', 'Leg ulcer management', 'Wound Care'),
+('225372007', 'Pressure ulcer care', 'Wound Care'),
+('225373002', 'Diabetic foot care', 'Wound Care'),
+('225374008', 'Burns management', 'Wound Care'),
+('225375009', 'Skin biopsy', 'Procedure'),
+('225376005', 'Punch biopsy', 'Procedure'),
+('225377006', 'Shave biopsy', 'Procedure'),
+('225378001', 'Excision biopsy', 'Procedure'),
+('225379009', 'Cryotherapy', 'Procedure'),
+('225380007', 'Curettage', 'Procedure'),
+('225381006', 'Electrocautery', 'Procedure'),
+('225382004', 'Laser treatment', 'Procedure')
+ON CONFLICT (snomed_code) DO NOTHING;

@@ -1,0 +1,28 @@
+-- Batch 365-370: Benign tumours and cysts
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('254701007', 'Benign neoplasm of skin', 'Benign'),
+('109880006', 'Lipoma', 'Benign'),
+('254784007', 'Sebaceous cyst', 'Benign'),
+('110269005', 'Dermoid cyst', 'Benign'),
+('254782008', 'Epidermal cyst', 'Benign'),
+('47899002', 'Pilonidal cyst', 'Benign'),
+('254786009', 'Seborrhoeic keratosis', 'Benign'),
+('254789002', 'Actinic keratosis', 'Benign'),
+('109935005', 'Haemangioma', 'Benign'),
+('109937002', 'Cavernous haemangioma', 'Benign'),
+('254791000', 'Pyogenic granuloma', 'Benign'),
+('92384004', 'Fibroma', 'Benign'),
+('54776002', 'Keloid scar', 'Benign'),
+('109955000', 'Neurofibroma', 'Benign'),
+('92503002', 'Schwannoma', 'Benign'),
+('61728003', 'Meningioma', 'Benign'),
+('254061001', 'Pituitary adenoma', 'Benign'),
+('92562006', 'Acoustic neuroma', 'Benign'),
+('109958003', 'Ganglion cyst', 'Benign'),
+('109960001', 'Baker cyst', 'Benign'),
+('109961002', 'Ovarian cyst', 'Benign'),
+('37849005', 'Breast cyst', 'Benign'),
+('254860009', 'Breast fibroadenoma', 'Benign'),
+('92544005', 'Hepatic cyst', 'Benign'),
+('92546007', 'Renal cyst', 'Benign')
+ON CONFLICT (snomed_code) DO NOTHING;
