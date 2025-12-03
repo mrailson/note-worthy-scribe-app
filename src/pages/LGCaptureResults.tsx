@@ -6,9 +6,20 @@ import { LGDownloadPanel } from '@/components/lg-capture/LGDownloadPanel';
 import { LGSummaryPreview } from '@/components/lg-capture/LGSummaryPreview';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Mail } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
 import { LGEmailButton } from '@/components/lg-capture/LGEmailButton';
 import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog';
 
 function formatUKDate(dateStr: string | null | undefined): string {
   if (!dateStr || dateStr === 'Unknown') return dateStr || 'Pending...';
@@ -36,10 +47,11 @@ function formatNhsNumber(nhs: string | null | undefined): string {
 export default function LGCaptureResults() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPatient, triggerProcessing } = useLGCapture();
+  const { getPatient, triggerProcessing, deletePatient, isLoading: deleteLoading } = useLGCapture();
   
   const [patient, setPatient] = useState<LGPatient | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   const loadPatient = async () => {
     if (!id) return;
@@ -91,6 +103,14 @@ export default function LGCaptureResults() {
     if (success) {
       toast.success('Processing restarted');
       loadPatient();
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!patient) return;
+    const success = await deletePatient(patient.id, patient.practice_ods);
+    if (success) {
+      navigate('/lg-capture/patients');
     }
   };
 
@@ -235,6 +255,44 @@ export default function LGCaptureResults() {
           Start Next Patient
         </Button>
       )}
+
+      {/* Delete Record */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogTrigger asChild>
+          <Button
+            variant="outline"
+            className="w-full text-destructive hover:text-destructive hover:bg-destructive/10"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete Record
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this record?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the patient record, all scanned images, and generated outputs. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteLoading}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
