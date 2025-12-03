@@ -54,6 +54,11 @@ export function LGProcessingStatus({ patient, onStatusChange }: LGProcessingStat
       return stepIndex <= currentIndex ? 'failed' : 'pending';
     }
 
+    // When succeeded, all steps including 'succeeded' should show as complete
+    if (currentPatient.job_status === 'succeeded') {
+      return stepIndex <= currentIndex ? 'complete' : 'pending';
+    }
+
     if (stepIndex < currentIndex) return 'complete';
     if (stepIndex === currentIndex) return 'current';
     return 'pending';
