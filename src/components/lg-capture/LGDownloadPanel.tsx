@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink } from 'lucide-react';
+import { Download, FileText, FileJson, FileSpreadsheet } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 import { toast } from 'sonner';
@@ -29,13 +29,23 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
 
       if (error) throw error;
 
+      // Fetch the file as a blob to force true download (avoids Chrome PDF viewer)
+      const response = await fetch(data.signedUrl);
+      if (!response.ok) throw new Error('Failed to fetch file');
+      
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      
       // Trigger download
       const link = document.createElement('a');
-      link.href = data.signedUrl;
+      link.href = blobUrl;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      // Clean up blob URL
+      URL.revokeObjectURL(blobUrl);
       
       toast.success(`Downloaded ${filename}`);
     } catch (err) {
@@ -112,7 +122,7 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
               {isDownloading ? (
                 <span className="text-xs">Downloading...</span>
               ) : (
-                <ExternalLink className="h-4 w-4 ml-2 opacity-50" />
+                <Download className="h-4 w-4 ml-2 opacity-50" />
               )}
             </Button>
           );
