@@ -1,0 +1,28 @@
+-- Batch 167-172: Pain and palliative
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('82423001', 'Chronic pain syndrome', 'Pain Management'),
+('279069000', 'Low back pain', 'Pain Management'),
+('161891005', 'Chronic back pain', 'Pain Management'),
+('267949000', 'Neck pain', 'Pain Management'),
+('84229001', 'Headache disorder', 'Pain Management'),
+('37796009', 'Migraine', 'Pain Management'),
+('398979000', 'Migraine with aura', 'Pain Management'),
+('56097005', 'Migraine without aura', 'Pain Management'),
+('59282003', 'Cluster headache', 'Pain Management'),
+('230480006', 'Tension type headache', 'Pain Management'),
+('63480004', 'Chronic daily headache', 'Pain Management'),
+('23046000', 'Neuropathic pain', 'Pain Management'),
+('57406009', 'Trigeminal neuralgia', 'Pain Management'),
+('398057008', 'Post-herpetic neuralgia', 'Pain Management'),
+('62507009', 'Complex regional pain syndrome', 'Pain Management'),
+('363346000', 'Malignant neoplastic disease', 'Palliative'),
+('182964004', 'Terminal care', 'Palliative'),
+('385763009', 'Palliative care', 'Palliative'),
+('371827001', 'Do not resuscitate', 'Palliative'),
+('871530009', 'Treatment escalation plan', 'Palliative'),
+('310295000', 'Anticipatory care planning', 'Palliative'),
+('473067001', 'ReSPECT form completed', 'Palliative'),
+('162602006', 'Preferred place of death', 'Palliative'),
+('289908002', 'Cachexia', 'Palliative'),
+('267036007', 'Dyspnoea', 'Palliative')
+ON CONFLICT (snomed_code) DO NOTHING;

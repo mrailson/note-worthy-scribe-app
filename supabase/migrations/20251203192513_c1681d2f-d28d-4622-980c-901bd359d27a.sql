@@ -1,0 +1,28 @@
+-- Batch 227-232: Urological conditions
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('68566005', 'Urinary tract infection', 'Urological'),
+('301011002', 'Lower urinary tract infection', 'Urological'),
+('396275006', 'Recurrent urinary tract infection', 'Urological'),
+('45816000', 'Pyelonephritis', 'Urological'),
+('197480006', 'Kidney stone', 'Urological'),
+('36118008', 'Nephrolithiasis', 'Urological'),
+('444930009', 'Ureteric stone', 'Urological'),
+('95570007', 'Bladder stone', 'Urological'),
+('236423003', 'Chronic kidney disease stage 1', 'Renal'),
+('431855005', 'Chronic kidney disease stage 2', 'Renal'),
+('431856006', 'Chronic kidney disease stage 3', 'Renal'),
+('431857002', 'Chronic kidney disease stage 3a', 'Renal'),
+('433146000', 'Chronic kidney disease stage 3b', 'Renal'),
+('128302006', 'Benign prostatic hyperplasia', 'Urological'),
+('266569009', 'Prostatism', 'Urological'),
+('300471004', 'Lower urinary tract symptoms', 'Urological'),
+('165232002', 'Urinary incontinence', 'Urological'),
+('34436003', 'Stress incontinence', 'Urological'),
+('48340000', 'Urge incontinence', 'Urological'),
+('165234001', 'Mixed urinary incontinence', 'Urological'),
+('17586001', 'Overactive bladder', 'Urological'),
+('165235000', 'Urinary retention', 'Urological'),
+('307531007', 'Acute urinary retention', 'Urological'),
+('89838000', 'Chronic urinary retention', 'Urological'),
+('439132007', 'Nocturia', 'Urological')
+ON CONFLICT (snomed_code) DO NOTHING;

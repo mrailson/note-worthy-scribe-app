@@ -1,0 +1,28 @@
+-- Batch 143-148: Spinal and orthopaedic procedures
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('18027006', 'Spinal fusion', 'Surgical History'),
+('609588000', 'Lumbar spinal fusion', 'Surgical History'),
+('609589008', 'Cervical spinal fusion', 'Surgical History'),
+('387649009', 'Laminectomy', 'Surgical History'),
+('174507009', 'Discectomy', 'Surgical History'),
+('445155000', 'Lumbar discectomy', 'Surgical History'),
+('176143000', 'Vertebroplasty', 'Surgical History'),
+('176144006', 'Kyphoplasty', 'Surgical History'),
+('179381005', 'Shoulder replacement', 'Surgical History'),
+('179369006', 'Elbow replacement', 'Surgical History'),
+('179443002', 'Ankle replacement', 'Surgical History'),
+('179097003', 'Arthroscopy', 'Surgical History'),
+('299713007', 'Knee arthroscopy', 'Surgical History'),
+('179352002', 'Rotator cuff repair', 'Surgical History'),
+('80146002', 'Appendectomy', 'Surgical History'),
+('387714009', 'Carpal tunnel release', 'Surgical History'),
+('25353009', 'Hernia repair', 'Surgical History'),
+('302497005', 'Inguinal hernia repair', 'Surgical History'),
+('302570009', 'Femoral hernia repair', 'Surgical History'),
+('302502009', 'Umbilical hernia repair', 'Surgical History'),
+('235164007', 'Fundoplication', 'Surgical History'),
+('235165008', 'Nissen fundoplication', 'Surgical History'),
+('44946007', 'Tracheostomy', 'Surgical History'),
+('33496007', 'Gastrostomy', 'Surgical History'),
+('54956002', 'PEG insertion', 'Surgical History')
+ON CONFLICT (snomed_code) DO NOTHING;

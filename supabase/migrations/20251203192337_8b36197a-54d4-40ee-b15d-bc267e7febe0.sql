@@ -1,0 +1,28 @@
+-- Batch 155-160: Paediatric and developmental
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('398166005', 'Stillbirth', 'Obstetric'),
+('276507005', 'Fetal death', 'Obstetric'),
+('282020008', 'Premature infant', 'Paediatric'),
+('276654001', 'Congenital abnormality', 'Paediatric'),
+('66091009', 'Congenital heart disease', 'Paediatric'),
+('93735007', 'Atrial septal defect', 'Paediatric'),
+('86299006', 'Ventricular septal defect', 'Paediatric'),
+('204306007', 'Tetralogy of Fallot', 'Paediatric'),
+('78543004', 'Coarctation of aorta', 'Paediatric'),
+('253978002', 'Patent ductus arteriosus', 'Paediatric'),
+('41040004', 'Complete transposition of great vessels', 'Paediatric'),
+('399068003', 'Hip dysplasia', 'Paediatric'),
+('128188000', 'Cerebral palsy', 'Paediatric'),
+('230769000', 'Spina bifida', 'Paediatric'),
+('416010008', 'Hypospadias', 'Paediatric'),
+('204878001', 'Undescended testis', 'Paediatric'),
+('204870006', 'Pyloric stenosis', 'Paediatric'),
+('367494004', 'Hirschsprung disease', 'Paediatric'),
+('17190001', 'Cystic fibrosis', 'Genetic'),
+('41040004', 'Down syndrome', 'Genetic'),
+('58213006', 'Turner syndrome', 'Genetic'),
+('32968003', 'Klinefelter syndrome', 'Genetic'),
+('70966004', 'Fragile X syndrome', 'Genetic'),
+('29159009', 'Marfan syndrome', 'Genetic'),
+('398943008', 'Ehlers-Danlos syndrome', 'Genetic')
+ON CONFLICT (snomed_code) DO NOTHING;

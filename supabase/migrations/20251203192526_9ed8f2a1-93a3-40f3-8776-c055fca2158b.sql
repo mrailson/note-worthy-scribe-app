@@ -1,0 +1,28 @@
+-- Batch 239-244: Risk factors and alerts
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('102483000', 'Allergy to penicillin', 'Allergy'),
+('294505008', 'Allergy to sulfonamide', 'Allergy'),
+('293586001', 'Allergy to aspirin', 'Allergy'),
+('294916000', 'Allergy to ibuprofen', 'Allergy'),
+('293585002', 'Allergy to paracetamol', 'Allergy'),
+('293583009', 'Allergy to codeine', 'Allergy'),
+('293584003', 'Allergy to morphine', 'Allergy'),
+('293613007', 'Allergy to metformin', 'Allergy'),
+('418634005', 'Allergy to latex', 'Allergy'),
+('91934008', 'Allergy to nuts', 'Allergy'),
+('91935009', 'Allergy to peanuts', 'Allergy'),
+('91930004', 'Allergy to eggs', 'Allergy'),
+('91932007', 'Allergy to milk', 'Allergy'),
+('417532002', 'Allergy to fish', 'Allergy'),
+('418689008', 'Allergy to shellfish', 'Allergy'),
+('300910009', 'Allergy to wheat', 'Allergy'),
+('91937001', 'Allergy to soya', 'Allergy'),
+('294121009', 'Allergy to bee venom', 'Allergy'),
+('294122002', 'Allergy to wasp venom', 'Allergy'),
+('300916003', 'Allergy to animal dander', 'Allergy'),
+('232348004', 'House dust mite allergy', 'Allergy'),
+('418689008', 'Pollen allergy', 'Allergy'),
+('39579001', 'Anaphylaxis', 'Allergy'),
+('735173007', 'History of anaphylaxis', 'Allergy'),
+('293104008', 'Adverse reaction to drug', 'Allergy')
+ON CONFLICT (snomed_code) DO NOTHING;

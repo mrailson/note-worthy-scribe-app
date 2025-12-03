@@ -1,0 +1,28 @@
+-- Batch 197-202: Epilepsy variants and seizures
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('84757009', 'Epilepsy', 'Neurological'),
+('230398001', 'Generalised epilepsy', 'Neurological'),
+('230403006', 'Focal epilepsy', 'Neurological'),
+('230425000', 'Tonic clonic seizure', 'Neurological'),
+('230416001', 'Absence seizure', 'Neurological'),
+('230431007', 'Myoclonic seizure', 'Neurological'),
+('230438001', 'Tonic seizure', 'Neurological'),
+('230439009', 'Atonic seizure', 'Neurological'),
+('313307000', 'Epileptic seizure', 'Neurological'),
+('91175000', 'Seizure', 'Neurological'),
+('230405004', 'Temporal lobe epilepsy', 'Neurological'),
+('230406003', 'Frontal lobe epilepsy', 'Neurological'),
+('230408002', 'Occipital lobe epilepsy', 'Neurological'),
+('230415002', 'Juvenile myoclonic epilepsy', 'Neurological'),
+('230417005', 'Childhood absence epilepsy', 'Neurological'),
+('230404000', 'Lennox-Gastaut syndrome', 'Neurological'),
+('230403006', 'West syndrome', 'Neurological'),
+('230413004', 'Dravet syndrome', 'Neurological'),
+('313314005', 'Febrile seizure', 'Neurological'),
+('313315006', 'Simple febrile seizure', 'Neurological'),
+('313316007', 'Complex febrile seizure', 'Neurological'),
+('230422007', 'Status epilepticus', 'Neurological'),
+('128182006', 'Non-epileptic seizure', 'Neurological'),
+('91175000', 'Convulsion', 'Neurological'),
+('165268000', 'History of seizure', 'Neurological')
+ON CONFLICT (snomed_code) DO NOTHING;

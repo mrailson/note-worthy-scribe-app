@@ -1,0 +1,28 @@
+-- Batch 173-178: Social and lifestyle factors
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('160573003', 'Alcohol intake', 'Social History'),
+('228278007', 'Hazardous alcohol use', 'Social History'),
+('15167005', 'Alcohol abuse', 'Social History'),
+('7200002', 'Alcohol dependence', 'Social History'),
+('66590003', 'Alcoholic cirrhosis', 'Social History'),
+('228273003', 'Former smoker', 'Social History'),
+('8517006', 'Former heavy smoker', 'Social History'),
+('77176002', 'Current smoker', 'Social History'),
+('228512004', 'Heavy smoker', 'Social History'),
+('228504007', 'Light smoker', 'Social History'),
+('266919005', 'Never smoked', 'Social History'),
+('226034001', 'Injection drug user', 'Social History'),
+('44870007', 'Drug abuse', 'Social History'),
+('191816009', 'Drug dependence', 'Social History'),
+('228390007', 'Cannabis use', 'Social History'),
+('70545002', 'Cocaine use', 'Social History'),
+('703841001', 'Opioid use', 'Social History'),
+('160237006', 'History of fall', 'Social History'),
+('129839007', 'At risk of falls', 'Social History'),
+('32911000', 'Homeless', 'Social History'),
+('266966009', 'Family history of cancer', 'Family History'),
+('160303001', 'Family history of diabetes', 'Family History'),
+('160357008', 'Family history of heart disease', 'Family History'),
+('266897007', 'Family history of hypertension', 'Family History'),
+('160313004', 'Family history of stroke', 'Family History')
+ON CONFLICT (snomed_code) DO NOTHING;

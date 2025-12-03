@@ -1,0 +1,28 @@
+-- Batch 179-184: Screening and preventive
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('171149006', 'Breast cancer screening', 'Screening'),
+('268547008', 'Mammography done', 'Screening'),
+('268549006', 'Cervical smear done', 'Screening'),
+('171147008', 'Cervical screening', 'Screening'),
+('413567002', 'HPV immunisation', 'Immunisation'),
+('275978004', 'Bowel cancer screening', 'Screening'),
+('171146004', 'Colorectal cancer screening', 'Screening'),
+('440622005', 'Abdominal aortic aneurysm screening', 'Screening'),
+('171149006', 'Prostate specific antigen test', 'Screening'),
+('275979007', 'Diabetic eye screening', 'Screening'),
+('134388005', 'Diabetic foot screening', 'Screening'),
+('391037006', 'NHS Health Check', 'Screening'),
+('170746002', 'Cardiovascular disease risk assessment', 'Screening'),
+('185903001', 'Blood pressure monitoring', 'Screening'),
+('165325009', 'Lipid profile', 'Screening'),
+('271062006', 'Lung cancer screening', 'Screening'),
+('182834008', 'Smoking cessation advice', 'Health Promotion'),
+('183063000', 'Alcohol reduction advice', 'Health Promotion'),
+('183065007', 'Diet advice', 'Health Promotion'),
+('183064006', 'Exercise advice', 'Health Promotion'),
+('185932008', 'Weight management advice', 'Health Promotion'),
+('171054004', 'Flu vaccination given', 'Immunisation'),
+('871919004', 'COVID-19 vaccination', 'Immunisation'),
+('170433008', 'Pneumococcal vaccination', 'Immunisation'),
+('170378007', 'Shingles vaccination', 'Immunisation')
+ON CONFLICT (snomed_code) DO NOTHING;

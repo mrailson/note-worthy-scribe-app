@@ -1,0 +1,28 @@
+-- Batch 185-190: Devices and implants
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('84001009', 'Pacemaker in situ', 'Device'),
+('443325000', 'Cardiac pacemaker present', 'Device'),
+('443352006', 'Dual chamber pacemaker present', 'Device'),
+('360063004', 'Implantable cardioverter-defibrillator', 'Device'),
+('398181000', 'ICD in situ', 'Device'),
+('233183001', 'Cardiac resynchronisation therapy', 'Device'),
+('433598006', 'Cochlear implant present', 'Device'),
+('397578001', 'Hearing aid present', 'Device'),
+('360125009', 'Intraocular lens present', 'Device'),
+('307280005', 'Joint prosthesis present', 'Device'),
+('360131008', 'Hip prosthesis present', 'Device'),
+('360129009', 'Knee prosthesis present', 'Device'),
+('360127006', 'Shoulder prosthesis present', 'Device'),
+('304120007', 'Stent present', 'Device'),
+('428571003', 'Coronary stent present', 'Device'),
+('787156008', 'Ureteric stent present', 'Device'),
+('470341004', 'Biliary stent present', 'Device'),
+('360061002', 'Central venous catheter present', 'Device'),
+('360067003', 'Nephrostomy tube present', 'Device'),
+('360069000', 'Urinary catheter present', 'Device'),
+('360070004', 'Suprapubic catheter present', 'Device'),
+('360065006', 'Feeding tube present', 'Device'),
+('360066007', 'PEG tube present', 'Device'),
+('713591003', 'Insulin pump present', 'Device'),
+('714749008', 'Continuous glucose monitor present', 'Device')
+ON CONFLICT (snomed_code) DO NOTHING;
