@@ -419,16 +419,24 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
       let pdfBase64: string | null = null;
       if (patient.pdf_url) {
         try {
-          console.log('Fetching PDF...');
-          const { data: pdfFile } = await supabase.storage
+          console.log('Fetching PDF from:', patient.pdf_url);
+          // pdf_url is stored as full path like "lg/K83042/..." but bucket is 'lg'
+          // so we need to strip the 'lg/' prefix
+          const pdfPath = patient.pdf_url.startsWith('lg/') 
+            ? patient.pdf_url.substring(3) 
+            : patient.pdf_url;
+          console.log('PDF path after stripping:', pdfPath);
+          const { data: pdfFile, error: pdfError } = await supabase.storage
             .from('lg')
-            .download(patient.pdf_url);
-          if (pdfFile) {
+            .download(pdfPath);
+          if (pdfError) {
+            console.error('PDF download error:', pdfError);
+          } else if (pdfFile) {
             pdfBase64 = await blobToBase64(pdfFile);
             console.log('PDF base64 length:', pdfBase64.length);
           }
         } catch (e) {
-          console.log('Could not fetch PDF:', e);
+          console.error('Could not fetch PDF:', e);
         }
       }
 
