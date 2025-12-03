@@ -781,10 +781,23 @@ async function createSimplePdf(
         }
       }
       
-      // Scale to 50% of original size
-      const scale = 0.5;
-      const width = image.width * scale;
-      const height = image.height * scale;
+      // Scale down aggressively to reduce memory usage
+      // Cap at max 400px dimension to keep PDF size manageable
+      const maxDim = 400;
+      let scale = 0.25; // Start at 25%
+      
+      // If still too large, scale further
+      const scaledWidth = image.width * scale;
+      const scaledHeight = image.height * scale;
+      
+      if (scaledWidth > maxDim || scaledHeight > maxDim) {
+        const widthRatio = maxDim / image.width;
+        const heightRatio = maxDim / image.height;
+        scale = Math.min(widthRatio, heightRatio);
+      }
+      
+      const width = Math.round(image.width * scale);
+      const height = Math.round(image.height * scale);
       
       console.log(`Image ${i + 1}: original ${image.width}x${image.height}, scaled to ${width}x${height}`);
       
