@@ -267,7 +267,6 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
                       <div className="flex items-center gap-2">
                         <Pill className="h-4 w-4 text-primary" />
                         <span className="font-medium">{med.drug}</span>
-                        {med.status && <Badge variant="outline" className="text-xs">{med.status}</Badge>}
                       </div>
                       {med.dose && (
                         <div className="text-muted-foreground ml-6">{med.dose}</div>
