@@ -4,16 +4,44 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home } from 'lucide-react';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { cn } from '@/lib/utils';
+
+interface Practice {
+  id: string;
+  name: string;
+  practice_code: string;
+}
 
 export default function LGCaptureLanding() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [practiceOds, setPracticeOds] = useState('');
+  const [practiceName, setPracticeName] = useState('');
   const [uploaderName, setUploaderName] = useState('');
   const [showSettings, setShowSettings] = useState(false);
+  const [practices, setPractices] = useState<Practice[]>([]);
+  const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  // Fetch practices list
+  useEffect(() => {
+    const fetchPractices = async () => {
+      const { data, error } = await supabase
+        .from('gp_practices')
+        .select('id, name, practice_code')
+        .order('name');
+      
+      if (!error && data) {
+        setPractices(data);
+      }
+    };
+    fetchPractices();
+  }, []);
 
   useEffect(() => {
     const loadSettings = async () => {
@@ -24,6 +52,7 @@ export default function LGCaptureLanding() {
 
       let loadedOds = '';
       let loadedName = '';
+      let loadedPracticeName = '';
 
       // 1. Try to load from lg_capture_defaults in user_settings
       const { data: settingsData } = await supabase
@@ -34,9 +63,10 @@ export default function LGCaptureLanding() {
         .maybeSingle();
       
       if (settingsData?.setting_value) {
-        const defaults = settingsData.setting_value as { practiceOds?: string; uploaderName?: string };
+        const defaults = settingsData.setting_value as { practiceOds?: string; uploaderName?: string; practiceName?: string };
         if (defaults.practiceOds) loadedOds = defaults.practiceOds;
         if (defaults.uploaderName) loadedName = defaults.uploaderName;
+        if (defaults.practiceName) loadedPracticeName = defaults.practiceName;
       }
 
       // 2. If name not set, get from user profile
@@ -50,28 +80,14 @@ export default function LGCaptureLanding() {
         if (profileData?.full_name) {
           loadedName = profileData.full_name;
         } else if (profileData?.email) {
-          // Fallback to email prefix if no name
           loadedName = profileData.email.split('@')[0];
         }
       }
 
-      // 3. If ODS not set, try to get practice name from practice_details
-      if (!loadedOds) {
-        const { data: practiceData } = await supabase
-          .from('practice_details')
-          .select('practice_name')
-          .eq('user_id', user.id)
-          .eq('is_default', true)
-          .maybeSingle();
-        
-        if (practiceData?.practice_name) {
-          loadedOds = practiceData.practice_name;
-        }
-      }
-
-      // 4. Fall back to localStorage if still empty
+      // 3. Fall back to localStorage if still empty
       if (!loadedOds) loadedOds = localStorage.getItem('lg_practice_ods') || '';
       if (!loadedName) loadedName = localStorage.getItem('lg_uploader_name') || '';
+      if (!loadedPracticeName) loadedPracticeName = localStorage.getItem('lg_practice_name') || '';
 
       // Set state
       if (loadedOds) {
@@ -81,6 +97,10 @@ export default function LGCaptureLanding() {
       if (loadedName) {
         setUploaderName(loadedName);
         localStorage.setItem('lg_uploader_name', loadedName);
+      }
+      if (loadedPracticeName) {
+        setPracticeName(loadedPracticeName);
+        localStorage.setItem('lg_practice_name', loadedPracticeName);
       }
       
       // Show settings only if still not configured
@@ -92,13 +112,46 @@ export default function LGCaptureLanding() {
     loadSettings();
   }, [user?.id]);
 
+  const handlePracticeSelect = (practice: Practice) => {
+    setPracticeOds(practice.practice_code);
+    setPracticeName(practice.name);
+    setPracticeSearchOpen(false);
+    setSearchTerm('');
+  };
+
+  const filteredPractices = practices.filter(practice => {
+    if (!searchTerm) return true;
+    const lowerSearchTerm = searchTerm.toLowerCase();
+    const practiceCode = practice.practice_code.toLowerCase();
+    
+    if (practice.name.toLowerCase().includes(lowerSearchTerm)) return true;
+    if (practiceCode.includes(lowerSearchTerm)) return true;
+    
+    // Handle K prefix variations
+    if (lowerSearchTerm.startsWith('k')) {
+      const searchWithoutK = lowerSearchTerm.substring(1);
+      if (practiceCode.includes(searchWithoutK)) return true;
+    }
+    if (!lowerSearchTerm.startsWith('k')) {
+      const searchWithK = 'k' + lowerSearchTerm;
+      if (practiceCode.includes(searchWithK)) return true;
+    }
+    
+    return false;
+  });
+
   const saveSettings = () => {
     localStorage.setItem('lg_practice_ods', practiceOds.trim());
+    localStorage.setItem('lg_practice_name', practiceName.trim());
     localStorage.setItem('lg_uploader_name', uploaderName.trim());
     setShowSettings(false);
   };
 
   const canStart = practiceOds.trim() && uploaderName.trim();
+
+  const displayPractice = practiceName 
+    ? `${practiceName} (${practiceOds})` 
+    : practiceOds;
 
   const features = [
     {
@@ -210,20 +263,59 @@ export default function LGCaptureLanding() {
               Capture Settings
             </span>
             <span className="text-xs font-normal text-muted-foreground">
-              {canStart ? `${uploaderName} • ${practiceOds}` : 'Not configured'}
+              {canStart ? `${uploaderName} • ${displayPractice}` : 'Not configured'}
             </span>
           </CardTitle>
         </CardHeader>
         {showSettings && (
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="practiceOds">Practice ODS Code</Label>
-              <Input
-                id="practiceOds"
-                value={practiceOds}
-                onChange={(e) => setPracticeOds(e.target.value.toUpperCase())}
-                placeholder="e.g. K83042"
-              />
+              <Label>Practice Name/ODS Code</Label>
+              <Popover open={practiceSearchOpen} onOpenChange={setPracticeSearchOpen}>
+                <PopoverTrigger asChild>
+                  <Button
+                    variant="outline"
+                    role="combobox"
+                    aria-expanded={practiceSearchOpen}
+                    className="w-full justify-between font-normal"
+                  >
+                    {displayPractice || "Select practice..."}
+                    <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                  </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-full p-0" align="start">
+                  <Command>
+                    <CommandInput 
+                      placeholder="Search by name or ODS code..." 
+                      value={searchTerm}
+                      onValueChange={setSearchTerm}
+                    />
+                    <CommandList>
+                      <CommandEmpty>No practice found.</CommandEmpty>
+                      <CommandGroup className="max-h-60 overflow-auto">
+                        {filteredPractices.slice(0, 50).map((practice) => (
+                          <CommandItem
+                            key={practice.id}
+                            value={`${practice.name} ${practice.practice_code}`}
+                            onSelect={() => handlePracticeSelect(practice)}
+                          >
+                            <Check
+                              className={cn(
+                                "mr-2 h-4 w-4",
+                                practiceOds === practice.practice_code ? "opacity-100" : "opacity-0"
+                              )}
+                            />
+                            <div className="flex flex-col">
+                              <span>{practice.name}</span>
+                              <span className="text-xs text-muted-foreground">{practice.practice_code}</span>
+                            </div>
+                          </CommandItem>
+                        ))}
+                      </CommandGroup>
+                    </CommandList>
+                  </Command>
+                </PopoverContent>
+              </Popover>
             </div>
             <div className="space-y-2">
               <Label htmlFor="uploaderName">Your Name</Label>
