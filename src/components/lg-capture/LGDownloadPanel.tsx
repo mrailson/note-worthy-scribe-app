@@ -1,10 +1,11 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, FileText, FileJson, FileSpreadsheet } from 'lucide-react';
+import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 import { toast } from 'sonner';
+import { useIsIPhone } from '@/hooks/use-mobile';
 
 interface LGDownloadPanelProps {
   patient: LGPatient;
@@ -12,6 +13,34 @@ interface LGDownloadPanelProps {
 
 export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
+  const isIPhone = useIsIPhone();
+
+  const openFileForViewing = async (url: string | null, filename: string) => {
+    if (!url) {
+      toast.error('File not available');
+      return;
+    }
+
+    setDownloading(filename);
+    
+    try {
+      const path = url.replace('lg/', '');
+      const { data: signedUrlData, error: signedUrlError } = await supabase.storage
+        .from('lg')
+        .createSignedUrl(path, 3600); // 1 hour expiry
+
+      if (signedUrlError) throw signedUrlError;
+      if (!signedUrlData?.signedUrl) throw new Error('No signed URL received');
+      
+      // Open in new tab for viewing
+      window.open(signedUrlData.signedUrl, '_blank');
+    } catch (err) {
+      console.error('Open file error:', err);
+      toast.error('Failed to open file');
+    } finally {
+      setDownloading(null);
+    }
+  };
 
   const downloadFile = async (url: string | null, filename: string) => {
     if (!url) {
@@ -22,7 +51,6 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     setDownloading(filename);
     
     try {
-      // Use Supabase download method directly
       const path = url.replace('lg/', '');
       const { data, error } = await supabase.storage
         .from('lg')
@@ -31,7 +59,6 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
       if (error) throw error;
       if (!data) throw new Error('No data received');
       
-      // Create download link from blob
       const blobUrl = URL.createObjectURL(data);
       
       const link = document.createElement('a');
@@ -41,13 +68,10 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
       document.body.appendChild(link);
       link.click();
       
-      // Cleanup after a delay to ensure download starts
       setTimeout(() => {
         document.body.removeChild(link);
         URL.revokeObjectURL(blobUrl);
       }, 100);
-      
-      toast.success(`Downloaded ${filename}`);
     } catch (err) {
       console.error('Download error:', err);
       toast.error('Failed to download file');
@@ -56,11 +80,18 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     }
   };
 
+  const handleFileAction = (url: string | null, filename: string) => {
+    if (isIPhone) {
+      openFileForViewing(url, filename);
+    } else {
+      downloadFile(url, filename);
+    }
+  };
+
   if (patient.job_status !== 'succeeded') {
     return null;
   }
 
-  // Format date as DD_MMM_YYYY (e.g., 15_Mar_1952)
   const formatDateForFilename = (dateStr: string | null | undefined): string => {
     if (!dateStr) return 'Unknown';
     try {
@@ -82,7 +113,6 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
   const dobFormatted = formatDateForFilename(dob);
   const scanDateFormatted = formatDateForFilename(scanDate);
   
-  // Naming convention: NHS Number_DOB(DD_MMM_YYYY)_ScanDate___Type
   const baseFilename = `${nhsNumber}_${dobFormatted}_${scanDateFormatted}`;
 
   const files = [
@@ -120,8 +150,8 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Download className="h-5 w-5" />
-          Download Files
+          {isIPhone ? <ExternalLink className="h-5 w-5" /> : <Download className="h-5 w-5" />}
+          {isIPhone ? 'View Files' : 'Download Files'}
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
@@ -134,7 +164,7 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
               key={file.label}
               variant="outline"
               className="w-full justify-start h-auto py-3"
-              onClick={() => downloadFile(file.url, file.filename)}
+              onClick={() => handleFileAction(file.url, file.filename)}
               disabled={!file.url || isDownloading}
             >
               <Icon className="h-5 w-5 mr-3 flex-shrink-0" />
@@ -143,9 +173,13 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
                 <div className="text-xs text-muted-foreground">{file.description}</div>
               </div>
               {isDownloading ? (
-                <span className="text-xs">Downloading...</span>
+                <span className="text-xs">{isIPhone ? 'Opening...' : 'Downloading...'}</span>
               ) : (
-                <Download className="h-4 w-4 ml-2 opacity-50" />
+                isIPhone ? (
+                  <ExternalLink className="h-4 w-4 ml-2 opacity-50" />
+                ) : (
+                  <Download className="h-4 w-4 ml-2 opacity-50" />
+                )
               )}
             </Button>
           );
