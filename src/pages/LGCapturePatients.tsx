@@ -248,8 +248,11 @@ export default function LGCapturePatients() {
                   </div>
                   <div className="flex flex-col items-end gap-2">
                     {getStatusBadge(patient)}
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-muted-foreground text-right">
                       {patient.practice_ods}
+                      {patient.uploader_name && (
+                        <span className="block opacity-70">Scanned by {patient.uploader_name}</span>
+                      )}
                     </span>
                   </div>
                 </div>
