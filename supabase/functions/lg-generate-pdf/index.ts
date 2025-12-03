@@ -21,13 +21,13 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { patientId, isBackground = false } = await req.json();
+    const { patientId, isBackground = false, sendEmail = false } = await req.json();
     
     if (!patientId) {
       throw new Error('Missing patientId');
     }
 
-    console.log(`PDF generation for patient: ${patientId} (background: ${isBackground})`);
+    console.log(`PDF generation for patient: ${patientId} (background: ${isBackground}, sendEmail: ${sendEmail})`);
 
     // Get patient record
     const { data: patient, error: patientError } = await supabase
@@ -231,6 +231,12 @@ serve(async (req) => {
       .eq('id', patientId);
 
     console.log(`PDF generation complete for patient ${patientId}`);
+
+    // Send email with PDF attachment now that PDF is ready
+    if (sendEmail && !patient.email_sent_at) {
+      console.log('Sending email with PDF attachment...');
+      await sendSummaryEmailWithPdf(supabase, patient, patientName, nhsNumber, dob, summaryJson, snomedJson, pdfBytes);
+    }
 
     return new Response(
       JSON.stringify({ success: true, patientId }),
@@ -504,4 +510,285 @@ Respond with a JSON array of strings, one summary per page in order. Example:
     summaries.push(`Scanned page ${i + 1} of ${pageCount}`);
   }
   return summaries;
+}
+
+// Send email with PDF attachment and full clinical summary
+async function sendSummaryEmailWithPdf(
+  supabase: any,
+  patient: any,
+  patientName: string,
+  nhsNumber: string,
+  dob: string,
+  summaryJson: any,
+  snomedJson: any,
+  pdfBytes: Uint8Array
+) {
+  try {
+    // Get user email
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('user_id', patient.user_id)
+      .single();
+
+    let userEmail = profile?.email;
+    
+    if (!userEmail) {
+      const { data: { user: authUser } } = await supabase.auth.admin.getUserById(patient.user_id);
+      userEmail = authUser?.email;
+    }
+
+    if (!userEmail) {
+      console.log('No user email found, skipping email');
+      return;
+    }
+
+    // Build email HTML with full clinical summary
+    const emailHtml = buildFullSummaryEmailHtml(
+      patientName,
+      nhsNumber,
+      dob,
+      patient.practice_ods,
+      patient.images_count || 0,
+      summaryJson,
+      snomedJson
+    );
+
+    // Convert PDF to base64 for attachment
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < pdfBytes.length; i += chunkSize) {
+      const chunk = pdfBytes.subarray(i, Math.min(i + chunkSize, pdfBytes.length));
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    const pdfBase64 = btoa(binary);
+    console.log(`PDF attachment ready, size: ${pdfBase64.length} chars`);
+
+    // Build filename
+    const formattedDob = formatDobForFilename(dob);
+    const cleanNhs = (nhsNumber || '').replace(/\s/g, '');
+    const filename = `LG_${cleanNhs}_${formattedDob}.pdf`;
+
+    // Send via Resend edge function
+    const { error: emailError } = await supabase.functions.invoke('send-email-resend', {
+      body: {
+        to_email: userEmail,
+        subject: `Lloyd George Record Summary - ${patientName} (DOB: ${formatDobDisplay(dob)}) (NHS: ${formatNhsNumber(nhsNumber)})`,
+        html_content: emailHtml,
+        attachments: [{
+          filename: filename,
+          content: pdfBase64,
+          type: 'application/pdf',
+        }],
+      },
+    });
+
+    if (emailError) {
+      console.error('Email send error:', emailError);
+    } else {
+      await supabase
+        .from('lg_patients')
+        .update({ email_sent_at: new Date().toISOString() })
+        .eq('id', patient.id);
+      console.log(`Email with PDF sent to ${userEmail}`);
+    }
+  } catch (err) {
+    console.error('Email sending error:', err);
+  }
+}
+
+function formatDobForFilename(dateStr: string): string {
+  try {
+    if (dateStr) {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        return `${day}_${month}_${year}`;
+      }
+    }
+  } catch {}
+  return dateStr || 'Unknown';
+}
+
+function formatDobDisplay(dateStr: string): string {
+  try {
+    if (dateStr) {
+      const date = new Date(dateStr);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-GB');
+      }
+    }
+  } catch {}
+  return dateStr || 'Unknown';
+}
+
+function buildFullSummaryEmailHtml(
+  patientName: string,
+  nhsNumber: string,
+  dob: string,
+  practiceOds: string,
+  imageCount: number,
+  summaryJson: any,
+  snomedJson: any
+): string {
+  const formatNhs = (nhs: string) => {
+    const digits = nhs?.replace(/\s/g, '') || '';
+    if (digits.length === 10) {
+      return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+    }
+    return nhs || 'Unknown';
+  };
+
+  const snomedItemsNeedingReview = Object.values(snomedJson || {})
+    .flat()
+    .filter((item: any) => item && item.confidence !== undefined && item.confidence < 0.6).length;
+
+  let html = `
+    <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px;">
+      <h1 style="color: #005EB8; border-bottom: 3px solid #005EB8; padding-bottom: 10px;">
+        Lloyd George Record Summary
+      </h1>
+      
+      <table style="width: 100%; border-collapse: collapse; margin: 20px 0;">
+        <tr style="background: #f5f5f5;">
+          <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Patient Name</td>
+          <td style="padding: 12px; border: 1px solid #ddd;">${patientName || 'Unknown'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">NHS Number</td>
+          <td style="padding: 12px; border: 1px solid #ddd;">${formatNhs(nhsNumber)}</td>
+        </tr>
+        <tr style="background: #f5f5f5;">
+          <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Date of Birth</td>
+          <td style="padding: 12px; border: 1px solid #ddd;">${dob || 'Unknown'}</td>
+        </tr>
+        <tr>
+          <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Pages Scanned</td>
+          <td style="padding: 12px; border: 1px solid #ddd;">${imageCount}</td>
+        </tr>
+        <tr style="background: #f5f5f5;">
+          <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">SNOMED Items for Review</td>
+          <td style="padding: 12px; border: 1px solid #ddd;">${snomedItemsNeedingReview} items with confidence &lt;60%</td>
+        </tr>
+      </table>
+      
+      <h2 style="color: #005EB8; margin-top: 30px;">Clinical Summary</h2>
+      <p style="background: #f0f4f5; padding: 15px; border-radius: 5px;">${summaryJson?.summary_line || 'No summary available'}</p>
+  `;
+
+  // Add Allergies section
+  if (summaryJson?.allergies?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Allergies</h3><ul style="background: #fff5f5; padding: 15px 30px; border-radius: 5px; border-left: 4px solid #DA291C;">`;
+    for (const allergy of summaryJson.allergies) {
+      html += `<li><strong>${allergy.substance || 'Unknown'}</strong>: ${allergy.reaction || 'Unknown reaction'} (${allergy.certainty || 'unknown'})</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Significant Past History section
+  if (summaryJson?.significant_past_history?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Significant Past History</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    for (const item of summaryJson.significant_past_history) {
+      html += `<li><strong>${item.condition || 'Unknown'}</strong> - First noted: ${item.first_noted || 'Unknown'}, Status: ${item.status || 'unknown'}</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Medications section
+  if (summaryJson?.medications?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Medications</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    for (const med of summaryJson.medications) {
+      html += `<li><strong>${med.name || 'Unknown'}</strong> ${med.dose || ''} ${med.route || ''} ${med.frequency || ''} (${med.status || 'unknown'})</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Immunisations section
+  if (summaryJson?.immunisations?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Immunisations</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    for (const imm of summaryJson.immunisations) {
+      html += `<li><strong>${imm.vaccine || 'Unknown'}</strong> - ${imm.date || 'Unknown date'}</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Procedures section
+  if (summaryJson?.procedures?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Procedures</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    for (const proc of summaryJson.procedures) {
+      html += `<li><strong>${proc.name || 'Unknown'}</strong> - ${proc.date || 'Unknown date'}</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Family History section
+  if (summaryJson?.family_history?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Family History</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    for (const fh of summaryJson.family_history) {
+      html += `<li><strong>${fh.relation || 'Unknown'}</strong>: ${fh.condition || 'Unknown'} ${fh.notes ? `(${fh.notes})` : ''}</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Risk Factors section
+  if (summaryJson?.risk_factors?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Risk Factors</h3><ul style="background: #fff5f5; padding: 15px 30px; border-radius: 5px; border-left: 4px solid #ED8B00;">`;
+    for (const rf of summaryJson.risk_factors) {
+      html += `<li><strong>${rf.type || 'Unknown'}</strong>: ${rf.value || 'Unknown'} (${rf.date || 'Unknown date'})</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Alerts section
+  if (summaryJson?.alerts?.length > 0) {
+    html += `<h3 style="color: #DA291C; margin-top: 20px;">⚠️ Alerts</h3><ul style="background: #fff0f0; padding: 15px 30px; border-radius: 5px; border-left: 4px solid #DA291C;">`;
+    for (const alert of summaryJson.alerts) {
+      html += `<li><strong>${alert.type || 'Alert'}</strong>: ${alert.note || 'Unknown'}</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Free Text Findings
+  if (summaryJson?.free_text_findings) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Additional Findings</h3>`;
+    html += `<p style="background: #f0f4f5; padding: 15px; border-radius: 5px;">${summaryJson.free_text_findings}</p>`;
+  }
+
+  // Add SNOMED Codes Table
+  html += `<h2 style="color: #005EB8; margin-top: 30px;">SNOMED CT Codes</h2>`;
+  
+  const snomedSections = ['problems', 'allergies', 'procedures', 'immunisations', 'risk_factors'];
+  for (const section of snomedSections) {
+    const items = snomedJson?.[section] || [];
+    if (items.length > 0) {
+      html += `<h4 style="color: #003087; margin-top: 15px; text-transform: capitalize;">${section.replace('_', ' ')}</h4>`;
+      html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">`;
+      html += `<tr style="background: #005EB8; color: white;"><th style="padding: 8px; text-align: left;">Term</th><th style="padding: 8px; text-align: left;">SNOMED Code</th><th style="padding: 8px; text-align: center;">Confidence</th></tr>`;
+      for (const item of items) {
+        const confPercent = Math.round((item.confidence || 0) * 100);
+        const confColor = confPercent >= 80 ? '#007F3B' : confPercent >= 60 ? '#ED8B00' : '#DA291C';
+        html += `<tr style="border-bottom: 1px solid #ddd;">`;
+        html += `<td style="padding: 8px;">${item.term || 'Unknown'}</td>`;
+        html += `<td style="padding: 8px; font-family: monospace;">${item.code || 'UNKNOWN'}</td>`;
+        html += `<td style="padding: 8px; text-align: center; color: ${confColor}; font-weight: bold;">${confPercent}%</td>`;
+        html += `</tr>`;
+      }
+      html += `</table>`;
+    }
+  }
+
+  html += `
+      <hr style="margin-top: 30px; border: none; border-top: 1px solid #ddd;">
+      <p style="color: #666; font-size: 12px;">
+        Generated by LG Capture - Notewell AI<br>
+        Practice ODS: ${practiceOds || 'Unknown'}<br>
+        ${new Date().toLocaleDateString('en-GB')} ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+      </p>
+    </div>
+  `;
+
+  return html;
 }
