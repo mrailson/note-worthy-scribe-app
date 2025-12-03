@@ -1,0 +1,28 @@
+-- Batch 401-406: Additional procedures and interventions
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('386639005', 'Flexible sigmoidoscopy', 'Investigation'),
+('386639006', 'Rigid sigmoidoscopy', 'Investigation'),
+('73761001', 'Colonoscopy with biopsy', 'Investigation'),
+('448651000', 'Flexible cystoscopy', 'Investigation'),
+('448652007', 'Rigid cystoscopy', 'Investigation'),
+('265764009', 'Renal biopsy', 'Investigation'),
+('86477000', 'Transrectal ultrasound', 'Investigation'),
+('396550006', 'Transabdominal ultrasound', 'Investigation'),
+('396551005', 'Transvaginal ultrasound', 'Investigation'),
+('418285008', 'Angiogram', 'Investigation'),
+('233445008', 'Coronary angiogram', 'Investigation'),
+('233447000', 'CT angiography', 'Investigation'),
+('233448005', 'MR angiography', 'Investigation'),
+('252525005', 'Doppler ultrasound', 'Investigation'),
+('252526006', 'Carotid Doppler', 'Investigation'),
+('252527002', 'Venous Doppler', 'Investigation'),
+('40701008', 'Echocardiography', 'Investigation'),
+('11101003', 'Stress echocardiography', 'Investigation'),
+('433233004', 'Transoesophageal echocardiography', 'Investigation'),
+('241615005', 'DEXA scan', 'Investigation'),
+('429064001', 'Bone density scan', 'Investigation'),
+('241598003', 'Thyroid scan', 'Investigation'),
+('373205009', 'Cardiac catheterisation', 'Investigation'),
+('264355007', 'Coronary CT calcium score', 'Investigation'),
+('241621004', 'MUGA scan', 'Investigation')
+ON CONFLICT (snomed_code) DO NOTHING;

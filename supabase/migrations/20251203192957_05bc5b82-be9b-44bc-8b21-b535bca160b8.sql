@@ -1,0 +1,28 @@
+-- Batch 293-298: Electrolytes and vitamins
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('34713006', 'Vitamin D deficiency', 'Nutritional'),
+('190634004', 'Vitamin B12 deficiency', 'Nutritional'),
+('85667007', 'Folate deficiency', 'Nutritional'),
+('87522002', 'Iron deficiency', 'Nutritional'),
+('87522002', 'Iron deficiency anaemia', 'Haematology'),
+('267425008', 'Anaemia', 'Haematology'),
+('191273006', 'Anaemia of chronic disease', 'Haematology'),
+('35240004', 'Pernicious anaemia', 'Haematology'),
+('234349007', 'Megaloblastic anaemia', 'Haematology'),
+('234348004', 'Microcytic anaemia', 'Haematology'),
+('271737000', 'Normocytic anaemia', 'Haematology'),
+('271738005', 'Macrocytic anaemia', 'Haematology'),
+('416152006', 'Raised ESR', 'Haematology'),
+('416835006', 'Raised CRP', 'Haematology'),
+('165517008', 'Elevated white cell count', 'Haematology'),
+('165577009', 'Elevated platelet count', 'Haematology'),
+('165516004', 'Low white cell count', 'Haematology'),
+('415116008', 'Neutropenia', 'Haematology'),
+('267453004', 'Thrombocytopenia', 'Haematology'),
+('387712008', 'Neonatal jaundice', 'Paediatric'),
+('59927004', 'Liver disease', 'Hepatology'),
+('90708001', 'Kidney disease', 'Renal'),
+('84114007', 'Heart disease', 'Cardiovascular'),
+('22298006', 'Myocardial infarction', 'Cardiovascular'),
+('194828000', 'Angina pectoris', 'Cardiovascular')
+ON CONFLICT (snomed_code) DO NOTHING;

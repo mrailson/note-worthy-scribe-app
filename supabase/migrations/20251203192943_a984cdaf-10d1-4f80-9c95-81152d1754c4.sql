@@ -1,0 +1,28 @@
+-- Batch 281-286: Pancreatic and GI
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('75694006', 'Acute pancreatitis', 'Gastrointestinal'),
+('235494005', 'Chronic pancreatitis', 'Gastrointestinal'),
+('235495006', 'Autoimmune pancreatitis', 'Gastrointestinal'),
+('235496007', 'Hereditary pancreatitis', 'Gastrointestinal'),
+('44054006', 'Type 2 diabetes mellitus', 'Metabolic'),
+('46635009', 'Type 1 diabetes mellitus', 'Metabolic'),
+('237599002', 'Diabetes mellitus type 2 with nephropathy', 'Metabolic'),
+('422014003', 'Diabetes mellitus type 2 with retinopathy', 'Metabolic'),
+('314771006', 'Diabetes mellitus type 2 with neuropathy', 'Metabolic'),
+('127013003', 'Diabetic foot', 'Metabolic'),
+('230572002', 'Diabetic peripheral angiopathy', 'Metabolic'),
+('314894000', 'Hypoglycaemia', 'Metabolic'),
+('82541000119100', 'Hypoglycaemic episode', 'Metabolic'),
+('237632004', 'Diabetic ketoacidosis', 'Metabolic'),
+('237633009', 'Hyperosmolar hyperglycaemic state', 'Metabolic'),
+('238981002', 'Insulinoma', 'Metabolic'),
+('56731001', 'Acromegaly', 'Endocrine'),
+('254061001', 'Pituitary adenoma', 'Endocrine'),
+('237898006', 'Hypopituitarism', 'Endocrine'),
+('237880006', 'Diabetes insipidus', 'Endocrine'),
+('237899003', 'Panhypopituitarism', 'Endocrine'),
+('237893007', 'Syndrome of inappropriate ADH secretion', 'Endocrine'),
+('237913008', 'Hyperparathyroidism', 'Endocrine'),
+('237914002', 'Primary hyperparathyroidism', 'Endocrine'),
+('237915001', 'Secondary hyperparathyroidism', 'Endocrine')
+ON CONFLICT (snomed_code) DO NOTHING;

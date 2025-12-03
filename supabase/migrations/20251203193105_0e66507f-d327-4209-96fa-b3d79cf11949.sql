@@ -1,0 +1,28 @@
+-- Batch 341-346: Care status and outcomes
+INSERT INTO snomed_codes (snomed_code, code_description, cluster_description) VALUES
+('183644007', 'Hospital admission', 'Care Status'),
+('183667006', 'Hospital discharge', 'Care Status'),
+('183452005', 'Outpatient appointment', 'Care Status'),
+('183886001', 'Day case procedure', 'Care Status'),
+('183897006', 'Emergency admission', 'Care Status'),
+('183902002', 'Elective admission', 'Care Status'),
+('183903007', 'Planned procedure', 'Care Status'),
+('312850006', 'Refused admission', 'Care Status'),
+('182890002', 'Seen in A and E', 'Care Status'),
+('103735009', 'Palliative care referral', 'Care Status'),
+('183521007', 'Home visit', 'Care Status'),
+('185317003', 'Telephone consultation', 'Care Status'),
+('448337001', 'Video consultation', 'Care Status'),
+('390906007', 'Follow-up appointment', 'Care Status'),
+('184099003', 'Date of death', 'Care Status'),
+('399307001', 'Cause of death', 'Care Status'),
+('184305005', 'Registration status', 'Care Status'),
+('417005001', 'Patient registered', 'Care Status'),
+('313181007', 'Patient deregistered', 'Care Status'),
+('308335008', 'Summary of care', 'Care Status'),
+('371526002', 'Care plan', 'Care Status'),
+('394727009', 'Long-term condition review', 'Care Status'),
+('408548008', 'Annual review', 'Care Status'),
+('713113009', 'New patient health check', 'Care Status'),
+('182856007', 'Treatment started', 'Care Status')
+ON CONFLICT (snomed_code) DO NOTHING;
