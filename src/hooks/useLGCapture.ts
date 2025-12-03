@@ -319,6 +319,65 @@ export function useLGCapture() {
     }
   }, []);
 
+  const deletePatient = useCallback(async (patientId: string, practiceOds: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Delete storage files first
+      const storagePath = `${practiceOds}/${patientId}`;
+      
+      // List and delete all files in the patient folder
+      const { data: files } = await supabase.storage
+        .from('lg')
+        .list(storagePath, { limit: 1000 });
+      
+      if (files && files.length > 0) {
+        // Delete files in subdirectories (raw, final, work)
+        for (const folder of ['raw', 'final', 'work']) {
+          const { data: subFiles } = await supabase.storage
+            .from('lg')
+            .list(`${storagePath}/${folder}`, { limit: 1000 });
+          
+          if (subFiles && subFiles.length > 0) {
+            const filePaths = subFiles.map(f => `${storagePath}/${folder}/${f.name}`);
+            await supabase.storage.from('lg').remove(filePaths);
+          }
+        }
+      }
+
+      // Log deletion before removing record
+      await logAuditEvent(patientId, 'patient_deleted', user.email || 'unknown', user.id, {});
+
+      // Delete audit logs
+      await supabase
+        .from('lg_audit_logs')
+        .delete()
+        .eq('patient_id', patientId);
+
+      // Delete patient record
+      const { error: deleteError } = await supabase
+        .from('lg_patients')
+        .delete()
+        .eq('id', patientId);
+
+      if (deleteError) throw deleteError;
+
+      toast.success('Record deleted');
+      return true;
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to delete record';
+      setError(message);
+      toast.error(message);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isLoading,
     error,
@@ -327,6 +386,7 @@ export function useLGCapture() {
     uploadImages,
     triggerProcessing,
     listPatients,
+    deletePatient,
   };
 }
 
