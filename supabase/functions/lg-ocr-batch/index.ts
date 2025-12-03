@@ -203,9 +203,22 @@ serve(async (req) => {
 
       // Trigger summary processing
       console.log('Triggering summary processing...');
-      await supabase.functions.invoke('lg-process-summary', {
+      const { data: summaryData, error: summaryError } = await supabase.functions.invoke('lg-process-summary', {
         body: { patientId },
       });
+
+      if (summaryError) {
+        console.error('Failed to invoke lg-process-summary:', summaryError);
+        // Update patient to indicate summary invoke failed - user can retry
+        await supabase
+          .from('lg_patients')
+          .update({
+            error_message: `Summary processing failed to start: ${summaryError.message}. Click "Retry Summary Generation" to try again.`,
+          })
+          .eq('id', patientId);
+      } else {
+        console.log('lg-process-summary invoked successfully:', summaryData);
+      }
     } else {
       // Trigger next batch
       console.log(`Triggering next batch: ${completedBatches}`);
