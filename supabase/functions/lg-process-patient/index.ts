@@ -636,9 +636,32 @@ async function createSimplePdf(
     yPosition -= lineHeight;
   };
   
+  // Sanitize text to remove characters not supported by WinAnsi encoding
+  const sanitizeForPdf = (text: string): string => {
+    return text
+      .replace(/═/g, '=')
+      .replace(/─/g, '-')
+      .replace(/│/g, '|')
+      .replace(/┌/g, '+')
+      .replace(/┐/g, '+')
+      .replace(/└/g, '+')
+      .replace(/┘/g, '+')
+      .replace(/├/g, '+')
+      .replace(/┤/g, '+')
+      .replace(/┬/g, '+')
+      .replace(/┴/g, '+')
+      .replace(/┼/g, '+')
+      .replace(/[^\x00-\x7F]/g, ''); // Remove any other non-ASCII characters
+  };
+  
+  // Wrap drawLine to sanitize text
+  const safeDraw = (text: string, size = 10) => {
+    drawLine(sanitizeForPdf(text), size);
+  };
+  
   // Header
-  drawLine('LLOYD GEORGE RECORD - CLINICAL SUMMARY & SNOMED CODES', 14);
-  drawLine('═'.repeat(60), 10);
+  safeDraw('LLOYD GEORGE RECORD - CLINICAL SUMMARY & SNOMED CODES', 14);
+  safeDraw('='.repeat(60), 10);
   yPosition -= 10;
   
   // Patient details
@@ -650,20 +673,20 @@ async function createSimplePdf(
   
   // Clinical Summary
   if (summaryJson?.summary_line) {
-    drawLine('CLINICAL SUMMARY', 12);
-    drawLine('─'.repeat(40), 10);
+    safeDraw('CLINICAL SUMMARY', 12);
+    safeDraw('-'.repeat(40), 10);
     // Wrap long text
     const summaryWords = summaryJson.summary_line.split(' ');
     let currentLine = '';
     for (const word of summaryWords) {
       if ((currentLine + ' ' + word).length > 80) {
-        drawLine(currentLine.trim(), 10);
+        safeDraw(currentLine.trim(), 10);
         currentLine = word;
       } else {
         currentLine += ' ' + word;
       }
     }
-    if (currentLine.trim()) drawLine(currentLine.trim(), 10);
+    if (currentLine.trim()) safeDraw(currentLine.trim(), 10);
     yPosition -= 10;
   }
   
@@ -679,16 +702,16 @@ async function createSimplePdf(
   for (const section of snomedSections) {
     const items = snomedJson?.[section.key] || [];
     if (items.length > 0) {
-      drawLine(section.title, 12);
-      drawLine('─'.repeat(40), 10);
+      safeDraw(section.title, 12);
+      safeDraw('-'.repeat(40), 10);
       for (const item of items) {
         const code = item.code || 'UNKNOWN';
         const term = item.term || 'Unknown term';
         const confidence = item.confidence ? `${Math.round(item.confidence * 100)}%` : '';
-        drawLine(`• ${term} [SNOMED: ${code}] ${confidence}`, 10);
+        safeDraw(`* ${term} [SNOMED: ${code}] ${confidence}`, 10);
         if (item.evidence) {
           const evidenceText = `  Evidence: "${item.evidence.substring(0, 70)}${item.evidence.length > 70 ? '...' : ''}"`;
-          drawLine(evidenceText, 9);
+          safeDraw(evidenceText, 9);
         }
       }
       yPosition -= 5;
@@ -705,18 +728,18 @@ async function createSimplePdf(
   for (const section of clinicalSections) {
     const items = summaryJson?.[section.key] || [];
     if (items.length > 0 && section.key !== 'allergies') { // Skip allergies as already in SNOMED
-      drawLine(section.title, 12);
-      drawLine('─'.repeat(40), 10);
+      safeDraw(section.title, 12);
+      safeDraw('-'.repeat(40), 10);
       for (const item of items) {
         let text = '';
         if (section.key === 'medications') {
-          text = `• ${item.name || ''} ${item.dose || ''} ${item.frequency || ''} (${item.status || 'unknown'})`;
+          text = `* ${item.name || ''} ${item.dose || ''} ${item.frequency || ''} (${item.status || 'unknown'})`;
         } else if (section.key === 'significant_past_history') {
-          text = `• ${item.condition || ''} (${item.first_noted || 'unknown'}) - ${item.status || 'unknown'}`;
+          text = `* ${item.condition || ''} (${item.first_noted || 'unknown'}) - ${item.status || 'unknown'}`;
         } else {
-          text = `• ${JSON.stringify(item)}`;
+          text = `* ${JSON.stringify(item)}`;
         }
-        drawLine(text, 10);
+        safeDraw(text, 10);
       }
       yPosition -= 5;
     }
