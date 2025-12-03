@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users } from 'lucide-react';
+import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users, Building2, Cigarette } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 
@@ -25,15 +25,22 @@ const formatUKDate = (dateStr: string | null | undefined): string => {
 
 interface SummaryData {
   summary_line: string;
-  allergies: Array<{ substance: string; reaction: string; certainty: string; source: string }>;
-  significant_past_history: Array<{ condition: string; first_noted: string; status: string }>;
-  medications: Array<{ name: string; dose: string; route: string; frequency: string; start_date: string; status: string }>;
-  immunisations: Array<{ vaccine: string; date: string }>;
-  procedures: Array<{ name: string; date: string }>;
-  family_history: Array<{ relation: string; condition: string; notes: string }>;
-  risk_factors: Array<{ type: string; value: string; date: string }>;
-  alerts: Array<{ type: string; note: string }>;
-  free_text_findings: string;
+  diagnoses?: Array<{ condition: string; date_noted: string; status: string }>;
+  surgeries?: Array<{ procedure: string; date: string; notes: string }>;
+  allergies?: Array<{ allergen: string; reaction: string; year: string }>;
+  immunisations?: Array<{ vaccine: string; date: string }>;
+  family_history?: Array<{ relation: string; condition: string }>;
+  social_history?: { smoking_status: string; stopped_year?: string; alcohol: string; occupation: string };
+  reproductive_history?: { gravida: number; para: number; miscarriages: number; notes: string };
+  hospital_findings?: Array<{ condition: string; date: string; outcome: string }>;
+  medications?: Array<{ drug: string; dose: string; status: string }>;
+  alerts?: Array<{ type: string; note: string }>;
+  free_text_findings?: string;
+  summary_metadata?: string;
+  // Legacy field support
+  significant_past_history?: Array<{ condition: string; first_noted: string; status: string }>;
+  procedures?: Array<{ name: string; date: string }>;
+  risk_factors?: Array<{ type: string; value: string; date: string }>;
 }
 
 interface LGSummaryPreviewProps {
@@ -91,6 +98,16 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
     return null;
   }
 
+  // Support both new schema (diagnoses) and legacy (significant_past_history)
+  const conditions = summary.diagnoses ?? summary.significant_past_history ?? [];
+  const surgeryList = summary.surgeries ?? summary.procedures?.map(p => ({ procedure: p.name, date: p.date, notes: '' })) ?? [];
+  const allergyList = summary.allergies ?? [];
+  const immunisationList = summary.immunisations ?? [];
+  const familyHistoryList = summary.family_history ?? [];
+  const medicationList = summary.medications ?? [];
+  const alertList = summary.alerts ?? [];
+  const hospitalFindings = summary.hospital_findings ?? [];
+
   return (
     <Card>
       <CardHeader>
@@ -101,14 +118,14 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
       </CardHeader>
       <CardContent>
         {/* Alerts Banner */}
-        {summary.alerts.length > 0 && (
+        {alertList.length > 0 && (
           <div className="mb-4 p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
             <div className="flex items-center gap-2 text-destructive font-medium mb-2">
               <AlertTriangle className="h-4 w-4" />
               Important Alerts
             </div>
             <div className="space-y-1">
-              {summary.alerts.map((alert, i) => (
+              {alertList.map((alert, i) => (
                 <div key={i} className="text-sm">
                   <Badge variant="destructive" className="mr-2">{alert.type}</Badge>
                   {alert.note}
@@ -119,50 +136,52 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
         )}
 
         {/* Summary Line */}
-        <div className="mb-4 p-3 bg-muted/50 rounded-lg">
-          <p className="text-sm font-medium">{summary.summary_line}</p>
-        </div>
+        {summary.summary_line && (
+          <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+            <p className="text-sm font-medium">{summary.summary_line}</p>
+          </div>
+        )}
 
         <Tabs defaultValue="conditions" className="w-full">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="conditions">Conditions</TabsTrigger>
+            <TabsTrigger value="conditions">Diagnoses</TabsTrigger>
             <TabsTrigger value="medications">Meds</TabsTrigger>
-            <TabsTrigger value="procedures">Procedures</TabsTrigger>
+            <TabsTrigger value="procedures">Surgeries</TabsTrigger>
             <TabsTrigger value="other">Other</TabsTrigger>
           </TabsList>
 
           <ScrollArea className="h-[300px] mt-4">
             <TabsContent value="conditions" className="space-y-4 m-0">
               {/* Allergies */}
-              {summary.allergies.length > 0 && (
+              {allergyList.length > 0 && (
                 <div>
                   <h4 className="font-medium text-sm mb-2 text-destructive">Allergies</h4>
                   <div className="space-y-1">
-                    {summary.allergies.map((allergy, i) => (
+                    {allergyList.map((allergy, i) => (
                       <div key={i} className="text-sm p-2 bg-destructive/5 rounded">
-                        <span className="font-medium">{allergy.substance}</span>
+                        <span className="font-medium">{allergy.allergen}</span>
                         {allergy.reaction && <span className="text-muted-foreground"> - {allergy.reaction}</span>}
-                        <Badge variant="outline" className="ml-2 text-xs">{allergy.certainty}</Badge>
+                        {allergy.year && <Badge variant="outline" className="ml-2 text-xs">{allergy.year}</Badge>}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Past History */}
-              {summary.significant_past_history.length > 0 && (
+              {/* Diagnoses / Past History */}
+              {conditions.length > 0 && (
                 <div>
                   <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
                     <Stethoscope className="h-4 w-4" />
-                    Past Medical History
+                    Diagnoses
                   </h4>
                   <div className="space-y-1">
-                    {summary.significant_past_history.map((item, i) => (
+                    {conditions.map((item, i) => (
                       <div key={i} className="text-sm p-2 bg-muted/30 rounded flex justify-between">
                         <span>{item.condition}</span>
                         <span className="text-muted-foreground">
-                          {formatUKDate(item.first_noted)}
-                          <Badge variant="outline" className="ml-2 text-xs">{item.status}</Badge>
+                          {formatUKDate('date_noted' in item ? item.date_noted : (item as any).first_noted)}
+                          {item.status && <Badge variant="outline" className="ml-2 text-xs">{item.status}</Badge>}
                         </span>
                       </div>
                     ))}
@@ -172,17 +191,18 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
             </TabsContent>
 
             <TabsContent value="medications" className="space-y-4 m-0">
-              {summary.medications.length > 0 ? (
+              {medicationList.length > 0 ? (
                 <div className="space-y-2">
-                  {summary.medications.map((med, i) => (
+                  {medicationList.map((med, i) => (
                     <div key={i} className="text-sm p-2 bg-muted/30 rounded">
                       <div className="flex items-center gap-2">
                         <Pill className="h-4 w-4 text-primary" />
-                        <span className="font-medium">{med.name}</span>
+                        <span className="font-medium">{med.drug}</span>
+                        {med.status && <Badge variant="outline" className="text-xs">{med.status}</Badge>}
                       </div>
-                      <div className="text-muted-foreground ml-6">
-                        {[med.dose, med.route, med.frequency].filter(Boolean).join(' • ')}
-                      </div>
+                      {med.dose && (
+                        <div className="text-muted-foreground ml-6">{med.dose}</div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -192,15 +212,15 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
             </TabsContent>
 
             <TabsContent value="procedures" className="space-y-4 m-0">
-              {/* Procedures */}
-              {summary.procedures.length > 0 && (
+              {/* Surgeries */}
+              {surgeryList.length > 0 && (
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Procedures</h4>
+                  <h4 className="font-medium text-sm mb-2">Surgeries</h4>
                   <div className="space-y-1">
-                    {summary.procedures.map((proc, i) => (
+                    {surgeryList.map((surgery, i) => (
                       <div key={i} className="text-sm p-2 bg-muted/30 rounded flex justify-between">
-                        <span>{proc.name}</span>
-                        <span className="text-muted-foreground">{formatUKDate(proc.date)}</span>
+                        <span>{surgery.procedure}</span>
+                        <span className="text-muted-foreground">{formatUKDate(surgery.date)}</span>
                       </div>
                     ))}
                   </div>
@@ -208,14 +228,14 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
               )}
 
               {/* Immunisations */}
-              {summary.immunisations.length > 0 && (
+              {immunisationList.length > 0 && (
                 <div>
                   <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
                     <Syringe className="h-4 w-4" />
                     Immunisations
                   </h4>
                   <div className="space-y-1">
-                    {summary.immunisations.map((imm, i) => (
+                    {immunisationList.map((imm, i) => (
                       <div key={i} className="text-sm p-2 bg-muted/30 rounded flex justify-between">
                         <span>{imm.vaccine}</span>
                         <span className="text-muted-foreground">{formatUKDate(imm.date)}</span>
@@ -227,35 +247,81 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
             </TabsContent>
 
             <TabsContent value="other" className="space-y-4 m-0">
-              {/* Family History */}
-              {summary.family_history.length > 0 && (
+              {/* Social History */}
+              {summary.social_history && (
                 <div>
                   <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
-                    <Users className="h-4 w-4" />
-                    Family History
+                    <Cigarette className="h-4 w-4" />
+                    Social History
+                  </h4>
+                  <div className="space-y-1 text-sm p-2 bg-muted/30 rounded">
+                    {summary.social_history.smoking_status && (
+                      <div><span className="font-medium">Smoking:</span> {summary.social_history.smoking_status}
+                        {summary.social_history.stopped_year && ` (stopped ${summary.social_history.stopped_year})`}
+                      </div>
+                    )}
+                    {summary.social_history.alcohol && (
+                      <div><span className="font-medium">Alcohol:</span> {summary.social_history.alcohol}</div>
+                    )}
+                    {summary.social_history.occupation && (
+                      <div><span className="font-medium">Occupation:</span> {summary.social_history.occupation}</div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Hospital Findings */}
+              {hospitalFindings.length > 0 && (
+                <div>
+                  <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                    <Building2 className="h-4 w-4" />
+                    Hospital Findings
                   </h4>
                   <div className="space-y-1">
-                    {summary.family_history.map((fh, i) => (
+                    {hospitalFindings.map((hf, i) => (
                       <div key={i} className="text-sm p-2 bg-muted/30 rounded">
-                        <span className="font-medium">{fh.relation}:</span> {fh.condition}
-                        {fh.notes && <span className="text-muted-foreground"> - {fh.notes}</span>}
+                        <div className="flex justify-between">
+                          <span className="font-medium">{hf.condition}</span>
+                          <span className="text-muted-foreground">{formatUKDate(hf.date)}</span>
+                        </div>
+                        {hf.outcome && <div className="text-muted-foreground text-xs mt-1">{hf.outcome}</div>}
                       </div>
                     ))}
                   </div>
                 </div>
               )}
 
-              {/* Risk Factors */}
-              {summary.risk_factors.length > 0 && (
+              {/* Family History */}
+              {familyHistoryList.length > 0 && (
                 <div>
-                  <h4 className="font-medium text-sm mb-2">Risk Factors</h4>
+                  <h4 className="font-medium text-sm mb-2 flex items-center gap-2">
+                    <Users className="h-4 w-4" />
+                    Family History
+                  </h4>
                   <div className="space-y-1">
-                    {summary.risk_factors.map((rf, i) => (
-                      <div key={i} className="text-sm p-2 bg-muted/30 rounded flex justify-between">
-                        <span>{rf.type}: {rf.value}</span>
-                        <span className="text-muted-foreground">{formatUKDate(rf.date)}</span>
+                    {familyHistoryList.map((fh, i) => (
+                      <div key={i} className="text-sm p-2 bg-muted/30 rounded">
+                        <span className="font-medium">{fh.relation}:</span> {fh.condition}
                       </div>
                     ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Reproductive History */}
+              {summary.reproductive_history && (summary.reproductive_history.gravida > 0 || summary.reproductive_history.notes) && (
+                <div>
+                  <h4 className="font-medium text-sm mb-2">Reproductive History</h4>
+                  <div className="text-sm p-2 bg-muted/30 rounded">
+                    {summary.reproductive_history.gravida > 0 && (
+                      <div>
+                        G{summary.reproductive_history.gravida} P{summary.reproductive_history.para}
+                        {summary.reproductive_history.miscarriages > 0 && ` +${summary.reproductive_history.miscarriages} miscarriage(s)`}
+                      </div>
+                    )}
+                    {summary.reproductive_history.notes && (
+                      <div className="text-muted-foreground">{summary.reproductive_history.notes}</div>
+                    )}
                   </div>
                 </div>
               )}
