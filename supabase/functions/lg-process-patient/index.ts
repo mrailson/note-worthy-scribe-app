@@ -427,12 +427,43 @@ ${fullOcrText.substring(0, 10000)}`;
           snomedJson
         );
 
+        // Fetch PDF for attachment
+        let pdfBase64: string | null = null;
+        const pdfPath = `${basePath}/final/lloyd-george.pdf`;
+        try {
+          const { data: pdfData } = await supabase.storage
+            .from('lg')
+            .download(pdfPath);
+          if (pdfData) {
+            const arrayBuffer = await pdfData.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = '';
+            const chunkSize = 8192;
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+              const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
+              binary += String.fromCharCode.apply(null, Array.from(chunk));
+            }
+            pdfBase64 = btoa(binary);
+            console.log(`PDF attachment ready, size: ${pdfBase64.length} chars`);
+          }
+        } catch (pdfErr) {
+          console.error('Could not fetch PDF for attachment:', pdfErr);
+        }
+
+        // Build attachments array
+        const attachments = pdfBase64 ? [{
+          filename: `LG_${nhsNumber.replace(/\s/g, '')}_${formatDobForFilename(dob)}.pdf`,
+          content: pdfBase64,
+          type: 'application/pdf',
+        }] : [];
+
         // Send via Resend edge function
         const { error: emailError } = await supabase.functions.invoke('send-email-resend', {
           body: {
             to_email: userEmail,
-            subject: `Lloyd George Record Summary - ${patientName} (NHS: ${formatNhsNumber(nhsNumber)})`,
+            subject: `Lloyd George Record Summary - ${patientName} (DOB: ${formatDobDisplay(dob)}) (NHS: ${formatNhsNumber(nhsNumber)})`,
             html_content: emailHtml,
+            attachments: attachments.length > 0 ? attachments : undefined,
           },
         });
 
@@ -947,6 +978,38 @@ function formatNhsNumber(nhs: string | null | undefined): string {
   const cleaned = nhs.replace(/\s/g, '');
   if (cleaned.length !== 10) return nhs;
   return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+}
+
+// Format DOB for display (DD-MMM-YYYY)
+function formatDobDisplay(dateStr: string | null | undefined): string {
+  if (!dateStr || dateStr === 'Unknown') return 'Unknown';
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    }
+  } catch {}
+  return dateStr || 'Unknown';
+}
+
+// Format DOB for filename (DD_MMM_YYYY)
+function formatDobForFilename(dateStr: string | null | undefined): string {
+  if (!dateStr || dateStr === 'Unknown') return 'Unknown';
+  try {
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day}_${month}_${year}`;
+    }
+  } catch {}
+  return dateStr || 'Unknown';
 }
 
 // Build HTML email for LG summary
