@@ -55,6 +55,7 @@ serve(async (req) => {
     // Load summary and SNOMED data
     let summaryJson: any = {};
     let snomedJson: any = {};
+    let ocrText = '';
 
     try {
       const { data: summaryData } = await supabase.storage
@@ -71,6 +72,16 @@ serve(async (req) => {
         .download(`${basePath}/final/snomed.json`);
       if (snomedData) {
         snomedJson = JSON.parse(await snomedData.text());
+      }
+    } catch {}
+
+    // Load OCR text for page summaries
+    try {
+      const { data: ocrData } = await supabase.storage
+        .from('lg')
+        .download(`${basePath}/work/ocr_merged.txt`);
+      if (ocrData) {
+        ocrText = await ocrData.text();
       }
     } catch {}
 
@@ -92,14 +103,19 @@ serve(async (req) => {
     const patientName = patient.ai_extracted_name || patient.patient_name || 'Unknown Patient';
     const nhsNumber = patient.ai_extracted_nhs || patient.nhs_number || 'Unknown';
     const dob = patient.ai_extracted_dob || patient.dob || 'Unknown';
+    const formattedNhs = formatNhsNumber(nhsNumber);
+
+    // Generate page summaries from OCR text
+    console.log('Generating page summaries...');
+    const pageSummaries = await generatePageSummaries(ocrText, files.length);
 
     // Add clinical summary front page
     console.log('Adding clinical summary page...');
     addClinicalSummaryPage(pdfDoc, patientName, nhsNumber, dob, files.length, summaryJson, snomedJson);
 
-    // Add index page
+    // Add index page with summaries
     console.log('Adding index page...');
-    addIndexPage(pdfDoc, files);
+    addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
 
     // Process images in batches
     for (let batchStart = 0; batchStart < files.length; batchStart += IMAGE_BATCH_SIZE) {
@@ -336,27 +352,156 @@ function addClinicalSummaryPage(
   }
 }
 
-function addIndexPage(pdfDoc: any, files: any[]) {
+function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber: string, pageSummaries: string[]) {
   let currentPage = pdfDoc.addPage([595, 842]);
   let yPosition = 790;
   const leftMargin = 50;
   const lineHeight = 14;
   const pageMarginBottom = 60;
 
-  currentPage.drawText('PAGE INDEX', { x: leftMargin, y: yPosition, size: 14 });
-  yPosition -= lineHeight * 2;
+  // Title
+  currentPage.drawText('INDEX OF SCANNED PAGES', { x: leftMargin, y: yPosition, size: 14 });
+  yPosition -= lineHeight * 1.5;
 
+  // Patient info line
+  currentPage.drawText(`Patient: ${sanitizeForPdf(patientName)} | NHS: ${nhsNumber}`, { 
+    x: leftMargin, y: yPosition, size: 10 
+  });
+  yPosition -= lineHeight * 1.5;
+
+  // Table header
+  currentPage.drawText('Page No.', { x: leftMargin, y: yPosition, size: 10 });
+  currentPage.drawText('Description', { x: leftMargin + 70, y: yPosition, size: 10 });
+  yPosition -= lineHeight * 0.5;
+  
+  // Divider line
+  currentPage.drawText('--------', { x: leftMargin, y: yPosition, size: 10 });
+  currentPage.drawText('-----------------------------------------------------------', { x: leftMargin + 70, y: yPosition, size: 10 });
+  yPosition -= lineHeight;
+
+  // Page entries
   for (let i = 0; i < files.length; i++) {
     if (yPosition < pageMarginBottom) {
       currentPage = pdfDoc.addPage([595, 842]);
       yPosition = 790;
     }
-    const pageNum = i + 3; // Account for summary + index pages
-    currentPage.drawText(`Page ${i + 1}: ${files[i].name} (PDF page ${pageNum})`, {
-      x: leftMargin,
-      y: yPosition,
-      size: 9,
-    });
+    const pdfPageNum = i + 3; // Account for summary + index pages
+    const summary = pageSummaries[i] || `Scanned page ${i + 1} of ${files.length}`;
+    const truncatedSummary = sanitizeForPdf(summary).substring(0, 60);
+    
+    currentPage.drawText(`Page ${pdfPageNum}`, { x: leftMargin, y: yPosition, size: 9 });
+    currentPage.drawText(truncatedSummary, { x: leftMargin + 70, y: yPosition, size: 9 });
     yPosition -= lineHeight;
   }
+
+  // Footer note
+  yPosition -= lineHeight;
+  if (yPosition < pageMarginBottom) {
+    currentPage = pdfDoc.addPage([595, 842]);
+    yPosition = 790;
+  }
+  currentPage.drawText('Use PDF viewer bookmarks or page navigation to jump to specific pages.', {
+    x: leftMargin, y: yPosition, size: 8
+  });
+}
+
+function formatNhsNumber(nhs: string): string {
+  const digits = nhs.replace(/\D/g, '');
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3)} ${digits.slice(3, 6)} ${digits.slice(6)}`;
+  }
+  return nhs;
+}
+
+// Parse OCR text into per-page segments
+function parseOcrByPage(ocrText: string): Map<number, string> {
+  const pageMap = new Map<number, string>();
+  if (!ocrText) return pageMap;
+
+  // Split by page markers like "--- Page page_001.jpg ---"
+  const pageRegex = /---\s*Page\s+page_(\d+)\.(jpg|jpeg|png)\s*---/gi;
+  const parts = ocrText.split(pageRegex);
+  
+  // Parse alternating: [text before first marker, page num, ext, text, page num, ext, text, ...]
+  for (let i = 1; i < parts.length; i += 3) {
+    const pageNum = parseInt(parts[i], 10);
+    const pageText = parts[i + 2] || '';
+    if (pageNum > 0) {
+      pageMap.set(pageNum, pageText.trim());
+    }
+  }
+  
+  return pageMap;
+}
+
+// Generate one-line summaries for each page using OpenAI
+async function generatePageSummaries(ocrText: string, pageCount: number): Promise<string[]> {
+  const summaries: string[] = [];
+  const pageMap = parseOcrByPage(ocrText);
+  
+  const openaiKey = Deno.env.get('OPENAI_API_KEY');
+  if (!openaiKey || pageMap.size === 0) {
+    // Fallback to generic summaries
+    for (let i = 0; i < pageCount; i++) {
+      summaries.push(`Scanned page ${i + 1} of ${pageCount}`);
+    }
+    return summaries;
+  }
+
+  // Build a prompt with all page texts for batch processing
+  const pageTexts: { pageNum: number; text: string }[] = [];
+  for (let i = 1; i <= pageCount; i++) {
+    const text = pageMap.get(i) || '';
+    pageTexts.push({ pageNum: i, text: text.substring(0, 500) }); // Limit text per page
+  }
+
+  try {
+    const prompt = `You are summarizing pages from a Lloyd George medical record scan. 
+For each page below, provide a brief one-line summary (max 60 characters) describing the main content.
+If the page appears blank or has minimal text, say "Mostly blank page" or similar.
+Focus on clinical relevance: document types (e.g., "GP referral letter", "Blood test results"), dates, or key findings.
+
+${pageTexts.map(p => `PAGE ${p.pageNum}:\n${p.text || '[No text detected]'}`).join('\n\n---\n\n')}
+
+Respond with a JSON array of strings, one summary per page in order. Example:
+["Continuation card - immunisation records", "GP referral letter dated 15/03/2020", "Blood test results - FBC normal"]`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Extract JSON array from response
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (Array.isArray(parsed)) {
+        return parsed.map((s: any) => String(s || '').substring(0, 60));
+      }
+    }
+  } catch (err) {
+    console.error('Failed to generate page summaries:', err);
+  }
+
+  // Fallback
+  for (let i = 0; i < pageCount; i++) {
+    summaries.push(`Scanned page ${i + 1} of ${pageCount}`);
+  }
+  return summaries;
 }
