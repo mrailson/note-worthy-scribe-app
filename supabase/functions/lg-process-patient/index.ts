@@ -540,7 +540,7 @@ function generateSnomedCsv(snomed: any, patientId: string, nhsNumber: string): s
 }
 
 async function createSimplePdf(
-  imageDataUrls: string[], 
+  imageDataUrls: string[],
   ocrText: string,
   summaryJson: any,
   snomedJson: any,
@@ -548,77 +548,40 @@ async function createSimplePdf(
   nhsNumber: string,
   dob: string
 ): Promise<Uint8Array> {
-  // Create PDF with embedded images using pdf-lib
+  // Create PDF with clinical summary FIRST, then index, then images
   const pdfDoc = await PDFDocument.create();
   
   console.log(`Creating PDF with ${imageDataUrls.length} images`);
   
-  for (let i = 0; i < imageDataUrls.length; i++) {
-    const dataUrl = imageDataUrls[i];
-    try {
-      console.log(`Processing image ${i + 1}/${imageDataUrls.length}`);
-      
-      // Extract base64 data from data URL
-      const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '');
-      const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
-      
-      // Try to embed as JPEG first, then PNG
-      let image;
-      try {
-        image = await pdfDoc.embedJpg(imageBytes);
-      } catch {
-        try {
-          image = await pdfDoc.embedPng(imageBytes);
-        } catch (embedErr) {
-          console.error(`Failed to embed image ${i + 1}:`, embedErr);
-          continue;
-        }
-      }
-      
-      // Scale to 50% of original size
-      const scale = 0.5;
-      const width = image.width * scale;
-      const height = image.height * scale;
-      
-      console.log(`Image ${i + 1}: original ${image.width}x${image.height}, scaled to ${width}x${height}`);
-      
-      // Create page with scaled image dimensions
-      const page = pdfDoc.addPage([width, height]);
-      
-      // Draw image on page
-      page.drawImage(image, {
-        x: 0,
-        y: 0,
-        width: width,
-        height: height,
-      });
-      
-      console.log(`Added page ${i + 1} to PDF`);
-    } catch (err) {
-      console.error(`Error processing image ${i + 1} for PDF:`, err);
-    }
-  }
+  // Sanitize text to remove characters not supported by WinAnsi encoding
+  const sanitizeForPdf = (text: string): string => {
+    return text
+      .replace(/═/g, '=')
+      .replace(/─/g, '-')
+      .replace(/│/g, '|')
+      .replace(/┌/g, '+')
+      .replace(/┐/g, '+')
+      .replace(/└/g, '+')
+      .replace(/┘/g, '+')
+      .replace(/├/g, '+')
+      .replace(/┤/g, '+')
+      .replace(/┬/g, '+')
+      .replace(/┴/g, '+')
+      .replace(/┼/g, '+')
+      .replace(/•/g, '-')
+      .replace(/–/g, '-')
+      .replace(/—/g, '-')
+      .replace(/'/g, "'")
+      .replace(/'/g, "'")
+      .replace(/"/g, '"')
+      .replace(/"/g, '"')
+      .replace(/…/g, '...')
+      .replace(/\*/g, '-')
+      .replace(/[^\x00-\x7F]/g, ''); // Remove any other non-ASCII characters
+  };
   
-  console.log(`PDF complete with ${pdfDoc.getPageCount()} pages`);
-  
-  // If no images were added, create a placeholder page
-  if (pdfDoc.getPageCount() === 0) {
-    const page = pdfDoc.addPage([595, 842]);
-    page.drawText('No images could be embedded in this PDF.', {
-      x: 50,
-      y: 700,
-      size: 14,
-    });
-    page.drawText(`OCR extracted ${ocrText.length} characters.`, {
-      x: 50,
-      y: 680,
-      size: 12,
-    });
-  }
-  
-  // Add SNOMED Summary page at the end (searchable text)
-  console.log('Adding SNOMED summary page...');
-  
+  // ===== PAGE 1: CLINICAL SUMMARY (FRONT PAGE) =====
+  console.log('Adding clinical summary front page...');
   try {
     let currentPage = pdfDoc.addPage([595, 842]); // A4 size
     let yPosition = 790;
@@ -626,38 +589,10 @@ async function createSimplePdf(
     const lineHeight = 16;
     const pageMarginBottom = 60;
     
-    // Sanitize text to remove characters not supported by WinAnsi encoding
-    const sanitizeForPdf = (text: string): string => {
-      return text
-        .replace(/═/g, '=')
-        .replace(/─/g, '-')
-        .replace(/│/g, '|')
-        .replace(/┌/g, '+')
-        .replace(/┐/g, '+')
-        .replace(/└/g, '+')
-        .replace(/┘/g, '+')
-        .replace(/├/g, '+')
-        .replace(/┤/g, '+')
-        .replace(/┬/g, '+')
-        .replace(/┴/g, '+')
-        .replace(/┼/g, '+')
-        .replace(/•/g, '-')
-        .replace(/–/g, '-')
-        .replace(/—/g, '-')
-        .replace(/'/g, "'")
-        .replace(/'/g, "'")
-        .replace(/"/g, '"')
-        .replace(/"/g, '"')
-        .replace(/…/g, '...')
-        .replace(/\*/g, '-')
-        .replace(/[^\x00-\x7F]/g, ''); // Remove any other non-ASCII characters
-    };
-    
     // Helper to check if we need a new page and draw text
     const drawLine = (text: string, size = 10, indent = 0) => {
       const safeText = sanitizeForPdf(text);
       if (yPosition < pageMarginBottom) {
-        // Add new page
         currentPage = pdfDoc.addPage([595, 842]);
         yPosition = 790;
       }
@@ -675,21 +610,21 @@ async function createSimplePdf(
     };
     
     // Header
-    drawLine('LLOYD GEORGE RECORD - CLINICAL SUMMARY & SNOMED CODES', 14);
+    drawLine('LLOYD GEORGE RECORD - CLINICAL SUMMARY', 16);
     addSpace(0.5);
     
     // Patient details box
-    drawLine(`Patient: ${patientName}`, 11);
-    drawLine(`NHS Number: ${nhsNumber}`, 11);
-    drawLine(`Date of Birth: ${dob}`, 11);
+    drawLine(`Patient: ${patientName}`, 12);
+    drawLine(`NHS Number: ${nhsNumber}`, 12);
+    drawLine(`Date of Birth: ${dob}`, 12);
     drawLine(`Generated: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, 10);
+    drawLine(`Total Scanned Pages: ${imageDataUrls.length}`, 10);
     addSpace(1);
     
     // Clinical Summary
     if (summaryJson?.summary_line) {
       drawLine('CLINICAL SUMMARY', 12);
       addSpace(0.3);
-      // Wrap long text
       const summaryWords = summaryJson.summary_line.split(' ');
       let currentLine = '';
       for (const word of summaryWords) {
@@ -746,7 +681,7 @@ async function createSimplePdf(
         for (const item of items) {
           let text = '';
           if (section.key === 'medications') {
-            text = `${item.name || ''} ${item.dose || ''} ${item.frequency || ''} (${item.status || 'unknown'})`;
+            text = `${item.name || ''} ${item.dose || ''} ${item.frequency || ''}`;
           } else if (section.key === 'significant_past_history') {
             text = `${item.condition || ''} (${item.first_noted || 'unknown'}) - ${item.status || 'unknown'}`;
           } else {
@@ -762,9 +697,119 @@ async function createSimplePdf(
     addSpace(1);
     drawLine('This summary was generated by AI from scanned Lloyd George records.', 9);
     drawLine('All clinical information should be verified before use.', 9);
+    
   } catch (summaryErr) {
-    console.error('Error adding summary page to PDF, skipping:', summaryErr);
-    // PDF will still be valid without the summary page
+    console.error('Error adding summary page to PDF:', summaryErr);
+  }
+  
+  // ===== PAGE 2: INDEX OF SCANNED PAGES =====
+  console.log('Adding page index...');
+  try {
+    // Calculate where scanned pages will start (after summary pages)
+    const summaryPageCount = pdfDoc.getPageCount();
+    const scanStartPage = summaryPageCount + 2; // +1 for index page, +1 for 1-based numbering
+    
+    let indexPage = pdfDoc.addPage([595, 842]);
+    let yPos = 790;
+    const leftMargin = 50;
+    const lineHeight = 18;
+    
+    const drawIndexLine = (text: string, size = 10) => {
+      const safeText = sanitizeForPdf(text);
+      if (yPos < 60) {
+        indexPage = pdfDoc.addPage([595, 842]);
+        yPos = 790;
+      }
+      indexPage.drawText(safeText, { x: leftMargin, y: yPos, size });
+      yPos -= lineHeight;
+    };
+    
+    drawIndexLine('INDEX OF SCANNED PAGES', 16);
+    yPos -= 10;
+    drawIndexLine(`Patient: ${patientName} | NHS: ${nhsNumber}`, 10);
+    yPos -= 20;
+    
+    drawIndexLine('Page No.    Description', 11);
+    drawIndexLine('--------    -----------', 10);
+    yPos -= 5;
+    
+    // List each scanned page with its PDF page number
+    for (let i = 0; i < imageDataUrls.length; i++) {
+      const pdfPageNum = scanStartPage + i;
+      const pageLabel = `Page ${String(pdfPageNum).padStart(3, ' ')}    Scanned page ${i + 1} of ${imageDataUrls.length}`;
+      drawIndexLine(pageLabel, 10);
+    }
+    
+    yPos -= 20;
+    drawIndexLine('Use PDF viewer bookmarks or page navigation to jump to specific pages.', 9);
+    
+  } catch (indexErr) {
+    console.error('Error adding index page:', indexErr);
+  }
+  
+  // ===== SCANNED IMAGES =====
+  console.log('Adding scanned images...');
+  for (let i = 0; i < imageDataUrls.length; i++) {
+    const dataUrl = imageDataUrls[i];
+    try {
+      console.log(`Processing image ${i + 1}/${imageDataUrls.length}`);
+      
+      // Extract base64 data from data URL
+      const base64Data = dataUrl.replace(/^data:image\/\w+;base64,/, '');
+      const imageBytes = Uint8Array.from(atob(base64Data), c => c.charCodeAt(0));
+      
+      // Try to embed as JPEG first, then PNG
+      let image;
+      try {
+        image = await pdfDoc.embedJpg(imageBytes);
+      } catch {
+        try {
+          image = await pdfDoc.embedPng(imageBytes);
+        } catch (embedErr) {
+          console.error(`Failed to embed image ${i + 1}:`, embedErr);
+          continue;
+        }
+      }
+      
+      // Scale to 50% of original size
+      const scale = 0.5;
+      const width = image.width * scale;
+      const height = image.height * scale;
+      
+      console.log(`Image ${i + 1}: original ${image.width}x${image.height}, scaled to ${width}x${height}`);
+      
+      // Create page with scaled image dimensions
+      const page = pdfDoc.addPage([width, height]);
+      
+      // Draw image on page
+      page.drawImage(image, {
+        x: 0,
+        y: 0,
+        width: width,
+        height: height,
+      });
+      
+      console.log(`Added scanned page ${i + 1} to PDF`);
+    } catch (err) {
+      console.error(`Error processing image ${i + 1} for PDF:`, err);
+    }
+  }
+  
+  console.log(`PDF complete with ${pdfDoc.getPageCount()} pages`);
+  
+  // If no images were added, ensure we have at least the summary
+  if (pdfDoc.getPageCount() === 0) {
+    const page = pdfDoc.addPage([595, 842]);
+    page.drawText('No images could be embedded in this PDF.', {
+      x: 50,
+      y: 700,
+      size: 14,
+    });
+    page.drawText(`OCR extracted ${ocrText.length} characters.`, {
+      x: 50,
+      y: 680,
+      size: 12,
+    });
   }
   
   return await pdfDoc.save();
