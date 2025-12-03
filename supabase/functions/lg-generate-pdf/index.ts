@@ -341,12 +341,18 @@ function addClinicalSummaryPage(
     addSpace(0.5);
   }
 
-  // SNOMED sections (condensed for front page)
-  const sections = ['problems', 'allergies', 'procedures', 'immunisations', 'risk_factors'];
+  // SNOMED sections (condensed for front page) - Problem codes only
+  const sectionLabels: Record<string, string> = {
+    'diagnoses': 'DIAGNOSES',
+    'surgeries': 'MAJOR SURGERIES',
+    'allergies': 'ALLERGIES',
+    'immunisations': 'IMMUNISATIONS',
+  };
+  const sections = ['diagnoses', 'surgeries', 'allergies', 'immunisations'];
   for (const key of sections) {
     const items = snomedJson?.[key] || [];
     if (items.length > 0) {
-      drawLine(key.toUpperCase().replace('_', ' '), 11);
+      drawLine(sectionLabels[key] || key.toUpperCase(), 11);
       for (const item of items.slice(0, 5)) { // Limit to 5 items per section
         drawLine(`- ${item.term || 'Unknown'} [${item.code || 'UNKNOWN'}]`, 9, 10);
       }
@@ -679,29 +685,29 @@ function buildFullSummaryEmailHtml(
       <p style="background: #f0f4f5; padding: 15px; border-radius: 5px;">${summaryJson?.summary_line || 'No summary available'}</p>
   `;
 
+  // Add Diagnoses section (formerly significant_past_history)
+  if (summaryJson?.diagnoses?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Diagnoses</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    for (const item of summaryJson.diagnoses) {
+      html += `<li><strong>${item.condition || 'Unknown'}</strong> - Date noted: ${item.date_noted || 'Unknown'}, Status: ${item.status || 'unknown'}</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Major Surgeries section (formerly procedures)
+  if (summaryJson?.surgeries?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Major Surgeries</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    for (const surg of summaryJson.surgeries) {
+      html += `<li><strong>${surg.procedure || 'Unknown'}</strong> - ${surg.date || 'Unknown date'} ${surg.notes ? `(${surg.notes})` : ''}</li>`;
+    }
+    html += `</ul>`;
+  }
+
   // Add Allergies section
   if (summaryJson?.allergies?.length > 0) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Allergies</h3><ul style="background: #fff5f5; padding: 15px 30px; border-radius: 5px; border-left: 4px solid #DA291C;">`;
     for (const allergy of summaryJson.allergies) {
-      html += `<li><strong>${allergy.substance || 'Unknown'}</strong>: ${allergy.reaction || 'Unknown reaction'} (${allergy.certainty || 'unknown'})</li>`;
-    }
-    html += `</ul>`;
-  }
-
-  // Add Significant Past History section
-  if (summaryJson?.significant_past_history?.length > 0) {
-    html += `<h3 style="color: #005EB8; margin-top: 20px;">Significant Past History</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
-    for (const item of summaryJson.significant_past_history) {
-      html += `<li><strong>${item.condition || 'Unknown'}</strong> - First noted: ${item.first_noted || 'Unknown'}, Status: ${item.status || 'unknown'}</li>`;
-    }
-    html += `</ul>`;
-  }
-
-  // Add Medications section
-  if (summaryJson?.medications?.length > 0) {
-    html += `<h3 style="color: #005EB8; margin-top: 20px;">Medications</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
-    for (const med of summaryJson.medications) {
-      html += `<li><strong>${med.name || 'Unknown'}</strong> ${med.dose || ''} ${med.route || ''} ${med.frequency || ''} (${med.status || 'unknown'})</li>`;
+      html += `<li><strong>${allergy.allergen || 'Unknown'}</strong>: ${allergy.reaction || 'Unknown reaction'} ${allergy.year ? `(${allergy.year})` : ''}</li>`;
     }
     html += `</ul>`;
   }
@@ -715,29 +721,59 @@ function buildFullSummaryEmailHtml(
     html += `</ul>`;
   }
 
-  // Add Procedures section
-  if (summaryJson?.procedures?.length > 0) {
-    html += `<h3 style="color: #005EB8; margin-top: 20px;">Procedures</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
-    for (const proc of summaryJson.procedures) {
-      html += `<li><strong>${proc.name || 'Unknown'}</strong> - ${proc.date || 'Unknown date'}</li>`;
-    }
-    html += `</ul>`;
-  }
-
   // Add Family History section
   if (summaryJson?.family_history?.length > 0) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Family History</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
     for (const fh of summaryJson.family_history) {
-      html += `<li><strong>${fh.relation || 'Unknown'}</strong>: ${fh.condition || 'Unknown'} ${fh.notes ? `(${fh.notes})` : ''}</li>`;
+      html += `<li><strong>${fh.relation || 'Unknown'}</strong>: ${fh.condition || 'Unknown'}</li>`;
     }
     html += `</ul>`;
   }
 
-  // Add Risk Factors section
-  if (summaryJson?.risk_factors?.length > 0) {
-    html += `<h3 style="color: #005EB8; margin-top: 20px;">Risk Factors</h3><ul style="background: #fff5f5; padding: 15px 30px; border-radius: 5px; border-left: 4px solid #ED8B00;">`;
-    for (const rf of summaryJson.risk_factors) {
-      html += `<li><strong>${rf.type || 'Unknown'}</strong>: ${rf.value || 'Unknown'} (${rf.date || 'Unknown date'})</li>`;
+  // Add Social History section
+  if (summaryJson?.social_history && (summaryJson.social_history.smoking_status !== 'unknown' || summaryJson.social_history.alcohol !== 'unknown' || summaryJson.social_history.occupation)) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Social History</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    if (summaryJson.social_history.smoking_status && summaryJson.social_history.smoking_status !== 'unknown') {
+      const smokingText = summaryJson.social_history.smoking_status === 'ex' 
+        ? `Ex-smoker${summaryJson.social_history.stopped_year ? ` (stopped ${summaryJson.social_history.stopped_year})` : ''}`
+        : summaryJson.social_history.smoking_status;
+      html += `<li><strong>Smoking</strong>: ${smokingText}</li>`;
+    }
+    if (summaryJson.social_history.alcohol && summaryJson.social_history.alcohol !== 'unknown') {
+      html += `<li><strong>Alcohol</strong>: ${summaryJson.social_history.alcohol}</li>`;
+    }
+    if (summaryJson.social_history.occupation) {
+      html += `<li><strong>Occupation</strong>: ${summaryJson.social_history.occupation}</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Reproductive History section (if relevant)
+  if (summaryJson?.reproductive_history && (summaryJson.reproductive_history.gravida > 0 || summaryJson.reproductive_history.notes)) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Reproductive History</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    if (summaryJson.reproductive_history.gravida > 0 || summaryJson.reproductive_history.para > 0) {
+      html += `<li>G${summaryJson.reproductive_history.gravida} P${summaryJson.reproductive_history.para}${summaryJson.reproductive_history.miscarriages > 0 ? ` + ${summaryJson.reproductive_history.miscarriages} miscarriage(s)` : ''}</li>`;
+    }
+    if (summaryJson.reproductive_history.notes) {
+      html += `<li>${summaryJson.reproductive_history.notes}</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Hospital Findings section
+  if (summaryJson?.hospital_findings?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Significant Hospital Findings</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    for (const hf of summaryJson.hospital_findings) {
+      html += `<li><strong>${hf.condition || 'Unknown'}</strong> - ${hf.date || 'Unknown date'}${hf.outcome ? `: ${hf.outcome}` : ''}</li>`;
+    }
+    html += `</ul>`;
+  }
+
+  // Add Medications section
+  if (summaryJson?.medications?.length > 0) {
+    html += `<h3 style="color: #005EB8; margin-top: 20px;">Medications</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
+    for (const med of summaryJson.medications) {
+      html += `<li><strong>${med.drug || 'Unknown'}</strong> ${med.dose || ''} (${med.status || 'unknown'})</li>`;
     }
     html += `</ul>`;
   }
@@ -757,14 +793,21 @@ function buildFullSummaryEmailHtml(
     html += `<p style="background: #f0f4f5; padding: 15px; border-radius: 5px;">${summaryJson.free_text_findings}</p>`;
   }
 
-  // Add SNOMED Codes Table
-  html += `<h2 style="color: #005EB8; margin-top: 30px;">SNOMED CT Codes</h2>`;
+  // Add SNOMED Codes Table - Problem codes only
+  html += `<h2 style="color: #005EB8; margin-top: 30px;">SNOMED CT Codes (Problem Codes)</h2>`;
+  html += `<p style="color: #666; font-size: 12px; margin-bottom: 15px;">Codes suitable for import into GP systems (EMIS/SystmOne). Social history, family history, and medications are not coded.</p>`;
   
-  const snomedSections = ['problems', 'allergies', 'procedures', 'immunisations', 'risk_factors'];
+  const snomedSectionLabels: Record<string, string> = {
+    'diagnoses': 'Diagnoses',
+    'surgeries': 'Major Surgeries',
+    'allergies': 'Allergies',
+    'immunisations': 'Immunisations',
+  };
+  const snomedSections = ['diagnoses', 'surgeries', 'allergies', 'immunisations'];
   for (const section of snomedSections) {
     const items = snomedJson?.[section] || [];
     if (items.length > 0) {
-      html += `<h4 style="color: #003087; margin-top: 15px; text-transform: capitalize;">${section.replace('_', ' ')}</h4>`;
+      html += `<h4 style="color: #003087; margin-top: 15px;">${snomedSectionLabels[section] || section}</h4>`;
       html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">`;
       html += `<tr style="background: #005EB8; color: white;"><th style="padding: 8px; text-align: left;">Term</th><th style="padding: 8px; text-align: left;">SNOMED Code</th><th style="padding: 8px; text-align: center;">Confidence</th></tr>`;
       for (const item of items) {

@@ -7,20 +7,60 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Lloyd George Summariser system prompt
-const SUMMARISER_SYSTEM_PROMPT = `You are a UK GP records summariser working to NHS standards. Read a digitised Lloyd George record and produce a concise, structured summary suitable for import into EMIS or SystmOne. Prioritise clarity, chronology, and safety. Use UK spellings and NHS conventions. Do not invent facts. If uncertain, say "unknown".
+// Lloyd George Summariser system prompt - NHS/RCGP/GP2GP compliant
+const SUMMARISER_SYSTEM_PROMPT = `You are a GP clinical summariser working under NHS England, RCGP, and GP2GP summarising standards.
+Your task is to read the uploaded scanned Lloyd George (LG) patient record, extract relevant clinical information, and produce a structured, coded summary suitable for entry into EMIS Web or SystmOne.
+
+OBJECTIVE: Identify and summarise clinically significant, enduring information that contributes to ongoing patient care and safety. Exclude redundant, administrative, or minor entries.
+
+INCLUDE (Record as Coded Data):
+1. Major Diagnoses & Chronic Conditions - diabetes, hypertension, asthma, COPD, CHD, stroke, cancer, CKD, thyroid disease, epilepsy, hepatitis, mental health disorders
+2. Major Operations & Procedures - hysterectomy, cholecystectomy, CABG, joint replacements, mastectomy, bowel resection, pacemaker fitting
+3. Allergies & Adverse Reactions - include allergen, reaction type, and year if known
+4. Immunisations - all completed vaccinations with approximate dates
+5. Family & Social History - family history of major disease, smoking status, alcohol use, occupation
+6. Obstetric & Reproductive History - gravida/para status, miscarriages, terminations, caesarean sections
+7. Significant Hospital/Specialist Findings - discharge diagnoses, positive investigation results
+8. Active Medications or Past Long-Term Treatments - warfarin, lithium, steroids, HRT
+
+EXCLUDE (Do NOT Record):
+- Administrative or correspondence items (referrals, appointment letters, insurance reports)
+- Minor self-limiting illnesses (URTI, tonsillitis, gastroenteritis)
+- Normal or negative investigation results
+- Discontinued contraception unless still relevant
+- Duplicate or ambiguous entries (e.g. "?asthma 1983")
+- Third-party information (partner or family member details)
 
 Developer guardrails:
 - No patient advice. No diagnosis creation. Summarise only what's present.
-- Keep personal third-party identifiers out of the summary (note "3rd-party info redaction required" if present).`;
+- If handwriting is unclear, flag with (unclear) where uncertain.
+- Use UK spellings and NHS conventions.
+- Never fabricate data; mark "unknown" if uncertain.`;
 
-// SNOMED Extractor system prompt  
-const SNOMED_SYSTEM_PROMPT = `You are a clinical coder for UK primary care. Map the summary JSON and source OCR to SNOMED CT codes suitable for GP systems. Prefer high-level, safe, unambiguous concepts. If you cannot confidently code, output code: "UNKNOWN" and term: "Unknown concept".
+// SNOMED Extractor system prompt - Focus on problem codes only
+const SNOMED_SYSTEM_PROMPT = `You are a clinical coder for UK primary care following NHS/RCGP summarising standards.
+Map the clinical summary to SNOMED CT codes suitable for GP systems (EMIS/SystmOne).
 
-Constraints:
-- Use UK SNOMED CT where possible; return preferred terms.
-- No medication product coding in this POC (skip or mark UNKNOWN).
-- Confidence 0–1.0. Provide a short evidence snippet.`;
+CODING RULES:
+- Use UK SNOMED CT preferred terms only
+- Prefer high-level, safe, unambiguous concepts
+- If you cannot confidently code, output code: "UNKNOWN"
+- Confidence 0–1.0 based on clarity in source text
+- Provide a short evidence snippet from the source
+
+ONLY CODE:
+1. Major diagnoses and chronic conditions
+2. Major surgical procedures
+3. Allergies and adverse drug reactions
+4. Immunisations
+
+DO NOT CODE:
+- Minor self-limiting illnesses
+- Social history (smoking/alcohol) - these are not SNOMED problems
+- Family history - record as free text only
+- Normal investigation results
+- Administrative items
+- Medications (out of scope for this POC)`;
 
 // Patient details extraction prompt
 const PATIENT_EXTRACTION_PROMPT = `You are extracting patient demographic details from scanned Lloyd George medical records. Extract ONLY what you can clearly see in the OCR text. Do not guess or invent information.
@@ -321,18 +361,22 @@ Task:
 Return valid JSON matching this schema exactly:
 
 {
-  "summary_line": "e.g., PMH: T2DM dx ~2009, HTN 2012; NKDA; past cholecystectomy 2018; smoker ex 2015.",
-  "allergies": [{"substance":"", "reaction":"", "certainty":"confirmed|suspected", "source":"LG"}],
-  "significant_past_history": [{"condition":"", "first_noted":"YYYY or YYYY-MM", "status":"active|resolved|unknown"}],
-  "medications": [{"name":"", "dose":"", "route":"", "frequency":"", "start_date":"YYYY-MM or unknown", "status":"current|stopped|unknown"}],
+  "summary_line": "Brief summary: PMH: T2DM dx ~2009, HTN 2012; NKDA; cholecystectomy 2018; ex-smoker 2015.",
+  "diagnoses": [{"condition":"", "date_noted":"YYYY or YYYY-MM", "status":"active|resolved|unknown"}],
+  "surgeries": [{"procedure":"", "date":"YYYY or unknown", "notes":""}],
+  "allergies": [{"allergen":"", "reaction":"", "year":""}],
   "immunisations": [{"vaccine":"", "date":"YYYY-MM-DD or unknown"}],
-  "procedures": [{"name":"", "date":"YYYY or unknown"}],
-  "family_history": [{"relation":"", "condition":"", "notes":""}],
-  "risk_factors": [{"type":"smoking|alcohol|bmi|blood_pressure|other", "value":"", "date":"YYYY-MM or unknown"}],
-  "alerts": [{"type":"safeguarding|high_risk_meds|third_party_info|other", "note":""}],
-  "free_text_findings": "Short narrative (≤150 words) capturing anything important not mapped above."
+  "family_history": [{"relation":"", "condition":""}],
+  "social_history": {"smoking_status":"never|current|ex", "stopped_year":"", "alcohol":"none|moderate|heavy", "occupation":""},
+  "reproductive_history": {"gravida":0, "para":0, "miscarriages":0, "notes":""},
+  "hospital_findings": [{"condition":"", "date":"YYYY", "outcome":""}],
+  "medications": [{"drug":"", "dose":"", "status":"current|stopped|unknown"}],
+  "alerts": [{"type":"safeguarding|high_risk_meds|third_party_info", "note":""}],
+  "free_text_findings": "Short narrative (≤150 words) for anything important not mapped above.",
+  "summary_metadata": "Summary completed ${new Date().toISOString().split('T')[0]} by Notewell AI"
 }
 
+REMEMBER: Only include clinically significant, enduring information. Exclude minor illnesses, admin items, normal results.
 If something is not present, return an empty array or "". Never change keys. Dates can be approximate (year/month).
 
 OCR Text:
@@ -354,15 +398,19 @@ ${fullOcrText.substring(0, 50000)}`;
     let snomedJson: any = null;
 
     if (openaiKey && summaryJson) {
-      const snomedPrompt = `Using the summary.json and the source OCR, return JSON with:
+      const snomedPrompt = `Using the clinical summary, extract SNOMED CT codes for GP import.
+
+Return JSON with these domains ONLY (problem codes suitable for GP system import):
 
 {
-  "problems": [{"term":"","code":"","from":"summary|ocr","confidence":0.0,"evidence":"text snippet"}],
-  "allergies": [{"term":"","code":"","from":"","confidence":0.0,"evidence":""}],
-  "procedures": [{"term":"","code":"","from":"","confidence":0.0,"evidence":""}],
-  "immunisations": [{"term":"","code":"","from":"","confidence":0.0,"evidence":""}],
-  "risk_factors": [{"term":"","code":"","from":"","confidence":0.0,"evidence":""}]
+  "diagnoses": [{"term":"","code":"","confidence":0.0,"evidence":"text snippet"}],
+  "surgeries": [{"term":"","code":"","confidence":0.0,"evidence":""}],
+  "allergies": [{"term":"","code":"","confidence":0.0,"evidence":""}],
+  "immunisations": [{"term":"","code":"","confidence":0.0,"evidence":""}]
 }
+
+ONLY include items that should be coded into the problem list or procedure list.
+Do NOT code social history, family history, medications, or minor illnesses.
 
 Summary JSON:
 ${JSON.stringify(summaryJson, null, 2)}
@@ -641,32 +689,34 @@ async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: stri
 function createEmptySummary() {
   return {
     summary_line: '',
+    diagnoses: [],
+    surgeries: [],
     allergies: [],
-    significant_past_history: [],
-    medications: [],
     immunisations: [],
-    procedures: [],
     family_history: [],
-    risk_factors: [],
+    social_history: { smoking_status: 'unknown', alcohol: 'unknown', occupation: '' },
+    reproductive_history: { gravida: 0, para: 0, miscarriages: 0, notes: '' },
+    hospital_findings: [],
+    medications: [],
     alerts: [],
     free_text_findings: 'OCR text was insufficient for clinical summary generation.',
+    summary_metadata: '',
   };
 }
 
 function createEmptySnomed() {
   return {
-    problems: [],
+    diagnoses: [],
+    surgeries: [],
     allergies: [],
-    procedures: [],
     immunisations: [],
-    risk_factors: [],
   };
 }
 
 function generateSnomedCsv(snomed: any, patientId: string, nhsNumber: string): string {
-  const rows: string[] = ['domain,term,code,confidence,evidence,source,patient_ulid,nhs_number'];
+  const rows: string[] = ['domain,term,code,confidence,evidence,patient_ulid,nhs_number'];
   
-  const domains = ['problems', 'allergies', 'procedures', 'immunisations', 'risk_factors'];
+  const domains = ['diagnoses', 'surgeries', 'allergies', 'immunisations'];
   
   for (const domain of domains) {
     const items = snomed[domain] || [];
@@ -675,9 +725,8 @@ function generateSnomedCsv(snomed: any, patientId: string, nhsNumber: string): s
         domain,
         `"${(item.term || '').replace(/"/g, '""')}"`,
         item.code || 'UNKNOWN',
-        item.confidence || 0,
+        (item.confidence || 0).toFixed(2),
         `"${(item.evidence || '').replace(/"/g, '""')}"`,
-        item.from || 'ocr',
         patientId,
         (nhsNumber || '').replace(/\s/g, ''),
       ].join(',');
@@ -881,13 +930,12 @@ async function createSimplePdf(
       addSpace(1);
     }
     
-    // SNOMED Codes sections
+    // SNOMED Codes sections - Problem codes only
     const snomedSections = [
-      { key: 'problems', title: 'PROBLEMS / CONDITIONS' },
+      { key: 'diagnoses', title: 'DIAGNOSES' },
+      { key: 'surgeries', title: 'MAJOR SURGERIES' },
       { key: 'allergies', title: 'ALLERGIES' },
-      { key: 'procedures', title: 'PROCEDURES' },
       { key: 'immunisations', title: 'IMMUNISATIONS' },
-      { key: 'risk_factors', title: 'RISK FACTORS' },
     ];
     
     for (const section of snomedSections) {
@@ -909,30 +957,47 @@ async function createSimplePdf(
       }
     }
     
-    // Additional clinical sections from summary
+    // Additional clinical sections from summary (not SNOMED coded)
     const clinicalSections = [
       { key: 'medications', title: 'MEDICATIONS' },
-      { key: 'significant_past_history', title: 'SIGNIFICANT PAST HISTORY' },
+      { key: 'diagnoses', title: 'DIAGNOSES (DETAILED)' },
     ];
     
     for (const section of clinicalSections) {
       const items = summaryJson?.[section.key] || [];
-      if (items.length > 0) {
+      if (items.length > 0 && section.key === 'medications') {
         drawLine(section.title, 12);
         addSpace(0.3);
         for (const item of items) {
           let text = '';
           if (section.key === 'medications') {
-            text = `${item.name || ''} ${item.dose || ''} ${item.frequency || ''}`;
-          } else if (section.key === 'significant_past_history') {
-            text = `${item.condition || ''} (${item.first_noted || 'unknown'}) - ${item.status || 'unknown'}`;
+            text = `${item.drug || ''} ${item.dose || ''} (${item.status || 'unknown'})`;
           } else {
-            text = JSON.stringify(item);
+            text = `${item.condition || ''} (${item.date_noted || 'unknown'}) - ${item.status || 'unknown'}`;
           }
           drawLine(text, 10, 15);
         }
         addSpace(0.5);
       }
+    }
+    
+    // Social History
+    if (summaryJson?.social_history && (summaryJson.social_history.smoking_status !== 'unknown' || summaryJson.social_history.alcohol !== 'unknown')) {
+      drawLine('SOCIAL HISTORY', 12);
+      addSpace(0.3);
+      if (summaryJson.social_history.smoking_status && summaryJson.social_history.smoking_status !== 'unknown') {
+        const smokingText = summaryJson.social_history.smoking_status === 'ex' 
+          ? `Ex-smoker${summaryJson.social_history.stopped_year ? ` (stopped ${summaryJson.social_history.stopped_year})` : ''}`
+          : summaryJson.social_history.smoking_status;
+        drawLine(`Smoking: ${smokingText}`, 10, 15);
+      }
+      if (summaryJson.social_history.alcohol && summaryJson.social_history.alcohol !== 'unknown') {
+        drawLine(`Alcohol: ${summaryJson.social_history.alcohol}`, 10, 15);
+      }
+      if (summaryJson.social_history.occupation) {
+        drawLine(`Occupation: ${summaryJson.social_history.occupation}`, 10, 15);
+      }
+      addSpace(0.5);
     }
     
     // Footer
@@ -1200,10 +1265,10 @@ function buildSummaryEmailHtml(
     return String(item);
   };
 
-  // Calculate low confidence SNOMED items
+  // Calculate low confidence SNOMED items - problem codes only
   const snomedEntries: any[] = [];
   if (snomedJson) {
-    for (const domain of ['problems', 'allergies', 'procedures', 'immunisations', 'risk_factors']) {
+    for (const domain of ['diagnoses', 'surgeries', 'allergies', 'immunisations']) {
       const items = snomedJson[domain] || [];
       snomedEntries.push(...items.map((item: any) => ({ ...item, domain })));
     }
@@ -1229,38 +1294,69 @@ function buildSummaryEmailHtml(
     html += `<h2 style="color: #333;">Clinical Summary</h2><p>${summaryJson.summary_line}</p>`;
   }
 
+  if (summaryJson?.diagnoses?.length) {
+    html += `<h3 style="color: #333;">Diagnoses</h3><ul>${summaryJson.diagnoses.map((d: any) => `<li><strong>${d.condition || 'Unknown'}</strong> - ${d.date_noted || 'Unknown'} (${d.status || 'unknown'})</li>`).join('')}</ul>`;
+  }
+
+  if (summaryJson?.surgeries?.length) {
+    html += `<h3 style="color: #333;">Major Surgeries</h3><ul>${summaryJson.surgeries.map((s: any) => `<li><strong>${s.procedure || 'Unknown'}</strong> - ${s.date || 'Unknown'}${s.notes ? ` (${s.notes})` : ''}</li>`).join('')}</ul>`;
+  }
+
   if (summaryJson?.allergies?.length) {
-    html += `<h3 style="color: #DA291C;">⚠️ Allergies</h3><ul>${summaryJson.allergies.map((a: any) => `<li>${formatListItem(a)}</li>`).join('')}</ul>`;
-  }
-
-  if (summaryJson?.medications?.length) {
-    html += `<h3 style="color: #333;">Medications</h3><ul>${summaryJson.medications.map((m: any) => `<li>${formatListItem(m)}</li>`).join('')}</ul>`;
-  }
-
-  if (summaryJson?.significant_past_history?.length) {
-    html += `<h3 style="color: #333;">Significant Past History</h3><ul>${summaryJson.significant_past_history.map((h: any) => `<li>${formatListItem(h)}</li>`).join('')}</ul>`;
-  }
-
-  if (summaryJson?.procedures?.length) {
-    html += `<h3 style="color: #333;">Procedures</h3><ul>${summaryJson.procedures.map((p: any) => `<li>${formatListItem(p)}</li>`).join('')}</ul>`;
+    html += `<h3 style="color: #DA291C;">⚠️ Allergies</h3><ul>${summaryJson.allergies.map((a: any) => `<li><strong>${a.allergen || 'Unknown'}</strong>: ${a.reaction || 'Unknown'}${a.year ? ` (${a.year})` : ''}</li>`).join('')}</ul>`;
   }
 
   if (summaryJson?.immunisations?.length) {
-    html += `<h3 style="color: #333;">Immunisations</h3><ul>${summaryJson.immunisations.map((i: any) => `<li>${formatListItem(i)}</li>`).join('')}</ul>`;
+    html += `<h3 style="color: #333;">Immunisations</h3><ul>${summaryJson.immunisations.map((i: any) => `<li><strong>${i.vaccine || 'Unknown'}</strong> - ${i.date || 'Unknown'}</li>`).join('')}</ul>`;
+  }
+
+  if (summaryJson?.medications?.length) {
+    html += `<h3 style="color: #333;">Medications</h3><ul>${summaryJson.medications.map((m: any) => `<li><strong>${m.drug || 'Unknown'}</strong> ${m.dose || ''} (${m.status || 'unknown'})</li>`).join('')}</ul>`;
+  }
+
+  if (summaryJson?.family_history?.length) {
+    html += `<h3 style="color: #333;">Family History</h3><ul>${summaryJson.family_history.map((f: any) => `<li><strong>${f.relation || 'Unknown'}</strong>: ${f.condition || 'Unknown'}</li>`).join('')}</ul>`;
+  }
+
+  // Social History
+  if (summaryJson?.social_history && (summaryJson.social_history.smoking_status !== 'unknown' || summaryJson.social_history.alcohol !== 'unknown' || summaryJson.social_history.occupation)) {
+    html += `<h3 style="color: #333;">Social History</h3><ul>`;
+    if (summaryJson.social_history.smoking_status && summaryJson.social_history.smoking_status !== 'unknown') {
+      const smokingText = summaryJson.social_history.smoking_status === 'ex' 
+        ? `Ex-smoker${summaryJson.social_history.stopped_year ? ` (stopped ${summaryJson.social_history.stopped_year})` : ''}`
+        : summaryJson.social_history.smoking_status;
+      html += `<li><strong>Smoking</strong>: ${smokingText}</li>`;
+    }
+    if (summaryJson.social_history.alcohol && summaryJson.social_history.alcohol !== 'unknown') {
+      html += `<li><strong>Alcohol</strong>: ${summaryJson.social_history.alcohol}</li>`;
+    }
+    if (summaryJson.social_history.occupation) {
+      html += `<li><strong>Occupation</strong>: ${summaryJson.social_history.occupation}</li>`;
+    }
+    html += `</ul>`;
   }
 
   if (summaryJson?.free_text_findings) {
     html += `<h3 style="color: #333;">Additional Findings</h3><p>${summaryJson.free_text_findings}</p>`;
   }
 
-  // SNOMED summary
+  // SNOMED summary - problem codes only
   if (snomedEntries.length > 0) {
-    html += `<h2 style="color: #333;">SNOMED CT Codes (${snomedEntries.length} identified)</h2>`;
+    html += `<h2 style="color: #333;">SNOMED CT Codes (Problem Codes - ${snomedEntries.length} identified)</h2>`;
+    html += `<p style="color: #666; font-size: 11px; margin-bottom: 10px;">Codes suitable for GP system import. Social history, family history, and medications are not SNOMED coded.</p>`;
     
-    const domains = [...new Set(snomedEntries.map(s => s.domain))];
+    const domainLabels: Record<string, string> = {
+      'diagnoses': 'Diagnoses',
+      'surgeries': 'Major Surgeries',
+      'allergies': 'Allergies',
+      'immunisations': 'Immunisations',
+    };
+    const domains = ['diagnoses', 'surgeries', 'allergies', 'immunisations'].filter(d => 
+      snomedEntries.some(s => s.domain === d)
+    );
     for (const domain of domains) {
       const domainEntries = snomedEntries.filter(s => s.domain === domain);
-      html += `<h3 style="color: #005EB8;">${domain.charAt(0).toUpperCase() + domain.slice(1)}</h3>`;
+      html += `<h3 style="color: #005EB8;">${domainLabels[domain] || domain}</h3>`;
       html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">
         <tr style="background: #005EB8; color: white;">
           <th style="padding: 6px; text-align: left;">Term</th>
