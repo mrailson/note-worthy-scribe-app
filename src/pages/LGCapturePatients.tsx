@@ -242,17 +242,17 @@ export default function LGCapturePatients() {
                     <p className="text-sm text-muted-foreground">
                       DOB: {formatDob(patient.dob || patient.ai_extracted_dob)}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages
-                    </p>
                   </div>
-                  <div className="flex flex-col items-end gap-2">
+                  <div className="flex flex-col items-end gap-1">
                     {getStatusBadge(patient)}
                     <span className="text-xs text-muted-foreground text-right">
                       {patient.practice_ods}
                       {patient.uploader_name && (
                         <span className="block opacity-70">Scanned by {patient.uploader_name}</span>
                       )}
+                    </span>
+                    <span className="text-xs text-muted-foreground opacity-70">
+                      {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages
                     </span>
                   </div>
                 </div>
