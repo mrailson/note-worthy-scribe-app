@@ -116,8 +116,9 @@ serve(async (req) => {
     
     console.log(`Uploading batch OCR text (${batchOcrText.length} chars) to ${batchPath}...`);
     
-    const { error: batchUploadError } = await supabase.storage.from('lg').upload(batchPath, batchOcrText, {
-      contentType: 'text/plain',
+    const batchBlob = new Blob([batchOcrText], { type: 'application/octet-stream' });
+    const { error: batchUploadError } = await supabase.storage.from('lg').upload(batchPath, batchBlob, {
+      contentType: 'application/octet-stream',
       upsert: true,
     });
     
@@ -179,8 +180,9 @@ serve(async (req) => {
       
       console.log(`Uploading merged OCR text (${mergedOcrText.length} chars) to ${mergedPath}...`);
       
-      const { error: uploadError } = await supabase.storage.from('lg').upload(mergedPath, mergedOcrText, {
-        contentType: 'text/plain',
+      const mergedBlob = new Blob([mergedOcrText], { type: 'application/octet-stream' });
+      const { error: uploadError } = await supabase.storage.from('lg').upload(mergedPath, mergedBlob, {
+        contentType: 'application/octet-stream',
         upsert: true,
       });
 
