@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, RotateCcw, Trash2, GripVertical, Upload, X, AlertTriangle, FastForward, Loader2 } from 'lucide-react';
+import { Camera, RotateCcw, Trash2, GripVertical, Upload, AlertTriangle, FastForward, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { generateULID } from '@/utils/ulid';
@@ -184,7 +184,6 @@ export function LGCameraCapture({
 
     playClickSound();
     onImagesChange([...images, newImage]);
-    toast.success(`Page ${images.length + 1} captured`);
   }, [images, onImagesChange, maxPages]);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -209,7 +208,7 @@ export function LGCameraCapture({
     });
 
     if (files.length > remainingSlots) {
-      toast.warning(`Only ${remainingSlots} more pages allowed. Some files were skipped.`);
+      // Silently skip extra files
     }
 
     // Reset input
@@ -243,7 +242,6 @@ export function LGCameraCapture({
   const deleteImage = useCallback((index: number) => {
     const newImages = images.filter((_, i) => i !== index);
     onImagesChange(newImages);
-    toast.success('Page removed');
   }, [images, onImagesChange]);
 
   const handleDragStart = (index: number) => {
@@ -307,29 +305,16 @@ export function LGCameraCapture({
               )}
             </div>
             
-            {isCapturing && (
-              <div className="flex flex-col gap-3">
-                {images.length > 0 && (
-                  <Button
-                    onClick={onFinish}
-                    disabled={isProcessing}
-                    className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
-                    size="lg"
-                  >
-                    <FastForward className="mr-2 h-5 w-5" />
-                    Done, Next Patient ({images.length} pages)
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={stopCamera}
-                  size="lg"
-                  className="w-full"
-                >
-                  <X className="h-5 w-5 mr-2" />
-                  Close Camera
-                </Button>
-              </div>
+            {isCapturing && images.length > 0 && (
+              <Button
+                onClick={onFinish}
+                disabled={isProcessing}
+                className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
+                size="lg"
+              >
+                <FastForward className="mr-2 h-5 w-5" />
+                Done, Next Patient ({images.length} pages)
+              </Button>
             )}
           </CardContent>
         </Card>
