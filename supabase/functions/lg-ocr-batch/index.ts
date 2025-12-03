@@ -111,13 +111,33 @@ serve(async (req) => {
 
     const batchOcrText = ocrResults.join('\n\n');
 
-    // Save batch OCR text to storage (use application/octet-stream as text/plain not supported)
+    // Save batch OCR text to storage with error checking
     const batchPath = `${basePath}/work/ocr_batch_${batchNumber.toString().padStart(3, '0')}.txt`;
     const batchBlob = new Blob([batchOcrText], { type: 'application/octet-stream' });
-    await supabase.storage.from('lg').upload(batchPath, batchBlob, {
+    
+    console.log(`Uploading batch OCR text (${batchOcrText.length} chars) to ${batchPath}...`);
+    
+    const { error: batchUploadError } = await supabase.storage.from('lg').upload(batchPath, batchBlob, {
       contentType: 'application/octet-stream',
       upsert: true,
     });
+    
+    if (batchUploadError) {
+      console.error('Failed to upload batch OCR file:', batchUploadError);
+      throw new Error(`Failed to save OCR batch ${batchNumber}: ${JSON.stringify(batchUploadError)}`);
+    }
+    
+    // Verify upload succeeded
+    const { data: verifyData, error: verifyError } = await supabase.storage
+      .from('lg')
+      .download(batchPath);
+    
+    if (verifyError || !verifyData) {
+      console.error('Batch file verification failed:', verifyError);
+      throw new Error(`OCR batch file upload could not be verified: ${JSON.stringify(verifyError)}`);
+    }
+    
+    console.log(`Batch ${batchNumber} OCR file saved and verified`);
 
     // Update patient record
     const totalBatches = Math.ceil(files.length / BATCH_SIZE);

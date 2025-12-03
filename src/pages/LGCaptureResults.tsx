@@ -48,7 +48,7 @@ function formatNhsNumber(nhs: string | null | undefined): string {
 export default function LGCaptureResults() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPatient, triggerProcessing, retrySummary, deletePatient, isLoading: actionLoading } = useLGCapture();
+  const { getPatient, triggerProcessing, retrySummary, restartOCR, deletePatient, isLoading: actionLoading } = useLGCapture();
   
   const [patient, setPatient] = useState<LGPatient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -250,15 +250,32 @@ export default function LGCaptureResults() {
       {/* Retry Summary Button - for stuck jobs where OCR completed */}
       {patient.job_status === 'processing' && 
         (patient as any).processing_phase === 'summary' && (
-        <Button
-          onClick={handleRetrySummary}
-          variant="outline"
-          className="w-full"
-          disabled={actionLoading}
-        >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          Retry Summary Generation
-        </Button>
+        <div className="space-y-2">
+          <Button
+            onClick={handleRetrySummary}
+            variant="outline"
+            className="w-full"
+            disabled={actionLoading}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Retry Summary Generation
+          </Button>
+          <Button
+            onClick={async () => {
+              const success = await restartOCR(patient.id);
+              if (success) {
+                toast.success('OCR restarted from scratch');
+                loadPatient();
+              }
+            }}
+            variant="outline"
+            className="w-full text-amber-600 hover:text-amber-700"
+            disabled={actionLoading}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Restart OCR from Scratch (if files missing)
+          </Button>
+        </div>
       )}
 
       {/* Download Panel */}

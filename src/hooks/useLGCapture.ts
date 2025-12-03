@@ -423,6 +423,59 @@ export function useLGCapture() {
     }
   }, []);
 
+  const restartOCR = useCallback(async (patientId: string): Promise<boolean> => {
+    try {
+      setIsLoading(true);
+      setError(null);
+
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('Not authenticated');
+      }
+
+      console.log('Restarting OCR processing for patient:', patientId);
+
+      // Reset patient status to restart OCR from batch 0
+      const { error: updateError } = await supabase
+        .from('lg_patients')
+        .update({
+          processing_phase: 'ocr',
+          ocr_batches_completed: 0,
+          ocr_text_url: null,
+          ocr_started_at: null,
+          ocr_completed_at: null,
+          error_message: null,
+        })
+        .eq('id', patientId);
+
+      if (updateError) {
+        throw updateError;
+      }
+
+      // Trigger OCR batch 0
+      const { error: invokeError } = await supabase.functions.invoke('lg-ocr-batch', {
+        body: { patientId, batchNumber: 0 },
+      });
+
+      if (invokeError) {
+        console.error('Failed to invoke lg-ocr-batch:', invokeError);
+        throw invokeError;
+      }
+
+      console.log('OCR restart triggered successfully');
+      await logAuditEvent(patientId, 'ocr_restart', user.email || 'unknown', user.id, {});
+      return true;
+    } catch (err) {
+      console.error('restartOCR error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to restart OCR';
+      setError(message);
+      toast.error(`Restart failed: ${message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isLoading,
     error,
@@ -431,6 +484,7 @@ export function useLGCapture() {
     uploadImages,
     triggerProcessing,
     retrySummary,
+    restartOCR,
     listPatients,
     deletePatient,
   };
