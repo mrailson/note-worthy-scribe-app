@@ -60,35 +60,58 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     return null;
   }
 
-  const nhsNumber = patient.nhs_number?.replace(/\s/g, '') || patient.id;
+  // Format date as DD_MMM_YYYY (e.g., 15_Mar_1952)
+  const formatDateForFilename = (dateStr: string | null | undefined): string => {
+    if (!dateStr) return 'Unknown';
+    try {
+      const date = new Date(dateStr);
+      if (isNaN(date.getTime())) return 'Unknown';
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = date.toLocaleDateString('en-GB', { month: 'short' });
+      const year = date.getFullYear();
+      return `${day}_${month}_${year}`;
+    } catch {
+      return 'Unknown';
+    }
+  };
+
+  const nhsNumber = (patient.ai_extracted_nhs || patient.nhs_number || patient.id).replace(/\s/g, '');
+  const dob = patient.ai_extracted_dob || patient.dob;
+  const scanDate = patient.processing_completed_at || patient.created_at;
+  
+  const dobFormatted = formatDateForFilename(dob);
+  const scanDateFormatted = formatDateForFilename(scanDate);
+  
+  // Naming convention: NHS Number_DOB(DD_MMM_YYYY)_ScanDate___Type
+  const baseFilename = `${nhsNumber}_${dobFormatted}_${scanDateFormatted}`;
 
   const files = [
     {
       label: 'Lloyd George PDF',
       description: 'Searchable PDF with all pages',
       url: patient.pdf_url,
-      filename: `${nhsNumber}_lloyd-george.pdf`,
+      filename: `${baseFilename}___Lloyd George Scan.pdf`,
       icon: FileText,
     },
     {
       label: 'Clinical Summary',
       description: 'Structured JSON summary',
       url: patient.summary_json_url,
-      filename: `${nhsNumber}_summary.json`,
+      filename: `${baseFilename}___Clinical Summary.json`,
       icon: FileJson,
     },
     {
       label: 'SNOMED Codes (JSON)',
       description: 'Clinical codes for import',
       url: patient.snomed_json_url,
-      filename: `${nhsNumber}_snomed.json`,
+      filename: `${baseFilename}___SNOMED Codes.json`,
       icon: FileJson,
     },
     {
       label: 'SNOMED Codes (CSV)',
       description: 'Spreadsheet format',
       url: patient.snomed_csv_url,
-      filename: `${nhsNumber}_snomed.csv`,
+      filename: `${baseFilename}___SNOMED Codes.csv`,
       icon: FileSpreadsheet,
     },
   ];
