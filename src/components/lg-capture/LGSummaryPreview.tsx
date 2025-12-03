@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users, Building2, Cigarette } from 'lucide-react';
+import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users, Building2, Cigarette, Code2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 
@@ -43,43 +43,75 @@ interface SummaryData {
   risk_factors?: Array<{ type: string; value: string; date: string }>;
 }
 
+interface SnomedEntry {
+  term: string;
+  code: string;
+  from: string;
+  confidence: number;
+  evidence: string;
+  date?: string;
+}
+
+interface SnomedData {
+  diagnoses?: SnomedEntry[];
+  surgeries?: SnomedEntry[];
+  allergies?: SnomedEntry[];
+  immunisations?: SnomedEntry[];
+}
+
 interface LGSummaryPreviewProps {
   patient: LGPatient;
 }
 
 export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
   const [summary, setSummary] = useState<SummaryData | null>(null);
+  const [snomedData, setSnomedData] = useState<SnomedData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const loadSummary = async () => {
-      if (!patient.summary_json_url || patient.job_status !== 'succeeded') {
+    const loadData = async () => {
+      if (patient.job_status !== 'succeeded') {
         setLoading(false);
         return;
       }
 
       try {
-        const path = patient.summary_json_url.replace('lg/', '');
-        const { data, error: downloadError } = await supabase.storage
-          .from('lg')
-          .download(path);
+        // Load summary JSON
+        if (patient.summary_json_url) {
+          const summaryPath = patient.summary_json_url.replace('lg/', '');
+          const { data: summaryData, error: summaryError } = await supabase.storage
+            .from('lg')
+            .download(summaryPath);
 
-        if (downloadError) throw downloadError;
+          if (!summaryError && summaryData) {
+            const text = await summaryData.text();
+            setSummary(JSON.parse(text));
+          }
+        }
 
-        const text = await data.text();
-        const parsed = JSON.parse(text);
-        setSummary(parsed);
+        // Load SNOMED JSON
+        if (patient.snomed_json_url) {
+          const snomedPath = patient.snomed_json_url.replace('lg/', '');
+          const { data: snomedFile, error: snomedError } = await supabase.storage
+            .from('lg')
+            .download(snomedPath);
+
+          if (!snomedError && snomedFile) {
+            const text = await snomedFile.text();
+            setSnomedData(JSON.parse(text));
+          }
+        }
       } catch (err) {
-        console.error('Failed to load summary:', err);
+        console.error('Failed to load data:', err);
         setError('Failed to load summary');
       } finally {
         setLoading(false);
       }
     };
 
-    loadSummary();
-  }, [patient.summary_json_url, patient.job_status]);
+    loadData();
+  }, [patient.summary_json_url, patient.snomed_json_url, patient.job_status]);
 
   if (loading) {
     return (
@@ -338,7 +370,97 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
             </TabsContent>
           </ScrollArea>
         </Tabs>
+
+        {/* SNOMED Read Codes Section */}
+        {snomedData && (
+          <SnomedCodesSection snomedData={snomedData} />
+        )}
       </CardContent>
     </Card>
+  );
+}
+
+// Helper component for SNOMED codes display
+function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
+  // Collect all codeable items (exclude UNKNOWN codes)
+  const codeableItems: Array<{ domain: string; term: string; code: string; date?: string; confidence: number }> = [];
+
+  // Diagnoses
+  (snomedData.diagnoses ?? []).forEach(item => {
+    if (item.code && item.code !== 'UNKNOWN') {
+      codeableItems.push({ domain: 'Diagnosis', term: item.term, code: item.code, date: item.date, confidence: item.confidence });
+    }
+  });
+
+  // Surgeries
+  (snomedData.surgeries ?? []).forEach(item => {
+    if (item.code && item.code !== 'UNKNOWN') {
+      codeableItems.push({ domain: 'Surgery', term: item.term, code: item.code, date: item.date, confidence: item.confidence });
+    }
+  });
+
+  // Allergies
+  (snomedData.allergies ?? []).forEach(item => {
+    if (item.code && item.code !== 'UNKNOWN') {
+      codeableItems.push({ domain: 'Allergy', term: item.term, code: item.code, date: item.date, confidence: item.confidence });
+    }
+  });
+
+  // Immunisations
+  (snomedData.immunisations ?? []).forEach(item => {
+    if (item.code && item.code !== 'UNKNOWN') {
+      codeableItems.push({ domain: 'Immunisation', term: item.term, code: item.code, date: item.date, confidence: item.confidence });
+    }
+  });
+
+  if (codeableItems.length === 0) return null;
+
+  return (
+    <div className="mt-6 pt-4 border-t">
+      <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+        <Code2 className="h-4 w-4 text-primary" />
+        Suggested SNOMED Read Codes
+      </h4>
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b bg-muted/50">
+              <th className="text-left py-2 px-2 font-medium">Type</th>
+              <th className="text-left py-2 px-2 font-medium">Term</th>
+              <th className="text-left py-2 px-2 font-medium">SNOMED Code</th>
+              <th className="text-left py-2 px-2 font-medium">Date</th>
+              <th className="text-right py-2 px-2 font-medium">Confidence</th>
+            </tr>
+          </thead>
+          <tbody>
+            {codeableItems.map((item, i) => (
+              <tr key={i} className="border-b border-muted/30 hover:bg-muted/20">
+                <td className="py-2 px-2">
+                  <Badge variant="outline" className="text-xs">{item.domain}</Badge>
+                </td>
+                <td className="py-2 px-2">{item.term}</td>
+                <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{item.code}</td>
+                <td className="py-2 px-2 text-muted-foreground">
+                  {item.date && item.date !== 'unknown' && item.date !== 'Unknown' 
+                    ? formatUKDate(item.date) 
+                    : <span className="text-xs italic">Date unknown</span>}
+                </td>
+                <td className="py-2 px-2 text-right">
+                  <Badge 
+                    variant={item.confidence >= 0.8 ? 'default' : item.confidence >= 0.6 ? 'secondary' : 'outline'}
+                    className="text-xs"
+                  >
+                    {Math.round(item.confidence * 100)}%
+                  </Badge>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="text-xs text-muted-foreground mt-2 italic">
+        Include dates where shown to avoid coding as new diagnoses. Review items with low confidence before coding.
+      </p>
+    </div>
   );
 }
