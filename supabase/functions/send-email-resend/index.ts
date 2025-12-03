@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { decode } from "https://deno.land/std@0.190.0/encoding/base64.ts";
+import { Buffer } from "node:buffer";
 import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
@@ -56,13 +56,17 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    // Build attachments array for Resend (use Deno's base64 decode)
-    const attachments = emailData.attachments?.map(att => ({
-      filename: att.filename,
-      content: decode(att.content),
-    })) || [];
+    // Build attachments array for Resend using Buffer
+    const attachments = emailData.attachments?.map(att => {
+      const buffer = Buffer.from(att.content, 'base64');
+      console.log(`Attachment: ${att.filename}, size: ${buffer.length} bytes`);
+      return {
+        filename: att.filename,
+        content: buffer,
+      };
+    }) || [];
 
-    console.log(`Attachments count: ${attachments.length}`);
+    console.log(`Total attachments: ${attachments.length}`);
 
     // Send email via Resend
     const { data, error } = await resend.emails.send({
