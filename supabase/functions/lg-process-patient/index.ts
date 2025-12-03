@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -362,42 +363,55 @@ ${fullOcrText.substring(0, 10000)}`;
           snomedJson
         );
 
-        // Send via EmailJS edge function
-        const emailResponse = await fetch(
-          `${supabaseUrl}/functions/v1/send-email-via-emailjs`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${supabaseServiceKey}`,
-            },
-            body: JSON.stringify({
-              to_email: userEmail,
-              to_name: userName,
-              subject: `Lloyd George Record Summary - ${patientName} (NHS: ${nhsNumber})`,
-              message: emailHtml,
-              template_type: 'ai_generated_content',
-            }),
-          }
-        );
-
-        if (emailResponse.ok) {
-          // Update email_sent_at
-          await supabase
-            .from('lg_patients')
-            .update({ email_sent_at: new Date().toISOString() })
-            .eq('id', patientId);
+        // Send via Resend with PDF attachment
+        const resendApiKey = Deno.env.get('RESEND_API_KEY');
+        if (resendApiKey) {
+          const resend = new Resend(resendApiKey);
           
-          console.log(`Email sent successfully to ${userEmail}`);
-          await logAudit(supabase, patientId, 'email_sent', patient.uploader_name, {
-            recipient: userEmail,
+          // Convert PDF Uint8Array to base64 for attachment
+          const pdfBase64 = btoa(String.fromCharCode(...pdfContent));
+          
+          // Create filename for attachment
+          const cleanNhs = (nhsNumber || 'unknown').replace(/\s/g, '');
+          const pdfFilename = `LG_Record_${cleanNhs}_${patientName.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+          
+          const { data: emailResult, error: emailError } = await resend.emails.send({
+            from: 'Notewell AI <onboarding@resend.dev>',
+            to: [userEmail],
+            subject: `Lloyd George Record Summary - ${patientName} (NHS: ${formatNhsNumber(nhsNumber)})`,
+            html: emailHtml,
+            attachments: [
+              {
+                filename: pdfFilename,
+                content: pdfBase64,
+              },
+            ],
           });
+
+          if (emailError) {
+            console.error('Resend email error:', emailError);
+            await supabase
+              .from('lg_patients')
+              .update({ email_error: `Resend error: ${emailError.message || 'Unknown'}` })
+              .eq('id', patientId);
+          } else {
+            // Update email_sent_at
+            await supabase
+              .from('lg_patients')
+              .update({ email_sent_at: new Date().toISOString() })
+              .eq('id', patientId);
+            
+            console.log(`Email with PDF attachment sent successfully to ${userEmail}`);
+            await logAudit(supabase, patientId, 'email_sent', patient.uploader_name, {
+              recipient: userEmail,
+              has_pdf_attachment: true,
+            });
+          }
         } else {
-          const errorText = await emailResponse.text();
-          console.error('Email sending failed:', errorText);
+          console.error('RESEND_API_KEY not configured');
           await supabase
             .from('lg_patients')
-            .update({ email_error: `Failed to send: ${errorText.substring(0, 200)}` })
+            .update({ email_error: 'Email service not configured' })
             .eq('id', patientId);
         }
       } else {
