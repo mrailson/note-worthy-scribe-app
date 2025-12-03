@@ -435,6 +435,19 @@ export function useLGCapture() {
 
       console.log('Restarting OCR processing for patient:', patientId);
 
+      // Clear existing OCR batches from database
+      const { error: deleteError } = await supabase
+        .from('lg_ocr_batches')
+        .delete()
+        .eq('patient_id', patientId);
+      
+      if (deleteError) {
+        console.error('Failed to clear OCR batches:', deleteError);
+        // Continue anyway - not critical
+      } else {
+        console.log('Cleared existing OCR batches from database');
+      }
+
       // Reset patient status to restart OCR from batch 0
       const { error: updateError } = await supabase
         .from('lg_patients')

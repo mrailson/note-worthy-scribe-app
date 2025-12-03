@@ -89,60 +89,59 @@ serve(async (req) => {
 
     const basePath = `${patient.practice_ods}/${patientId}`;
 
-    // Download merged OCR text with retry, or merge batch files as fallback
-    console.log('Downloading merged OCR text...');
-    const ocrPath = `${basePath}/work/ocr_merged.txt`;
+    // Download merged OCR text - try JSON file first, then database fallback
+    console.log('Loading OCR text...');
     let fullOcrText = '';
     
-    // Try to download the merged file first
-    const { data: ocrData, error: ocrError } = await supabase.storage
+    // Try to download the merged JSON file first (new format)
+    const jsonPath = `${basePath}/work/ocr_merged.json`;
+    const { data: jsonData } = await supabase.storage
       .from('lg')
-      .download(ocrPath);
+      .download(jsonPath);
     
-    if (ocrData) {
-      fullOcrText = await ocrData.text();
-      console.log(`OCR merged file downloaded. Length: ${fullOcrText.length} characters`);
-    } else {
-      // Fallback: merge batch files ourselves
-      console.log('Merged file not found, attempting to merge batch files...');
-      const totalBatches = patient.ocr_batches_total || Math.ceil((patient.images_count || 0) / 10);
+    if (jsonData) {
+      try {
+        const parsed = JSON.parse(await jsonData.text());
+        fullOcrText = parsed.ocr_text || '';
+        console.log(`OCR merged JSON downloaded. Length: ${fullOcrText.length} characters`);
+      } catch (parseErr) {
+        console.error('Failed to parse OCR JSON:', parseErr);
+      }
+    }
+    
+    // Fallback: read directly from database
+    if (!fullOcrText) {
+      console.log('JSON file not found, reading OCR batches from database...');
       
-      const mergedParts: string[] = [];
-      for (let b = 0; b < totalBatches; b++) {
-        const batchPath = `${basePath}/work/ocr_batch_${b.toString().padStart(3, '0')}.txt`;
-        const { data: batchData, error: batchError } = await supabase.storage
-          .from('lg')
-          .download(batchPath);
+      const { data: batches, error: batchesError } = await supabase
+        .from('lg_ocr_batches')
+        .select('batch_number, ocr_text')
+        .eq('patient_id', patientId)
+        .order('batch_number', { ascending: true });
+      
+      if (batchesError) {
+        console.error('Failed to fetch OCR batches from database:', batchesError);
+      } else if (batches && batches.length > 0) {
+        fullOcrText = batches.map(b => b.ocr_text).join('\n\n');
+        console.log(`Merged ${batches.length} batches from database. Total: ${fullOcrText.length} characters`);
         
-        if (batchData) {
-          const text = await batchData.text();
-          mergedParts.push(text);
-          console.log(`Batch ${b} loaded (${text.length} chars)`);
-        } else {
-          console.error(`Failed to load batch ${b}:`, batchError);
-        }
+        // Save as JSON for future use
+        const mergedJson = JSON.stringify({ ocr_text: fullOcrText });
+        await supabase.storage.from('lg').upload(jsonPath, 
+          new Blob([mergedJson], { type: 'application/json' }), {
+          contentType: 'application/json',
+          upsert: true,
+        });
+        console.log('Merged OCR JSON saved for future use');
+        
+        // Update patient record with OCR URL
+        await supabase
+          .from('lg_patients')
+          .update({ ocr_text_url: `lg/${jsonPath}` })
+          .eq('id', patientId);
+      } else {
+        throw new Error('No OCR batches found in database - OCR may not have completed');
       }
-      
-      if (mergedParts.length === 0) {
-        throw new Error('No OCR batch files found - OCR may not have completed');
-      }
-      
-      fullOcrText = mergedParts.join('\n\n');
-      console.log(`Merged ${mergedParts.length} batch files. Total: ${fullOcrText.length} characters`);
-      
-      // Save the merged file for next time
-      const mergedBlob = new Blob([fullOcrText], { type: 'application/octet-stream' });
-      await supabase.storage.from('lg').upload(ocrPath, mergedBlob, {
-        contentType: 'application/octet-stream',
-        upsert: true,
-      });
-      console.log('Merged OCR file saved');
-      
-      // Update patient record with OCR URL
-      await supabase
-        .from('lg_patients')
-        .update({ ocr_text_url: `lg/${ocrPath}` })
-        .eq('id', patientId);
     }
     
     if (!fullOcrText || fullOcrText.length < 50) {
