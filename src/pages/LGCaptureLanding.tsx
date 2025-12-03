@@ -5,24 +5,57 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { FileText, Camera, Brain, Download, List, ArrowRight, Settings } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LGCaptureLanding() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [practiceOds, setPracticeOds] = useState('');
   const [uploaderName, setUploaderName] = useState('');
   const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
-    const savedOds = localStorage.getItem('lg_practice_ods') || '';
-    const savedName = localStorage.getItem('lg_uploader_name') || '';
-    setPracticeOds(savedOds);
-    setUploaderName(savedName);
+    const loadSettings = async () => {
+      // First try to load from database if user is logged in
+      if (user?.id) {
+        const { data } = await supabase
+          .from('user_settings')
+          .select('setting_value')
+          .eq('user_id', user.id)
+          .eq('setting_key', 'lg_capture_defaults')
+          .maybeSingle();
+        
+        if (data?.setting_value) {
+          const defaults = data.setting_value as { practiceOds?: string; uploaderName?: string };
+          if (defaults.practiceOds) {
+            setPracticeOds(defaults.practiceOds);
+            localStorage.setItem('lg_practice_ods', defaults.practiceOds);
+          }
+          if (defaults.uploaderName) {
+            setUploaderName(defaults.uploaderName);
+            localStorage.setItem('lg_uploader_name', defaults.uploaderName);
+          }
+          if (defaults.practiceOds && defaults.uploaderName) {
+            return; // Settings loaded from DB, don't show settings panel
+          }
+        }
+      }
+      
+      // Fall back to localStorage
+      const savedOds = localStorage.getItem('lg_practice_ods') || '';
+      const savedName = localStorage.getItem('lg_uploader_name') || '';
+      if (savedOds) setPracticeOds(savedOds);
+      if (savedName) setUploaderName(savedName);
+      
+      // Show settings if not configured
+      if (!savedOds || !savedName) {
+        setShowSettings(true);
+      }
+    };
     
-    // Show settings if not configured
-    if (!savedOds || !savedName) {
-      setShowSettings(true);
-    }
-  }, []);
+    loadSettings();
+  }, [user?.id]);
 
   const saveSettings = () => {
     localStorage.setItem('lg_practice_ods', practiceOds.trim());
