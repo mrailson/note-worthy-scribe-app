@@ -25,6 +25,16 @@ Constraints:
 // Patient details extraction prompt
 const PATIENT_EXTRACTION_PROMPT = `You are extracting patient demographic details from scanned Lloyd George medical records. Extract ONLY what you can clearly see in the OCR text. Do not guess or invent information.
 
+CRITICAL ANTI-HALLUCINATION RULES:
+- If the OCR text is mostly gibberish, random characters, test patterns, or unreadable content, return null for ALL fields
+- If you cannot find a name that is CLEARLY labeled as a patient name (e.g., "Patient Name:", "Name:", "Surname:", header field on a medical form), return null for patient_name
+- If you only see a single mention of a name without clear context confirming it's THE PATIENT (not uploader, doctor, relative, witness), return null
+- NEVER guess or extrapolate names from partial text fragments or random words
+- A valid patient name should appear in a STRUCTURED format (form field, header, medical record cover) - NOT random text in document body
+- If NHS number and DOB are BOTH null, patient_name confidence MUST be below 0.4 unless the name is absolutely unambiguous
+- Do NOT extract names that look like uploader names, staff names, or signature names
+- When in doubt, return null - it's better to show "Unknown" than to hallucinate a name
+
 Return valid JSON with this exact structure:
 {
   "patient_name": "Full name as written on the records (or null if not found)",
@@ -35,13 +45,17 @@ Return valid JSON with this exact structure:
 }
 
 Rules:
-- patient_name: Look for name fields, headers with patient name, or repeated mentions of a name
+- patient_name: Look for name fields clearly labeled on medical record forms. Must be in context of patient identification, NOT random text
 - nhs_number: Look for a 10-digit number often labelled NHS No, NHS Number, etc. May have spaces like "123 456 7890"
-- date_of_birth: Look for DOB, Date of Birth, D.O.B., or birth date fields
+- date_of_birth: Look for DOB, Date of Birth, D.O.B., or birth date fields in structured form areas
 - sex: Look for M/F, Male/Female, Sex fields. Default to "unknown" if not clear
-- confidence: Set based on how clearly the information was visible (0.9+ if very clear, 0.5-0.8 if partially visible, below 0.5 if uncertain)
+- confidence: Set based on how clearly the information was visible AND corroborated:
+  - 0.9+ ONLY if name, NHS number, AND DOB are all clearly visible on a structured form
+  - 0.7-0.8 if name is clear AND at least one of NHS/DOB is visible
+  - 0.4-0.6 if name appears clear but no NHS number or DOB found
+  - Below 0.4 if uncertain about any extraction
 
-Only extract what is clearly visible. Return null for any field you cannot confidently identify.`;
+Return null for any field you cannot confidently identify from structured medical record fields.`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -226,7 +240,33 @@ serve(async (req) => {
       try {
         extractedPatient = await callOpenAI(openaiKey, PATIENT_EXTRACTION_PROMPT, 
           `Extract patient details from this OCR text of Lloyd George records:\n\n${fullOcrText.substring(0, 30000)}`);
-        console.log('Patient details extracted:', extractedPatient);
+        console.log('Patient details extracted (raw):', extractedPatient);
+        
+        // ANTI-HALLUCINATION VALIDATION
+        // If name exists but BOTH NHS number and DOB are null, this is suspicious
+        if (extractedPatient.patient_name && 
+            !extractedPatient.nhs_number && 
+            !extractedPatient.date_of_birth) {
+          console.log('SUSPICIOUS: Name extracted without NHS number or DOB - likely hallucination');
+          // Force low confidence and null name
+          extractedPatient.confidence = Math.min(extractedPatient.confidence || 0, 0.3);
+          extractedPatient.patient_name = null;
+        }
+        
+        // Additional validation: Only save name if confidence is reasonable AND corroborated
+        const shouldSaveName = extractedPatient.patient_name && (
+          // High confidence with corroboration
+          (extractedPatient.confidence >= 0.7 && (extractedPatient.nhs_number || extractedPatient.date_of_birth)) ||
+          // Very high confidence even without corroboration (rare)
+          (extractedPatient.confidence >= 0.95)
+        );
+        
+        if (!shouldSaveName && extractedPatient.patient_name) {
+          console.log(`Rejecting name "${extractedPatient.patient_name}" - confidence ${extractedPatient.confidence} without corroboration`);
+          extractedPatient.patient_name = null;
+        }
+        
+        console.log('Patient details after validation:', extractedPatient);
         
         // Update patient record with extracted details
         const updateData: any = {
@@ -238,7 +278,7 @@ serve(async (req) => {
           requires_verification: (extractedPatient.confidence || 0) < 0.8,
         };
         
-        // Also populate the main fields if they're null
+        // Also populate the main fields if they're null AND validated
         if (!patient.patient_name && extractedPatient.patient_name) {
           updateData.patient_name = extractedPatient.patient_name;
         }
