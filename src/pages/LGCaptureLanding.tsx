@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { FileText, Camera, Brain, Download, List, ArrowRight, Settings } from 'lucide-react';
+import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -90,6 +90,16 @@ export default function LGCaptureLanding() {
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
+      {/* Home Navigation */}
+      <Button
+        variant="ghost"
+        onClick={() => navigate('/')}
+        className="mb-2"
+      >
+        <Home className="mr-2 h-4 w-4" />
+        Back to Notewell Home
+      </Button>
+
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">Notewell LG Capture</h1>
         <p className="text-muted-foreground">
@@ -97,46 +107,6 @@ export default function LGCaptureLanding() {
         </p>
         <p className="text-xs text-muted-foreground">Proof of Concept</p>
       </div>
-
-      {/* Settings Section */}
-      <Card>
-        <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowSettings(!showSettings)}>
-          <CardTitle className="text-base flex items-center justify-between">
-            <span className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              Capture Settings
-            </span>
-            <span className="text-xs font-normal text-muted-foreground">
-              {canStart ? `${uploaderName} • ${practiceOds}` : 'Not configured'}
-            </span>
-          </CardTitle>
-        </CardHeader>
-        {showSettings && (
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="practiceOds">Practice ODS Code</Label>
-              <Input
-                id="practiceOds"
-                value={practiceOds}
-                onChange={(e) => setPracticeOds(e.target.value.toUpperCase())}
-                placeholder="e.g. K83042"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="uploaderName">Your Name</Label>
-              <Input
-                id="uploaderName"
-                value={uploaderName}
-                onChange={(e) => setUploaderName(e.target.value)}
-                placeholder="e.g. Malcolm Railson"
-              />
-            </div>
-            <Button onClick={saveSettings} className="w-full" disabled={!canStart}>
-              Save Settings
-            </Button>
-          </CardContent>
-        )}
-      </Card>
 
       <Button
         onClick={() => navigate('/lg-capture/start')}
@@ -178,22 +148,62 @@ export default function LGCaptureLanding() {
           <ol className="space-y-2 text-sm">
             <li className="flex gap-3">
               <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-              <span>Enter patient details (name, NHS number, DOB)</span>
+              <span>Tap to photograph each page of the Lloyd George notes</span>
             </li>
             <li className="flex gap-3">
               <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-              <span>Photograph each page of Lloyd George notes</span>
+              <span>Reorder pages if needed and remove any poor quality shots</span>
             </li>
             <li className="flex gap-3">
               <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
-              <span>Reorder pages and remove any bad shots</span>
+              <span>Submit for processing - AI extracts patient details automatically</span>
             </li>
             <li className="flex gap-3">
               <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">4</span>
-              <span>Submit for AI processing and download results</span>
+              <span>Receive summary email with PDF, clinical summary and SNOMED codes</span>
             </li>
           </ol>
         </CardContent>
+      </Card>
+
+      {/* Settings Section - moved to bottom */}
+      <Card>
+        <CardHeader className="pb-3 cursor-pointer" onClick={() => setShowSettings(!showSettings)}>
+          <CardTitle className="text-base flex items-center justify-between">
+            <span className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              Capture Settings
+            </span>
+            <span className="text-xs font-normal text-muted-foreground">
+              {canStart ? `${uploaderName} • ${practiceOds}` : 'Not configured'}
+            </span>
+          </CardTitle>
+        </CardHeader>
+        {showSettings && (
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="practiceOds">Practice ODS Code</Label>
+              <Input
+                id="practiceOds"
+                value={practiceOds}
+                onChange={(e) => setPracticeOds(e.target.value.toUpperCase())}
+                placeholder="e.g. K83042"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="uploaderName">Your Name</Label>
+              <Input
+                id="uploaderName"
+                value={uploaderName}
+                onChange={(e) => setUploaderName(e.target.value)}
+                placeholder="e.g. Malcolm Railson"
+              />
+            </div>
+            <Button onClick={saveSettings} className="w-full" disabled={!canStart}>
+              Save Settings
+            </Button>
+          </CardContent>
+        )}
       </Card>
     </div>
   );
