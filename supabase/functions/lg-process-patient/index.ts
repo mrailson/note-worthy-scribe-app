@@ -119,7 +119,7 @@ serve(async (req) => {
     }
 
     const imageCount = files.length;
-    const BATCH_THRESHOLD = 25; // Switch to batched processing above this
+    const BATCH_THRESHOLD = 15; // Switch to batched processing above this (lowered for memory safety)
     const BATCH_SIZE = 10;
 
     // Update status to processing
