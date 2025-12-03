@@ -427,13 +427,12 @@ ${fullOcrText.substring(0, 10000)}`;
           snomedJson
         );
 
-        // Send via send-email-via-emailjs edge function (handles private key properly)
-        const { error: emailError } = await supabase.functions.invoke('send-email-via-emailjs', {
+        // Send via Resend edge function
+        const { error: emailError } = await supabase.functions.invoke('send-email-resend', {
           body: {
             to_email: userEmail,
             subject: `Lloyd George Record Summary - ${patientName} (NHS: ${formatNhsNumber(nhsNumber)})`,
-            message: emailHtml,
-            template_type: 'ai_generated_content',
+            html_content: emailHtml,
           },
         });
 
