@@ -113,12 +113,11 @@ serve(async (req) => {
 
     // Save batch OCR text to storage with error checking
     const batchPath = `${basePath}/work/ocr_batch_${batchNumber.toString().padStart(3, '0')}.txt`;
-    const batchBlob = new Blob([batchOcrText], { type: 'application/octet-stream' });
     
     console.log(`Uploading batch OCR text (${batchOcrText.length} chars) to ${batchPath}...`);
     
-    const { error: batchUploadError } = await supabase.storage.from('lg').upload(batchPath, batchBlob, {
-      contentType: 'application/octet-stream',
+    const { error: batchUploadError } = await supabase.storage.from('lg').upload(batchPath, batchOcrText, {
+      contentType: 'text/plain',
       upsert: true,
     });
     
@@ -175,14 +174,13 @@ serve(async (req) => {
 
       const mergedOcrText = mergedOcrParts.join('\n\n');
       
-      // Save merged OCR text with error checking (use application/octet-stream as text/plain not supported)
+      // Save merged OCR text with error checking
       const mergedPath = `${basePath}/work/ocr_merged.txt`;
-      const mergedBlob = new Blob([mergedOcrText], { type: 'application/octet-stream' });
       
       console.log(`Uploading merged OCR text (${mergedOcrText.length} chars) to ${mergedPath}...`);
       
-      const { error: uploadError } = await supabase.storage.from('lg').upload(mergedPath, mergedBlob, {
-        contentType: 'application/octet-stream',
+      const { error: uploadError } = await supabase.storage.from('lg').upload(mergedPath, mergedOcrText, {
+        contentType: 'text/plain',
         upsert: true,
       });
 
