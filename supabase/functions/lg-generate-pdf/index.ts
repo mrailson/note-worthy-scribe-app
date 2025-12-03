@@ -42,10 +42,14 @@ serve(async (req) => {
 
     const basePath = `${patient.practice_ods}/${patientId}`;
 
-    // Update status
+    // Update status with PDF start time
+    const pdfStartTime = new Date().toISOString();
     await supabase
       .from('lg_patients')
-      .update({ pdf_generation_status: 'generating' })
+      .update({ 
+        pdf_generation_status: 'generating',
+        pdf_started_at: pdfStartTime,
+      })
       .eq('id', patientId);
 
     // Load summary and SNOMED data
@@ -196,15 +200,17 @@ serve(async (req) => {
       upsert: true,
     });
 
-    // Update patient record
+    // Update patient record with PDF completion time
+    const pdfCompletedTime = new Date().toISOString();
     await supabase
       .from('lg_patients')
       .update({
         job_status: 'succeeded',
         processing_phase: 'complete',
-        processing_completed_at: new Date().toISOString(),
+        processing_completed_at: pdfCompletedTime,
         pdf_url: `lg/${basePath}/final/lloyd-george.pdf`,
         pdf_generation_status: 'complete',
+        pdf_completed_at: pdfCompletedTime,
       })
       .eq('id', patientId);
 

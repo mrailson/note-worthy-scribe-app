@@ -3356,9 +3356,13 @@ export type Database = {
           nhs_number: string | null
           ocr_batches_completed: number | null
           ocr_batches_total: number | null
+          ocr_completed_at: string | null
+          ocr_started_at: string | null
           ocr_text_url: string | null
           patient_name: string | null
+          pdf_completed_at: string | null
           pdf_generation_status: string | null
+          pdf_started_at: string | null
           pdf_url: string | null
           practice_ods: string
           processing_completed_at: string | null
@@ -3370,7 +3374,9 @@ export type Database = {
           snomed_json_url: string | null
           summary_json_url: string | null
           updated_at: string | null
+          upload_completed_at: string | null
           upload_progress: number | null
+          upload_started_at: string | null
           uploader_name: string
           user_id: string | null
         }
@@ -3391,9 +3397,13 @@ export type Database = {
           nhs_number?: string | null
           ocr_batches_completed?: number | null
           ocr_batches_total?: number | null
+          ocr_completed_at?: string | null
+          ocr_started_at?: string | null
           ocr_text_url?: string | null
           patient_name?: string | null
+          pdf_completed_at?: string | null
           pdf_generation_status?: string | null
+          pdf_started_at?: string | null
           pdf_url?: string | null
           practice_ods: string
           processing_completed_at?: string | null
@@ -3405,7 +3415,9 @@ export type Database = {
           snomed_json_url?: string | null
           summary_json_url?: string | null
           updated_at?: string | null
+          upload_completed_at?: string | null
           upload_progress?: number | null
+          upload_started_at?: string | null
           uploader_name: string
           user_id?: string | null
         }
@@ -3426,9 +3438,13 @@ export type Database = {
           nhs_number?: string | null
           ocr_batches_completed?: number | null
           ocr_batches_total?: number | null
+          ocr_completed_at?: string | null
+          ocr_started_at?: string | null
           ocr_text_url?: string | null
           patient_name?: string | null
+          pdf_completed_at?: string | null
           pdf_generation_status?: string | null
+          pdf_started_at?: string | null
           pdf_url?: string | null
           practice_ods?: string
           processing_completed_at?: string | null
@@ -3440,7 +3456,9 @@ export type Database = {
           snomed_json_url?: string | null
           summary_json_url?: string | null
           updated_at?: string | null
+          upload_completed_at?: string | null
           upload_progress?: number | null
+          upload_started_at?: string | null
           uploader_name?: string
           user_id?: string | null
         }

@@ -48,6 +48,13 @@ export interface LGPatient {
   // Email tracking fields
   email_sent_at: string | null;
   email_error: string | null;
+  // Processing timing fields
+  upload_started_at: string | null;
+  upload_completed_at: string | null;
+  ocr_started_at: string | null;
+  ocr_completed_at: string | null;
+  pdf_started_at: string | null;
+  pdf_completed_at: string | null;
 }
 
 export interface CapturedImage {
@@ -145,10 +152,14 @@ export function useLGCapture() {
 
       console.log('Starting upload for patient:', patientId, 'images:', images.length);
 
-      // Update status to uploading
+      // Record upload start time and update status
+      const uploadStartTime = new Date().toISOString();
       const { error: statusError } = await supabase
         .from('lg_patients')
-        .update({ job_status: 'uploading' })
+        .update({ 
+          job_status: 'uploading',
+          upload_started_at: uploadStartTime,
+        })
         .eq('id', patientId);
       
       if (statusError) {
@@ -206,12 +217,13 @@ export function useLGCapture() {
         });
       }
 
-      // Update images count
+      // Update images count and record upload completion time
       await supabase
         .from('lg_patients')
         .update({ 
           images_count: images.length,
           job_status: 'queued',
+          upload_completed_at: new Date().toISOString(),
         })
         .eq('id', patientId);
 

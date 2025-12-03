@@ -122,15 +122,17 @@ serve(async (req) => {
     const BATCH_THRESHOLD = 15; // Switch to batched processing above this (lowered for memory safety)
     const BATCH_SIZE = 10;
 
-    // Update status to processing
+    // Update status to processing with OCR start time
+    const ocrStartTime = new Date().toISOString();
     await supabase
       .from('lg_patients')
       .update({ 
         job_status: 'processing',
-        processing_started_at: new Date().toISOString(),
+        processing_started_at: ocrStartTime,
         processing_phase: imageCount > BATCH_THRESHOLD ? 'ocr' : 'processing',
         ocr_batches_total: imageCount > BATCH_THRESHOLD ? Math.ceil(imageCount / BATCH_SIZE) : 0,
         ocr_batches_completed: 0,
+        ocr_started_at: ocrStartTime,
       })
       .eq('id', patientId);
 
@@ -208,6 +210,13 @@ serve(async (req) => {
 
     const fullOcrText = ocrResults.join('\n\n');
     console.log(`OCR complete. Total characters: ${fullOcrText.length}`);
+
+    // Record OCR completion time
+    const ocrCompletedTime = new Date().toISOString();
+    await supabase
+      .from('lg_patients')
+      .update({ ocr_completed_at: ocrCompletedTime })
+      .eq('id', patientId);
 
     // Step 3: Extract patient details from OCR text (NEW!)
     console.log('Extracting patient details from OCR...');
@@ -336,6 +345,12 @@ ${fullOcrText.substring(0, 10000)}`;
     const snomedCsv = generateSnomedCsv(snomedJson, patientId, nhsNumber);
 
     // Step 7: Create simple PDF (base64 images concatenated - POC) with SNOMED summary page
+    const pdfStartTime = new Date().toISOString();
+    await supabase
+      .from('lg_patients')
+      .update({ pdf_started_at: pdfStartTime })
+      .eq('id', patientId);
+
     const pdfContent = await createSimplePdf(imageDataUrls, fullOcrText, summaryJson, snomedJson, patientName, nhsNumber, dob);
 
     // Step 8: Upload all outputs
@@ -349,6 +364,8 @@ ${fullOcrText.substring(0, 10000)}`;
       contentType: 'application/pdf',
       upsert: true,
     });
+
+    const pdfCompletedTime = new Date().toISOString();
 
     // Upload summary JSON
     const summaryBlob = new Blob([JSON.stringify(summaryJson, null, 2)], { type: 'application/json' });
@@ -371,7 +388,7 @@ ${fullOcrText.substring(0, 10000)}`;
       upsert: true,
     });
 
-    // Step 9: Update patient record with URLs
+    // Step 9: Update patient record with URLs and timing
     await supabase
       .from('lg_patients')
       .update({
@@ -381,6 +398,7 @@ ${fullOcrText.substring(0, 10000)}`;
         summary_json_url: `lg/${finalPath}/summary.json`,
         snomed_json_url: `lg/${finalPath}/snomed.json`,
         snomed_csv_url: `lg/${finalPath}/snomed.csv`,
+        pdf_completed_at: pdfCompletedTime,
       })
       .eq('id', patientId);
 
