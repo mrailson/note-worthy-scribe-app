@@ -366,7 +366,6 @@ export function useLGCapture() {
 
       if (deleteError) throw deleteError;
 
-      toast.success('Record deleted');
       return true;
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete record';
