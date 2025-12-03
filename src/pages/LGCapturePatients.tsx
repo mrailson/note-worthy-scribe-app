@@ -96,8 +96,13 @@ export default function LGCapturePatients() {
     // Fall back to database status
     switch (patient.job_status) {
       case 'succeeded':
+        // Show orange badge if no NHS number
+        const hasNhsNumber = patient.ai_extracted_nhs && patient.ai_extracted_nhs.trim() !== '';
         return (
-          <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+          <Badge className={hasNhsNumber 
+            ? "bg-green-100 text-green-700 hover:bg-green-100" 
+            : "bg-orange-100 text-orange-700 hover:bg-orange-100"
+          }>
             <CheckCircle2 className="h-3 w-3 mr-1" />
             Complete
           </Badge>
