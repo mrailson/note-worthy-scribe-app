@@ -18,6 +18,17 @@ function formatNhsNumber(nhs: string | null | undefined): string {
   return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
 }
 
+function formatDob(dob: string | null | undefined): string {
+  if (!dob) return '—';
+  try {
+    const date = new Date(dob);
+    if (isNaN(date.getTime())) return dob;
+    return format(date, 'dd-MM-yyyy');
+  } catch {
+    return dob;
+  }
+}
+
 export default function LGCapturePatients() {
   const navigate = useNavigate();
   const { listPatients, isLoading } = useLGCapture();
@@ -227,6 +238,9 @@ export default function LGCapturePatients() {
                     </p>
                     <p className="text-sm text-muted-foreground font-mono">
                       NHS: {formatNhsNumber(patient.nhs_number || patient.ai_extracted_nhs)}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      DOB: {formatDob(patient.dob || patient.ai_extracted_dob)}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages
