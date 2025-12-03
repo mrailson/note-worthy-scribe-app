@@ -68,7 +68,7 @@ const handler = async (req: Request): Promise<Response> => {
     const { data, error } = await resend.emails.send({
       from: emailData.from_email 
         ? `${emailData.from_name || 'Notewell AI'} <${emailData.from_email}>`
-        : "Notewell AI <onboarding@resend.dev>",
+        : "Notewell AI <noreply@bluepcn.co.uk>",
       to: [emailData.to_email],
       cc: emailData.cc_email ? [emailData.cc_email] : undefined,
       bcc: emailData.bcc_email ? [emailData.bcc_email] : undefined,
