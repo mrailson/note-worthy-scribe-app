@@ -665,10 +665,10 @@ async function createSimplePdf(
   yPosition -= 10;
   
   // Patient details
-  drawLine(`Patient: ${patientName}`, 11);
-  drawLine(`NHS Number: ${nhsNumber}`, 11);
-  drawLine(`Date of Birth: ${dob}`, 11);
-  drawLine(`Generated: ${new Date().toISOString().split('T')[0]}`, 10);
+  safeDraw(`Patient: ${patientName}`, 11);
+  safeDraw(`NHS Number: ${nhsNumber}`, 11);
+  safeDraw(`Date of Birth: ${dob}`, 11);
+  safeDraw(`Generated: ${new Date().toISOString().split('T')[0]}`, 10);
   yPosition -= 10;
   
   // Clinical Summary
