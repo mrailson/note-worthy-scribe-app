@@ -308,7 +308,7 @@ export function LGCameraCapture({
             </div>
             
             {isCapturing && (
-              <div className="flex justify-end">
+              <div className="flex justify-center">
                 <Button
                   variant="outline"
                   onClick={stopCamera}
