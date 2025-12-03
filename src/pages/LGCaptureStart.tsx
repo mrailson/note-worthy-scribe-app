@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLGCapture } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Camera, Loader2, Upload, Play } from 'lucide-react';
@@ -9,6 +11,7 @@ import { toast } from 'sonner';
 
 export default function LGCaptureStart() {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { createPatient, isLoading } = useLGCapture();
   const { activeUploads } = useLGUploadQueue();
   
@@ -17,19 +20,51 @@ export default function LGCaptureStart() {
   const [settingsReady, setSettingsReady] = useState(false);
 
   useEffect(() => {
-    const savedOds = localStorage.getItem('lg_practice_ods');
-    const savedName = localStorage.getItem('lg_uploader_name');
+    const loadSettings = async () => {
+      // First try localStorage (fast cache)
+      let savedOds = localStorage.getItem('lg_practice_ods');
+      let savedName = localStorage.getItem('lg_uploader_name');
+      
+      // If localStorage empty, fallback to database (source of truth)
+      if ((!savedOds || !savedName) && user?.id) {
+        const { data } = await supabase
+          .from('user_settings')
+          .select('setting_value')
+          .eq('user_id', user.id)
+          .eq('setting_key', 'lg_capture_defaults')
+          .maybeSingle();
+        
+        if (data?.setting_value) {
+          const defaults = data.setting_value as { practiceOds?: string; uploaderName?: string; practiceName?: string };
+          
+          // Use database values if localStorage was empty
+          if (!savedOds && defaults.practiceOds) {
+            savedOds = defaults.practiceOds;
+            localStorage.setItem('lg_practice_ods', savedOds);
+          }
+          if (!savedName && defaults.uploaderName) {
+            savedName = defaults.uploaderName;
+            localStorage.setItem('lg_uploader_name', savedName);
+          }
+          if (defaults.practiceName) {
+            localStorage.setItem('lg_practice_name', defaults.practiceName);
+          }
+        }
+      }
+      
+      if (savedOds && savedName) {
+        setPracticeOds(savedOds);
+        setUploaderName(savedName);
+        setSettingsReady(true);
+      } else {
+        // No settings - redirect to landing to configure
+        toast.error('Please configure settings first');
+        navigate('/lg-capture');
+      }
+    };
     
-    if (savedOds && savedName) {
-      setPracticeOds(savedOds);
-      setUploaderName(savedName);
-      setSettingsReady(true);
-    } else {
-      // No settings - redirect to landing to configure
-      toast.error('Please configure settings first');
-      navigate('/lg-capture');
-    }
-  }, [navigate]);
+    loadSettings();
+  }, [navigate, user?.id]);
 
   const handleBegin = async () => {
     const patientId = await createPatient({
