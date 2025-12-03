@@ -321,11 +321,18 @@ ${fullOcrText.substring(0, 50000)}`;
 Return JSON with these domains ONLY (problem codes suitable for GP system import):
 
 {
-  "diagnoses": [{"term":"","code":"","confidence":0.0,"evidence":"text snippet"}],
-  "surgeries": [{"term":"","code":"","confidence":0.0,"evidence":""}],
-  "allergies": [{"term":"","code":"","confidence":0.0,"evidence":""}],
-  "immunisations": [{"term":"","code":"","confidence":0.0,"evidence":""}]
+  "diagnoses": [{"term":"","code":"","date":"","confidence":0.0,"evidence":"text snippet"}],
+  "surgeries": [{"term":"","code":"","date":"","confidence":0.0,"evidence":""}],
+  "allergies": [{"term":"","code":"","date":"","confidence":0.0,"evidence":""}],
+  "immunisations": [{"term":"","code":"","date":"","confidence":0.0,"evidence":""}]
 }
+
+DATE EXTRACTION RULES (CRITICAL for avoiding new diagnosis coding):
+- If an EXACT date is known (e.g., "diagnosed 15/03/2019"), use that: "Mar 2019" or "2019"
+- If NO exact date but the condition is mentioned in a DATED document (e.g., letter dated Oct 2020 mentions diabetes), use: "Pre Oct 2020"
+- The "Pre" format indicates the condition existed BEFORE that document date - preventing it being coded as a new diagnosis
+- If no date reference at all, use empty string ""
+- Look at document headers, letter dates, consultation dates for context
 
 ONLY include items that should be coded into the problem list or procedure list.
 Do NOT code social history, family history, medications, or minor illnesses.
