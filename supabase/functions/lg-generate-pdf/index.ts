@@ -621,10 +621,14 @@ function formatDobForFilename(dateStr: string): string {
 
 function formatDobDisplay(dateStr: string): string {
   try {
-    if (dateStr) {
+    if (dateStr && dateStr !== 'Unknown') {
       const date = new Date(dateStr);
       if (!isNaN(date.getTime())) {
-        return date.toLocaleDateString('en-GB');
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const day = String(date.getDate()).padStart(2, '0');
+        const month = months[date.getMonth()];
+        const year = date.getFullYear();
+        return `${day}-${month}-${year}`;
       }
     }
   } catch {}
@@ -669,7 +673,7 @@ function buildFullSummaryEmailHtml(
         </tr>
         <tr style="background: #f5f5f5;">
           <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Date of Birth</td>
-          <td style="padding: 12px; border: 1px solid #ddd;">${dob || 'Unknown'}</td>
+          <td style="padding: 12px; border: 1px solid #ddd;">${formatDobDisplay(dob)}</td>
         </tr>
         <tr>
           <td style="padding: 12px; border: 1px solid #ddd; font-weight: bold;">Pages Scanned</td>
@@ -773,7 +777,7 @@ function buildFullSummaryEmailHtml(
   if (summaryJson?.medications?.length > 0) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Medications</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
     for (const med of summaryJson.medications) {
-      html += `<li><strong>${med.drug || 'Unknown'}</strong> ${med.dose || ''} (${med.status || 'unknown'})</li>`;
+      html += `<li><strong>${med.drug || 'Unknown'}</strong> ${med.dose || ''}</li>`;
     }
     html += `</ul>`;
   }
