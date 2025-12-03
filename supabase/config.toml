@@ -272,3 +272,12 @@ verify_jwt = false
 
 [functions.lg-process-patient]
 verify_jwt = true
+
+[functions.lg-ocr-batch]
+verify_jwt = true
+
+[functions.lg-process-summary]
+verify_jwt = true
+
+[functions.lg-generate-pdf]
+verify_jwt = true

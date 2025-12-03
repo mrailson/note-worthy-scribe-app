@@ -41,7 +41,7 @@ export function LGCameraCapture({
   images, 
   onImagesChange, 
   onFinish,
-  maxPages = 300,
+  maxPages = 100, // Increased from 25 with batched processing support
   isProcessing = false
 }: LGCameraCaptureProps) {
   const [isCapturing, setIsCapturing] = useState(false);

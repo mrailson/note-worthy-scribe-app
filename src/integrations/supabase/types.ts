@@ -3354,10 +3354,15 @@ export type Database = {
           images_count: number | null
           job_status: string | null
           nhs_number: string | null
+          ocr_batches_completed: number | null
+          ocr_batches_total: number | null
+          ocr_text_url: string | null
           patient_name: string | null
+          pdf_generation_status: string | null
           pdf_url: string | null
           practice_ods: string
           processing_completed_at: string | null
+          processing_phase: string | null
           processing_started_at: string | null
           requires_verification: boolean | null
           sex: string
@@ -3384,10 +3389,15 @@ export type Database = {
           images_count?: number | null
           job_status?: string | null
           nhs_number?: string | null
+          ocr_batches_completed?: number | null
+          ocr_batches_total?: number | null
+          ocr_text_url?: string | null
           patient_name?: string | null
+          pdf_generation_status?: string | null
           pdf_url?: string | null
           practice_ods: string
           processing_completed_at?: string | null
+          processing_phase?: string | null
           processing_started_at?: string | null
           requires_verification?: boolean | null
           sex?: string
@@ -3414,10 +3424,15 @@ export type Database = {
           images_count?: number | null
           job_status?: string | null
           nhs_number?: string | null
+          ocr_batches_completed?: number | null
+          ocr_batches_total?: number | null
+          ocr_text_url?: string | null
           patient_name?: string | null
+          pdf_generation_status?: string | null
           pdf_url?: string | null
           practice_ods?: string
           processing_completed_at?: string | null
+          processing_phase?: string | null
           processing_started_at?: string | null
           requires_verification?: boolean | null
           sex?: string
