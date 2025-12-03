@@ -6,6 +6,29 @@ import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { generateULID } from '@/utils/ulid';
 
+// Create click sound using Web Audio API
+const playClickSound = () => {
+  try {
+    const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = audioContext.createOscillator();
+    const gainNode = audioContext.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(audioContext.destination);
+    
+    oscillator.frequency.value = 1800;
+    oscillator.type = 'square';
+    
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.05);
+    
+    oscillator.start(audioContext.currentTime);
+    oscillator.stop(audioContext.currentTime + 0.05);
+  } catch (e) {
+    // Silently fail if audio not available
+  }
+};
+
 interface LGCameraCaptureProps {
   images: CapturedImage[];
   onImagesChange: (images: CapturedImage[]) => void;
@@ -159,6 +182,7 @@ export function LGCameraCapture({
       return;
     }
 
+    playClickSound();
     onImagesChange([...images, newImage]);
     toast.success(`Page ${images.length + 1} captured`);
   }, [images, onImagesChange, maxPages]);
@@ -284,21 +308,14 @@ export function LGCameraCapture({
             </div>
             
             {isCapturing && (
-              <div className="flex gap-3">
-                <Button
-                  onClick={captureImage}
-                  className="flex-1 h-14 text-lg"
-                  size="lg"
-                >
-                  <Camera className="mr-2 h-6 w-6" />
-                  Capture Page
-                </Button>
+              <div className="flex justify-end">
                 <Button
                   variant="outline"
                   onClick={stopCamera}
                   size="lg"
                 >
-                  <X className="h-5 w-5" />
+                  <X className="h-5 w-5 mr-2" />
+                  Close Camera
                 </Button>
               </div>
             )}
