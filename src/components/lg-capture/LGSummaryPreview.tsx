@@ -457,6 +457,15 @@ function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
 
   if (codeableItems.length === 0) return null;
 
+  // Sort items: those with dates first, then those without (NK) at the bottom
+  const sortedItems = [...codeableItems].sort((a, b) => {
+    const aHasDate = !!a.date && a.date.trim() !== '';
+    const bHasDate = !!b.date && b.date.trim() !== '';
+    if (aHasDate && !bHasDate) return -1;
+    if (!aHasDate && bHasDate) return 1;
+    return 0;
+  });
+
   return (
     <div className="mt-6 pt-4 border-t">
       <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
@@ -475,31 +484,35 @@ function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
             </tr>
           </thead>
           <tbody>
-            {codeableItems.map((item, i) => (
-              <tr key={i} className="border-b border-muted/30 hover:bg-muted/20">
-                <td className="py-2 px-2">
-                  <Badge variant="outline" className="text-xs">{item.domain}</Badge>
-                </td>
-                <td className="py-2 px-2">{item.term}</td>
-                <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{item.code}</td>
-                <td className="py-2 px-2 text-muted-foreground">
-                  {formatUKDate(item.date) || '-'}
-                </td>
-                <td className="py-2 px-2 text-right">
-                  <Badge 
-                    variant={item.confidence >= 0.8 ? 'default' : item.confidence >= 0.6 ? 'secondary' : 'outline'}
-                    className="text-xs"
-                  >
-                    {Math.round(item.confidence * 100)}%
-                  </Badge>
-                </td>
-              </tr>
-            ))}
+            {sortedItems.map((item, i) => {
+              const dateDisplay = formatUKDate(item.date) || 'NK';
+              const isUnknownDate = dateDisplay === 'NK';
+              return (
+                <tr key={i} className="border-b border-muted/30 hover:bg-muted/20">
+                  <td className="py-2 px-2">
+                    <Badge variant="outline" className="text-xs">{item.domain}</Badge>
+                  </td>
+                  <td className="py-2 px-2">{item.term}</td>
+                  <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{item.code}</td>
+                  <td className={`py-2 px-2 ${isUnknownDate ? 'text-muted-foreground/60 italic' : 'text-muted-foreground'}`}>
+                    {dateDisplay}
+                  </td>
+                  <td className="py-2 px-2 text-right">
+                    <Badge 
+                      variant={item.confidence >= 0.8 ? 'default' : item.confidence >= 0.6 ? 'secondary' : 'outline'}
+                      className="text-xs"
+                    >
+                      {Math.round(item.confidence * 100)}%
+                    </Badge>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
       <p className="text-xs text-muted-foreground mt-2 italic">
-        Include dates where shown to avoid coding as new diagnoses. Review items with low confidence before coding.
+        NK = Not Known. Include dates where shown to avoid coding as new diagnoses. Review items with low confidence before coding.
       </p>
     </div>
   );
