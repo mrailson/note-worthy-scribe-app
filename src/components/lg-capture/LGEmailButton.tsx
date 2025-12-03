@@ -4,7 +4,6 @@ import { Mail, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 import { toast } from 'sonner';
-import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, HeadingLevel, AlignmentType } from 'docx';
 
 interface LGEmailButtonProps {
   patient: LGPatient;
@@ -113,288 +112,6 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
     return { summaryData, snomedData };
   };
 
-  const generateWordDocument = async (summaryData: ClinicalSummary, snomedData: SnomedEntry[]) => {
-    const sections = [];
-
-    // Title
-    sections.push(
-      new Paragraph({
-        text: 'Lloyd George Record Summary',
-        heading: HeadingLevel.TITLE,
-        alignment: AlignmentType.CENTER,
-        spacing: { after: 400 },
-      })
-    );
-
-    // Patient Details Table
-    sections.push(
-      new Paragraph({
-        text: 'Patient Details',
-        heading: HeadingLevel.HEADING_1,
-        spacing: { before: 200, after: 200 },
-      })
-    );
-
-    const patientTable = new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [
-        createTableRow('Patient Name', patientName),
-        createTableRow('NHS Number', nhsNumber),
-        createTableRow('Date of Birth', dob),
-        createTableRow('Sex', patient.ai_extracted_sex || patient.sex || 'Unknown'),
-        createTableRow('Practice ODS', patient.practice_ods),
-        createTableRow('Record Date', new Date().toLocaleDateString('en-GB')),
-      ],
-    });
-    sections.push(patientTable);
-
-    // Clinical Summary
-    if (summaryData.summary_line) {
-      sections.push(
-        new Paragraph({
-          text: 'Clinical Summary',
-          heading: HeadingLevel.HEADING_1,
-          spacing: { before: 400, after: 200 },
-        }),
-        new Paragraph({
-          text: summaryData.summary_line,
-          spacing: { after: 200 },
-        })
-      );
-    }
-
-    // Allergies
-    if (summaryData.allergies?.length) {
-      sections.push(
-        new Paragraph({
-          text: 'Allergies',
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 300, after: 100 },
-        }),
-        ...summaryData.allergies.map(a => new Paragraph({
-          text: `• ${formatListItem(a)}`,
-          spacing: { after: 50 },
-        }))
-      );
-    }
-
-    // Medications
-    if (summaryData.medications?.length) {
-      sections.push(
-        new Paragraph({
-          text: 'Medications',
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 300, after: 100 },
-        }),
-        ...summaryData.medications.map(m => new Paragraph({
-          text: `• ${formatListItem(m)}`,
-          spacing: { after: 50 },
-        }))
-      );
-    }
-
-    // Significant Past History
-    if (summaryData.significant_past_history?.length) {
-      sections.push(
-        new Paragraph({
-          text: 'Significant Past History',
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 300, after: 100 },
-        }),
-        ...summaryData.significant_past_history.map(h => new Paragraph({
-          text: `• ${formatListItem(h)}`,
-          spacing: { after: 50 },
-        }))
-      );
-    }
-
-    // Procedures
-    if (summaryData.procedures?.length) {
-      sections.push(
-        new Paragraph({
-          text: 'Procedures',
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 300, after: 100 },
-        }),
-        ...summaryData.procedures.map(p => new Paragraph({
-          text: `• ${formatListItem(p)}`,
-          spacing: { after: 50 },
-        }))
-      );
-    }
-
-    // Immunisations
-    if (summaryData.immunisations?.length) {
-      sections.push(
-        new Paragraph({
-          text: 'Immunisations',
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 300, after: 100 },
-        }),
-        ...summaryData.immunisations.map(i => new Paragraph({
-          text: `• ${formatListItem(i)}`,
-          spacing: { after: 50 },
-        }))
-      );
-    }
-
-    // Risk Factors
-    if (summaryData.risk_factors?.length) {
-      sections.push(
-        new Paragraph({
-          text: 'Risk Factors',
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 300, after: 100 },
-        }),
-        ...summaryData.risk_factors.map(r => new Paragraph({
-          text: `• ${formatListItem(r)}`,
-          spacing: { after: 50 },
-        }))
-      );
-    }
-
-    // Family History
-    if (summaryData.family_history?.length) {
-      sections.push(
-        new Paragraph({
-          text: 'Family History',
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 300, after: 100 },
-        }),
-        ...summaryData.family_history.map(f => new Paragraph({
-          text: `• ${formatListItem(f)}`,
-          spacing: { after: 50 },
-        }))
-      );
-    }
-
-    // Alerts
-    if (summaryData.alerts?.length) {
-      sections.push(
-        new Paragraph({
-          text: 'Clinical Alerts',
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 300, after: 100 },
-        }),
-        ...summaryData.alerts.map(a => new Paragraph({
-          children: [
-            new TextRun({ text: `⚠️ ${a.type}: `, bold: true }),
-            new TextRun({ text: a.description }),
-          ],
-          spacing: { after: 50 },
-        }))
-      );
-    }
-
-    // Free Text Findings
-    if (summaryData.free_text_findings) {
-      sections.push(
-        new Paragraph({
-          text: 'Additional Findings',
-          heading: HeadingLevel.HEADING_2,
-          spacing: { before: 300, after: 100 },
-        }),
-        new Paragraph({
-          text: summaryData.free_text_findings,
-          spacing: { after: 200 },
-        })
-      );
-    }
-
-    // SNOMED CT Codes Section
-    if (snomedData.length > 0) {
-      sections.push(
-        new Paragraph({
-          text: 'SNOMED CT Codes',
-          heading: HeadingLevel.HEADING_1,
-          spacing: { before: 400, after: 200 },
-        }),
-        new Paragraph({
-          text: 'The following SNOMED CT codes have been identified from the Lloyd George records:',
-          spacing: { after: 200 },
-        })
-      );
-
-      // Group by domain
-      const domains = [...new Set(snomedData.map(s => s.domain))];
-      
-      for (const domain of domains) {
-        const domainEntries = snomedData.filter(s => s.domain === domain);
-        
-        sections.push(
-          new Paragraph({
-            text: domain.charAt(0).toUpperCase() + domain.slice(1),
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 200, after: 100 },
-          })
-        );
-
-        const snomedTable = new Table({
-          width: { size: 100, type: WidthType.PERCENTAGE },
-          rows: [
-            new TableRow({
-              tableHeader: true,
-              children: [
-                createHeaderCell('Term'),
-                createHeaderCell('SNOMED Code'),
-                createHeaderCell('Confidence'),
-                createHeaderCell('Evidence'),
-              ],
-            }),
-            ...domainEntries.map(entry => 
-              new TableRow({
-                children: [
-                  createDataCell(safeString(entry.term)),
-                  createDataCell(safeString(entry.code)),
-                  createDataCell(`${Math.round((typeof entry.confidence === 'number' ? entry.confidence : 0) * 100)}%`),
-                  createDataCell(safeString(entry.evidence) || '-'),
-                ],
-              })
-            ),
-          ],
-        });
-        sections.push(snomedTable);
-      }
-    }
-
-    // Footer
-    sections.push(
-      new Paragraph({
-        text: '',
-        spacing: { before: 400 },
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: 'Generated by Notewell AI Lloyd George Capture Service',
-            italics: true,
-            size: 20,
-          }),
-        ],
-        alignment: AlignmentType.CENTER,
-      }),
-      new Paragraph({
-        children: [
-          new TextRun({
-            text: `Report generated: ${new Date().toLocaleString('en-GB')}`,
-            italics: true,
-            size: 20,
-          }),
-        ],
-        alignment: AlignmentType.CENTER,
-      })
-    );
-
-    const doc = new Document({
-      sections: [{
-        properties: {},
-        children: sections,
-      }],
-    });
-
-    return await Packer.toBlob(doc);
-  };
-
   const handleSend = async () => {
     if (!userEmail) {
       toast.error('No email address found. Please log in.');
@@ -407,13 +124,6 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
       const { summaryData, snomedData } = await fetchPatientData();
       console.log('Summary data:', summaryData);
       console.log('SNOMED data:', snomedData);
-      
-      // Generate Word document
-      console.log('Generating Word document...');
-      const wordBlob = await generateWordDocument(summaryData, snomedData);
-      console.log('Word blob size:', wordBlob.size);
-      const wordBase64 = await blobToBase64(wordBlob);
-      console.log('Word base64 length:', wordBase64.length);
 
       // Fetch PDF if available
       let pdfBase64: string | null = null;
@@ -445,14 +155,8 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
       const emailHtml = buildEmailHtml(summaryData, snomedData);
       console.log('Email HTML length:', emailHtml.length);
 
-      // Build attachments array
-      const attachments = [
-        {
-          filename: `LG_Summary_${nhsNumber.replace(/\s/g, '')}_${new Date().toISOString().split('T')[0]}.docx`,
-          content: wordBase64,
-          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        },
-      ];
+      // Build attachments array (PDF only, no Word doc)
+      const attachments: Array<{ filename: string; content: string; type: string }> = [];
 
       // Add PDF if available
       if (pdfBase64) {
@@ -471,7 +175,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           to_name: userName,
           subject: `Lloyd George Record Summary - ${patientName} (NHS: ${nhsNumber})`,
           html_content: emailHtml,
-          attachments,
+          attachments: attachments.length > 0 ? attachments : undefined,
         },
       });
 
@@ -622,29 +326,6 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
   );
 }
 
-function createTableRow(label: string, value: string) {
-  return new TableRow({
-    children: [
-      new TableCell({
-        width: { size: 30, type: WidthType.PERCENTAGE },
-        children: [new Paragraph({ children: [new TextRun({ text: label, bold: true })] })],
-        shading: { fill: 'F0F4F5' },
-      }),
-      new TableCell({
-        width: { size: 70, type: WidthType.PERCENTAGE },
-        children: [new Paragraph({ text: value })],
-      }),
-    ],
-  });
-}
-
-function createHeaderCell(text: string) {
-  return new TableCell({
-    children: [new Paragraph({ children: [new TextRun({ text, bold: true, color: 'FFFFFF' })] })],
-    shading: { fill: '005EB8' },
-  });
-}
-
 function safeString(value: unknown): string {
   if (value === null || value === undefined) return '';
   if (typeof value === 'string') return value;
@@ -663,31 +344,17 @@ function formatListItem(item: unknown): string {
   if (typeof item === 'string') return item;
   if (item === null || item === undefined) return '';
   if (typeof item === 'object') {
-    // Handle common object structures from AI extraction
     const obj = item as Record<string, unknown>;
     if (obj.name) return String(obj.name);
     if (obj.term) return String(obj.term);
     if (obj.description) return String(obj.description);
     if (obj.value) return String(obj.value);
-    // Fallback to readable key-value pairs
     const entries = Object.entries(obj).filter(([_, v]) => v != null);
     if (entries.length > 0) {
       return entries.map(([k, v]) => `${k}: ${v}`).join(', ');
     }
   }
   return String(item);
-}
-
-function createDataCell(text: string) {
-  return new TableCell({
-    children: [new Paragraph({ text: safeString(text), style: 'Normal' })],
-    borders: {
-      top: { style: BorderStyle.SINGLE, size: 1, color: 'DDDDDD' },
-      bottom: { style: BorderStyle.SINGLE, size: 1, color: 'DDDDDD' },
-      left: { style: BorderStyle.SINGLE, size: 1, color: 'DDDDDD' },
-      right: { style: BorderStyle.SINGLE, size: 1, color: 'DDDDDD' },
-    },
-  });
 }
 
 async function blobToBase64(blob: Blob): Promise<string> {
