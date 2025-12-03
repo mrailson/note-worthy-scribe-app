@@ -179,9 +179,6 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
                       <div className="flex items-center gap-2">
                         <Pill className="h-4 w-4 text-primary" />
                         <span className="font-medium">{med.name}</span>
-                        <Badge variant={med.status === 'current' ? 'default' : 'secondary'} className="text-xs">
-                          {med.status}
-                        </Badge>
                       </div>
                       <div className="text-muted-foreground ml-6">
                         {[med.dose, med.route, med.frequency].filter(Boolean).join(' • ')}
