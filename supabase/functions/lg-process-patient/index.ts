@@ -395,53 +395,34 @@ ${fullOcrText.substring(0, 10000)}`;
           snomedJson
         );
 
-        // Send via EmailJS (no attachment)
-        const emailjsServiceId = Deno.env.get('EMAILJS_SERVICE_ID');
-        const emailjsTemplateId = Deno.env.get('EMAILJS_TEMPLATE_ID');
-        const emailjsPublicKey = Deno.env.get('EMAILJS_PUBLIC_KEY');
-        
-        if (emailjsServiceId && emailjsTemplateId && emailjsPublicKey) {
-          const emailjsResponse = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              service_id: emailjsServiceId,
-              template_id: emailjsTemplateId,
-              user_id: emailjsPublicKey,
-              template_params: {
-                to_email: userEmail,
-                subject: `Lloyd George Record Summary - ${patientName} (NHS: ${formatNhsNumber(nhsNumber)})`,
-                message_html: emailHtml,
-              },
-            }),
-          });
+        // Send via send-email-via-emailjs edge function (handles private key properly)
+        const { error: emailError } = await supabase.functions.invoke('send-email-via-emailjs', {
+          body: {
+            to_email: userEmail,
+            subject: `Lloyd George Record Summary - ${patientName} (NHS: ${formatNhsNumber(nhsNumber)})`,
+            message: emailHtml,
+            template_type: 'ai_generated_content',
+          },
+        });
 
-          if (!emailjsResponse.ok) {
-            const errorText = await emailjsResponse.text();
-            console.error('EmailJS error:', errorText);
-            await supabase
-              .from('lg_patients')
-              .update({ email_error: `EmailJS error: ${errorText}` })
-              .eq('id', patientId);
-          } else {
-            // Update email_sent_at
-            await supabase
-              .from('lg_patients')
-              .update({ email_sent_at: new Date().toISOString() })
-              .eq('id', patientId);
-            
-            console.log(`Email sent successfully to ${userEmail}`);
-            await logAudit(supabase, patientId, 'email_sent', patient.uploader_name, {
-              recipient: userEmail,
-              has_pdf_attachment: false,
-            });
-          }
-        } else {
-          console.error('EmailJS not configured');
+        if (emailError) {
+          console.error('Email send error:', emailError);
           await supabase
             .from('lg_patients')
-            .update({ email_error: 'Email service not configured' })
+            .update({ email_error: `Email error: ${emailError.message}` })
             .eq('id', patientId);
+        } else {
+          // Update email_sent_at
+          await supabase
+            .from('lg_patients')
+            .update({ email_sent_at: new Date().toISOString() })
+            .eq('id', patientId);
+          
+          console.log(`Email sent successfully to ${userEmail}`);
+          await logAudit(supabase, patientId, 'email_sent', patient.uploader_name, {
+            recipient: userEmail,
+            has_pdf_attachment: false,
+          });
         }
       } else {
         console.log('No user email found, skipping auto-email');
