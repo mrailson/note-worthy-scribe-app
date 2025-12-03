@@ -620,10 +620,11 @@ async function createSimplePdf(
   console.log('Adding SNOMED summary page...');
   
   try {
-    const summaryPage = pdfDoc.addPage([595, 842]); // A4 size
+    let currentPage = pdfDoc.addPage([595, 842]); // A4 size
     let yPosition = 790;
     const leftMargin = 50;
-    const lineHeight = 14;
+    const lineHeight = 16;
+    const pageMarginBottom = 60;
     
     // Sanitize text to remove characters not supported by WinAnsi encoding
     const sanitizeForPdf = (text: string): string => {
@@ -640,7 +641,7 @@ async function createSimplePdf(
         .replace(/┬/g, '+')
         .replace(/┴/g, '+')
         .replace(/┼/g, '+')
-        .replace(/•/g, '*')
+        .replace(/•/g, '-')
         .replace(/–/g, '-')
         .replace(/—/g, '-')
         .replace(/'/g, "'")
@@ -648,52 +649,59 @@ async function createSimplePdf(
         .replace(/"/g, '"')
         .replace(/"/g, '"')
         .replace(/…/g, '...')
+        .replace(/\*/g, '-')
         .replace(/[^\x00-\x7F]/g, ''); // Remove any other non-ASCII characters
     };
     
-    // Helper to draw text and move down - ALWAYS sanitizes text
-    const drawLine = (text: string, size = 10) => {
+    // Helper to check if we need a new page and draw text
+    const drawLine = (text: string, size = 10, indent = 0) => {
       const safeText = sanitizeForPdf(text);
-      if (yPosition < 50) {
-        // Add new page if running out of space
-        const newPage = pdfDoc.addPage([595, 842]);
+      if (yPosition < pageMarginBottom) {
+        // Add new page
+        currentPage = pdfDoc.addPage([595, 842]);
         yPosition = 790;
-        newPage.drawText(safeText, { x: leftMargin, y: yPosition, size });
-      } else {
-        summaryPage.drawText(safeText, { x: leftMargin, y: yPosition, size });
       }
+      currentPage.drawText(safeText, { x: leftMargin + indent, y: yPosition, size });
       yPosition -= lineHeight;
+    };
+    
+    // Add spacing
+    const addSpace = (lines = 1) => {
+      yPosition -= lineHeight * lines;
+      if (yPosition < pageMarginBottom) {
+        currentPage = pdfDoc.addPage([595, 842]);
+        yPosition = 790;
+      }
     };
     
     // Header
     drawLine('LLOYD GEORGE RECORD - CLINICAL SUMMARY & SNOMED CODES', 14);
-    drawLine('='.repeat(60), 10);
-    yPosition -= 10;
+    addSpace(0.5);
     
-    // Patient details
+    // Patient details box
     drawLine(`Patient: ${patientName}`, 11);
     drawLine(`NHS Number: ${nhsNumber}`, 11);
     drawLine(`Date of Birth: ${dob}`, 11);
-    drawLine(`Generated: ${new Date().toISOString().split('T')[0]}`, 10);
-    yPosition -= 10;
+    drawLine(`Generated: ${new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}`, 10);
+    addSpace(1);
     
     // Clinical Summary
     if (summaryJson?.summary_line) {
       drawLine('CLINICAL SUMMARY', 12);
-      drawLine('-'.repeat(40), 10);
+      addSpace(0.3);
       // Wrap long text
       const summaryWords = summaryJson.summary_line.split(' ');
       let currentLine = '';
       for (const word of summaryWords) {
-        if ((currentLine + ' ' + word).length > 80) {
-          drawLine(currentLine.trim(), 10);
+        if ((currentLine + ' ' + word).length > 75) {
+          drawLine(currentLine.trim(), 10, 10);
           currentLine = word;
         } else {
           currentLine += ' ' + word;
         }
       }
-      if (currentLine.trim()) drawLine(currentLine.trim(), 10);
-      yPosition -= 10;
+      if (currentLine.trim()) drawLine(currentLine.trim(), 10, 10);
+      addSpace(1);
     }
     
     // SNOMED Codes sections
@@ -709,51 +717,49 @@ async function createSimplePdf(
       const items = snomedJson?.[section.key] || [];
       if (items.length > 0) {
         drawLine(section.title, 12);
-        drawLine('-'.repeat(40), 10);
+        addSpace(0.3);
         for (const item of items) {
           const code = item.code || 'UNKNOWN';
           const term = item.term || 'Unknown term';
           const confidence = item.confidence ? `${Math.round(item.confidence * 100)}%` : '';
-          drawLine(`* ${term} [SNOMED: ${code}] ${confidence}`, 10);
+          drawLine(`${term} [SNOMED: ${code}] ${confidence}`, 10, 15);
           if (item.evidence) {
-            const evidenceText = `  Evidence: "${item.evidence.substring(0, 70)}${item.evidence.length > 70 ? '...' : ''}"`;
-            drawLine(evidenceText, 9);
+            const evidenceText = `Evidence: "${item.evidence.substring(0, 60)}${item.evidence.length > 60 ? '...' : ''}"`;
+            drawLine(evidenceText, 9, 25);
           }
         }
-        yPosition -= 5;
+        addSpace(0.5);
       }
     }
     
     // Additional clinical sections from summary
     const clinicalSections = [
-      { key: 'allergies', title: 'ALLERGIES (from summary)' },
       { key: 'medications', title: 'MEDICATIONS' },
       { key: 'significant_past_history', title: 'SIGNIFICANT PAST HISTORY' },
     ];
     
     for (const section of clinicalSections) {
       const items = summaryJson?.[section.key] || [];
-      if (items.length > 0 && section.key !== 'allergies') { // Skip allergies as already in SNOMED
+      if (items.length > 0) {
         drawLine(section.title, 12);
-        drawLine('-'.repeat(40), 10);
+        addSpace(0.3);
         for (const item of items) {
           let text = '';
           if (section.key === 'medications') {
-            text = `* ${item.name || ''} ${item.dose || ''} ${item.frequency || ''} (${item.status || 'unknown'})`;
+            text = `${item.name || ''} ${item.dose || ''} ${item.frequency || ''} (${item.status || 'unknown'})`;
           } else if (section.key === 'significant_past_history') {
-            text = `* ${item.condition || ''} (${item.first_noted || 'unknown'}) - ${item.status || 'unknown'}`;
+            text = `${item.condition || ''} (${item.first_noted || 'unknown'}) - ${item.status || 'unknown'}`;
           } else {
-            text = `* ${JSON.stringify(item)}`;
+            text = JSON.stringify(item);
           }
-          drawLine(text, 10);
+          drawLine(text, 10, 15);
         }
-        yPosition -= 5;
+        addSpace(0.5);
       }
     }
     
     // Footer
-    yPosition -= 20;
-    drawLine('-'.repeat(60), 10);
+    addSpace(1);
     drawLine('This summary was generated by AI from scanned Lloyd George records.', 9);
     drawLine('All clinical information should be verified before use.', 9);
   } catch (summaryErr) {
