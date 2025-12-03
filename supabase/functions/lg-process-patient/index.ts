@@ -384,14 +384,19 @@ ${fullOcrText.substring(0, 10000)}`;
     // Step 6: Generate CSV from SNOMED
     const snomedCsv = generateSnomedCsv(snomedJson, patientId, nhsNumber);
 
-    // Step 7: Create simple PDF (base64 images concatenated - POC) with SNOMED summary page
+    // Step 7: Generate AI page summaries for index
+    console.log('Generating AI page summaries for PDF index...');
+    const pageSummaries = await generatePageSummaries(fullOcrText, imageDataUrls.length, openaiKey);
+    console.log(`Generated ${pageSummaries.length} page summaries`);
+
+    // Step 8: Create simple PDF (base64 images concatenated - POC) with SNOMED summary page
     const pdfStartTime = new Date().toISOString();
     await supabase
       .from('lg_patients')
       .update({ pdf_started_at: pdfStartTime })
       .eq('id', patientId);
 
-    const pdfContent = await createSimplePdf(imageDataUrls, fullOcrText, summaryJson, snomedJson, patientName, nhsNumber, dob);
+    const pdfContent = await createSimplePdf(imageDataUrls, fullOcrText, summaryJson, snomedJson, patientName, nhsNumber, dob, pageSummaries);
 
     // Step 8: Upload all outputs
     console.log('Uploading outputs...');
@@ -683,6 +688,98 @@ function generateSnomedCsv(snomed: any, patientId: string, nhsNumber: string): s
   return rows.join('\n');
 }
 
+// Parse OCR text into per-page segments
+function parseOcrByPage(ocrText: string): Map<number, string> {
+  const pageMap = new Map<number, string>();
+  if (!ocrText) return pageMap;
+
+  // Split by page markers like "--- Page page_001.jpg ---"
+  const pageRegex = /---\s*Page\s+page_(\d+)\.(jpg|jpeg|png)\s*---/gi;
+  const parts = ocrText.split(pageRegex);
+  
+  // Parse alternating: [text before first marker, page num, ext, text, page num, ext, text, ...]
+  for (let i = 1; i < parts.length; i += 3) {
+    const pageNum = parseInt(parts[i], 10);
+    const pageText = parts[i + 2] || '';
+    if (pageNum > 0) {
+      pageMap.set(pageNum, pageText.trim());
+    }
+  }
+  
+  return pageMap;
+}
+
+// Generate one-line summaries for each page using OpenAI
+async function generatePageSummaries(ocrText: string, pageCount: number, openaiKey: string | undefined): Promise<string[]> {
+  const summaries: string[] = [];
+  const pageMap = parseOcrByPage(ocrText);
+  
+  if (!openaiKey || pageMap.size === 0) {
+    // Fallback to generic summaries
+    for (let i = 0; i < pageCount; i++) {
+      summaries.push(`Scanned page ${i + 1} of ${pageCount}`);
+    }
+    return summaries;
+  }
+
+  // Build a prompt with all page texts for batch processing
+  const pageTexts: { pageNum: number; text: string }[] = [];
+  for (let i = 1; i <= pageCount; i++) {
+    const text = pageMap.get(i) || '';
+    pageTexts.push({ pageNum: i, text: text.substring(0, 500) }); // Limit text per page
+  }
+
+  try {
+    const prompt = `You are summarizing pages from a Lloyd George medical record scan. 
+For each page below, provide a brief one-line summary (max 60 characters) describing the main content.
+If the page appears blank or has minimal text, say "Mostly blank page" or similar.
+Focus on clinical relevance: document types (e.g., "GP referral letter", "Blood test results"), dates, or key findings.
+
+${pageTexts.map(p => `PAGE ${p.pageNum}:\n${p.text || '[No text detected]'}`).join('\n\n---\n\n')}
+
+Respond with a JSON array of strings, one summary per page in order. Example:
+["Continuation card - immunisation records", "GP referral letter dated 15/03/2020", "Blood test results - FBC normal"]`;
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${openaiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    
+    // Extract JSON array from response
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (Array.isArray(parsed)) {
+        return parsed.map((s: any) => String(s || '').substring(0, 60));
+      }
+    }
+  } catch (err) {
+    console.error('Failed to generate page summaries:', err);
+  }
+
+  // Fallback to generic summaries
+  for (let i = 0; i < pageCount; i++) {
+    summaries.push(`Scanned page ${i + 1} of ${pageCount}`);
+  }
+  return summaries;
+}
+
 async function createSimplePdf(
   imageDataUrls: string[],
   ocrText: string,
@@ -690,7 +787,8 @@ async function createSimplePdf(
   snomedJson: any,
   patientName: string,
   nhsNumber: string,
-  dob: string
+  dob: string,
+  pageSummaries: string[] = []
 ): Promise<Uint8Array> {
   // Create PDF with clinical summary FIRST, then index, then images
   const pdfDoc = await PDFDocument.create();
@@ -877,10 +975,12 @@ async function createSimplePdf(
     drawIndexLine('--------    -----------', 10);
     yPos -= 5;
     
-    // List each scanned page with its PDF page number
+    // List each scanned page with its PDF page number and AI summary
     for (let i = 0; i < imageDataUrls.length; i++) {
       const pdfPageNum = scanStartPage + i;
-      const pageLabel = `Page ${String(pdfPageNum).padStart(3, ' ')}    Scanned page ${i + 1} of ${imageDataUrls.length}`;
+      const summary = pageSummaries[i] || `Scanned page ${i + 1} of ${imageDataUrls.length}`;
+      const truncatedSummary = sanitizeForPdf(summary).substring(0, 55);
+      const pageLabel = `Page ${String(pdfPageNum).padStart(3, ' ')}    ${truncatedSummary}`;
       drawIndexLine(pageLabel, 10);
     }
     
