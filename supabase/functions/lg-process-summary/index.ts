@@ -436,37 +436,24 @@ async function sendSummaryEmail(
       pdfNote
     );
 
-    // Send via EmailJS
-    const emailjsServiceId = Deno.env.get('EMAILJS_SERVICE_ID');
-    const emailjsTemplateId = Deno.env.get('EMAILJS_TEMPLATE_ID');
-    const emailjsPublicKey = Deno.env.get('EMAILJS_PUBLIC_KEY');
-    
-    if (emailjsServiceId && emailjsTemplateId && emailjsPublicKey) {
-      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          service_id: emailjsServiceId,
-          template_id: emailjsTemplateId,
-          user_id: emailjsPublicKey,
-          template_params: {
-            to_email: userEmail,
-            subject: `Lloyd George Record Summary - ${patientName} (NHS: ${formatNhsNumber(nhsNumber)})`,
-            message_html: emailHtml,
-          },
-        }),
-      });
+    // Send via send-email-via-emailjs edge function (handles private key properly)
+    const { error: emailError } = await supabase.functions.invoke('send-email-via-emailjs', {
+      body: {
+        to_email: userEmail,
+        subject: `Lloyd George Record Summary - ${patientName} (NHS: ${formatNhsNumber(nhsNumber)})`,
+        message: emailHtml,
+        template_type: 'ai_generated_content',
+      },
+    });
 
-      if (response.ok) {
-        await supabase
-          .from('lg_patients')
-          .update({ email_sent_at: new Date().toISOString() })
-          .eq('id', patient.id);
-        console.log(`Email sent to ${userEmail}`);
-      } else {
-        const errorText = await response.text();
-        console.error('EmailJS error:', errorText);
-      }
+    if (emailError) {
+      console.error('Email send error:', emailError);
+    } else {
+      await supabase
+        .from('lg_patients')
+        .update({ email_sent_at: new Date().toISOString() })
+        .eq('id', patient.id);
+      console.log(`Email sent to ${userEmail}`);
     }
   } catch (err) {
     console.error('Email sending error:', err);
