@@ -28,6 +28,14 @@ serve(async (req) => {
 
     console.log(`OCR Batch ${batchNumber} for patient: ${patientId}`);
 
+    // Record OCR start time on first batch
+    if (batchNumber === 0) {
+      await supabase
+        .from('lg_patients')
+        .update({ ocr_started_at: new Date().toISOString() })
+        .eq('id', patientId);
+    }
+
     // Get patient record
     const { data: patient, error: patientError } = await supabase
       .from('lg_patients')
@@ -121,6 +129,7 @@ serve(async (req) => {
       .update({
         ocr_batches_completed: completedBatches,
         processing_phase: isLastBatch ? 'summary' : 'ocr',
+        ...(isLastBatch ? { ocr_completed_at: new Date().toISOString() } : {}),
       })
       .eq('id', patientId);
 

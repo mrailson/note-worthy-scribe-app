@@ -4,6 +4,7 @@ import { useLGCapture, LGPatient } from '@/hooks/useLGCapture';
 import { LGProcessingStatus } from '@/components/lg-capture/LGProcessingStatus';
 import { LGDownloadPanel } from '@/components/lg-capture/LGDownloadPanel';
 import { LGSummaryPreview } from '@/components/lg-capture/LGSummaryPreview';
+import { LGProcessingMetrics } from '@/components/lg-capture/LGProcessingMetrics';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
@@ -242,6 +243,7 @@ export default function LGCaptureResults() {
           <LGDownloadPanel patient={patient} />
           <LGEmailButton patient={patient} />
           <LGSummaryPreview patient={patient} />
+          <LGProcessingMetrics patient={patient} />
         </>
       )}
 
