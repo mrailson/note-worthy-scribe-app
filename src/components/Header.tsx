@@ -325,6 +325,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Fridge Monitoring
                           </DropdownMenuItem>
                         )}
+                        {hasServiceAccess('lg_capture') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/lg-capture')}
+                            className="cursor-pointer py-3"
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            LG Capture
+                          </DropdownMenuItem>
+                        )}
                   </DropdownMenuContent>
               </DropdownMenu>
             )}

@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
-export type ServiceType = 'ai4pm' | 'ai4gp' | 'nres' | 'meeting_recorder' | 'complaints' | 'cqc';
+export type ServiceType = 'ai4pm' | 'ai4gp' | 'nres' | 'meeting_recorder' | 'complaints' | 'cqc' | 'lg_capture';
 
 export const useServiceActivation = () => {
   const { user } = useAuth();

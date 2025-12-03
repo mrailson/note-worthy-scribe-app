@@ -7803,6 +7803,7 @@ export type Database = {
         | "meeting_recorder"
         | "complaints"
         | "cqc"
+        | "lg_capture"
       staff_role:
         | "gp"
         | "phlebotomist"
@@ -8026,6 +8027,7 @@ export const Constants = {
         "meeting_recorder",
         "complaints",
         "cqc",
+        "lg_capture",
       ],
       staff_role: [
         "gp",
