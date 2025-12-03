@@ -368,8 +368,14 @@ ${fullOcrText.substring(0, 10000)}`;
         if (resendApiKey) {
           const resend = new Resend(resendApiKey);
           
-          // Convert PDF Uint8Array to base64 for attachment
-          const pdfBase64 = btoa(String.fromCharCode(...pdfContent));
+          // Convert PDF Uint8Array to base64 for attachment (chunked to avoid stack overflow)
+          let pdfBase64 = '';
+          const chunkSize = 8192;
+          for (let i = 0; i < pdfContent.length; i += chunkSize) {
+            const chunk = pdfContent.subarray(i, Math.min(i + chunkSize, pdfContent.length));
+            pdfBase64 += String.fromCharCode.apply(null, Array.from(chunk));
+          }
+          pdfBase64 = btoa(pdfBase64);
           
           // Create filename for attachment
           const cleanNhs = (nhsNumber || 'unknown').replace(/\s/g, '');
