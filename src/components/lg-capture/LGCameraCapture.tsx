@@ -308,11 +308,23 @@ export function LGCameraCapture({
             </div>
             
             {isCapturing && (
-              <div className="flex justify-center">
+              <div className="flex flex-col gap-3">
+                {images.length > 0 && (
+                  <Button
+                    onClick={onFinish}
+                    disabled={isProcessing}
+                    className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
+                    size="lg"
+                  >
+                    <FastForward className="mr-2 h-5 w-5" />
+                    Done, Next Patient ({images.length} pages)
+                  </Button>
+                )}
                 <Button
                   variant="outline"
                   onClick={stopCamera}
                   size="lg"
+                  className="w-full"
                 >
                   <X className="h-5 w-5 mr-2" />
                   Close Camera
@@ -355,8 +367,8 @@ export function LGCameraCapture({
 
       <canvas ref={canvasRef} className="hidden" />
 
-      {/* Finish Button - above images for better mobile layout */}
-      {images.length > 0 && (
+      {/* Done button when camera is closed but images exist */}
+      {!isCapturing && !isCameraLoading && images.length > 0 && (
         <Button
           onClick={onFinish}
           disabled={isProcessing}
