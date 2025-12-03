@@ -420,20 +420,19 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
       const emailHtml = buildEmailHtml(summaryData, snomedData);
       console.log('Email HTML length:', emailHtml.length);
 
-      // Send via EmailJS edge function
-      console.log('Invoking edge function...');
-      const { error } = await supabase.functions.invoke('send-email-via-emailjs', {
+      // Send via Resend edge function
+      console.log('Invoking Resend edge function...');
+      const { error } = await supabase.functions.invoke('send-email-resend', {
         body: {
           to_email: userEmail,
           to_name: userName,
           subject: `Lloyd George Record Summary - ${patientName} (NHS: ${nhsNumber})`,
-          message: emailHtml,
-          template_type: 'ai_generated_content',
-          word_attachment: {
+          html_content: emailHtml,
+          attachments: [{
             filename: `LG_Summary_${nhsNumber.replace(/\s/g, '')}_${new Date().toISOString().split('T')[0]}.docx`,
             content: wordBase64,
             type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          },
+          }],
         },
       });
 
