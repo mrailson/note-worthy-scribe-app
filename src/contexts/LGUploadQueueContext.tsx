@@ -130,9 +130,6 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
         console.error('Processing trigger error:', err);
       });
 
-      // Show success toast
-      toast.success(`Upload complete for patient, processing started`);
-
       // Mark as complete after a delay (processing happens in background)
       setTimeout(() => {
         setQueue(prev => prev.filter(q => q.patientId !== patientId));
