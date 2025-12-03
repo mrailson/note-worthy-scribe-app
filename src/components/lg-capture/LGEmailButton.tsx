@@ -415,10 +415,45 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
       const wordBase64 = await blobToBase64(wordBlob);
       console.log('Word base64 length:', wordBase64.length);
 
+      // Fetch PDF if available
+      let pdfBase64: string | null = null;
+      if (patient.pdf_url) {
+        try {
+          console.log('Fetching PDF...');
+          const { data: pdfFile } = await supabase.storage
+            .from('lg')
+            .download(patient.pdf_url);
+          if (pdfFile) {
+            pdfBase64 = await blobToBase64(pdfFile);
+            console.log('PDF base64 length:', pdfBase64.length);
+          }
+        } catch (e) {
+          console.log('Could not fetch PDF:', e);
+        }
+      }
+
       // Build email HTML content
       console.log('Building email HTML...');
       const emailHtml = buildEmailHtml(summaryData, snomedData);
       console.log('Email HTML length:', emailHtml.length);
+
+      // Build attachments array
+      const attachments = [
+        {
+          filename: `LG_Summary_${nhsNumber.replace(/\s/g, '')}_${new Date().toISOString().split('T')[0]}.docx`,
+          content: wordBase64,
+          type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        },
+      ];
+
+      // Add PDF if available
+      if (pdfBase64) {
+        attachments.push({
+          filename: `LG_Record_${nhsNumber.replace(/\s/g, '')}_${new Date().toISOString().split('T')[0]}.pdf`,
+          content: pdfBase64,
+          type: 'application/pdf',
+        });
+      }
 
       // Send via Resend edge function
       console.log('Invoking Resend edge function...');
@@ -428,11 +463,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           to_name: userName,
           subject: `Lloyd George Record Summary - ${patientName} (NHS: ${nhsNumber})`,
           html_content: emailHtml,
-          attachments: [{
-            filename: `LG_Summary_${nhsNumber.replace(/\s/g, '')}_${new Date().toISOString().split('T')[0]}.docx`,
-            content: wordBase64,
-            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-          }],
+          attachments,
         },
       });
 
