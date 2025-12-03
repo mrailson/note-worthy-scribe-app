@@ -389,6 +389,40 @@ export function useLGCapture() {
     }
   }, []);
 
+  // Retry just the summary phase (for stuck jobs where OCR completed)
+  const retrySummary = useCallback(async (patientId: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      console.log('Retrying summary processing for patient:', patientId);
+      
+      const { error: invokeError } = await supabase.functions.invoke('lg-process-summary', {
+        body: { patientId },
+      });
+
+      if (invokeError) {
+        console.error('Failed to invoke lg-process-summary:', invokeError);
+        throw invokeError;
+      }
+
+      console.log('Summary processing triggered successfully');
+      await logAuditEvent(patientId, 'summary_retry', user.email || 'unknown', user.id, {});
+      return true;
+    } catch (err) {
+      console.error('retrySummary error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to retry summary';
+      setError(message);
+      toast.error(`Retry failed: ${message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isLoading,
     error,
@@ -396,6 +430,7 @@ export function useLGCapture() {
     getPatient,
     uploadImages,
     triggerProcessing,
+    retrySummary,
     listPatients,
     deletePatient,
   };

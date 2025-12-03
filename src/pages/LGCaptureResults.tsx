@@ -48,7 +48,7 @@ function formatNhsNumber(nhs: string | null | undefined): string {
 export default function LGCaptureResults() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPatient, triggerProcessing, deletePatient, isLoading: deleteLoading } = useLGCapture();
+  const { getPatient, triggerProcessing, retrySummary, deletePatient, isLoading: actionLoading } = useLGCapture();
   
   const [patient, setPatient] = useState<LGPatient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -103,6 +103,15 @@ export default function LGCaptureResults() {
     const success = await triggerProcessing(patient.id);
     if (success) {
       toast.success('Processing restarted');
+      loadPatient();
+    }
+  };
+
+  const handleRetrySummary = async () => {
+    if (!patient) return;
+    const success = await retrySummary(patient.id);
+    if (success) {
+      toast.success('Summary generation restarted');
       loadPatient();
     }
   };
@@ -231,9 +240,24 @@ export default function LGCaptureResults() {
           onClick={handleRetry}
           variant="outline"
           className="w-full"
+          disabled={actionLoading}
         >
           <RefreshCw className="mr-2 h-4 w-4" />
           {patient.job_status === 'failed' ? 'Retry Processing' : 'Start Processing'}
+        </Button>
+      )}
+
+      {/* Retry Summary Button - for stuck jobs where OCR completed */}
+      {patient.job_status === 'processing' && 
+        (patient as any).processing_phase === 'summary' && (
+        <Button
+          onClick={handleRetrySummary}
+          variant="outline"
+          className="w-full"
+          disabled={actionLoading}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Retry Summary Generation
         </Button>
       )}
 
@@ -269,10 +293,10 @@ export default function LGCaptureResults() {
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              disabled={deleteLoading}
+              disabled={actionLoading}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {deleteLoading ? (
+              {actionLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Deleting...
