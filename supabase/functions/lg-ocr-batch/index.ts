@@ -146,13 +146,43 @@ serve(async (req) => {
 
       const mergedOcrText = mergedOcrParts.join('\n\n');
       
-      // Save merged OCR text
+      // Save merged OCR text with error checking
       const mergedPath = `${basePath}/work/ocr_merged.txt`;
       const mergedBlob = new Blob([mergedOcrText], { type: 'text/plain' });
-      await supabase.storage.from('lg').upload(mergedPath, mergedBlob, {
+      
+      console.log(`Uploading merged OCR text (${mergedOcrText.length} chars) to ${mergedPath}...`);
+      
+      const { error: uploadError } = await supabase.storage.from('lg').upload(mergedPath, mergedBlob, {
         contentType: 'text/plain',
         upsert: true,
       });
+
+      if (uploadError) {
+        console.error('Failed to upload merged OCR:', uploadError);
+        throw new Error(`Failed to upload merged OCR: ${JSON.stringify(uploadError)}`);
+      }
+      
+      console.log('Merged OCR file uploaded successfully');
+
+      // Verify the file exists before proceeding
+      let fileVerified = false;
+      for (let v = 0; v < 5; v++) {
+        const { data: checkData } = await supabase.storage
+          .from('lg')
+          .download(mergedPath);
+        
+        if (checkData) {
+          fileVerified = true;
+          console.log(`Verified merged OCR file exists (attempt ${v + 1})`);
+          break;
+        }
+        console.log(`Waiting for file propagation (attempt ${v + 1}/5)...`);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+      
+      if (!fileVerified) {
+        throw new Error('Merged OCR file upload succeeded but file not readable - storage issue');
+      }
 
       // Update patient with OCR URL
       await supabase
