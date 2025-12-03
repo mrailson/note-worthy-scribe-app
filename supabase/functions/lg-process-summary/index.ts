@@ -344,19 +344,16 @@ ${fullOcrText.substring(0, 10000)}`;
       })
       .eq('id', patientId);
 
-    // Send email immediately (don't wait for PDF for large records)
-    console.log('Sending email notification...');
-    await sendSummaryEmail(supabase, patient, patientName, nhsNumber, dob, summaryJson, snomedJson, needsBackgroundPdf);
-
+    // Trigger PDF generation - email will be sent AFTER PDF is ready
     if (needsBackgroundPdf) {
-      // Queue background PDF generation
+      // Queue background PDF generation - email will be sent when PDF completes
       console.log('Queuing background PDF generation for large record...');
-      // The cron job or manual trigger will pick this up
+      // The cron job or manual trigger will pick this up and send email after
     } else {
-      // Trigger immediate PDF generation for small records
-      console.log('Triggering immediate PDF generation...');
+      // Trigger immediate PDF generation with email flag
+      console.log('Triggering immediate PDF generation (will send email after)...');
       await supabase.functions.invoke('lg-generate-pdf', {
-        body: { patientId },
+        body: { patientId, sendEmail: true },
       });
     }
 
