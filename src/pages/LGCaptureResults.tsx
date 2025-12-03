@@ -244,18 +244,6 @@ export default function LGCaptureResults() {
         </>
       )}
 
-      {/* Start Next Patient */}
-      {patient.job_status === 'succeeded' && (
-        <Button
-          onClick={() => navigate('/lg-capture/start')}
-          className="w-full"
-          size="lg"
-        >
-          <Plus className="mr-2 h-5 w-5" />
-          Start Next Patient
-        </Button>
-      )}
-
       {/* Delete Record */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogTrigger asChild>
@@ -293,6 +281,18 @@ export default function LGCaptureResults() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Start Next Patient */}
+      {patient.job_status === 'succeeded' && (
+        <Button
+          onClick={() => navigate('/lg-capture/start')}
+          className="w-full"
+          size="lg"
+        >
+          <Plus className="mr-2 h-5 w-5" />
+          Start Next Patient
+        </Button>
+      )}
     </div>
   );
 }
