@@ -37,30 +37,36 @@ Developer guardrails:
 - Use UK spellings and NHS conventions.
 - Never fabricate data; mark "unknown" if uncertain.`;
 
-// SNOMED Extractor system prompt - Focus on problem codes only
-const SNOMED_SYSTEM_PROMPT = `You are a clinical coder for UK primary care following NHS/RCGP summarising standards.
-Map the clinical summary to SNOMED CT codes suitable for GP systems (EMIS/SystmOne).
+// SNOMED Concept Extractor - extracts clinical CONCEPTS (not codes) for database matching
+const SNOMED_CONCEPT_PROMPT = `You are a clinical coder for UK primary care. Extract clinical CONCEPTS from the summary.
+DO NOT generate SNOMED codes - just identify the clinical terms that need coding.
 
-CODING RULES:
-- Use UK SNOMED CT preferred terms only
-- Prefer high-level, safe, unambiguous concepts
-- If you cannot confidently code, output code: "UNKNOWN"
-- Confidence 0–1.0 based on clarity in source text
-- Provide a short evidence snippet from the source
+Return JSON with clinical terms to be coded:
 
-ONLY CODE:
+{
+  "diagnoses": [{"term":"clinical condition name","date":"","evidence":"text from source"}],
+  "surgeries": [{"term":"procedure name","date":"","evidence":""}],
+  "allergies": [{"term":"allergen or drug name","date":"","evidence":""}],
+  "immunisations": [{"term":"vaccine name","date":"","evidence":""}]
+}
+
+RULES:
+- Use standard UK clinical terminology (e.g., "Type 2 diabetes mellitus", "Hypertension", "Asthma")
+- Be specific: "Chronic obstructive pulmonary disease" not just "lung disease"
+- Include dates where mentioned (YYYY, MMM YYYY, or "Pre Oct 2020" format)
+- Evidence should be a short snippet from the source text
+
+ONLY extract:
 1. Major diagnoses and chronic conditions
-2. Major surgical procedures
+2. Major surgical procedures (appendectomy, cholecystectomy, hip replacement, etc.)
 3. Allergies and adverse drug reactions
-4. Immunisations
+4. Immunisations/vaccinations
 
-DO NOT CODE:
+DO NOT extract:
 - Minor self-limiting illnesses
-- Social history (smoking/alcohol) - these are not SNOMED problems
-- Family history - record as free text only
-- Normal investigation results
-- Administrative items
-- Medications (out of scope for this POC)`;
+- Social history
+- Family history
+- Medications`;
 
 // Patient details extraction prompt
 const PATIENT_EXTRACTION_PROMPT = `You are extracting patient demographic details from scanned Lloyd George medical records. Extract ONLY what you can clearly see in the OCR text. Do not guess or invent information.
@@ -393,24 +399,21 @@ ${fullOcrText.substring(0, 50000)}`;
       summaryJson = createEmptySummary();
     }
 
-    // Step 5: Generate SNOMED codes
-    console.log('Extracting SNOMED codes...');
+    // Step 5: Generate SNOMED codes using VALIDATED database matching
+    console.log('Extracting clinical concepts for SNOMED matching...');
     let snomedJson: any = null;
 
     if (openaiKey && summaryJson) {
-      const snomedPrompt = `Using the clinical summary, extract SNOMED CT codes for GP import.
+      const conceptPrompt = `Using the clinical summary, identify clinical CONCEPTS that need SNOMED coding.
 
-Return JSON with these domains ONLY (problem codes suitable for GP system import):
+Return JSON listing the clinical terms (we will match them to validated codes):
 
 {
-  "diagnoses": [{"term":"","code":"","confidence":0.0,"evidence":"text snippet"}],
-  "surgeries": [{"term":"","code":"","confidence":0.0,"evidence":""}],
-  "allergies": [{"term":"","code":"","confidence":0.0,"evidence":""}],
-  "immunisations": [{"term":"","code":"","confidence":0.0,"evidence":""}]
+  "diagnoses": [{"term":"condition name","date":"","evidence":"source text"}],
+  "surgeries": [{"term":"procedure name","date":"","evidence":""}],
+  "allergies": [{"term":"allergen/drug","date":"","evidence":""}],
+  "immunisations": [{"term":"vaccine name","date":"","evidence":""}]
 }
-
-ONLY include items that should be coded into the problem list or procedure list.
-Do NOT code social history, family history, medications, or minor illnesses.
 
 Summary JSON:
 ${JSON.stringify(summaryJson, null, 2)}
@@ -419,8 +422,13 @@ OCR Text (first 10000 chars):
 ${fullOcrText.substring(0, 10000)}`;
 
       try {
-        snomedJson = await callOpenAI(openaiKey, SNOMED_SYSTEM_PROMPT, snomedPrompt);
-        console.log('SNOMED codes extracted');
+        // Step 1: Extract concepts (not codes)
+        const conceptsJson = await callOpenAI(openaiKey, SNOMED_CONCEPT_PROMPT, conceptPrompt);
+        console.log('Clinical concepts extracted');
+        
+        // Step 2: Match concepts against validated SNOMED database
+        snomedJson = await matchConceptsToSnomed(supabase, conceptsJson);
+        console.log('SNOMED codes matched from database');
       } catch (aiErr) {
         console.error('SNOMED extraction failed:', aiErr);
         snomedJson = createEmptySnomed();
@@ -702,6 +710,138 @@ function createEmptySummary() {
     free_text_findings: 'OCR text was insufficient for clinical summary generation.',
     summary_metadata: '',
   };
+}
+
+// Match clinical concepts to validated SNOMED codes from database
+async function matchConceptsToSnomed(supabase: any, conceptsJson: any): Promise<any> {
+  const result: any = {
+    diagnoses: [],
+    surgeries: [],
+    allergies: [],
+    immunisations: [],
+  };
+
+  // Helper to find best matching SNOMED code for a term
+  async function findBestMatch(term: string, domain: string): Promise<{ code: string; description: string; confidence: number } | null> {
+    if (!term || term.length < 2) return null;
+
+    // Normalize the search term
+    const searchTerm = term.toLowerCase().trim();
+    
+    // Map domain to cluster patterns
+    const domainPatterns: Record<string, string[]> = {
+      diagnoses: ['diagnosis', 'disease', 'codes', 'disorder'],
+      surgeries: ['Surgical', 'procedure'],
+      allergies: ['Allergy'],
+      immunisations: ['Immunisation', 'vaccination'],
+    };
+
+    // Try exact match first
+    const { data: exactMatch } = await supabase
+      .from('snomed_codes')
+      .select('snomed_code, code_description')
+      .ilike('code_description', searchTerm)
+      .limit(1);
+
+    if (exactMatch && exactMatch.length > 0) {
+      return {
+        code: exactMatch[0].snomed_code,
+        description: exactMatch[0].code_description,
+        confidence: 0.95,
+      };
+    }
+
+    // Try fuzzy match with domain filtering
+    const patterns = domainPatterns[domain] || [];
+
+    // Search using text similarity
+    const { data: fuzzyMatches } = await supabase
+      .from('snomed_codes')
+      .select('snomed_code, code_description, cluster_description')
+      .or(`code_description.ilike.%${searchTerm}%,code_description.ilike.%${searchTerm.split(' ')[0]}%`)
+      .limit(10);
+
+    if (fuzzyMatches && fuzzyMatches.length > 0) {
+      // Score matches by similarity
+      let bestMatch = null;
+      let bestScore = 0;
+
+      for (const match of fuzzyMatches) {
+        const desc = match.code_description.toLowerCase();
+        let score = 0;
+
+        // Exact substring match
+        if (desc.includes(searchTerm)) {
+          score = 0.85;
+        }
+        // First word match
+        else if (desc.includes(searchTerm.split(' ')[0])) {
+          score = 0.7;
+        }
+        // Partial match
+        else {
+          const words = searchTerm.split(' ');
+          const matchedWords = words.filter(w => desc.includes(w)).length;
+          score = 0.5 + (matchedWords / words.length) * 0.3;
+        }
+
+        // Boost score if domain matches
+        const clusterLower = match.cluster_description.toLowerCase();
+        if (patterns.some(p => clusterLower.includes(p.toLowerCase()))) {
+          score += 0.1;
+        }
+
+        if (score > bestScore) {
+          bestScore = score;
+          bestMatch = match;
+        }
+      }
+
+      if (bestMatch && bestScore >= 0.5) {
+        return {
+          code: bestMatch.snomed_code,
+          description: bestMatch.code_description,
+          confidence: Math.min(bestScore, 0.95),
+        };
+      }
+    }
+
+    return null;
+  }
+
+  // Process each domain
+  const domains = ['diagnoses', 'surgeries', 'allergies', 'immunisations'] as const;
+
+  for (const domain of domains) {
+    const concepts = conceptsJson[domain] || [];
+    
+    for (const concept of concepts) {
+      const term = concept.term;
+      const match = await findBestMatch(term, domain);
+
+      if (match) {
+        result[domain].push({
+          term: match.description, // Use the official SNOMED description
+          code: match.code,
+          date: concept.date || '',
+          confidence: match.confidence,
+          evidence: concept.evidence || '',
+        });
+      } else {
+        // No match found - flag for manual review
+        result[domain].push({
+          term: term,
+          code: 'MANUAL_REVIEW',
+          date: concept.date || '',
+          confidence: 0.3,
+          evidence: concept.evidence || '',
+        });
+      }
+    }
+  }
+
+  console.log(`SNOMED matching complete: ${result.diagnoses.length} diagnoses, ${result.surgeries.length} surgeries, ${result.allergies.length} allergies, ${result.immunisations.length} immunisations`);
+  return result;
 }
 
 function createEmptySnomed() {
