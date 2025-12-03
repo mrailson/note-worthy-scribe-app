@@ -149,6 +149,15 @@ export default function LGCaptureLanding() {
         <ArrowRight className="ml-2 h-5 w-5" />
       </Button>
 
+      <Button
+        variant="outline"
+        onClick={() => navigate('/lg-capture/patients')}
+        className="w-full"
+      >
+        <List className="mr-2 h-4 w-4" />
+        View Recent Captures
+      </Button>
+
       <div className="grid grid-cols-2 gap-4">
         {features.map((feature) => (
           <Card key={feature.title} className="bg-muted/30">
@@ -160,15 +169,6 @@ export default function LGCaptureLanding() {
           </Card>
         ))}
       </div>
-
-      <Button
-        variant="outline"
-        onClick={() => navigate('/lg-capture/patients')}
-        className="w-full"
-      >
-        <List className="mr-2 h-4 w-4" />
-        View Recent Captures
-      </Button>
 
       <Card className="bg-muted/30">
         <CardHeader className="pb-3">
