@@ -281,3 +281,6 @@ verify_jwt = true
 
 [functions.lg-generate-pdf]
 verify_jwt = true
+
+[functions.send-email-resend]
+verify_jwt = false
