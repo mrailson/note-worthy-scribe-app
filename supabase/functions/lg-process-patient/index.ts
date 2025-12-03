@@ -618,138 +618,148 @@ async function createSimplePdf(
   
   // Add SNOMED Summary page at the end (searchable text)
   console.log('Adding SNOMED summary page...');
-  const summaryPage = pdfDoc.addPage([595, 842]); // A4 size
-  let yPosition = 790;
-  const leftMargin = 50;
-  const lineHeight = 14;
   
-  // Helper to draw text and move down
-  const drawLine = (text: string, size = 10, bold = false) => {
-    if (yPosition < 50) {
-      // Add new page if running out of space
-      const newPage = pdfDoc.addPage([595, 842]);
-      yPosition = 790;
-      newPage.drawText(text, { x: leftMargin, y: yPosition, size });
-    } else {
-      summaryPage.drawText(text, { x: leftMargin, y: yPosition, size });
-    }
-    yPosition -= lineHeight;
-  };
-  
-  // Sanitize text to remove characters not supported by WinAnsi encoding
-  const sanitizeForPdf = (text: string): string => {
-    return text
-      .replace(/═/g, '=')
-      .replace(/─/g, '-')
-      .replace(/│/g, '|')
-      .replace(/┌/g, '+')
-      .replace(/┐/g, '+')
-      .replace(/└/g, '+')
-      .replace(/┘/g, '+')
-      .replace(/├/g, '+')
-      .replace(/┤/g, '+')
-      .replace(/┬/g, '+')
-      .replace(/┴/g, '+')
-      .replace(/┼/g, '+')
-      .replace(/[^\x00-\x7F]/g, ''); // Remove any other non-ASCII characters
-  };
-  
-  // Wrap drawLine to sanitize text
-  const safeDraw = (text: string, size = 10) => {
-    drawLine(sanitizeForPdf(text), size);
-  };
-  
-  // Header
-  safeDraw('LLOYD GEORGE RECORD - CLINICAL SUMMARY & SNOMED CODES', 14);
-  safeDraw('='.repeat(60), 10);
-  yPosition -= 10;
-  
-  // Patient details
-  safeDraw(`Patient: ${patientName}`, 11);
-  safeDraw(`NHS Number: ${nhsNumber}`, 11);
-  safeDraw(`Date of Birth: ${dob}`, 11);
-  safeDraw(`Generated: ${new Date().toISOString().split('T')[0]}`, 10);
-  yPosition -= 10;
-  
-  // Clinical Summary
-  if (summaryJson?.summary_line) {
-    safeDraw('CLINICAL SUMMARY', 12);
-    safeDraw('-'.repeat(40), 10);
-    // Wrap long text
-    const summaryWords = summaryJson.summary_line.split(' ');
-    let currentLine = '';
-    for (const word of summaryWords) {
-      if ((currentLine + ' ' + word).length > 80) {
-        safeDraw(currentLine.trim(), 10);
-        currentLine = word;
+  try {
+    const summaryPage = pdfDoc.addPage([595, 842]); // A4 size
+    let yPosition = 790;
+    const leftMargin = 50;
+    const lineHeight = 14;
+    
+    // Sanitize text to remove characters not supported by WinAnsi encoding
+    const sanitizeForPdf = (text: string): string => {
+      return text
+        .replace(/═/g, '=')
+        .replace(/─/g, '-')
+        .replace(/│/g, '|')
+        .replace(/┌/g, '+')
+        .replace(/┐/g, '+')
+        .replace(/└/g, '+')
+        .replace(/┘/g, '+')
+        .replace(/├/g, '+')
+        .replace(/┤/g, '+')
+        .replace(/┬/g, '+')
+        .replace(/┴/g, '+')
+        .replace(/┼/g, '+')
+        .replace(/•/g, '*')
+        .replace(/–/g, '-')
+        .replace(/—/g, '-')
+        .replace(/'/g, "'")
+        .replace(/'/g, "'")
+        .replace(/"/g, '"')
+        .replace(/"/g, '"')
+        .replace(/…/g, '...')
+        .replace(/[^\x00-\x7F]/g, ''); // Remove any other non-ASCII characters
+    };
+    
+    // Helper to draw text and move down - ALWAYS sanitizes text
+    const drawLine = (text: string, size = 10) => {
+      const safeText = sanitizeForPdf(text);
+      if (yPosition < 50) {
+        // Add new page if running out of space
+        const newPage = pdfDoc.addPage([595, 842]);
+        yPosition = 790;
+        newPage.drawText(safeText, { x: leftMargin, y: yPosition, size });
       } else {
-        currentLine += ' ' + word;
+        summaryPage.drawText(safeText, { x: leftMargin, y: yPosition, size });
       }
-    }
-    if (currentLine.trim()) safeDraw(currentLine.trim(), 10);
+      yPosition -= lineHeight;
+    };
+    
+    // Header
+    drawLine('LLOYD GEORGE RECORD - CLINICAL SUMMARY & SNOMED CODES', 14);
+    drawLine('='.repeat(60), 10);
     yPosition -= 10;
-  }
-  
-  // SNOMED Codes sections
-  const snomedSections = [
-    { key: 'problems', title: 'PROBLEMS / CONDITIONS' },
-    { key: 'allergies', title: 'ALLERGIES' },
-    { key: 'procedures', title: 'PROCEDURES' },
-    { key: 'immunisations', title: 'IMMUNISATIONS' },
-    { key: 'risk_factors', title: 'RISK FACTORS' },
-  ];
-  
-  for (const section of snomedSections) {
-    const items = snomedJson?.[section.key] || [];
-    if (items.length > 0) {
-      safeDraw(section.title, 12);
-      safeDraw('-'.repeat(40), 10);
-      for (const item of items) {
-        const code = item.code || 'UNKNOWN';
-        const term = item.term || 'Unknown term';
-        const confidence = item.confidence ? `${Math.round(item.confidence * 100)}%` : '';
-        safeDraw(`* ${term} [SNOMED: ${code}] ${confidence}`, 10);
-        if (item.evidence) {
-          const evidenceText = `  Evidence: "${item.evidence.substring(0, 70)}${item.evidence.length > 70 ? '...' : ''}"`;
-          safeDraw(evidenceText, 9);
-        }
-      }
-      yPosition -= 5;
-    }
-  }
-  
-  // Additional clinical sections from summary
-  const clinicalSections = [
-    { key: 'allergies', title: 'ALLERGIES (from summary)' },
-    { key: 'medications', title: 'MEDICATIONS' },
-    { key: 'significant_past_history', title: 'SIGNIFICANT PAST HISTORY' },
-  ];
-  
-  for (const section of clinicalSections) {
-    const items = summaryJson?.[section.key] || [];
-    if (items.length > 0 && section.key !== 'allergies') { // Skip allergies as already in SNOMED
-      safeDraw(section.title, 12);
-      safeDraw('-'.repeat(40), 10);
-      for (const item of items) {
-        let text = '';
-        if (section.key === 'medications') {
-          text = `* ${item.name || ''} ${item.dose || ''} ${item.frequency || ''} (${item.status || 'unknown'})`;
-        } else if (section.key === 'significant_past_history') {
-          text = `* ${item.condition || ''} (${item.first_noted || 'unknown'}) - ${item.status || 'unknown'}`;
+    
+    // Patient details
+    drawLine(`Patient: ${patientName}`, 11);
+    drawLine(`NHS Number: ${nhsNumber}`, 11);
+    drawLine(`Date of Birth: ${dob}`, 11);
+    drawLine(`Generated: ${new Date().toISOString().split('T')[0]}`, 10);
+    yPosition -= 10;
+    
+    // Clinical Summary
+    if (summaryJson?.summary_line) {
+      drawLine('CLINICAL SUMMARY', 12);
+      drawLine('-'.repeat(40), 10);
+      // Wrap long text
+      const summaryWords = summaryJson.summary_line.split(' ');
+      let currentLine = '';
+      for (const word of summaryWords) {
+        if ((currentLine + ' ' + word).length > 80) {
+          drawLine(currentLine.trim(), 10);
+          currentLine = word;
         } else {
-          text = `* ${JSON.stringify(item)}`;
+          currentLine += ' ' + word;
         }
-        safeDraw(text, 10);
       }
-      yPosition -= 5;
+      if (currentLine.trim()) drawLine(currentLine.trim(), 10);
+      yPosition -= 10;
     }
+    
+    // SNOMED Codes sections
+    const snomedSections = [
+      { key: 'problems', title: 'PROBLEMS / CONDITIONS' },
+      { key: 'allergies', title: 'ALLERGIES' },
+      { key: 'procedures', title: 'PROCEDURES' },
+      { key: 'immunisations', title: 'IMMUNISATIONS' },
+      { key: 'risk_factors', title: 'RISK FACTORS' },
+    ];
+    
+    for (const section of snomedSections) {
+      const items = snomedJson?.[section.key] || [];
+      if (items.length > 0) {
+        drawLine(section.title, 12);
+        drawLine('-'.repeat(40), 10);
+        for (const item of items) {
+          const code = item.code || 'UNKNOWN';
+          const term = item.term || 'Unknown term';
+          const confidence = item.confidence ? `${Math.round(item.confidence * 100)}%` : '';
+          drawLine(`* ${term} [SNOMED: ${code}] ${confidence}`, 10);
+          if (item.evidence) {
+            const evidenceText = `  Evidence: "${item.evidence.substring(0, 70)}${item.evidence.length > 70 ? '...' : ''}"`;
+            drawLine(evidenceText, 9);
+          }
+        }
+        yPosition -= 5;
+      }
+    }
+    
+    // Additional clinical sections from summary
+    const clinicalSections = [
+      { key: 'allergies', title: 'ALLERGIES (from summary)' },
+      { key: 'medications', title: 'MEDICATIONS' },
+      { key: 'significant_past_history', title: 'SIGNIFICANT PAST HISTORY' },
+    ];
+    
+    for (const section of clinicalSections) {
+      const items = summaryJson?.[section.key] || [];
+      if (items.length > 0 && section.key !== 'allergies') { // Skip allergies as already in SNOMED
+        drawLine(section.title, 12);
+        drawLine('-'.repeat(40), 10);
+        for (const item of items) {
+          let text = '';
+          if (section.key === 'medications') {
+            text = `* ${item.name || ''} ${item.dose || ''} ${item.frequency || ''} (${item.status || 'unknown'})`;
+          } else if (section.key === 'significant_past_history') {
+            text = `* ${item.condition || ''} (${item.first_noted || 'unknown'}) - ${item.status || 'unknown'}`;
+          } else {
+            text = `* ${JSON.stringify(item)}`;
+          }
+          drawLine(text, 10);
+        }
+        yPosition -= 5;
+      }
+    }
+    
+    // Footer
+    yPosition -= 20;
+    drawLine('-'.repeat(60), 10);
+    drawLine('This summary was generated by AI from scanned Lloyd George records.', 9);
+    drawLine('All clinical information should be verified before use.', 9);
+  } catch (summaryErr) {
+    console.error('Error adding summary page to PDF, skipping:', summaryErr);
+    // PDF will still be valid without the summary page
   }
-  
-  // Footer
-  yPosition -= 20;
-  drawLine('─'.repeat(60), 10);
-  drawLine('This summary was generated by AI from scanned Lloyd George records.', 9);
-  drawLine('All clinical information should be verified before use.', 9);
   
   return await pdfDoc.save();
 }
