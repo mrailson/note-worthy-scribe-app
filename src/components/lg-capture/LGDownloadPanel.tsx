@@ -22,30 +22,30 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     setDownloading(filename);
     
     try {
-      // Get signed URL for private bucket
+      // Use Supabase download method directly
+      const path = url.replace('lg/', '');
       const { data, error } = await supabase.storage
         .from('lg')
-        .createSignedUrl(url.replace('lg/', ''), 3600);
+        .download(path);
 
       if (error) throw error;
-
-      // Fetch the file as a blob to force true download (avoids Chrome PDF viewer)
-      const response = await fetch(data.signedUrl);
-      if (!response.ok) throw new Error('Failed to fetch file');
+      if (!data) throw new Error('No data received');
       
-      const blob = await response.blob();
-      const blobUrl = URL.createObjectURL(blob);
+      // Create download link from blob
+      const blobUrl = URL.createObjectURL(data);
       
-      // Trigger download
       const link = document.createElement('a');
       link.href = blobUrl;
       link.download = filename;
+      link.style.display = 'none';
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
       
-      // Clean up blob URL
-      URL.revokeObjectURL(blobUrl);
+      // Cleanup after a delay to ensure download starts
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(blobUrl);
+      }, 100);
       
       toast.success(`Downloaded ${filename}`);
     } catch (err) {
