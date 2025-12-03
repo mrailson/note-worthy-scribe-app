@@ -40,9 +40,6 @@ export default function LGCaptureCamera() {
     // Add to background queue (doesn't wait)
     queuePatient(patient.id, patient.practice_ods, images);
     
-    // Show confirmation
-    toast.success(`${images.length} pages queued for upload`);
-    
     // Immediately navigate to start page for next patient
     navigate('/lg-capture/start');
   };
