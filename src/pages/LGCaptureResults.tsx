@@ -48,7 +48,7 @@ function formatNhsNumber(nhs: string | null | undefined): string {
 export default function LGCaptureResults() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { getPatient, triggerProcessing, retrySummary, restartOCR, deletePatient, isLoading: actionLoading } = useLGCapture();
+  const { getPatient, triggerProcessing, retrySummary, restartOCR, retryPdfGeneration, deletePatient, isLoading: actionLoading } = useLGCapture();
   
   const [patient, setPatient] = useState<LGPatient | null>(null);
   const [loading, setLoading] = useState(true);
@@ -70,9 +70,12 @@ export default function LGCaptureResults() {
   useEffect(() => {
     loadPatient();
     
-    // Poll for updates while processing
+    // Poll for updates while processing or waiting for PDF
     const interval = setInterval(() => {
-      if (patient && ['queued', 'processing', 'uploading'].includes(patient.job_status)) {
+      if (patient && (
+        ['queued', 'processing', 'uploading'].includes(patient.job_status) ||
+        (patient.job_status === 'succeeded' && (patient as any).pdf_generation_status === 'queued')
+      )) {
         loadPatient();
       }
     }, 3000);
@@ -82,11 +85,14 @@ export default function LGCaptureResults() {
 
   // Reload when status changes
   useEffect(() => {
-    if (patient && ['queued', 'processing', 'uploading'].includes(patient.job_status)) {
+    if (patient && (
+      ['queued', 'processing', 'uploading'].includes(patient.job_status) ||
+      (patient.job_status === 'succeeded' && (patient as any).pdf_generation_status === 'queued')
+    )) {
       const interval = setInterval(loadPatient, 3000);
       return () => clearInterval(interval);
     }
-  }, [patient?.job_status]);
+  }, [patient?.job_status, (patient as any)?.pdf_generation_status]);
 
   const handleStatusChange = (status: LGPatient['job_status']) => {
     if (patient) {
@@ -281,6 +287,31 @@ export default function LGCaptureResults() {
       {/* Download Panel */}
       {patient.job_status === 'succeeded' && (
         <>
+          {/* Retry PDF Generation if stuck */}
+          {patient.pdf_generation_status === 'queued' && (
+            <Card className="border-amber-500 bg-amber-50">
+              <CardContent className="pt-4">
+                <p className="text-sm text-amber-700 mb-3">
+                  PDF generation is queued but hasn't started. Click below to retry.
+                </p>
+                <Button
+                  onClick={async () => {
+                    const success = await retryPdfGeneration(patient.id);
+                    if (success) {
+                      loadPatient();
+                    }
+                  }}
+                  variant="outline"
+                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-100"
+                  disabled={actionLoading}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry PDF Generation
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          
           <LGDownloadPanel patient={patient} />
           <LGEmailButton patient={patient} />
           <LGSummaryPreview patient={patient} />
