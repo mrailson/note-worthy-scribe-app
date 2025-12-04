@@ -88,7 +88,12 @@ export default function LGCaptureDemoService() {
   const loadDemoImages = async (count: number) => {
     setIsLoading(true);
     try {
-      const imagesToLoad = ALL_DEMO_IMAGES.slice(0, count);
+      // Build list of images, cycling through the 30 available images as needed
+      const imagesToLoad: string[] = [];
+      for (let i = 0; i < count; i++) {
+        imagesToLoad.push(ALL_DEMO_IMAGES[i % ALL_DEMO_IMAGES.length]);
+      }
+      
       const loadedImages: CapturedImage[] = await Promise.all(
         imagesToLoad.map(async (imgUrl, index) => {
           const dataUrl = await urlToDataUrl(imgUrl);
@@ -175,7 +180,7 @@ export default function LGCaptureDemoService() {
           <CardTitle className="text-base">Load Demo Pages</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <Button
               variant="outline"
               onClick={() => loadDemoImages(3)}
@@ -184,7 +189,7 @@ export default function LGCaptureDemoService() {
             >
               <FileImage className="h-5 w-5" />
               <span>3 Pages</span>
-              <span className="text-xs text-muted-foreground">Quick test</span>
+              <span className="text-xs text-muted-foreground">Quick</span>
             </Button>
             <Button
               variant="outline"
@@ -214,7 +219,37 @@ export default function LGCaptureDemoService() {
             >
               <FileImage className="h-5 w-5" />
               <span>30 Pages</span>
-              <span className="text-xs text-muted-foreground">Full demo</span>
+              <span className="text-xs text-muted-foreground">Large</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => loadDemoImages(50)}
+              disabled={isLoading}
+              className="h-16 flex-col gap-1"
+            >
+              <FileImage className="h-5 w-5" />
+              <span>50 Pages</span>
+              <span className="text-xs text-muted-foreground">XL</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => loadDemoImages(75)}
+              disabled={isLoading}
+              className="h-16 flex-col gap-1"
+            >
+              <FileImage className="h-5 w-5" />
+              <span>75 Pages</span>
+              <span className="text-xs text-muted-foreground">XXL</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => loadDemoImages(100)}
+              disabled={isLoading}
+              className="h-16 flex-col gap-1"
+            >
+              <FileImage className="h-5 w-5" />
+              <span>100 Pages</span>
+              <span className="text-xs text-muted-foreground">Max</span>
             </Button>
           </div>
         </CardContent>
