@@ -495,7 +495,6 @@ function addScannedPageWithHeader(
 
 // Split PDF into multiple parts for SystmOne 5MB upload limit
 async function splitPdfIntoParts(
-  originalPdfDoc: any,
   pdfBytes: Uint8Array,
   basePath: string,
   supabase: any,
@@ -506,6 +505,8 @@ async function splitPdfIntoParts(
   const SPLIT_THRESHOLD_BYTES = 4.8 * 1024 * 1024; // 4.8MB per part
   const partUrls: string[] = [];
   
+  // Load PDF from bytes to avoid scope issues
+  const originalPdfDoc = await PDFDocument.load(pdfBytes);
   const totalPages = originalPdfDoc.getPageCount();
   const frontMatterPages = 3; // Clinical Summary, Medications, Index
   const scannedPageCount = totalPages - frontMatterPages;
@@ -1086,7 +1087,7 @@ serve(async (req) => {
     
     if (needsSplit) {
       console.log(`PDF size ${pdfSizeMb.toFixed(2)}MB exceeds 4.8MB threshold, splitting into parts...`);
-      pdfPartUrls = await splitPdfIntoParts(pdfDoc, finalPdfBytes, basePath, supabase, patientName, formattedNhs, formattedDob);
+      pdfPartUrls = await splitPdfIntoParts(finalPdfBytes, basePath, supabase, patientName, formattedNhs, formattedDob);
       console.log(`PDF split into ${pdfPartUrls.length} parts`);
     } else {
       // Upload single PDF
