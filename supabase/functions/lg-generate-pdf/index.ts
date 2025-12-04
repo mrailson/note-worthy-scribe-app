@@ -594,18 +594,67 @@ serve(async (req) => {
       }
     } catch {}
 
-    // Load OCR text for page summaries (stored as JSON with ocr_text property)
-    try {
-      const { data: ocrData } = await supabase.storage
-        .from('lg')
-        .download(`${basePath}/final/ocr_merged.json`);
-      if (ocrData) {
-        const ocrJson = JSON.parse(await ocrData.text());
-        ocrText = ocrJson.ocr_text || '';
-        console.log(`Loaded OCR text: ${ocrText.length} characters`);
+    // Load OCR text for page summaries - check multiple possible locations
+    let ocrLoaded = false;
+
+    // Priority 1: Check work/ocr_merged.json (created by lg-ocr-batch for large records)
+    if (!ocrLoaded) {
+      try {
+        const { data: ocrData } = await supabase.storage
+          .from('lg')
+          .download(`${basePath}/work/ocr_merged.json`);
+        if (ocrData) {
+          const ocrJson = JSON.parse(await ocrData.text());
+          ocrText = ocrJson.ocr_text || '';
+          console.log(`✅ Loaded OCR from work/ocr_merged.json: ${ocrText.length} characters`);
+          ocrLoaded = true;
+        }
+      } catch (e) {
+        console.log('work/ocr_merged.json not found, trying other locations...');
       }
-    } catch (e) {
-      console.warn('Could not load OCR merged JSON:', e);
+    }
+
+    // Priority 2: Check final/ocr_merged.json (legacy location)
+    if (!ocrLoaded) {
+      try {
+        const { data: ocrData } = await supabase.storage
+          .from('lg')
+          .download(`${basePath}/final/ocr_merged.json`);
+        if (ocrData) {
+          const ocrJson = JSON.parse(await ocrData.text());
+          ocrText = ocrJson.ocr_text || '';
+          console.log(`✅ Loaded OCR from final/ocr_merged.json: ${ocrText.length} characters`);
+          ocrLoaded = true;
+        }
+      } catch (e) {
+        console.log('final/ocr_merged.json not found, trying database...');
+      }
+    }
+
+    // Priority 3: Fallback to database lg_ocr_batches table
+    if (!ocrLoaded) {
+      try {
+        const { data: batches } = await supabase
+          .from('lg_ocr_batches')
+          .select('ocr_text, batch_number')
+          .eq('patient_id', patientId)
+          .order('batch_number', { ascending: true });
+        
+        if (batches && batches.length > 0) {
+          ocrText = batches.map(b => b.ocr_text).join('\n\n');
+          console.log(`✅ Loaded OCR from database: ${batches.length} batches, ${ocrText.length} characters`);
+          ocrLoaded = true;
+        }
+      } catch (e) {
+        console.warn('Could not load OCR from database:', e);
+      }
+    }
+
+    if (!ocrLoaded) {
+      console.warn('⚠️ No OCR text found in any location - page summaries will be generic');
+    } else {
+      // Log first 300 chars for debugging
+      console.log(`OCR preview: "${ocrText.substring(0, 300)}..."`);
     }
 
     // List raw images
@@ -1222,19 +1271,31 @@ async function generatePageSummaries(ocrText: string, pageCount: number): Promis
   const summaries: string[] = new Array(pageCount).fill('');
   const pageMap = parseOcrByPage(ocrText);
   
+  console.log(`generatePageSummaries: pageCount=${pageCount}, pageMap.size=${pageMap.size}, ocrText.length=${ocrText.length}`);
+  
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!openaiKey || pageMap.size === 0) {
+  
+  // Only fall back to generic if NO API key - NOT if pageMap is empty
+  // Even with empty pageMap, OpenAI can still generate useful descriptions like "Hand-written note"
+  if (!openaiKey) {
+    console.warn('⚠️ No OpenAI API key - using generic page summaries');
     for (let i = 0; i < pageCount; i++) {
       summaries[i] = `Scanned page ${i + 1} of ${pageCount}`;
     }
     return summaries;
   }
 
-  // Build page texts array
+  // Build page texts array - use "[No text detected]" for missing pages
   const pageTexts: { pageNum: number; text: string }[] = [];
   for (let i = 1; i <= pageCount; i++) {
     const text = pageMap.get(i) || '';
-    pageTexts.push({ pageNum: i, text: text.substring(0, 400) });
+    const pageText = text.substring(0, 400) || '[No text detected]';
+    pageTexts.push({ pageNum: i, text: pageText });
+  }
+  
+  // Log first page text for debugging
+  if (pageTexts.length > 0) {
+    console.log(`First page text preview (page 1): "${pageTexts[0].text.substring(0, 150)}..."`);
   }
 
   // Process in batches of SUMMARY_BATCH_SIZE (10)
