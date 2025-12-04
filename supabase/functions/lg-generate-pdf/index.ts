@@ -849,7 +849,7 @@ function buildFullSummaryEmailHtml(
   if (summaryJson?.medications?.length > 0) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Medications</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
     for (const med of summaryJson.medications) {
-      html += `<li><strong>${med.drug || 'Unknown'}</strong> ${med.dose || ''}</li>`;
+      html += `<li><strong>${med.drug || 'Unknown'}</strong> ${med.dose || ''}${med.date ? ` - ${med.date}` : ''}</li>`;
     }
     html += `</ul>`;
   }
