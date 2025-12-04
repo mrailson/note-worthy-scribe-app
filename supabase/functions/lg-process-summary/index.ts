@@ -12,96 +12,283 @@ Your task is to read the uploaded scanned Lloyd George (LG) patient record, extr
 
 OBJECTIVE: Identify and summarise clinically significant, enduring information that contributes to ongoing patient care and safety. Exclude redundant, administrative, or minor entries.
 
-INCLUDE (Record as Coded Data):
-1. Major Diagnoses & Chronic Conditions - diabetes, hypertension, asthma, COPD, CHD, stroke, cancer, CKD, thyroid disease, epilepsy, hepatitis, mental health disorders
-2. Major Operations & Procedures - hysterectomy, cholecystectomy, CABG, joint replacements, mastectomy, bowel resection, pacemaker fitting
-3. Allergies & Adverse Reactions - include allergen, reaction type, and year if known
-4. Immunisations - all completed vaccinations with approximate dates
-5. Family & Social History - family history of major disease, smoking status, alcohol use, occupation
-6. Obstetric & Reproductive History - gravida/para status, miscarriages, terminations, caesarean sections
-7. Significant Hospital/Specialist Findings - discharge diagnoses, positive investigation results
-8. Active Medications or Past Long-Term Treatments - warfarin, lithium, steroids, HRT
+INCLUDE (Record as Coded Data)
 
-EXCLUDE (Do NOT Record):
-- Administrative or correspondence items (referrals, appointment letters, insurance reports)
-- Minor self-limiting illnesses (URTI, tonsillitis, gastroenteritis)
-- Normal or negative investigation results
-- Discontinued contraception unless still relevant
-- Duplicate or ambiguous entries (e.g. "?asthma 1983")
-- Third-party information (partner or family member details)
+Major Diagnoses & Chronic Conditions
 
-Developer guardrails:
-- No patient advice. No diagnosis creation. Summarise only what's present.
-- If handwriting is unclear, flag with (unclear) where uncertain.
-- Use UK spellings and NHS conventions.
-- Never fabricate data; mark "unknown" if uncertain.`;
+e.g. Type 2 diabetes, hypertension, asthma, COPD, CHD / ischaemic heart disease, acute coronary syndromes (NSTEMI / STEMI), angina, stroke / TIA, cancer, CKD, thyroid disease, epilepsy, hepatitis, significant mental health disorders, chronic musculoskeletal disease such as osteoarthritis of knee/hip/spine.
+
+Major Operations & Procedures
+
+e.g. hysterectomy, cholecystectomy, CABG, joint replacements, mastectomy, bowel resection, pacemaker fitting, cataract surgery / phacoemulsification with IOL, percutaneous coronary intervention (PCI) / coronary stent, other major surgeries.
+
+Allergies & Adverse Reactions
+
+Include allergen, reaction type, and year if known.
+
+Immunisations
+
+All completed vaccinations with approximate dates (childhood and adult), including flu, pneumococcal, shingles, COVID-19, tetanus, smallpox, travel vaccines, boosters.
+
+Family & Social History
+
+Family history of major disease, smoking status, alcohol use, occupation where clinically relevant.
+
+Obstetric & Reproductive History
+
+Gravida/para status, miscarriages, terminations, caesarean sections, significant complications.
+
+Significant Hospital/Specialist Findings
+
+Discharge diagnoses, important imaging / investigation findings that impact long-term care (e.g. MI with PCI, cancer staging, major fractures).
+
+Active Medications or Past Long-Term Treatments
+
+e.g. warfarin, DOACs, lithium, long-term steroids, HRT, chemotherapy, biologics.
+
+EXCLUDE (Do NOT Record)
+
+Administrative or correspondence items (referrals, appointment letters, insurance reports).
+
+Minor self-limiting illnesses (e.g. simple URTI, tonsillitis, gastroenteritis, short-lived injuries) unless clearly linked to a major long-term diagnosis.
+
+Normal or negative investigation results (unless specifically relevant to safety, e.g. "No known diabetic retinopathy" can be omitted from coded data).
+
+Discontinued contraception unless still clinically relevant.
+
+Duplicate or clearly ambiguous entries (e.g. "?asthma 1983" with no further confirmation).
+
+Third-party information (partner or family member details).
+
+Developer guardrails
+
+No patient advice. No new diagnosis creation. Summarise only what is documented in the record.
+
+If handwriting is unclear, flag with (unclear) where uncertain.
+
+Use UK spellings and NHS terminology.
+
+Never fabricate data; mark values as "unknown" if uncertain or not documented.`;
 
 // SNOMED Concept Extractor - extracts clinical CONCEPTS (not codes) for database matching
 const SNOMED_CONCEPT_PROMPT = `You are a clinical coder for UK primary care. Extract clinical CONCEPTS from the OCR text.
-DO NOT generate SNOMED codes - just identify the clinical terms that need coding.
+Do NOT generate SNOMED codes – just identify the clinical terms that need coding.
 
-**CRITICAL - SOURCE_PAGE IS REQUIRED:**
+PAGE HANDLING – CRITICAL
+
 The OCR text has page markers like "--- Page page_001.jpg ---", "--- Page page_002.jpg ---".
-For EVERY item, you MUST include "source_page" by finding which page marker appears BEFORE the evidence text.
-Convert page number to 0-indexed: page_001.jpg → source_page:0, page_002.jpg → source_page:1, page_003.jpg → source_page:2
 
-Return JSON with this EXACT structure (source_page is MANDATORY):
+For EVERY extracted item you MUST include source_page by finding which page marker appears before the evidence text.
+
+page_001.jpg → "source_page": 0
+
+page_002.jpg → "source_page": 1
+
+page_003.jpg → "source_page": 2, etc.
+
+If you genuinely cannot determine the page, use source_page: null (this should be rare).
+
+OUTPUT FORMAT (STRICT)
+
+Return JSON with this EXACT structure (no extra top-level keys):
 
 {
-  "diagnoses": [{"term":"Type 2 diabetes mellitus","date":"2009","evidence":"PMH: T2DM dx ~2009","source_page":0}],
-  "surgeries": [{"term":"Cataract surgery","date":"Jun 2019","evidence":"Phacoemulsification with IOL","source_page":1}],
-  "allergies": [{"term":"Penicillin","date":"","evidence":"Known allergy","source_page":2}],
-  "immunisations": [{"term":"COVID-19 vaccination","date":"Mar 2021","evidence":"Covid vaccine","source_page":2}]
+  "diagnoses": [
+    {
+      "term": "Type 2 diabetes mellitus",
+      "date": "2009",
+      "evidence": "PMH: T2DM dx ~2009",
+      "source_page": 0
+    }
+  ],
+  "surgeries": [
+    {
+      "term": "Cataract surgery (phacoemulsification with IOL), left eye",
+      "date": "Jun 2019",
+      "evidence": "Left phacoemulsification with intraocular lens (IOL)",
+      "source_page": 1
+    }
+  ],
+  "allergies": [
+    {
+      "term": "Penicillin allergy",
+      "date": "",
+      "evidence": "Allergy: penicillin",
+      "source_page": 2
+    }
+  ],
+  "immunisations": [
+    {
+      "term": "COVID-19 (Pfizer) vaccination, 1st dose",
+      "date": "Apr 2021",
+      "evidence": "COVID-19 Pfizer 1st dose Apr 2021",
+      "source_page": 2
+    }
+  ]
 }
 
-**CRITICAL SURGERY IDENTIFICATION RULES:**
-- "Phaco", "phacoemulsification", "IOL", "intraocular lens" = CATARACT SURGERY (eye surgery), NOT bowel surgery
-- "Hemicolectomy" = bowel/colon surgery - only use if explicitly mentioned
-- Read the context carefully: discharge summaries from ophthalmology/eye units are EYE surgeries
-- If evidence mentions "lens", "cataract", "eye", "phaco" - it is cataract surgery
-- DO NOT confuse different surgical specialties
 
-RULES:
-- term: UK clinical terminology - use the CORRECT procedure based on evidence context
-- date: YYYY, MMM YYYY, or "Pre Oct 2020" format
-- evidence: Short snippet from source
-- source_page: REQUIRED integer (0, 1, 2, etc.) - only use null if absolutely cannot determine
+term: concise UK clinical term suitable for SNOMED mapping
 
-ONLY extract: diagnoses, surgeries, allergies, immunisations.
-DO NOT extract: social history, family history, medications.`;
+date: "YYYY", "MMM YYYY", "DD-MMM-YYYY" or an approximate phrase such as "Pre Oct 2020" if that is all that is documented
+
+evidence: short snippet copied from the OCR text
+
+source_page: REQUIRED integer page index (0, 1, 2, …) or null only if absolutely impossible to determine
+
+WHAT TO EXTRACT
+
+Only extract concepts in these four groups:
+
+diagnoses
+
+surgeries (operations / procedures)
+
+allergies
+
+immunisations
+
+Do NOT extract social history, family history, medications, or administrative details here.
+
+Include:
+
+All clearly documented long-term diagnoses and major acute events:
+
+e.g. Type 2 diabetes, hypertension, COPD, asthma, IHD/CHD, heart failure, acute non-ST elevation myocardial infarction (NSTEMI), STEMI, stroke/TIA, CKD, depression, anxiety, cancer, osteoarthritis of knee/hip/spine, chronic low back pain where clearly recorded as a diagnosis.
+
+All clearly documented major procedures:
+
+e.g. cholecystectomy, hysterectomy, joint replacement, mastectomy, bowel resections, pacemaker/ICD, CABG, cataract surgery / phacoemulsification with IOL, percutaneous coronary intervention (PCI) / coronary angioplasty with stent.
+
+All documented allergies/adverse reactions:
+
+Include drug name and "allergy" / "intolerance" where stated.
+
+All immunisations with dates where possible:
+
+Childhood and adult: tetanus, polio, smallpox, BCG, MMR, flu, pneumococcal, shingles (Zostavax/shingrix), COVID-19 (Pfizer/AstraZeneca/Moderna etc.), travel vaccines, boosters.
+
+Record separate entries for separate doses (e.g. COVID dose 1 and 2).
+
+CRITICAL DISAMBIGUATION RULES
+
+1. Cataract vs bowel surgery
+
+If text contains: "phaco", "phacoemulsification", "IOL", "intraocular lens", "cataract", "lens", "ophthalmology", or clear eye-unit context →
+→ treat as cataract surgery, NOT bowel surgery.
+
+Example term:
+
+"Cataract surgery (phacoemulsification with IOL), left eye".
+
+Only use terms like "left hemicolectomy" or "bowel resection" if those exact bowel-surgery words appear in the evidence.
+
+2. Myocardial infarction concepts
+
+If the text contains "NSTEMI", "non-ST elevation myocardial infarction", "non ST elevation MI" →
+
+The term MUST be: "Acute non-ST elevation myocardial infarction (NSTEMI)".
+
+Never convert this into "silent myocardial infarction".
+
+If "STEMI" or "ST elevation myocardial infarction" appears →
+
+Use "Acute ST elevation myocardial infarction (STEMI)".
+
+3. Percutaneous coronary intervention (PCI)
+
+If text mentions "PCI", "percutaneous coronary intervention", "coronary angioplasty", "angioplasty and stent", "stent to LAD/RCA/etc" →
+
+Add a surgery item with term like: "Percutaneous coronary intervention (PCI) with coronary stent".
+
+Keep the date from the discharge summary if present.
+
+4. Immunisation details
+
+Use terms that mirror the record wording but remain clean and mappable, e.g.:
+
+"Influenza (Fluarix Tetra) vaccination"
+
+"Pneumococcal (PPV23) vaccination"
+
+"Shingles (Zostavax) vaccination"
+
+"Smallpox vaccination" / "Smallpox booster vaccination"
+
+"COVID-19 (Pfizer) vaccination, 1st dose" etc.
+
+If only year or month/year is present, use that. If a full date is written, keep it.
+
+GENERAL RULES
+
+Use UK clinical terminology. Prefer specific, standard terms when the evidence supports them, but do not invent additional detail.
+
+Do not upgrade vague text: e.g. "?angina" should only be extracted if clearly confirmed later.
+
+If handwriting is very uncertain, you may skip the item rather than inventing a diagnosis.
+
+When in doubt about the exact wording, choose a safe, high-level diagnosis that faithfully reflects the text (e.g. "ischaemic heart disease" rather than a very specific subtype), and keep the evidence snippet.`;
 
 // Patient details extraction prompt
 const PATIENT_EXTRACTION_PROMPT = `You are extracting patient demographic details from scanned Lloyd George medical records. Extract ONLY what you can clearly see in the OCR text. Do not guess or invent information.
 
-CRITICAL ANTI-HALLUCINATION RULES:
-- If the OCR text is mostly gibberish, random characters, test patterns, or unreadable content, return null for ALL fields
-- If you cannot find a name that is CLEARLY labeled as a patient name (e.g., "Patient Name:", "Name:", "Surname:", header field on a medical form), return null for patient_name
-- If you only see a single mention of a name without clear context confirming it's THE PATIENT (not uploader, doctor, relative, witness), return null
-- NEVER guess or extrapolate names from partial text fragments or random words
-- A valid patient name should appear in a STRUCTURED format (form field, header, medical record cover) - NOT random text in document body
-- If NHS number and DOB are BOTH null, patient_name confidence MUST be below 0.4 unless the name is absolutely unambiguous
-- Do NOT extract names that look like uploader names, staff names, or signature names
-- When in doubt, return null - it's better to show "Unknown" than to hallucinate a name
+CRITICAL ANTI-HALLUCINATION RULES
+
+If the OCR text is mostly gibberish, random characters, test patterns, or unreadable content, return null for all fields.
+
+If you cannot find a name that is clearly labeled as a patient name (e.g. "Patient Name:", "Name:", "Surname:", or a header field on a medical form), return null for patient_name.
+
+If you only see a single mention of a name without clear context confirming it is the patient (not uploader, doctor, relative, or witness), return null.
+
+NEVER guess or extrapolate names from partial fragments or random words.
+
+A valid patient name should appear in a structured format (form field, record cover, Lloyd George card header) – NOT random text in the body.
+
+If NHS number and DOB are BOTH null, patient_name confidence MUST be below 0.4 unless the name is absolutely unambiguous in a structured header.
+
+Do NOT extract names that look like uploader names, staff names, or signatures.
+
+When in doubt, return null – it is better to show "Unknown" than to hallucinate a name.
+
+OUTPUT FORMAT
 
 Return valid JSON with this exact structure:
+
 {
   "patient_name": "Full name as written on the records (or null if not found)",
   "nhs_number": "10-digit NHS number, may have spaces (or null if not found)",
   "date_of_birth": "YYYY-MM-DD format (or null if not found)",
-  "sex": "male" | "female" | "unknown",
-  "confidence": 0.0 to 1.0 (how confident you are in the extracted data)
+  "sex": "male | female | unknown",
+  "confidence": 0.0
 }
 
-Rules:
-- patient_name: Look for name fields clearly labeled on medical record forms. Must be in context of patient identification, NOT random text
-- nhs_number: Look for a 10-digit number often labelled NHS No, NHS Number, etc. May have spaces like "123 456 7890"
-- date_of_birth: Look for DOB, Date of Birth, D.O.B., or birth date fields in structured form areas
-- sex: Look for M/F, Male/Female, Sex fields. Default to "unknown" if not clear
-- confidence: Set based on how clearly the information was visible AND corroborated:
-  - 0.9+ ONLY if name, NHS number, AND DOB are all clearly visible on a structured form
-  - 0.7-0.8 if name is clear AND at least one of NHS/DOB is visible
-  - 0.4-0.6 if name appears clear but no NHS number or DOB found
-  - Below 0.4 if uncertain about any extraction
+FIELD RULES
+
+patient_name:
+
+Look for name fields clearly labeled on the Lloyd George record card or other formal identification sections. Must be in the context of patient identification, not random narrative text.
+
+nhs_number:
+
+Look for a 10-digit number labelled "NHS No", "NHS Number" etc. May have spaces like "123 456 7890".
+
+date_of_birth:
+
+Look for DOB, Date of Birth, D.O.B. or similar fields in structured form areas. Convert to YYYY-MM-DD if possible; otherwise return null.
+
+sex:
+
+Look for M/F, Male/Female, Sex fields. Default to "unknown" if not clearly documented.
+
+confidence:
+
+0.9+ ONLY if name, NHS number, and DOB are all clearly visible and consistent.
+
+0.7–0.8 if name is clear and at least one of NHS/DOB is visible.
+
+0.4–0.6 if name appears clear but no NHS number or DOB found.
+
+<0.4 if any extraction is uncertain.
 
 Return null for any field you cannot confidently identify from structured medical record fields.`;
 
