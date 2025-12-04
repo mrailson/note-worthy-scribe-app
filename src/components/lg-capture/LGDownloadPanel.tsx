@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 import { toast } from 'sonner';
@@ -125,14 +126,17 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
   
   const baseFilename = `${nhsNumber}_${dobFormatted}_${scanDateFormatted}`;
 
-  const files = [
-    {
-      label: 'Lloyd George PDF',
-      description: 'Searchable PDF with all pages',
-      url: patient.pdf_url,
-      filename: `${baseFilename}___Lloyd George Scan.pdf`,
-      icon: FileText,
-    },
+  const [otherFilesOpen, setOtherFilesOpen] = useState(false);
+
+  const primaryFile = {
+    label: 'Lloyd George PDF',
+    description: 'Searchable PDF with all pages',
+    url: patient.pdf_url,
+    filename: `${baseFilename}___Lloyd George Scan.pdf`,
+    icon: FileText,
+  };
+
+  const otherFiles = [
     {
       label: 'Clinical Summary',
       description: 'Structured JSON summary',
@@ -156,6 +160,36 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     },
   ];
 
+  const renderFileButton = (file: typeof primaryFile, isPrimary = false) => {
+    const Icon = file.icon;
+    const isDownloading = downloading === file.filename;
+    
+    return (
+      <Button
+        key={file.label}
+        variant={isPrimary ? "default" : "outline"}
+        className={`w-full justify-start h-auto py-3 ${isPrimary ? 'bg-primary hover:bg-primary/90' : ''}`}
+        onClick={() => handleFileAction(file.url, file.filename)}
+        disabled={!file.url || isDownloading}
+      >
+        <Icon className="h-5 w-5 mr-3 flex-shrink-0" />
+        <div className="text-left flex-1">
+          <div className="font-medium">{file.label}</div>
+          <div className={`text-xs ${isPrimary ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{file.description}</div>
+        </div>
+        {isDownloading ? (
+          <span className="text-xs">{isIPhone ? 'Opening...' : 'Downloading...'}</span>
+        ) : (
+          isIPhone ? (
+            <ExternalLink className="h-4 w-4 ml-2 opacity-50" />
+          ) : (
+            <Download className="h-4 w-4 ml-2 opacity-50" />
+          )
+        )}
+      </Button>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -165,35 +199,21 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {files.map((file) => {
-          const Icon = file.icon;
-          const isDownloading = downloading === file.filename;
-          
-          return (
-            <Button
-              key={file.label}
-              variant="outline"
-              className="w-full justify-start h-auto py-3"
-              onClick={() => handleFileAction(file.url, file.filename)}
-              disabled={!file.url || isDownloading}
-            >
-              <Icon className="h-5 w-5 mr-3 flex-shrink-0" />
-              <div className="text-left flex-1">
-                <div className="font-medium">{file.label}</div>
-                <div className="text-xs text-muted-foreground">{file.description}</div>
-              </div>
-              {isDownloading ? (
-                <span className="text-xs">{isIPhone ? 'Opening...' : 'Downloading...'}</span>
-              ) : (
-                isIPhone ? (
-                  <ExternalLink className="h-4 w-4 ml-2 opacity-50" />
-                ) : (
-                  <Download className="h-4 w-4 ml-2 opacity-50" />
-                )
-              )}
+        {/* Primary file - Lloyd George PDF */}
+        {renderFileButton(primaryFile, true)}
+        
+        {/* Other files - collapsible */}
+        <Collapsible open={otherFilesOpen} onOpenChange={setOtherFilesOpen}>
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" className="w-full justify-between h-10 text-muted-foreground hover:text-foreground">
+              <span className="text-sm">Other files ({otherFiles.length})</span>
+              <ChevronDown className={`h-4 w-4 transition-transform ${otherFilesOpen ? 'rotate-180' : ''}`} />
             </Button>
-          );
-        })}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="space-y-2 pt-2">
+            {otherFiles.map((file) => renderFileButton(file))}
+          </CollapsibleContent>
+        </Collapsible>
       </CardContent>
     </Card>
   );
