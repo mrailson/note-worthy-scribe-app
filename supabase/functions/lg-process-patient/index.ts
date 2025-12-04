@@ -41,16 +41,16 @@ Developer guardrails:
 const SNOMED_CONCEPT_PROMPT = `You are a clinical coder for UK primary care. Extract clinical CONCEPTS from the summary.
 DO NOT generate SNOMED codes - just identify the clinical terms that need coding.
 
-The OCR text contains page markers like "--- Page page_001.jpg ---" before each page's content.
+The OCR text contains page markers like "--- Page 001.jpg ---" before each page's content.
 You MUST identify which page each clinical term was found on by looking at the nearest page marker BEFORE the evidence text.
 
 Return JSON with clinical terms to be coded:
 
 {
-  "diagnoses": [{"term":"clinical condition name","date":"","evidence":"text from source","source_page":1}],
-  "surgeries": [{"term":"procedure name","date":"","evidence":"","source_page":2}],
+  "diagnoses": [{"term":"clinical condition name","date":"","evidence":"text from source","source_page":0}],
+  "surgeries": [{"term":"procedure name","date":"","evidence":"","source_page":1}],
   "allergies": [{"term":"allergen or drug name","date":"","evidence":"","source_page":null}],
-  "immunisations": [{"term":"vaccine name","date":"","evidence":"","source_page":3}]
+  "immunisations": [{"term":"vaccine name","date":"","evidence":"","source_page":2}]
 }
 
 RULES:
@@ -58,7 +58,7 @@ RULES:
 - Be specific: "Chronic obstructive pulmonary disease" not just "lung disease"
 - Include dates where mentioned (YYYY, MMM YYYY, or "Pre Oct 2020" format)
 - Evidence should be a short snippet from the source text
-- source_page: Extract the page number from the "--- Page page_XXX.jpg ---" marker that appears BEFORE the evidence text. If page_001.jpg, source_page=1. If page_012.jpg, source_page=12. Use null if cannot determine.
+- source_page: Extract the page number from the "--- Page XXX.jpg ---" marker. Use 0-indexed: 001.jpg=0, 002.jpg=1, 003.jpg=2, etc. Use null if cannot determine.
 
 ONLY extract:
 1. Major diagnoses and chronic conditions
@@ -433,7 +433,7 @@ ${fullOcrText.substring(0, 12000)}`;
       try {
         // Step 1: Extract concepts (not codes)
         const conceptsJson = await callOpenAI(openaiKey, SNOMED_CONCEPT_PROMPT, conceptPrompt);
-        console.log('Clinical concepts extracted');
+        console.log('Clinical concepts extracted:', JSON.stringify(conceptsJson, null, 2));
         
         // Step 2: Match concepts against validated SNOMED database
         snomedJson = await matchConceptsToSnomed(supabase, conceptsJson);
