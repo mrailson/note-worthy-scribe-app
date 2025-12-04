@@ -168,7 +168,7 @@ export default function LGCaptureDemoService() {
       </Button>
 
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold">Demo Service</h1>
+        <h1 className="text-2xl font-bold">LG Digitisation Test Service</h1>
         <p className="text-muted-foreground text-sm">
           Test the Notewell AI system with pre-loaded simulated Lloyd George pages
         </p>
