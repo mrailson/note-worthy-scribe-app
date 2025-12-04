@@ -403,7 +403,7 @@ export function LGSnomedAuditModal({
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
       <DialogContent className="max-w-6xl max-h-[95vh] flex flex-col">
-        <DialogHeader>
+        <DialogHeader className="pr-10">
           <DialogTitle className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <FileText className="h-5 w-5" />
@@ -414,7 +414,7 @@ export function LGSnomedAuditModal({
                 </Badge>
               )}
             </div>
-            <div className="flex items-center gap-4 text-sm font-normal">
+            <div className="flex items-center gap-3 text-sm font-normal">
               <div className="flex items-center gap-2">
                 <Clock className="h-4 w-4 text-muted-foreground" />
                 <span className="font-mono">{formatTime(elapsedTime)}</span>
