@@ -283,7 +283,10 @@ export function LGImageVerificationModal({
               <div className="flex items-center gap-2">
                 <Badge variant="outline">{item.domain}</Badge>
                 <Badge 
-                  variant={item.confidence >= 0.8 ? 'default' : item.confidence >= 0.6 ? 'secondary' : 'outline'}
+                  className={item.confidence >= 0.8 
+                    ? 'bg-green-600 hover:bg-green-700 text-white' 
+                    : 'bg-red-600 hover:bg-red-700 text-white'
+                  }
                 >
                   {Math.round(item.confidence * 100)}% confidence
                 </Badge>
