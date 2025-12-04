@@ -210,16 +210,19 @@ Examples include: "PCI", "coronary angioplasty", "stent to LAD/RCA/LCx".
 
 CRITICAL DISAMBIGUATION RULES
 
-1. Cataract vs bowel surgery
+1. Cataract vs bowel surgery (ABSOLUTE RULE - NO EXCEPTIONS)
 
-If text contains: "phaco", "phacoemulsification", "IOL", "intraocular lens", "cataract", "lens", "ophthalmology", or clear eye-unit context →
-→ treat as cataract surgery, NOT bowel surgery.
+UNDER NO CIRCUMSTANCES should eye surgery ever be interpreted as bowel surgery.
 
-Example term:
+If the evidence contains ANY ophthalmology terminology:
+- "phaco", "phacoemulsification", "IOL", "intraocular lens", "cataract", "lens", "ophthalmology", "eye", "ocular"
 
-"Cataract surgery (phacoemulsification with IOL), left eye".
+→ The term MUST be cataract surgery (e.g. "Cataract surgery (phacoemulsification with IOL), left eye")
+→ The term MUST NOT be "hemicolectomy", "bowel resection", or any gastrointestinal procedure.
 
-Only use terms like "left hemicolectomy" or "bowel resection" if those exact bowel-surgery words appear in the evidence.
+This is a HARD OVERRIDE. Eye surgery terminology = cataract surgery, NEVER bowel surgery.
+
+Only use terms like "left hemicolectomy" or "bowel resection" if those exact bowel-surgery words appear in the evidence AND there is NO ophthalmology terminology present.
 
 2. Myocardial infarction concepts
 
