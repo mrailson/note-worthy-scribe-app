@@ -170,6 +170,12 @@ Childhood and adult: tetanus, polio, smallpox, BCG, MMR, flu, pneumococcal, shin
 
 Record separate entries for separate doses (e.g. COVID dose 1 and 2).
 
+MUSCULOSKELETAL RULE
+
+If evidence includes "knee osteoarthritis", "bilateral knee OA", "osteoarthritis (knees)", "OA knees",
+→ term MUST be: "Osteoarthritis of knee"
+(not general "osteoarthritis" unless site truly unclear)
+
 HISTORICAL IMMUNISATION RULES
 
 ALWAYS extract historical vaccines if mentioned in any form, including:
