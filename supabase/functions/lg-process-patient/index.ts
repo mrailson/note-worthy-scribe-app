@@ -199,66 +199,70 @@ If the code implies something different from the written diagnosis (e.g. "silent
 
 In that case, set snomed_code = "MANUAL_REVIEW".
 
-5. Special clinical mapping rules (hard constraints)
+4.1 Anti-Hallucination — Surgeries (CRITICAL)
 
-These are non-negotiable. If the evidence matches, you MUST follow these mappings.
+You MUST NOT extract a surgery unless the note explicitly states that surgery.
 
-5.1 Myocardial infarction
+For example:
+- Do NOT include "Cholecystectomy" unless the word "Cholecystectomy" appears verbatim in the record.
+- Do NOT include "Hemicolectomy" unless the word "Hemicolectomy" appears verbatim.
+- If the surgery is NOT present in the OCR evidence, do not fabricate it.
 
-If the text contains "NSTEMI", "non-ST elevation myocardial infarction", "non-ST elevation MI":
+5. 🔒 MANDATORY CODE OVERRIDES (NO EXCEPTIONS)
 
+These are non-negotiable. If the evidence matches, you MUST follow these exact mappings with the specified confidence and review_flag values.
+
+5.1 NSTEMI (Mandatory Override)
+
+If the text explicitly contains "NSTEMI", "Non-ST elevation myocardial infarction", or "Non-ST-elevation MI":
+
+You MUST output:
 "term": "Acute non-ST elevation myocardial infarction (NSTEMI)",
 "snomed_code": "401314000",
-"snomed_term": "Acute non-ST segment elevation myocardial infarction (disorder)"
+"snomed_term": "Acute non-ST segment elevation myocardial infarction (disorder)",
+"confidence": 0.95,
+"review_flag": "CODE_OK"
 
+Do NOT use MANUAL_REVIEW for NSTEMI if the evidence is explicit.
 
 If the text contains "STEMI" or "ST elevation myocardial infarction":
 
-Use an acute STEMI code (e.g.:
-
 "term": "Acute ST elevation myocardial infarction (STEMI)",
 "snomed_code": "304914007",
-"snomed_term": "Acute ST segment elevation myocardial infarction (disorder)"
-
+"snomed_term": "Acute ST segment elevation myocardial infarction (disorder)",
+"confidence": 0.95,
+"review_flag": "CODE_OK"
 
 Never map "NSTEMI" or "STEMI" to "silent myocardial infarction" or other incorrect variants.
 
-If you are unsure which MI concept is correct, set snomed_code = "MANUAL_REVIEW".
+5.2 PCI (Mandatory Override)
 
-5.2 PCI (Percutaneous Coronary Intervention)
+If text contains "PCI", "percutaneous coronary intervention", "coronary angioplasty", "drug-eluting stent", "stent to LAD/RCA/LCx", or "coronary stent":
 
-If evidence includes any of:
-
-"PCI", "percutaneous coronary intervention", "coronary angioplasty", "drug-eluting stent", "stent to LAD/RCA/LCx":
-
-Use a PCI procedure code, e.g.:
-
+You MUST output:
 "category": "surgery",
 "term": "Percutaneous coronary intervention (PCI)",
 "snomed_code": "415070008",
-"snomed_term": "Percutaneous coronary intervention (procedure)"
+"snomed_term": "Percutaneous coronary intervention (procedure)",
+"confidence": 0.9,
+"review_flag": "CODE_OK"
 
+Do NOT use MANUAL_REVIEW for PCI.
 
-If you are unsure of the exact PCI code, keep term as above but set snomed_code to "MANUAL_REVIEW".
+5.3 Cataract surgery (Mandatory Override)
 
-5.3 Cataract vs bowel surgery (absolute rule)
+If the record contains "phacoemulsification", "IOL", "intraocular lens", "cataract", or is clearly ophthalmology:
 
-If the text mentions:
-
-"phaco", "phacoemulsification", "IOL", "intraocular lens", "cataract", "ophthalmology", "lens":
-
-Then it is eye surgery, not bowel surgery.
-
-Use a cataract procedure such as:
-
+You MUST output:
 "category": "surgery",
-"term": "Cataract surgery (phacoemulsification with IOL), left eye",
+"term": "Cataract surgery (phacoemulsification with IOL)",
 "snomed_code": "415089008",
-"snomed_term": "Phacoemulsification of cataract with intraocular lens implantation (procedure)"
+"snomed_term": "Phacoemulsification of cataract with intraocular lens implantation (procedure)",
+"confidence": 0.9,
+"review_flag": "CODE_OK"
 
-
+Never return MANUAL_REVIEW for cataract surgery.
 Never call this hemicolectomy or any bowel/colon procedure.
-Only use hemicolectomy codes if the word "hemicolectomy" is explicitly written.
 
 5.4 Osteoarthritis of knee
 
@@ -292,9 +296,27 @@ Hypertension
 
 Use MANUAL_REVIEW only if the diagnosis is genuinely unclear.
 
-5.6 Immunisations (including historical smallpox)
+5.6 Smallpox vaccinations (Mandatory Extraction)
 
-For vaccines, try to map to the closest vaccination procedure concept.
+If any of the following are present in the OCR text:
+- "smallpox vaccination"
+- "first smallpox vaccination"
+- "smallpox booster"
+- Historical Lloyd George vaccination ledger entries mentioning smallpox
+
+You MUST extract each as a separate immunisation item with:
+"category": "immunisation",
+"term": "Smallpox vaccination",
+"snomed_code": "MANUAL_REVIEW",
+"snomed_term": null,
+"confidence": 0.3,
+"review_flag": "NEEDS_MANUAL_REVIEW"
+
+Do NOT suppress or omit smallpox entries even if the SNOMED code cannot be found.
+
+5.7 Other Immunisations
+
+For other vaccines, try to map to the closest vaccination procedure concept.
 Examples (if confident):
 
 Seasonal influenza vaccination (e.g. for "Influenza (Fluarix Tetra)")
@@ -309,19 +331,6 @@ If unsure of the exact vaccine SNOMED code, use:
 
 "snomed_code": "MANUAL_REVIEW",
 "snomed_term": null
-
-
-Smallpox rule (mandatory):
-
-If any page shows smallpox vaccinations (e.g. "First smallpox vaccination", "Booster dose of smallpox vaccine"):
-
-Always create separate immunisation items with terms such as:
-
-"Smallpox vaccination"
-
-"Smallpox booster vaccination"
-
-Even if you are not certain of the correct SNOMED code, create the items and, if necessary, set snomed_code = "MANUAL_REVIEW" rather than omitting them.
 
 6. Dates and evidence
 
