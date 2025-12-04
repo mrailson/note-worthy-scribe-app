@@ -15,7 +15,6 @@ interface ExtendedPatient extends LGPatient {
   processing_phase?: string;
   ocr_batches_total?: number;
   ocr_batches_completed?: number;
-  pdf_generation_status?: string;
 }
 
 export function LGProcessingStatus({ patient, onStatusChange }: LGProcessingStatusProps) {

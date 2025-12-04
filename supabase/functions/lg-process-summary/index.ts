@@ -728,16 +728,20 @@ ${fullOcrText.substring(0, 30000)}`;
       .eq('id', patientId);
 
     // Trigger PDF generation - email will be sent AFTER PDF is ready
+    // Always invoke PDF generation (compression will handle large records)
+    console.log(`Triggering PDF generation for ${needsBackgroundPdf ? 'large' : 'standard'} record...`);
+    
+    // Use EdgeRuntime.waitUntil for background processing of large records
+    const pdfInvocation = supabase.functions.invoke('lg-generate-pdf', {
+      body: { patientId, sendEmail: true },
+    });
+    
     if (needsBackgroundPdf) {
-      // Queue background PDF generation - email will be sent when PDF completes
-      console.log('Queuing background PDF generation for large record...');
-      // The cron job or manual trigger will pick this up and send email after
+      // Fire and forget for large records - don't block the response
+      EdgeRuntime.waitUntil(pdfInvocation);
     } else {
-      // Trigger immediate PDF generation with email flag
-      console.log('Triggering immediate PDF generation (will send email after)...');
-      await supabase.functions.invoke('lg-generate-pdf', {
-        body: { patientId, sendEmail: true },
-      });
+      // Wait for small records
+      await pdfInvocation;
     }
 
     console.log(`Summary processing complete for patient ${patientId}`);

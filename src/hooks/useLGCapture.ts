@@ -55,6 +55,8 @@ export interface LGPatient {
   ocr_completed_at: string | null;
   pdf_started_at: string | null;
   pdf_completed_at: string | null;
+  // PDF generation status
+  pdf_generation_status: 'pending' | 'queued' | 'processing' | 'generating' | 'complete' | 'completed' | 'failed' | null;
   // Compression tracking fields
   pdf_final_size_mb: number | null;
   compression_tier: 'Tier 1' | 'Tier 2' | null;
@@ -496,6 +498,51 @@ export function useLGCapture() {
     }
   }, []);
 
+  // Retry PDF generation for stuck queued PDFs
+  const retryPdfGeneration = useCallback(async (patientId: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      // Update pdf_generation_status to processing
+      const { error: updateError } = await supabase
+        .from('lg_patients')
+        .update({ 
+          pdf_generation_status: 'processing',
+          pdf_started_at: new Date().toISOString()
+        })
+        .eq('id', patientId);
+
+      if (updateError) throw updateError;
+
+      // Invoke the PDF generation function
+      const { error: invokeError } = await supabase.functions.invoke('lg-generate-pdf', {
+        body: { patientId, sendEmail: true },
+      });
+
+      if (invokeError) {
+        console.error('Failed to invoke lg-generate-pdf:', invokeError);
+        throw invokeError;
+      }
+
+      console.log('PDF generation triggered successfully');
+      await logAuditEvent(patientId, 'pdf_retry', user.email || 'unknown', user.id, {});
+      toast.success('PDF generation started');
+      return true;
+    } catch (err) {
+      console.error('retryPdfGeneration error:', err);
+      const message = err instanceof Error ? err.message : 'Failed to retry PDF generation';
+      setError(message);
+      toast.error(`PDF generation failed: ${message}`);
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
   return {
     isLoading,
     error,
@@ -505,6 +552,7 @@ export function useLGCapture() {
     triggerProcessing,
     retrySummary,
     restartOCR,
+    retryPdfGeneration,
     listPatients,
     deletePatient,
   };
