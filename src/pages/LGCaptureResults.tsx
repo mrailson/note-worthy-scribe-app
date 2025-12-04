@@ -285,6 +285,23 @@ export default function LGCaptureResults() {
           <LGEmailButton patient={patient} />
           <LGSummaryPreview patient={patient} />
           <LGProcessingMetrics patient={patient} />
+          
+          {/* Reprocess Button - for re-running with updated logic */}
+          <Button
+            onClick={async () => {
+              const success = await restartOCR(patient.id);
+              if (success) {
+                toast.success('Reprocessing started - this will re-extract all data');
+                loadPatient();
+              }
+            }}
+            variant="outline"
+            className="w-full"
+            disabled={actionLoading}
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            Reprocess Record
+          </Button>
         </>
       )}
 
