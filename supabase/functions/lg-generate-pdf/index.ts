@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { PDFDocument } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,49 +14,46 @@ const IMAGE_BATCH_SIZE = 5;
 const MAX_PDF_SIZE_MB = 5;
 const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
-// Compression tier settings
+// NEW: 60% scaling-based compression settings
 interface CompressionSettings {
-  targetDpi: number;
-  jpegQuality: number;
+  scaleFactor: number;      // 0.6 = 60% of original dimensions
+  jpegQuality: number;      // 0.70 = 70% quality
   grayscale: boolean;
-  tier: 'Tier 1' | 'Tier 2';
+  tier: 'Standard' | 'Aggressive';
 }
 
 function getCompressionSettings(pageCount: number, attempt: number = 0): CompressionSettings {
-  const isTier2 = pageCount > 10;
-  
-  // Progressive compression based on retry attempts
-  if (isTier2) {
-    // Tier 2: Aggressive compression for >10 pages
-    const baseSettings = {
-      targetDpi: 125 - (attempt * 15), // 125, 110, 95
-      jpegQuality: 0.60 - (attempt * 0.10), // 0.60, 0.50, 0.40
-      grayscale: true,
-      tier: 'Tier 2' as const,
+  if (pageCount <= 30) {
+    // Standard compression for ≤30 pages
+    const settings = {
+      scaleFactor: 0.60 - (attempt * 0.05), // 0.60, 0.55, 0.50
+      jpegQuality: 0.70 - (attempt * 0.05), // 0.70, 0.65, 0.60
+      grayscale: attempt >= 2, // Only on 3rd attempt
+      tier: 'Standard' as const,
     };
     // Enforce minimums for readability
     return {
-      ...baseSettings,
-      targetDpi: Math.max(baseSettings.targetDpi, 96),
-      jpegQuality: Math.max(baseSettings.jpegQuality, 0.45),
+      ...settings,
+      scaleFactor: Math.max(settings.scaleFactor, 0.45),
+      jpegQuality: Math.max(settings.jpegQuality, 0.55),
     };
   } else {
-    // Tier 1: Quality priority for ≤10 pages
-    const baseSettings = {
-      targetDpi: 175 - (attempt * 25), // 175, 150, 125
-      jpegQuality: 0.75 - (attempt * 0.05), // 0.75, 0.70, 0.65
-      grayscale: attempt >= 2, // Only grayscale on 3rd attempt
-      tier: 'Tier 1' as const,
+    // Aggressive compression for >30 pages
+    const settings = {
+      scaleFactor: 0.50 - (attempt * 0.05), // 0.50, 0.45, 0.40
+      jpegQuality: 0.60 - (attempt * 0.05), // 0.60, 0.55, 0.50
+      grayscale: true,
+      tier: 'Aggressive' as const,
     };
     return {
-      ...baseSettings,
-      targetDpi: Math.max(baseSettings.targetDpi, 100),
-      jpegQuality: Math.max(baseSettings.jpegQuality, 0.60),
+      ...settings,
+      scaleFactor: Math.max(settings.scaleFactor, 0.35),
+      jpegQuality: Math.max(settings.jpegQuality, 0.45),
     };
   }
 }
 
-// Compress image using canvas-based resizing
+// Compress image using 60% scaling approach
 async function compressImage(
   imageBytes: Uint8Array,
   settings: CompressionSettings
@@ -66,21 +63,9 @@ async function compressImage(
     const blob = new Blob([imageBytes], { type: 'image/jpeg' });
     const imageBitmap = await createImageBitmap(blob);
     
-    // Calculate target dimensions based on DPI (assume A4 @ 8.27" x 11.69")
-    const maxWidthAtDpi = Math.round(8.27 * settings.targetDpi);
-    const maxHeightAtDpi = Math.round(11.69 * settings.targetDpi);
-    
-    // Scale to fit within DPI constraints while maintaining aspect ratio
-    let targetWidth = imageBitmap.width;
-    let targetHeight = imageBitmap.height;
-    
-    if (targetWidth > maxWidthAtDpi || targetHeight > maxHeightAtDpi) {
-      const widthRatio = maxWidthAtDpi / imageBitmap.width;
-      const heightRatio = maxHeightAtDpi / imageBitmap.height;
-      const scale = Math.min(widthRatio, heightRatio);
-      targetWidth = Math.round(imageBitmap.width * scale);
-      targetHeight = Math.round(imageBitmap.height * scale);
-    }
+    // Apply scale factor directly (60% = 40% pixel reduction)
+    const targetWidth = Math.round(imageBitmap.width * settings.scaleFactor);
+    const targetHeight = Math.round(imageBitmap.height * settings.scaleFactor);
     
     // Create canvas for resizing
     const canvas = new OffscreenCanvas(targetWidth, targetHeight);
@@ -214,6 +199,7 @@ serve(async (req) => {
     const nhsNumber = patient.ai_extracted_nhs || patient.nhs_number || 'Unknown';
     const dob = patient.ai_extracted_dob || patient.dob || 'Unknown';
     const formattedNhs = formatNhsNumber(nhsNumber);
+    const formattedDob = formatDateUK(dob);
 
     // Generate page summaries from OCR text (once)
     console.log('Generating page summaries...');
@@ -229,115 +215,154 @@ serve(async (req) => {
     // Retry loop for compression
     while (compressionAttempt < 3) {
       compressionSettings = getCompressionSettings(pageCount, compressionAttempt);
-      console.log(`Compression attempt ${compressionAttempt + 1}: ${compressionSettings.tier}, DPI: ${compressionSettings.targetDpi}, Quality: ${(compressionSettings.jpegQuality * 100).toFixed(0)}%, Grayscale: ${compressionSettings.grayscale}`);
+      console.log(`Compression attempt ${compressionAttempt + 1}: ${compressionSettings.tier}, Scale: ${(compressionSettings.scaleFactor * 100).toFixed(0)}%, Quality: ${(compressionSettings.jpegQuality * 100).toFixed(0)}%, Grayscale: ${compressionSettings.grayscale}`);
 
       // Create PDF document
       const pdfDoc = await PDFDocument.create();
 
-    // Add clinical summary front page
-    console.log('Adding clinical summary page...');
-    addClinicalSummaryPage(pdfDoc, patientName, nhsNumber, dob, files.length, summaryJson, snomedJson);
+      // PAGE 1: Clinical Summary (without medications - moved to page 2)
+      console.log('Adding clinical summary page (Page 1)...');
+      addClinicalSummaryPage(pdfDoc, patientName, nhsNumber, dob, files.length, summaryJson, snomedJson);
 
-    // Add index page with summaries
-    console.log('Adding index page...');
-    addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
+      // PAGE 2: Medications & Extra Detail
+      console.log('Adding medications page (Page 2)...');
+      addMedicationsPage(pdfDoc, patientName, formattedNhs, formattedDob, summaryJson);
 
-    // Process images in batches
-    for (let batchStart = 0; batchStart < files.length; batchStart += IMAGE_BATCH_SIZE) {
-      const batchEnd = Math.min(batchStart + IMAGE_BATCH_SIZE, files.length);
-      console.log(`Processing image batch ${batchStart + 1}-${batchEnd} of ${files.length}`);
+      // PAGE 3: Index of Scanned Pages
+      console.log('Adding index page (Page 3)...');
+      addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
 
-      for (let i = batchStart; i < batchEnd; i++) {
-        const file = files[i];
-        
-        try {
-          const { data: imageData, error: downloadError } = await supabase.storage
-            .from('lg')
-            .download(`${basePath}/raw/${file.name}`);
+      // PAGES 4+: Scanned images with patient header bands
+      for (let batchStart = 0; batchStart < files.length; batchStart += IMAGE_BATCH_SIZE) {
+        const batchEnd = Math.min(batchStart + IMAGE_BATCH_SIZE, files.length);
+        console.log(`Processing image batch ${batchStart + 1}-${batchEnd} of ${files.length}`);
 
-          if (downloadError || !imageData) {
-            console.error(`Failed to download ${file.name}:`, downloadError);
-            // Add placeholder page
-            const page = pdfDoc.addPage([595, 842]);
-            page.drawText(`Page ${i + 1} - Image unavailable`, { x: 200, y: 400, size: 14 });
-            continue;
-          }
-
-          const arrayBuffer = await imageData.arrayBuffer();
-          let uint8Array = new Uint8Array(arrayBuffer);
-
-          // Apply compression to reduce file size for SystmOne compliance
-          uint8Array = await compressImage(uint8Array, compressionSettings);
-
-          // Determine image type and embed
-          let image;
-          const fileName = file.name.toLowerCase();
+        for (let i = batchStart; i < batchEnd; i++) {
+          const file = files[i];
           
-          if (fileName.endsWith('.png')) {
-            try {
-              image = await pdfDoc.embedPng(uint8Array);
-            } catch {
-              // Compressed PNG might be JPEG format now
-              image = await pdfDoc.embedJpg(uint8Array);
+          try {
+            const { data: imageData, error: downloadError } = await supabase.storage
+              .from('lg')
+              .download(`${basePath}/raw/${file.name}`);
+
+            if (downloadError || !imageData) {
+              console.error(`Failed to download ${file.name}:`, downloadError);
+              // Add placeholder page
+              const page = pdfDoc.addPage([595, 842]);
+              page.drawText(`Page ${i + 4} - Image unavailable`, { x: 200, y: 400, size: 14 });
+              continue;
             }
-          } else {
-            // Default to JPEG (most compressed images will be JPEG)
-            try {
-              image = await pdfDoc.embedJpg(uint8Array);
-            } catch {
-              // Try PNG if JPEG fails
+
+            const arrayBuffer = await imageData.arrayBuffer();
+            let uint8Array = new Uint8Array(arrayBuffer);
+
+            // Apply 60% scaling compression
+            uint8Array = await compressImage(uint8Array, compressionSettings);
+
+            // Determine image type and embed
+            let image;
+            const fileName = file.name.toLowerCase();
+            
+            if (fileName.endsWith('.png')) {
               try {
                 image = await pdfDoc.embedPng(uint8Array);
-              } catch (embedErr) {
-                console.error(`Failed to embed image ${file.name}:`, embedErr);
-                const page = pdfDoc.addPage([595, 842]);
-                page.drawText(`Page ${i + 1} - Image format error`, { x: 200, y: 400, size: 14 });
-                continue;
+              } catch {
+                image = await pdfDoc.embedJpg(uint8Array);
+              }
+            } else {
+              try {
+                image = await pdfDoc.embedJpg(uint8Array);
+              } catch {
+                try {
+                  image = await pdfDoc.embedPng(uint8Array);
+                } catch (embedErr) {
+                  console.error(`Failed to embed image ${file.name}:`, embedErr);
+                  const page = pdfDoc.addPage([595, 842]);
+                  page.drawText(`Page ${i + 4} - Image format error`, { x: 200, y: 400, size: 14 });
+                  continue;
+                }
               }
             }
+
+            // Add page with patient header band
+            const page = pdfDoc.addPage([595, 842]);
+            const pageWidth = 595;
+            const pageHeight = 842;
+            const margin = 40;
+            const headerHeight = 45;
+            const footerHeight = 30;
+            
+            // Draw white header band at top
+            page.drawRectangle({
+              x: 0,
+              y: pageHeight - headerHeight,
+              width: pageWidth,
+              height: headerHeight,
+              color: rgb(1, 1, 1), // White
+            });
+            
+            // Draw header text
+            page.drawText(`Patient: ${sanitizeForPdf(patientName)}`, { 
+              x: margin, 
+              y: pageHeight - 18, 
+              size: 10 
+            });
+            page.drawText(`NHS: ${formattedNhs}  |  DOB: ${formattedDob}`, { 
+              x: margin, 
+              y: pageHeight - 32, 
+              size: 10 
+            });
+            
+            // Draw light grey line under header
+            page.drawRectangle({
+              x: margin,
+              y: pageHeight - headerHeight,
+              width: pageWidth - (margin * 2),
+              height: 0.5,
+              color: rgb(0.8, 0.8, 0.8),
+            });
+
+            // Calculate available space for image (between header and footer)
+            const availableWidth = pageWidth - (margin * 2);
+            const availableHeight = pageHeight - headerHeight - footerHeight - (margin * 0.5);
+            
+            // Scale image to fit available space
+            let scale = 1;
+            if (image.width > availableWidth || image.height > availableHeight) {
+              const widthRatio = availableWidth / image.width;
+              const heightRatio = availableHeight / image.height;
+              scale = Math.min(widthRatio, heightRatio);
+            }
+            
+            const width = Math.round(image.width * scale);
+            const height = Math.round(image.height * scale);
+
+            // Center the image horizontally, position below header
+            const x = (pageWidth - width) / 2;
+            const y = pageHeight - headerHeight - margin * 0.5 - height;
+            
+            page.drawImage(image, { x, y, width, height });
+            
+            // Add page number at bottom
+            const pdfPageNum = i + 4; // Account for 3 front matter pages
+            page.drawText(`Page ${pdfPageNum} of ${files.length + 3}`, { 
+              x: margin, 
+              y: 15, 
+              size: 9 
+            });
+
+          } catch (err) {
+            console.error(`Error processing image ${file.name}:`, err);
+            const page = pdfDoc.addPage([595, 842]);
+            page.drawText(`Page ${i + 4} - Processing error`, { x: 200, y: 400, size: 14 });
           }
+        }
 
-          // Scale to fit A4 page with margins
-          const pageWidth = 595;
-          const pageHeight = 842;
-          const margin = 40;
-          const availableWidth = pageWidth - (margin * 2);
-          const availableHeight = pageHeight - (margin * 2) - 30; // Extra space for page number
-          
-          let scale = 1;
-          if (image.width > availableWidth || image.height > availableHeight) {
-            const widthRatio = availableWidth / image.width;
-            const heightRatio = availableHeight / image.height;
-            scale = Math.min(widthRatio, heightRatio);
-          }
-          
-          const width = Math.round(image.width * scale);
-          const height = Math.round(image.height * scale);
-
-          // Add page with image
-          const page = pdfDoc.addPage([595, 842]);
-          
-          // Center the image
-          const x = (595 - width) / 2;
-          const y = (842 - height) / 2;
-          
-          page.drawImage(image, { x, y, width, height });
-          
-          // Add page number
-          page.drawText(`Page ${i + 1} of ${files.length}`, { x: 50, y: 20, size: 10 });
-
-        } catch (err) {
-          console.error(`Error processing image ${file.name}:`, err);
-          const page = pdfDoc.addPage([595, 842]);
-          page.drawText(`Page ${i + 1} - Processing error`, { x: 200, y: 400, size: 14 });
+        // Small delay between batches to allow GC
+        if (batchEnd < files.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
-
-      // Small delay between batches to allow GC
-      if (batchEnd < files.length) {
-        await new Promise(resolve => setTimeout(resolve, 100));
-      }
-    }
 
       // Save PDF
       console.log('Saving PDF...');
@@ -362,8 +387,7 @@ serve(async (req) => {
       console.log(`PDF exceeds ${MAX_PDF_SIZE_MB}MB limit, retrying with more aggressive compression...`);
     }
 
-    // If still too large after all attempts, we need to handle split (future enhancement)
-    // For now, use the last generated PDF
+    // If still too large after all attempts, use best effort result
     if (!finalPdfBytes) {
       console.warn(`PDF still exceeds ${MAX_PDF_SIZE_MB}MB after ${compressionAttempt} attempts. Using best effort result.`);
       // Re-generate with max compression for final attempt
@@ -372,6 +396,7 @@ serve(async (req) => {
       
       // Simplified re-generation with max compression
       addClinicalSummaryPage(pdfDoc, patientName, nhsNumber, dob, pageCount, summaryJson, snomedJson);
+      addMedicationsPage(pdfDoc, patientName, formattedNhs, formattedDob, summaryJson);
       addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
       
       for (let i = 0; i < files.length; i++) {
@@ -385,12 +410,27 @@ serve(async (req) => {
             let uint8Array = new Uint8Array(arrayBuffer);
             uint8Array = await compressImage(uint8Array, compressionSettings);
             const image = await pdfDoc.embedJpg(uint8Array).catch(() => pdfDoc.embedPng(uint8Array));
+            
             const page = pdfDoc.addPage([595, 842]);
-            const scale = Math.min((595 - 80) / image.width, (842 - 110) / image.height, 1);
+            const headerHeight = 45;
+            
+            // Draw header band
+            page.drawRectangle({
+              x: 0,
+              y: 842 - headerHeight,
+              width: 595,
+              height: headerHeight,
+              color: rgb(1, 1, 1),
+            });
+            page.drawText(`Patient: ${sanitizeForPdf(patientName)}`, { x: 40, y: 842 - 18, size: 10 });
+            page.drawText(`NHS: ${formattedNhs}  |  DOB: ${formattedDob}`, { x: 40, y: 842 - 32, size: 10 });
+            
+            const availableHeight = 842 - headerHeight - 60;
+            const scale = Math.min((595 - 80) / image.width, availableHeight / image.height, 1);
             const width = Math.round(image.width * scale);
             const height = Math.round(image.height * scale);
-            page.drawImage(image, { x: (595 - width) / 2, y: (842 - height) / 2, width, height });
-            page.drawText(`Page ${i + 1} of ${files.length}`, { x: 50, y: 20, size: 10 });
+            page.drawImage(image, { x: (595 - width) / 2, y: 842 - headerHeight - 20 - height, width, height });
+            page.drawText(`Page ${i + 4} of ${files.length + 3}`, { x: 40, y: 15, size: 9 });
           }
         } catch {}
       }
@@ -430,7 +470,7 @@ serve(async (req) => {
       })
       .eq('id', patientId);
 
-    console.log(`PDF generation complete for patient ${patientId}: ${pdfSizeMb.toFixed(2)}MB, ${compressionSettings.tier}, ${compressionAttempt + 1} attempt(s)`);
+    console.log(`PDF generation complete for patient ${patientId}: ${pdfSizeMb.toFixed(2)}MB, ${compressionSettings.tier}, ${compressionAttempt + 1} attempt(s), Scale: ${(compressionSettings.scaleFactor * 100).toFixed(0)}%`);
 
     // Send email with PDF attachment now that PDF is ready
     if (sendEmail && !patient.email_sent_at && finalPdfBytes) {
@@ -481,6 +521,7 @@ function sanitizeForPdf(text: string): string {
     .replace(/[^\x00-\x7F]/g, '');
 }
 
+// PAGE 1: Clinical Summary (diagnoses, surgeries, allergies, immunisations - NO medications)
 function addClinicalSummaryPage(
   pdfDoc: any,
   patientName: string,
@@ -519,9 +560,9 @@ function addClinicalSummaryPage(
 
   drawLine(`Patient: ${patientName}`, 11);
   drawLine(`NHS Number: ${nhsNumber}`, 11);
-  drawLine(`Date of Birth: ${dob}`, 11);
+  drawLine(`Date of Birth: ${formatDateUK(dob)}`, 11);
   drawLine(`Generated: ${new Date().toLocaleDateString('en-GB')}`, 10);
-  drawLine(`Total Pages: ${pageCount}`, 10);
+  drawLine(`Total Scanned Pages: ${pageCount}`, 10);
   addSpace(1);
 
   if (summaryJson?.summary_line) {
@@ -541,7 +582,7 @@ function addClinicalSummaryPage(
     addSpace(0.5);
   }
 
-  // SNOMED sections (condensed for front page) - Problem codes only
+  // SNOMED sections (condensed for front page) - Problem codes only, NO medications
   const sectionLabels: Record<string, string> = {
     'diagnoses': 'DIAGNOSES',
     'surgeries': 'MAJOR SURGERIES',
@@ -562,8 +603,167 @@ function addClinicalSummaryPage(
       addSpace(0.3);
     }
   }
+  
+  // Add page number
+  currentPage.drawText('Page 1', { x: leftMargin, y: 20, size: 9 });
 }
 
+// PAGE 2: Medications & Extra Detail
+function addMedicationsPage(
+  pdfDoc: any,
+  patientName: string,
+  nhsNumber: string,
+  dob: string,
+  summaryJson: any
+) {
+  let currentPage = pdfDoc.addPage([595, 842]);
+  let yPosition = 790;
+  const leftMargin = 50;
+  const lineHeight = 14;
+  const pageMarginBottom = 60;
+
+  const drawLine = (text: string, size = 10, indent = 0) => {
+    const safeText = sanitizeForPdf(text).substring(0, 80);
+    if (yPosition < pageMarginBottom) {
+      currentPage = pdfDoc.addPage([595, 842]);
+      yPosition = 790;
+    }
+    currentPage.drawText(safeText, { x: leftMargin + indent, y: yPosition, size });
+    yPosition -= lineHeight;
+  };
+
+  const addSpace = (lines = 1) => {
+    yPosition -= lineHeight * lines;
+    if (yPosition < pageMarginBottom) {
+      currentPage = pdfDoc.addPage([595, 842]);
+      yPosition = 790;
+    }
+  };
+
+  drawLine('MEDICATIONS & ADDITIONAL INFORMATION', 14);
+  addSpace(0.5);
+
+  // Patient info header
+  drawLine(`Patient: ${patientName}  |  NHS: ${nhsNumber}  |  DOB: ${dob}`, 9);
+  addSpace(1);
+
+  // MEDICATIONS section
+  const medications = summaryJson?.medications || [];
+  if (medications.length > 0) {
+    drawLine('CURRENT MEDICATIONS', 11);
+    addSpace(0.3);
+    for (const med of medications) {
+      const medLine = `${med.drug || 'Unknown'}${med.dose ? ' - ' + med.dose : ''}${med.date ? ' (' + med.date + ')' : ''}`;
+      drawLine(`- ${medLine}`, 9, 10);
+    }
+    addSpace(0.5);
+  } else {
+    drawLine('CURRENT MEDICATIONS', 11);
+    addSpace(0.3);
+    drawLine('No medications recorded', 9, 10);
+    addSpace(0.5);
+  }
+
+  // RISK FACTORS
+  const riskFactors = summaryJson?.risk_factors || [];
+  if (riskFactors.length > 0) {
+    drawLine('RISK FACTORS', 11);
+    addSpace(0.3);
+    for (const rf of riskFactors) {
+      drawLine(`- ${rf.factor || 'Unknown'}${rf.details ? ': ' + rf.details : ''}`, 9, 10);
+    }
+    addSpace(0.5);
+  }
+
+  // SOCIAL HISTORY
+  const social = summaryJson?.social_history;
+  if (social && (social.smoking_status !== 'unknown' || social.alcohol !== 'unknown' || social.occupation)) {
+    drawLine('SOCIAL HISTORY', 11);
+    addSpace(0.3);
+    if (social.smoking_status && social.smoking_status !== 'unknown') {
+      const smokingText = social.smoking_status === 'ex' 
+        ? `Ex-smoker${social.stopped_year ? ' (stopped ' + social.stopped_year + ')' : ''}`
+        : social.smoking_status;
+      drawLine(`- Smoking: ${smokingText}`, 9, 10);
+    }
+    if (social.alcohol && social.alcohol !== 'unknown') {
+      drawLine(`- Alcohol: ${social.alcohol}`, 9, 10);
+    }
+    if (social.occupation) {
+      drawLine(`- Occupation: ${social.occupation}`, 9, 10);
+    }
+    addSpace(0.5);
+  }
+
+  // FAMILY HISTORY
+  const familyHistory = summaryJson?.family_history || [];
+  if (familyHistory.length > 0) {
+    drawLine('FAMILY HISTORY', 11);
+    addSpace(0.3);
+    for (const fh of familyHistory) {
+      drawLine(`- ${fh.relation || 'Unknown'}: ${fh.condition || 'Unknown'}`, 9, 10);
+    }
+    addSpace(0.5);
+  }
+
+  // REPRODUCTIVE HISTORY
+  const repro = summaryJson?.reproductive_history;
+  if (repro && (repro.gravida > 0 || repro.notes)) {
+    drawLine('REPRODUCTIVE HISTORY', 11);
+    addSpace(0.3);
+    if (repro.gravida > 0 || repro.para > 0) {
+      drawLine(`- G${repro.gravida} P${repro.para}${repro.miscarriages > 0 ? ' + ' + repro.miscarriages + ' miscarriage(s)' : ''}`, 9, 10);
+    }
+    if (repro.notes) {
+      drawLine(`- ${repro.notes}`, 9, 10);
+    }
+    addSpace(0.5);
+  }
+
+  // HOSPITAL FINDINGS
+  const hospitalFindings = summaryJson?.hospital_findings || [];
+  if (hospitalFindings.length > 0) {
+    drawLine('SIGNIFICANT HOSPITAL FINDINGS', 11);
+    addSpace(0.3);
+    for (const hf of hospitalFindings) {
+      drawLine(`- ${hf.condition || 'Unknown'} - ${formatDateUK(hf.date)}${hf.outcome ? ': ' + hf.outcome : ''}`, 9, 10);
+    }
+    addSpace(0.5);
+  }
+
+  // ALERTS
+  const alerts = summaryJson?.alerts || [];
+  if (alerts.length > 0) {
+    drawLine('ALERTS', 11);
+    addSpace(0.3);
+    for (const alert of alerts) {
+      drawLine(`! ${alert.type || 'Alert'}: ${alert.note || 'Unknown'}`, 9, 10);
+    }
+    addSpace(0.5);
+  }
+
+  // FREE TEXT FINDINGS
+  if (summaryJson?.free_text_findings) {
+    drawLine('ADDITIONAL FINDINGS', 11);
+    addSpace(0.3);
+    const words = summaryJson.free_text_findings.split(' ');
+    let line = '';
+    for (const word of words) {
+      if ((line + ' ' + word).length > 70) {
+        drawLine(line.trim(), 9, 10);
+        line = word;
+      } else {
+        line += ' ' + word;
+      }
+    }
+    if (line.trim()) drawLine(line.trim(), 9, 10);
+  }
+
+  // Add page number
+  currentPage.drawText('Page 2', { x: leftMargin, y: 20, size: 9 });
+}
+
+// PAGE 3: Index of Scanned Pages
 function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber: string, pageSummaries: string[]) {
   let currentPage = pdfDoc.addPage([595, 842]);
   let yPosition = 790;
@@ -591,13 +791,13 @@ function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber:
   currentPage.drawText('-----------------------------------------------------------', { x: leftMargin + 70, y: yPosition, size: 10 });
   yPosition -= lineHeight;
 
-  // Page entries
+  // Page entries - scanned pages now start at Page 4
   for (let i = 0; i < files.length; i++) {
     if (yPosition < pageMarginBottom) {
       currentPage = pdfDoc.addPage([595, 842]);
       yPosition = 790;
     }
-    const pdfPageNum = i + 3; // Account for summary + index pages
+    const pdfPageNum = i + 4; // Account for summary + medications + index pages (3 front matter pages)
     const summary = pageSummaries[i] || `Scanned page ${i + 1} of ${files.length}`;
     const truncatedSummary = sanitizeForPdf(summary).substring(0, 60);
     
@@ -615,6 +815,9 @@ function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber:
   currentPage.drawText('Use PDF viewer bookmarks or page navigation to jump to specific pages.', {
     x: leftMargin, y: yPosition, size: 8
   });
+  
+  // Add page number
+  currentPage.drawText('Page 3', { x: leftMargin, y: 20, size: 9 });
 }
 
 function formatNhsNumber(nhs: string): string {

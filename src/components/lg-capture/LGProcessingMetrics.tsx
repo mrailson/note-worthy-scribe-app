@@ -13,7 +13,7 @@ interface ProcessingMetricsProps {
     pdf_completed_at?: string | null;
     // Compression fields
     pdf_final_size_mb?: number | null;
-    compression_tier?: 'Tier 1' | 'Tier 2' | null;
+    compression_tier?: 'Standard' | 'Aggressive' | 'Tier 1' | 'Tier 2' | null;
     pdf_split?: boolean;
     pdf_parts?: number;
     compression_attempts?: number;
@@ -129,7 +129,7 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
                 <span className="font-medium font-mono flex items-center gap-2">
                   {patient.pdf_final_size_mb.toFixed(2)} MB
                   {patient.compression_tier && (
-                    <Badge variant={patient.compression_tier === 'Tier 1' ? 'default' : 'secondary'} className="text-xs">
+                    <Badge variant={patient.compression_tier === 'Standard' || patient.compression_tier === 'Tier 1' ? 'default' : 'secondary'} className="text-xs">
                       {patient.compression_tier}
                     </Badge>
                   )}
