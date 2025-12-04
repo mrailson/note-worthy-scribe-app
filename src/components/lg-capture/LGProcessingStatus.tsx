@@ -243,7 +243,7 @@ export function LGProcessingStatus({ patient, onStatusChange }: LGProcessingStat
           <p>Patient: {currentPatient.patient_name || currentPatient.ai_extracted_name || 'Extracting...'}</p>
           <p>NHS: {currentPatient.nhs_number || currentPatient.ai_extracted_nhs || 'Extracting...'}</p>
           <p>Pages: {currentPatient.images_count}</p>
-          {isBatched && (
+          {isBatched && pdfStatus?.text !== 'PDF ready' && (
             <p className="text-amber-600">Large record - using background processing</p>
           )}
         </div>

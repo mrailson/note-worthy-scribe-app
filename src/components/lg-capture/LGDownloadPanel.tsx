@@ -135,10 +135,11 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     : nhsNumber;
   const formattedDob = dob ? new Date(dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-') : 'Unknown';
   const fileSizeMb = patient.pdf_final_size_mb;
+  const pageCount = patient.images_count || 0;
 
   const primaryFile = {
     label: 'Lloyd George PDF',
-    description: `Searchable PDF with all pages${fileSizeMb ? ` • ${fileSizeMb.toFixed(2)} MB` : ''}`,
+    description: `Searchable PDF${pageCount > 0 ? ` • ${pageCount} pages` : ''}${fileSizeMb ? ` • ${fileSizeMb.toFixed(2)} MB` : ''}`,
     patientDetails: `${patientName} | NHS: ${formattedNhs} | DOB: ${formattedDob}`,
     url: patient.pdf_url,
     filename: `${baseFilename}___Lloyd George Scan.pdf`,
