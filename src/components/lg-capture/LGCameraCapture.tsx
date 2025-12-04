@@ -230,9 +230,46 @@ export function LGCameraCapture({
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    ctx.drawImage(video, 0, 0);
+    // Get the container dimensions (what user sees with object-cover)
+    const container = video.parentElement;
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const videoWidth = video.videoWidth;
+    const videoHeight = video.videoHeight;
+
+    // Calculate the visible crop region based on object-cover behavior
+    const videoRatio = videoWidth / videoHeight;
+    const containerRatio = containerRect.width / containerRect.height;
+
+    let cropX = 0, cropY = 0, cropWidth = videoWidth, cropHeight = videoHeight;
+
+    if (videoRatio > containerRatio) {
+      // Video is wider than container - crop sides
+      cropWidth = videoHeight * containerRatio;
+      cropX = (videoWidth - cropWidth) / 2;
+    } else {
+      // Video is taller than container - crop top/bottom
+      cropHeight = videoWidth / containerRatio;
+      cropY = (videoHeight - cropHeight) / 2;
+    }
+
+    // Set canvas to the cropped dimensions
+    canvas.width = cropWidth;
+    canvas.height = cropHeight;
+
+    // Handle rotation if enabled
+    if (isRotated) {
+      ctx.translate(canvas.width, canvas.height);
+      ctx.rotate(Math.PI);
+    }
+
+    // Draw only the visible portion (matching preview)
+    ctx.drawImage(
+      video,
+      cropX, cropY, cropWidth, cropHeight,  // Source rectangle (crop from video)
+      0, 0, cropWidth, cropHeight            // Destination rectangle (full canvas)
+    );
 
     // Simple glare detection (check for overexposed areas)
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
@@ -267,7 +304,7 @@ export function LGCameraCapture({
 
     playClickSound();
     onImagesChange([...images, newImage]);
-  }, [images, onImagesChange, maxPages]);
+  }, [images, onImagesChange, maxPages, isRotated]);
 
   const handleFileUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
