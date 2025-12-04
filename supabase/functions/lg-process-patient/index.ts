@@ -379,7 +379,7 @@ Return valid JSON matching this schema exactly:
   "social_history": {"smoking_status":"never|current|ex", "stopped_year":"", "alcohol":"none|moderate|heavy", "occupation":""},
   "reproductive_history": {"gravida":0, "para":0, "miscarriages":0, "notes":""},
   "hospital_findings": [{"condition":"", "date":"YYYY", "outcome":""}],
-  "medications": [{"drug":"", "dose":"", "status":"current|stopped|unknown"}],
+  "medications": [{"drug":"", "dose":"", "date":"YYYY or unknown"}],
   "alerts": [{"type":"safeguarding|high_risk_meds|third_party_info", "note":""}],
   "free_text_findings": "Short narrative (≤150 words) for anything important not mapped above.",
   "summary_metadata": "Summary completed ${new Date().toISOString().split('T')[0]} by Notewell AI"
@@ -1490,7 +1490,7 @@ function buildSummaryEmailHtml(
   }
 
   if (summaryJson?.medications?.length) {
-    html += `<h3 style="color: #333;">Medications</h3><ul>${summaryJson.medications.map((m: any) => `<li><strong>${m.drug || 'Unknown'}</strong> ${m.dose || ''} (${m.status || 'unknown'})</li>`).join('')}</ul>`;
+    html += `<h3 style="color: #333;">Medications</h3><ul>${summaryJson.medications.map((m: any) => `<li><strong>${m.drug || 'Unknown'}</strong> ${m.dose || ''}${m.date ? ` - ${m.date}` : ''}</li>`).join('')}</ul>`;
   }
 
   if (summaryJson?.family_history?.length) {
