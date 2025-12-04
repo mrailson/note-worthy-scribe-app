@@ -833,19 +833,29 @@ function parseOcrByPage(ocrText: string): Map<number, string> {
   const pageMap = new Map<number, string>();
   if (!ocrText) return pageMap;
 
-  // Split by page markers like "--- Page page_001.jpg ---"
-  const pageRegex = /---\s*Page\s+page_(\d+)\.(jpg|jpeg|png)\s*---/gi;
+  // Match any filename pattern: page_001.jpg, image_001.jpg, 001.jpg, etc.
+  // Capture the filename part before extension
+  const pageRegex = /---\s*Page\s+([^\s]+)\.(jpg|jpeg|png)\s*---/gi;
   const parts = ocrText.split(pageRegex);
   
-  // Parse alternating: [text before first marker, page num, ext, text, page num, ext, text, ...]
+  console.log(`parseOcrByPage: OCR text length ${ocrText.length}, split into ${parts.length} parts`);
+  
+  // Parse alternating: [text before first marker, filename, ext, text, filename, ext, text, ...]
   for (let i = 1; i < parts.length; i += 3) {
-    const pageNum = parseInt(parts[i], 10);
+    const filename = parts[i];
     const pageText = parts[i + 2] || '';
+    
+    // Extract page number from filename (e.g., "page_001" -> 1, "image_005" -> 5)
+    const numMatch = filename.match(/(\d+)/);
+    const pageNum = numMatch ? parseInt(numMatch[1], 10) : Math.floor(i / 3) + 1;
+    
     if (pageNum > 0) {
       pageMap.set(pageNum, pageText.trim());
+      console.log(`parseOcrByPage: Mapped page ${pageNum} from filename "${filename}" (${pageText.length} chars)`);
     }
   }
   
+  console.log(`parseOcrByPage: Final pageMap has ${pageMap.size} entries`);
   return pageMap;
 }
 
