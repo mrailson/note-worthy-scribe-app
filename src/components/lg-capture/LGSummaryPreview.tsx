@@ -93,6 +93,7 @@ interface SnomedEntry {
   confidence: number;
   evidence: string;
   date?: string;
+  source_page?: number | null;
 }
 
 interface SnomedData {
@@ -425,33 +426,33 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
 // Helper component for SNOMED codes display
 function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
   // Collect all codeable items (exclude UNKNOWN codes)
-  const codeableItems: Array<{ domain: string; term: string; code: string; date?: string; confidence: number }> = [];
+  const codeableItems: Array<{ domain: string; term: string; code: string; date?: string; confidence: number; source_page?: number | null }> = [];
 
   // Diagnoses
   (snomedData.diagnoses ?? []).forEach(item => {
     if (item.code && item.code !== 'UNKNOWN') {
-      codeableItems.push({ domain: 'Diagnosis', term: item.term, code: item.code, date: item.date, confidence: item.confidence });
+      codeableItems.push({ domain: 'Diagnosis', term: item.term, code: item.code, date: item.date, confidence: item.confidence, source_page: item.source_page });
     }
   });
 
   // Surgeries
   (snomedData.surgeries ?? []).forEach(item => {
     if (item.code && item.code !== 'UNKNOWN') {
-      codeableItems.push({ domain: 'Surgery', term: item.term, code: item.code, date: item.date, confidence: item.confidence });
+      codeableItems.push({ domain: 'Surgery', term: item.term, code: item.code, date: item.date, confidence: item.confidence, source_page: item.source_page });
     }
   });
 
   // Allergies
   (snomedData.allergies ?? []).forEach(item => {
     if (item.code && item.code !== 'UNKNOWN') {
-      codeableItems.push({ domain: 'Allergy', term: item.term, code: item.code, date: item.date, confidence: item.confidence });
+      codeableItems.push({ domain: 'Allergy', term: item.term, code: item.code, date: item.date, confidence: item.confidence, source_page: item.source_page });
     }
   });
 
   // Immunisations
   (snomedData.immunisations ?? []).forEach(item => {
     if (item.code && item.code !== 'UNKNOWN') {
-      codeableItems.push({ domain: 'Immunisation', term: item.term, code: item.code, date: item.date, confidence: item.confidence });
+      codeableItems.push({ domain: 'Immunisation', term: item.term, code: item.code, date: item.date, confidence: item.confidence, source_page: item.source_page });
     }
   });
 
@@ -480,6 +481,7 @@ function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
               <th className="text-left py-2 px-2 font-medium">Term</th>
               <th className="text-left py-2 px-2 font-medium">SNOMED Code</th>
               <th className="text-left py-2 px-2 font-medium">Date</th>
+              <th className="text-center py-2 px-2 font-medium">Source</th>
               <th className="text-right py-2 px-2 font-medium">Confidence</th>
             </tr>
           </thead>
@@ -487,6 +489,8 @@ function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
             {sortedItems.map((item, i) => {
               const dateDisplay = formatUKDate(item.date) || 'NK';
               const isUnknownDate = dateDisplay === 'NK';
+              // Source page: add 2 for summary + index pages in PDF
+              const sourceDisplay = typeof item.source_page === 'number' ? `Pg ${item.source_page + 2}` : '—';
               return (
                 <tr key={i} className="border-b border-muted/30 hover:bg-muted/20">
                   <td className="py-2 px-2">
@@ -496,6 +500,9 @@ function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
                   <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{item.code}</td>
                   <td className={`py-2 px-2 ${isUnknownDate ? 'text-muted-foreground/60 italic' : 'text-muted-foreground'}`}>
                     {dateDisplay}
+                  </td>
+                  <td className="py-2 px-2 text-center text-muted-foreground text-xs">
+                    {sourceDisplay}
                   </td>
                   <td className="py-2 px-2 text-right">
                     <Badge 
@@ -512,7 +519,7 @@ function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
         </table>
       </div>
       <p className="text-xs text-muted-foreground mt-2 italic">
-        NK = Not Known. Include dates where shown to avoid coding as new diagnoses. Review items with low confidence before coding.
+        NK = Not Known. Source = PDF page number. Review items with low confidence before coding.
       </p>
     </div>
   );

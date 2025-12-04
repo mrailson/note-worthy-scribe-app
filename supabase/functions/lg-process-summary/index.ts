@@ -40,13 +40,16 @@ Developer guardrails:
 const SNOMED_CONCEPT_PROMPT = `You are a clinical coder for UK primary care. Extract clinical CONCEPTS from the summary.
 DO NOT generate SNOMED codes - just identify the clinical terms that need coding.
 
+The OCR text contains page markers like "--- Page page_001.jpg ---" before each page's content.
+You MUST identify which page each clinical term was found on by looking at the nearest page marker BEFORE the evidence text.
+
 Return JSON with clinical terms to be coded:
 
 {
-  "diagnoses": [{"term":"clinical condition name","date":"","evidence":"text from source"}],
-  "surgeries": [{"term":"procedure name","date":"","evidence":""}],
-  "allergies": [{"term":"allergen or drug name","date":"","evidence":""}],
-  "immunisations": [{"term":"vaccine name","date":"","evidence":""}]
+  "diagnoses": [{"term":"clinical condition name","date":"","evidence":"text from source","source_page":1}],
+  "surgeries": [{"term":"procedure name","date":"","evidence":"","source_page":2}],
+  "allergies": [{"term":"allergen or drug name","date":"","evidence":"","source_page":null}],
+  "immunisations": [{"term":"vaccine name","date":"","evidence":"","source_page":3}]
 }
 
 RULES:
@@ -54,6 +57,7 @@ RULES:
 - Be specific: "Chronic obstructive pulmonary disease" not just "lung disease"
 - Include dates where mentioned (YYYY, MMM YYYY, or "Pre Oct 2020" format)
 - Evidence should be a short snippet from the source text
+- source_page: Extract the page number from the "--- Page page_XXX.jpg ---" marker that appears BEFORE the evidence text. If page_001.jpg, source_page=1. If page_012.jpg, source_page=12. Use null if cannot determine.
 
 ONLY extract:
 1. Major diagnoses and chronic conditions
@@ -616,6 +620,7 @@ async function matchConceptsToSnomed(supabase: any, conceptsJson: any): Promise<
           date: concept.date || '',
           confidence: match.confidence,
           evidence: concept.evidence || '',
+          source_page: concept.source_page ?? null,
         });
       } else {
         // No match found - flag for manual review
@@ -625,6 +630,7 @@ async function matchConceptsToSnomed(supabase: any, conceptsJson: any): Promise<
           date: concept.date || '',
           confidence: 0.3,
           evidence: concept.evidence || '',
+          source_page: concept.source_page ?? null,
         });
       }
     }
@@ -644,18 +650,21 @@ function createEmptySnomed() {
 }
 
 function generateSnomedCsv(snomed: any, patientId: string, nhsNumber: string): string {
-  const rows: string[] = ['domain,term,code,date,confidence,evidence,nhs_number'];
+  const rows: string[] = ['domain,term,code,date,source,confidence,evidence,nhs_number'];
   
   const domains = ['diagnoses', 'surgeries', 'allergies', 'immunisations'];
   
   for (const domain of domains) {
     const items = snomed[domain] || [];
     for (const item of items) {
+      // Source page: add 2 for summary + index pages in PDF
+      const sourcePage = typeof item.source_page === 'number' ? `Pg ${item.source_page + 2}` : '';
       const row = [
         domain,
         `"${(item.term || '').replace(/"/g, '""')}"`,
         item.code || 'UNKNOWN',
         item.date || 'NK',
+        sourcePage,
         (item.confidence || 0).toFixed(2),
         `"${(item.evidence || '').replace(/"/g, '""')}"`,
         (nhsNumber || '').replace(/\s/g, ''),
