@@ -570,10 +570,44 @@ async function sendSummaryEmailWithPdf(
     const pdfBase64 = btoa(binary);
     console.log(`PDF attachment ready, size: ${pdfBase64.length} chars`);
 
+    // Fetch CSV file for attachment
+    let csvBase64: string | null = null;
+    const basePath = `${patient.practice_ods}/${patient.id}`;
+    try {
+      const { data: csvFile } = await supabase.storage
+        .from('lg')
+        .download(`${basePath}/final/snomed.csv`);
+      if (csvFile) {
+        const csvText = await csvFile.text();
+        csvBase64 = btoa(csvText);
+        console.log(`CSV attachment ready, size: ${csvBase64.length} chars`);
+      }
+    } catch (csvErr) {
+      console.log('Could not fetch CSV file:', csvErr);
+    }
+
     // Build filename
     const formattedDob = formatDobForFilename(dob);
     const cleanNhs = (nhsNumber || '').replace(/\s/g, '');
-    const filename = `LG_${cleanNhs}_${formattedDob}.pdf`;
+    const pdfFilename = `LG_${cleanNhs}_${formattedDob}.pdf`;
+    const csvFilename = `LG_${cleanNhs}_${formattedDob}_snomed_codes.csv`;
+
+    // Build attachments array
+    const attachments: Array<{ filename: string; content: string; type: string }> = [
+      {
+        filename: pdfFilename,
+        content: pdfBase64,
+        type: 'application/pdf',
+      }
+    ];
+    
+    if (csvBase64) {
+      attachments.push({
+        filename: csvFilename,
+        content: csvBase64,
+        type: 'text/csv',
+      });
+    }
 
     // Send via Resend edge function
     const { error: emailError } = await supabase.functions.invoke('send-email-resend', {
@@ -581,11 +615,7 @@ async function sendSummaryEmailWithPdf(
         to_email: userEmail,
         subject: `Lloyd George Record Summary - ${patientName} (DOB: ${formatDobDisplay(dob)}) (NHS: ${formatNhsNumber(nhsNumber)})`,
         html_content: emailHtml,
-        attachments: [{
-          filename: filename,
-          content: pdfBase64,
-          type: 'application/pdf',
-        }],
+        attachments: attachments,
       },
     });
 

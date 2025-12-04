@@ -172,20 +172,50 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
         }
       }
 
+      // Fetch CSV if available
+      let csvBase64: string | null = null;
+      try {
+        const basePath = `${patient.practice_ods}/${patient.id}`;
+        console.log('Fetching CSV from:', `${basePath}/final/snomed.csv`);
+        const { data: csvFile, error: csvError } = await supabase.storage
+          .from('lg')
+          .download(`${basePath}/final/snomed.csv`);
+        if (csvError) {
+          console.log('CSV download error:', csvError);
+        } else if (csvFile) {
+          const csvText = await csvFile.text();
+          csvBase64 = btoa(csvText);
+          console.log('CSV base64 length:', csvBase64.length);
+        }
+      } catch (e) {
+        console.log('Could not fetch CSV:', e);
+      }
+
       // Build email HTML content
       console.log('Building email HTML...');
       const emailHtml = buildEmailHtml(summaryData, snomedData);
       console.log('Email HTML length:', emailHtml.length);
 
-      // Build attachments array (PDF only, no Word doc)
+      // Build attachments array
       const attachments: Array<{ filename: string; content: string; type: string }> = [];
+      const cleanNhs = nhsNumber.replace(/\s/g, '');
+      const dateStr = new Date().toISOString().split('T')[0];
 
       // Add PDF if available
       if (pdfBase64) {
         attachments.push({
-          filename: `LG_Record_${nhsNumber.replace(/\s/g, '')}_${new Date().toISOString().split('T')[0]}.pdf`,
+          filename: `LG_Record_${cleanNhs}_${dateStr}.pdf`,
           content: pdfBase64,
           type: 'application/pdf',
+        });
+      }
+
+      // Add CSV if available
+      if (csvBase64) {
+        attachments.push({
+          filename: `LG_Record_${cleanNhs}_${dateStr}_snomed_codes.csv`,
+          content: csvBase64,
+          type: 'text/csv',
         });
       }
 
