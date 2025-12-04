@@ -891,7 +891,7 @@ function buildFullSummaryEmailHtml(
       html += `<tr style="background: #005EB8; color: white;"><th style="padding: 8px; text-align: left;">Term</th><th style="padding: 8px; text-align: left;">SNOMED Code</th><th style="padding: 8px; text-align: center;">Date</th><th style="padding: 8px; text-align: center;">Confidence</th></tr>`;
       for (const item of items) {
         const confPercent = Math.round((item.confidence || 0) * 100);
-        const confColor = confPercent >= 89 ? '#007F3B' : '#DA291C';
+        const confColor = confPercent >= 80 ? '#007F3B' : '#DA291C';
         const dateDisplay = item.date && item.date.trim() ? item.date : '<span style="color: #999; font-style: italic;">NK</span>';
         html += `<tr style="border-bottom: 1px solid #ddd;">`;
         html += `<td style="padding: 8px;">${item.term || 'Unknown'}</td>`;
