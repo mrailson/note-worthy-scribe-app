@@ -6,10 +6,17 @@ import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { generateULID } from '@/utils/ulid';
 
-// Demo images for testing
+// Demo images for testing (10 pages)
 import demoPage1 from '@/assets/demo/lg-demo-page-1.jpg';
 import demoPage2 from '@/assets/demo/lg-demo-page-2.jpg';
 import demoPage3 from '@/assets/demo/lg-demo-page-3.jpg';
+import demoPage4 from '@/assets/demo/lg-demo-page-4.jpg';
+import demoPage5 from '@/assets/demo/lg-demo-page-5.jpg';
+import demoPage6 from '@/assets/demo/lg-demo-page-6.jpg';
+import demoPage7 from '@/assets/demo/lg-demo-page-7.jpg';
+import demoPage8 from '@/assets/demo/lg-demo-page-8.jpg';
+import demoPage9 from '@/assets/demo/lg-demo-page-9.jpg';
+import demoPage10 from '@/assets/demo/lg-demo-page-10.jpg';
 // Create click sound using Web Audio API
 const playClickSound = () => {
   try {
@@ -62,7 +69,10 @@ export function LGCameraCapture({
   const loadDemoImages = useCallback(async () => {
     setIsLoadingDemo(true);
     try {
-      const demoUrls = [demoPage1, demoPage2, demoPage3];
+      const demoUrls = [
+        demoPage1, demoPage2, demoPage3, demoPage4, demoPage5,
+        demoPage6, demoPage7, demoPage8, demoPage9, demoPage10
+      ];
       const demoImages: CapturedImage[] = [];
 
       for (const url of demoUrls) {
@@ -84,7 +94,7 @@ export function LGCameraCapture({
 
       onImagesChange(demoImages);
       playClickSound();
-      toast.success('Demo images loaded - 3 pages');
+      toast.success('Demo images loaded - 10 pages');
     } catch (err) {
       console.error('Failed to load demo images:', err);
       toast.error('Failed to load demo images');
@@ -321,7 +331,7 @@ export function LGCameraCapture({
                 ) : (
                   <TestTube2 className="mr-2 h-5 w-5" />
                 )}
-                Demo Load (3 pages)
+                Demo Load (10 pages)
               </Button>
             )}
             
