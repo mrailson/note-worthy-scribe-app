@@ -313,7 +313,6 @@ export default function LGCaptureResults() {
           )}
           
           <LGDownloadPanel patient={patient} />
-          <LGEmailButton patient={patient} />
           <LGSummaryPreview patient={patient} />
           <LGProcessingMetrics patient={patient} />
           
@@ -333,6 +332,8 @@ export default function LGCaptureResults() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Reprocess Record
           </Button>
+          
+          <LGEmailButton patient={patient} />
         </>
       )}
 
