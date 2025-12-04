@@ -836,6 +836,9 @@ function buildFullSummaryEmailHtml(
   // Add SNOMED Codes Table - Problem codes only
   html += `<h2 style="color: #005EB8; margin-top: 30px;">SNOMED CT Codes (Problem Codes)</h2>`;
   html += `<p style="color: #666; font-size: 12px; margin-bottom: 15px;">Codes suitable for import into GP systems (EMIS/SystmOne). Social history, family history, and medications are not coded.</p>`;
+  html += `<div style="background: #fff8e6; border-left: 4px solid #FFB81C; padding: 12px; margin-bottom: 15px; font-size: 12px;">
+    <strong style="color: #ED8B00;">⚠️ Important:</strong> Where 'NK' (Not Known) is shown for dates, check the scanned Lloyd George records before coding. <strong>Do NOT use today's date for historical diagnoses.</strong>
+  </div>`;
   
   const snomedSectionLabels: Record<string, string> = {
     'diagnoses': 'Diagnoses',
@@ -849,13 +852,15 @@ function buildFullSummaryEmailHtml(
     if (items.length > 0) {
       html += `<h4 style="color: #003087; margin-top: 15px;">${snomedSectionLabels[section] || section}</h4>`;
       html += `<table style="width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 12px;">`;
-      html += `<tr style="background: #005EB8; color: white;"><th style="padding: 8px; text-align: left;">Term</th><th style="padding: 8px; text-align: left;">SNOMED Code</th><th style="padding: 8px; text-align: center;">Confidence</th></tr>`;
+      html += `<tr style="background: #005EB8; color: white;"><th style="padding: 8px; text-align: left;">Term</th><th style="padding: 8px; text-align: left;">SNOMED Code</th><th style="padding: 8px; text-align: center;">Date</th><th style="padding: 8px; text-align: center;">Confidence</th></tr>`;
       for (const item of items) {
         const confPercent = Math.round((item.confidence || 0) * 100);
         const confColor = confPercent >= 80 ? '#007F3B' : confPercent >= 60 ? '#ED8B00' : '#DA291C';
+        const dateDisplay = item.date && item.date.trim() ? item.date : '<span style="color: #999; font-style: italic;">NK</span>';
         html += `<tr style="border-bottom: 1px solid #ddd;">`;
         html += `<td style="padding: 8px;">${item.term || 'Unknown'}</td>`;
         html += `<td style="padding: 8px; font-family: monospace;">${item.code || 'UNKNOWN'}</td>`;
+        html += `<td style="padding: 8px; text-align: center;">${dateDisplay}</td>`;
         html += `<td style="padding: 8px; text-align: center; color: ${confColor}; font-weight: bold;">${confPercent}%</td>`;
         html += `</tr>`;
       }
