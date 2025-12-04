@@ -1,22 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, RotateCcw, Trash2, GripVertical, Upload, AlertTriangle, FastForward, Loader2, TestTube2, SwitchCamera } from 'lucide-react';
+import { Camera, RotateCcw, Trash2, GripVertical, Upload, AlertTriangle, FastForward, Loader2, SwitchCamera } from 'lucide-react';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { generateULID } from '@/utils/ulid';
 
-// Demo images for testing (10 pages)
-import demoPage1 from '@/assets/demo/lg-demo-page-1.jpg';
-import demoPage2 from '@/assets/demo/lg-demo-page-2.jpg';
-import demoPage3 from '@/assets/demo/lg-demo-page-3.jpg';
-import demoPage4 from '@/assets/demo/lg-demo-page-4.jpg';
-import demoPage5 from '@/assets/demo/lg-demo-page-5.jpg';
-import demoPage6 from '@/assets/demo/lg-demo-page-6.jpg';
-import demoPage7 from '@/assets/demo/lg-demo-page-7.jpg';
-import demoPage8 from '@/assets/demo/lg-demo-page-8.jpg';
-import demoPage9 from '@/assets/demo/lg-demo-page-9.jpg';
-import demoPage10 from '@/assets/demo/lg-demo-page-10.jpg';
 // Create click sound using Web Audio API
 const playClickSound = () => {
   try {
@@ -59,7 +48,7 @@ export function LGCameraCapture({
   const [isCameraLoading, setIsCameraLoading] = useState(false);
   const [glareWarning, setGlareWarning] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
-  const [isLoadingDemo, setIsLoadingDemo] = useState(false);
+  
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraIndex, setSelectedCameraIndex] = useState(0);
   const [isRotated, setIsRotated] = useState(false);
@@ -79,43 +68,6 @@ export function LGCameraCapture({
     }
   }, []);
 
-  // Load demo images for testing
-  const loadDemoImages = useCallback(async () => {
-    setIsLoadingDemo(true);
-    try {
-      const demoUrls = [
-        demoPage1, demoPage2, demoPage3, demoPage4, demoPage5,
-        demoPage6, demoPage7, demoPage8, demoPage9, demoPage10
-      ];
-      const demoImages: CapturedImage[] = [];
-
-      for (const url of demoUrls) {
-        // Fetch image and convert to data URL
-        const response = await fetch(url);
-        const blob = await response.blob();
-        const dataUrl = await new Promise<string>((resolve) => {
-          const reader = new FileReader();
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(blob);
-        });
-
-        demoImages.push({
-          id: generateULID(),
-          dataUrl,
-          timestamp: Date.now(),
-        });
-      }
-
-      onImagesChange(demoImages);
-      playClickSound();
-      toast.success('Demo images loaded - 10 pages');
-    } catch (err) {
-      console.error('Failed to load demo images:', err);
-      toast.error('Failed to load demo images');
-    } finally {
-      setIsLoadingDemo(false);
-    }
-  }, [onImagesChange]);
   // Callback ref to connect stream when video element mounts
   const setVideoRef = useCallback((el: HTMLVideoElement | null) => {
     videoRef.current = el;
@@ -389,24 +341,7 @@ export function LGCameraCapture({
       {(isCapturing || isCameraLoading) ? (
         <Card>
           <CardContent className="p-4 space-y-4">
-            {/* Demo Load Button - only when no images */}
-            {images.length === 0 && (
-              <Button
-                onClick={loadDemoImages}
-                disabled={isLoadingDemo}
-                variant="outline"
-                className="w-full h-12 border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-950"
-              >
-                {isLoadingDemo ? (
-                  <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                ) : (
-                  <TestTube2 className="mr-2 h-5 w-5" />
-                )}
-                Demo Load (10 pages)
-              </Button>
-            )}
-            
-            <div 
+            <div
               className="relative aspect-[3/4] bg-black rounded-lg overflow-hidden cursor-pointer active:opacity-90"
               onClick={isCapturing ? captureImage : undefined}
             >
