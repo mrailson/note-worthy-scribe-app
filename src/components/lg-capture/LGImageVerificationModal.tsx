@@ -238,12 +238,12 @@ export function LGImageVerificationModal({
             )}
             {imageUrl && !loading && (
               <ScrollArea className="h-[400px]">
-                <div className="p-2">
+                <div className="p-2 flex items-start justify-center">
                   <img
                     src={imageUrl}
                     alt={`Scan page ${item.source_page! + 1}`}
-                    style={{ transform: `scale(${zoom})`, transformOrigin: 'top left' }}
-                    className="max-w-none"
+                    style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
+                    className="max-h-[380px] w-auto object-contain"
                   />
                 </div>
               </ScrollArea>
