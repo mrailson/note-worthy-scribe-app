@@ -3373,6 +3373,8 @@ export type Database = {
           ai_extracted_sex: string | null
           ai_extraction_confidence: number | null
           audit_report_url: string | null
+          compression_attempts: number | null
+          compression_tier: string | null
           created_at: string | null
           dob: string | null
           email_error: string | null
@@ -3389,9 +3391,13 @@ export type Database = {
           ocr_completed_at: string | null
           ocr_started_at: string | null
           ocr_text_url: string | null
+          original_size_mb: number | null
           patient_name: string | null
           pdf_completed_at: string | null
+          pdf_final_size_mb: number | null
           pdf_generation_status: string | null
+          pdf_parts: number | null
+          pdf_split: boolean | null
           pdf_started_at: string | null
           pdf_url: string | null
           practice_ods: string
@@ -3417,6 +3423,8 @@ export type Database = {
           ai_extracted_sex?: string | null
           ai_extraction_confidence?: number | null
           audit_report_url?: string | null
+          compression_attempts?: number | null
+          compression_tier?: string | null
           created_at?: string | null
           dob?: string | null
           email_error?: string | null
@@ -3433,9 +3441,13 @@ export type Database = {
           ocr_completed_at?: string | null
           ocr_started_at?: string | null
           ocr_text_url?: string | null
+          original_size_mb?: number | null
           patient_name?: string | null
           pdf_completed_at?: string | null
+          pdf_final_size_mb?: number | null
           pdf_generation_status?: string | null
+          pdf_parts?: number | null
+          pdf_split?: boolean | null
           pdf_started_at?: string | null
           pdf_url?: string | null
           practice_ods: string
@@ -3461,6 +3473,8 @@ export type Database = {
           ai_extracted_sex?: string | null
           ai_extraction_confidence?: number | null
           audit_report_url?: string | null
+          compression_attempts?: number | null
+          compression_tier?: string | null
           created_at?: string | null
           dob?: string | null
           email_error?: string | null
@@ -3477,9 +3491,13 @@ export type Database = {
           ocr_completed_at?: string | null
           ocr_started_at?: string | null
           ocr_text_url?: string | null
+          original_size_mb?: number | null
           patient_name?: string | null
           pdf_completed_at?: string | null
+          pdf_final_size_mb?: number | null
           pdf_generation_status?: string | null
+          pdf_parts?: number | null
+          pdf_split?: boolean | null
           pdf_started_at?: string | null
           pdf_url?: string | null
           practice_ods?: string

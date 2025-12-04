@@ -55,6 +55,13 @@ export interface LGPatient {
   ocr_completed_at: string | null;
   pdf_started_at: string | null;
   pdf_completed_at: string | null;
+  // Compression tracking fields
+  pdf_final_size_mb: number | null;
+  compression_tier: 'Tier 1' | 'Tier 2' | null;
+  pdf_split: boolean;
+  pdf_parts: number;
+  compression_attempts: number;
+  original_size_mb: number | null;
 }
 
 export interface CapturedImage {

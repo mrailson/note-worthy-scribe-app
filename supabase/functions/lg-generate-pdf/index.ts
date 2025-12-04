@@ -10,6 +10,118 @@ const corsHeaders = {
 // Process images in small batches to avoid memory issues
 const IMAGE_BATCH_SIZE = 5;
 
+// SystmOne upload limit
+const MAX_PDF_SIZE_MB = 5;
+const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
+
+// Compression tier settings
+interface CompressionSettings {
+  targetDpi: number;
+  jpegQuality: number;
+  grayscale: boolean;
+  tier: 'Tier 1' | 'Tier 2';
+}
+
+function getCompressionSettings(pageCount: number, attempt: number = 0): CompressionSettings {
+  const isTier2 = pageCount > 10;
+  
+  // Progressive compression based on retry attempts
+  if (isTier2) {
+    // Tier 2: Aggressive compression for >10 pages
+    const baseSettings = {
+      targetDpi: 125 - (attempt * 15), // 125, 110, 95
+      jpegQuality: 0.60 - (attempt * 0.10), // 0.60, 0.50, 0.40
+      grayscale: true,
+      tier: 'Tier 2' as const,
+    };
+    // Enforce minimums for readability
+    return {
+      ...baseSettings,
+      targetDpi: Math.max(baseSettings.targetDpi, 96),
+      jpegQuality: Math.max(baseSettings.jpegQuality, 0.45),
+    };
+  } else {
+    // Tier 1: Quality priority for ≤10 pages
+    const baseSettings = {
+      targetDpi: 175 - (attempt * 25), // 175, 150, 125
+      jpegQuality: 0.75 - (attempt * 0.05), // 0.75, 0.70, 0.65
+      grayscale: attempt >= 2, // Only grayscale on 3rd attempt
+      tier: 'Tier 1' as const,
+    };
+    return {
+      ...baseSettings,
+      targetDpi: Math.max(baseSettings.targetDpi, 100),
+      jpegQuality: Math.max(baseSettings.jpegQuality, 0.60),
+    };
+  }
+}
+
+// Compress image using canvas-based resizing
+async function compressImage(
+  imageBytes: Uint8Array,
+  settings: CompressionSettings
+): Promise<Uint8Array> {
+  try {
+    // Create blob from bytes
+    const blob = new Blob([imageBytes], { type: 'image/jpeg' });
+    const imageBitmap = await createImageBitmap(blob);
+    
+    // Calculate target dimensions based on DPI (assume A4 @ 8.27" x 11.69")
+    const maxWidthAtDpi = Math.round(8.27 * settings.targetDpi);
+    const maxHeightAtDpi = Math.round(11.69 * settings.targetDpi);
+    
+    // Scale to fit within DPI constraints while maintaining aspect ratio
+    let targetWidth = imageBitmap.width;
+    let targetHeight = imageBitmap.height;
+    
+    if (targetWidth > maxWidthAtDpi || targetHeight > maxHeightAtDpi) {
+      const widthRatio = maxWidthAtDpi / imageBitmap.width;
+      const heightRatio = maxHeightAtDpi / imageBitmap.height;
+      const scale = Math.min(widthRatio, heightRatio);
+      targetWidth = Math.round(imageBitmap.width * scale);
+      targetHeight = Math.round(imageBitmap.height * scale);
+    }
+    
+    // Create canvas for resizing
+    const canvas = new OffscreenCanvas(targetWidth, targetHeight);
+    const ctx = canvas.getContext('2d');
+    
+    if (!ctx) {
+      console.warn('Canvas context unavailable, returning original');
+      return imageBytes;
+    }
+    
+    // Draw resized image
+    ctx.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight);
+    
+    // Apply grayscale if needed
+    if (settings.grayscale) {
+      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
+        data[i] = gray;
+        data[i + 1] = gray;
+        data[i + 2] = gray;
+      }
+      ctx.putImageData(imageData, 0, 0);
+    }
+    
+    // Export as JPEG with specified quality
+    const compressedBlob = await canvas.convertToBlob({
+      type: 'image/jpeg',
+      quality: settings.jpegQuality,
+    });
+    
+    const arrayBuffer = await compressedBlob.arrayBuffer();
+    return new Uint8Array(arrayBuffer);
+    
+  } catch (err) {
+    console.warn('Image compression failed, using original:', err);
+    return imageBytes;
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -94,20 +206,33 @@ serve(async (req) => {
       throw new Error(`No images found: ${listError?.message}`);
     }
 
-    console.log(`Creating PDF with ${files.length} images in batches of ${IMAGE_BATCH_SIZE}`);
+    const pageCount = files.length;
+    console.log(`Creating PDF with ${pageCount} images in batches of ${IMAGE_BATCH_SIZE}`);
 
-    // Create PDF document
-    const pdfDoc = await PDFDocument.create();
-
-    // Patient details
+    // Patient details - extract once before compression loop
     const patientName = patient.ai_extracted_name || patient.patient_name || 'Unknown Patient';
     const nhsNumber = patient.ai_extracted_nhs || patient.nhs_number || 'Unknown';
     const dob = patient.ai_extracted_dob || patient.dob || 'Unknown';
     const formattedNhs = formatNhsNumber(nhsNumber);
 
-    // Generate page summaries from OCR text
+    // Generate page summaries from OCR text (once)
     console.log('Generating page summaries...');
-    const pageSummaries = await generatePageSummaries(ocrText, files.length);
+    const pageSummaries = await generatePageSummaries(ocrText, pageCount);
+
+    // Determine compression settings based on page count
+    let compressionAttempt = 0;
+    let compressionSettings = getCompressionSettings(pageCount, compressionAttempt);
+    let finalPdfBytes: Uint8Array | null = null;
+    let pdfSizeMb = 0;
+    let originalSizeMb = 0;
+
+    // Retry loop for compression
+    while (compressionAttempt < 3) {
+      compressionSettings = getCompressionSettings(pageCount, compressionAttempt);
+      console.log(`Compression attempt ${compressionAttempt + 1}: ${compressionSettings.tier}, DPI: ${compressionSettings.targetDpi}, Quality: ${(compressionSettings.jpegQuality * 100).toFixed(0)}%, Grayscale: ${compressionSettings.grayscale}`);
+
+      // Create PDF document
+      const pdfDoc = await PDFDocument.create();
 
     // Add clinical summary front page
     console.log('Adding clinical summary page...');
@@ -139,16 +264,24 @@ serve(async (req) => {
           }
 
           const arrayBuffer = await imageData.arrayBuffer();
-          const uint8Array = new Uint8Array(arrayBuffer);
+          let uint8Array = new Uint8Array(arrayBuffer);
+
+          // Apply compression to reduce file size for SystmOne compliance
+          uint8Array = await compressImage(uint8Array, compressionSettings);
 
           // Determine image type and embed
           let image;
           const fileName = file.name.toLowerCase();
           
           if (fileName.endsWith('.png')) {
-            image = await pdfDoc.embedPng(uint8Array);
+            try {
+              image = await pdfDoc.embedPng(uint8Array);
+            } catch {
+              // Compressed PNG might be JPEG format now
+              image = await pdfDoc.embedJpg(uint8Array);
+            }
           } else {
-            // Default to JPEG
+            // Default to JPEG (most compressed images will be JPEG)
             try {
               image = await pdfDoc.embedJpg(uint8Array);
             } catch {
@@ -164,16 +297,17 @@ serve(async (req) => {
             }
           }
 
-          // Scale down aggressively to reduce memory
-          const maxDim = 400;
-          let scale = 0.25;
+          // Scale to fit A4 page with margins
+          const pageWidth = 595;
+          const pageHeight = 842;
+          const margin = 40;
+          const availableWidth = pageWidth - (margin * 2);
+          const availableHeight = pageHeight - (margin * 2) - 30; // Extra space for page number
           
-          const scaledWidth = image.width * scale;
-          const scaledHeight = image.height * scale;
-          
-          if (scaledWidth > maxDim || scaledHeight > maxDim) {
-            const widthRatio = maxDim / image.width;
-            const heightRatio = maxDim / image.height;
+          let scale = 1;
+          if (image.width > availableWidth || image.height > availableHeight) {
+            const widthRatio = availableWidth / image.width;
+            const heightRatio = availableHeight / image.height;
             scale = Math.min(widthRatio, heightRatio);
           }
           
@@ -205,18 +339,77 @@ serve(async (req) => {
       }
     }
 
-    // Save PDF
-    console.log('Saving PDF...');
-    const pdfBytes = await pdfDoc.save();
+      // Save PDF
+      console.log('Saving PDF...');
+      const pdfBytes = await pdfDoc.save();
+      pdfSizeMb = pdfBytes.length / (1024 * 1024);
+      
+      // Track original size on first attempt
+      if (compressionAttempt === 0) {
+        originalSizeMb = pdfSizeMb;
+      }
+      
+      console.log(`PDF size: ${pdfSizeMb.toFixed(2)} MB (attempt ${compressionAttempt + 1})`);
+      
+      // Check if size is acceptable
+      if (pdfBytes.length <= MAX_PDF_SIZE_BYTES) {
+        finalPdfBytes = pdfBytes;
+        break;
+      }
+      
+      // Size exceeds limit, try again with more aggressive compression
+      compressionAttempt++;
+      console.log(`PDF exceeds ${MAX_PDF_SIZE_MB}MB limit, retrying with more aggressive compression...`);
+    }
+
+    // If still too large after all attempts, we need to handle split (future enhancement)
+    // For now, use the last generated PDF
+    if (!finalPdfBytes) {
+      console.warn(`PDF still exceeds ${MAX_PDF_SIZE_MB}MB after ${compressionAttempt} attempts. Using best effort result.`);
+      // Re-generate with max compression for final attempt
+      compressionSettings = getCompressionSettings(pageCount, 2);
+      const pdfDoc = await PDFDocument.create();
+      
+      // Simplified re-generation with max compression
+      addClinicalSummaryPage(pdfDoc, patientName, nhsNumber, dob, pageCount, summaryJson, snomedJson);
+      addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
+      
+      for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        try {
+          const { data: imageData } = await supabase.storage
+            .from('lg')
+            .download(`${basePath}/raw/${file.name}`);
+          if (imageData) {
+            const arrayBuffer = await imageData.arrayBuffer();
+            let uint8Array = new Uint8Array(arrayBuffer);
+            uint8Array = await compressImage(uint8Array, compressionSettings);
+            const image = await pdfDoc.embedJpg(uint8Array).catch(() => pdfDoc.embedPng(uint8Array));
+            const page = pdfDoc.addPage([595, 842]);
+            const scale = Math.min((595 - 80) / image.width, (842 - 110) / image.height, 1);
+            const width = Math.round(image.width * scale);
+            const height = Math.round(image.height * scale);
+            page.drawImage(image, { x: (595 - width) / 2, y: (842 - height) / 2, width, height });
+            page.drawText(`Page ${i + 1} of ${files.length}`, { x: 50, y: 20, size: 10 });
+          }
+        } catch {}
+      }
+      
+      finalPdfBytes = await pdfDoc.save();
+      pdfSizeMb = finalPdfBytes.length / (1024 * 1024);
+    }
 
     // Upload PDF
-    const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const pdfBlob = new Blob([finalPdfBytes], { type: 'application/pdf' });
     await supabase.storage.from('lg').upload(`${basePath}/final/lloyd-george.pdf`, pdfBlob, {
       contentType: 'application/pdf',
       upsert: true,
     });
 
-    // Update patient record with PDF completion time
+    // Determine if split is needed (size still exceeds limit)
+    const needsSplit = finalPdfBytes.length > MAX_PDF_SIZE_BYTES;
+
+    // Update patient record with PDF completion time and compression info
     const pdfCompletedTime = new Date().toISOString();
     await supabase
       .from('lg_patients')
@@ -227,15 +420,22 @@ serve(async (req) => {
         pdf_url: `lg/${basePath}/final/lloyd-george.pdf`,
         pdf_generation_status: 'complete',
         pdf_completed_at: pdfCompletedTime,
+        // Compression tracking
+        pdf_final_size_mb: parseFloat(pdfSizeMb.toFixed(2)),
+        original_size_mb: parseFloat(originalSizeMb.toFixed(2)),
+        compression_tier: compressionSettings.tier,
+        compression_attempts: compressionAttempt + 1,
+        pdf_split: needsSplit,
+        pdf_parts: needsSplit ? Math.ceil(pdfSizeMb / MAX_PDF_SIZE_MB) : 1,
       })
       .eq('id', patientId);
 
-    console.log(`PDF generation complete for patient ${patientId}`);
+    console.log(`PDF generation complete for patient ${patientId}: ${pdfSizeMb.toFixed(2)}MB, ${compressionSettings.tier}, ${compressionAttempt + 1} attempt(s)`);
 
     // Send email with PDF attachment now that PDF is ready
-    if (sendEmail && !patient.email_sent_at) {
+    if (sendEmail && !patient.email_sent_at && finalPdfBytes) {
       console.log('Sending email with PDF attachment...');
-      await sendSummaryEmailWithPdf(supabase, patient, patientName, nhsNumber, dob, summaryJson, snomedJson, pdfBytes);
+      await sendSummaryEmailWithPdf(supabase, patient, patientName, nhsNumber, dob, summaryJson, snomedJson, finalPdfBytes);
     }
 
     return new Response(
