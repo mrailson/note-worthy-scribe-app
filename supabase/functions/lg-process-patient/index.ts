@@ -50,13 +50,20 @@ Return JSON with this EXACT structure (source_page is MANDATORY):
 
 {
   "diagnoses": [{"term":"Type 2 diabetes mellitus","date":"2009","evidence":"PMH: T2DM dx ~2009","source_page":0}],
-  "surgeries": [{"term":"Left cataract surgery","date":"Jun 2019","evidence":"Phacoemulsification performed","source_page":1}],
+  "surgeries": [{"term":"Cataract surgery","date":"Jun 2019","evidence":"Phacoemulsification with IOL","source_page":1}],
   "allergies": [{"term":"Penicillin","date":"","evidence":"Known allergy","source_page":2}],
   "immunisations": [{"term":"COVID-19 vaccination","date":"Mar 2021","evidence":"Covid vaccine","source_page":2}]
 }
 
+**CRITICAL SURGERY IDENTIFICATION RULES:**
+- "Phaco", "phacoemulsification", "IOL", "intraocular lens" = CATARACT SURGERY (eye surgery), NOT bowel surgery
+- "Hemicolectomy" = bowel/colon surgery - only use if explicitly mentioned
+- Read the context carefully: discharge summaries from ophthalmology/eye units are EYE surgeries
+- If evidence mentions "lens", "cataract", "eye", "phaco" - it is cataract surgery
+- DO NOT confuse different surgical specialties
+
 RULES:
-- term: UK clinical terminology
+- term: UK clinical terminology - use the CORRECT procedure based on evidence context
 - date: YYYY, MMM YYYY, or "Pre Oct 2020" format
 - evidence: Short snippet from source
 - source_page: REQUIRED integer (0, 1, 2, etc.) - only use null if absolutely cannot determine
