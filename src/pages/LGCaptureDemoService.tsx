@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
 
-// Import demo images (pages 1-20, placeholders for 21-30)
+// Import demo images (pages 1-30)
 import demoPage1 from '@/assets/demo/lg-demo-page-1.jpg';
 import demoPage2 from '@/assets/demo/lg-demo-page-2.jpg';
 import demoPage3 from '@/assets/demo/lg-demo-page-3.jpg';
@@ -28,16 +28,25 @@ import demoPage17 from '@/assets/demo/lg-demo-page-17.jpg';
 import demoPage18 from '@/assets/demo/lg-demo-page-18.jpg';
 import demoPage19 from '@/assets/demo/lg-demo-page-19.jpg';
 import demoPage20 from '@/assets/demo/lg-demo-page-20.jpg';
+import demoPage21 from '@/assets/demo/lg-demo-page-21.jpg';
+import demoPage22 from '@/assets/demo/lg-demo-page-22.jpg';
+import demoPage23 from '@/assets/demo/lg-demo-page-23.jpg';
+import demoPage24 from '@/assets/demo/lg-demo-page-24.jpg';
+import demoPage25 from '@/assets/demo/lg-demo-page-25.jpg';
+import demoPage26 from '@/assets/demo/lg-demo-page-26.jpg';
+import demoPage27 from '@/assets/demo/lg-demo-page-27.jpg';
+import demoPage28 from '@/assets/demo/lg-demo-page-28.jpg';
+import demoPage29 from '@/assets/demo/lg-demo-page-29.jpg';
+import demoPage30 from '@/assets/demo/lg-demo-page-30.jpg';
 
-// All demo images array (pages 21-30 will reuse pages 1-10 until provided)
+// All 30 demo images
 const ALL_DEMO_IMAGES = [
   demoPage1, demoPage2, demoPage3, demoPage4, demoPage5,
   demoPage6, demoPage7, demoPage8, demoPage9, demoPage10,
   demoPage11, demoPage12, demoPage13, demoPage14, demoPage15,
   demoPage16, demoPage17, demoPage18, demoPage19, demoPage20,
-  // Placeholder: reuse pages 1-10 for pages 21-30 until real images provided
-  demoPage1, demoPage2, demoPage3, demoPage4, demoPage5,
-  demoPage6, demoPage7, demoPage8, demoPage9, demoPage10,
+  demoPage21, demoPage22, demoPage23, demoPage24, demoPage25,
+  demoPage26, demoPage27, demoPage28, demoPage29, demoPage30,
 ];
 
 async function urlToDataUrl(url: string): Promise<string> {
