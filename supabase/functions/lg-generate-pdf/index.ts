@@ -594,15 +594,19 @@ serve(async (req) => {
       }
     } catch {}
 
-    // Load OCR text for page summaries
+    // Load OCR text for page summaries (stored as JSON with ocr_text property)
     try {
       const { data: ocrData } = await supabase.storage
         .from('lg')
-        .download(`${basePath}/work/ocr_merged.txt`);
+        .download(`${basePath}/final/ocr_merged.json`);
       if (ocrData) {
-        ocrText = await ocrData.text();
+        const ocrJson = JSON.parse(await ocrData.text());
+        ocrText = ocrJson.ocr_text || '';
+        console.log(`Loaded OCR text: ${ocrText.length} characters`);
       }
-    } catch {}
+    } catch (e) {
+      console.warn('Could not load OCR merged JSON:', e);
+    }
 
     // List raw images
     const { data: files, error: listError } = await supabase.storage
