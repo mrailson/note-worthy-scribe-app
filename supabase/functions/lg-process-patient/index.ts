@@ -434,8 +434,8 @@ ${fullOcrText.substring(0, 12000)}`;
         const conceptsJson = await callOpenAI(openaiKey, SNOMED_CONCEPT_PROMPT, conceptPrompt);
         console.log('Clinical concepts extracted:', JSON.stringify(conceptsJson, null, 2));
         
-        // Step 2: Match concepts against validated SNOMED database
-        snomedJson = await matchConceptsToSnomed(supabase, conceptsJson);
+        // Step 2: Match concepts against validated SNOMED database (pass OCR text for fallback source_page detection)
+        snomedJson = await matchConceptsToSnomed(supabase, conceptsJson, fullOcrText);
         console.log('SNOMED codes matched from database');
       } catch (aiErr) {
         console.error('SNOMED extraction failed:', aiErr);
@@ -746,8 +746,47 @@ function createEmptySummary() {
   };
 }
 
+// Find source page by searching OCR text for evidence string
+function findSourcePageFromEvidence(evidence: string, ocrText: string): number | null {
+  if (!evidence || !ocrText || evidence.length < 5) return null;
+  
+  // Parse OCR into pages using the page markers like "--- Page page_001.jpg ---"
+  const pageRegex = /---\s*Page\s+(page_(\d+)\.(jpg|jpeg|png))\s*---/gi;
+  const parts = ocrText.split(pageRegex);
+  
+  // Extract evidence search terms (first 30 chars, lowercased, trimmed)
+  const searchTerms = evidence.toLowerCase().trim().substring(0, 50).split(/\s+/).filter(t => t.length > 3);
+  
+  let currentPage = -1;
+  for (let i = 0; i < parts.length; i++) {
+    const part = parts[i];
+    
+    // Check if this part is a page number match
+    if (/^\d+$/.test(part)) {
+      currentPage = parseInt(part, 10) - 1; // Convert to 0-indexed
+      continue;
+    }
+    
+    // Skip extension matches
+    if (/^(jpg|jpeg|png)$/i.test(part)) continue;
+    
+    // This is page content - search for evidence
+    if (currentPage >= 0 && part && part.length > 20) {
+      const partLower = part.toLowerCase();
+      // Check if multiple search terms appear in this page
+      const matchingTerms = searchTerms.filter(term => partLower.includes(term));
+      if (matchingTerms.length >= Math.min(2, searchTerms.length)) {
+        console.log(`Found source_page ${currentPage} for evidence: "${evidence.substring(0, 30)}..."`);
+        return currentPage;
+      }
+    }
+  }
+  
+  return null;
+}
+
 // Match clinical concepts to validated SNOMED codes from database
-async function matchConceptsToSnomed(supabase: any, conceptsJson: any): Promise<any> {
+async function matchConceptsToSnomed(supabase: any, conceptsJson: any, ocrText: string = ''): Promise<any> {
   const result: any = {
     diagnoses: [],
     surgeries: [],
@@ -853,6 +892,12 @@ async function matchConceptsToSnomed(supabase: any, conceptsJson: any): Promise<
       const term = concept.term;
       const match = await findBestMatch(term, domain);
 
+      // Determine source_page: use AI value if present, otherwise find from evidence in OCR
+      let sourcePage = concept.source_page;
+      if (sourcePage === null || sourcePage === undefined) {
+        sourcePage = findSourcePageFromEvidence(concept.evidence || '', ocrText);
+      }
+
       if (match) {
         result[domain].push({
           term: match.description, // Use the official SNOMED description
@@ -860,7 +905,7 @@ async function matchConceptsToSnomed(supabase: any, conceptsJson: any): Promise<
           date: concept.date || '',
           confidence: match.confidence,
           evidence: concept.evidence || '',
-          source_page: concept.source_page ?? null,
+          source_page: sourcePage,
         });
       } else {
         // No match found - flag for manual review
@@ -870,7 +915,7 @@ async function matchConceptsToSnomed(supabase: any, conceptsJson: any): Promise<
           date: concept.date || '',
           confidence: 0.3,
           evidence: concept.evidence || '',
-          source_page: concept.source_page ?? null,
+          source_page: sourcePage,
         });
       }
     }
