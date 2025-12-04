@@ -41,9 +41,9 @@ const SNOMED_CONCEPT_PROMPT = `You are a clinical coder for UK primary care. Ext
 DO NOT generate SNOMED codes - just identify the clinical terms that need coding.
 
 **CRITICAL - SOURCE_PAGE IS REQUIRED:**
-The OCR text has page markers like "--- Page 001.jpg ---", "--- Page 002.jpg ---".
+The OCR text has page markers like "--- Page page_001.jpg ---", "--- Page page_002.jpg ---".
 For EVERY item, you MUST include "source_page" by finding which page marker appears BEFORE the evidence text.
-Convert page number to 0-indexed: 001.jpg → source_page:0, 002.jpg → source_page:1, 003.jpg → source_page:2
+Convert page number to 0-indexed: page_001.jpg → source_page:0, page_002.jpg → source_page:1, page_003.jpg → source_page:2
 
 Return JSON with this EXACT structure (source_page is MANDATORY):
 
