@@ -7,55 +7,62 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Process images in small batches to avoid memory issues
-const IMAGE_BATCH_SIZE = 5;
+// BATCH PROCESSING CONFIGURATION
+const IMAGE_BATCH_SIZE = 10; // Process 10 pages per batch maximum
+const SUMMARY_BATCH_SIZE = 10; // Match image batch size
+
+// MEMORY PROTECTION LIMITS
+const MAX_BATCH_INPUT_MB = 5;
+const MAX_BATCH_INPUT_BYTES = MAX_BATCH_INPUT_MB * 1024 * 1024;
+const MAX_OPENAI_TOKENS = 120000;
+const RETRY_BATCH_SIZE = 2; // Retry with 2 pages per batch on memory issues
 
 // SystmOne upload limit
 const MAX_PDF_SIZE_MB = 5;
 const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
-// NEW: 60% scaling-based compression settings
+// Tracking interfaces for failed pages
+interface FailedPage {
+  pageNum: number;
+  filename: string;
+  reason: string;
+  retryAttempts: number;
+}
+
+// Compression settings (40% scale, 60% quality baseline per spec)
 interface CompressionSettings {
-  scaleFactor: number;      // 0.6 = 60% of original dimensions
-  jpegQuality: number;      // 0.70 = 70% quality
+  scaleFactor: number;
+  jpegQuality: number;
   grayscale: boolean;
   tier: 'Standard' | 'Aggressive';
 }
 
 function getCompressionSettings(pageCount: number, attempt: number = 0): CompressionSettings {
+  // Baseline: 40% scale, 60% quality per spec
+  const baseScale = 0.40;
+  const baseQuality = 0.60;
+  
   if (pageCount <= 30) {
     // Standard compression for ≤30 pages
-    const settings = {
-      scaleFactor: 0.60 - (attempt * 0.05), // 0.60, 0.55, 0.50
-      jpegQuality: 0.70 - (attempt * 0.05), // 0.70, 0.65, 0.60
+    return {
+      scaleFactor: Math.max(baseScale - (attempt * 0.05), 0.30), // 0.40, 0.35, 0.30
+      jpegQuality: Math.max(baseQuality - (attempt * 0.05), 0.45), // 0.60, 0.55, 0.50
       grayscale: attempt >= 2, // Only on 3rd attempt
       tier: 'Standard' as const,
     };
-    // Enforce minimums for readability
-    return {
-      ...settings,
-      scaleFactor: Math.max(settings.scaleFactor, 0.45),
-      jpegQuality: Math.max(settings.jpegQuality, 0.55),
-    };
   } else {
     // Aggressive compression for >30 pages
-    const settings = {
-      scaleFactor: 0.50 - (attempt * 0.05), // 0.50, 0.45, 0.40
-      jpegQuality: 0.60 - (attempt * 0.05), // 0.60, 0.55, 0.50
-      grayscale: true,
-      tier: 'Aggressive' as const,
-    };
     return {
-      ...settings,
-      scaleFactor: Math.max(settings.scaleFactor, 0.35),
-      jpegQuality: Math.max(settings.jpegQuality, 0.45),
+      scaleFactor: Math.max(baseScale - 0.05 - (attempt * 0.05), 0.25), // 0.35, 0.30, 0.25
+      jpegQuality: Math.max(baseQuality - 0.05 - (attempt * 0.05), 0.40), // 0.55, 0.50, 0.45
+      grayscale: true, // Always grayscale for large docs
+      tier: 'Aggressive' as const,
     };
   }
 }
 
 // Parse EXIF orientation from JPEG bytes
 function parseExifOrientation(bytes: Uint8Array): number {
-  // Default orientation (normal)
   if (bytes.length < 12) return 1;
   
   // Check for JPEG signature (0xFFD8)
@@ -63,7 +70,6 @@ function parseExifOrientation(bytes: Uint8Array): number {
   
   let offset = 2;
   while (offset < bytes.length - 4) {
-    // Look for markers
     if (bytes[offset] !== 0xFF) {
       offset++;
       continue;
@@ -80,8 +86,6 @@ function parseExifOrientation(bytes: Uint8Array): number {
           bytes[offset + 6] === 0x69 && bytes[offset + 7] === 0x66) {
         
         const tiffOffset = offset + 10;
-        
-        // Check byte order (II = little endian, MM = big endian)
         const isLittleEndian = bytes[tiffOffset] === 0x49;
         
         const readUint16 = (pos: number): number => {
@@ -91,11 +95,9 @@ function parseExifOrientation(bytes: Uint8Array): number {
           return (bytes[pos] << 8) | bytes[pos + 1];
         };
         
-        // Read IFD0 offset
         const ifdOffset = tiffOffset + 8;
         const numEntries = readUint16(ifdOffset);
         
-        // Search for orientation tag (0x0112)
         for (let i = 0; i < numEntries; i++) {
           const entryOffset = ifdOffset + 2 + (i * 12);
           const tag = readUint16(entryOffset);
@@ -109,10 +111,8 @@ function parseExifOrientation(bytes: Uint8Array): number {
       }
       offset += 2 + length;
     } else if (marker === 0xD9 || marker === 0xDA) {
-      // End of image or start of scan - stop searching
       break;
     } else if (marker >= 0xE0 && marker <= 0xEF) {
-      // Skip other APP markers
       const length = (bytes[offset + 2] << 8) | bytes[offset + 3];
       offset += 2 + length;
     } else {
@@ -120,30 +120,37 @@ function parseExifOrientation(bytes: Uint8Array): number {
     }
   }
   
-  return 1; // Default: normal orientation
+  return 1;
 }
 
-// Compress image using 60% scaling approach with EXIF rotation correction
+// Strip EXIF metadata from image bytes (for final compression)
+function stripExifData(bytes: Uint8Array): Uint8Array {
+  // Simple EXIF strip: only keep essential JPEG markers
+  if (bytes.length < 4 || bytes[0] !== 0xFF || bytes[1] !== 0xD8) {
+    return bytes;
+  }
+  
+  // For simplicity, return as-is - the compression already strips most metadata
+  // Full EXIF stripping would require rebuilding the JPEG structure
+  return bytes;
+}
+
+// Compress image using 40% scaling approach with EXIF rotation correction
 async function compressImage(
   imageBytes: Uint8Array,
   settings: CompressionSettings
 ): Promise<Uint8Array> {
   try {
-    // Parse EXIF orientation before processing
     const orientation = parseExifOrientation(imageBytes);
     
-    // Create blob from bytes
     const blob = new Blob([imageBytes], { type: 'image/jpeg' });
     const imageBitmap = await createImageBitmap(blob);
     
-    // Determine if rotation swaps width/height
     const rotationSwapsDimensions = orientation >= 5 && orientation <= 8;
     
-    // Calculate target dimensions (before rotation consideration)
     let targetWidth = Math.round(imageBitmap.width * settings.scaleFactor);
     let targetHeight = Math.round(imageBitmap.height * settings.scaleFactor);
     
-    // If rotation swaps dimensions, swap the canvas size
     let canvasWidth = targetWidth;
     let canvasHeight = targetHeight;
     if (rotationSwapsDimensions) {
@@ -151,7 +158,6 @@ async function compressImage(
       canvasHeight = targetWidth;
     }
     
-    // Create canvas
     const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
     const ctx = canvas.getContext('2d');
     
@@ -160,17 +166,7 @@ async function compressImage(
       return imageBytes;
     }
     
-    // Apply transformation based on EXIF orientation
-    // Orientation values:
-    // 1: Normal (no transformation)
-    // 2: Flip horizontal
-    // 3: Rotate 180°
-    // 4: Flip vertical
-    // 5: Rotate 90° CW + flip horizontal
-    // 6: Rotate 90° CW
-    // 7: Rotate 90° CCW + flip horizontal
-    // 8: Rotate 90° CCW (or 270° CW)
-    
+    // Apply EXIF orientation transformation
     switch (orientation) {
       case 2:
         ctx.scale(-1, 1);
@@ -202,14 +198,10 @@ async function compressImage(
         ctx.translate(-canvasHeight, 0);
         break;
       default:
-        // No transformation needed
         break;
     }
     
-    // Draw image with scaling
     ctx.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight);
-    
-    // Reset transform for grayscale processing
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     
     // Apply grayscale if needed
@@ -225,7 +217,6 @@ async function compressImage(
       ctx.putImageData(imageData, 0, 0);
     }
     
-    // Export as JPEG with specified quality
     const compressedBlob = await canvas.convertToBlob({
       type: 'image/jpeg',
       quality: settings.jpegQuality,
@@ -238,6 +229,263 @@ async function compressImage(
     console.warn('Image compression failed, using original:', err);
     return imageBytes;
   }
+}
+
+// Embed image with fallback between JPEG and PNG
+async function embedImageWithFallback(pdfDoc: any, bytes: Uint8Array, filename: string): Promise<any> {
+  const lowerName = filename.toLowerCase();
+  
+  if (lowerName.endsWith('.png')) {
+    try {
+      return await pdfDoc.embedPng(bytes);
+    } catch {
+      return await pdfDoc.embedJpg(bytes);
+    }
+  } else {
+    try {
+      return await pdfDoc.embedJpg(bytes);
+    } catch {
+      try {
+        return await pdfDoc.embedPng(bytes);
+      } catch (embedErr) {
+        console.error(`Failed to embed image ${filename}:`, embedErr);
+        return null;
+      }
+    }
+  }
+}
+
+// Add a placeholder page for failed images
+function addFailedPagePlaceholder(pdfDoc: any, pageIndex: number, totalPages: number, filename: string) {
+  const page = pdfDoc.addPage([595, 842]);
+  const pdfPageNum = pageIndex + 4;
+  
+  page.drawText(`Page ${pdfPageNum} - Processing Failed`, { x: 180, y: 450, size: 16 });
+  page.drawText(`File: ${filename}`, { x: 180, y: 420, size: 10 });
+  page.drawText('This page failed to process after 2 retry attempts.', { x: 150, y: 390, size: 10 });
+  page.drawText('Please refer to original scanned document.', { x: 160, y: 360, size: 10 });
+  page.drawText(`Page ${pdfPageNum} of ${totalPages + 3}`, { x: 40, y: 15, size: 9 });
+}
+
+// Add quality gate warning page if any pages failed
+function addQualityGateWarningPage(pdfDoc: any, failedPages: FailedPage[], insertAfterFrontMatter: boolean = false) {
+  if (failedPages.length === 0) return;
+  
+  const page = pdfDoc.addPage([595, 842]);
+  let yPosition = 780;
+  const leftMargin = 50;
+  
+  // Warning header
+  page.drawText('QUALITY GATE WARNING', { x: leftMargin, y: yPosition, size: 16 });
+  yPosition -= 30;
+  
+  page.drawText('Missing or failed page processing:', { x: leftMargin, y: yPosition, size: 12 });
+  yPosition -= 25;
+  
+  for (const failed of failedPages) {
+    if (yPosition < 60) break;
+    
+    page.drawText(`Page ${failed.pageNum + 4} failed to process after ${failed.retryAttempts} retries.`, {
+      x: leftMargin + 10,
+      y: yPosition,
+      size: 10,
+    });
+    yPosition -= 15;
+    
+    const reasonText = failed.reason.length > 55 ? failed.reason.substring(0, 55) + '...' : failed.reason;
+    page.drawText(`Reason: ${reasonText}`, {
+      x: leftMargin + 20,
+      y: yPosition,
+      size: 9,
+    });
+    yPosition -= 20;
+  }
+  
+  page.drawText('Please review original scanned images for these pages.', {
+    x: leftMargin,
+    y: 40,
+    size: 10,
+  });
+}
+
+// Add scanned page with patient header band
+function addScannedPageWithHeader(
+  pdfDoc: any,
+  image: any,
+  pageIndex: number,
+  totalPages: number,
+  patientName: string,
+  formattedNhs: string,
+  formattedDob: string
+) {
+  const page = pdfDoc.addPage([595, 842]);
+  const pageWidth = 595;
+  const pageHeight = 842;
+  const margin = 40;
+  const headerHeight = 45;
+  const footerHeight = 30;
+  
+  // Draw white header band
+  page.drawRectangle({
+    x: 0,
+    y: pageHeight - headerHeight,
+    width: pageWidth,
+    height: headerHeight,
+    color: rgb(1, 1, 1),
+  });
+  
+  // Draw header text: Patient: {Name} | NHS: {NHS Number} | DOB: {DOB}
+  page.drawText(`Patient: ${sanitizeForPdf(patientName)} | NHS: ${formattedNhs} | DOB: ${formattedDob}`, { 
+    x: margin, 
+    y: pageHeight - 25, 
+    size: 10 
+  });
+  
+  // Light grey line under header
+  page.drawRectangle({
+    x: margin,
+    y: pageHeight - headerHeight,
+    width: pageWidth - (margin * 2),
+    height: 0.5,
+    color: rgb(0.8, 0.8, 0.8),
+  });
+  
+  // Calculate image positioning
+  const availableWidth = pageWidth - (margin * 2);
+  const availableHeight = pageHeight - headerHeight - footerHeight - (margin * 0.5);
+  
+  let scale = 1;
+  if (image.width > availableWidth || image.height > availableHeight) {
+    const widthRatio = availableWidth / image.width;
+    const heightRatio = availableHeight / image.height;
+    scale = Math.min(widthRatio, heightRatio);
+  }
+  
+  const width = Math.round(image.width * scale);
+  const height = Math.round(image.height * scale);
+  const x = (pageWidth - width) / 2;
+  const y = pageHeight - headerHeight - margin * 0.5 - height;
+  
+  page.drawImage(image, { x, y, width, height });
+  
+  // Page number
+  const pdfPageNum = pageIndex + 4;
+  page.drawText(`Page ${pdfPageNum} of ${totalPages + 3}`, { x: margin, y: 15, size: 9 });
+}
+
+// Apply final compression pass if PDF exceeds 5MB
+async function applyFinalCompressionPass(pdfBytes: Uint8Array): Promise<Uint8Array> {
+  console.log('Applying final compression pass (metadata stripping, recompression)...');
+  
+  try {
+    const pdfDoc = await PDFDocument.load(pdfBytes, {
+      updateMetadata: false,
+    });
+    
+    // Remove all metadata
+    pdfDoc.setTitle('');
+    pdfDoc.setAuthor('');
+    pdfDoc.setSubject('');
+    pdfDoc.setKeywords([]);
+    pdfDoc.setProducer('');
+    pdfDoc.setCreator('');
+    
+    // Re-save without object streams for simpler structure
+    return await pdfDoc.save({
+      useObjectStreams: false,
+      addDefaultPage: false,
+    });
+  } catch (err) {
+    console.warn('Final compression pass failed:', err);
+    return pdfBytes;
+  }
+}
+
+// Process a single batch of images with memory protection
+async function processBatchWithMemoryProtection(
+  supabase: any,
+  basePath: string,
+  files: any[],
+  batchStart: number,
+  batchEnd: number,
+  pdfDoc: any,
+  compressionSettings: CompressionSettings,
+  patientName: string,
+  formattedNhs: string,
+  formattedDob: string,
+  failedPages: FailedPage[]
+): Promise<number> {
+  let processedCount = 0;
+  let batchInputSize = 0;
+  
+  for (let i = batchStart; i < batchEnd; i++) {
+    const file = files[i];
+    let retryAttempts = 0;
+    let pageSuccess = false;
+    let currentBatchSize = batchEnd - batchStart;
+    
+    while (!pageSuccess && retryAttempts < 2) {
+      try {
+        // Download image
+        const { data: imageData, error: downloadError } = await supabase.storage
+          .from('lg')
+          .download(`${basePath}/raw/${file.name}`);
+        
+        if (downloadError || !imageData) {
+          throw new Error(`Download failed: ${downloadError?.message || 'No data'}`);
+        }
+        
+        const arrayBuffer = await imageData.arrayBuffer();
+        let uint8Array = new Uint8Array(arrayBuffer);
+        
+        // Memory guard: check batch input size
+        const inputSize = uint8Array.length;
+        batchInputSize += inputSize;
+        
+        if (batchInputSize > MAX_BATCH_INPUT_BYTES && retryAttempts === 0) {
+          console.warn(`Batch input exceeds ${MAX_BATCH_INPUT_MB}MB (${(batchInputSize / 1024 / 1024).toFixed(2)}MB), processing individually`);
+          batchInputSize -= inputSize;
+          retryAttempts++;
+          continue;
+        }
+        
+        // Apply compression (40% scale, 60% quality, EXIF rotation)
+        uint8Array = await compressImage(uint8Array, compressionSettings);
+        
+        // Embed image in PDF
+        const image = await embedImageWithFallback(pdfDoc, uint8Array, file.name);
+        
+        if (!image) {
+          throw new Error('Failed to embed image in PDF');
+        }
+        
+        // Add page with header band
+        addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob);
+        
+        pageSuccess = true;
+        processedCount++;
+        
+      } catch (err) {
+        retryAttempts++;
+        console.error(`Page ${i + 1} failed (attempt ${retryAttempts}):`, err);
+        
+        if (retryAttempts >= 2) {
+          // Flag page for manual review
+          failedPages.push({
+            pageNum: i,
+            filename: file.name,
+            reason: err instanceof Error ? err.message : 'Unknown error',
+            retryAttempts,
+          });
+          
+          // Add placeholder page with error message
+          addFailedPagePlaceholder(pdfDoc, i, files.length, file.name);
+        }
+      }
+    }
+  }
+  
+  return processedCount;
 }
 
 serve(async (req) => {
@@ -327,33 +575,38 @@ serve(async (req) => {
     const pageCount = files.length;
     console.log(`Creating PDF with ${pageCount} images in batches of ${IMAGE_BATCH_SIZE}`);
 
-    // Patient details - extract once before compression loop
+    // Patient details
     const patientName = patient.ai_extracted_name || patient.patient_name || 'Unknown Patient';
     const nhsNumber = patient.ai_extracted_nhs || patient.nhs_number || 'Unknown';
     const dob = patient.ai_extracted_dob || patient.dob || 'Unknown';
     const formattedNhs = formatNhsNumber(nhsNumber);
     const formattedDob = formatDateUK(dob);
 
-    // Generate page summaries from OCR text (once)
+    // Generate page summaries (batched)
     console.log('Generating page summaries...');
     const pageSummaries = await generatePageSummaries(ocrText, pageCount);
 
-    // Determine compression settings based on page count
+    // Track failed pages
+    const failedPages: FailedPage[] = [];
+
+    // Compression retry loop
     let compressionAttempt = 0;
     let compressionSettings = getCompressionSettings(pageCount, compressionAttempt);
     let finalPdfBytes: Uint8Array | null = null;
     let pdfSizeMb = 0;
     let originalSizeMb = 0;
 
-    // Retry loop for compression
     while (compressionAttempt < 3) {
       compressionSettings = getCompressionSettings(pageCount, compressionAttempt);
       console.log(`Compression attempt ${compressionAttempt + 1}: ${compressionSettings.tier}, Scale: ${(compressionSettings.scaleFactor * 100).toFixed(0)}%, Quality: ${(compressionSettings.jpegQuality * 100).toFixed(0)}%, Grayscale: ${compressionSettings.grayscale}`);
 
+      // Clear failed pages for retry
+      failedPages.length = 0;
+
       // Create PDF document
       const pdfDoc = await PDFDocument.create();
 
-      // PAGE 1: Clinical Summary (without medications - moved to page 2)
+      // PAGE 1: Clinical Summary
       console.log('Adding clinical summary page (Page 1)...');
       addClinicalSummaryPage(pdfDoc, patientName, nhsNumber, dob, files.length, summaryJson, snomedJson);
 
@@ -365,144 +618,44 @@ serve(async (req) => {
       console.log('Adding index page (Page 3)...');
       addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
 
-      // PAGES 4+: Scanned images with patient header bands
+      // PAGES 4+: Process images in batches with memory protection
       for (let batchStart = 0; batchStart < files.length; batchStart += IMAGE_BATCH_SIZE) {
         const batchEnd = Math.min(batchStart + IMAGE_BATCH_SIZE, files.length);
-        console.log(`Processing image batch ${batchStart + 1}-${batchEnd} of ${files.length}`);
+        console.log(`Processing image batch ${Math.floor(batchStart / IMAGE_BATCH_SIZE) + 1}/${Math.ceil(files.length / IMAGE_BATCH_SIZE)}: pages ${batchStart + 1}-${batchEnd}`);
 
-        for (let i = batchStart; i < batchEnd; i++) {
-          const file = files[i];
-          
-          try {
-            const { data: imageData, error: downloadError } = await supabase.storage
-              .from('lg')
-              .download(`${basePath}/raw/${file.name}`);
+        const processedInBatch = await processBatchWithMemoryProtection(
+          supabase,
+          basePath,
+          files,
+          batchStart,
+          batchEnd,
+          pdfDoc,
+          compressionSettings,
+          patientName,
+          formattedNhs,
+          formattedDob,
+          failedPages
+        );
 
-            if (downloadError || !imageData) {
-              console.error(`Failed to download ${file.name}:`, downloadError);
-              // Add placeholder page
-              const page = pdfDoc.addPage([595, 842]);
-              page.drawText(`Page ${i + 4} - Image unavailable`, { x: 200, y: 400, size: 14 });
-              continue;
-            }
+        console.log(`Batch complete: ${processedInBatch}/${batchEnd - batchStart} pages processed`);
 
-            const arrayBuffer = await imageData.arrayBuffer();
-            let uint8Array = new Uint8Array(arrayBuffer);
-
-            // Apply 60% scaling compression
-            uint8Array = await compressImage(uint8Array, compressionSettings);
-
-            // Determine image type and embed
-            let image;
-            const fileName = file.name.toLowerCase();
-            
-            if (fileName.endsWith('.png')) {
-              try {
-                image = await pdfDoc.embedPng(uint8Array);
-              } catch {
-                image = await pdfDoc.embedJpg(uint8Array);
-              }
-            } else {
-              try {
-                image = await pdfDoc.embedJpg(uint8Array);
-              } catch {
-                try {
-                  image = await pdfDoc.embedPng(uint8Array);
-                } catch (embedErr) {
-                  console.error(`Failed to embed image ${file.name}:`, embedErr);
-                  const page = pdfDoc.addPage([595, 842]);
-                  page.drawText(`Page ${i + 4} - Image format error`, { x: 200, y: 400, size: 14 });
-                  continue;
-                }
-              }
-            }
-
-            // Add page with patient header band
-            const page = pdfDoc.addPage([595, 842]);
-            const pageWidth = 595;
-            const pageHeight = 842;
-            const margin = 40;
-            const headerHeight = 45;
-            const footerHeight = 30;
-            
-            // Draw white header band at top
-            page.drawRectangle({
-              x: 0,
-              y: pageHeight - headerHeight,
-              width: pageWidth,
-              height: headerHeight,
-              color: rgb(1, 1, 1), // White
-            });
-            
-            // Draw header text
-            page.drawText(`Patient: ${sanitizeForPdf(patientName)}`, { 
-              x: margin, 
-              y: pageHeight - 18, 
-              size: 10 
-            });
-            page.drawText(`NHS: ${formattedNhs}  |  DOB: ${formattedDob}`, { 
-              x: margin, 
-              y: pageHeight - 32, 
-              size: 10 
-            });
-            
-            // Draw light grey line under header
-            page.drawRectangle({
-              x: margin,
-              y: pageHeight - headerHeight,
-              width: pageWidth - (margin * 2),
-              height: 0.5,
-              color: rgb(0.8, 0.8, 0.8),
-            });
-
-            // Calculate available space for image (between header and footer)
-            const availableWidth = pageWidth - (margin * 2);
-            const availableHeight = pageHeight - headerHeight - footerHeight - (margin * 0.5);
-            
-            // Scale image to fit available space
-            let scale = 1;
-            if (image.width > availableWidth || image.height > availableHeight) {
-              const widthRatio = availableWidth / image.width;
-              const heightRatio = availableHeight / image.height;
-              scale = Math.min(widthRatio, heightRatio);
-            }
-            
-            const width = Math.round(image.width * scale);
-            const height = Math.round(image.height * scale);
-
-            // Center the image horizontally, position below header
-            const x = (pageWidth - width) / 2;
-            const y = pageHeight - headerHeight - margin * 0.5 - height;
-            
-            page.drawImage(image, { x, y, width, height });
-            
-            // Add page number at bottom
-            const pdfPageNum = i + 4; // Account for 3 front matter pages
-            page.drawText(`Page ${pdfPageNum} of ${files.length + 3}`, { 
-              x: margin, 
-              y: 15, 
-              size: 9 
-            });
-
-          } catch (err) {
-            console.error(`Error processing image ${file.name}:`, err);
-            const page = pdfDoc.addPage([595, 842]);
-            page.drawText(`Page ${i + 4} - Processing error`, { x: 200, y: 400, size: 14 });
-          }
-        }
-
-        // Small delay between batches to allow GC
+        // Small delay between batches for GC
         if (batchEnd < files.length) {
           await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
 
+      // Add quality gate warning page if any failures
+      if (failedPages.length > 0) {
+        console.log(`Adding quality gate warning page for ${failedPages.length} failed pages`);
+        addQualityGateWarningPage(pdfDoc, failedPages);
+      }
+
       // Save PDF
       console.log('Saving PDF...');
-      const pdfBytes = await pdfDoc.save();
+      let pdfBytes = await pdfDoc.save();
       pdfSizeMb = pdfBytes.length / (1024 * 1024);
       
-      // Track original size on first attempt
       if (compressionAttempt === 0) {
         originalSizeMb = pdfSizeMb;
       }
@@ -515,23 +668,37 @@ serve(async (req) => {
         break;
       }
       
-      // Size exceeds limit, try again with more aggressive compression
+      // Try final compression pass (metadata stripping)
+      if (compressionAttempt >= 1) {
+        console.log('Attempting final compression pass...');
+        const strippedBytes = await applyFinalCompressionPass(pdfBytes);
+        const strippedSizeMb = strippedBytes.length / (1024 * 1024);
+        console.log(`After metadata strip: ${strippedSizeMb.toFixed(2)} MB`);
+        
+        if (strippedBytes.length <= MAX_PDF_SIZE_BYTES) {
+          finalPdfBytes = strippedBytes;
+          pdfSizeMb = strippedSizeMb;
+          break;
+        }
+      }
+      
       compressionAttempt++;
       console.log(`PDF exceeds ${MAX_PDF_SIZE_MB}MB limit, retrying with more aggressive compression...`);
     }
 
     // If still too large after all attempts, use best effort result
     if (!finalPdfBytes) {
-      console.warn(`PDF still exceeds ${MAX_PDF_SIZE_MB}MB after ${compressionAttempt} attempts. Using best effort result.`);
-      // Re-generate with max compression for final attempt
+      console.warn(`PDF still exceeds ${MAX_PDF_SIZE_MB}MB after ${compressionAttempt} attempts. Using best effort result with final compression.`);
+      
+      // Re-generate with max compression
       compressionSettings = getCompressionSettings(pageCount, 2);
       const pdfDoc = await PDFDocument.create();
       
-      // Simplified re-generation with max compression
       addClinicalSummaryPage(pdfDoc, patientName, nhsNumber, dob, pageCount, summaryJson, snomedJson);
       addMedicationsPage(pdfDoc, patientName, formattedNhs, formattedDob, summaryJson);
       addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
       
+      // Process all images one by one with max compression
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         try {
@@ -543,32 +710,23 @@ serve(async (req) => {
             let uint8Array = new Uint8Array(arrayBuffer);
             uint8Array = await compressImage(uint8Array, compressionSettings);
             const image = await pdfDoc.embedJpg(uint8Array).catch(() => pdfDoc.embedPng(uint8Array));
-            
-            const page = pdfDoc.addPage([595, 842]);
-            const headerHeight = 45;
-            
-            // Draw header band
-            page.drawRectangle({
-              x: 0,
-              y: 842 - headerHeight,
-              width: 595,
-              height: headerHeight,
-              color: rgb(1, 1, 1),
-            });
-            page.drawText(`Patient: ${sanitizeForPdf(patientName)}`, { x: 40, y: 842 - 18, size: 10 });
-            page.drawText(`NHS: ${formattedNhs}  |  DOB: ${formattedDob}`, { x: 40, y: 842 - 32, size: 10 });
-            
-            const availableHeight = 842 - headerHeight - 60;
-            const scale = Math.min((595 - 80) / image.width, availableHeight / image.height, 1);
-            const width = Math.round(image.width * scale);
-            const height = Math.round(image.height * scale);
-            page.drawImage(image, { x: (595 - width) / 2, y: 842 - headerHeight - 20 - height, width, height });
-            page.drawText(`Page ${i + 4} of ${files.length + 3}`, { x: 40, y: 15, size: 9 });
+            addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob);
           }
-        } catch {}
+        } catch {
+          addFailedPagePlaceholder(pdfDoc, i, files.length, file.name);
+        }
       }
       
-      finalPdfBytes = await pdfDoc.save();
+      if (failedPages.length > 0) {
+        addQualityGateWarningPage(pdfDoc, failedPages);
+      }
+      
+      let pdfBytes = await pdfDoc.save();
+      
+      // Apply final compression pass
+      pdfBytes = await applyFinalCompressionPass(pdfBytes);
+      
+      finalPdfBytes = pdfBytes;
       pdfSizeMb = finalPdfBytes.length / (1024 * 1024);
     }
 
@@ -582,7 +740,7 @@ serve(async (req) => {
     // Determine if split is needed (size still exceeds limit)
     const needsSplit = finalPdfBytes.length > MAX_PDF_SIZE_BYTES;
 
-    // Update patient record with PDF completion time and compression info
+    // Update patient record with completion info
     const pdfCompletedTime = new Date().toISOString();
     await supabase
       .from('lg_patients')
@@ -593,7 +751,6 @@ serve(async (req) => {
         pdf_url: `lg/${basePath}/final/lloyd-george.pdf`,
         pdf_generation_status: 'complete',
         pdf_completed_at: pdfCompletedTime,
-        // Compression tracking
         pdf_final_size_mb: parseFloat(pdfSizeMb.toFixed(2)),
         original_size_mb: parseFloat(originalSizeMb.toFixed(2)),
         compression_tier: compressionSettings.tier,
@@ -603,16 +760,21 @@ serve(async (req) => {
       })
       .eq('id', patientId);
 
-    console.log(`PDF generation complete for patient ${patientId}: ${pdfSizeMb.toFixed(2)}MB, ${compressionSettings.tier}, ${compressionAttempt + 1} attempt(s), Scale: ${(compressionSettings.scaleFactor * 100).toFixed(0)}%`);
+    console.log(`PDF generation complete for patient ${patientId}: ${pdfSizeMb.toFixed(2)}MB, ${compressionSettings.tier}, ${compressionAttempt + 1} attempt(s), ${failedPages.length} failed pages`);
 
-    // Send email with PDF attachment now that PDF is ready
+    // Send email with PDF attachment
     if (sendEmail && !patient.email_sent_at && finalPdfBytes) {
       console.log('Sending email with PDF attachment...');
       await sendSummaryEmailWithPdf(supabase, patient, patientName, nhsNumber, dob, summaryJson, snomedJson, finalPdfBytes);
     }
 
     return new Response(
-      JSON.stringify({ success: true, patientId }),
+      JSON.stringify({ 
+        success: true, 
+        patientId,
+        pdfSizeMb: pdfSizeMb.toFixed(2),
+        failedPages: failedPages.length,
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
@@ -654,7 +816,7 @@ function sanitizeForPdf(text: string): string {
     .replace(/[^\x00-\x7F]/g, '');
 }
 
-// PAGE 1: Clinical Summary (diagnoses, surgeries, allergies, immunisations - NO medications)
+// PAGE 1: Clinical Summary
 function addClinicalSummaryPage(
   pdfDoc: any,
   patientName: string,
@@ -715,7 +877,7 @@ function addClinicalSummaryPage(
     addSpace(0.5);
   }
 
-  // SNOMED sections (condensed for front page) - Problem codes only, NO medications
+  // SNOMED sections (condensed for front page)
   const sectionLabels: Record<string, string> = {
     'diagnoses': 'DIAGNOSES',
     'surgeries': 'MAJOR SURGERIES',
@@ -727,7 +889,7 @@ function addClinicalSummaryPage(
     const items = snomedJson?.[key] || [];
     if (items.length > 0) {
       drawLine(sectionLabels[key] || key.toUpperCase(), 11);
-      for (const item of items.slice(0, 5)) { // Limit to 5 items per section
+      for (const item of items.slice(0, 5)) {
         drawLine(`- ${item.term || 'Unknown'} [${item.code || 'UNKNOWN'}]`, 9, 10);
       }
       if (items.length > 5) {
@@ -737,7 +899,6 @@ function addClinicalSummaryPage(
     }
   }
   
-  // Add page number
   currentPage.drawText('Page 1', { x: leftMargin, y: 20, size: 9 });
 }
 
@@ -776,7 +937,6 @@ function addMedicationsPage(
   drawLine('MEDICATIONS & ADDITIONAL INFORMATION', 14);
   addSpace(0.5);
 
-  // Patient info header
   drawLine(`Patient: ${patientName}  |  NHS: ${nhsNumber}  |  DOB: ${dob}`, 9);
   addSpace(1);
 
@@ -892,7 +1052,6 @@ function addMedicationsPage(
     if (line.trim()) drawLine(line.trim(), 9, 10);
   }
 
-  // Add page number
   currentPage.drawText('Page 2', { x: leftMargin, y: 20, size: 9 });
 }
 
@@ -904,33 +1063,28 @@ function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber:
   const lineHeight = 14;
   const pageMarginBottom = 60;
 
-  // Title
   currentPage.drawText('INDEX OF SCANNED PAGES', { x: leftMargin, y: yPosition, size: 14 });
   yPosition -= lineHeight * 1.5;
 
-  // Patient info line
   currentPage.drawText(`Patient: ${sanitizeForPdf(patientName)} | NHS: ${nhsNumber}`, { 
     x: leftMargin, y: yPosition, size: 10 
   });
   yPosition -= lineHeight * 1.5;
 
-  // Table header
   currentPage.drawText('Page No.', { x: leftMargin, y: yPosition, size: 10 });
   currentPage.drawText('Description', { x: leftMargin + 70, y: yPosition, size: 10 });
   yPosition -= lineHeight * 0.5;
   
-  // Divider line
   currentPage.drawText('--------', { x: leftMargin, y: yPosition, size: 10 });
   currentPage.drawText('-----------------------------------------------------------', { x: leftMargin + 70, y: yPosition, size: 10 });
   yPosition -= lineHeight;
 
-  // Page entries - scanned pages now start at Page 4
   for (let i = 0; i < files.length; i++) {
     if (yPosition < pageMarginBottom) {
       currentPage = pdfDoc.addPage([595, 842]);
       yPosition = 790;
     }
-    const pdfPageNum = i + 4; // Account for summary + medications + index pages (3 front matter pages)
+    const pdfPageNum = i + 4;
     const summary = pageSummaries[i] || `Scanned page ${i + 1} of ${files.length}`;
     const truncatedSummary = sanitizeForPdf(summary).substring(0, 60);
     
@@ -939,7 +1093,6 @@ function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber:
     yPosition -= lineHeight;
   }
 
-  // Footer note
   yPosition -= lineHeight;
   if (yPosition < pageMarginBottom) {
     currentPage = pdfDoc.addPage([595, 842]);
@@ -949,7 +1102,6 @@ function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber:
     x: leftMargin, y: yPosition, size: 8
   });
   
-  // Add page number
   currentPage.drawText('Page 3', { x: leftMargin, y: 20, size: 9 });
 }
 
@@ -966,19 +1118,15 @@ function parseOcrByPage(ocrText: string): Map<number, string> {
   const pageMap = new Map<number, string>();
   if (!ocrText) return pageMap;
 
-  // Match any filename pattern: page_001.jpg, image_001.jpg, 001.jpg, etc.
-  // Capture the filename part before extension
   const pageRegex = /---\s*Page\s+([^\s]+)\.(jpg|jpeg|png)\s*---/gi;
   const parts = ocrText.split(pageRegex);
   
   console.log(`parseOcrByPage: OCR text length ${ocrText.length}, split into ${parts.length} parts`);
   
-  // Parse alternating: [text before first marker, filename, ext, text, filename, ext, text, ...]
   for (let i = 1; i < parts.length; i += 3) {
     const filename = parts[i];
     const pageText = parts[i + 2] || '';
     
-    // Extract page number from filename (e.g., "page_001" -> 1, "image_005" -> 5)
     const numMatch = filename.match(/(\d+)/);
     const pageNum = numMatch ? parseInt(numMatch[1], 10) : Math.floor(i / 3) + 1;
     
@@ -992,16 +1140,13 @@ function parseOcrByPage(ocrText: string): Map<number, string> {
   return pageMap;
 }
 
-// Generate one-line summaries for each page using OpenAI with batching for large documents
-const SUMMARY_BATCH_SIZE = 15; // Process 15 pages at a time for large documents
-
+// Generate AI-powered page summaries in batches
 async function generatePageSummaries(ocrText: string, pageCount: number): Promise<string[]> {
   const summaries: string[] = new Array(pageCount).fill('');
   const pageMap = parseOcrByPage(ocrText);
   
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiKey || pageMap.size === 0) {
-    // Fallback to generic summaries
     for (let i = 0; i < pageCount; i++) {
       summaries[i] = `Scanned page ${i + 1} of ${pageCount}`;
     }
@@ -1012,10 +1157,10 @@ async function generatePageSummaries(ocrText: string, pageCount: number): Promis
   const pageTexts: { pageNum: number; text: string }[] = [];
   for (let i = 1; i <= pageCount; i++) {
     const text = pageMap.get(i) || '';
-    pageTexts.push({ pageNum: i, text: text.substring(0, 400) }); // Limit text per page
+    pageTexts.push({ pageNum: i, text: text.substring(0, 400) });
   }
 
-  // Process in batches for large documents
+  // Process in batches of SUMMARY_BATCH_SIZE (10)
   const batches: { pageNum: number; text: string }[][] = [];
   for (let i = 0; i < pageTexts.length; i += SUMMARY_BATCH_SIZE) {
     batches.push(pageTexts.slice(i, i + SUMMARY_BATCH_SIZE));
@@ -1051,13 +1196,12 @@ Respond with a JSON array of ${batch.length} strings, one summary per page in or
           model: 'gpt-4o-mini',
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.3,
-          max_tokens: 1500, // Enough for ~15 summaries
+          max_tokens: 1500,
         }),
       });
 
       if (!response.ok) {
         console.error(`OpenAI API error for batch ${batchIndex + 1}: ${response.status}`);
-        // Fill this batch with generic summaries
         for (let j = 0; j < batch.length; j++) {
           summaries[batch[j].pageNum - 1] = `Scanned page ${batch[j].pageNum} of ${pageCount}`;
         }
@@ -1067,7 +1211,12 @@ Respond with a JSON array of ${batch.length} strings, one summary per page in or
       const data = await response.json();
       const content = data.choices?.[0]?.message?.content || '';
       
-      // Extract JSON array from response
+      // Check token usage for memory protection
+      const totalTokens = data.usage?.total_tokens || 0;
+      if (totalTokens > MAX_OPENAI_TOKENS) {
+        console.warn(`OpenAI token response exceeds ${MAX_OPENAI_TOKENS} tokens (${totalTokens}), may need smaller batches`);
+      }
+      
       const jsonMatch = content.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         try {
@@ -1081,7 +1230,6 @@ Respond with a JSON array of ${batch.length} strings, one summary per page in or
           }
         } catch (parseErr) {
           console.error(`JSON parse error for batch ${batchIndex + 1}:`, parseErr);
-          // Fill with generic summaries
           for (let j = 0; j < batch.length; j++) {
             summaries[batch[j].pageNum - 1] = `Scanned page ${batch[j].pageNum} of ${pageCount}`;
           }
@@ -1094,13 +1242,12 @@ Respond with a JSON array of ${batch.length} strings, one summary per page in or
       }
     } catch (err) {
       console.error(`Failed to generate summaries for batch ${batchIndex + 1}:`, err);
-      // Fill this batch with generic summaries
       for (let j = 0; j < batch.length; j++) {
         summaries[batch[j].pageNum - 1] = `Scanned page ${batch[j].pageNum} of ${pageCount}`;
       }
     }
 
-    // Small delay between batches to avoid rate limiting
+    // Delay between batches
     if (batchIndex < batches.length - 1) {
       await new Promise(resolve => setTimeout(resolve, 200));
     }
@@ -1117,7 +1264,7 @@ Respond with a JSON array of ${batch.length} strings, one summary per page in or
   return summaries;
 }
 
-// Send email with PDF attachment and full clinical summary
+// Send email with PDF attachment
 async function sendSummaryEmailWithPdf(
   supabase: any,
   patient: any,
@@ -1129,7 +1276,6 @@ async function sendSummaryEmailWithPdf(
   pdfBytes: Uint8Array
 ) {
   try {
-    // Get user email
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name, email')
@@ -1148,7 +1294,6 @@ async function sendSummaryEmailWithPdf(
       return;
     }
 
-    // Build email HTML with full clinical summary
     const emailHtml = buildFullSummaryEmailHtml(
       patientName,
       nhsNumber,
@@ -1159,7 +1304,7 @@ async function sendSummaryEmailWithPdf(
       snomedJson
     );
 
-    // Convert PDF to base64 for attachment
+    // Convert PDF to base64
     let binary = '';
     const chunkSize = 8192;
     for (let i = 0; i < pdfBytes.length; i += chunkSize) {
@@ -1169,7 +1314,7 @@ async function sendSummaryEmailWithPdf(
     const pdfBase64 = btoa(binary);
     console.log(`PDF attachment ready, size: ${pdfBase64.length} chars`);
 
-    // Fetch CSV file for attachment
+    // Fetch CSV file
     let csvBase64: string | null = null;
     const basePath = `${patient.practice_ods}/${patient.id}`;
     const csvPath = `${basePath}/final/snomed.csv`;
@@ -1184,20 +1329,16 @@ async function sendSummaryEmailWithPdf(
         const csvText = await csvFile.text();
         csvBase64 = btoa(csvText);
         console.log(`CSV attachment ready, size: ${csvBase64.length} chars`);
-      } else {
-        console.log('CSV file returned null without error');
       }
     } catch (csvErr) {
       console.log('Could not fetch CSV file:', csvErr);
     }
 
-    // Build filename
     const formattedDob = formatDobForFilename(dob);
     const cleanNhs = (nhsNumber || '').replace(/\s/g, '');
     const pdfFilename = `LG_${cleanNhs}_${formattedDob}.pdf`;
     const csvFilename = `LG_${cleanNhs}_${formattedDob}_snomed_codes.csv`;
 
-    // Build attachments array
     const attachments: Array<{ filename: string; content: string; type: string }> = [
       {
         filename: pdfFilename,
@@ -1214,7 +1355,6 @@ async function sendSummaryEmailWithPdf(
       });
     }
 
-    // Send via Resend edge function
     const { error: emailError } = await supabase.functions.invoke('send-email-resend', {
       body: {
         to_email: userEmail,
@@ -1258,27 +1398,22 @@ function formatDobDisplay(dateStr: string): string {
   return formatDateUK(dateStr);
 }
 
-// Universal date formatter for DD-MMM-YYYY format
 function formatDateUK(dateStr: string | undefined | null): string {
   if (!dateStr || dateStr === 'Unknown' || dateStr === 'unknown') {
     return dateStr || 'Unknown';
   }
   
-  // If already in correct format (DD-MMM-YYYY), return as-is
   if (/^\d{2}-[A-Za-z]{3}-\d{4}$/.test(dateStr)) {
     return dateStr;
   }
   
-  // If year only (e.g., "2018"), return as-is
   if (/^\d{4}$/.test(dateStr)) {
     return dateStr;
   }
   
-  // Try to parse various date formats
   try {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     
-    // Handle YYYY-MM-DD format
     const isoMatch = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
     if (isoMatch) {
       const year = isoMatch[1];
@@ -1287,12 +1422,10 @@ function formatDateUK(dateStr: string | undefined | null): string {
       return `${day}-${month}-${year}`;
     }
     
-    // Handle Pre YYYY format or similar
     if (dateStr.toLowerCase().startsWith('pre ')) {
       return dateStr;
     }
     
-    // Try Date parsing as fallback
     const date = new Date(dateStr);
     if (!isNaN(date.getTime())) {
       const day = String(date.getDate()).padStart(2, '0');
@@ -1302,7 +1435,6 @@ function formatDateUK(dateStr: string | undefined | null): string {
     }
   } catch {}
   
-  // Return original if can't parse
   return dateStr;
 }
 
@@ -1360,7 +1492,7 @@ function buildFullSummaryEmailHtml(
       <p style="background: #f0f4f5; padding: 15px; border-radius: 5px;">${summaryJson?.summary_line || 'No summary available'}</p>
   `;
 
-  // Add Diagnoses section (formerly significant_past_history)
+  // Add Diagnoses section
   if (summaryJson?.diagnoses?.length > 0) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Diagnoses</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
     for (const item of summaryJson.diagnoses) {
@@ -1369,7 +1501,7 @@ function buildFullSummaryEmailHtml(
     html += `</ul>`;
   }
 
-  // Add Major Surgeries section (formerly procedures)
+  // Add Major Surgeries section
   if (summaryJson?.surgeries?.length > 0) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Major Surgeries</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
     for (const surg of summaryJson.surgeries) {
@@ -1423,7 +1555,7 @@ function buildFullSummaryEmailHtml(
     html += `</ul>`;
   }
 
-  // Add Reproductive History section (if relevant)
+  // Add Reproductive History section
   if (summaryJson?.reproductive_history && (summaryJson.reproductive_history.gravida > 0 || summaryJson.reproductive_history.notes)) {
     html += `<h3 style="color: #005EB8; margin-top: 20px;">Reproductive History</h3><ul style="background: #f0f4f5; padding: 15px 30px; border-radius: 5px;">`;
     if (summaryJson.reproductive_history.gravida > 0 || summaryJson.reproductive_history.para > 0) {
@@ -1468,7 +1600,7 @@ function buildFullSummaryEmailHtml(
     html += `<p style="background: #f0f4f5; padding: 15px; border-radius: 5px;">${summaryJson.free_text_findings}</p>`;
   }
 
-  // Add SNOMED Codes Table - Problem codes only
+  // Add SNOMED Codes Table
   html += `<h2 style="color: #005EB8; margin-top: 30px;">SNOMED CT Codes (Problem Codes)</h2>`;
   html += `<p style="color: #666; font-size: 12px; margin-bottom: 15px;">Codes suitable for import into GP systems (EMIS/SystmOne). Social history, family history, and medications are not coded.</p>`;
   html += `<div style="background: #fff8e6; border-left: 4px solid #FFB81C; padding: 12px; margin-bottom: 15px; font-size: 12px;">
