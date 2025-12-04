@@ -296,23 +296,61 @@ Hypertension
 
 Use MANUAL_REVIEW only if the diagnosis is genuinely unclear.
 
-5.6 Smallpox vaccinations (Mandatory Extraction)
+🔒 5.6 MANDATORY HISTORICAL SMALLPOX EXTRACTION (HARD FAIL IF MISSED)
 
-If any of the following are present in the OCR text:
-- "smallpox vaccination"
-- "first smallpox vaccination"
-- "smallpox booster"
-- Historical Lloyd George vaccination ledger entries mentioning smallpox
+You MUST ALWAYS extract smallpox immunisations from any page, including handwritten Lloyd George records.
 
-You MUST extract each as a separate immunisation item with:
-"category": "immunisation",
-"term": "Smallpox vaccination",
-"snomed_code": "MANUAL_REVIEW",
-"snomed_term": null,
-"confidence": 0.3,
-"review_flag": "NEEDS_MANUAL_REVIEW"
+TRIGGER PATTERNS - If the OCR text or image contains ANY of the following:
+- "Smallpox vaccination"
+- "First smallpox vaccination"
+- "Booster dose of smallpox vaccine"
+- "Vaccination" on a Lloyd George immunisation card dated 1960s
+- Any date in 1964 associated with vaccination entries
+- Date entries like "20 2 64", "29 2 64", "1/03/64" on a vaccination ledger
+- Any handwritten vaccination record from Lloyd George envelope
 
-Do NOT suppress or omit smallpox entries even if the SNOMED code cannot be found.
+MANDATORY OUTPUT EXAMPLES:
+
+For entries like "20/2/64" or "Vaccination":
+{
+  "category": "immunisation",
+  "term": "Smallpox vaccination",
+  "snomed_code": "MANUAL_REVIEW",
+  "snomed_term": null,
+  "date": "20-Feb-1964",
+  "confidence": 0.3,
+  "review_flag": "NEEDS_MANUAL_REVIEW"
+}
+
+For entries labelled "First smallpox vaccination with 0.5ml":
+{
+  "category": "immunisation",
+  "term": "Smallpox vaccination",
+  "snomed_code": "MANUAL_REVIEW",
+  "snomed_term": null,
+  "date": "29-Feb-1964",
+  "confidence": 0.3,
+  "review_flag": "NEEDS_MANUAL_REVIEW"
+}
+
+For "Booster dose of smallpox vaccine":
+{
+  "category": "immunisation",
+  "term": "Smallpox booster vaccination",
+  "snomed_code": "MANUAL_REVIEW",
+  "snomed_term": null,
+  "date": "01-Mar-1964",
+  "confidence": 0.3,
+  "review_flag": "NEEDS_MANUAL_REVIEW"
+}
+
+⛔ HARD RULE - FAILURE CONDITIONS:
+- Do NOT suppress smallpox entries under ANY circumstances
+- Even if date unclear → infer from context (Lloyd George record → assume 1900s)
+- Even if code unknown → use MANUAL_REVIEW
+- Even if duplicated → output each entry individually
+- Even if model is unsure → still output them
+- If ANY smallpox entry is detected and NOT output → MODEL FAILS TASK
 
 5.7 Other Immunisations
 
