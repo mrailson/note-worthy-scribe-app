@@ -308,7 +308,7 @@ function addQualityGateWarningPage(pdfDoc: any, failedPages: FailedPage[], inser
   });
 }
 
-// Add scanned page with patient header band
+// Add scanned page with patient header band - returns true if image was drawn successfully
 function addScannedPageWithHeader(
   pdfDoc: any,
   image: any,
@@ -317,7 +317,7 @@ function addScannedPageWithHeader(
   patientName: string,
   formattedNhs: string,
   formattedDob: string
-) {
+): boolean {
   const page = pdfDoc.addPage([595, 842]);
   const pageWidth = 595;
   const pageHeight = 842;
@@ -354,23 +354,43 @@ function addScannedPageWithHeader(
   const availableWidth = pageWidth - (margin * 2);
   const availableHeight = pageHeight - headerHeight - footerHeight - (margin * 0.5);
   
-  let scale = 1;
-  if (image.width > availableWidth || image.height > availableHeight) {
-    const widthRatio = availableWidth / image.width;
-    const heightRatio = availableHeight / image.height;
-    scale = Math.min(widthRatio, heightRatio);
+  let imageDrawn = false;
+  
+  try {
+    if (image && image.width && image.height) {
+      let scale = 1;
+      if (image.width > availableWidth || image.height > availableHeight) {
+        const widthRatio = availableWidth / image.width;
+        const heightRatio = availableHeight / image.height;
+        scale = Math.min(widthRatio, heightRatio);
+      }
+      
+      const width = Math.round(image.width * scale);
+      const height = Math.round(image.height * scale);
+      const x = (pageWidth - width) / 2;
+      const y = pageHeight - headerHeight - margin * 0.5 - height;
+      
+      page.drawImage(image, { x, y, width, height });
+      imageDrawn = true;
+      console.log(`Drew image on page ${pageIndex + 1}: ${width}x${height}px at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+    } else {
+      console.error(`Invalid image object for page ${pageIndex + 1}: missing dimensions`);
+    }
+  } catch (drawErr) {
+    console.error(`FAILED to draw image for scanned page ${pageIndex + 1}:`, drawErr);
+    // Add error text to the page
+    page.drawText('Unable to embed original scan image - see logs.', {
+      x: margin,
+      y: 400,
+      size: 10,
+    });
   }
   
-  const width = Math.round(image.width * scale);
-  const height = Math.round(image.height * scale);
-  const x = (pageWidth - width) / 2;
-  const y = pageHeight - headerHeight - margin * 0.5 - height;
-  
-  page.drawImage(image, { x, y, width, height });
-  
-  // Page number
+  // Page number (always drawn)
   const pdfPageNum = pageIndex + 4;
   page.drawText(`Page ${pdfPageNum} of ${totalPages + 3}`, { x: margin, y: 15, size: 9 });
+  
+  return imageDrawn;
 }
 
 // Apply final compression pass if PDF exceeds 5MB
@@ -401,7 +421,7 @@ async function applyFinalCompressionPass(pdfBytes: Uint8Array): Promise<Uint8Arr
   }
 }
 
-// Process a single batch of images with memory protection
+// Process a single batch of images - ONE AT A TIME with explicit logging
 async function processBatchWithMemoryProtection(
   supabase: any,
   basePath: string,
@@ -416,13 +436,15 @@ async function processBatchWithMemoryProtection(
   failedPages: FailedPage[]
 ): Promise<number> {
   let processedCount = 0;
-  let batchInputSize = 0;
+  let successfulEmbeds = 0;
   
+  // Process each page individually - do NOT hold all images in memory
   for (let i = batchStart; i < batchEnd; i++) {
     const file = files[i];
     let retryAttempts = 0;
     let pageSuccess = false;
-    let currentBatchSize = batchEnd - batchStart;
+    
+    console.log(`Processing page ${i + 1}/${files.length}: ${file.name}`);
     
     while (!pageSuccess && retryAttempts < 2) {
       try {
@@ -437,37 +459,53 @@ async function processBatchWithMemoryProtection(
         
         const arrayBuffer = await imageData.arrayBuffer();
         let uint8Array = new Uint8Array(arrayBuffer);
+        const originalSize = uint8Array.length;
         
-        // Memory guard: check batch input size
-        const inputSize = uint8Array.length;
-        batchInputSize += inputSize;
-        
-        if (batchInputSize > MAX_BATCH_INPUT_BYTES && retryAttempts === 0) {
-          console.warn(`Batch input exceeds ${MAX_BATCH_INPUT_MB}MB (${(batchInputSize / 1024 / 1024).toFixed(2)}MB), processing individually`);
-          batchInputSize -= inputSize;
-          retryAttempts++;
-          continue;
-        }
+        console.log(`Downloaded page ${i + 1}: ${(originalSize / 1024).toFixed(0)}KB`);
         
         // Apply compression (40% scale, 60% quality, EXIF rotation)
         uint8Array = await compressImage(uint8Array, compressionSettings);
+        const compressedSize = uint8Array.length;
         
-        // Embed image in PDF
-        const image = await embedImageWithFallback(pdfDoc, uint8Array, file.name);
+        console.log(`Compressed page ${i + 1}: ${(compressedSize / 1024).toFixed(0)}KB (${((1 - compressedSize/originalSize) * 100).toFixed(0)}% reduction)`);
         
-        if (!image) {
-          throw new Error('Failed to embed image in PDF');
+        // Embed image in PDF with explicit error handling
+        let image: any = null;
+        try {
+          image = await pdfDoc.embedJpg(uint8Array);
+          console.log(`Embedded JPEG for page ${i + 1}, size=${compressedSize} bytes`);
+        } catch (jpgErr) {
+          console.warn(`JPEG embed failed for page ${i + 1}, trying PNG:`, jpgErr);
+          try {
+            image = await pdfDoc.embedPng(uint8Array);
+            console.log(`Embedded PNG for page ${i + 1}, size=${compressedSize} bytes`);
+          } catch (pngErr) {
+            console.error(`FAILED to embed image for scanned page ${i + 1}:`, pngErr);
+            throw new Error(`Image embed failed: ${pngErr instanceof Error ? pngErr.message : 'Unknown error'}`);
+          }
         }
         
-        // Add page with header band
-        addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob);
+        if (!image) {
+          throw new Error('Embed returned null image');
+        }
+        
+        // Add page with header band - this now returns success status
+        const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob);
+        
+        if (imageDrawn) {
+          successfulEmbeds++;
+        }
         
         pageSuccess = true;
         processedCount++;
         
+        // Clear reference to allow GC
+        uint8Array = null as any;
+        image = null;
+        
       } catch (err) {
         retryAttempts++;
-        console.error(`Page ${i + 1} failed (attempt ${retryAttempts}):`, err);
+        console.error(`Page ${i + 1} failed (attempt ${retryAttempts}/2):`, err);
         
         if (retryAttempts >= 2) {
           // Flag page for manual review
@@ -479,12 +517,15 @@ async function processBatchWithMemoryProtection(
           });
           
           // Add placeholder page with error message
+          console.error(`FAILED: Page ${i + 1} after ${retryAttempts} retries - adding placeholder`);
           addFailedPagePlaceholder(pdfDoc, i, files.length, file.name);
+          processedCount++; // Count placeholder as processed
         }
       }
     }
   }
   
+  console.log(`Batch ${batchStart + 1}-${batchEnd}: ${processedCount} pages processed, ${successfulEmbeds} images successfully embedded`);
   return processedCount;
 }
 
@@ -651,6 +692,16 @@ serve(async (req) => {
         addQualityGateWarningPage(pdfDoc, failedPages);
       }
 
+      // ASSERTION: Verify page count before saving
+      const actualPageCount = pdfDoc.getPageCount();
+      const expectedPageCount = 3 + files.length + (failedPages.length > 0 ? 1 : 0); // 3 front matter + scanned pages + optional warning page
+      console.log(`Final PDF page count = ${actualPageCount}, expected = ${expectedPageCount}`);
+      
+      if (actualPageCount !== expectedPageCount) {
+        console.error(`PAGE COUNT MISMATCH: Expected ${expectedPageCount} pages but got ${actualPageCount}. Some pages may not have been embedded correctly.`);
+        // Don't throw - continue and flag the issue
+      }
+
       // Save PDF
       console.log('Saving PDF...');
       let pdfBytes = await pdfDoc.save();
@@ -698,9 +749,11 @@ serve(async (req) => {
       addMedicationsPage(pdfDoc, patientName, formattedNhs, formattedDob, summaryJson);
       addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
       
-      // Process all images one by one with max compression
+      // Process all images one by one with max compression and explicit logging
+      let fallbackSuccessCount = 0;
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
+        console.log(`Fallback processing page ${i + 1}/${files.length}: ${file.name}`);
         try {
           const { data: imageData } = await supabase.storage
             .from('lg')
@@ -708,18 +761,38 @@ serve(async (req) => {
           if (imageData) {
             const arrayBuffer = await imageData.arrayBuffer();
             let uint8Array = new Uint8Array(arrayBuffer);
+            const originalSize = uint8Array.length;
             uint8Array = await compressImage(uint8Array, compressionSettings);
-            const image = await pdfDoc.embedJpg(uint8Array).catch(() => pdfDoc.embedPng(uint8Array));
-            addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob);
+            console.log(`Compressed page ${i + 1}: ${(uint8Array.length / 1024).toFixed(0)}KB`);
+            
+            let image: any = null;
+            try {
+              image = await pdfDoc.embedJpg(uint8Array);
+              console.log(`Embedded JPEG for fallback page ${i + 1}`);
+            } catch {
+              image = await pdfDoc.embedPng(uint8Array);
+              console.log(`Embedded PNG for fallback page ${i + 1}`);
+            }
+            
+            const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob);
+            if (imageDrawn) fallbackSuccessCount++;
           }
-        } catch {
+        } catch (err) {
+          console.error(`FAILED fallback page ${i + 1}:`, err);
           addFailedPagePlaceholder(pdfDoc, i, files.length, file.name);
         }
       }
       
+      console.log(`Fallback processing complete: ${fallbackSuccessCount}/${files.length} images successfully embedded`);
+      
       if (failedPages.length > 0) {
         addQualityGateWarningPage(pdfDoc, failedPages);
       }
+      
+      // ASSERTION: Verify page count
+      const fallbackPageCount = pdfDoc.getPageCount();
+      const expectedFallbackPages = 3 + files.length + (failedPages.length > 0 ? 1 : 0);
+      console.log(`Fallback PDF page count = ${fallbackPageCount}, expected = ${expectedFallbackPages}`);
       
       let pdfBytes = await pdfDoc.save();
       
