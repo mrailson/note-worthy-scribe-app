@@ -1689,10 +1689,9 @@ async function createSimplePdf(
         }
       }
       
-      // Scale down aggressively to reduce memory usage
-      // Cap at max 400px dimension to keep PDF size manageable
-      const maxDim = 400;
-      let scale = 0.25; // Start at 25%
+      // Scale to match lg-generate-pdf (35% scale for consistent layout)
+      const maxDim = 500;
+      let scale = 0.35; // Match lg-generate-pdf settings
       
       // If still too large, scale further
       const scaledWidth = image.width * scale;
