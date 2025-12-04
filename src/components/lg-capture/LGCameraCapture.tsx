@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Camera, RotateCcw, Trash2, GripVertical, Upload, AlertTriangle, FastForward, Loader2, TestTube2 } from 'lucide-react';
+import { Camera, RotateCcw, Trash2, GripVertical, Upload, AlertTriangle, FastForward, Loader2, TestTube2, SwitchCamera } from 'lucide-react';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { generateULID } from '@/utils/ulid';
@@ -60,10 +60,23 @@ export function LGCameraCapture({
   const [glareWarning, setGlareWarning] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isLoadingDemo, setIsLoadingDemo] = useState(false);
+  const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
+  const [selectedCameraIndex, setSelectedCameraIndex] = useState(0);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+
+  // Enumerate available cameras
+  const enumerateCameras = useCallback(async () => {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cameras = devices.filter(device => device.kind === 'videoinput');
+      setAvailableCameras(cameras);
+    } catch (err) {
+      console.error('Failed to enumerate cameras:', err);
+    }
+  }, []);
 
   // Load demo images for testing
   const loadDemoImages = useCallback(async () => {
@@ -122,18 +135,21 @@ export function LGCameraCapture({
     }
   }, [isCameraLoading, isCapturing]);
 
-  const startCamera = useCallback(async () => {
+  const startCamera = useCallback(async (deviceId?: string) => {
     setIsCameraLoading(true);
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: 'environment',
-          width: { ideal: 1920 },
-          height: { ideal: 1080 },
-        },
-      });
+      const constraints: MediaStreamConstraints = {
+        video: deviceId 
+          ? { deviceId: { exact: deviceId }, width: { ideal: 1920 }, height: { ideal: 1080 } }
+          : { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
+      };
+      
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       streamRef.current = stream;
+      
+      // Enumerate cameras after getting permission (labels become available)
+      await enumerateCameras();
       
       // If video element already exists, connect immediately
       if (videoRef.current) {
@@ -168,7 +184,7 @@ export function LGCameraCapture({
       setIsCameraLoading(false);
       toast.error('Failed to access camera. Please use file upload instead.');
     }
-  }, []);
+  }, [enumerateCameras]);
 
   // Auto-start camera on mount
   useEffect(() => {
@@ -187,6 +203,23 @@ export function LGCameraCapture({
     }
     setIsCapturing(false);
   }, []);
+
+  const toggleCamera = useCallback(async () => {
+    if (availableCameras.length < 2) return;
+    
+    // Stop current stream
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    
+    // Switch to next camera
+    const nextIndex = (selectedCameraIndex + 1) % availableCameras.length;
+    setSelectedCameraIndex(nextIndex);
+    
+    // Start with new camera
+    await startCamera(availableCameras[nextIndex].deviceId);
+  }, [availableCameras, selectedCameraIndex, startCamera]);
 
   const captureImage = useCallback(() => {
     if (!videoRef.current || !canvasRef.current) return;
@@ -363,6 +396,21 @@ export function LGCameraCapture({
                   <span className="text-sm font-medium">Glare detected - adjust angle</span>
                 </div>
               )}
+              {/* Camera toggle button */}
+              {isCapturing && availableCameras.length > 1 && (
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleCamera();
+                  }}
+                  variant="outline"
+                  size="sm"
+                  className="absolute top-2 right-2 bg-black/50 border-white/30 text-white hover:bg-black/70"
+                >
+                  <SwitchCamera className="h-4 w-4 mr-1" />
+                  {selectedCameraIndex + 1}/{availableCameras.length}
+                </Button>
+              )}
               {/* Tap to capture hint */}
               {isCapturing && (
                 <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1.5 rounded-full text-sm">
@@ -387,7 +435,7 @@ export function LGCameraCapture({
       ) : (
         <div className="grid grid-cols-2 gap-3">
           <Button
-            onClick={startCamera}
+            onClick={() => startCamera()}
             className="h-20 flex flex-col items-center justify-center gap-2"
             size="lg"
           >
