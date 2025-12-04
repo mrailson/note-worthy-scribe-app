@@ -62,6 +62,7 @@ export function LGCameraCapture({
   const [isLoadingDemo, setIsLoadingDemo] = useState(false);
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraIndex, setSelectedCameraIndex] = useState(0);
+  const [isRotated, setIsRotated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -378,9 +379,9 @@ export function LGCameraCapture({
                 playsInline
                 muted
                 webkit-playsinline="true"
-                className={`absolute inset-0 w-full h-full object-cover pointer-events-none transition-opacity ${
+                className={`absolute inset-0 w-full h-full object-cover pointer-events-none transition-all ${
                   isCapturing ? 'opacity-100' : 'opacity-0'
-                }`}
+                } ${isRotated ? 'rotate-180' : ''}`}
               />
               {isCameraLoading && (
                 <div className="absolute inset-0 flex items-center justify-center">
@@ -396,20 +397,35 @@ export function LGCameraCapture({
                   <span className="text-sm font-medium">Glare detected - adjust angle</span>
                 </div>
               )}
-              {/* Camera toggle button */}
-              {isCapturing && availableCameras.length > 1 && (
-                <Button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleCamera();
-                  }}
-                  variant="outline"
-                  size="sm"
-                  className="absolute top-2 right-2 bg-black/50 border-white/30 text-white hover:bg-black/70"
-                >
-                  <SwitchCamera className="h-4 w-4 mr-1" />
-                  {selectedCameraIndex + 1}/{availableCameras.length}
-                </Button>
+              {/* Camera controls */}
+              {isCapturing && (
+                <div className="absolute top-2 right-2 flex gap-2">
+                  <Button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setIsRotated(!isRotated);
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="bg-black/50 border-white/30 text-white hover:bg-black/70"
+                  >
+                    <RotateCcw className="h-4 w-4" />
+                  </Button>
+                  {availableCameras.length > 1 && (
+                    <Button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleCamera();
+                      }}
+                      variant="outline"
+                      size="sm"
+                      className="bg-black/50 border-white/30 text-white hover:bg-black/70"
+                    >
+                      <SwitchCamera className="h-4 w-4 mr-1" />
+                      {selectedCameraIndex + 1}/{availableCameras.length}
+                    </Button>
+                  )}
+                </div>
               )}
               {/* Tap to capture hint */}
               {isCapturing && (
