@@ -38,6 +38,13 @@ function formatDuration(seconds: number): string {
   return `${mins}m ${secs.toFixed(0)}s`;
 }
 
+function formatTimestamp(dateString: string | null | undefined): string | null {
+  if (!dateString) return null;
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return null;
+  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+}
+
 function formatSecondsPerPage(seconds: number, pageCount: number): string {
   if (pageCount <= 0) return '-';
   const perPage = seconds / pageCount;
@@ -81,7 +88,9 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
           
           {uploadDuration !== null && (
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">Upload:</span>
+              <span className="text-muted-foreground">
+                Upload{formatTimestamp(patient.upload_started_at) && ` (${formatTimestamp(patient.upload_started_at)})`}:
+              </span>
               <span className="font-medium font-mono">
                 {formatDuration(uploadDuration)}
                 <span className="text-muted-foreground ml-2">
@@ -93,7 +102,9 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
           
           {ocrDuration !== null && (
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">OCR:</span>
+              <span className="text-muted-foreground">
+                OCR{formatTimestamp(patient.ocr_started_at) && ` (${formatTimestamp(patient.ocr_started_at)})`}:
+              </span>
               <span className="font-medium font-mono">
                 {formatDuration(ocrDuration)}
                 <span className="text-muted-foreground ml-2">
@@ -105,7 +116,9 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
           
           {pdfDuration !== null && (
             <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">PDF Creation:</span>
+              <span className="text-muted-foreground">
+                PDF Creation{formatTimestamp(patient.pdf_started_at) && ` (${formatTimestamp(patient.pdf_started_at)})`}:
+              </span>
               <span className="font-medium font-mono">
                 {formatDuration(pdfDuration)}
                 <span className="text-muted-foreground ml-2">
