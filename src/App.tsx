@@ -85,6 +85,7 @@ import LGCaptureStart from "./pages/LGCaptureStart";
 import LGCaptureCamera from "./pages/LGCaptureCamera";
 import LGCaptureResults from "./pages/LGCaptureResults";
 import LGCapturePatients from "./pages/LGCapturePatients";
+import LGCaptureDemoService from "./pages/LGCaptureDemoService";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 
 const App = () => {
@@ -245,6 +246,7 @@ const App = () => {
               <Route path="/lg-capture" element={<LGUploadQueueProvider><LGCaptureLanding /></LGUploadQueueProvider>} />
               <Route path="/lg-capture/start" element={<LGUploadQueueProvider><LGCaptureStart /></LGUploadQueueProvider>} />
               <Route path="/lg-capture/capture/:id" element={<LGUploadQueueProvider><LGCaptureCamera /></LGUploadQueueProvider>} />
+              <Route path="/lg-capture/demo/:id" element={<LGUploadQueueProvider><LGCaptureDemoService /></LGUploadQueueProvider>} />
               <Route path="/lg-capture/results/:id" element={<LGUploadQueueProvider><LGCaptureResults /></LGUploadQueueProvider>} />
               <Route path="/lg-capture/patients" element={<LGUploadQueueProvider><LGCapturePatients /></LGUploadQueueProvider>} />
               <Route path="*" element={<NotFound />} />
