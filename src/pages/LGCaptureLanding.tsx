@@ -391,7 +391,7 @@ export default function LGCaptureLanding() {
         disabled={!canStart}
       >
         <Camera className="mr-2 h-6 w-6" />
-        Start New Patient
+        Start New Patient LG Capture
         <ArrowRight className="ml-2 h-5 w-5" />
       </Button>
 
