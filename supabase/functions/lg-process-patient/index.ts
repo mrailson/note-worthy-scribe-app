@@ -1547,7 +1547,7 @@ function buildSummaryEmailHtml(
       
       for (const entry of domainEntries) {
         const confPercent = Math.round((typeof entry.confidence === 'number' ? entry.confidence : 0) * 100);
-        const confColor = confPercent >= 60 ? '#007F3B' : '#DA291C';
+        const confColor = confPercent >= 89 ? '#007F3B' : '#DA291C';
         const dateDisplay = entry.date || 'NK';
         const dateStyle = dateDisplay === 'NK' ? 'color: #666; font-style: italic;' : '';
         // Source page: add 2 for summary + index pages in PDF
