@@ -129,6 +129,11 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
         return;
       }
 
+      // Only show loading on initial load, not on refresh
+      if (refreshKey === 0) {
+        setLoading(true);
+      }
+
       try {
         // Load summary JSON
         if (patient.summary_json_url) {
@@ -143,16 +148,22 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
           }
         }
 
-        // Load SNOMED JSON
+        // Load SNOMED JSON with cache-busting for refreshes
         if (patient.snomed_json_url) {
           const snomedPath = patient.snomed_json_url.replace('lg/', '');
-          const { data: snomedFile, error: snomedError } = await supabase.storage
+          
+          // Force fresh download by using createSignedUrl with short expiry
+          // This bypasses any browser caching
+          const { data: signedUrlData, error: signedUrlError } = await supabase.storage
             .from('lg')
-            .download(snomedPath);
-
-          if (!snomedError && snomedFile) {
-            const text = await snomedFile.text();
-            setSnomedData(JSON.parse(text));
+            .createSignedUrl(snomedPath, 60);
+          
+          if (!signedUrlError && signedUrlData?.signedUrl) {
+            const response = await fetch(signedUrlData.signedUrl + `&_t=${Date.now()}`);
+            if (response.ok) {
+              const text = await response.text();
+              setSnomedData(JSON.parse(text));
+            }
           }
         }
       } catch (err) {
