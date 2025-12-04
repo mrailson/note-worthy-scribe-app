@@ -68,9 +68,9 @@ export function LGImageVerificationModal({
       setZoom(1);
 
       try {
-        // source_page is 0-indexed, files are named 001.jpg, 002.jpg, etc.
+        // source_page is 0-indexed, files are named page_001.jpg, page_002.jpg, etc.
         const pageNumber = String(item.source_page! + 1).padStart(3, '0');
-        const imagePath = `${practiceOds}/${patientId}/raw/${pageNumber}.jpg`;
+        const imagePath = `${practiceOds}/${patientId}/raw/page_${pageNumber}.jpg`;
 
         const { data, error: urlError } = await supabase.storage
           .from('lg')
