@@ -171,6 +171,22 @@ Childhood and adult: tetanus, polio, smallpox, BCG, MMR, flu, pneumococcal, shin
 
 Record separate entries for separate doses (e.g. COVID dose 1 and 2).
 
+CRITICAL CARDIOLOGY RULES (HARD OVERRIDE)
+
+1. Acute coronary syndromes must use the correct clinical term:
+
+If the text contains "NSTEMI", "non-ST elevation myocardial infarction", "non-ST-elevation MI", or "non ST elevation MI",
+→ term MUST be:
+"Acute non-ST elevation myocardial infarction (NSTEMI)"
+Never use terms such as "silent MI", "old MI", or "myocardial infarction NOS".
+
+If the text contains "STEMI",
+→ term MUST be:
+"Acute ST elevation myocardial infarction (STEMI)"
+
+2. PCI MUST ALWAYS be extracted as a separate procedure when mentioned.
+Examples include: "PCI", "coronary angioplasty", "stent to LAD/RCA/LCx".
+
 CRITICAL DISAMBIGUATION RULES
 
 1. Cataract vs bowel surgery
