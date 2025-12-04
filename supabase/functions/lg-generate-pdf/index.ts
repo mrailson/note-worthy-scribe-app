@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
-import { PDFDocument, rgb } from "https://esm.sh/pdf-lib@1.17.1";
+import { PDFDocument, rgb, PDFName } from "https://esm.sh/pdf-lib@1.17.1";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -27,6 +27,13 @@ interface FailedPage {
   filename: string;
   reason: string;
   retryAttempts: number;
+}
+
+// Index page link position tracking
+interface IndexEntryPosition {
+  indexPageIndex: number;  // Which index page (0, 1, 2...) for multi-page indexes
+  y: number;               // Y position of the entry
+  targetPdfPage: number;   // The PDF page number to link to (4, 5, 6, etc.)
 }
 
 // Compression settings (40% scale, 60% quality baseline per spec)
@@ -723,7 +730,7 @@ serve(async (req) => {
 
       // PAGE 3: Index of Scanned Pages
       console.log('Adding index page (Page 3)...');
-      addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
+      const indexEntryPositions = addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
 
       // PAGES 4+: Process images in batches with memory protection
       for (let batchStart = 0; batchStart < files.length; batchStart += IMAGE_BATCH_SIZE) {
@@ -758,6 +765,9 @@ serve(async (req) => {
         console.log(`Adding quality gate warning page for ${failedPages.length} failed pages`);
         addQualityGateWarningPage(pdfDoc, failedPages);
       }
+
+      // Add clickable links to index page entries (index page is at position 2, 0-based)
+      addIndexPageLinks(pdfDoc, indexEntryPositions, 2);
 
       // ASSERTION: Verify page count before saving
       const actualPageCount = pdfDoc.getPageCount();
@@ -814,7 +824,7 @@ serve(async (req) => {
       
       addClinicalSummaryPage(pdfDoc, patientName, nhsNumber, dob, pageCount, summaryJson, snomedJson);
       addMedicationsPage(pdfDoc, patientName, formattedNhs, formattedDob, summaryJson);
-      addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
+      const fallbackIndexEntryPositions = addIndexPage(pdfDoc, files, patientName, formattedNhs, pageSummaries);
       
       // Process all images one by one with max compression and explicit logging
       let fallbackSuccessCount = 0;
@@ -855,6 +865,9 @@ serve(async (req) => {
       if (failedPages.length > 0) {
         addQualityGateWarningPage(pdfDoc, failedPages);
       }
+      
+      // Add clickable links to index page entries
+      addIndexPageLinks(pdfDoc, fallbackIndexEntryPositions, 2);
       
       // ASSERTION: Verify page count
       const fallbackPageCount = pdfDoc.getPageCount();
@@ -1195,9 +1208,11 @@ function addMedicationsPage(
   currentPage.drawText('Page 2', { x: leftMargin, y: 20, size: 9 });
 }
 
-// PAGE 3: Index of Scanned Pages
-function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber: string, pageSummaries: string[]) {
+// PAGE 3: Index of Scanned Pages - returns positions for clickable links
+function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber: string, pageSummaries: string[]): IndexEntryPosition[] {
+  const entryPositions: IndexEntryPosition[] = [];
   let currentPage = pdfDoc.addPage([595, 842]);
+  let currentIndexPageIndex = 0;
   let yPosition = 790;
   const leftMargin = 50;
   const lineHeight = 14;
@@ -1222,13 +1237,27 @@ function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber:
   for (let i = 0; i < files.length; i++) {
     if (yPosition < pageMarginBottom) {
       currentPage = pdfDoc.addPage([595, 842]);
+      currentIndexPageIndex++;
       yPosition = 790;
     }
     const pdfPageNum = i + 4;
     const summary = pageSummaries[i] || `Scanned page ${i + 1} of ${files.length}`;
     const truncatedSummary = sanitizeForPdf(summary).substring(0, 60);
     
-    currentPage.drawText(`Page ${pdfPageNum}`, { x: leftMargin, y: yPosition, size: 9 });
+    // Track position for clickable link
+    entryPositions.push({
+      indexPageIndex: currentIndexPageIndex,
+      y: yPosition,
+      targetPdfPage: pdfPageNum
+    });
+    
+    // Draw "Page X" in blue to indicate clickable
+    currentPage.drawText(`Page ${pdfPageNum}`, { 
+      x: leftMargin, 
+      y: yPosition, 
+      size: 9,
+      color: rgb(0, 0, 0.7) // Dark blue for clickable appearance
+    });
     currentPage.drawText(truncatedSummary, { x: leftMargin + 70, y: yPosition, size: 9 });
     yPosition -= lineHeight;
   }
@@ -1238,11 +1267,66 @@ function addIndexPage(pdfDoc: any, files: any[], patientName: string, nhsNumber:
     currentPage = pdfDoc.addPage([595, 842]);
     yPosition = 790;
   }
-  currentPage.drawText('Use PDF viewer bookmarks or page navigation to jump to specific pages.', {
-    x: leftMargin, y: yPosition, size: 8
+  currentPage.drawText('Click any "Page X" entry above to jump directly to that page.', {
+    x: leftMargin, y: yPosition, size: 8, color: rgb(0.4, 0.4, 0.4)
   });
   
   currentPage.drawText('Page 3', { x: leftMargin, y: 20, size: 9 });
+  
+  return entryPositions;
+}
+
+// Add clickable link annotations to index page entries
+function addIndexPageLinks(pdfDoc: any, indexEntryPositions: IndexEntryPosition[], indexPageStartIndex: number) {
+  const pages = pdfDoc.getPages();
+  const leftMargin = 50;
+  const linkWidth = 55;  // Width to cover "Page XX"
+  const linkHeight = 12;
+  
+  console.log(`Adding ${indexEntryPositions.length} clickable links to index page(s)...`);
+  
+  for (const entry of indexEntryPositions) {
+    const indexPageRealIndex = indexPageStartIndex + entry.indexPageIndex;
+    const targetPageIndex = entry.targetPdfPage - 1; // Convert 1-based page number to 0-based index
+    
+    if (indexPageRealIndex >= pages.length || targetPageIndex >= pages.length) {
+      console.warn(`Skipping link: indexPage=${indexPageRealIndex}, targetPage=${targetPageIndex}, totalPages=${pages.length}`);
+      continue;
+    }
+    
+    const indexPage = pages[indexPageRealIndex];
+    const targetPage = pages[targetPageIndex];
+    
+    if (!indexPage || !targetPage) {
+      console.warn(`Missing page reference for link to page ${entry.targetPdfPage}`);
+      continue;
+    }
+    
+    try {
+      // Create link annotation that jumps to target page
+      const linkAnnotation = pdfDoc.context.obj({
+        Type: 'Annot',
+        Subtype: 'Link',
+        Rect: [leftMargin, entry.y - 2, leftMargin + linkWidth, entry.y + linkHeight],
+        Border: [0, 0, 0], // No visible border
+        Dest: [targetPage.ref, PDFName.of('XYZ'), null, null, null], // XYZ destination preserving zoom
+      });
+      
+      // Get or create annotations array for the index page
+      const annotsKey = PDFName.of('Annots');
+      const existingAnnots = indexPage.node.get(annotsKey);
+      
+      if (existingAnnots) {
+        existingAnnots.push(pdfDoc.context.register(linkAnnotation));
+      } else {
+        indexPage.node.set(annotsKey, pdfDoc.context.obj([pdfDoc.context.register(linkAnnotation)]));
+      }
+    } catch (err) {
+      console.warn(`Failed to add link for page ${entry.targetPdfPage}:`, err);
+    }
+  }
+  
+  console.log('Index page links added successfully');
 }
 
 function formatNhsNumber(nhs: string): string {
