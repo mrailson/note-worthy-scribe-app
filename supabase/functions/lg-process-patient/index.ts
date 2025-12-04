@@ -812,33 +812,10 @@ ${fullOcrText.substring(0, 30000)}`;
     // Step 6: Generate CSV from SNOMED
     const snomedCsv = generateSnomedCsv(snomedJson, patientId, nhsNumber);
 
-    // Step 7: Generate AI page summaries for index
-    console.log('Generating AI page summaries for PDF index...');
-    const pageSummaries = await generatePageSummaries(fullOcrText, imageDataUrls.length, openaiKey);
-    console.log(`Generated ${pageSummaries.length} page summaries`);
-
-    // Step 8: Create simple PDF (base64 images concatenated - POC) with SNOMED summary page
-    const pdfStartTime = new Date().toISOString();
-    await supabase
-      .from('lg_patients')
-      .update({ pdf_started_at: pdfStartTime })
-      .eq('id', patientId);
-
-    const pdfContent = await createSimplePdf(imageDataUrls, fullOcrText, summaryJson, snomedJson, patientName, nhsNumber, dob, pageSummaries);
-
-    // Step 8: Upload all outputs
+    // Step 7: Upload all outputs FIRST (before PDF generation)
     console.log('Uploading outputs...');
     
     const finalPath = `${basePath}/final`;
-
-    // Upload PDF
-    const pdfBlob = new Blob([pdfContent], { type: 'application/pdf' });
-    await supabase.storage.from('lg').upload(`${finalPath}/lloyd-george.pdf`, pdfBlob, {
-      contentType: 'application/pdf',
-      upsert: true,
-    });
-
-    const pdfCompletedTime = new Date().toISOString();
 
     // Upload summary JSON
     const summaryBlob = new Blob([JSON.stringify(summaryJson, null, 2)], { type: 'application/json' });
@@ -861,17 +838,40 @@ ${fullOcrText.substring(0, 30000)}`;
       upsert: true,
     });
 
-    // Step 9: Update patient record with URLs and timing
+    // Update patient record with data URLs
+    await supabase
+      .from('lg_patients')
+      .update({
+        summary_json_url: `lg/${finalPath}/summary.json`,
+        snomed_json_url: `lg/${finalPath}/snomed.json`,
+        snomed_csv_url: `lg/${finalPath}/snomed.csv`,
+      })
+      .eq('id', patientId);
+
+    // Step 8: Call lg-generate-pdf for sophisticated PDF with index linking
+    console.log('Calling lg-generate-pdf for PDF generation...');
+    const { data: pdfResult, error: pdfError } = await supabase.functions.invoke('lg-generate-pdf', {
+      body: { 
+        patientId, 
+        isBackground: false,
+        sendEmail: true  // Let lg-generate-pdf handle email with PDF attachment
+      },
+    });
+
+    if (pdfError) {
+      console.error('lg-generate-pdf error:', pdfError);
+      throw new Error(`PDF generation failed: ${pdfError.message}`);
+    }
+
+    console.log('PDF generation result:', pdfResult);
+
+    // Step 9: Update patient record with final status
     await supabase
       .from('lg_patients')
       .update({
         job_status: 'succeeded',
         processing_completed_at: new Date().toISOString(),
         pdf_url: `lg/${finalPath}/lloyd-george.pdf`,
-        summary_json_url: `lg/${finalPath}/summary.json`,
-        snomed_json_url: `lg/${finalPath}/snomed.json`,
-        snomed_csv_url: `lg/${finalPath}/snomed.csv`,
-        pdf_completed_at: pdfCompletedTime,
       })
       .eq('id', patientId);
 
@@ -884,135 +884,7 @@ ${fullOcrText.substring(0, 30000)}`;
 
     console.log(`Processing complete for patient ${patientId}`);
 
-    // Step 10: Auto-send email with summary
-    console.log('Sending automatic email notification...');
-    try {
-      // Get user email from profiles
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, email')
-        .eq('user_id', patient.user_id)
-        .single();
-
-      // Get user email from auth if not in profile
-      let userEmail = profile?.email;
-      let userName = profile?.full_name || 'User';
-      
-      if (!userEmail) {
-        const { data: { user: authUser } } = await supabase.auth.admin.getUserById(patient.user_id);
-        userEmail = authUser?.email;
-        if (!userName || userName === 'User') {
-          userName = userEmail?.split('@')[0] || 'User';
-        }
-      }
-
-      if (userEmail) {
-        // Build email HTML
-        const emailHtml = buildSummaryEmailHtml(
-          patientName,
-          nhsNumber,
-          dob,
-          patient.practice_ods,
-          patient.images_count || 0,
-          summaryJson,
-          snomedJson
-        );
-
-        // Fetch PDF for attachment
-        let pdfBase64: string | null = null;
-        const pdfPath = `${basePath}/final/lloyd-george.pdf`;
-        try {
-          const { data: pdfData } = await supabase.storage
-            .from('lg')
-            .download(pdfPath);
-          if (pdfData) {
-            const arrayBuffer = await pdfData.arrayBuffer();
-            const bytes = new Uint8Array(arrayBuffer);
-            let binary = '';
-            const chunkSize = 8192;
-            for (let i = 0; i < bytes.length; i += chunkSize) {
-              const chunk = bytes.subarray(i, Math.min(i + chunkSize, bytes.length));
-              binary += String.fromCharCode.apply(null, Array.from(chunk));
-            }
-            pdfBase64 = btoa(binary);
-            console.log(`PDF attachment ready, size: ${pdfBase64.length} chars`);
-          }
-        } catch (pdfErr) {
-          console.error('Could not fetch PDF for attachment:', pdfErr);
-        }
-
-        // Fetch CSV for attachment
-        let csvBase64: string | null = null;
-        const csvPath = `${basePath}/final/snomed.csv`;
-        try {
-          const { data: csvData } = await supabase.storage
-            .from('lg')
-            .download(csvPath);
-          if (csvData) {
-            const csvText = await csvData.text();
-            csvBase64 = btoa(csvText);
-            console.log(`CSV attachment ready, size: ${csvBase64.length} chars`);
-          }
-        } catch (csvErr) {
-          console.error('Could not fetch CSV for attachment:', csvErr);
-        }
-
-        // Build attachments array
-        const attachments: any[] = [];
-        if (pdfBase64) {
-          attachments.push({
-            filename: `LG_${nhsNumber.replace(/\s/g, '')}_${formatDobForFilename(dob)}.pdf`,
-            content: pdfBase64,
-            type: 'application/pdf',
-          });
-        }
-        if (csvBase64) {
-          attachments.push({
-            filename: `LG_${nhsNumber.replace(/\s/g, '')}_${formatDobForFilename(dob)}_SNOMED.csv`,
-            content: csvBase64,
-            type: 'text/csv',
-          });
-        }
-
-        // Send via Resend edge function
-        const { error: emailError } = await supabase.functions.invoke('send-email-resend', {
-          body: {
-            to_email: userEmail,
-            subject: `Lloyd George Record Summary - ${patientName} (DOB: ${formatDobDisplay(dob)}) (NHS: ${formatNhsNumber(nhsNumber)})`,
-            html_content: emailHtml,
-            attachments: attachments.length > 0 ? attachments : undefined,
-          },
-        });
-
-        if (emailError) {
-          console.error('Email send error:', emailError);
-          await supabase
-            .from('lg_patients')
-            .update({ email_error: `Email error: ${emailError.message}` })
-            .eq('id', patientId);
-        } else {
-          // Update email_sent_at
-          await supabase
-            .from('lg_patients')
-            .update({ email_sent_at: new Date().toISOString() })
-            .eq('id', patientId);
-          
-          console.log(`Email sent successfully to ${userEmail}`);
-          await logAudit(supabase, patientId, 'email_sent', patient.uploader_name, {
-            recipient: userEmail,
-            has_pdf_attachment: false,
-          });
-        }
-      } else {
-        console.log('No user email found, skipping auto-email');
-      }
-    } catch (emailErr) {
-      console.error('Auto-email error:', emailErr);
-      await supabase
-        .from('lg_patients')
-        .update({ email_error: `Email error: ${emailErr instanceof Error ? emailErr.message : 'Unknown'}` })
-        .eq('id', patientId);
-    }
+    // Email is now handled by lg-generate-pdf with sendEmail: true
 
     return new Response(
       JSON.stringify({ success: true, patientId }),
