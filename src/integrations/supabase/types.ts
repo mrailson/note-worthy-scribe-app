@@ -3372,6 +3372,7 @@ export type Database = {
           ai_extracted_nhs: string | null
           ai_extracted_sex: string | null
           ai_extraction_confidence: number | null
+          audit_report_url: string | null
           created_at: string | null
           dob: string | null
           email_error: string | null
@@ -3380,6 +3381,8 @@ export type Database = {
           id: string
           images_count: number | null
           job_status: string | null
+          last_audit_at: string | null
+          last_audit_by: string | null
           nhs_number: string | null
           ocr_batches_completed: number | null
           ocr_batches_total: number | null
@@ -3413,6 +3416,7 @@ export type Database = {
           ai_extracted_nhs?: string | null
           ai_extracted_sex?: string | null
           ai_extraction_confidence?: number | null
+          audit_report_url?: string | null
           created_at?: string | null
           dob?: string | null
           email_error?: string | null
@@ -3421,6 +3425,8 @@ export type Database = {
           id: string
           images_count?: number | null
           job_status?: string | null
+          last_audit_at?: string | null
+          last_audit_by?: string | null
           nhs_number?: string | null
           ocr_batches_completed?: number | null
           ocr_batches_total?: number | null
@@ -3454,6 +3460,7 @@ export type Database = {
           ai_extracted_nhs?: string | null
           ai_extracted_sex?: string | null
           ai_extraction_confidence?: number | null
+          audit_report_url?: string | null
           created_at?: string | null
           dob?: string | null
           email_error?: string | null
@@ -3462,6 +3469,8 @@ export type Database = {
           id?: string
           images_count?: number | null
           job_status?: string | null
+          last_audit_at?: string | null
+          last_audit_by?: string | null
           nhs_number?: string | null
           ocr_batches_completed?: number | null
           ocr_batches_total?: number | null
