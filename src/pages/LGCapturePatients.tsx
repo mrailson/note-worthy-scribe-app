@@ -36,6 +36,24 @@ export default function LGCapturePatients() {
   
   const [patients, setPatients] = useState<LGPatient[]>([]);
   const [search, setSearch] = useState('');
+  const [practiceNames, setPracticeNames] = useState<Record<string, string>>({});
+
+  // Fetch practice names lookup
+  useEffect(() => {
+    const fetchPracticeNames = async () => {
+      const { data } = await supabase
+        .from('gp_practices')
+        .select('practice_code, name');
+      if (data) {
+        const lookup: Record<string, string> = {};
+        data.forEach(p => {
+          lookup[p.practice_code] = p.name;
+        });
+        setPracticeNames(lookup);
+      }
+    };
+    fetchPracticeNames();
+  }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -246,7 +264,7 @@ export default function LGCapturePatients() {
                   <div className="flex flex-col items-end gap-1">
                     {getStatusBadge(patient)}
                     <span className="text-xs text-muted-foreground text-right">
-                      {patient.practice_ods}
+                      {patient.practice_ods}{practiceNames[patient.practice_ods] ? ` - ${practiceNames[patient.practice_ods]}` : ''}
                       {patient.uploader_name && (
                         <span className="block opacity-70">Scanned by {patient.uploader_name}</span>
                       )}
