@@ -4,11 +4,12 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users, Building2, Cigarette, Code2, Eye, ClipboardCheck } from 'lucide-react';
+import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users, Building2, Cigarette, Code2, Eye, ClipboardCheck, Shield } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 import { LGImageVerificationModal, SnomedItemForVerification } from './LGImageVerificationModal';
 import { LGSnomedAuditModal } from './LGSnomedAuditModal';
+import { LGQualityGateModal } from './LGQualityGateModal';
 // Format date as MMM-YYYY or DD-MMM-YYYY depending on available info
 // Handles "Pre" prefix for first-mention dates (e.g., "Pre Oct 2020")
 const formatUKDate = (dateStr: string | null | undefined): string => {
@@ -454,6 +455,7 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, p
   const [selectedItem, setSelectedItem] = useState<SnomedItemForVerification | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
+  const [isQualityGateOpen, setIsQualityGateOpen] = useState(false);
 
   // Collect all codeable items (exclude UNKNOWN codes)
   const codeableItems: Array<{ domain: string; term: string; code: string; date?: string; confidence: number; evidence?: string; source_page?: number | null; index: number }> = [];
@@ -516,15 +518,26 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, p
             <Code2 className="h-4 w-4 text-primary" />
             Suggested SNOMED Read Codes
           </h4>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setIsAuditModalOpen(true)}
-            className="text-xs"
-          >
-            <ClipboardCheck className="h-4 w-4 mr-1" />
-            Start SNOMED Audit
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsQualityGateOpen(true)}
+              className="text-xs"
+            >
+              <Shield className="h-4 w-4 mr-1" />
+              AI Quality Gate
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsAuditModalOpen(true)}
+              className="text-xs"
+            >
+              <ClipboardCheck className="h-4 w-4 mr-1" />
+              Manual Audit
+            </Button>
+          </div>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
@@ -611,6 +624,24 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, p
         patientNhs={patientNhs}
         snomedJsonUrl={snomedJsonUrl}
         onAuditComplete={onItemUpdated}
+      />
+
+      <LGQualityGateModal
+        isOpen={isQualityGateOpen}
+        onClose={() => setIsQualityGateOpen(false)}
+        patientId={patientId}
+        practiceOds={practiceOds}
+        snomedItems={codeableItems.map(item => ({
+          id: `item_${item.index}`,
+          type: item.domain as 'Diagnosis' | 'Surgery' | 'Immunisation' | 'Allergy' | 'Other',
+          term: item.term,
+          snomed_code: item.code,
+          date: item.date || null,
+          confidence: item.confidence * 100,
+          page_number: item.source_page ?? 0,
+        }))}
+        snomedJsonUrl={snomedJsonUrl}
+        onComplete={onItemUpdated}
       />
     </>
   );
