@@ -639,7 +639,7 @@ function createEmptySnomed() {
 }
 
 function generateSnomedCsv(snomed: any, patientId: string, nhsNumber: string): string {
-  const rows: string[] = ['domain,term,code,confidence,evidence,patient_ulid,nhs_number'];
+  const rows: string[] = ['domain,term,code,date,confidence,evidence,patient_ulid,nhs_number'];
   
   const domains = ['diagnoses', 'surgeries', 'allergies', 'immunisations'];
   
@@ -650,6 +650,7 @@ function generateSnomedCsv(snomed: any, patientId: string, nhsNumber: string): s
         domain,
         `"${(item.term || '').replace(/"/g, '""')}"`,
         item.code || 'UNKNOWN',
+        item.date || 'NK',
         (item.confidence || 0).toFixed(2),
         `"${(item.evidence || '').replace(/"/g, '""')}"`,
         patientId,
