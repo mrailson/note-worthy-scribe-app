@@ -4,11 +4,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Button } from '@/components/ui/button';
-import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users, Building2, Cigarette, Code2, Eye } from 'lucide-react';
+import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users, Building2, Cigarette, Code2, Eye, ClipboardCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 import { LGImageVerificationModal, SnomedItemForVerification } from './LGImageVerificationModal';
-
+import { LGSnomedAuditModal } from './LGSnomedAuditModal';
 // Format date as MMM-YYYY or DD-MMM-YYYY depending on available info
 // Handles "Pre" prefix for first-mention dates (e.g., "Pre Oct 2020")
 const formatUKDate = (dateStr: string | null | undefined): string => {
@@ -428,6 +428,8 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
             snomedData={snomedData} 
             practiceOds={patient.practice_ods || ''}
             patientId={patient.id}
+            patientName={patient.ai_extracted_name || patient.patient_name || ''}
+            patientNhs={patient.ai_extracted_nhs || patient.nhs_number || ''}
             snomedJsonUrl={patient.snomed_json_url}
             onItemUpdated={handleSnomedUpdated}
           />
@@ -442,13 +444,16 @@ interface SnomedCodesSectionProps {
   snomedData: SnomedData;
   practiceOds: string;
   patientId: string;
+  patientName: string;
+  patientNhs: string;
   snomedJsonUrl: string | null;
   onItemUpdated: () => void;
 }
 
-function SnomedCodesSection({ snomedData, practiceOds, patientId, snomedJsonUrl, onItemUpdated }: SnomedCodesSectionProps) {
+function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, patientNhs, snomedJsonUrl, onItemUpdated }: SnomedCodesSectionProps) {
   const [selectedItem, setSelectedItem] = useState<SnomedItemForVerification | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isAuditModalOpen, setIsAuditModalOpen] = useState(false);
 
   // Collect all codeable items (exclude UNKNOWN codes)
   const codeableItems: Array<{ domain: string; term: string; code: string; date?: string; confidence: number; evidence?: string; source_page?: number | null; index: number }> = [];
@@ -506,10 +511,21 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, snomedJsonUrl,
   return (
     <>
       <div className="mt-6 pt-4 border-t">
-        <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
-          <Code2 className="h-4 w-4 text-primary" />
-          Suggested SNOMED Read Codes
-        </h4>
+        <div className="flex items-center justify-between mb-3">
+          <h4 className="font-medium text-sm flex items-center gap-2">
+            <Code2 className="h-4 w-4 text-primary" />
+            Suggested SNOMED Read Codes
+          </h4>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setIsAuditModalOpen(true)}
+            className="text-xs"
+          >
+            <ClipboardCheck className="h-4 w-4 mr-1" />
+            Start SNOMED Audit
+          </Button>
+        </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
@@ -583,6 +599,18 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, snomedJsonUrl,
         patientId={patientId}
         snomedJsonUrl={snomedJsonUrl}
         onItemUpdated={onItemUpdated}
+      />
+
+      <LGSnomedAuditModal
+        isOpen={isAuditModalOpen}
+        onClose={() => setIsAuditModalOpen(false)}
+        items={codeableItems}
+        practiceOds={practiceOds}
+        patientId={patientId}
+        patientName={patientName}
+        patientNhs={patientNhs}
+        snomedJsonUrl={snomedJsonUrl}
+        onAuditComplete={onItemUpdated}
       />
     </>
   );
