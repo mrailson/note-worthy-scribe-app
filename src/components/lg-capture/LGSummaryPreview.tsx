@@ -545,7 +545,7 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, p
                 // Source page: add 2 for summary + index pages in PDF
                 const hasSource = typeof item.source_page === 'number';
                 const sourceDisplay = hasSource ? `Pg ${item.source_page! + 2}` : '—';
-                const isLowConfidence = item.confidence < 0.6;
+                const isLowConfidence = item.confidence <= 0.89;
                 
                 return (
                   <tr key={i} className="border-b border-muted/30 hover:bg-muted/20">
@@ -562,7 +562,7 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, p
                         <Button
                           variant={isLowConfidence ? "outline" : "ghost"}
                           size="sm"
-                          className={`h-7 px-2 text-xs ${isLowConfidence ? 'border-amber-500/50 text-amber-600 hover:bg-amber-500/10' : ''}`}
+                          className={`h-7 px-2 text-xs ${isLowConfidence ? 'border-destructive/50 text-destructive hover:bg-destructive/10' : ''}`}
                           onClick={() => handleViewSource(item)}
                         >
                           <Eye className="h-3 w-3 mr-1" />
@@ -574,8 +574,8 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, p
                     </td>
                     <td className="py-2 px-2 text-right">
                       <Badge 
-                        variant={item.confidence >= 0.8 ? 'default' : item.confidence >= 0.6 ? 'secondary' : 'outline'}
-                        className={`text-xs ${isLowConfidence ? 'border-amber-500/50 text-amber-600' : ''}`}
+                        variant={item.confidence > 0.89 ? 'default' : 'destructive'}
+                        className="text-xs"
                       >
                         {Math.round(item.confidence * 100)}%
                       </Badge>

@@ -576,7 +576,9 @@ export function LGSnomedAuditModal({
                   <div className="flex items-center gap-2">
                     <Badge variant="outline">{currentItem.domain}</Badge>
                     {pdfPageNumber && <Badge variant="outline">PDF Page {pdfPageNumber}</Badge>}
-                    <Badge variant={currentItem.confidence >= 0.8 ? 'default' : currentItem.confidence >= 0.6 ? 'secondary' : 'outline'}>
+                    <Badge 
+                      variant={currentItem.confidence > 0.89 ? 'default' : 'destructive'}
+                    >
                       {Math.round(currentItem.confidence * 100)}% confidence
                     </Badge>
                   </div>
@@ -620,11 +622,11 @@ export function LGSnomedAuditModal({
                   )}
                 </div>
 
-                {currentItem.confidence < 0.6 && (
-                  <div className="p-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-                    <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-sm">
+                {currentItem.confidence <= 0.89 && (
+                  <div className="p-3 bg-destructive/10 border border-destructive/30 rounded-lg">
+                    <div className="flex items-center gap-2 text-destructive text-sm">
                       <AlertTriangle className="h-4 w-4" />
-                      Low confidence - please verify against source
+                      Confidence ≤89% - please verify against source
                     </div>
                   </div>
                 )}
