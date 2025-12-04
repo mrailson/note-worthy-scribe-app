@@ -664,14 +664,26 @@ serve(async (req) => {
       .eq('id', patientId);
 
     // Step 3: Extract patient details from OCR text (NEW!)
-    console.log('Extracting patient details from OCR...');
+    console.log('=== PATIENT EXTRACTION START ===');
+    console.log('OpenAI key available:', !!openaiKey);
+    console.log('OCR text length:', fullOcrText.length);
     let extractedPatient: any = null;
     
     if (openaiKey && fullOcrText.length > 50) {
       try {
-        extractedPatient = await callOpenAI(openaiKey, PATIENT_EXTRACTION_PROMPT, 
-          `Extract patient details from this OCR text of Lloyd George records:\n\n${fullOcrText.substring(0, 30000)}`);
-        console.log('Patient details extracted (raw):', extractedPatient);
+        console.log('Calling OpenAI for patient extraction...');
+        const extractionInput = `Extract patient details from this OCR text of Lloyd George records:\n\n${fullOcrText.substring(0, 30000)}`;
+        console.log('Extraction input length:', extractionInput.length);
+        
+        extractedPatient = await callOpenAI(openaiKey, PATIENT_EXTRACTION_PROMPT, extractionInput);
+        
+        console.log('Patient extraction raw response:', JSON.stringify(extractedPatient));
+        
+        // Validate response structure
+        if (!extractedPatient || typeof extractedPatient !== 'object') {
+          console.error('Invalid extraction response format - not an object:', extractedPatient);
+          extractedPatient = { patient_name: null, nhs_number: null, date_of_birth: null, sex: 'unknown', confidence: 0 };
+        }
         
         // ANTI-HALLUCINATION VALIDATION
         // If name exists but BOTH NHS number and DOB are null, this is suspicious
@@ -697,7 +709,7 @@ serve(async (req) => {
           extractedPatient.patient_name = null;
         }
         
-        console.log('Patient details after validation:', extractedPatient);
+        console.log('Patient details after validation:', JSON.stringify(extractedPatient));
         
         // Update patient record with extracted details
         const updateData: any = {
@@ -708,6 +720,8 @@ serve(async (req) => {
           ai_extraction_confidence: extractedPatient.confidence || 0,
           requires_verification: (extractedPatient.confidence || 0) < 0.8,
         };
+        
+        console.log('Updating patient with extracted data:', JSON.stringify(updateData));
         
         // Also populate the main fields if they're null AND validated
         if (!patient.patient_name && extractedPatient.patient_name) {
@@ -723,15 +737,46 @@ serve(async (req) => {
           updateData.sex = extractedPatient.sex;
         }
         
-        await supabase
+        const { error: updateErr } = await supabase
           .from('lg_patients')
           .update(updateData)
           .eq('id', patientId);
           
+        if (updateErr) {
+          console.error('Failed to update patient with extracted data:', updateErr);
+        } else {
+          console.log('Successfully updated patient with extracted data');
+        }
+          
       } catch (extractErr) {
-        console.error('Patient extraction failed:', extractErr);
+        console.error('Patient extraction failed with error:', extractErr);
+        // Mark that extraction was attempted but failed
+        const { error: failUpdateErr } = await supabase
+          .from('lg_patients')
+          .update({ 
+            ai_extraction_confidence: 0,
+            requires_verification: true 
+          })
+          .eq('id', patientId);
+        if (failUpdateErr) {
+          console.error('Failed to mark extraction failure:', failUpdateErr);
+        }
       }
+    } else {
+      console.log('Skipping patient extraction - conditions not met:', { 
+        hasOpenAI: !!openaiKey, 
+        ocrLength: fullOcrText.length 
+      });
+      // Mark that extraction was skipped
+      await supabase
+        .from('lg_patients')
+        .update({ 
+          ai_extraction_confidence: 0,
+          requires_verification: true 
+        })
+        .eq('id', patientId);
     }
+    console.log('=== PATIENT EXTRACTION END ===');
 
     // Step 4: Generate AI Summary
     console.log('Generating clinical summary...');
