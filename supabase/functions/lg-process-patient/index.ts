@@ -77,16 +77,27 @@ Never create new diagnoses.
 
 Only summarise what is evidenced in the record.`;
 
-// SNOMED Concept Extractor - extracts clinical CONCEPTS (not codes) for database matching (Optimised & Final)
-const SNOMED_CONCEPT_PROMPT = `You are a clinical coder for UK primary care.
-Extract clinical concepts only (NO SNOMED codes).
-Your output will be matched against the validated SNOMED table.
+// SNOMED Mapping Prompt - AI-driven direct code generation with confidence thresholds
+const SNOMED_MAPPING_PROMPT = `You are a clinical coder for UK primary care.
+Your job is to read OCR text from scanned Lloyd George records and return clinical concepts with SNOMED CT codes suitable for EMIS/SystmOne.
 
-PAGE HANDLING — MANDATORY
+You MUST be conservative:
 
-OCR text contains markers like:
---- Page page_001.jpg ---
---- Page page_002.jpg ---
+Never guess codes.
+
+Only output a SNOMED code if you are highly confident (≥0.8) that the code exactly matches the concept and wording.
+
+If not sure, set snomed_code to "MANUAL_REVIEW".
+
+1. Page handling (MANDATORY)
+
+The OCR text contains page markers like:
+
+"--- Page page_001.jpg ---"
+
+"--- Page page_002.jpg ---"
+
+Map these to 0-indexed source_page values:
 
 page_001.jpg → source_page: 0
 
@@ -94,121 +105,253 @@ page_002.jpg → source_page: 1
 
 etc.
 
-Every extracted item MUST include a valid source_page.
-Only use null if truly impossible.
+Every item MUST include a source_page taken from the last page marker before the evidence text.
+Use null only if impossible to determine.
 
-OUTPUT FORMAT (Strict JSON)
+2. Output format (STRICT)
+
+Return JSON with this exact structure:
+
 {
-  "diagnoses": [],
-  "surgeries": [],
-  "allergies": [],
-  "immunisations": []
+  "items": [
+    {
+      "category": "diagnosis | surgery | allergy | immunisation",
+      "term": "Clean clinical term",
+      "snomed_code": "44054006 or MANUAL_REVIEW",
+      "snomed_term": "Official SNOMED description or null if MANUAL_REVIEW",
+      "date": "optional date string",
+      "evidence": "short supporting text from OCR",
+      "source_page": 0,
+      "confidence": 0.0,
+      "review_flag": "CODE_OK | NEEDS_MANUAL_REVIEW"
+    }
+  ]
 }
 
-Each item must include:
 
-"term" – clean clinical term
+Rules:
 
-"date" – YYYY, MMM YYYY, DD-MMM-YYYY, or "approx"
+category must be one of: diagnosis, surgery, allergy, immunisation.
 
-"evidence" – short snippet
+term is your concise clinical label.
 
-"source_page" – required integer
+snomed_code is a numeric SNOMED CT code as a string, or "MANUAL_REVIEW" if not sure.
 
-🔥 CRITICAL MAPPING RULES (HARD OVERRIDES)
-1. Myocardial Infarction
+snomed_term is the official SNOMED description that matches snomed_code, or null if MANUAL_REVIEW.
 
-If text contains "NSTEMI", "non-ST elevation MI", "non-ST-elevation myocardial infarction":
-term = "Acute non-ST elevation myocardial infarction (NSTEMI)"
+date: "YYYY", "MMM YYYY", "DD-MMM-YYYY" or similar. Omit if not present.
 
-If text contains "STEMI":
-term = "Acute ST elevation myocardial infarction (STEMI)"
+confidence: 0.0–1.0 for how sure you are that the code is correct (not just the concept).
 
-Never use "silent MI", "myocardial infarction NOS", or incorrectly coded variants.
+review_flag:
 
-2. PCI Extraction
+"CODE_OK" if confidence ≥ 0.8 and the code is definitely correct.
 
-If text shows "PCI", "angioplasty", "coronary stent", "drug-eluting stent", derive:
-term = "Percutaneous Coronary Intervention (PCI)"
-Always extract as a separate surgery.
+"NEEDS_MANUAL_REVIEW" if confidence < 0.8 OR snomed_code == "MANUAL_REVIEW".
 
-3. Cataract vs Bowel Surgery (ABSOLUTE RULE)
+Do not add any extra top-level keys.
 
-If ANY of these appear:
+3. What to extract
 
-"phaco", "phacoemulsification", "IOL", "intraocular lens", "cataract", "ophthalmology"
+Only extract items that clearly appear in the record:
 
-→ ALWAYS:
-term = "Cataract surgery (phacoemulsification with IOL)"
+Diagnoses: clinically significant long-term conditions and major acute events (e.g. Type 2 diabetes, hypertension, COPD, CHD/IHD, heart failure, NSTEMI/STEMI, stroke/TIA, cancer, CKD, depression/anxiety, osteoarthritis of knee).
 
-→ NEVER: bowel surgery terms like "hemicolectomy", "colectomy".
+Surgeries: major procedures (e.g. hysterectomy, cholecystectomy, joint replacement, mastectomy, bowel resection, pacemaker, PCI, cataract surgery/phaco + IOL).
 
-Only use hemicolectomy if the explicit word "hemicolectomy" appears.
+Allergies: drug or substance allergies and serious adverse reactions.
 
-4. Knee Osteoarthritis
+Immunisations: all vaccinations, including historical (flu, pneumococcal, shingles, COVID, tetanus, smallpox, etc.).
 
-If text includes "knee OA", "osteoarthritis (knees)", "bilateral knee OA":
-term = "Osteoarthritis of knee"
+Do not extract:
 
-If location unclear, use generic "Osteoarthritis".
+Social history, family history, smoking, alcohol.
 
-📌 HISTORICAL VACCINATIONS (MANDATORY EXTRACTION RULE)
+Medications.
 
-Always extract smallpox vaccinations if visible anywhere, including handwritten Lloyd George cards.
+Negative/normal results.
 
-Extract as separate immunisation entries:
+Admin and referral details.
+
+4. Anti-hallucination rules (very important)
+
+Only code what is explicitly documented.
+
+If the record says "?asthma" or is unclear, you may omit it or return MANUAL_REVIEW.
+
+If you cannot find an exact SNOMED code in your knowledge that matches the wording, use:
+
+"snomed_code": "MANUAL_REVIEW"
+
+"snomed_term": null
+
+"confidence": 0.0
+
+"review_flag": "NEEDS_MANUAL_REVIEW"
+
+Prefer a more general but correct code over a very specific but risky one.
+
+Example: if you're unsure which coronary artery, you may choose a generic "ischaemic heart disease" code instead of a very specific LAD lesion code — but only if the text supports "ischaemic heart disease".
+
+Re-check each code against the term.
+
+If the code implies something different from the written diagnosis (e.g. "silent MI" vs "acute NSTEMI"), that is NOT allowed.
+
+In that case, set snomed_code = "MANUAL_REVIEW".
+
+5. Special clinical mapping rules (hard constraints)
+
+These are non-negotiable. If the evidence matches, you MUST follow these mappings.
+
+5.1 Myocardial infarction
+
+If the text contains "NSTEMI", "non-ST elevation myocardial infarction", "non-ST elevation MI":
+
+"term": "Acute non-ST elevation myocardial infarction (NSTEMI)",
+"snomed_code": "401314000",
+"snomed_term": "Acute non-ST segment elevation myocardial infarction (disorder)"
+
+
+If the text contains "STEMI" or "ST elevation myocardial infarction":
+
+Use an acute STEMI code (e.g.:
+
+"term": "Acute ST elevation myocardial infarction (STEMI)",
+"snomed_code": "304914007",
+"snomed_term": "Acute ST segment elevation myocardial infarction (disorder)"
+
+
+Never map "NSTEMI" or "STEMI" to "silent myocardial infarction" or other incorrect variants.
+
+If you are unsure which MI concept is correct, set snomed_code = "MANUAL_REVIEW".
+
+5.2 PCI (Percutaneous Coronary Intervention)
+
+If evidence includes any of:
+
+"PCI", "percutaneous coronary intervention", "coronary angioplasty", "drug-eluting stent", "stent to LAD/RCA/LCx":
+
+Use a PCI procedure code, e.g.:
+
+"category": "surgery",
+"term": "Percutaneous coronary intervention (PCI)",
+"snomed_code": "415070008",
+"snomed_term": "Percutaneous coronary intervention (procedure)"
+
+
+If you are unsure of the exact PCI code, keep term as above but set snomed_code to "MANUAL_REVIEW".
+
+5.3 Cataract vs bowel surgery (absolute rule)
+
+If the text mentions:
+
+"phaco", "phacoemulsification", "IOL", "intraocular lens", "cataract", "ophthalmology", "lens":
+
+Then it is eye surgery, not bowel surgery.
+
+Use a cataract procedure such as:
+
+"category": "surgery",
+"term": "Cataract surgery (phacoemulsification with IOL), left eye",
+"snomed_code": "415089008",
+"snomed_term": "Phacoemulsification of cataract with intraocular lens implantation (procedure)"
+
+
+Never call this hemicolectomy or any bowel/colon procedure.
+Only use hemicolectomy codes if the word "hemicolectomy" is explicitly written.
+
+5.4 Osteoarthritis of knee
+
+If the record states "Osteoarthritis (knees)", "bilateral knee osteoarthritis", "knee OA", etc.:
+
+"category": "diagnosis",
+"term": "Osteoarthritis of knee",
+"snomed_code": "239873007",
+"snomed_term": "Osteoarthritis of knee (disorder)"
+
+
+If site is not specified (just "osteoarthritis"), you may use a general osteoarthritis code or MANUAL_REVIEW if uncertain.
+
+5.5 Common QOF chronic conditions
+
+Where clearly documented, prefer the standard chronic disease codes, for example:
+
+Type 2 diabetes mellitus
+
+"term": "Type 2 diabetes mellitus",
+"snomed_code": "44054006",
+"snomed_term": "Diabetes mellitus type 2 (disorder)"
+
+
+Hypertension
+
+"term": "Hypertension",
+"snomed_code": "38341003",
+"snomed_term": "Hypertensive disorder, systemic arterial (disorder)"
+
+
+Use MANUAL_REVIEW only if the diagnosis is genuinely unclear.
+
+5.6 Immunisations (including historical smallpox)
+
+For vaccines, try to map to the closest vaccination procedure concept.
+Examples (if confident):
+
+Seasonal influenza vaccination (e.g. for "Influenza (Fluarix Tetra)")
+
+Pneumococcal polysaccharide vaccine (PPV23)
+
+Shingles (Zostavax) vaccination
+
+COVID-19 mRNA/Pfizer vaccination
+
+If unsure of the exact vaccine SNOMED code, use:
+
+"snomed_code": "MANUAL_REVIEW",
+"snomed_term": null
+
+
+Smallpox rule (mandatory):
+
+If any page shows smallpox vaccinations (e.g. "First smallpox vaccination", "Booster dose of smallpox vaccine"):
+
+Always create separate immunisation items with terms such as:
 
 "Smallpox vaccination"
 
-"Smallpox first dose"
-
 "Smallpox booster vaccination"
 
-Dates like "20 2 64" → convert to 20-Feb-1964
-Two-digit years in LG era = 19xx.
+Even if you are not certain of the correct SNOMED code, create the items and, if necessary, set snomed_code = "MANUAL_REVIEW" rather than omitting them.
 
-Under no circumstances should smallpox entries be omitted.
+6. Dates and evidence
 
-Also extract historical BCG, tetanus, polio, etc., if present.
+If a specific date is written (e.g. "07/09/2023"), convert to DD-MMM-YYYY (e.g. "07-Sep-2023").
 
-📌 DATE NORMALISATION
+For Lloyd George entries like "20 2 64", convert to "20-Feb-1964" and assume 1900s.
 
-Convert:
+evidence should be a short copied phrase that proves the concept.
 
-"20 2 64" → "20-Feb-1964"
+7. Confidence & review_flag
 
-"1/03/64" → "01-Mar-1964"
+Set confidence for each item based on how sure you are that:
 
-If day/month ambiguous, preserve exact text.
+The concept is correctly interpreted, AND
 
-📌 WHAT TO EXTRACT (ONLY THESE FOUR)
-diagnoses
+The SNOMED code precisely matches the concept.
 
-Chronic conditions, significant acute events, confirmed diagnoses.
+Guidance:
 
-surgeries
+≥ 0.9 → clear diagnosis/procedure with well-known code (e.g. T2DM 44054006, HTN 38341003, OA knee 239873007, NSTEMI 401314000).
 
-Major operations + PCI + cataracts.
+0.8–0.89 → good match but minor uncertainty.
 
-allergies
+< 0.8 → significant uncertainty → usually snomed_code = "MANUAL_REVIEW".
 
-Drug / substance allergies only.
+Then:
 
-immunisations
+If confidence ≥ 0.8 AND snomed_code != "MANUAL_REVIEW" → review_flag = "CODE_OK".
 
-All vaccinations, including historical.
-
-📌 WHAT NOT TO EXTRACT
-
-Social / family history
-
-Smoking / alcohol status
-
-Medications
-
-Negative/normal results
-
-Admin or referral details`;
+Otherwise → review_flag = "NEEDS_MANUAL_REVIEW".`;
 
 // Patient details extraction prompt (Optimised & Final)
 const PATIENT_EXTRACTION_PROMPT = `You are extracting patient demographic details from scanned Lloyd George records.
@@ -556,46 +699,27 @@ ${fullOcrText.substring(0, 50000)}`;
       summaryJson = createEmptySummary();
     }
 
-    // Step 5: Generate SNOMED codes using VALIDATED database matching
-    console.log('Extracting clinical concepts for SNOMED matching...');
+    // Step 5: Generate SNOMED codes using AI-driven direct code generation
+    console.log('Extracting SNOMED-coded clinical items...');
     let snomedJson: any = null;
 
     if (openaiKey && summaryJson) {
-      const conceptPrompt = `Using the clinical summary and OCR text, identify clinical CONCEPTS that need SNOMED coding.
+      const snomedPrompt = `Extract SNOMED-coded clinical items from this Lloyd George record.
 
-IMPORTANT RULES:
-1. Extract dates where available. Look for dates near each clinical term.
-   - Format dates as DD-MMM-YYYY (e.g., "15-Mar-2018") or just the year (e.g., "2009")
-   - If no date found, leave date as empty string ""
-2. CRITICAL: Identify the SOURCE PAGE for each item by looking at the page markers in the OCR text.
-   - The OCR has markers like "--- Page page_001.jpg ---" before each page's content
-   - Return the page number (0-indexed) where you found each concept
-   - If page 001 contains the diagnosis, source_page = 0
-   - If page 003 contains the surgery, source_page = 2
-3. Include the exact evidence text snippet where you found the concept
-
-Return JSON:
-{
-  "diagnoses": [{"term":"condition name","date":"2009","source_page":0,"evidence":"exact text from OCR"}],
-  "surgeries": [{"term":"procedure name","date":"15-Mar-2018","source_page":2,"evidence":""}],
-  "allergies": [{"term":"allergen/drug","date":"","source_page":1,"evidence":""}],
-  "immunisations": [{"term":"vaccine name","date":"1965","source_page":3,"evidence":""}]
-}
-
-Summary JSON:
+Summary JSON for context:
 ${JSON.stringify(summaryJson, null, 2)}
 
-OCR Text (note the page markers):
-${fullOcrText.substring(0, 15000)}`;
+OCR Text (note the page markers like "--- Page page_001.jpg ---"):
+${fullOcrText.substring(0, 30000)}`;
 
       try {
-        // Step 1: Extract concepts (not codes)
-        const conceptsJson = await callOpenAI(openaiKey, SNOMED_CONCEPT_PROMPT, conceptPrompt);
-        console.log('Clinical concepts extracted:', JSON.stringify(conceptsJson, null, 2));
+        // Single-step: AI extracts concepts AND provides SNOMED codes directly
+        const aiSnomedOutput = await callOpenAI(openaiKey, SNOMED_MAPPING_PROMPT, snomedPrompt);
+        console.log('AI SNOMED extraction complete:', JSON.stringify(aiSnomedOutput, null, 2));
         
-        // Step 2: Match concepts against validated SNOMED database (pass OCR text for fallback source_page detection)
-        snomedJson = await matchConceptsToSnomed(supabase, conceptsJson, fullOcrText);
-        console.log('SNOMED codes matched from database');
+        // Convert flat items array to domain-based structure for backward compatibility
+        snomedJson = convertItemsToSnomedDomains(aiSnomedOutput, fullOcrText);
+        console.log('SNOMED codes converted to domain structure');
       } catch (aiErr) {
         console.error('SNOMED extraction failed:', aiErr);
         snomedJson = createEmptySnomed();
@@ -962,8 +1086,8 @@ function findSourcePageFromEvidence(evidence: string, ocrText: string, term: str
   return null;
 }
 
-// Match clinical concepts to validated SNOMED codes from database
-async function matchConceptsToSnomed(supabase: any, conceptsJson: any, ocrText: string = ''): Promise<any> {
+// Convert AI SNOMED output (flat items array) to domain-based structure for backward compatibility
+function convertItemsToSnomedDomains(aiOutput: any, ocrText: string = ''): any {
   const result: any = {
     diagnoses: [],
     surgeries: [],
@@ -971,134 +1095,37 @@ async function matchConceptsToSnomed(supabase: any, conceptsJson: any, ocrText: 
     immunisations: [],
   };
 
-  // Helper to find best matching SNOMED code for a term
-  async function findBestMatch(term: string, domain: string): Promise<{ code: string; description: string; confidence: number } | null> {
-    if (!term || term.length < 2) return null;
+  // Map category to domain key
+  const categoryToDomain: Record<string, string> = {
+    'diagnosis': 'diagnoses',
+    'surgery': 'surgeries',
+    'allergy': 'allergies',
+    'immunisation': 'immunisations',
+  };
 
-    // Normalize the search term
-    const searchTerm = term.toLowerCase().trim();
+  const items = aiOutput?.items || [];
+  
+  for (const item of items) {
+    const domain = categoryToDomain[item.category] || 'diagnoses';
     
-    // Map domain to cluster patterns
-    const domainPatterns: Record<string, string[]> = {
-      diagnoses: ['diagnosis', 'disease', 'codes', 'disorder'],
-      surgeries: ['Surgical', 'procedure'],
-      allergies: ['Allergy'],
-      immunisations: ['Immunisation', 'vaccination'],
-    };
-
-    // Try exact match first
-    const { data: exactMatch } = await supabase
-      .from('snomed_codes')
-      .select('snomed_code, code_description')
-      .ilike('code_description', searchTerm)
-      .limit(1);
-
-    if (exactMatch && exactMatch.length > 0) {
-      return {
-        code: exactMatch[0].snomed_code,
-        description: exactMatch[0].code_description,
-        confidence: 0.95,
-      };
+    // Determine source_page: use AI value if present, otherwise try to find from evidence
+    let sourcePage = typeof item.source_page === 'number' ? item.source_page : null;
+    if (sourcePage === null && (item.evidence || item.term)) {
+      sourcePage = findSourcePageFromEvidence(item.evidence || '', ocrText, item.term || '');
     }
 
-    // Try fuzzy match with domain filtering
-    const patterns = domainPatterns[domain] || [];
-
-    // Search using text similarity
-    const { data: fuzzyMatches } = await supabase
-      .from('snomed_codes')
-      .select('snomed_code, code_description, cluster_description')
-      .or(`code_description.ilike.%${searchTerm}%,code_description.ilike.%${searchTerm.split(' ')[0]}%`)
-      .limit(10);
-
-    if (fuzzyMatches && fuzzyMatches.length > 0) {
-      // Score matches by similarity
-      let bestMatch = null;
-      let bestScore = 0;
-
-      for (const match of fuzzyMatches) {
-        const desc = match.code_description.toLowerCase();
-        let score = 0;
-
-        // Exact substring match
-        if (desc.includes(searchTerm)) {
-          score = 0.85;
-        }
-        // First word match
-        else if (desc.includes(searchTerm.split(' ')[0])) {
-          score = 0.7;
-        }
-        // Partial match
-        else {
-          const words = searchTerm.split(' ');
-          const matchedWords = words.filter(w => desc.includes(w)).length;
-          score = 0.5 + (matchedWords / words.length) * 0.3;
-        }
-
-        // Boost score if domain matches
-        const clusterLower = match.cluster_description.toLowerCase();
-        if (patterns.some(p => clusterLower.includes(p.toLowerCase()))) {
-          score += 0.1;
-        }
-
-        if (score > bestScore) {
-          bestScore = score;
-          bestMatch = match;
-        }
-      }
-
-      if (bestMatch && bestScore >= 0.5) {
-        return {
-          code: bestMatch.snomed_code,
-          description: bestMatch.code_description,
-          confidence: Math.min(bestScore, 0.95),
-        };
-      }
-    }
-
-    return null;
+    result[domain].push({
+      term: item.snomed_term || item.term, // Prefer official SNOMED term if available
+      code: item.snomed_code || 'MANUAL_REVIEW',
+      date: item.date || '',
+      confidence: item.confidence || 0,
+      evidence: item.evidence || '',
+      source_page: sourcePage,
+      review_flag: item.review_flag || (item.confidence >= 0.8 && item.snomed_code !== 'MANUAL_REVIEW' ? 'CODE_OK' : 'NEEDS_MANUAL_REVIEW'),
+    });
   }
 
-  // Process each domain
-  const domains = ['diagnoses', 'surgeries', 'allergies', 'immunisations'] as const;
-
-  for (const domain of domains) {
-    const concepts = conceptsJson[domain] || [];
-    
-    for (const concept of concepts) {
-      const term = concept.term;
-      const match = await findBestMatch(term, domain);
-
-      // Determine source_page: use AI value if present, otherwise find from evidence/term in OCR
-      let sourcePage = typeof concept.source_page === 'number' ? concept.source_page : null;
-      if (sourcePage === null) {
-        sourcePage = findSourcePageFromEvidence(concept.evidence || '', ocrText, term);
-      }
-
-      if (match) {
-        result[domain].push({
-          term: match.description, // Use the official SNOMED description
-          code: match.code,
-          date: concept.date || '',
-          confidence: match.confidence,
-          evidence: concept.evidence || '',
-          source_page: sourcePage,
-        });
-      } else {
-        // No match found - flag for manual review
-        result[domain].push({
-          term: term,
-          code: 'MANUAL_REVIEW',
-          date: concept.date || '',
-          confidence: 0.3,
-          evidence: concept.evidence || '',
-          source_page: sourcePage,
-        });
-      }
-    }
-  }
-
-  console.log(`SNOMED matching complete: ${result.diagnoses.length} diagnoses, ${result.surgeries.length} surgeries, ${result.allergies.length} allergies, ${result.immunisations.length} immunisations`);
+  console.log(`SNOMED conversion complete: ${result.diagnoses.length} diagnoses, ${result.surgeries.length} surgeries, ${result.allergies.length} allergies, ${result.immunisations.length} immunisations`);
   return result;
 }
 
