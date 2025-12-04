@@ -171,6 +171,22 @@ Childhood and adult: tetanus, polio, smallpox, BCG, MMR, flu, pneumococcal, shin
 
 Record separate entries for separate doses (e.g. COVID dose 1 and 2).
 
+HISTORICAL IMMUNISATION RULES
+
+ALWAYS extract historical vaccines if mentioned in any form, including:
+
+- Smallpox (common on 1960s Lloyd George cards)
+- BCG
+- Tetanus boosters
+- Any vaccine in childhood immunisation tables
+
+Smallpox examples:
+- "Smallpox vaccination"
+- "First smallpox vaccination with 0.5ml"
+- "Booster dose of smallpox vaccine"
+
+These must appear in the immunisations array with correct dates and source page.
+
 CRITICAL CARDIOLOGY RULES (HARD OVERRIDE)
 
 1. Acute coronary syndromes must use the correct clinical term:
