@@ -6,332 +6,258 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Lloyd George Summariser system prompt - NHS/RCGP/GP2GP compliant
+// Lloyd George Summariser system prompt - NHS/RCGP/GP2GP compliant (Optimised & Final)
 const SUMMARISER_SYSTEM_PROMPT = `You are a GP clinical summariser working under NHS England, RCGP, and GP2GP summarising standards.
-Your task is to read the uploaded scanned Lloyd George (LG) patient record, extract relevant clinical information, and produce a structured, coded summary suitable for entry into EMIS Web or SystmOne.
+Your task is to read the uploaded scanned Lloyd George (LG) patient record and produce a structured, clinically relevant summary suitable for EMIS or SystmOne.
 
-OBJECTIVE: Identify and summarise clinically significant, enduring information that contributes to ongoing patient care and safety. Exclude redundant, administrative, or minor entries.
+OBJECTIVE
+
+Identify clinically significant, enduring information.
+Exclude minor, administrative, or irrelevant content.
 
 INCLUDE (Record as Coded Data)
+1. Major Diagnoses & Long-term Conditions
 
-Major Diagnoses & Chronic Conditions
+e.g. Type 2 diabetes, hypertension, asthma, COPD, CHD/IHD, acute coronary syndromes (NSTEMI/STEMI), stroke/TIA, cancer, CKD, thyroid disease, epilepsy, hepatitis, mental health disorders, osteoarthritis (knee/hip/spine), chronic back pain when clearly diagnosed.
 
-e.g. Type 2 diabetes, hypertension, asthma, COPD, CHD / ischaemic heart disease, acute coronary syndromes (NSTEMI / STEMI), angina, stroke / TIA, cancer, CKD, thyroid disease, epilepsy, hepatitis, significant mental health disorders, chronic musculoskeletal disease such as osteoarthritis of knee/hip/spine.
+2. Major Procedures / Operations
 
-Major Operations & Procedures
+e.g. hysterectomy, cholecystectomy, CABG, joint replacement, mastectomy, bowel resections, pacemaker/ICD, PCI, cataract surgery (phaco + IOL), major orthopaedic operations.
 
-e.g. hysterectomy, cholecystectomy, CABG, joint replacements, mastectomy, bowel resection, pacemaker fitting, cataract surgery / phacoemulsification with IOL, percutaneous coronary intervention (PCI) / coronary stent, other major surgeries.
+3. Allergies & Adverse Reactions
 
-Allergies & Adverse Reactions
+Include allergen, reaction, and date if present.
 
-Include allergen, reaction type, and year if known.
+4. Immunisations
 
-Immunisations
+Include all doses with approximate dates — including historical entries such as smallpox, tetanus, flu, pneumococcal, shingles, COVID-19, childhood vaccines.
 
-All completed vaccinations with approximate dates (childhood and adult), including flu, pneumococcal, shingles, COVID-19, tetanus, smallpox, travel vaccines, boosters.
+5. Family & Social History
 
-Family & Social History
+Smoking, alcohol, occupation, family history of major disease.
 
-Family history of major disease, smoking status, alcohol use, occupation where clinically relevant.
+6. Obstetric & Reproductive History
 
-Obstetric & Reproductive History
+Gravida/para, miscarriages, terminations, caesarean sections.
 
-Gravida/para status, miscarriages, terminations, caesarean sections, significant complications.
+7. Significant Hospital/Specialist Findings
 
-Significant Hospital/Specialist Findings
+Discharge diagnoses, PCI, imaging findings relevant to long-term care.
 
-Discharge diagnoses, important imaging / investigation findings that impact long-term care (e.g. MI with PCI, cancer staging, major fractures).
+8. Active or Long-Term Medications
 
-Active Medications or Past Long-Term Treatments
+e.g. warfarin, DOACs, lithium, steroids, HRT, chemotherapy, biologics.
 
-e.g. warfarin, DOACs, lithium, long-term steroids, HRT, chemotherapy, biologics.
+EXCLUDE
 
-EXCLUDE (Do NOT Record)
+Referral letters, appointment letters, admin
 
-Administrative or correspondence items (referrals, appointment letters, insurance reports).
+Short-term minor conditions (URTI, tonsillitis, gastroenteritis)
 
-Minor self-limiting illnesses (e.g. simple URTI, tonsillitis, gastroenteritis, short-lived injuries) unless clearly linked to a major long-term diagnosis.
+Normal/negative investigations
 
-Normal or negative investigation results (unless specifically relevant to safety, e.g. "No known diabetic retinopathy" can be omitted from coded data).
+Discontinued contraception unless clinically relevant
 
-Discontinued contraception unless still clinically relevant.
+Duplicate or ambiguous entries
 
-Duplicate or clearly ambiguous entries (e.g. "?asthma 1983" with no further confirmation).
+Third-party details
 
-Third-party information (partner or family member details).
+GUARDRAILS
 
-Developer guardrails
+Do not invent data.
 
-No patient advice. No new diagnosis creation. Summarise only what is documented in the record.
+If handwriting unclear, mark (unclear).
 
-If handwriting is unclear, flag with (unclear) where uncertain.
+Use UK spelling and NHS terminology.
 
-Use UK spellings and NHS terminology.
+If unknown → "unknown".
 
-Never fabricate data; mark values as "unknown" if uncertain or not documented.`;
+Never create new diagnoses.
 
-// SNOMED Concept Extractor - extracts clinical CONCEPTS (not codes) for database matching
-const SNOMED_CONCEPT_PROMPT = `You are a clinical coder for UK primary care. Extract clinical CONCEPTS from the OCR text.
-Do NOT generate SNOMED codes – just identify the clinical terms that need coding.
+Only summarise what is evidenced in the record.`;
 
-PAGE HANDLING – CRITICAL
+// SNOMED Concept Extractor - extracts clinical CONCEPTS (not codes) for database matching (Optimised & Final)
+const SNOMED_CONCEPT_PROMPT = `You are a clinical coder for UK primary care.
+Extract clinical concepts only (NO SNOMED codes).
+Your output will be matched against the validated SNOMED table.
 
-The OCR text has page markers like "--- Page page_001.jpg ---", "--- Page page_002.jpg ---".
+PAGE HANDLING — MANDATORY
 
-For EVERY extracted item you MUST include source_page by finding which page marker appears before the evidence text.
+OCR text contains markers like:
+--- Page page_001.jpg ---
+--- Page page_002.jpg ---
 
-page_001.jpg → "source_page": 0
+page_001.jpg → source_page: 0
 
-page_002.jpg → "source_page": 1
+page_002.jpg → source_page: 1
 
-page_003.jpg → "source_page": 2, etc.
+etc.
 
-If you genuinely cannot determine the page, use source_page: null (this should be rare).
+Every extracted item MUST include a valid source_page.
+Only use null if truly impossible.
 
-OUTPUT FORMAT (STRICT)
-
-Return JSON with this EXACT structure (no extra top-level keys):
-
+OUTPUT FORMAT (Strict JSON)
 {
-  "diagnoses": [
-    {
-      "term": "Type 2 diabetes mellitus",
-      "date": "2009",
-      "evidence": "PMH: T2DM dx ~2009",
-      "source_page": 0
-    }
-  ],
-  "surgeries": [
-    {
-      "term": "Cataract surgery (phacoemulsification with IOL), left eye",
-      "date": "Jun 2019",
-      "evidence": "Left phacoemulsification with intraocular lens (IOL)",
-      "source_page": 1
-    }
-  ],
-  "allergies": [
-    {
-      "term": "Penicillin allergy",
-      "date": "",
-      "evidence": "Allergy: penicillin",
-      "source_page": 2
-    }
-  ],
-  "immunisations": [
-    {
-      "term": "COVID-19 (Pfizer) vaccination, 1st dose",
-      "date": "Apr 2021",
-      "evidence": "COVID-19 Pfizer 1st dose Apr 2021",
-      "source_page": 2
-    }
-  ]
+  "diagnoses": [],
+  "surgeries": [],
+  "allergies": [],
+  "immunisations": []
 }
 
+Each item must include:
 
-term: concise UK clinical term suitable for SNOMED mapping
+"term" – clean clinical term
 
-date: "YYYY", "MMM YYYY", "DD-MMM-YYYY" or an approximate phrase such as "Pre Oct 2020" if that is all that is documented
+"date" – YYYY, MMM YYYY, DD-MMM-YYYY, or "approx"
 
-evidence: short snippet copied from the OCR text
+"evidence" – short snippet
 
-source_page: REQUIRED integer page index (0, 1, 2, …) or null only if absolutely impossible to determine
+"source_page" – required integer
 
-WHAT TO EXTRACT
+🔥 CRITICAL MAPPING RULES (HARD OVERRIDES)
+1. Myocardial Infarction
 
-Only extract concepts in these four groups:
+If text contains "NSTEMI", "non-ST elevation MI", "non-ST-elevation myocardial infarction":
+term = "Acute non-ST elevation myocardial infarction (NSTEMI)"
 
+If text contains "STEMI":
+term = "Acute ST elevation myocardial infarction (STEMI)"
+
+Never use "silent MI", "myocardial infarction NOS", or incorrectly coded variants.
+
+2. PCI Extraction
+
+If text shows "PCI", "angioplasty", "coronary stent", "drug-eluting stent", derive:
+term = "Percutaneous Coronary Intervention (PCI)"
+Always extract as a separate surgery.
+
+3. Cataract vs Bowel Surgery (ABSOLUTE RULE)
+
+If ANY of these appear:
+
+"phaco", "phacoemulsification", "IOL", "intraocular lens", "cataract", "ophthalmology"
+
+→ ALWAYS:
+term = "Cataract surgery (phacoemulsification with IOL)"
+
+→ NEVER: bowel surgery terms like "hemicolectomy", "colectomy".
+
+Only use hemicolectomy if the explicit word "hemicolectomy" appears.
+
+4. Knee Osteoarthritis
+
+If text includes "knee OA", "osteoarthritis (knees)", "bilateral knee OA":
+term = "Osteoarthritis of knee"
+
+If location unclear, use generic "Osteoarthritis".
+
+📌 HISTORICAL VACCINATIONS (MANDATORY EXTRACTION RULE)
+
+Always extract smallpox vaccinations if visible anywhere, including handwritten Lloyd George cards.
+
+Extract as separate immunisation entries:
+
+"Smallpox vaccination"
+
+"Smallpox first dose"
+
+"Smallpox booster vaccination"
+
+Dates like "20 2 64" → convert to 20-Feb-1964
+Two-digit years in LG era = 19xx.
+
+Under no circumstances should smallpox entries be omitted.
+
+Also extract historical BCG, tetanus, polio, etc., if present.
+
+📌 DATE NORMALISATION
+
+Convert:
+
+"20 2 64" → "20-Feb-1964"
+
+"1/03/64" → "01-Mar-1964"
+
+If day/month ambiguous, preserve exact text.
+
+📌 WHAT TO EXTRACT (ONLY THESE FOUR)
 diagnoses
 
-surgeries (operations / procedures)
+Chronic conditions, significant acute events, confirmed diagnoses.
+
+surgeries
+
+Major operations + PCI + cataracts.
 
 allergies
 
+Drug / substance allergies only.
+
 immunisations
 
-Do NOT extract social history, family history, medications, or administrative details here.
+All vaccinations, including historical.
 
-Include:
+📌 WHAT NOT TO EXTRACT
 
-All clearly documented long-term diagnoses and major acute events:
+Social / family history
 
-e.g. Type 2 diabetes, hypertension, COPD, asthma, IHD/CHD, heart failure, acute non-ST elevation myocardial infarction (NSTEMI), STEMI, stroke/TIA, CKD, depression, anxiety, cancer, osteoarthritis of knee/hip/spine, chronic low back pain where clearly recorded as a diagnosis.
+Smoking / alcohol status
 
-All clearly documented major procedures:
+Medications
 
-e.g. cholecystectomy, hysterectomy, joint replacement, mastectomy, bowel resections, pacemaker/ICD, CABG, cataract surgery / phacoemulsification with IOL, percutaneous coronary intervention (PCI) / coronary angioplasty with stent.
+Negative/normal results
 
-All documented allergies/adverse reactions:
+Admin or referral details`;
 
-Include drug name and "allergy" / "intolerance" where stated.
+// Patient details extraction prompt (Optimised & Final)
+const PATIENT_EXTRACTION_PROMPT = `You are extracting patient demographic details from scanned Lloyd George records.
 
-All immunisations with dates where possible:
+Extract ONLY what is clearly visible in structured areas.
 
-Childhood and adult: tetanus, polio, smallpox, BCG, MMR, flu, pneumococcal, shingles (Zostavax/shingrix), COVID-19 (Pfizer/AstraZeneca/Moderna etc.), travel vaccines, boosters.
+ANTI-HALLUCINATION RULES
 
-Record separate entries for separate doses (e.g. COVID dose 1 and 2).
+If OCR is gibberish → return all fields as null.
 
-MUSCULOSKELETAL RULE
+If the name is not in a structured header → patient_name = null.
 
-If evidence includes "knee osteoarthritis", "bilateral knee OA", "osteoarthritis (knees)", "OA knees",
-→ term MUST be: "Osteoarthritis of knee"
-(not general "osteoarthritis" unless site truly unclear)
+Do NOT infer names from clinician letters, signatures, notes.
 
-HISTORICAL IMMUNISATION RULES
-
-ALWAYS extract historical vaccines if mentioned in any form, including:
-
-- Smallpox (common on 1960s Lloyd George cards)
-- BCG
-- Tetanus boosters
-- Any vaccine in childhood immunisation tables
-
-Smallpox examples:
-- "Smallpox vaccination"
-- "First smallpox vaccination with 0.5ml"
-- "Booster dose of smallpox vaccine"
-
-These must appear in the immunisations array with correct dates and source page.
-
-CRITICAL CARDIOLOGY RULES (HARD OVERRIDE)
-
-1. Acute coronary syndromes must use the correct clinical term:
-
-If the text contains "NSTEMI", "non-ST elevation myocardial infarction", "non-ST-elevation MI", or "non ST elevation MI",
-→ term MUST be:
-"Acute non-ST elevation myocardial infarction (NSTEMI)"
-Never use terms such as "silent MI", "old MI", or "myocardial infarction NOS".
-
-If the text contains "STEMI",
-→ term MUST be:
-"Acute ST elevation myocardial infarction (STEMI)"
-
-2. PCI MUST ALWAYS be extracted as a separate procedure when mentioned.
-Examples include: "PCI", "coronary angioplasty", "stent to LAD/RCA/LCx".
-
-CRITICAL DISAMBIGUATION RULES
-
-1. Cataract vs bowel surgery (ABSOLUTE RULE - NO EXCEPTIONS)
-
-UNDER NO CIRCUMSTANCES should eye surgery ever be interpreted as bowel surgery.
-
-If the evidence contains ANY ophthalmology terminology:
-- "phaco", "phacoemulsification", "IOL", "intraocular lens", "cataract", "lens", "ophthalmology", "eye", "ocular"
-
-→ The term MUST be cataract surgery (e.g. "Cataract surgery (phacoemulsification with IOL), left eye")
-→ The term MUST NOT be "hemicolectomy", "bowel resection", or any gastrointestinal procedure.
-
-This is a HARD OVERRIDE. Eye surgery terminology = cataract surgery, NEVER bowel surgery.
-
-Only use terms like "left hemicolectomy" or "bowel resection" if those exact bowel-surgery words appear in the evidence AND there is NO ophthalmology terminology present.
-
-2. Myocardial infarction concepts
-
-If the text contains "NSTEMI", "non-ST elevation myocardial infarction", "non ST elevation MI" →
-
-The term MUST be: "Acute non-ST elevation myocardial infarction (NSTEMI)".
-
-Never convert this into "silent myocardial infarction".
-
-If "STEMI" or "ST elevation myocardial infarction" appears →
-
-Use "Acute ST elevation myocardial infarction (STEMI)".
-
-3. Percutaneous coronary intervention (PCI)
-
-If text mentions "PCI", "percutaneous coronary intervention", "coronary angioplasty", "angioplasty and stent", "stent to LAD/RCA/etc" →
-
-Add a surgery item with term like: "Percutaneous coronary intervention (PCI) with coronary stent".
-
-Keep the date from the discharge summary if present.
-
-4. Immunisation details
-
-Use terms that mirror the record wording but remain clean and mappable, e.g.:
-
-"Influenza (Fluarix Tetra) vaccination"
-
-"Pneumococcal (PPV23) vaccination"
-
-"Shingles (Zostavax) vaccination"
-
-"Smallpox vaccination" / "Smallpox booster vaccination"
-
-"COVID-19 (Pfizer) vaccination, 1st dose" etc.
-
-If only year or month/year is present, use that. If a full date is written, keep it.
-
-GENERAL RULES
-
-Use UK clinical terminology. Prefer specific, standard terms when the evidence supports them, but do not invent additional detail.
-
-Do not upgrade vague text: e.g. "?angina" should only be extracted if clearly confirmed later.
-
-If handwriting is very uncertain, you may skip the item rather than inventing a diagnosis.
-
-When in doubt about the exact wording, choose a safe, high-level diagnosis that faithfully reflects the text (e.g. "ischaemic heart disease" rather than a very specific subtype), and keep the evidence snippet.`;
-
-// Patient details extraction prompt
-const PATIENT_EXTRACTION_PROMPT = `You are extracting patient demographic details from scanned Lloyd George medical records. Extract ONLY what you can clearly see in the OCR text. Do not guess or invent information.
-
-CRITICAL ANTI-HALLUCINATION RULES
-
-If the OCR text is mostly gibberish, random characters, test patterns, or unreadable content, return null for all fields.
-
-If you cannot find a name that is clearly labeled as a patient name (e.g. "Patient Name:", "Name:", "Surname:", or a header field on a medical form), return null for patient_name.
-
-If you only see a single mention of a name without clear context confirming it is the patient (not uploader, doctor, relative, or witness), return null.
-
-NEVER guess or extrapolate names from partial fragments or random words.
-
-A valid patient name should appear in a structured format (form field, record cover, Lloyd George card header) – NOT random text in the body.
-
-If NHS number and DOB are BOTH null, patient_name confidence MUST be below 0.4 unless the name is absolutely unambiguous in a structured header.
-
-Do NOT extract names that look like uploader names, staff names, or signatures.
-
-When in doubt, return null – it is better to show "Unknown" than to hallucinate a name.
+Return null for any field not clearly identifiable.
 
 OUTPUT FORMAT
-
-Return valid JSON with this exact structure:
-
 {
-  "patient_name": "Full name as written on the records (or null if not found)",
-  "nhs_number": "10-digit NHS number, may have spaces (or null if not found)",
-  "date_of_birth": "YYYY-MM-DD format (or null if not found)",
-  "sex": "male | female | unknown",
+  "patient_name": null,
+  "nhs_number": null,
+  "date_of_birth": null,
+  "sex": "unknown",
   "confidence": 0.0
 }
 
+Replace null fields with actual values only when clearly identified.
+
 FIELD RULES
 
-patient_name:
+patient_name
+Must appear in a structured location: LG card header, form header, identification block.
 
-Look for name fields clearly labeled on the Lloyd George record card or other formal identification sections. Must be in the context of patient identification, not random narrative text.
+nhs_number
+10-digit NHS number from structured sections.
 
-nhs_number:
+date_of_birth
+Convert to YYYY-MM-DD.
 
-Look for a 10-digit number labelled "NHS No", "NHS Number" etc. May have spaces like "123 456 7890".
+sex
+From explicit markers (Male/Female/M/F). Otherwise "unknown".
 
-date_of_birth:
+confidence
 
-Look for DOB, Date of Birth, D.O.B. or similar fields in structured form areas. Convert to YYYY-MM-DD if possible; otherwise return null.
+0.9–1.0 if name + DOB + NHS number all clear
 
-sex:
+0.7–0.8 if name + one other identifier
 
-Look for M/F, Male/Female, Sex fields. Default to "unknown" if not clearly documented.
+0.4–0.6 if only name is clear
 
-confidence:
-
-0.9+ ONLY if name, NHS number, and DOB are all clearly visible and consistent.
-
-0.7–0.8 if name is clear and at least one of NHS/DOB is visible.
-
-0.4–0.6 if name appears clear but no NHS number or DOB found.
-
-<0.4 if any extraction is uncertain.
-
-Return null for any field you cannot confidently identify from structured medical record fields.`;
+<0.4 if uncertain`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
