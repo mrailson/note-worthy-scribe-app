@@ -573,14 +573,20 @@ async function sendSummaryEmailWithPdf(
     // Fetch CSV file for attachment
     let csvBase64: string | null = null;
     const basePath = `${patient.practice_ods}/${patient.id}`;
+    const csvPath = `${basePath}/final/snomed.csv`;
+    console.log(`Attempting to fetch CSV from: ${csvPath}`);
     try {
-      const { data: csvFile } = await supabase.storage
+      const { data: csvFile, error: csvError } = await supabase.storage
         .from('lg')
-        .download(`${basePath}/final/snomed.csv`);
-      if (csvFile) {
+        .download(csvPath);
+      if (csvError) {
+        console.log(`CSV fetch error: ${csvError.message}`);
+      } else if (csvFile) {
         const csvText = await csvFile.text();
         csvBase64 = btoa(csvText);
         console.log(`CSV attachment ready, size: ${csvBase64.length} chars`);
+      } else {
+        console.log('CSV file returned null without error');
       }
     } catch (csvErr) {
       console.log('Could not fetch CSV file:', csvErr);
