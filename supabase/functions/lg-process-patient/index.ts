@@ -453,7 +453,7 @@ Do NOT infer names from clinician letters, signatures, notes.
 
 Return null for any field not clearly identifiable.
 
-OUTPUT FORMAT
+OUTPUT FORMAT (return valid json)
 {
   "patient_name": null,
   "nhs_number": null,
