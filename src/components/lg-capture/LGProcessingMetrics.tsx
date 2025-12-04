@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock } from 'lucide-react';
+import { Clock, HardDrive, FileWarning } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 
 interface ProcessingMetricsProps {
   patient: {
@@ -10,6 +11,13 @@ interface ProcessingMetricsProps {
     ocr_completed_at?: string | null;
     pdf_started_at?: string | null;
     pdf_completed_at?: string | null;
+    // Compression fields
+    pdf_final_size_mb?: number | null;
+    compression_tier?: 'Tier 1' | 'Tier 2' | null;
+    pdf_split?: boolean;
+    pdf_parts?: number;
+    compression_attempts?: number;
+    original_size_mb?: number | null;
   };
 }
 
@@ -106,6 +114,55 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
                 <span>Total:</span>
                 <span className="font-mono">{formatDuration(totalDuration)}</span>
               </div>
+            </>
+          )}
+          
+          {/* Compression Metrics */}
+          {patient.pdf_final_size_mb !== undefined && patient.pdf_final_size_mb !== null && (
+            <>
+              <hr className="my-2 border-border" />
+              <div className="flex justify-between items-center">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <HardDrive className="h-3 w-3" />
+                  PDF Size:
+                </span>
+                <span className="font-medium font-mono flex items-center gap-2">
+                  {patient.pdf_final_size_mb.toFixed(2)} MB
+                  {patient.compression_tier && (
+                    <Badge variant={patient.compression_tier === 'Tier 1' ? 'default' : 'secondary'} className="text-xs">
+                      {patient.compression_tier}
+                    </Badge>
+                  )}
+                </span>
+              </div>
+              
+              {patient.original_size_mb && patient.original_size_mb > patient.pdf_final_size_mb && (
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-muted-foreground">Compression:</span>
+                  <span className="text-muted-foreground font-mono">
+                    {((1 - patient.pdf_final_size_mb / patient.original_size_mb) * 100).toFixed(0)}% reduction
+                    {patient.compression_attempts && patient.compression_attempts > 1 && (
+                      <span className="ml-1">({patient.compression_attempts} attempts)</span>
+                    )}
+                  </span>
+                </div>
+              )}
+              
+              {patient.pdf_split && (
+                <div className="flex justify-between items-center text-amber-600">
+                  <span className="flex items-center gap-1">
+                    <FileWarning className="h-3 w-3" />
+                    Split Required:
+                  </span>
+                  <span className="font-medium">{patient.pdf_parts || 1} parts</span>
+                </div>
+              )}
+              
+              {patient.pdf_final_size_mb <= 5 && (
+                <div className="text-xs text-green-600 text-right">
+                  ✓ SystmOne compatible
+                </div>
+              )}
             </>
           )}
         </div>
