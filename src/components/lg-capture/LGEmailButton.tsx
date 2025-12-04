@@ -74,6 +74,7 @@ interface SnomedEntry {
   confidence: number;
   evidence: string;
   source: string;
+  date?: string;
 }
 
 export function LGEmailButton({ patient }: LGEmailButtonProps) {
@@ -341,6 +342,9 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
     if (safeSnomedData.length > 0) {
       html += `<h2 style="color: #005EB8; margin-top: 30px;">SNOMED CT Codes (Problem Codes - ${safeSnomedData.length} identified)</h2>`;
       html += `<p style="color: #666; font-size: 12px; margin-bottom: 15px;">Codes suitable for import into GP systems. Review items with confidence &lt;60%.</p>`;
+      html += `<div style="background: #fff8e6; border-left: 4px solid #FFB81C; padding: 12px; margin-bottom: 15px; font-size: 12px;">
+        <strong style="color: #ED8B00;">⚠️ Important:</strong> Where 'NK' (Not Known) is shown for dates, check the scanned Lloyd George records before coding. <strong>Do NOT use today's date for historical diagnoses.</strong>
+      </div>`;
       
       // Group by domain
       const domains = [...new Set(safeSnomedData.map(s => s.domain))];
@@ -352,15 +356,18 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
           <tr style="background: #005EB8; color: white;">
             <th style="padding: 8px; text-align: left;">Term</th>
             <th style="padding: 8px; text-align: left;">SNOMED Code</th>
+            <th style="padding: 8px; text-align: center;">Date</th>
             <th style="padding: 8px; text-align: center;">Confidence</th>
           </tr>`;
         
         for (const entry of domainEntries) {
           const confPercent = Math.round((typeof entry.confidence === 'number' ? entry.confidence : 0) * 100);
           const confColor = confPercent >= 80 ? '#007F3B' : confPercent >= 60 ? '#ED8B00' : '#DA291C';
+          const dateDisplay = entry.date && entry.date.trim() ? entry.date : '<span style="color: #999; font-style: italic;">NK</span>';
           html += `<tr style="border-bottom: 1px solid #ddd;">
             <td style="padding: 8px;">${safeString(entry.term)}</td>
             <td style="padding: 8px; font-family: monospace;">${safeString(entry.code)}</td>
+            <td style="padding: 8px; text-align: center;">${dateDisplay}</td>
             <td style="padding: 8px; text-align: center; color: ${confColor}; font-weight: bold;">${confPercent}%</td>
           </tr>`;
         }
