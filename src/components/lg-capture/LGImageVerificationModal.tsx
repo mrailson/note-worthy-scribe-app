@@ -368,7 +368,7 @@ export function LGImageVerificationModal({
                 variant="destructive"
                 onClick={handleRemove}
                 disabled={saving}
-                className="mr-auto"
+                className="mr-auto ml-5"
               >
                 {saving ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <X className="h-4 w-4 mr-2" />}
                 Remove
