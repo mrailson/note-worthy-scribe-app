@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2 } from 'lucide-react';
+import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsIPhone } from '@/hooks/use-mobile';
@@ -395,14 +395,53 @@ export default function LGCaptureLanding() {
         <ArrowRight className="ml-2 h-5 w-5" />
       </Button>
 
-      <Button
-        variant="outline"
-        onClick={() => navigate('/lg-capture/patients')}
-        className="w-full"
-      >
-        <List className="mr-2 h-4 w-4" />
-        View Recent Captures
-      </Button>
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/lg-capture/patients')}
+          className="w-full"
+        >
+          <List className="mr-2 h-4 w-4" />
+          Recent Captures
+        </Button>
+        <Button
+          variant="outline"
+          onClick={async () => {
+            // Create a demo patient session
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+              toast.error('Please log in first');
+              return;
+            }
+            const { createPatient } = await import('@/hooks/useLGCapture').then(m => {
+              // We need to create a patient directly here
+              return { createPatient: null };
+            });
+            // Create patient directly via supabase
+            const { generateULID } = await import('@/utils/ulid');
+            const patientId = generateULID();
+            const { error } = await supabase
+              .from('lg_patients')
+              .insert({
+                id: patientId,
+                user_id: user.id,
+                practice_ods: practiceOds || 'DEMO',
+                uploader_name: uploaderName || 'Demo User',
+                job_status: 'draft',
+                sex: 'unknown',
+              });
+            if (error) {
+              toast.error('Failed to create demo session');
+              return;
+            }
+            navigate(`/lg-capture/demo/${patientId}`);
+          }}
+          className="w-full"
+        >
+          <Play className="mr-2 h-4 w-4" />
+          Demo Service
+        </Button>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         {features.map((feature) => (
