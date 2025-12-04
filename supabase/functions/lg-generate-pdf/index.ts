@@ -360,6 +360,41 @@ function addScannedPageWithHeader(
     size: 10 
   });
   
+  // Draw "Go to Index" link on top right (dark blue, clickable)
+  const goToIndexText = 'Go to Index';
+  const goToIndexX = pageWidth - margin - 55;
+  const goToIndexY = pageHeight - 20;
+  page.drawText(goToIndexText, {
+    x: goToIndexX,
+    y: goToIndexY,
+    size: 9,
+    color: rgb(0, 0, 0.7), // Dark blue for link
+  });
+  
+  // Add link annotation for "Go to Index" - links to page 3 (index 2)
+  try {
+    const pages = pdfDoc.getPages();
+    const indexPage = pages[2]; // Page 3 is index 2
+    if (indexPage) {
+      const linkAnnotation = pdfDoc.context.obj({
+        Type: 'Annot',
+        Subtype: 'Link',
+        Rect: [goToIndexX - 2, goToIndexY - 2, goToIndexX + 58, goToIndexY + 10],
+        Border: [0, 0, 0],
+        Dest: [indexPage.ref, PDFName.of('XYZ'), null, null, null],
+      });
+      
+      const annots = page.node.get(PDFName.of('Annots'));
+      if (annots) {
+        annots.push(linkAnnotation);
+      } else {
+        page.node.set(PDFName.of('Annots'), pdfDoc.context.obj([linkAnnotation]));
+      }
+    }
+  } catch (linkErr) {
+    console.warn(`Could not add index link to page ${pageIndex + 1}:`, linkErr);
+  }
+  
   // Draw page summary below patient details if available
   if (pageSummary) {
     const truncatedSummary = sanitizeForPdf(pageSummary).substring(0, 80);
