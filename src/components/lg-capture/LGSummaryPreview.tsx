@@ -1,11 +1,13 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users, Building2, Cigarette, Code2 } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { FileText, AlertTriangle, Pill, Syringe, Stethoscope, Users, Building2, Cigarette, Code2, Eye } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
+import { LGImageVerificationModal, SnomedItemForVerification } from './LGImageVerificationModal';
 
 // Format date as MMM-YYYY or DD-MMM-YYYY depending on available info
 // Handles "Pre" prefix for first-mention dates (e.g., "Pre Oct 2020")
@@ -112,6 +114,12 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
   const [snomedData, setSnomedData] = useState<SnomedData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshKey, setRefreshKey] = useState(0);
+
+  const handleSnomedUpdated = useCallback(() => {
+    // Trigger reload of SNOMED data
+    setRefreshKey(k => k + 1);
+  }, []);
 
   useEffect(() => {
     const loadData = async () => {
@@ -155,7 +163,7 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
     };
 
     loadData();
-  }, [patient.summary_json_url, patient.snomed_json_url, patient.job_status]);
+  }, [patient.summary_json_url, patient.snomed_json_url, patient.job_status, refreshKey]);
 
   if (loading) {
     return (
@@ -416,7 +424,13 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
 
         {/* SNOMED Read Codes Section */}
         {snomedData && (
-          <SnomedCodesSection snomedData={snomedData} />
+          <SnomedCodesSection 
+            snomedData={snomedData} 
+            practiceOds={patient.practice_ods || ''}
+            patientId={patient.id}
+            snomedJsonUrl={patient.snomed_json_url}
+            onItemUpdated={handleSnomedUpdated}
+          />
         )}
       </CardContent>
     </Card>
@@ -424,36 +438,53 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
 }
 
 // Helper component for SNOMED codes display
-function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
+interface SnomedCodesSectionProps {
+  snomedData: SnomedData;
+  practiceOds: string;
+  patientId: string;
+  snomedJsonUrl: string | null;
+  onItemUpdated: () => void;
+}
+
+function SnomedCodesSection({ snomedData, practiceOds, patientId, snomedJsonUrl, onItemUpdated }: SnomedCodesSectionProps) {
+  const [selectedItem, setSelectedItem] = useState<SnomedItemForVerification | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
   // Collect all codeable items (exclude UNKNOWN codes)
-  const codeableItems: Array<{ domain: string; term: string; code: string; date?: string; confidence: number; source_page?: number | null }> = [];
+  const codeableItems: Array<{ domain: string; term: string; code: string; date?: string; confidence: number; evidence?: string; source_page?: number | null; index: number }> = [];
+
+  let idx = 0;
 
   // Diagnoses
   (snomedData.diagnoses ?? []).forEach(item => {
     if (item.code && item.code !== 'UNKNOWN') {
-      codeableItems.push({ domain: 'Diagnosis', term: item.term, code: item.code, date: item.date, confidence: item.confidence, source_page: item.source_page });
+      codeableItems.push({ domain: 'Diagnosis', term: item.term, code: item.code, date: item.date, confidence: item.confidence, evidence: item.evidence, source_page: item.source_page, index: idx });
     }
+    idx++;
   });
 
   // Surgeries
   (snomedData.surgeries ?? []).forEach(item => {
     if (item.code && item.code !== 'UNKNOWN') {
-      codeableItems.push({ domain: 'Surgery', term: item.term, code: item.code, date: item.date, confidence: item.confidence, source_page: item.source_page });
+      codeableItems.push({ domain: 'Surgery', term: item.term, code: item.code, date: item.date, confidence: item.confidence, evidence: item.evidence, source_page: item.source_page, index: idx });
     }
+    idx++;
   });
 
   // Allergies
   (snomedData.allergies ?? []).forEach(item => {
     if (item.code && item.code !== 'UNKNOWN') {
-      codeableItems.push({ domain: 'Allergy', term: item.term, code: item.code, date: item.date, confidence: item.confidence, source_page: item.source_page });
+      codeableItems.push({ domain: 'Allergy', term: item.term, code: item.code, date: item.date, confidence: item.confidence, evidence: item.evidence, source_page: item.source_page, index: idx });
     }
+    idx++;
   });
 
   // Immunisations
   (snomedData.immunisations ?? []).forEach(item => {
     if (item.code && item.code !== 'UNKNOWN') {
-      codeableItems.push({ domain: 'Immunisation', term: item.term, code: item.code, date: item.date, confidence: item.confidence, source_page: item.source_page });
+      codeableItems.push({ domain: 'Immunisation', term: item.term, code: item.code, date: item.date, confidence: item.confidence, evidence: item.evidence, source_page: item.source_page, index: idx });
     }
+    idx++;
   });
 
   if (codeableItems.length === 0) return null;
@@ -467,60 +498,92 @@ function SnomedCodesSection({ snomedData }: { snomedData: SnomedData }) {
     return 0;
   });
 
+  const handleViewSource = (item: typeof codeableItems[0]) => {
+    setSelectedItem(item);
+    setIsModalOpen(true);
+  };
+
   return (
-    <div className="mt-6 pt-4 border-t">
-      <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
-        <Code2 className="h-4 w-4 text-primary" />
-        Suggested SNOMED Read Codes
-      </h4>
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b bg-muted/50">
-              <th className="text-left py-2 px-2 font-medium">Type</th>
-              <th className="text-left py-2 px-2 font-medium">Term</th>
-              <th className="text-left py-2 px-2 font-medium">SNOMED Code</th>
-              <th className="text-left py-2 px-2 font-medium">Date</th>
-              <th className="text-center py-2 px-2 font-medium">Source</th>
-              <th className="text-right py-2 px-2 font-medium">Confidence</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedItems.map((item, i) => {
-              const dateDisplay = formatUKDate(item.date) || 'NK';
-              const isUnknownDate = dateDisplay === 'NK';
-              // Source page: add 2 for summary + index pages in PDF
-              const sourceDisplay = typeof item.source_page === 'number' ? `Pg ${item.source_page + 2}` : '—';
-              return (
-                <tr key={i} className="border-b border-muted/30 hover:bg-muted/20">
-                  <td className="py-2 px-2">
-                    <Badge variant="outline" className="text-xs">{item.domain}</Badge>
-                  </td>
-                  <td className="py-2 px-2">{item.term}</td>
-                  <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{item.code}</td>
-                  <td className={`py-2 px-2 ${isUnknownDate ? 'text-muted-foreground/60 italic' : 'text-muted-foreground'}`}>
-                    {dateDisplay}
-                  </td>
-                  <td className="py-2 px-2 text-center text-muted-foreground text-xs">
-                    {sourceDisplay}
-                  </td>
-                  <td className="py-2 px-2 text-right">
-                    <Badge 
-                      variant={item.confidence >= 0.8 ? 'default' : item.confidence >= 0.6 ? 'secondary' : 'outline'}
-                      className="text-xs"
-                    >
-                      {Math.round(item.confidence * 100)}%
-                    </Badge>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+    <>
+      <div className="mt-6 pt-4 border-t">
+        <h4 className="font-medium text-sm mb-3 flex items-center gap-2">
+          <Code2 className="h-4 w-4 text-primary" />
+          Suggested SNOMED Read Codes
+        </h4>
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b bg-muted/50">
+                <th className="text-left py-2 px-2 font-medium">Type</th>
+                <th className="text-left py-2 px-2 font-medium">Term</th>
+                <th className="text-left py-2 px-2 font-medium">SNOMED Code</th>
+                <th className="text-left py-2 px-2 font-medium">Date</th>
+                <th className="text-center py-2 px-2 font-medium">Source</th>
+                <th className="text-right py-2 px-2 font-medium">Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sortedItems.map((item, i) => {
+                const dateDisplay = formatUKDate(item.date) || 'NK';
+                const isUnknownDate = dateDisplay === 'NK';
+                // Source page: add 2 for summary + index pages in PDF
+                const hasSource = typeof item.source_page === 'number';
+                const sourceDisplay = hasSource ? `Pg ${item.source_page! + 2}` : '—';
+                const isLowConfidence = item.confidence < 0.6;
+                
+                return (
+                  <tr key={i} className="border-b border-muted/30 hover:bg-muted/20">
+                    <td className="py-2 px-2">
+                      <Badge variant="outline" className="text-xs">{item.domain}</Badge>
+                    </td>
+                    <td className="py-2 px-2">{item.term}</td>
+                    <td className="py-2 px-2 font-mono text-xs text-muted-foreground">{item.code}</td>
+                    <td className={`py-2 px-2 ${isUnknownDate ? 'text-muted-foreground/60 italic' : 'text-muted-foreground'}`}>
+                      {dateDisplay}
+                    </td>
+                    <td className="py-2 px-2 text-center">
+                      {hasSource ? (
+                        <Button
+                          variant={isLowConfidence ? "outline" : "ghost"}
+                          size="sm"
+                          className={`h-7 px-2 text-xs ${isLowConfidence ? 'border-amber-500/50 text-amber-600 hover:bg-amber-500/10' : ''}`}
+                          onClick={() => handleViewSource(item)}
+                        >
+                          <Eye className="h-3 w-3 mr-1" />
+                          {sourceDisplay}
+                        </Button>
+                      ) : (
+                        <span className="text-muted-foreground text-xs">{sourceDisplay}</span>
+                      )}
+                    </td>
+                    <td className="py-2 px-2 text-right">
+                      <Badge 
+                        variant={item.confidence >= 0.8 ? 'default' : item.confidence >= 0.6 ? 'secondary' : 'outline'}
+                        className={`text-xs ${isLowConfidence ? 'border-amber-500/50 text-amber-600' : ''}`}
+                      >
+                        {Math.round(item.confidence * 100)}%
+                      </Badge>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <p className="text-xs text-muted-foreground mt-2 italic">
+          NK = Not Known. Click <Eye className="h-3 w-3 inline mx-0.5" /> to view source scan. Review items with low confidence before coding.
+        </p>
       </div>
-      <p className="text-xs text-muted-foreground mt-2 italic">
-        NK = Not Known. Source = PDF page number. Review items with low confidence before coding.
-      </p>
-    </div>
+
+      <LGImageVerificationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        item={selectedItem}
+        practiceOds={practiceOds}
+        patientId={patientId}
+        snomedJsonUrl={snomedJsonUrl}
+        onItemUpdated={onItemUpdated}
+      />
+    </>
   );
 }
