@@ -316,13 +316,14 @@ function addScannedPageWithHeader(
   totalPages: number,
   patientName: string,
   formattedNhs: string,
-  formattedDob: string
+  formattedDob: string,
+  pageSummary?: string
 ): boolean {
   const page = pdfDoc.addPage([595, 842]);
   const pageWidth = 595;
   const pageHeight = 842;
   const margin = 40;
-  const headerHeight = 45;
+  const headerHeight = pageSummary ? 60 : 45; // Taller header if we have a summary
   const footerHeight = 30;
   
   // Draw white header band
@@ -337,9 +338,20 @@ function addScannedPageWithHeader(
   // Draw header text: Patient: {Name} | NHS: {NHS Number} | DOB: {DOB}
   page.drawText(`Patient: ${sanitizeForPdf(patientName)} | NHS: ${formattedNhs} | DOB: ${formattedDob}`, { 
     x: margin, 
-    y: pageHeight - 25, 
+    y: pageHeight - 20, 
     size: 10 
   });
+  
+  // Draw page summary below patient details if available
+  if (pageSummary) {
+    const truncatedSummary = sanitizeForPdf(pageSummary).substring(0, 80);
+    page.drawText(truncatedSummary, { 
+      x: margin, 
+      y: pageHeight - 38, 
+      size: 9,
+      color: rgb(0.3, 0.3, 0.3), // Dark grey for summary
+    });
+  }
   
   // Light grey line under header
   page.drawRectangle({
@@ -433,7 +445,8 @@ async function processBatchWithMemoryProtection(
   patientName: string,
   formattedNhs: string,
   formattedDob: string,
-  failedPages: FailedPage[]
+  failedPages: FailedPage[],
+  pageSummaries: string[]
 ): Promise<number> {
   let processedCount = 0;
   let successfulEmbeds = 0;
@@ -490,7 +503,7 @@ async function processBatchWithMemoryProtection(
         }
         
         // Add page with header band - this now returns success status
-        const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob);
+        const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob, pageSummaries[i]);
         
         if (imageDrawn) {
           successfulEmbeds++;
@@ -728,7 +741,8 @@ serve(async (req) => {
           patientName,
           formattedNhs,
           formattedDob,
-          failedPages
+          failedPages,
+          pageSummaries
         );
 
         console.log(`Batch complete: ${processedInBatch}/${batchEnd - batchStart} pages processed`);
@@ -827,7 +841,7 @@ serve(async (req) => {
               console.log(`Embedded PNG for fallback page ${i + 1}`);
             }
             
-            const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob);
+            const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob, pageSummaries[i]);
             if (imageDrawn) fallbackSuccessCount++;
           }
         } catch (err) {
