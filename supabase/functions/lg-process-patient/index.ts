@@ -404,22 +404,27 @@ ${fullOcrText.substring(0, 50000)}`;
     let snomedJson: any = null;
 
     if (openaiKey && summaryJson) {
-      const conceptPrompt = `Using the clinical summary, identify clinical CONCEPTS that need SNOMED coding.
+      const conceptPrompt = `Using the clinical summary and OCR text, identify clinical CONCEPTS that need SNOMED coding.
 
-Return JSON listing the clinical terms (we will match them to validated codes):
+IMPORTANT: Extract dates where available from the OCR text. Look for dates near each clinical term.
+- Format dates as DD-MMM-YYYY (e.g., "15-Mar-2018") or just the year (e.g., "2009") if only year is known
+- If no date can be found for an item, leave date as empty string ""
+- Search the OCR text carefully for dates mentioned near diagnoses, procedures, etc.
+
+Return JSON listing the clinical terms with dates found:
 
 {
-  "diagnoses": [{"term":"condition name","date":"","evidence":"source text"}],
-  "surgeries": [{"term":"procedure name","date":"","evidence":""}],
+  "diagnoses": [{"term":"condition name","date":"2009","evidence":"source text showing where found"}],
+  "surgeries": [{"term":"procedure name","date":"15-Mar-2018","evidence":""}],
   "allergies": [{"term":"allergen/drug","date":"","evidence":""}],
-  "immunisations": [{"term":"vaccine name","date":"","evidence":""}]
+  "immunisations": [{"term":"vaccine name","date":"1965","evidence":""}]
 }
 
 Summary JSON:
 ${JSON.stringify(summaryJson, null, 2)}
 
-OCR Text (first 10000 chars):
-${fullOcrText.substring(0, 10000)}`;
+OCR Text (search for dates here):
+${fullOcrText.substring(0, 12000)}`;
 
       try {
         // Step 1: Extract concepts (not codes)
