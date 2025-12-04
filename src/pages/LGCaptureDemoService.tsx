@@ -279,7 +279,16 @@ export default function LGCaptureDemoService() {
               </Button>
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
+            {/* Submit Button - at top for easy access */}
+            <Button
+              onClick={handleDoneNextPatient}
+              className="w-full h-14 text-lg"
+              size="lg"
+            >
+              Submit and Process LG ({images.length} Pages)
+            </Button>
+            
             <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
               {images.map((image, index) => (
                 <div
@@ -314,22 +323,11 @@ export default function LGCaptureDemoService() {
                 </div>
               ))}
             </div>
-            <p className="text-xs text-muted-foreground mt-3 text-center">
+            <p className="text-xs text-muted-foreground text-center">
               Drag pages to reorder • Click trash to remove
             </p>
           </CardContent>
         </Card>
-      )}
-
-      {/* Done Button */}
-      {images.length > 0 && !isLoading && (
-        <Button
-          onClick={handleDoneNextPatient}
-          className="w-full h-14 text-lg"
-          size="lg"
-        >
-          Submit and Process LG ({images.length} Pages)
-        </Button>
       )}
     </div>
   );
