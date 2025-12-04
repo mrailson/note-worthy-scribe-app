@@ -274,11 +274,20 @@ serve(async (req) => {
           const { data: imageData } = await supabase.storage.from('lg').download(imagePath);
           if (imageData) {
             const arrayBuffer = await imageData.arrayBuffer();
-            const base64 = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+            // Use chunked conversion to avoid stack overflow on large images
+            const uint8Array = new Uint8Array(arrayBuffer);
+            const chunkSize = 32768;
+            let base64 = '';
+            for (let i = 0; i < uint8Array.length; i += chunkSize) {
+              const chunk = uint8Array.subarray(i, Math.min(i + chunkSize, uint8Array.length));
+              base64 += String.fromCharCode.apply(null, Array.from(chunk));
+            }
+            base64 = btoa(base64);
             
             const existing = pagesData.get(pageNum) || { page_number: pageNum, ocr_text: '' };
             existing.image_base64 = base64;
             pagesData.set(pageNum, existing);
+            console.log(`Loaded image for page ${pageNum}, size: ${base64.length} chars`);
           }
         } catch (e) {
           console.log(`Could not load image for page ${pageNum}:`, e);
