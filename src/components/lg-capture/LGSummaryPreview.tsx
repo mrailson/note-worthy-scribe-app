@@ -598,8 +598,11 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, p
                     </td>
                     <td className="py-2 px-2 text-right">
                       <Badge 
-                        variant={item.confidence > 0.89 ? 'default' : 'destructive'}
-                        className="text-xs"
+                        className={`text-xs ${
+                          item.confidence >= 0.8 
+                            ? 'bg-green-600 hover:bg-green-700 text-white' 
+                            : 'bg-red-600 hover:bg-red-700 text-white'
+                        }`}
                       >
                         {Math.round(item.confidence * 100)}%
                       </Badge>

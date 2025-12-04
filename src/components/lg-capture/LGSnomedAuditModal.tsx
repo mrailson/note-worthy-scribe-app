@@ -577,7 +577,10 @@ export function LGSnomedAuditModal({
                     <Badge variant="outline">{currentItem.domain}</Badge>
                     {pdfPageNumber && <Badge variant="outline">PDF Page {pdfPageNumber}</Badge>}
                     <Badge 
-                      variant={currentItem.confidence > 0.89 ? 'default' : 'destructive'}
+                      className={currentItem.confidence >= 0.8 
+                        ? 'bg-green-600 hover:bg-green-700 text-white' 
+                        : 'bg-red-600 hover:bg-red-700 text-white'
+                      }
                     >
                       {Math.round(currentItem.confidence * 100)}% confidence
                     </Badge>
