@@ -45,27 +45,16 @@ interface CompressionSettings {
 }
 
 function getCompressionSettings(pageCount: number, attempt: number = 0): CompressionSettings {
-  // Baseline: 40% scale, 60% quality per spec
-  const baseScale = 0.40;
-  const baseQuality = 0.60;
+  // Use consistent 35% scale for ALL documents (matching 30-page layout)
+  const baseScale = 0.35;
+  const baseQuality = 0.55;
   
-  if (pageCount <= 30) {
-    // Standard compression for ≤30 pages
-    return {
-      scaleFactor: Math.max(baseScale - (attempt * 0.05), 0.30), // 0.40, 0.35, 0.30
-      jpegQuality: Math.max(baseQuality - (attempt * 0.05), 0.45), // 0.60, 0.55, 0.50
-      grayscale: attempt >= 2, // Only on 3rd attempt
-      tier: 'Standard' as const,
-    };
-  } else {
-    // Aggressive compression for >30 pages
-    return {
-      scaleFactor: Math.max(baseScale - 0.05 - (attempt * 0.05), 0.25), // 0.35, 0.30, 0.25
-      jpegQuality: Math.max(baseQuality - 0.05 - (attempt * 0.05), 0.40), // 0.55, 0.50, 0.45
-      grayscale: true, // Always grayscale for large docs
-      tier: 'Aggressive' as const,
-    };
-  }
+  return {
+    scaleFactor: Math.max(baseScale - (attempt * 0.05), 0.25), // 0.35, 0.30, 0.25
+    jpegQuality: Math.max(baseQuality - (attempt * 0.05), 0.40), // 0.55, 0.50, 0.45
+    grayscale: pageCount > 30 || attempt >= 2, // Grayscale for large docs or 3rd attempt
+    tier: pageCount > 30 ? 'Aggressive' as const : 'Standard' as const,
+  };
 }
 
 // Parse EXIF orientation from JPEG bytes
