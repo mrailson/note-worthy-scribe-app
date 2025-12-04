@@ -1182,56 +1182,114 @@ function createEmptySummary() {
   };
 }
 
-// Find source page by searching OCR text for evidence string or term
+// Parse OCR text into page-indexed map for validation
+function getPageTextMap(ocrText: string): Map<number, string> {
+  const pageMap = new Map<number, string>();
+  if (!ocrText) return pageMap;
+  
+  const pageRegex = /---\s*Page\s+page_(\d+)\.(jpg|jpeg|png)\s*---/gi;
+  const parts = ocrText.split(pageRegex);
+  
+  for (let i = 1; i < parts.length; i += 3) {
+    const pageNum = parseInt(parts[i], 10) - 1; // Convert to 0-indexed
+    const pageText = parts[i + 2] || '';
+    if (pageNum >= 0 && pageText.length > 10) {
+      pageMap.set(pageNum, pageText.toLowerCase().trim());
+    }
+  }
+  return pageMap;
+}
+
+// Validate that evidence actually exists on the claimed source page
+function validateSourcePage(claimedPage: number, evidence: string, ocrText: string, term: string = ''): boolean {
+  if (claimedPage < 0 || !ocrText) return false;
+  
+  const pageMap = getPageTextMap(ocrText);
+  const pageContent = pageMap.get(claimedPage);
+  if (!pageContent) return false;
+  
+  // Strategy 1: Check for exact evidence substring (best match)
+  if (evidence && evidence.length >= 5) {
+    const evidenceLower = evidence.toLowerCase().trim();
+    if (pageContent.includes(evidenceLower)) {
+      return true;
+    }
+  }
+  
+  // Strategy 2: Check if 80%+ of evidence words appear on the page
+  if (evidence && evidence.length >= 5) {
+    const evidenceWords = evidence.toLowerCase().split(/\s+/).filter(w => w.length > 2);
+    if (evidenceWords.length > 0) {
+      const matchCount = evidenceWords.filter(w => pageContent.includes(w)).length;
+      const matchRatio = matchCount / evidenceWords.length;
+      if (matchRatio >= 0.8) {
+        return true;
+      }
+    }
+  }
+  
+  // Strategy 3: Check if term appears on page (fallback for short evidence)
+  if (term && term.length >= 3) {
+    const termLower = term.toLowerCase().trim();
+    if (pageContent.includes(termLower)) {
+      return true;
+    }
+    // Check significant words from term
+    const termWords = termLower.split(/\s+/).filter(w => w.length > 2);
+    if (termWords.length > 0) {
+      const matchCount = termWords.filter(w => pageContent.includes(w)).length;
+      const matchRatio = matchCount / termWords.length;
+      if (matchRatio >= 0.8) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
+}
+
+// Find source page by searching OCR text for evidence string or term (stricter matching)
 function findSourcePageFromEvidence(evidence: string, ocrText: string, term: string = ''): number | null {
   if (!ocrText) return null;
   
-  // Parse OCR into pages using the page markers like "--- Page page_001.jpg ---"
-  const pageRegex = /---\s*Page\s+(page_(\d+)\.(jpg|jpeg|png))\s*---/gi;
-  const parts = ocrText.split(pageRegex);
+  const pageMap = getPageTextMap(ocrText);
+  if (pageMap.size === 0) return null;
   
   // Build search strategies: evidence first, then term
-  const searchStrategies: string[][] = [];
+  const searchStrategies: { text: string; words: string[] }[] = [];
   
   if (evidence && evidence.length >= 5) {
-    const evidenceTerms = evidence.toLowerCase().trim().split(/\s+/).filter(t => t.length > 2);
-    if (evidenceTerms.length > 0) searchStrategies.push(evidenceTerms);
+    const evidenceWords = evidence.toLowerCase().trim().split(/\s+/).filter(t => t.length > 2);
+    if (evidenceWords.length > 0) {
+      searchStrategies.push({ text: evidence.toLowerCase().trim(), words: evidenceWords });
+    }
   }
   
   if (term && term.length >= 3) {
     const termWords = term.toLowerCase().trim().split(/\s+/).filter(t => t.length > 2);
-    if (termWords.length > 0) searchStrategies.push(termWords);
+    if (termWords.length > 0) {
+      searchStrategies.push({ text: term.toLowerCase().trim(), words: termWords });
+    }
   }
   
   if (searchStrategies.length === 0) return null;
   
-  let currentPage = -1;
-  for (let i = 0; i < parts.length; i++) {
-    const part = parts[i];
-    
-    // Check if this part is a page number match
-    if (/^\d+$/.test(part)) {
-      currentPage = parseInt(part, 10) - 1; // Convert to 0-indexed
-      continue;
-    }
-    
-    // Skip extension matches
-    if (/^(jpg|jpeg|png)$/i.test(part)) continue;
-    
-    // This is page content - search for evidence/term
-    if (currentPage >= 0 && part && part.length > 20) {
-      const partLower = part.toLowerCase();
+  // Search each page for matches
+  for (const [pageNum, pageContent] of pageMap) {
+    for (const strategy of searchStrategies) {
+      // Try exact substring match first (highest confidence)
+      if (strategy.text.length >= 10 && pageContent.includes(strategy.text)) {
+        console.log(`Found exact match on page ${pageNum} for "${strategy.text.substring(0, 30)}..."`);
+        return pageNum;
+      }
       
-      // Try each search strategy
-      for (const searchTerms of searchStrategies) {
-        // Check if at least one significant word appears (more lenient)
-        const matchingTerms = searchTerms.filter(t => partLower.includes(t));
-        const threshold = searchTerms.length === 1 ? 1 : Math.max(1, Math.floor(searchTerms.length * 0.5));
-        
-        if (matchingTerms.length >= threshold) {
-          console.log(`Found source_page ${currentPage} for "${term || evidence?.substring(0, 30)}"`);
-          return currentPage;
-        }
+      // Require 80%+ word match (stricter than before)
+      const matchingWords = strategy.words.filter(w => pageContent.includes(w));
+      const threshold = strategy.words.length === 1 ? 1 : Math.ceil(strategy.words.length * 0.8);
+      
+      if (matchingWords.length >= threshold) {
+        console.log(`Found ${matchingWords.length}/${strategy.words.length} words on page ${pageNum} for "${term || evidence?.substring(0, 30)}"`);
+        return pageNum;
       }
     }
   }
@@ -1263,7 +1321,26 @@ function convertItemsToSnomedDomains(aiOutput: any, ocrText: string = ''): any {
     
     // Determine source_page: use AI value if present, otherwise try to find from evidence
     let sourcePage = typeof item.source_page === 'number' ? item.source_page : null;
-    if (sourcePage === null && (item.evidence || item.term)) {
+    
+    // VALIDATION GUARDRAIL: Verify AI-provided source_page is valid
+    if (sourcePage !== null && ocrText) {
+      const isValid = validateSourcePage(sourcePage, item.evidence || '', ocrText, item.term || '');
+      if (!isValid) {
+        console.log(`INVALID source_page ${sourcePage} for "${item.term}" - evidence not found on claimed page`);
+        // Try to find correct page using stricter matching
+        const correctedPage = findSourcePageFromEvidence(item.evidence || '', ocrText, item.term || '');
+        if (correctedPage !== null) {
+          console.log(`Corrected source_page to ${correctedPage}`);
+          sourcePage = correctedPage;
+        } else {
+          console.log(`Could not find valid source page - nulling out to prevent wrong reference`);
+          sourcePage = null;
+        }
+      }
+    }
+    
+    // If no AI-provided page, try to find from evidence
+    if (sourcePage === null && ocrText && (item.evidence || item.term)) {
       sourcePage = findSourcePageFromEvidence(item.evidence || '', ocrText, item.term || '');
     }
 
