@@ -37,39 +37,31 @@ Developer guardrails:
 - Never fabricate data; mark "unknown" if uncertain.`;
 
 // SNOMED Concept Extractor - extracts clinical CONCEPTS (not codes) for database matching
-const SNOMED_CONCEPT_PROMPT = `You are a clinical coder for UK primary care. Extract clinical CONCEPTS from the summary.
+const SNOMED_CONCEPT_PROMPT = `You are a clinical coder for UK primary care. Extract clinical CONCEPTS from the OCR text.
 DO NOT generate SNOMED codes - just identify the clinical terms that need coding.
 
-The OCR text contains page markers like "--- Page 001.jpg ---" before each page's content.
-You MUST identify which page each clinical term was found on by looking at the nearest page marker BEFORE the evidence text.
+**CRITICAL - SOURCE_PAGE IS REQUIRED:**
+The OCR text has page markers like "--- Page 001.jpg ---", "--- Page 002.jpg ---".
+For EVERY item, you MUST include "source_page" by finding which page marker appears BEFORE the evidence text.
+Convert page number to 0-indexed: 001.jpg → source_page:0, 002.jpg → source_page:1, 003.jpg → source_page:2
 
-Return JSON with clinical terms to be coded:
+Return JSON with this EXACT structure (source_page is MANDATORY):
 
 {
-  "diagnoses": [{"term":"clinical condition name","date":"","evidence":"text from source","source_page":0}],
-  "surgeries": [{"term":"procedure name","date":"","evidence":"","source_page":1}],
-  "allergies": [{"term":"allergen or drug name","date":"","evidence":"","source_page":null}],
-  "immunisations": [{"term":"vaccine name","date":"","evidence":"","source_page":2}]
+  "diagnoses": [{"term":"Type 2 diabetes mellitus","date":"2009","evidence":"PMH: T2DM dx ~2009","source_page":0}],
+  "surgeries": [{"term":"Left cataract surgery","date":"Jun 2019","evidence":"Phacoemulsification performed","source_page":1}],
+  "allergies": [{"term":"Penicillin","date":"","evidence":"Known allergy","source_page":2}],
+  "immunisations": [{"term":"COVID-19 vaccination","date":"Mar 2021","evidence":"Covid vaccine","source_page":2}]
 }
 
 RULES:
-- Use standard UK clinical terminology (e.g., "Type 2 diabetes mellitus", "Hypertension", "Asthma")
-- Be specific: "Chronic obstructive pulmonary disease" not just "lung disease"
-- Include dates where mentioned (YYYY, MMM YYYY, or "Pre Oct 2020" format)
-- Evidence should be a short snippet from the source text
-- source_page: Extract the page number from the "--- Page XXX.jpg ---" marker. Use 0-indexed: 001.jpg=0, 002.jpg=1, 003.jpg=2, etc. Use null if cannot determine.
+- term: UK clinical terminology
+- date: YYYY, MMM YYYY, or "Pre Oct 2020" format
+- evidence: Short snippet from source
+- source_page: REQUIRED integer (0, 1, 2, etc.) - only use null if absolutely cannot determine
 
-ONLY extract:
-1. Major diagnoses and chronic conditions
-2. Major surgical procedures (appendectomy, cholecystectomy, hip replacement, etc.)
-3. Allergies and adverse drug reactions
-4. Immunisations/vaccinations
-
-DO NOT extract:
-- Minor self-limiting illnesses
-- Social history
-- Family history
-- Medications`;
+ONLY extract: diagnoses, surgeries, allergies, immunisations.
+DO NOT extract: social history, family history, medications.`;
 
 // Patient details extraction prompt
 const PATIENT_EXTRACTION_PROMPT = `You are extracting patient demographic details from scanned Lloyd George medical records. Extract ONLY what you can clearly see in the OCR text. Do not guess or invent information.
