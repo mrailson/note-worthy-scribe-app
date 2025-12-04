@@ -352,23 +352,61 @@ For "Booster dose of smallpox vaccine":
 - Even if model is unsure → still output them
 - If ANY smallpox entry is detected and NOT output → MODEL FAILS TASK
 
-5.7 Other Immunisations
+5.7 Immunisation SNOMED Overrides (High Confidence Mandatory Rules)
 
-For other vaccines, try to map to the closest vaccination procedure concept.
-Examples (if confident):
+When an immunisation is explicitly documented in the OCR text or image, apply the following SNOMED CT mappings instead of MANUAL_REVIEW, UNLESS the vaccine is smallpox.
 
-Seasonal influenza vaccination (e.g. for "Influenza (Fluarix Tetra)")
+**Influenza vaccination**
+Trigger phrases: "Influenza", "Fluarix", "Fluarix Tetra", "Flu vaccine"
+Output:
+{
+  "snomed_code": "6142004",
+  "snomed_term": "Influenza vaccination (procedure)",
+  "confidence": 0.90,
+  "review_flag": "CODE_OK"
+}
 
-Pneumococcal polysaccharide vaccine (PPV23)
+**Shingles vaccination (Zostavax)**
+Trigger phrases: "Shingles", "Zostavax", "Shingles (Zostavax)"
+Output:
+{
+  "snomed_code": "871751000000109",
+  "snomed_term": "Zostavax vaccination (procedure)",
+  "confidence": 0.90,
+  "review_flag": "CODE_OK"
+}
 
-Shingles (Zostavax) vaccination
+**Pneumococcal vaccination (PPV23)**
+Trigger phrases: "Pneumococcal", "PPV23"
+Output:
+{
+  "snomed_code": "393537006",
+  "snomed_term": "Administration of pneumococcal polysaccharide vaccine (procedure)",
+  "confidence": 0.90,
+  "review_flag": "CODE_OK"
+}
 
-COVID-19 mRNA/Pfizer vaccination
+**COVID-19 vaccination (Pfizer/mRNA)**
+Trigger phrases: "COVID-19 (Pfizer)", "COVID vaccine", "Covid", "Pfizer", "mRNA vaccine"
+Output (general SNOMED widely mapped by EMIS/SystmOne):
+{
+  "snomed_code": "1324681000000101",
+  "snomed_term": "Administration of SARS-CoV-2 mRNA vaccine (procedure)",
+  "confidence": 0.85,
+  "review_flag": "CODE_OK"
+}
+Use for both 1st and 2nd dose unless documentation explicitly indicates otherwise.
 
-If unsure of the exact vaccine SNOMED code, use:
+**Smallpox vaccination (EXCEPTION - keep as MANUAL_REVIEW)**
+Smallpox codes are deprecated in SNOMED CT, so always use:
+{
+  "snomed_code": "MANUAL_REVIEW",
+  "snomed_term": null,
+  "confidence": 0.30,
+  "review_flag": "NEEDS_MANUAL_REVIEW"
+}
 
-"snomed_code": "MANUAL_REVIEW",
-"snomed_term": null
+For any other immunisations not listed above, use MANUAL_REVIEW if uncertain of the exact SNOMED code.
 
 6. Dates and evidence
 
