@@ -210,7 +210,7 @@ export function LGImageVerificationModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-6xl max-h-[95vh] flex flex-col">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             Verify SNOMED Code
@@ -237,13 +237,13 @@ export function LGImageVerificationModal({
               </div>
             )}
             {imageUrl && !loading && (
-              <ScrollArea className="h-[400px]">
+              <ScrollArea className="h-[600px]">
                 <div className="p-2 flex items-start justify-center">
                   <img
                     src={imageUrl}
                     alt={`Scan page ${item.source_page! + 1}`}
                     style={{ transform: `scale(${zoom})`, transformOrigin: 'top center' }}
-                    className="max-h-[380px] w-auto object-contain"
+                    className="max-h-[580px] w-auto object-contain"
                   />
                 </div>
               </ScrollArea>
