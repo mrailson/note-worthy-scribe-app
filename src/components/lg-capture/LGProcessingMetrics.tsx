@@ -71,6 +71,14 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
       </CardHeader>
       <CardContent>
         <div className="space-y-2 text-sm">
+          {/* Total Pages */}
+          {pageCount > 0 && (
+            <div className="flex justify-between items-center">
+              <span className="text-muted-foreground">Total Pages:</span>
+              <span className="font-medium font-mono">{pageCount}</span>
+            </div>
+          )}
+          
           {uploadDuration !== null && (
             <div className="flex justify-between items-center">
               <span className="text-muted-foreground">Upload:</span>

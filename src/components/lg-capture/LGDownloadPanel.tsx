@@ -128,9 +128,18 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
 
   const [otherFilesOpen, setOtherFilesOpen] = useState(false);
 
+  // Format patient name for display
+  const patientName = patient.ai_extracted_name || patient.patient_name || 'Unknown';
+  const formattedNhs = nhsNumber.length === 10 
+    ? `${nhsNumber.slice(0, 3)} ${nhsNumber.slice(3, 6)} ${nhsNumber.slice(6)}`
+    : nhsNumber;
+  const formattedDob = dob ? new Date(dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-') : 'Unknown';
+  const fileSizeMb = patient.pdf_final_size_mb;
+
   const primaryFile = {
     label: 'Lloyd George PDF',
-    description: 'Searchable PDF with all pages',
+    description: `Searchable PDF with all pages${fileSizeMb ? ` • ${fileSizeMb.toFixed(2)} MB` : ''}`,
+    patientDetails: `${patientName} | NHS: ${formattedNhs} | DOB: ${formattedDob}`,
     url: patient.pdf_url,
     filename: `${baseFilename}___Lloyd George Scan.pdf`,
     icon: FileText,
@@ -160,9 +169,10 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     },
   ];
 
-  const renderFileButton = (file: typeof primaryFile, isPrimary = false) => {
+  const renderFileButton = (file: typeof primaryFile | typeof otherFiles[0], isPrimary = false) => {
     const Icon = file.icon;
     const isDownloading = downloading === file.filename;
+    const patientDetails = 'patientDetails' in file ? file.patientDetails : null;
     
     return (
       <Button
@@ -176,6 +186,9 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
         <div className="text-left flex-1">
           <div className="font-medium">{file.label}</div>
           <div className={`text-xs ${isPrimary ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>{file.description}</div>
+          {isPrimary && patientDetails && (
+            <div className={`text-xs mt-1 ${isPrimary ? 'text-primary-foreground/60' : 'text-muted-foreground'}`}>{patientDetails}</div>
+          )}
         </div>
         {isDownloading ? (
           <span className="text-xs">{isIPhone ? 'Opening...' : 'Downloading...'}</span>
