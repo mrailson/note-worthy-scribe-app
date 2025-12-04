@@ -315,6 +315,16 @@ function addQualityGateWarningPage(pdfDoc: any, failedPages: FailedPage[], inser
   });
 }
 
+// Calculate rotation angle from EXIF orientation
+function getRotationFromExif(orientation: number): { degrees: number; swapDimensions: boolean } {
+  switch (orientation) {
+    case 3: return { degrees: 180, swapDimensions: false };
+    case 6: return { degrees: 90, swapDimensions: true };
+    case 8: return { degrees: 270, swapDimensions: true };
+    default: return { degrees: 0, swapDimensions: false };
+  }
+}
+
 // Add scanned page with patient header band - returns true if image was drawn successfully
 function addScannedPageWithHeader(
   pdfDoc: any,
@@ -324,7 +334,8 @@ function addScannedPageWithHeader(
   patientName: string,
   formattedNhs: string,
   formattedDob: string,
-  pageSummary?: string
+  pageSummary?: string,
+  orientation: number = 1  // EXIF orientation (1-8)
 ): boolean {
   const page = pdfDoc.addPage([595, 842]);
   const pageWidth = 595;
@@ -377,21 +388,67 @@ function addScannedPageWithHeader(
   
   try {
     if (image && image.width && image.height) {
+      // Get rotation info from EXIF orientation
+      const { degrees: rotationDegrees, swapDimensions } = getRotationFromExif(orientation);
+      
+      // Get effective dimensions (swap if rotated 90 or 270)
+      const effectiveWidth = swapDimensions ? image.height : image.width;
+      const effectiveHeight = swapDimensions ? image.width : image.height;
+      
+      // Calculate scale based on effective dimensions
       let scale = 1;
-      if (image.width > availableWidth || image.height > availableHeight) {
-        const widthRatio = availableWidth / image.width;
-        const heightRatio = availableHeight / image.height;
+      if (effectiveWidth > availableWidth || effectiveHeight > availableHeight) {
+        const widthRatio = availableWidth / effectiveWidth;
+        const heightRatio = availableHeight / effectiveHeight;
         scale = Math.min(widthRatio, heightRatio);
       }
       
-      const width = Math.round(image.width * scale);
-      const height = Math.round(image.height * scale);
-      const x = (pageWidth - width) / 2;
-      const y = pageHeight - headerHeight - margin * 0.5 - height;
+      const scaledEffectiveWidth = Math.round(effectiveWidth * scale);
+      const scaledEffectiveHeight = Math.round(effectiveHeight * scale);
       
-      page.drawImage(image, { x, y, width, height });
+      // Position for the rotated image (centered)
+      const centerX = pageWidth / 2;
+      const centerY = pageHeight - headerHeight - margin * 0.5 - scaledEffectiveHeight / 2;
+      
+      if (rotationDegrees === 0) {
+        // No rotation - simple draw
+        const x = (pageWidth - scaledEffectiveWidth) / 2;
+        const y = pageHeight - headerHeight - margin * 0.5 - scaledEffectiveHeight;
+        page.drawImage(image, { x, y, width: scaledEffectiveWidth, height: scaledEffectiveHeight });
+      } else {
+        // Apply rotation using pdf-lib's rotate option
+        // For rotated images, we draw the original dimensions and let pdf-lib rotate
+        const scaledOrigWidth = Math.round(image.width * scale);
+        const scaledOrigHeight = Math.round(image.height * scale);
+        
+        // Calculate position so the rotated image is centered in available space
+        let x: number, y: number;
+        
+        if (rotationDegrees === 90) {
+          // 90 CW: bottom-left becomes top-left
+          x = centerX - scaledEffectiveWidth / 2;
+          y = centerY - scaledEffectiveHeight / 2;
+        } else if (rotationDegrees === 270) {
+          // 270 CW (90 CCW): top-right becomes top-left
+          x = centerX - scaledEffectiveWidth / 2;
+          y = centerY - scaledEffectiveHeight / 2;
+        } else {
+          // 180: flip both axes
+          x = centerX - scaledEffectiveWidth / 2;
+          y = centerY - scaledEffectiveHeight / 2;
+        }
+        
+        page.drawImage(image, { 
+          x, 
+          y, 
+          width: scaledOrigWidth, 
+          height: scaledOrigHeight,
+          rotate: { type: 'degrees', angle: rotationDegrees },
+        });
+      }
+      
       imageDrawn = true;
-      console.log(`Drew image on page ${pageIndex + 1}: ${width}x${height}px at (${x.toFixed(0)}, ${y.toFixed(0)})`);
+      console.log(`Drew image on page ${pageIndex + 1}: ${scaledEffectiveWidth}x${scaledEffectiveHeight}px (rotation: ${rotationDegrees}°)`);
     } else {
       console.error(`Invalid image object for page ${pageIndex + 1}: missing dimensions`);
     }
@@ -481,9 +538,12 @@ async function processBatchWithMemoryProtection(
         let uint8Array = new Uint8Array(arrayBuffer);
         const originalSize = uint8Array.length;
         
-        console.log(`Downloaded page ${i + 1}: ${(originalSize / 1024).toFixed(0)}KB`);
+        // Extract EXIF orientation BEFORE compression (compression may strip it)
+        const exifOrientation = parseExifOrientation(uint8Array);
+        console.log(`Downloaded page ${i + 1}: ${(originalSize / 1024).toFixed(0)}KB, EXIF orientation: ${exifOrientation}`);
         
-        // Apply compression (40% scale, 60% quality, EXIF rotation)
+        // Apply compression (40% scale, 60% quality)
+        // Note: compression may fail in Deno, that's OK - we apply rotation at PDF draw time
         uint8Array = await compressImage(uint8Array, compressionSettings);
         const compressedSize = uint8Array.length;
         
@@ -509,8 +569,8 @@ async function processBatchWithMemoryProtection(
           throw new Error('Embed returned null image');
         }
         
-        // Add page with header band - this now returns success status
-        const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob, pageSummaries[i]);
+        // Add page with header band - pass EXIF orientation for rotation at draw time
+        const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob, pageSummaries[i], exifOrientation);
         
         if (imageDrawn) {
           successfulEmbeds++;
