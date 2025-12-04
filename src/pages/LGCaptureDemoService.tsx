@@ -328,7 +328,7 @@ export default function LGCaptureDemoService() {
           className="w-full h-14 text-lg"
           size="lg"
         >
-          Done, Next Patient ({images.length} pages)
+          Submit and Process LG ({images.length} Pages)
         </Button>
       )}
     </div>
