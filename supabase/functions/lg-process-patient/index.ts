@@ -409,25 +409,30 @@ ${fullOcrText.substring(0, 50000)}`;
     if (openaiKey && summaryJson) {
       const conceptPrompt = `Using the clinical summary and OCR text, identify clinical CONCEPTS that need SNOMED coding.
 
-IMPORTANT: Extract dates where available from the OCR text. Look for dates near each clinical term.
-- Format dates as DD-MMM-YYYY (e.g., "15-Mar-2018") or just the year (e.g., "2009") if only year is known
-- If no date can be found for an item, leave date as empty string ""
-- Search the OCR text carefully for dates mentioned near diagnoses, procedures, etc.
+IMPORTANT RULES:
+1. Extract dates where available. Look for dates near each clinical term.
+   - Format dates as DD-MMM-YYYY (e.g., "15-Mar-2018") or just the year (e.g., "2009")
+   - If no date found, leave date as empty string ""
+2. CRITICAL: Identify the SOURCE PAGE for each item by looking at the page markers in the OCR text.
+   - The OCR has markers like "--- Page page_001.jpg ---" before each page's content
+   - Return the page number (0-indexed) where you found each concept
+   - If page 001 contains the diagnosis, source_page = 0
+   - If page 003 contains the surgery, source_page = 2
+3. Include the exact evidence text snippet where you found the concept
 
-Return JSON listing the clinical terms with dates found:
-
+Return JSON:
 {
-  "diagnoses": [{"term":"condition name","date":"2009","evidence":"source text showing where found"}],
-  "surgeries": [{"term":"procedure name","date":"15-Mar-2018","evidence":""}],
-  "allergies": [{"term":"allergen/drug","date":"","evidence":""}],
-  "immunisations": [{"term":"vaccine name","date":"1965","evidence":""}]
+  "diagnoses": [{"term":"condition name","date":"2009","source_page":0,"evidence":"exact text from OCR"}],
+  "surgeries": [{"term":"procedure name","date":"15-Mar-2018","source_page":2,"evidence":""}],
+  "allergies": [{"term":"allergen/drug","date":"","source_page":1,"evidence":""}],
+  "immunisations": [{"term":"vaccine name","date":"1965","source_page":3,"evidence":""}]
 }
 
 Summary JSON:
 ${JSON.stringify(summaryJson, null, 2)}
 
-OCR Text (search for dates here):
-${fullOcrText.substring(0, 12000)}`;
+OCR Text (note the page markers):
+${fullOcrText.substring(0, 15000)}`;
 
       try {
         // Step 1: Extract concepts (not codes)
@@ -746,16 +751,28 @@ function createEmptySummary() {
   };
 }
 
-// Find source page by searching OCR text for evidence string
-function findSourcePageFromEvidence(evidence: string, ocrText: string): number | null {
-  if (!evidence || !ocrText || evidence.length < 5) return null;
+// Find source page by searching OCR text for evidence string or term
+function findSourcePageFromEvidence(evidence: string, ocrText: string, term: string = ''): number | null {
+  if (!ocrText) return null;
   
   // Parse OCR into pages using the page markers like "--- Page page_001.jpg ---"
   const pageRegex = /---\s*Page\s+(page_(\d+)\.(jpg|jpeg|png))\s*---/gi;
   const parts = ocrText.split(pageRegex);
   
-  // Extract evidence search terms (first 30 chars, lowercased, trimmed)
-  const searchTerms = evidence.toLowerCase().trim().substring(0, 50).split(/\s+/).filter(t => t.length > 3);
+  // Build search strategies: evidence first, then term
+  const searchStrategies: string[][] = [];
+  
+  if (evidence && evidence.length >= 5) {
+    const evidenceTerms = evidence.toLowerCase().trim().split(/\s+/).filter(t => t.length > 2);
+    if (evidenceTerms.length > 0) searchStrategies.push(evidenceTerms);
+  }
+  
+  if (term && term.length >= 3) {
+    const termWords = term.toLowerCase().trim().split(/\s+/).filter(t => t.length > 2);
+    if (termWords.length > 0) searchStrategies.push(termWords);
+  }
+  
+  if (searchStrategies.length === 0) return null;
   
   let currentPage = -1;
   for (let i = 0; i < parts.length; i++) {
@@ -770,14 +787,20 @@ function findSourcePageFromEvidence(evidence: string, ocrText: string): number |
     // Skip extension matches
     if (/^(jpg|jpeg|png)$/i.test(part)) continue;
     
-    // This is page content - search for evidence
+    // This is page content - search for evidence/term
     if (currentPage >= 0 && part && part.length > 20) {
       const partLower = part.toLowerCase();
-      // Check if multiple search terms appear in this page
-      const matchingTerms = searchTerms.filter(term => partLower.includes(term));
-      if (matchingTerms.length >= Math.min(2, searchTerms.length)) {
-        console.log(`Found source_page ${currentPage} for evidence: "${evidence.substring(0, 30)}..."`);
-        return currentPage;
+      
+      // Try each search strategy
+      for (const searchTerms of searchStrategies) {
+        // Check if at least one significant word appears (more lenient)
+        const matchingTerms = searchTerms.filter(t => partLower.includes(t));
+        const threshold = searchTerms.length === 1 ? 1 : Math.max(1, Math.floor(searchTerms.length * 0.5));
+        
+        if (matchingTerms.length >= threshold) {
+          console.log(`Found source_page ${currentPage} for "${term || evidence?.substring(0, 30)}"`);
+          return currentPage;
+        }
       }
     }
   }
@@ -892,10 +915,10 @@ async function matchConceptsToSnomed(supabase: any, conceptsJson: any, ocrText: 
       const term = concept.term;
       const match = await findBestMatch(term, domain);
 
-      // Determine source_page: use AI value if present, otherwise find from evidence in OCR
-      let sourcePage = concept.source_page;
-      if (sourcePage === null || sourcePage === undefined) {
-        sourcePage = findSourcePageFromEvidence(concept.evidence || '', ocrText);
+      // Determine source_page: use AI value if present, otherwise find from evidence/term in OCR
+      let sourcePage = typeof concept.source_page === 'number' ? concept.source_page : null;
+      if (sourcePage === null) {
+        sourcePage = findSourcePageFromEvidence(concept.evidence || '', ocrText, term);
       }
 
       if (match) {
