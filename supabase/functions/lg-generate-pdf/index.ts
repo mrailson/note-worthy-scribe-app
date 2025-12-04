@@ -53,22 +53,106 @@ function getCompressionSettings(pageCount: number, attempt: number = 0): Compres
   }
 }
 
-// Compress image using 60% scaling approach
+// Parse EXIF orientation from JPEG bytes
+function parseExifOrientation(bytes: Uint8Array): number {
+  // Default orientation (normal)
+  if (bytes.length < 12) return 1;
+  
+  // Check for JPEG signature (0xFFD8)
+  if (bytes[0] !== 0xFF || bytes[1] !== 0xD8) return 1;
+  
+  let offset = 2;
+  while (offset < bytes.length - 4) {
+    // Look for markers
+    if (bytes[offset] !== 0xFF) {
+      offset++;
+      continue;
+    }
+    
+    const marker = bytes[offset + 1];
+    
+    // APP1 marker (EXIF data)
+    if (marker === 0xE1) {
+      const length = (bytes[offset + 2] << 8) | bytes[offset + 3];
+      
+      // Check for "Exif" string
+      if (bytes[offset + 4] === 0x45 && bytes[offset + 5] === 0x78 &&
+          bytes[offset + 6] === 0x69 && bytes[offset + 7] === 0x66) {
+        
+        const tiffOffset = offset + 10;
+        
+        // Check byte order (II = little endian, MM = big endian)
+        const isLittleEndian = bytes[tiffOffset] === 0x49;
+        
+        const readUint16 = (pos: number): number => {
+          if (isLittleEndian) {
+            return bytes[pos] | (bytes[pos + 1] << 8);
+          }
+          return (bytes[pos] << 8) | bytes[pos + 1];
+        };
+        
+        // Read IFD0 offset
+        const ifdOffset = tiffOffset + 8;
+        const numEntries = readUint16(ifdOffset);
+        
+        // Search for orientation tag (0x0112)
+        for (let i = 0; i < numEntries; i++) {
+          const entryOffset = ifdOffset + 2 + (i * 12);
+          const tag = readUint16(entryOffset);
+          
+          if (tag === 0x0112) {
+            const orientation = readUint16(entryOffset + 8);
+            console.log(`EXIF orientation detected: ${orientation}`);
+            return orientation;
+          }
+        }
+      }
+      offset += 2 + length;
+    } else if (marker === 0xD9 || marker === 0xDA) {
+      // End of image or start of scan - stop searching
+      break;
+    } else if (marker >= 0xE0 && marker <= 0xEF) {
+      // Skip other APP markers
+      const length = (bytes[offset + 2] << 8) | bytes[offset + 3];
+      offset += 2 + length;
+    } else {
+      offset++;
+    }
+  }
+  
+  return 1; // Default: normal orientation
+}
+
+// Compress image using 60% scaling approach with EXIF rotation correction
 async function compressImage(
   imageBytes: Uint8Array,
   settings: CompressionSettings
 ): Promise<Uint8Array> {
   try {
+    // Parse EXIF orientation before processing
+    const orientation = parseExifOrientation(imageBytes);
+    
     // Create blob from bytes
     const blob = new Blob([imageBytes], { type: 'image/jpeg' });
     const imageBitmap = await createImageBitmap(blob);
     
-    // Apply scale factor directly (60% = 40% pixel reduction)
-    const targetWidth = Math.round(imageBitmap.width * settings.scaleFactor);
-    const targetHeight = Math.round(imageBitmap.height * settings.scaleFactor);
+    // Determine if rotation swaps width/height
+    const rotationSwapsDimensions = orientation >= 5 && orientation <= 8;
     
-    // Create canvas for resizing
-    const canvas = new OffscreenCanvas(targetWidth, targetHeight);
+    // Calculate target dimensions (before rotation consideration)
+    let targetWidth = Math.round(imageBitmap.width * settings.scaleFactor);
+    let targetHeight = Math.round(imageBitmap.height * settings.scaleFactor);
+    
+    // If rotation swaps dimensions, swap the canvas size
+    let canvasWidth = targetWidth;
+    let canvasHeight = targetHeight;
+    if (rotationSwapsDimensions) {
+      canvasWidth = targetHeight;
+      canvasHeight = targetWidth;
+    }
+    
+    // Create canvas
+    const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
     const ctx = canvas.getContext('2d');
     
     if (!ctx) {
@@ -76,12 +160,61 @@ async function compressImage(
       return imageBytes;
     }
     
-    // Draw resized image
+    // Apply transformation based on EXIF orientation
+    // Orientation values:
+    // 1: Normal (no transformation)
+    // 2: Flip horizontal
+    // 3: Rotate 180°
+    // 4: Flip vertical
+    // 5: Rotate 90° CW + flip horizontal
+    // 6: Rotate 90° CW
+    // 7: Rotate 90° CCW + flip horizontal
+    // 8: Rotate 90° CCW (or 270° CW)
+    
+    switch (orientation) {
+      case 2:
+        ctx.scale(-1, 1);
+        ctx.translate(-canvasWidth, 0);
+        break;
+      case 3:
+        ctx.translate(canvasWidth, canvasHeight);
+        ctx.rotate(Math.PI);
+        break;
+      case 4:
+        ctx.scale(1, -1);
+        ctx.translate(0, -canvasHeight);
+        break;
+      case 5:
+        ctx.rotate(Math.PI / 2);
+        ctx.scale(1, -1);
+        break;
+      case 6:
+        ctx.rotate(Math.PI / 2);
+        ctx.translate(0, -canvasWidth);
+        break;
+      case 7:
+        ctx.rotate(-Math.PI / 2);
+        ctx.scale(1, -1);
+        ctx.translate(-canvasHeight, 0);
+        break;
+      case 8:
+        ctx.rotate(-Math.PI / 2);
+        ctx.translate(-canvasHeight, 0);
+        break;
+      default:
+        // No transformation needed
+        break;
+    }
+    
+    // Draw image with scaling
     ctx.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight);
+    
+    // Reset transform for grayscale processing
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     
     // Apply grayscale if needed
     if (settings.grayscale) {
-      const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+      const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
       const data = imageData.data;
       for (let i = 0; i < data.length; i += 4) {
         const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
@@ -859,75 +992,128 @@ function parseOcrByPage(ocrText: string): Map<number, string> {
   return pageMap;
 }
 
-// Generate one-line summaries for each page using OpenAI
+// Generate one-line summaries for each page using OpenAI with batching for large documents
+const SUMMARY_BATCH_SIZE = 15; // Process 15 pages at a time for large documents
+
 async function generatePageSummaries(ocrText: string, pageCount: number): Promise<string[]> {
-  const summaries: string[] = [];
+  const summaries: string[] = new Array(pageCount).fill('');
   const pageMap = parseOcrByPage(ocrText);
   
   const openaiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openaiKey || pageMap.size === 0) {
     // Fallback to generic summaries
     for (let i = 0; i < pageCount; i++) {
-      summaries.push(`Scanned page ${i + 1} of ${pageCount}`);
+      summaries[i] = `Scanned page ${i + 1} of ${pageCount}`;
     }
     return summaries;
   }
 
-  // Build a prompt with all page texts for batch processing
+  // Build page texts array
   const pageTexts: { pageNum: number; text: string }[] = [];
   for (let i = 1; i <= pageCount; i++) {
     const text = pageMap.get(i) || '';
-    pageTexts.push({ pageNum: i, text: text.substring(0, 500) }); // Limit text per page
+    pageTexts.push({ pageNum: i, text: text.substring(0, 400) }); // Limit text per page
   }
 
-  try {
-    const prompt = `You are summarizing pages from a Lloyd George medical record scan. 
+  // Process in batches for large documents
+  const batches: { pageNum: number; text: string }[][] = [];
+  for (let i = 0; i < pageTexts.length; i += SUMMARY_BATCH_SIZE) {
+    batches.push(pageTexts.slice(i, i + SUMMARY_BATCH_SIZE));
+  }
+
+  console.log(`Generating page summaries in ${batches.length} batch(es) for ${pageCount} pages`);
+
+  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
+    const batch = batches[batchIndex];
+    const startPage = batch[0].pageNum;
+    const endPage = batch[batch.length - 1].pageNum;
+    
+    console.log(`Processing summary batch ${batchIndex + 1}/${batches.length}: pages ${startPage}-${endPage}`);
+
+    try {
+      const prompt = `You are summarizing pages from a Lloyd George medical record scan. 
 For each page below, provide a brief one-line summary (max 60 characters) describing the main content.
 If the page appears blank or has minimal text, say "Mostly blank page" or similar.
 Focus on clinical relevance: document types (e.g., "GP referral letter", "Blood test results"), dates, or key findings.
 
-${pageTexts.map(p => `PAGE ${p.pageNum}:\n${p.text || '[No text detected]'}`).join('\n\n---\n\n')}
+${batch.map(p => `PAGE ${p.pageNum}:\n${p.text || '[No text detected]'}`).join('\n\n---\n\n')}
 
-Respond with a JSON array of strings, one summary per page in order. Example:
+Respond with a JSON array of ${batch.length} strings, one summary per page in order. Example:
 ["Continuation card - immunisation records", "GP referral letter dated 15/03/2020", "Blood test results - FBC normal"]`;
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openaiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.3,
-        max_tokens: 2000,
-      }),
-    });
+      const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${openaiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'gpt-4o-mini',
+          messages: [{ role: 'user', content: prompt }],
+          temperature: 0.3,
+          max_tokens: 1500, // Enough for ~15 summaries
+        }),
+      });
 
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
-    }
+      if (!response.ok) {
+        console.error(`OpenAI API error for batch ${batchIndex + 1}: ${response.status}`);
+        // Fill this batch with generic summaries
+        for (let j = 0; j < batch.length; j++) {
+          summaries[batch[j].pageNum - 1] = `Scanned page ${batch[j].pageNum} of ${pageCount}`;
+        }
+        continue;
+      }
 
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || '';
-    
-    // Extract JSON array from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      if (Array.isArray(parsed)) {
-        return parsed.map((s: any) => String(s || '').substring(0, 60));
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      
+      // Extract JSON array from response
+      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      if (jsonMatch) {
+        try {
+          const parsed = JSON.parse(jsonMatch[0]);
+          if (Array.isArray(parsed)) {
+            for (let j = 0; j < Math.min(parsed.length, batch.length); j++) {
+              const summary = String(parsed[j] || '').substring(0, 60);
+              summaries[batch[j].pageNum - 1] = summary || `Scanned page ${batch[j].pageNum}`;
+            }
+            console.log(`Batch ${batchIndex + 1} completed: ${parsed.length} summaries`);
+          }
+        } catch (parseErr) {
+          console.error(`JSON parse error for batch ${batchIndex + 1}:`, parseErr);
+          // Fill with generic summaries
+          for (let j = 0; j < batch.length; j++) {
+            summaries[batch[j].pageNum - 1] = `Scanned page ${batch[j].pageNum} of ${pageCount}`;
+          }
+        }
+      } else {
+        console.warn(`No JSON array found in batch ${batchIndex + 1} response`);
+        for (let j = 0; j < batch.length; j++) {
+          summaries[batch[j].pageNum - 1] = `Scanned page ${batch[j].pageNum} of ${pageCount}`;
+        }
+      }
+    } catch (err) {
+      console.error(`Failed to generate summaries for batch ${batchIndex + 1}:`, err);
+      // Fill this batch with generic summaries
+      for (let j = 0; j < batch.length; j++) {
+        summaries[batch[j].pageNum - 1] = `Scanned page ${batch[j].pageNum} of ${pageCount}`;
       }
     }
-  } catch (err) {
-    console.error('Failed to generate page summaries:', err);
+
+    // Small delay between batches to avoid rate limiting
+    if (batchIndex < batches.length - 1) {
+      await new Promise(resolve => setTimeout(resolve, 200));
+    }
   }
 
-  // Fallback
-  for (let i = 0; i < pageCount; i++) {
-    summaries.push(`Scanned page ${i + 1} of ${pageCount}`);
+  // Fill any remaining empty summaries
+  for (let i = 0; i < summaries.length; i++) {
+    if (!summaries[i]) {
+      summaries[i] = `Scanned page ${i + 1} of ${pageCount}`;
+    }
   }
+
+  console.log(`Page summaries complete: ${summaries.filter(s => !s.startsWith('Scanned page')).length}/${pageCount} AI-generated`);
   return summaries;
 }
 
