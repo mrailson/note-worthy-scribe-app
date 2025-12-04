@@ -3396,6 +3396,7 @@ export type Database = {
           pdf_completed_at: string | null
           pdf_final_size_mb: number | null
           pdf_generation_status: string | null
+          pdf_part_urls: Json | null
           pdf_parts: number | null
           pdf_split: boolean | null
           pdf_started_at: string | null
@@ -3446,6 +3447,7 @@ export type Database = {
           pdf_completed_at?: string | null
           pdf_final_size_mb?: number | null
           pdf_generation_status?: string | null
+          pdf_part_urls?: Json | null
           pdf_parts?: number | null
           pdf_split?: boolean | null
           pdf_started_at?: string | null
@@ -3496,6 +3498,7 @@ export type Database = {
           pdf_completed_at?: string | null
           pdf_final_size_mb?: number | null
           pdf_generation_status?: string | null
+          pdf_part_urls?: Json | null
           pdf_parts?: number | null
           pdf_split?: boolean | null
           pdf_started_at?: string | null

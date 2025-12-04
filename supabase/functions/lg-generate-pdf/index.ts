@@ -493,6 +493,117 @@ function addScannedPageWithHeader(
   return imageDrawn;
 }
 
+// Split PDF into multiple parts for SystmOne 5MB upload limit
+async function splitPdfIntoParts(
+  originalPdfDoc: any,
+  pdfBytes: Uint8Array,
+  basePath: string,
+  supabase: any,
+  patientName: string,
+  formattedNhs: string,
+  formattedDob: string
+): Promise<string[]> {
+  const SPLIT_THRESHOLD_BYTES = 4.8 * 1024 * 1024; // 4.8MB per part
+  const partUrls: string[] = [];
+  
+  const totalPages = originalPdfDoc.getPageCount();
+  const frontMatterPages = 3; // Clinical Summary, Medications, Index
+  const scannedPageCount = totalPages - frontMatterPages;
+  
+  if (scannedPageCount <= 0) {
+    console.warn('No scanned pages to split');
+    return [];
+  }
+  
+  // Estimate average page size
+  const avgPageSize = pdfBytes.length / totalPages;
+  // Estimate how many scanned pages can fit per part (leaving room for front matter)
+  const frontMatterEstimate = avgPageSize * 3.5; // Front matter with some buffer
+  const pagesPerPart = Math.max(1, Math.floor((SPLIT_THRESHOLD_BYTES - frontMatterEstimate) / avgPageSize));
+  
+  console.log(`Split estimation: ${scannedPageCount} scanned pages, ~${pagesPerPart} pages per part, avg page size ${(avgPageSize / 1024).toFixed(0)}KB`);
+  
+  let currentScannedPage = 0;
+  let partNumber = 1;
+  const totalParts = Math.ceil(scannedPageCount / pagesPerPart);
+  
+  while (currentScannedPage < scannedPageCount) {
+    const partDoc = await PDFDocument.create();
+    
+    // Copy front matter pages (0, 1, 2) to every part
+    const copiedFrontMatter = await partDoc.copyPages(originalPdfDoc, [0, 1, 2]);
+    for (const page of copiedFrontMatter) {
+      partDoc.addPage(page);
+    }
+    
+    // Add part indicator to first page (clinical summary)
+    const firstPage = partDoc.getPage(0);
+    firstPage.drawText(`PART ${partNumber} of ${totalParts}`, {
+      x: 450,
+      y: 790,
+      size: 11,
+      color: rgb(0.7, 0, 0),
+    });
+    
+    // Calculate how many scanned pages to include in this part
+    const pagesInThisPart = Math.min(pagesPerPart, scannedPageCount - currentScannedPage);
+    const startPageIndex = frontMatterPages + currentScannedPage;
+    const endPageIndex = startPageIndex + pagesInThisPart;
+    
+    console.log(`Part ${partNumber}: copying scanned pages ${currentScannedPage + 1} to ${currentScannedPage + pagesInThisPart} (PDF indices ${startPageIndex}-${endPageIndex - 1})`);
+    
+    // Copy scanned pages for this part
+    const pageIndices: number[] = [];
+    for (let i = startPageIndex; i < endPageIndex; i++) {
+      pageIndices.push(i);
+    }
+    
+    if (pageIndices.length > 0) {
+      const copiedScannedPages = await partDoc.copyPages(originalPdfDoc, pageIndices);
+      for (const page of copiedScannedPages) {
+        partDoc.addPage(page);
+      }
+    }
+    
+    // Save part
+    const partBytes = await partDoc.save();
+    const partSizeMb = partBytes.length / (1024 * 1024);
+    console.log(`Part ${partNumber} size: ${partSizeMb.toFixed(2)}MB (${partDoc.getPageCount()} pages)`);
+    
+    // Upload part
+    const partFilename = `lloyd-george_part${partNumber}.pdf`;
+    const partPath = `${basePath}/final/${partFilename}`;
+    const partBlob = new Blob([partBytes], { type: 'application/pdf' });
+    
+    const { error: uploadError } = await supabase.storage
+      .from('lg')
+      .upload(partPath, partBlob, {
+        contentType: 'application/pdf',
+        upsert: true,
+      });
+    
+    if (uploadError) {
+      console.error(`Failed to upload part ${partNumber}:`, uploadError);
+    } else {
+      partUrls.push(`lg/${partPath}`);
+      console.log(`Part ${partNumber} uploaded: lg/${partPath}`);
+    }
+    
+    currentScannedPage += pagesInThisPart;
+    partNumber++;
+  }
+  
+  // Also upload the complete PDF for reference (may be >5MB but useful for archival)
+  const fullPdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+  await supabase.storage.from('lg').upload(`${basePath}/final/lloyd-george_complete.pdf`, fullPdfBlob, {
+    contentType: 'application/pdf',
+    upsert: true,
+  });
+  console.log('Complete PDF also uploaded for archival');
+  
+  return partUrls;
+}
+
 // Apply final compression pass if PDF exceeds 5MB
 async function applyFinalCompressionPass(pdfBytes: Uint8Array): Promise<Uint8Array> {
   console.log('Applying final compression pass (metadata stripping, recompression)...');
@@ -967,15 +1078,24 @@ serve(async (req) => {
       pdfSizeMb = finalPdfBytes.length / (1024 * 1024);
     }
 
-    // Upload PDF
-    const pdfBlob = new Blob([finalPdfBytes], { type: 'application/pdf' });
-    await supabase.storage.from('lg').upload(`${basePath}/final/lloyd-george.pdf`, pdfBlob, {
-      contentType: 'application/pdf',
-      upsert: true,
-    });
-
-    // Determine if split is needed (size still exceeds limit)
-    const needsSplit = finalPdfBytes.length > MAX_PDF_SIZE_BYTES;
+    // Determine if split is needed (4.8MB threshold for SystmOne compatibility)
+    const SPLIT_THRESHOLD_BYTES = 4.8 * 1024 * 1024;
+    const needsSplit = finalPdfBytes.length > SPLIT_THRESHOLD_BYTES;
+    
+    let pdfPartUrls: string[] = [];
+    
+    if (needsSplit) {
+      console.log(`PDF size ${pdfSizeMb.toFixed(2)}MB exceeds 4.8MB threshold, splitting into parts...`);
+      pdfPartUrls = await splitPdfIntoParts(pdfDoc, finalPdfBytes, basePath, supabase, patientName, formattedNhs, formattedDob);
+      console.log(`PDF split into ${pdfPartUrls.length} parts`);
+    } else {
+      // Upload single PDF
+      const pdfBlob = new Blob([finalPdfBytes], { type: 'application/pdf' });
+      await supabase.storage.from('lg').upload(`${basePath}/final/lloyd-george.pdf`, pdfBlob, {
+        contentType: 'application/pdf',
+        upsert: true,
+      });
+    }
 
     // Update patient record with completion info
     const pdfCompletedTime = new Date().toISOString();
@@ -985,7 +1105,7 @@ serve(async (req) => {
         job_status: 'succeeded',
         processing_phase: 'complete',
         processing_completed_at: pdfCompletedTime,
-        pdf_url: `lg/${basePath}/final/lloyd-george.pdf`,
+        pdf_url: needsSplit ? pdfPartUrls[0] : `lg/${basePath}/final/lloyd-george.pdf`,
         pdf_generation_status: 'complete',
         pdf_completed_at: pdfCompletedTime,
         pdf_final_size_mb: parseFloat(pdfSizeMb.toFixed(2)),
@@ -993,7 +1113,8 @@ serve(async (req) => {
         compression_tier: compressionSettings.tier,
         compression_attempts: compressionAttempt + 1,
         pdf_split: needsSplit,
-        pdf_parts: needsSplit ? Math.ceil(pdfSizeMb / MAX_PDF_SIZE_MB) : 1,
+        pdf_parts: needsSplit ? pdfPartUrls.length : 1,
+        pdf_part_urls: needsSplit ? pdfPartUrls : [],
       })
       .eq('id', patientId);
 

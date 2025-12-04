@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Clock, HardDrive, FileWarning } from 'lucide-react';
+import { Clock, HardDrive, FileWarning, CheckCircle } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
 interface ProcessingMetricsProps {
@@ -18,6 +18,7 @@ interface ProcessingMetricsProps {
     pdf_parts?: number;
     compression_attempts?: number;
     original_size_mb?: number | null;
+    pdf_part_urls?: string[] | null;
   };
 }
 
@@ -170,12 +171,22 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
               )}
               
               {patient.pdf_split && (
-                <div className="flex justify-between items-center text-amber-600">
+                <div className={`flex justify-between items-center ${
+                  patient.pdf_part_urls && patient.pdf_part_urls.length > 0 
+                    ? 'text-green-600' 
+                    : 'text-amber-600'
+                }`}>
                   <span className="flex items-center gap-1">
-                    <FileWarning className="h-3 w-3" />
-                    Split Required:
+                    {patient.pdf_part_urls && patient.pdf_part_urls.length > 0 ? (
+                      <CheckCircle className="h-3 w-3" />
+                    ) : (
+                      <FileWarning className="h-3 w-3" />
+                    )}
+                    {patient.pdf_part_urls && patient.pdf_part_urls.length > 0 
+                      ? 'Split Complete:' 
+                      : 'Split Required:'}
                   </span>
-                  <span className="font-medium">{patient.pdf_parts || 1} parts</span>
+                  <span className="font-medium">{patient.pdf_parts || 1} parts (each &lt;5MB)</span>
                 </div>
               )}
               

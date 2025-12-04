@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink, ChevronDown } from 'lucide-react';
+import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink, ChevronDown, FileWarning } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 import { toast } from 'sonner';
@@ -15,6 +15,11 @@ interface LGDownloadPanelProps {
 export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
   const isIPhone = useIsIPhone();
+  
+  // Parse pdf_part_urls if it exists
+  const pdfPartUrls: string[] = Array.isArray(patient.pdf_part_urls) 
+    ? patient.pdf_part_urls 
+    : [];
 
   const openFileForViewing = async (url: string | null, filename: string) => {
     if (!url) {
@@ -204,6 +209,53 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     );
   };
 
+  // Render split PDF download buttons
+  const renderSplitPdfButtons = () => {
+    if (!patient.pdf_split || pdfPartUrls.length === 0) {
+      return renderFileButton(primaryFile, true);
+    }
+    
+    return (
+      <div className="space-y-2">
+        <div className="text-sm text-amber-600 flex items-center gap-2 mb-3 p-2 bg-amber-50 rounded-md border border-amber-200">
+          <FileWarning className="h-4 w-4 flex-shrink-0" />
+          <span>PDF split into {pdfPartUrls.length} parts for SystmOne compatibility (max 5MB each)</span>
+        </div>
+        {pdfPartUrls.map((url, index) => {
+          const partFilename = `${baseFilename}___Lloyd George Scan_Part${index + 1}.pdf`;
+          const isDownloadingPart = downloading === partFilename;
+          
+          return (
+            <Button
+              key={index}
+              variant={index === 0 ? "default" : "outline"}
+              className={`w-full justify-start h-auto py-3 ${index === 0 ? 'bg-primary hover:bg-primary/90' : ''}`}
+              onClick={() => handleFileAction(url, partFilename)}
+              disabled={!url || isDownloadingPart}
+            >
+              <FileText className="h-5 w-5 mr-3 flex-shrink-0" />
+              <div className="text-left flex-1">
+                <div className="font-medium">Part {index + 1} of {pdfPartUrls.length}</div>
+                <div className={`text-xs ${index === 0 ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}>
+                  {index === 0 ? 'Front matter + first scanned pages' : 'Continued scanned pages'}
+                </div>
+              </div>
+              {isDownloadingPart ? (
+                <span className="text-xs">{isIPhone ? 'Opening...' : 'Downloading...'}</span>
+              ) : (
+                isIPhone ? (
+                  <ExternalLink className="h-4 w-4 ml-2 opacity-50" />
+                ) : (
+                  <Download className="h-4 w-4 ml-2 opacity-50" />
+                )
+              )}
+            </Button>
+          );
+        })}
+      </div>
+    );
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -213,8 +265,8 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        {/* Primary file - Lloyd George PDF */}
-        {renderFileButton(primaryFile, true)}
+        {/* Primary file(s) - Lloyd George PDF (may be split) */}
+        {renderSplitPdfButtons()}
         
         {/* Other files - collapsible */}
         <Collapsible open={otherFilesOpen} onOpenChange={setOtherFilesOpen}>

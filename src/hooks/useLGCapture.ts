@@ -64,6 +64,8 @@ export interface LGPatient {
   pdf_parts: number;
   compression_attempts: number;
   original_size_mb: number | null;
+  // Split PDF URLs
+  pdf_part_urls: string[] | null;
 }
 
 export interface CapturedImage {
