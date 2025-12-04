@@ -574,12 +574,38 @@ ${fullOcrText.substring(0, 12000)}`;
           console.error('Could not fetch PDF for attachment:', pdfErr);
         }
 
+        // Fetch CSV for attachment
+        let csvBase64: string | null = null;
+        const csvPath = `${basePath}/final/snomed.csv`;
+        try {
+          const { data: csvData } = await supabase.storage
+            .from('lg')
+            .download(csvPath);
+          if (csvData) {
+            const csvText = await csvData.text();
+            csvBase64 = btoa(csvText);
+            console.log(`CSV attachment ready, size: ${csvBase64.length} chars`);
+          }
+        } catch (csvErr) {
+          console.error('Could not fetch CSV for attachment:', csvErr);
+        }
+
         // Build attachments array
-        const attachments = pdfBase64 ? [{
-          filename: `LG_${nhsNumber.replace(/\s/g, '')}_${formatDobForFilename(dob)}.pdf`,
-          content: pdfBase64,
-          type: 'application/pdf',
-        }] : [];
+        const attachments: any[] = [];
+        if (pdfBase64) {
+          attachments.push({
+            filename: `LG_${nhsNumber.replace(/\s/g, '')}_${formatDobForFilename(dob)}.pdf`,
+            content: pdfBase64,
+            type: 'application/pdf',
+          });
+        }
+        if (csvBase64) {
+          attachments.push({
+            filename: `LG_${nhsNumber.replace(/\s/g, '')}_${formatDobForFilename(dob)}_SNOMED.csv`,
+            content: csvBase64,
+            type: 'text/csv',
+          });
+        }
 
         // Send via Resend edge function
         const { error: emailError } = await supabase.functions.invoke('send-email-resend', {
@@ -1507,15 +1533,19 @@ function buildSummaryEmailHtml(
         <tr style="background: #005EB8; color: white;">
           <th style="padding: 6px; text-align: left;">Term</th>
           <th style="padding: 6px; text-align: left;">Code</th>
+          <th style="padding: 6px; text-align: center;">Date</th>
           <th style="padding: 6px; text-align: center;">Confidence</th>
         </tr>`;
       
       for (const entry of domainEntries) {
         const confPercent = Math.round((typeof entry.confidence === 'number' ? entry.confidence : 0) * 100);
         const confColor = confPercent >= 60 ? '#007F3B' : '#DA291C';
+        const dateDisplay = entry.date || 'NK';
+        const dateStyle = dateDisplay === 'NK' ? 'color: #666; font-style: italic;' : '';
         html += `<tr style="border-bottom: 1px solid #ddd;">
           <td style="padding: 6px;">${safeString(entry.term)}</td>
           <td style="padding: 6px; font-family: monospace;">${safeString(entry.code)}</td>
+          <td style="padding: 6px; text-align: center; ${dateStyle}">${dateDisplay}</td>
           <td style="padding: 6px; text-align: center; color: ${confColor}; font-weight: bold;">${confPercent}%</td>
         </tr>`;
       }
