@@ -25,6 +25,10 @@ interface LGValidationModalProps {
     patient_name: string | null;
     nhs_number: string | null;
     dob: string | null;
+    images_count: number | null;
+    created_at: string;
+    pdf_url: string | null;
+    pdf_final_size_mb: number | null;
   };
   onValidated: () => void;
 }
@@ -274,6 +278,39 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
               <p><span className="text-muted-foreground">Name:</span> <span className="font-medium">{patient.patient_name || '—'}</span></p>
               <p><span className="text-muted-foreground">NHS:</span> <span className="font-mono font-medium">{formatNhsNumber(patient.nhs_number)}</span></p>
               <p><span className="text-muted-foreground">DOB:</span> <span className="font-medium">{formatDate(patient.dob)}</span></p>
+            </div>
+          </div>
+
+          {/* File Details */}
+          <div className="space-y-2">
+            <Label>File to Look For:</Label>
+            <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-900 space-y-1">
+              <p>
+                <span className="text-muted-foreground">Filename:</span>{' '}
+                <span className="font-mono font-medium text-sm">
+                  {patient.pdf_url ? patient.pdf_url.split('/').pop() : 'lloyd-george.pdf'}
+                </span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">Pages:</span>{' '}
+                <span className="font-medium">{patient.images_count || '—'}</span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">File Size:</span>{' '}
+                <span className="font-medium">
+                  {patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB` : '—'}
+                </span>
+              </p>
+              <p>
+                <span className="text-muted-foreground">Scan Date:</span>{' '}
+                <span className="font-medium">
+                  {new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                </span>
+                <span className="text-muted-foreground ml-2">at</span>{' '}
+                <span className="font-medium">
+                  {new Date(patient.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                </span>
+              </p>
             </div>
           </div>
 

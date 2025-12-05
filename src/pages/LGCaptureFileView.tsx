@@ -37,6 +37,7 @@ interface LGPatientFile {
   pdf_part_urls: string[] | null;
   pdf_split: boolean | null;
   pdf_generation_status: string | null;
+  pdf_final_size_mb: number | null;
   publish_status: string | null;
   downloaded_at: string | null;
   uploaded_to_s1_at: string | null;
@@ -110,7 +111,7 @@ export default function LGCaptureFileView() {
       const supabaseAny = supabase as any;
       const { data, error } = await supabaseAny
         .from('lg_patients')
-        .select('id, patient_name, nhs_number, dob, images_count, created_at, pdf_url, pdf_part_urls, pdf_split, pdf_generation_status, publish_status, downloaded_at, uploaded_to_s1_at, validated_at, archived_at, validation_result')
+        .select('id, patient_name, nhs_number, dob, images_count, created_at, pdf_url, pdf_part_urls, pdf_split, pdf_generation_status, pdf_final_size_mb, publish_status, downloaded_at, uploaded_to_s1_at, validated_at, archived_at, validation_result')
         .eq('user_id', user?.id)
         .eq('job_status', 'succeeded')
         .order('created_at', { ascending: false });
@@ -128,6 +129,8 @@ export default function LGCaptureFileView() {
         pdf_url: item.pdf_url,
         pdf_part_urls: Array.isArray(item.pdf_part_urls) ? item.pdf_part_urls as string[] : null,
         pdf_split: item.pdf_split,
+        pdf_generation_status: item.pdf_generation_status,
+        pdf_final_size_mb: item.pdf_final_size_mb,
         publish_status: item.publish_status,
         downloaded_at: item.downloaded_at,
         uploaded_to_s1_at: item.uploaded_to_s1_at,
