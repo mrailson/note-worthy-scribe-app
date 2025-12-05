@@ -36,6 +36,7 @@ interface LGPatientFile {
   pdf_url: string | null;
   pdf_part_urls: string[] | null;
   pdf_split: boolean | null;
+  pdf_generation_status: string | null;
   publish_status: string | null;
   downloaded_at: string | null;
   uploaded_to_s1_at: string | null;
@@ -109,7 +110,7 @@ export default function LGCaptureFileView() {
       const supabaseAny = supabase as any;
       const { data, error } = await supabaseAny
         .from('lg_patients')
-        .select('id, patient_name, nhs_number, dob, images_count, created_at, pdf_url, pdf_part_urls, pdf_split, publish_status, downloaded_at, uploaded_to_s1_at, validated_at, archived_at, validation_result')
+        .select('id, patient_name, nhs_number, dob, images_count, created_at, pdf_url, pdf_part_urls, pdf_split, pdf_generation_status, publish_status, downloaded_at, uploaded_to_s1_at, validated_at, archived_at, validation_result')
         .eq('user_id', user?.id)
         .eq('job_status', 'succeeded')
         .order('created_at', { ascending: false });
@@ -187,6 +188,18 @@ export default function LGCaptureFileView() {
   };
 
   const downloadSingleFile = async (patient: LGPatientFile) => {
+    // Check if PDF generation is complete
+    if (patient.pdf_generation_status !== 'complete') {
+      if (patient.pdf_generation_status === 'generating' || patient.pdf_generation_status === 'queued') {
+        toast.error('PDF is still being generated. Please wait and refresh.');
+      } else if (patient.pdf_generation_status === 'failed') {
+        toast.error('PDF generation failed. Please retry from the Results page.');
+      } else {
+        toast.error('PDF not ready yet. Please wait for processing to complete.');
+      }
+      return;
+    }
+
     if (!patient.pdf_url) {
       toast.error('No PDF available for this patient');
       return;
@@ -199,11 +212,15 @@ export default function LGCaptureFileView() {
         .createSignedUrl(patient.pdf_url, 3600);
 
       if (signedError || !signedData?.signedUrl) {
-        throw new Error('Failed to get download URL');
+        console.error('Signed URL error:', signedError);
+        throw new Error('Failed to get download URL - file may not exist');
       }
 
       // Download file
       const response = await fetch(signedData.signedUrl);
+      if (!response.ok) {
+        throw new Error(`Download failed: ${response.status}`);
+      }
       const blob = await response.blob();
       
       // Create download link
@@ -229,7 +246,7 @@ export default function LGCaptureFileView() {
       fetchPatients();
     } catch (err) {
       console.error('Download error:', err);
-      toast.error('Failed to download file');
+      toast.error('Failed to download file - PDF may not exist in storage');
     }
   };
 
