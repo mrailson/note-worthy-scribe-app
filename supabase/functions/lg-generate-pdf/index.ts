@@ -312,11 +312,12 @@ function addQualityGateWarningPage(pdfDoc: any, failedPages: FailedPage[], inser
 }
 
 // Calculate rotation angle from EXIF orientation
+// pdf-lib uses counter-clockwise positive angles, so we use negative for CW rotation
 function getRotationFromExif(orientation: number): { degrees: number; swapDimensions: boolean } {
   switch (orientation) {
-    case 3: return { degrees: 180, swapDimensions: false };
-    case 6: return { degrees: 90, swapDimensions: true };
-    case 8: return { degrees: 270, swapDimensions: true };
+    case 3: return { degrees: 180, swapDimensions: false }; // Upside down - 180° either direction
+    case 6: return { degrees: -90, swapDimensions: true };  // Camera rotated CW - need CW rotation = -90°
+    case 8: return { degrees: 90, swapDimensions: true };   // Camera rotated CCW - need CCW rotation = +90°
     default: return { degrees: 0, swapDimensions: false };
   }
 }
@@ -448,28 +449,25 @@ function addScannedPageWithHeader(
         page.drawImage(image, { x, y, width: scaledEffectiveWidth, height: scaledEffectiveHeight });
       } else {
         // Apply rotation using pdf-lib's rotate option
-        // pdf-lib rotates around the bottom-left corner of the drawn image
-        // We need to adjust x, y so the ROTATED image appears centered
+        // pdf-lib rotates counter-clockwise around the bottom-left corner of the drawn image
         const scaledOrigWidth = Math.round(image.width * scale);
         const scaledOrigHeight = Math.round(image.height * scale);
         
-        // Calculate position accounting for pdf-lib's rotation pivot (bottom-left of original image)
+        // Calculate position so rotated image is centered in available space
+        // After rotation, we want the center of the effective (rotated) bounds to be at (centerX, centerY)
         let x: number, y: number;
         
-        if (rotationDegrees === 90) {
-          // 90° CW: Image rotates clockwise around bottom-left
-          // After rotation: original bottom-left stays put, image extends UP and LEFT
-          // To center the rotated image: x needs to be at center + half of rotated width (which is original height)
+        if (rotationDegrees === -90) {
+          // -90° (CW): Original bottom-left becomes top-left of rotated image
+          // To center: place draw point so rotated center lands at (centerX, centerY)
           x = centerX + scaledEffectiveWidth / 2;
           y = centerY - scaledEffectiveHeight / 2;
-        } else if (rotationDegrees === 270) {
-          // 270° CW (90° CCW): Image rotates counter-clockwise around bottom-left
-          // After rotation: original bottom-left stays put, image extends DOWN and RIGHT
+        } else if (rotationDegrees === 90) {
+          // +90° (CCW): Original bottom-left becomes bottom-right of rotated image
           x = centerX - scaledEffectiveWidth / 2;
           y = centerY + scaledEffectiveHeight / 2;
         } else {
-          // 180°: Image flips around bottom-left
-          // After rotation: original bottom-left stays put, image extends UP and LEFT
+          // 180°: Original bottom-left becomes top-right
           x = centerX + scaledEffectiveWidth / 2;
           y = centerY + scaledEffectiveHeight / 2;
         }
