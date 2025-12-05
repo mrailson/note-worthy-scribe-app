@@ -19,8 +19,8 @@ export interface BlankAnalysisResult {
  */
 export async function analyseBlankness(
   dataUrl: string,
-  whiteThreshold: number = 95,
-  stdDevThreshold: number = 15
+  whiteThreshold: number = 99,
+  stdDevThreshold: number = 8
 ): Promise<BlankAnalysisResult> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -78,10 +78,9 @@ export async function analyseBlankness(
         const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / squaredDiffs.length;
         const stdDev = Math.sqrt(avgSquaredDiff);
 
-        // Determine if blank
-        // Blank if: >95% white pixels OR (>85% white AND very uniform/low std dev)
-        const isBlank = whitePercentage > whiteThreshold || 
-                       (whitePercentage > 85 && stdDev < stdDevThreshold);
+        // Determine if blank - very conservative to avoid false positives
+        // Blank only if: >99% white pixels AND very uniform/low std dev
+        const isBlank = whitePercentage > whiteThreshold && stdDev < stdDevThreshold;
 
         // Calculate confidence (how sure we are it's blank)
         let confidence = 0;
