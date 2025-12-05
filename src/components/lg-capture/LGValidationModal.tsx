@@ -247,7 +247,7 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Validate Upload to Clinical System</DialogTitle>
+          <DialogTitle className="text-lg">Now we have the completed LG Scan digitised, we need to upload it to the patient record for <span className="text-primary">{patient.patient_name || 'the patient'}</span></DialogTitle>
         </DialogHeader>
 
         <div className="space-y-5 py-4">
