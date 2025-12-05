@@ -202,13 +202,18 @@ export default function LGCaptureFileView() {
     }
 
     try {
+      // Strip 'lg/' prefix if present since bucket is already specified
+      const storagePath = patient.pdf_url.startsWith('lg/') 
+        ? patient.pdf_url.substring(3) 
+        : patient.pdf_url;
+      
       // Get signed URL
       const { data: signedData, error: signedError } = await supabase.storage
         .from('lg')
-        .createSignedUrl(patient.pdf_url, 3600);
+        .createSignedUrl(storagePath, 3600);
 
       if (signedError || !signedData?.signedUrl) {
-        console.error('Signed URL error:', signedError);
+        console.error('Signed URL error:', signedError, 'Path:', storagePath);
         throw new Error('Failed to get download URL - file may not exist');
       }
 
