@@ -13,7 +13,8 @@ import {
   Loader2,
   Image as ImageIcon,
   Clipboard,
-  Copy
+  Copy,
+  Download
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
@@ -307,7 +308,7 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
             <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">3</div>
             <div className="flex-1">
               <p className="font-medium">Attach the Lloyd George file to the patient record</p>
-              <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-900 space-y-1 text-sm">
+              <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-900 space-y-2 text-sm">
                 <p className="break-all">
                   <span className="text-muted-foreground">Filename:</span>{' '}
                   <span className="font-mono font-semibold">
@@ -326,6 +327,34 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                   <span><span className="text-muted-foreground">Pages:</span> <span className="font-medium">{patient.images_count || '—'}</span></span>
                   <span><span className="text-muted-foreground">Size:</span> <span className="font-medium">{patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB` : '—'}</span></span>
                 </div>
+                {patient.pdf_url && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="mt-1"
+                    onClick={async () => {
+                      try {
+                        const storagePath = patient.pdf_url!.startsWith('lg/') 
+                          ? patient.pdf_url!.substring(3) 
+                          : patient.pdf_url!;
+                        const { data, error } = await supabase.storage
+                          .from('lg')
+                          .createSignedUrl(storagePath, 3600);
+                        if (error || !data?.signedUrl) {
+                          toast.error('Failed to get download link');
+                          return;
+                        }
+                        window.open(data.signedUrl, '_blank');
+                      } catch {
+                        toast.error('Failed to download file');
+                      }
+                    }}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Download PDF
+                  </Button>
+                )}
               </div>
             </div>
           </div>
