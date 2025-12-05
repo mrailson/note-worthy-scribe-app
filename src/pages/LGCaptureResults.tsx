@@ -297,6 +297,42 @@ export default function LGCaptureResults() {
         </CardContent>
       </Card>
 
+      {/* Download Panel - shown first when processing is complete */}
+      {patient.job_status === 'succeeded' && (
+        <>
+          {/* Retry PDF Generation if stuck or failed */}
+          {(['queued', 'generating', 'failed'].includes(patient.pdf_generation_status || '') && patient.pdf_generation_status !== 'complete') && (
+            <Card className="border-amber-500 bg-amber-50">
+              <CardContent className="pt-4">
+                <p className="text-sm text-amber-700 mb-3">
+                  {patient.pdf_generation_status === 'failed' 
+                    ? 'PDF generation failed. Click below to retry.'
+                    : patient.pdf_generation_status === 'generating'
+                    ? 'PDF generation appears stuck. Click below to retry.'
+                    : 'PDF generation is queued but hasn\'t started. Click below to retry.'}
+                </p>
+                <Button
+                  onClick={async () => {
+                    const success = await retryPdfGeneration(patient.id);
+                    if (success) {
+                      loadPatient();
+                    }
+                  }}
+                  variant="outline"
+                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-100"
+                  disabled={actionLoading}
+                >
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Retry PDF Generation
+                </Button>
+              </CardContent>
+            </Card>
+          )}
+          
+          <LGDownloadPanel patient={patient} />
+        </>
+      )}
+
       {/* Processing Status */}
       <LGProcessingStatus patient={patient} onStatusChange={handleStatusChange} />
 
@@ -345,39 +381,9 @@ export default function LGCaptureResults() {
         </div>
       )}
 
-      {/* Download Panel */}
+      {/* Summary and Metrics - shown after processing complete */}
       {patient.job_status === 'succeeded' && (
         <>
-          {/* Retry PDF Generation if stuck or failed */}
-          {(['queued', 'generating', 'failed'].includes(patient.pdf_generation_status || '') && patient.pdf_generation_status !== 'complete') && (
-            <Card className="border-amber-500 bg-amber-50">
-              <CardContent className="pt-4">
-                <p className="text-sm text-amber-700 mb-3">
-                  {patient.pdf_generation_status === 'failed' 
-                    ? 'PDF generation failed. Click below to retry.'
-                    : patient.pdf_generation_status === 'generating'
-                    ? 'PDF generation appears stuck. Click below to retry.'
-                    : 'PDF generation is queued but hasn\'t started. Click below to retry.'}
-                </p>
-                <Button
-                  onClick={async () => {
-                    const success = await retryPdfGeneration(patient.id);
-                    if (success) {
-                      loadPatient();
-                    }
-                  }}
-                  variant="outline"
-                  className="w-full border-amber-500 text-amber-700 hover:bg-amber-100"
-                  disabled={actionLoading}
-                >
-                  <RefreshCw className="mr-2 h-4 w-4" />
-                  Retry PDF Generation
-                </Button>
-              </CardContent>
-            </Card>
-          )}
-          
-          <LGDownloadPanel patient={patient} />
           <LGSummaryPreview patient={patient} />
           <LGProcessingMetrics patient={patient} />
           
