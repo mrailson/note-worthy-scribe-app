@@ -323,38 +323,38 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                   </span>
                 </p>
                 <p className="text-xs text-muted-foreground italic">Tip: the filename always starts with the NHS number</p>
-                <div className="flex gap-4 pt-1">
+                <div className="flex items-center gap-4 pt-1 flex-wrap">
                   <span><span className="text-muted-foreground">Pages:</span> <span className="font-medium">{patient.images_count || '—'}</span></span>
                   <span><span className="text-muted-foreground">Size:</span> <span className="font-medium">{patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB` : '—'}</span></span>
-                </div>
-                {patient.pdf_url && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="mt-1"
-                    onClick={async () => {
-                      try {
-                        const storagePath = patient.pdf_url!.startsWith('lg/') 
-                          ? patient.pdf_url!.substring(3) 
-                          : patient.pdf_url!;
-                        const { data, error } = await supabase.storage
-                          .from('lg')
-                          .createSignedUrl(storagePath, 3600);
-                        if (error || !data?.signedUrl) {
-                          toast.error('Failed to get download link');
-                          return;
+                  {patient.pdf_url && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="h-7 px-2 py-1"
+                      onClick={async () => {
+                        try {
+                          const storagePath = patient.pdf_url!.startsWith('lg/') 
+                            ? patient.pdf_url!.substring(3) 
+                            : patient.pdf_url!;
+                          const { data, error } = await supabase.storage
+                            .from('lg')
+                            .createSignedUrl(storagePath, 3600);
+                          if (error || !data?.signedUrl) {
+                            toast.error('Failed to get download link');
+                            return;
+                          }
+                          window.open(data.signedUrl, '_blank');
+                        } catch {
+                          toast.error('Failed to download file');
                         }
-                        window.open(data.signedUrl, '_blank');
-                      } catch {
-                        toast.error('Failed to download file');
-                      }
-                    }}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Download PDF
-                  </Button>
-                )}
+                      }}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-1" />
+                      Download
+                    </Button>
+                  )}
+                </div>
               </div>
             </div>
           </div>
