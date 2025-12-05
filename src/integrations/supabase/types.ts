@@ -3372,11 +3372,13 @@ export type Database = {
           ai_extracted_nhs: string | null
           ai_extracted_sex: string | null
           ai_extraction_confidence: number | null
+          archived_at: string | null
           audit_report_url: string | null
           compression_attempts: number | null
           compression_tier: string | null
           created_at: string | null
           dob: string | null
+          downloaded_at: string | null
           email_error: string | null
           email_sent_at: string | null
           error_message: string | null
@@ -3405,6 +3407,7 @@ export type Database = {
           processing_completed_at: string | null
           processing_phase: string | null
           processing_started_at: string | null
+          publish_status: string | null
           requires_verification: boolean | null
           sex: string
           snomed_csv_url: string | null
@@ -3414,8 +3417,13 @@ export type Database = {
           upload_completed_at: string | null
           upload_progress: number | null
           upload_started_at: string | null
+          uploaded_to_s1_at: string | null
           uploader_name: string
           user_id: string | null
+          validated_at: string | null
+          validated_by: string | null
+          validation_result: Json | null
+          validation_screenshot_url: string | null
         }
         Insert: {
           ai_extracted_dob?: string | null
@@ -3423,11 +3431,13 @@ export type Database = {
           ai_extracted_nhs?: string | null
           ai_extracted_sex?: string | null
           ai_extraction_confidence?: number | null
+          archived_at?: string | null
           audit_report_url?: string | null
           compression_attempts?: number | null
           compression_tier?: string | null
           created_at?: string | null
           dob?: string | null
+          downloaded_at?: string | null
           email_error?: string | null
           email_sent_at?: string | null
           error_message?: string | null
@@ -3456,6 +3466,7 @@ export type Database = {
           processing_completed_at?: string | null
           processing_phase?: string | null
           processing_started_at?: string | null
+          publish_status?: string | null
           requires_verification?: boolean | null
           sex?: string
           snomed_csv_url?: string | null
@@ -3465,8 +3476,13 @@ export type Database = {
           upload_completed_at?: string | null
           upload_progress?: number | null
           upload_started_at?: string | null
+          uploaded_to_s1_at?: string | null
           uploader_name: string
           user_id?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_result?: Json | null
+          validation_screenshot_url?: string | null
         }
         Update: {
           ai_extracted_dob?: string | null
@@ -3474,11 +3490,13 @@ export type Database = {
           ai_extracted_nhs?: string | null
           ai_extracted_sex?: string | null
           ai_extraction_confidence?: number | null
+          archived_at?: string | null
           audit_report_url?: string | null
           compression_attempts?: number | null
           compression_tier?: string | null
           created_at?: string | null
           dob?: string | null
+          downloaded_at?: string | null
           email_error?: string | null
           email_sent_at?: string | null
           error_message?: string | null
@@ -3507,6 +3525,7 @@ export type Database = {
           processing_completed_at?: string | null
           processing_phase?: string | null
           processing_started_at?: string | null
+          publish_status?: string | null
           requires_verification?: boolean | null
           sex?: string
           snomed_csv_url?: string | null
@@ -3516,8 +3535,13 @@ export type Database = {
           upload_completed_at?: string | null
           upload_progress?: number | null
           upload_started_at?: string | null
+          uploaded_to_s1_at?: string | null
           uploader_name?: string
           user_id?: string | null
+          validated_at?: string | null
+          validated_by?: string | null
+          validation_result?: Json | null
+          validation_screenshot_url?: string | null
         }
         Relationships: []
       }
