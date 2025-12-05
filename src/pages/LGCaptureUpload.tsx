@@ -326,6 +326,29 @@ export default function LGCaptureUpload() {
         </CardContent>
       </Card>
 
+      {/* Submit Button - moved above image grid */}
+      {images.length > 0 && (
+        <Button
+          onClick={handleSubmit}
+          disabled={isSubmitting || isExtracting || nonBlankImages.length === 0}
+          className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
+          size="lg"
+        >
+          {isSubmitting ? (
+            <>
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              <FastForward className="mr-2 h-5 w-5" />
+              Submit for Processing ({nonBlankImages.length} pages)
+              {blankCount > 0 && <span className="ml-1 text-green-200">• {blankCount} blank excluded</span>}
+            </>
+          )}
+        </Button>
+      )}
+
       {/* Image Grid */}
       {images.length > 0 && (
         <div className="space-y-3">
@@ -441,29 +464,6 @@ export default function LGCaptureUpload() {
             ))}
           </div>
         </div>
-      )}
-
-      {/* Submit Button */}
-      {images.length > 0 && (
-        <Button
-          onClick={handleSubmit}
-          disabled={isSubmitting || isExtracting || nonBlankImages.length === 0}
-          className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
-          size="lg"
-        >
-          {isSubmitting ? (
-            <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-              Submitting...
-            </>
-          ) : (
-            <>
-              <FastForward className="mr-2 h-5 w-5" />
-              Submit for Processing ({nonBlankImages.length} pages)
-              {blankCount > 0 && <span className="ml-1 text-green-200">• {blankCount} blank excluded</span>}
-            </>
-          )}
-        </Button>
       )}
 
       {/* Info Card */}
