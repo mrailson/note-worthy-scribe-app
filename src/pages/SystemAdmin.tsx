@@ -57,6 +57,7 @@ import { DCB0129Panel } from '@/components/admin/DCB0129Panel';
 import { ConsultationVisibilitySettings } from '@/components/admin/ConsultationVisibilitySettings';
 import { MeetingStatsByUser } from '@/components/admin/MeetingStatsByUser';
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
+import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
 
 
 interface User {
@@ -1684,6 +1685,11 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">System Monitoring</span>
               <span className="sm:hidden">Monitor</span>
+            </TabsTrigger>
+            <TabsTrigger value="lg-capture" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">LG Capture</span>
+              <span className="sm:hidden">LG</span>
             </TabsTrigger>
           </TabsList>
 
@@ -3847,6 +3853,11 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             
             <AdminVideoUpload />
             
+          </TabsContent>
+
+          {/* LG Capture Stats Tab */}
+          <TabsContent value="lg-capture" className="space-y-6">
+            <LGCaptureStats />
           </TabsContent>
         </Tabs>
       </div>
