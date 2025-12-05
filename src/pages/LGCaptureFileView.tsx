@@ -96,7 +96,7 @@ export default function LGCaptureFileView() {
         .from('lg_patients')
         .select('id, patient_name, nhs_number, dob, images_count, created_at, pdf_url, pdf_part_urls, pdf_split, publish_status, downloaded_at, uploaded_to_s1_at, validated_at, archived_at')
         .eq('user_id', user?.id)
-        .eq('job_status', 'complete')
+        .eq('job_status', 'succeeded')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
