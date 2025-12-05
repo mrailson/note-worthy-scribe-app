@@ -654,6 +654,7 @@ Payment Terms: Net 30 days
                 <TableHead>Scanned By</TableHead>
                 <TableHead>Scan Date</TableHead>
                 <TableHead>Deleted</TableHead>
+                <TableHead className="text-right">Cost</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -674,11 +675,14 @@ Payment Terms: Net 30 days
                   <TableCell className="text-sm">{record.scanned_by || '-'}</TableCell>
                   <TableCell className="text-sm">{formatDateTime(record.scan_date)}</TableCell>
                   <TableCell className="text-sm text-muted-foreground">{formatDateTime(record.deleted_at)}</TableCell>
+                  <TableCell className="text-right font-mono text-primary font-semibold">
+                    {formatCurrency(record.billable_pages * COST_PER_PAGE)}
+                  </TableCell>
                 </TableRow>
               ))}
               {deletedRecords.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
+                  <TableCell colSpan={9} className="text-center text-muted-foreground py-8">
                     No deleted records yet
                   </TableCell>
                 </TableRow>
