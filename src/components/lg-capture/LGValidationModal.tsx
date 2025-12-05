@@ -285,10 +285,17 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
           <div className="space-y-2">
             <Label>File to Look For:</Label>
             <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-900 space-y-1">
-              <p>
+            <p>
                 <span className="text-muted-foreground">Filename:</span>{' '}
-                <span className="font-mono font-medium text-sm">
-                  {patient.pdf_url ? patient.pdf_url.split('/').pop() : 'lloyd-george.pdf'}
+                <span className="font-mono font-medium text-sm break-all">
+                  {(() => {
+                    const nhsNum = patient.nhs_number?.replace(/\s/g, '') || 'Unknown';
+                    const dobFormatted = patient.dob 
+                      ? new Date(patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
+                      : 'Unknown';
+                    const scanDate = new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_');
+                    return `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan.pdf`;
+                  })()}
                 </span>
               </p>
               <p>
