@@ -8,8 +8,19 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload } from 'lucide-react';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
 
 function formatNhsNumber(nhs: string | null | undefined): string {
   if (!nhs) return '—';
@@ -37,6 +48,9 @@ export default function LGCapturePatients() {
   const [patients, setPatients] = useState<LGPatient[]>([]);
   const [search, setSearch] = useState('');
   const [practiceNames, setPracticeNames] = useState<Record<string, string>>({});
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [deleteConfirmText, setDeleteConfirmText] = useState('');
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Fetch practice names lookup
   useEffect(() => {
@@ -94,6 +108,33 @@ export default function LGCapturePatients() {
   const handleSearch = async () => {
     const data = await listPatients(search || undefined);
     setPatients(data);
+  };
+
+  const handleDeleteAll = async () => {
+    if (deleteConfirmText.toLowerCase() !== 'yes i am sure') {
+      toast.error('Please type "yes i am sure" to confirm deletion');
+      return;
+    }
+    
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase
+        .from('lg_patients')
+        .delete()
+        .neq('id', '00000000-0000-0000-0000-000000000000'); // Delete all records
+      
+      if (error) throw error;
+      
+      setPatients([]);
+      setShowDeleteAllDialog(false);
+      setDeleteConfirmText('');
+      toast.success('All LG captures deleted successfully');
+    } catch (error) {
+      console.error('Delete all error:', error);
+      toast.error('Failed to delete all captures');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   const getStatusBadge = (patient: LGPatient) => {
@@ -196,7 +237,7 @@ export default function LGCapturePatients() {
       </div>
 
       <div>
-        <h1 className="text-2xl font-bold mb-2">Recent Captures</h1>
+        <h1 className="text-2xl font-bold mb-2">Recent LG Captures</h1>
         <p className="text-muted-foreground text-sm">
           Search by patient name or NHS number
         </p>
@@ -279,6 +320,62 @@ export default function LGCapturePatients() {
           ))}
         </div>
       )}
+
+      {/* Delete All Button */}
+      {patients.length > 0 && (
+        <div className="pt-6 border-t">
+          <Button
+            variant="destructive"
+            onClick={() => setShowDeleteAllDialog(true)}
+            className="w-full"
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Delete All Captures
+          </Button>
+        </div>
+      )}
+
+      {/* Delete All Confirmation Dialog */}
+      <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete All LG Captures?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-4">
+              <p>
+                This will permanently delete <strong>all {patients.length} LG capture records</strong> and their associated files. This action cannot be undone.
+              </p>
+              <p>
+                To confirm, please type <strong>"yes i am sure"</strong> below:
+              </p>
+              <Input
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type 'yes i am sure' to confirm"
+                className="mt-2"
+              />
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteConfirmText('')}>
+              Cancel
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAll}
+              disabled={deleteConfirmText.toLowerCase() !== 'yes i am sure' || isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Deleting...
+                </>
+              ) : (
+                'Delete All'
+              )}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

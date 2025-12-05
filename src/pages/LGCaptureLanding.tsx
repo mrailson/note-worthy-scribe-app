@@ -402,7 +402,7 @@ export default function LGCaptureLanding() {
           className="w-full"
         >
           <List className="mr-2 h-4 w-4" />
-          Recent Captures
+          Recent LG Captures
         </Button>
         <Button
           variant="outline"
