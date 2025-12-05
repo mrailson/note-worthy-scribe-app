@@ -251,6 +251,16 @@ export default function LGCaptureDemoService() {
               <span>100 Pages</span>
               <span className="text-xs text-muted-foreground">Max</span>
             </Button>
+            <Button
+              variant="outline"
+              onClick={() => loadDemoImages(200)}
+              disabled={isLoading}
+              className="h-16 flex-col gap-1"
+            >
+              <FileImage className="h-5 w-5" />
+              <span>200 Pages</span>
+              <span className="text-xs text-muted-foreground">Ultra</span>
+            </Button>
           </div>
         </CardContent>
       </Card>
