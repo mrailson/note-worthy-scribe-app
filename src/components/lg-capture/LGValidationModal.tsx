@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -12,7 +12,8 @@ import {
   XCircle, 
   AlertTriangle, 
   Loader2,
-  Image as ImageIcon
+  Image as ImageIcon,
+  Clipboard
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
@@ -77,6 +78,39 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
     };
     reader.readAsDataURL(file);
   }, []);
+
+  // Handle paste from clipboard (Ctrl+V / Cmd+V)
+  const handlePaste = useCallback((event: ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+
+    for (const item of items) {
+      if (item.type.startsWith('image/')) {
+        event.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          const reader = new FileReader();
+          reader.onload = () => {
+            const base64 = reader.result as string;
+            setScreenshot(base64);
+            setScreenshotPreview(base64);
+            setValidationResult(null);
+            toast.success('Screenshot pasted from clipboard');
+          };
+          reader.readAsDataURL(file);
+        }
+        break;
+      }
+    }
+  }, []);
+
+  // Listen for paste events when modal is open
+  useEffect(() => {
+    if (open) {
+      document.addEventListener('paste', handlePaste);
+      return () => document.removeEventListener('paste', handlePaste);
+    }
+  }, [open, handlePaste]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -240,9 +274,12 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                 </div>
               ) : (
                 <div className="space-y-3">
-                  <ImageIcon className="h-12 w-12 mx-auto text-muted-foreground/50" />
+                  <div className="flex items-center justify-center gap-3">
+                    <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
+                    <Clipboard className="h-8 w-8 text-muted-foreground/50" />
+                  </div>
                   <div>
-                    <p className="font-medium">Drag & drop screenshot or click to upload</p>
+                    <p className="font-medium">Drag & drop, click to upload, or paste (Ctrl+V)</p>
                     <p className="text-sm text-muted-foreground">Supports: PNG, JPG, WEBP (max 10MB)</p>
                   </div>
                 </div>
