@@ -179,7 +179,7 @@ export default function LGCaptureUpload() {
           uploader_name: uploaderName,
           job_status: 'draft',
           sex: 'unknown',
-          page_count: images.length,
+          images_count: images.length,
         });
 
       if (error) {
