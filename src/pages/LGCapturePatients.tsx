@@ -311,20 +311,32 @@ export default function LGCapturePatients() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-3">
-                      {/* PDF Icons */}
-                      {hasPdf && patient.job_status === 'succeeded' && (
-                        <div className="flex items-center gap-1 flex-shrink-0">
-                          {pdfPartUrls && pdfPartUrls.length > 0 ? (
+                    <div className="space-y-1">
+                      <p className="font-medium">
+                        {patient.patient_name || patient.ai_extracted_name || 'Extracting...'}
+                      </p>
+                      <p className="text-sm text-muted-foreground font-mono">
+                        NHS: {formatNhsNumber(patient.nhs_number || patient.ai_extracted_nhs)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        DOB: {formatDob(patient.dob || patient.ai_extracted_dob)}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <div className="flex items-center gap-2">
+                        {getStatusBadge(patient)}
+                        {/* PDF Icon - after badge */}
+                        {hasPdf && patient.job_status === 'succeeded' && (
+                          pdfPartUrls && pdfPartUrls.length > 0 ? (
                             pdfPartUrls.map((url: string, index: number) => (
                               <button
                                 key={index}
                                 onClick={(e) => handleDownloadPdf(url, e)}
-                                className="p-1 rounded hover:bg-muted transition-colors group relative"
+                                className="p-0.5 rounded hover:bg-muted transition-colors group relative"
                                 title={`Download PDF Part ${index + 1}`}
                               >
-                                <img src={pdfIcon} alt="PDF" className="h-8 w-8 group-hover:opacity-80" />
-                                <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                                <img src={pdfIcon} alt="PDF" className="h-5 w-5 group-hover:opacity-80" />
+                                <span className="absolute -bottom-0.5 -right-0.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full w-3 h-3 flex items-center justify-center">
                                   {index + 1}
                                 </span>
                               </button>
@@ -332,28 +344,14 @@ export default function LGCapturePatients() {
                           ) : pdfUrl ? (
                             <button
                               onClick={(e) => handleDownloadPdf(pdfUrl, e)}
-                              className="p-1 rounded hover:bg-muted transition-colors"
+                              className="p-0.5 rounded hover:bg-muted transition-colors"
                               title="Download PDF"
                             >
-                              <img src={pdfIcon} alt="PDF" className="h-8 w-8 hover:opacity-80" />
+                              <img src={pdfIcon} alt="PDF" className="h-5 w-5 hover:opacity-80" />
                             </button>
-                          ) : null}
-                        </div>
-                      )}
-                      <div className="space-y-1">
-                        <p className="font-medium">
-                          {patient.patient_name || patient.ai_extracted_name || 'Extracting...'}
-                        </p>
-                        <p className="text-sm text-muted-foreground font-mono">
-                          NHS: {formatNhsNumber(patient.nhs_number || patient.ai_extracted_nhs)}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          DOB: {formatDob(patient.dob || patient.ai_extracted_dob)}
-                        </p>
+                          ) : null
+                        )}
                       </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      {getStatusBadge(patient)}
                       <span className="text-xs text-muted-foreground text-right">
                         {patient.practice_ods}{practiceNames[patient.practice_ods] ? ` - ${practiceNames[patient.practice_ods]}` : ''}
                         {patient.uploader_name && (
