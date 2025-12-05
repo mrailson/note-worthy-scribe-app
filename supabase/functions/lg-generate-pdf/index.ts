@@ -45,15 +45,15 @@ interface CompressionSettings {
 }
 
 function getCompressionSettings(pageCount: number, attempt: number = 0): CompressionSettings {
-  // Use consistent 35% scale for ALL documents (matching 30-page layout)
+  // Use consistent 35% scale for ALL documents (matching 20-page layout - temp workaround)
   const baseScale = 0.35;
   const baseQuality = 0.55;
   
   return {
     scaleFactor: Math.max(baseScale - (attempt * 0.05), 0.25), // 0.35, 0.30, 0.25
     jpegQuality: Math.max(baseQuality - (attempt * 0.05), 0.40), // 0.55, 0.50, 0.45
-    grayscale: pageCount > 30 || attempt >= 2, // Grayscale for large docs or 3rd attempt
-    tier: pageCount > 30 ? 'Aggressive' as const : 'Standard' as const,
+    grayscale: pageCount > 20 || attempt >= 2, // Grayscale for large docs or 3rd attempt (lowered from 30)
+    tier: pageCount > 20 ? 'Aggressive' as const : 'Standard' as const,
   };
 }
 
