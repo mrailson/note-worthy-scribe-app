@@ -132,10 +132,11 @@ function stripExifData(bytes: Uint8Array): Uint8Array {
 }
 
 // Compress image using 40% scaling approach with EXIF rotation correction
+// Returns { bytes, rotationApplied } - rotationApplied is true if EXIF rotation was successfully applied
 async function compressImage(
   imageBytes: Uint8Array,
   settings: CompressionSettings
-): Promise<Uint8Array> {
+): Promise<{ bytes: Uint8Array; rotationApplied: boolean }> {
   try {
     const orientation = parseExifOrientation(imageBytes);
     
@@ -223,11 +224,13 @@ async function compressImage(
     });
     
     const arrayBuffer = await compressedBlob.arrayBuffer();
-    return new Uint8Array(arrayBuffer);
+    // Return compressed bytes with flag indicating rotation WAS applied
+    return { bytes: new Uint8Array(arrayBuffer), rotationApplied: true };
     
   } catch (err) {
     console.warn('Image compression failed, using original:', err);
-    return imageBytes;
+    // Return original bytes with flag indicating rotation was NOT applied
+    return { bytes: imageBytes, rotationApplied: false };
   }
 }
 
@@ -678,20 +681,21 @@ async function processBatchWithMemoryProtection(
         let uint8Array = new Uint8Array(arrayBuffer);
         const originalSize = uint8Array.length;
         
-        // Extract EXIF orientation BEFORE compression (for logging only)
+        // Extract EXIF orientation BEFORE compression
         const originalExifOrientation = parseExifOrientation(uint8Array);
         console.log(`Downloaded page ${i + 1}: ${(originalSize / 1024).toFixed(0)}KB, EXIF orientation: ${originalExifOrientation}`);
         
         // Apply compression (40% scale, 60% quality)
-        // IMPORTANT: compressImage already applies EXIF rotation correction, so the output is correctly oriented
-        uint8Array = await compressImage(uint8Array, compressionSettings);
+        // compressImage returns { bytes, rotationApplied } - if compression succeeded, rotation was applied
+        const compressionResult = await compressImage(uint8Array, compressionSettings);
+        uint8Array = compressionResult.bytes;
         
-        // Since compression already applied rotation, set to 1 (no rotation) for PDF drawing
-        // This prevents double-rotation bug where image was rotated twice
-        const exifOrientation = 1;
+        // Use orientation 1 (no rotation) if compression applied rotation, otherwise use original EXIF
+        const exifOrientation = compressionResult.rotationApplied ? 1 : originalExifOrientation;
         const compressedSize = uint8Array.length;
         
-        console.log(`Compressed page ${i + 1}: ${(compressedSize / 1024).toFixed(0)}KB (${((1 - compressedSize/originalSize) * 100).toFixed(0)}% reduction)`);
+        console.log(`Compressed page ${i + 1}: ${(compressedSize / 1024).toFixed(0)}KB (${((1 - compressedSize/originalSize) * 100).toFixed(0)}% reduction), rotation ${compressionResult.rotationApplied ? 'applied by compression' : 'needed at PDF draw time (EXIF ' + exifOrientation + ')'}`);
+        
         
         // Embed image in PDF with explicit error handling
         let image: any = null;
@@ -1043,8 +1047,11 @@ serve(async (req) => {
             const arrayBuffer = await imageData.arrayBuffer();
             let uint8Array = new Uint8Array(arrayBuffer);
             const originalSize = uint8Array.length;
-            uint8Array = await compressImage(uint8Array, compressionSettings);
-            console.log(`Compressed page ${i + 1}: ${(uint8Array.length / 1024).toFixed(0)}KB`);
+            const originalExifOrientation = parseExifOrientation(uint8Array);
+            const compressionResult = await compressImage(uint8Array, compressionSettings);
+            uint8Array = compressionResult.bytes;
+            const exifOrientation = compressionResult.rotationApplied ? 1 : originalExifOrientation;
+            console.log(`Compressed fallback page ${i + 1}: ${(uint8Array.length / 1024).toFixed(0)}KB, EXIF: ${exifOrientation}`);
             
             let image: any = null;
             try {
@@ -1055,7 +1062,7 @@ serve(async (req) => {
               console.log(`Embedded PNG for fallback page ${i + 1}`);
             }
             
-            const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob, pageSummaries[i]);
+            const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob, pageSummaries[i], exifOrientation);
             if (imageDrawn) fallbackSuccessCount++;
           }
         } catch (err) {
