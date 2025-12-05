@@ -162,40 +162,44 @@ async function compressImage(
       return imageBytes;
     }
     
-    // Apply EXIF orientation transformation
+    // Apply EXIF orientation transformation using standard approach
+    // Translate BEFORE rotate to position correctly
     switch (orientation) {
-      case 2:
+      case 2: // Flip horizontal
+        ctx.translate(canvasWidth, 0);
         ctx.scale(-1, 1);
-        ctx.translate(-canvasWidth, 0);
         break;
-      case 3:
+      case 3: // Rotate 180°
         ctx.translate(canvasWidth, canvasHeight);
         ctx.rotate(Math.PI);
         break;
-      case 4:
+      case 4: // Flip vertical
+        ctx.translate(0, canvasHeight);
         ctx.scale(1, -1);
-        ctx.translate(0, -canvasHeight);
         break;
-      case 5:
+      case 5: // Rotate 90° CW then flip horizontal
         ctx.rotate(Math.PI / 2);
-        ctx.scale(1, -1);
+        ctx.scale(-1, 1);
         break;
-      case 6:
+      case 6: // Rotate 90° CW (portrait photo taken with camera rotated left)
+        ctx.translate(canvasWidth, 0);
         ctx.rotate(Math.PI / 2);
-        ctx.translate(0, -canvasWidth);
         break;
-      case 7:
+      case 7: // Rotate 90° CCW then flip horizontal  
         ctx.rotate(-Math.PI / 2);
-        ctx.scale(1, -1);
-        ctx.translate(-canvasHeight, 0);
+        ctx.translate(-canvasWidth, 0);
+        ctx.scale(-1, 1);
         break;
-      case 8:
+      case 8: // Rotate 90° CCW (portrait photo taken with camera rotated right)
+        ctx.translate(0, canvasHeight);
         ctx.rotate(-Math.PI / 2);
-        ctx.translate(-canvasHeight, 0);
         break;
       default:
+        // Orientation 1 or unknown - no transformation needed
         break;
     }
+    
+    console.log(`EXIF orientation ${orientation}: canvas ${canvasWidth}x${canvasHeight}, target ${targetWidth}x${targetHeight}`);
     
     ctx.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight);
     ctx.setTransform(1, 0, 0, 1, 0, 0);
