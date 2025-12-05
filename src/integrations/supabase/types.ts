@@ -5029,6 +5029,39 @@ export type Database = {
           },
         ]
       }
+      plaud_integrations: {
+        Row: {
+          auto_generate_notes: boolean
+          created_at: string
+          default_meeting_type: string | null
+          enabled: boolean
+          id: string
+          updated_at: string
+          user_id: string
+          webhook_secret: string | null
+        }
+        Insert: {
+          auto_generate_notes?: boolean
+          created_at?: string
+          default_meeting_type?: string | null
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          user_id: string
+          webhook_secret?: string | null
+        }
+        Update: {
+          auto_generate_notes?: boolean
+          created_at?: string
+          default_meeting_type?: string | null
+          enabled?: boolean
+          id?: string
+          updated_at?: string
+          user_id?: string
+          webhook_secret?: string | null
+        }
+        Relationships: []
+      }
       policy_templates: {
         Row: {
           configuration: Json | null

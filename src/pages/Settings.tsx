@@ -51,8 +51,10 @@ import {
   Volume2,
   Stethoscope,
   Sparkles,
-  Bell
+  Bell,
+  Plug
 } from 'lucide-react';
+import { PlaudIntegrationSettings } from '@/components/settings/PlaudIntegrationSettings';
 import { useToast } from '@/hooks/use-toast';
 import { useToastPreferences } from '@/hooks/useToastPreferences';
 import { useVoicePreference } from '@/hooks/useVoicePreference';
@@ -480,10 +482,14 @@ export default function Settings() {
 
           {/* Settings Tabs */}
           <Tabs defaultValue="general" className="space-y-4 sm:space-y-6">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-4'} overflow-x-auto`}>
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-5'} overflow-x-auto`}>
               <TabsTrigger value="general" className="flex items-center gap-2 mobile-touch-target">
                 <SettingsIcon className="h-4 w-4" />
                 <span className="hidden sm:inline">General</span>
+              </TabsTrigger>
+              <TabsTrigger value="integrations" className="flex items-center gap-2 mobile-touch-target">
+                <Plug className="h-4 w-4" />
+                <span className="hidden sm:inline">Integrations</span>
               </TabsTrigger>
               {isAdmin && (
                 <TabsTrigger value="practices" className="flex items-center gap-2 mobile-touch-target">
@@ -880,6 +886,22 @@ export default function Settings() {
                         <li>Mix of letters, numbers, and symbols recommended</li>
                       </ul>
                     </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Integrations Tab */}
+            <TabsContent value="integrations" className="space-y-6">
+              <PlaudIntegrationSettings />
+              
+              {/* Future integrations can be added here */}
+              <Card className="border-dashed">
+                <CardContent className="py-8">
+                  <div className="text-center text-muted-foreground">
+                    <Plug className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">More integrations coming soon</p>
+                    <p className="text-xs">Microsoft Teams, Google Meet, Zoom, and more</p>
                   </div>
                 </CardContent>
               </Card>
