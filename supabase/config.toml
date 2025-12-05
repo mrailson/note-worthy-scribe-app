@@ -293,3 +293,6 @@ verify_jwt = false
 
 [functions.lg-snomed-quality-gate]
 verify_jwt = true
+
+[functions.lg-bulk-download]
+verify_jwt = true
