@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play, FolderDown } from 'lucide-react';
+import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play, FolderDown, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsIPhone } from '@/hooks/use-mobile';
@@ -384,16 +384,29 @@ export default function LGCaptureLanding() {
         <p className="text-xs text-muted-foreground">Proof of Concept</p>
       </div>
 
-      <Button
-        onClick={() => navigate('/lg-capture/start')}
-        className="w-full h-14 text-lg"
-        size="lg"
-        disabled={!canStart}
-      >
-        <Camera className="mr-2 h-6 w-6" />
-        Start New Patient LG Capture
-        <ArrowRight className="ml-2 h-5 w-5" />
-      </Button>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+        <Button
+          onClick={() => navigate('/lg-capture/start')}
+          className="w-full h-14 text-lg"
+          size="lg"
+          disabled={!canStart}
+        >
+          <Camera className="mr-2 h-6 w-6" />
+          Camera Capture
+          <ArrowRight className="ml-2 h-5 w-5" />
+        </Button>
+        
+        <Button
+          onClick={() => navigate('/lg-capture/upload')}
+          variant="outline"
+          className="w-full h-14 text-lg"
+          size="lg"
+          disabled={!canStart}
+        >
+          <Upload className="mr-2 h-6 w-6" />
+          Upload Files
+        </Button>
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Button
