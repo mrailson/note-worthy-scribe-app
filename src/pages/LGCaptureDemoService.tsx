@@ -213,12 +213,12 @@ export default function LGCaptureDemoService() {
             </Button>
             <Button
               variant="outline"
-              onClick={() => loadDemoImages(30)}
+              onClick={() => loadDemoImages(20)}
               disabled={isLoading}
               className="h-16 flex-col gap-1"
             >
               <FileImage className="h-5 w-5" />
-              <span>30 Pages</span>
+              <span>20 Pages</span>
               <span className="text-xs text-muted-foreground">Large</span>
             </Button>
             <Button
