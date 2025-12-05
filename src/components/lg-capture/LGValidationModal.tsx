@@ -2,7 +2,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +12,8 @@ import {
   AlertTriangle, 
   Loader2,
   Image as ImageIcon,
-  Clipboard
+  Clipboard,
+  Copy
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
 
@@ -61,7 +61,7 @@ const formatDate = (dateStr: string | null): string => {
 };
 
 export function LGValidationModal({ open, onClose, patient, onValidated }: LGValidationModalProps) {
-  const [clinicalSystem, setClinicalSystem] = useState<'emis' | 'systmone'>('systmone');
+  
   const [screenshot, setScreenshot] = useState<string | null>(null);
   const [screenshotPreview, setScreenshotPreview] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
@@ -164,8 +164,7 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
           patientId: patient.id,
           screenshotBase64: screenshot,
           expectedNhs: patient.nhs_number?.replace(/\s/g, '') || '',
-          expectedDob: patient.dob || '',
-          clinicalSystem
+          expectedDob: patient.dob || ''
         }
       });
 
@@ -205,7 +204,6 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
         validated_at: new Date().toISOString(),
         publish_status: 'validated',
         validation_result: {
-          clinical_system: clinicalSystem,
           nhs_match: validationResult?.nhs_match || false,
           dob_match: validationResult?.dob_match || false,
           file_detected: validationResult?.file_detected || false,
@@ -252,32 +250,43 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
         </DialogHeader>
 
         <div className="space-y-6 py-4">
-          {/* Clinical System Selection */}
-          <div className="space-y-3">
-            <Label>Select your clinical system:</Label>
-            <RadioGroup 
-              value={clinicalSystem} 
-              onValueChange={(v) => setClinicalSystem(v as 'emis' | 'systmone')}
-              className="flex gap-4"
-            >
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="emis" id="emis" />
-                <Label htmlFor="emis" className="cursor-pointer">EMIS Web</Label>
-              </div>
-              <div className="flex items-center space-x-2">
-                <RadioGroupItem value="systmone" id="systmone" />
-                <Label htmlFor="systmone" className="cursor-pointer">SystmOne</Label>
-              </div>
-            </RadioGroup>
-          </div>
-
           {/* Expected Patient Details */}
           <div className="space-y-2">
             <Label>Expected Patient Details:</Label>
             <div className="bg-muted/50 p-4 rounded-lg border space-y-1">
               <p><span className="text-muted-foreground">Name:</span> <span className="font-medium">{patient.patient_name || '—'}</span></p>
-              <p><span className="text-muted-foreground">NHS:</span> <span className="font-mono font-medium">{formatNhsNumber(patient.nhs_number)}</span></p>
-              <p><span className="text-muted-foreground">DOB:</span> <span className="font-medium">{formatDate(patient.dob)}</span></p>
+              <p className="flex items-center gap-2">
+                <span className="text-muted-foreground">NHS:</span> 
+                <span className="font-mono font-medium">{formatNhsNumber(patient.nhs_number)}</span>
+                {patient.nhs_number && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(patient.nhs_number?.replace(/\s/g, '') || '');
+                      toast.success('NHS number copied');
+                    }}
+                    className="p-1 hover:bg-muted rounded transition-colors"
+                    title="Copy NHS number"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                  </button>
+                )}
+              </p>
+              <p className="flex items-center gap-2">
+                <span className="text-muted-foreground">DOB:</span> 
+                <span className="font-medium">{formatDate(patient.dob)}</span>
+                {patient.dob && (
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(formatDate(patient.dob));
+                      toast.success('DOB copied');
+                    }}
+                    className="p-1 hover:bg-muted rounded transition-colors"
+                    title="Copy date of birth"
+                  >
+                    <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                  </button>
+                )}
+              </p>
             </div>
           </div>
 
