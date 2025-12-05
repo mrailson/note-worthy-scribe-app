@@ -96,7 +96,7 @@ export default function LGCaptureFileView() {
         .from('lg_patients')
         .select('id, patient_name, nhs_number, dob, images_count, created_at, pdf_url, pdf_part_urls, pdf_split, publish_status, downloaded_at, uploaded_to_s1_at, validated_at, archived_at')
         .eq('user_id', user?.id)
-        .eq('processing_status', 'complete')
+        .eq('job_status', 'complete')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -331,22 +331,22 @@ export default function LGCaptureFileView() {
         <Card>
           <CardHeader className="pb-4">
             <Tabs value={activeTab} onValueChange={(v) => { setActiveTab(v); setSelectedIds(new Set()); }}>
-              <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="ready" className="gap-2">
-                  <Clock className="h-4 w-4" />
-                  Ready ({getTabCount('ready')})
+              <TabsList className="flex w-full overflow-x-auto gap-1 h-auto flex-wrap sm:flex-nowrap">
+                <TabsTrigger value="ready" className="gap-1 text-xs sm:text-sm px-2 sm:px-3 py-1.5 flex-shrink-0">
+                  <Clock className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Ready</span> ({getTabCount('ready')})
                 </TabsTrigger>
-                <TabsTrigger value="downloaded" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Downloaded ({getTabCount('downloaded')})
+                <TabsTrigger value="downloaded" className="gap-1 text-xs sm:text-sm px-2 sm:px-3 py-1.5 flex-shrink-0">
+                  <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Downloaded</span> ({getTabCount('downloaded')})
                 </TabsTrigger>
-                <TabsTrigger value="uploaded" className="gap-2">
-                  <Upload className="h-4 w-4" />
-                  Uploaded ({getTabCount('uploaded')})
+                <TabsTrigger value="uploaded" className="gap-1 text-xs sm:text-sm px-2 sm:px-3 py-1.5 flex-shrink-0">
+                  <Upload className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Uploaded</span> ({getTabCount('uploaded')})
                 </TabsTrigger>
-                <TabsTrigger value="archived" className="gap-2">
-                  <Archive className="h-4 w-4" />
-                  Archived ({getTabCount('archived')})
+                <TabsTrigger value="archived" className="gap-1 text-xs sm:text-sm px-2 sm:px-3 py-1.5 flex-shrink-0">
+                  <Archive className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Archived</span> ({getTabCount('archived')})
                 </TabsTrigger>
               </TabsList>
             </Tabs>
