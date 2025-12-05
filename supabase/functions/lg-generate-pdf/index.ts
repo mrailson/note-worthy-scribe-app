@@ -661,98 +661,78 @@ async function processBatchWithMemoryProtection(
   let processedCount = 0;
   let successfulEmbeds = 0;
   
-  // Process each page individually - do NOT hold all images in memory
+  // Process each page individually - SIMPLIFIED to reduce CPU usage
   for (let i = batchStart; i < batchEnd; i++) {
     const file = files[i];
-    let retryAttempts = 0;
-    let pageSuccess = false;
     
     console.log(`Processing page ${i + 1}/${files.length}: ${file.name}`);
     
-    while (!pageSuccess && retryAttempts < 2) {
+    try {
+      // Download image
+      const { data: imageData, error: downloadError } = await supabase.storage
+        .from('lg')
+        .download(`${basePath}/raw/${file.name}`);
+      
+      if (downloadError || !imageData) {
+        throw new Error(`Download failed: ${downloadError?.message || 'No data'}`);
+      }
+      
+      const arrayBuffer = await imageData.arrayBuffer();
+      let uint8Array = new Uint8Array(arrayBuffer);
+      const originalSize = uint8Array.length;
+      
+      // Extract EXIF orientation
+      const exifOrientation = parseExifOrientation(uint8Array);
+      console.log(`Page ${i + 1}: ${(originalSize / 1024).toFixed(0)}KB, EXIF: ${exifOrientation}`);
+      
+      // SKIP compression to save CPU - embed directly as PNG (more reliable in Deno)
+      let image: any = null;
       try {
-        // Download image
-        const { data: imageData, error: downloadError } = await supabase.storage
-          .from('lg')
-          .download(`${basePath}/raw/${file.name}`);
-        
-        if (downloadError || !imageData) {
-          throw new Error(`Download failed: ${downloadError?.message || 'No data'}`);
-        }
-        
-        const arrayBuffer = await imageData.arrayBuffer();
-        let uint8Array = new Uint8Array(arrayBuffer);
-        const originalSize = uint8Array.length;
-        
-        // Extract EXIF orientation BEFORE compression
-        const originalExifOrientation = parseExifOrientation(uint8Array);
-        console.log(`Downloaded page ${i + 1}: ${(originalSize / 1024).toFixed(0)}KB, EXIF orientation: ${originalExifOrientation}`);
-        
-        // Apply compression (40% scale, 60% quality)
-        // compressImage returns { bytes, rotationApplied } - if compression succeeded, rotation was applied
-        const compressionResult = await compressImage(uint8Array, compressionSettings);
-        uint8Array = compressionResult.bytes;
-        
-        // Use orientation 1 (no rotation) if compression applied rotation, otherwise use original EXIF
-        const exifOrientation = compressionResult.rotationApplied ? 1 : originalExifOrientation;
-        const compressedSize = uint8Array.length;
-        
-        console.log(`Compressed page ${i + 1}: ${(compressedSize / 1024).toFixed(0)}KB (${((1 - compressedSize/originalSize) * 100).toFixed(0)}% reduction), rotation ${compressionResult.rotationApplied ? 'applied by compression' : 'needed at PDF draw time (EXIF ' + exifOrientation + ')'}`);
-        
-        
-        // Embed image in PDF with explicit error handling
-        let image: any = null;
+        // Try PNG first - more reliable in Deno edge runtime
+        image = await pdfDoc.embedPng(uint8Array);
+        console.log(`Embedded PNG page ${i + 1}`);
+      } catch (pngErr) {
+        // Fallback to JPEG
         try {
           image = await pdfDoc.embedJpg(uint8Array);
-          console.log(`Embedded JPEG for page ${i + 1}, size=${compressedSize} bytes`);
+          console.log(`Embedded JPEG page ${i + 1}`);
         } catch (jpgErr) {
-          console.warn(`JPEG embed failed for page ${i + 1}, trying PNG:`, jpgErr);
-          try {
-            image = await pdfDoc.embedPng(uint8Array);
-            console.log(`Embedded PNG for page ${i + 1}, size=${compressedSize} bytes`);
-          } catch (pngErr) {
-            console.error(`FAILED to embed image for scanned page ${i + 1}:`, pngErr);
-            throw new Error(`Image embed failed: ${pngErr instanceof Error ? pngErr.message : 'Unknown error'}`);
-          }
-        }
-        
-        if (!image) {
-          throw new Error('Embed returned null image');
-        }
-        
-        // Add page with header band - pass EXIF orientation for rotation at draw time
-        const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob, pageSummaries[i], exifOrientation);
-        
-        if (imageDrawn) {
-          successfulEmbeds++;
-        }
-        
-        pageSuccess = true;
-        processedCount++;
-        
-        // Clear reference to allow GC
-        uint8Array = null as any;
-        image = null;
-        
-      } catch (err) {
-        retryAttempts++;
-        console.error(`Page ${i + 1} failed (attempt ${retryAttempts}/2):`, err);
-        
-        if (retryAttempts >= 2) {
-          // Flag page for manual review
-          failedPages.push({
-            pageNum: i,
-            filename: file.name,
-            reason: err instanceof Error ? err.message : 'Unknown error',
-            retryAttempts,
-          });
-          
-          // Add placeholder page with error message
-          console.error(`FAILED: Page ${i + 1} after ${retryAttempts} retries - adding placeholder`);
-          addFailedPagePlaceholder(pdfDoc, i, files.length, file.name);
-          processedCount++; // Count placeholder as processed
+          console.error(`FAILED page ${i + 1}:`, jpgErr);
+          throw new Error(`Image embed failed`);
         }
       }
+      
+      if (!image) {
+        throw new Error('Embed returned null');
+      }
+      
+      // Add page with header band
+      const imageDrawn = addScannedPageWithHeader(pdfDoc, image, i, files.length, patientName, formattedNhs, formattedDob, pageSummaries[i], exifOrientation);
+      
+      if (imageDrawn) {
+        successfulEmbeds++;
+      }
+      
+      processedCount++;
+      
+      // Clear references for GC
+      uint8Array = null as any;
+      image = null;
+        
+    } catch (err) {
+      console.error(`Page ${i + 1} failed:`, err);
+      
+      // Flag page for manual review
+      failedPages.push({
+        pageNum: i,
+        filename: file.name,
+        reason: err instanceof Error ? err.message : 'Unknown error',
+        retryAttempts: 1,
+      });
+      
+      // Add placeholder page
+      addFailedPagePlaceholder(pdfDoc, i, files.length, file.name);
+      processedCount++;
     }
   }
   
