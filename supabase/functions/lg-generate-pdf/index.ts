@@ -674,13 +674,17 @@ async function processBatchWithMemoryProtection(
         let uint8Array = new Uint8Array(arrayBuffer);
         const originalSize = uint8Array.length;
         
-        // Extract EXIF orientation BEFORE compression (compression may strip it)
-        const exifOrientation = parseExifOrientation(uint8Array);
-        console.log(`Downloaded page ${i + 1}: ${(originalSize / 1024).toFixed(0)}KB, EXIF orientation: ${exifOrientation}`);
+        // Extract EXIF orientation BEFORE compression (for logging only)
+        const originalExifOrientation = parseExifOrientation(uint8Array);
+        console.log(`Downloaded page ${i + 1}: ${(originalSize / 1024).toFixed(0)}KB, EXIF orientation: ${originalExifOrientation}`);
         
         // Apply compression (40% scale, 60% quality)
-        // Note: compression may fail in Deno, that's OK - we apply rotation at PDF draw time
+        // IMPORTANT: compressImage already applies EXIF rotation correction, so the output is correctly oriented
         uint8Array = await compressImage(uint8Array, compressionSettings);
+        
+        // Since compression already applied rotation, set to 1 (no rotation) for PDF drawing
+        // This prevents double-rotation bug where image was rotated twice
+        const exifOrientation = 1;
         const compressedSize = uint8Array.length;
         
         console.log(`Compressed page ${i + 1}: ${(compressedSize / 1024).toFixed(0)}KB (${((1 - compressedSize/originalSize) * 100).toFixed(0)}% reduction)`);
