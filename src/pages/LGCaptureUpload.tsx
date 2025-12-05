@@ -1,30 +1,40 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { ArrowLeft, Upload, FileImage, FileText, Trash2, RotateCcw, GripVertical, FastForward, Loader2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { ArrowLeft, Upload, FileImage, FileText, Trash2, RotateCcw, GripVertical, FastForward, Loader2, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { generateULID } from '@/utils/ulid';
 import { extractPdfPages, PdfExtractionProgress } from '@/utils/pdfPageExtractor';
+import { analyseBlankness } from '@/utils/blankPageDetector';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { useDropzone } from 'react-dropzone';
+
+interface UploadImage extends CapturedImage {
+  isBlank?: boolean;
+  blankConfidence?: number;
+}
 
 export default function LGCaptureUpload() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { queuePatient } = useLGUploadQueue();
   
-  const [images, setImages] = useState<CapturedImage[]>([]);
+  const [images, setImages] = useState<UploadImage[]>([]);
   const [isExtracting, setIsExtracting] = useState(false);
   const [extractionProgress, setExtractionProgress] = useState<PdfExtractionProgress | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const maxPages = 100;
+
+  const blankCount = images.filter(img => img.isBlank).length;
+  const nonBlankImages = images.filter(img => !img.isBlank);
 
   const handleFiles = useCallback(async (acceptedFiles: File[]) => {
     const remainingSlots = maxPages - images.length;
@@ -33,7 +43,7 @@ export default function LGCaptureUpload() {
       return;
     }
 
-    const newImages: CapturedImage[] = [];
+    const newImages: UploadImage[] = [];
     setIsExtracting(true);
 
     try {
@@ -41,11 +51,11 @@ export default function LGCaptureUpload() {
         if (newImages.length >= remainingSlots) break;
 
         if (file.type === 'application/pdf') {
-          // Extract PDF pages
+          // Extract PDF pages with blank detection
           toast.info(`Extracting pages from ${file.name}...`);
           const pages = await extractPdfPages(file, 150, (progress) => {
             setExtractionProgress(progress);
-          });
+          }, true); // detectBlanks = true
           
           for (const page of pages) {
             if (newImages.length >= remainingSlots) break;
@@ -53,23 +63,43 @@ export default function LGCaptureUpload() {
               id: generateULID(),
               dataUrl: page.dataUrl,
               timestamp: Date.now(),
+              isBlank: page.isBlank,
+              blankConfidence: page.blankConfidence,
             });
           }
           setExtractionProgress(null);
         } else if (file.type.startsWith('image/')) {
-          // Process image file
+          // Process image file and detect blank
           const dataUrl = await readFileAsDataUrl(file);
+          
+          let isBlank = false;
+          let blankConfidence = 0;
+          try {
+            const result = await analyseBlankness(dataUrl);
+            isBlank = result.isBlank;
+            blankConfidence = result.confidence;
+          } catch {
+            // Ignore analysis errors
+          }
+          
           newImages.push({
             id: generateULID(),
             dataUrl,
             timestamp: Date.now(),
+            isBlank,
+            blankConfidence,
           });
         }
       }
 
       if (newImages.length > 0) {
         setImages(prev => [...prev, ...newImages]);
-        toast.success(`Added ${newImages.length} page(s)`);
+        const blankInNew = newImages.filter(img => img.isBlank).length;
+        if (blankInNew > 0) {
+          toast.success(`Added ${newImages.length} page(s) • ${blankInNew} blank detected`);
+        } else {
+          toast.success(`Added ${newImages.length} page(s)`);
+        }
       }
     } catch (error) {
       console.error('File processing error:', error);
@@ -129,6 +159,23 @@ export default function LGCaptureUpload() {
     setImages(prev => prev.filter((_, i) => i !== index));
   }, []);
 
+  const toggleBlank = useCallback((index: number) => {
+    setImages(prev => {
+      const newImages = [...prev];
+      newImages[index] = { 
+        ...newImages[index], 
+        isBlank: !newImages[index].isBlank,
+        blankConfidence: newImages[index].isBlank ? 0 : 1, // Manual override
+      };
+      return newImages;
+    });
+  }, []);
+
+  const removeAllBlanks = useCallback(() => {
+    setImages(prev => prev.filter(img => !img.isBlank));
+    toast.success(`Removed ${blankCount} blank page(s)`);
+  }, [blankCount]);
+
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
   };
@@ -156,8 +203,11 @@ export default function LGCaptureUpload() {
       return;
     }
 
-    if (images.length === 0) {
-      toast.error('Please add at least one page');
+    // Submit only non-blank images
+    const imagesToSubmit = nonBlankImages;
+    
+    if (imagesToSubmit.length === 0) {
+      toast.error('No pages to submit (all pages marked as blank)');
       return;
     }
 
@@ -179,17 +229,21 @@ export default function LGCaptureUpload() {
           uploader_name: uploaderName,
           job_status: 'draft',
           sex: 'unknown',
-          images_count: images.length,
+          images_count: imagesToSubmit.length,
         });
 
       if (error) {
         throw error;
       }
 
-      // Queue for upload and processing
-      queuePatient(patientId, practiceOds, images);
+      // Queue for upload and processing (only non-blank images)
+      queuePatient(patientId, practiceOds, imagesToSubmit);
       
-      toast.success('Files queued for processing');
+      if (blankCount > 0) {
+        toast.success(`${imagesToSubmit.length} pages queued (${blankCount} blank excluded)`);
+      } else {
+        toast.success('Files queued for processing');
+      }
       navigate('/lg-capture/patients');
     } catch (error) {
       console.error('Submit error:', error);
@@ -197,6 +251,14 @@ export default function LGCaptureUpload() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const getProgressText = () => {
+    if (!extractionProgress) return 'Processing files...';
+    if (extractionProgress.phase === 'analysing') {
+      return `Detecting blank pages ${extractionProgress.currentPage}/${extractionProgress.totalPages}...`;
+    }
+    return `Extracting page ${extractionProgress.currentPage} of ${extractionProgress.totalPages}...`;
   };
 
   return (
@@ -234,10 +296,7 @@ export default function LGCaptureUpload() {
               <div className="space-y-4">
                 <Loader2 className="h-12 w-12 mx-auto animate-spin text-primary" />
                 <p className="text-sm text-muted-foreground">
-                  {extractionProgress 
-                    ? `Extracting page ${extractionProgress.currentPage} of ${extractionProgress.totalPages}...`
-                    : 'Processing files...'
-                  }
+                  {getProgressText()}
                 </p>
                 {extractionProgress && (
                   <Progress value={extractionProgress.percentage} className="max-w-xs mx-auto" />
@@ -259,7 +318,7 @@ export default function LGCaptureUpload() {
                   Supports: JPEG, PNG, WebP images and PDF files
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  PDFs will be converted to individual page images
+                  Blank pages are automatically detected
                 </p>
               </>
             )}
@@ -270,19 +329,39 @@ export default function LGCaptureUpload() {
       {/* Image Grid */}
       {images.length > 0 && (
         <div className="space-y-3">
-          <div className="flex items-center justify-between">
-            <p className="text-sm text-muted-foreground">
-              {images.length} page(s) • Drag to reorder
-            </p>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setImages([])}
-              className="text-destructive hover:text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-1" />
-              Clear all
-            </Button>
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-3">
+              <p className="text-sm text-muted-foreground">
+                {images.length} page(s) • Drag to reorder
+              </p>
+              {blankCount > 0 && (
+                <Badge variant="secondary" className="bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400">
+                  {blankCount} blank
+                </Badge>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {blankCount > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={removeAllBlanks}
+                  className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                >
+                  <EyeOff className="h-4 w-4 mr-1" />
+                  Remove {blankCount} blank
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setImages([])}
+                className="text-destructive hover:text-destructive"
+              >
+                <Trash2 className="h-4 w-4 mr-1" />
+                Clear all
+              </Button>
+            </div>
           </div>
           
           <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
@@ -294,17 +373,27 @@ export default function LGCaptureUpload() {
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
                 className={`relative aspect-[3/4] bg-muted rounded-lg overflow-hidden cursor-move border-2 ${
-                  draggedIndex === index ? 'border-primary opacity-50' : 'border-transparent'
+                  draggedIndex === index ? 'border-primary opacity-50' : 
+                  image.isBlank ? 'border-amber-400 opacity-60' : 'border-transparent'
                 }`}
               >
                 <img
                   src={image.dataUrl}
                   alt={`Page ${index + 1}`}
-                  className="absolute inset-0 w-full h-full object-cover"
+                  className={`absolute inset-0 w-full h-full object-cover ${image.isBlank ? 'grayscale' : ''}`}
                 />
                 
+                {/* Blank overlay */}
+                {image.isBlank && (
+                  <div className="absolute inset-0 bg-amber-500/20 flex items-center justify-center">
+                    <Badge className="bg-amber-500 text-white text-xs">BLANK</Badge>
+                  </div>
+                )}
+                
                 {/* Page number badge */}
-                <div className="absolute top-1 left-1 bg-primary text-primary-foreground text-xs font-bold px-2 py-1 rounded">
+                <div className={`absolute top-1 left-1 text-xs font-bold px-2 py-1 rounded ${
+                  image.isBlank ? 'bg-amber-500 text-white' : 'bg-primary text-primary-foreground'
+                }`}>
                   {index + 1}
                 </div>
                 
@@ -315,6 +404,20 @@ export default function LGCaptureUpload() {
                 
                 {/* Action buttons */}
                 <div className="absolute bottom-1 right-1 flex gap-1">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      toggleBlank(index);
+                    }}
+                    className={`p-1.5 rounded ${
+                      image.isBlank 
+                        ? 'bg-amber-500 text-white hover:bg-amber-600' 
+                        : 'bg-black/50 text-white hover:bg-black/70'
+                    }`}
+                    title={image.isBlank ? 'Mark as not blank' : 'Mark as blank'}
+                  >
+                    {image.isBlank ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -344,7 +447,7 @@ export default function LGCaptureUpload() {
       {images.length > 0 && (
         <Button
           onClick={handleSubmit}
-          disabled={isSubmitting || isExtracting}
+          disabled={isSubmitting || isExtracting || nonBlankImages.length === 0}
           className="w-full h-14 text-lg bg-green-600 hover:bg-green-700"
           size="lg"
         >
@@ -356,7 +459,8 @@ export default function LGCaptureUpload() {
           ) : (
             <>
               <FastForward className="mr-2 h-5 w-5" />
-              Submit for Processing ({images.length} pages)
+              Submit for Processing ({nonBlankImages.length} pages)
+              {blankCount > 0 && <span className="ml-1 text-green-200">• {blankCount} blank excluded</span>}
             </>
           )}
         </Button>
@@ -366,8 +470,8 @@ export default function LGCaptureUpload() {
       <Card className="bg-muted/30">
         <CardContent className="pt-4 pb-4">
           <p className="text-sm text-muted-foreground">
-            <strong>Note:</strong> All uploaded files should be for a single patient. 
-            Patient details (name, NHS number, DOB) will be automatically extracted from the scanned images.
+            <strong>Note:</strong> Blank pages are automatically detected and excluded from processing to save time and costs. 
+            You can manually toggle the blank status of any page using the eye icon.
           </p>
         </CardContent>
       </Card>
