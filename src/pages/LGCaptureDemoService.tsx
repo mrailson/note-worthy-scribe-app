@@ -4,7 +4,7 @@ import { useLGCapture, CapturedImage, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical } from 'lucide-react';
+import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical, Download, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 
 // Import demo images (pages 1-30)
@@ -173,6 +173,34 @@ export default function LGCaptureDemoService() {
           Test the Notewell AI system with pre-loaded simulated Lloyd George pages
         </p>
       </div>
+
+      {/* Download Test Pages */}
+      <Card className="border-dashed">
+        <CardContent className="pt-4">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="text-center sm:text-left">
+              <p className="font-medium text-sm">Want to test with your phone camera?</p>
+              <p className="text-xs text-muted-foreground">Download and print the test pages</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              asChild
+              className="gap-2"
+            >
+              <a 
+                href="https://drive.google.com/drive/folders/1-EXAMPLE-FOLDER-ID" 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <Download className="h-4 w-4" />
+                Download Test Pages
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Demo Load Buttons */}
       <Card>
