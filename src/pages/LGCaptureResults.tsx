@@ -7,9 +7,10 @@ import { LGSummaryPreview } from '@/components/lg-capture/LGSummaryPreview';
 import { LGProcessingMetrics } from '@/components/lg-capture/LGProcessingMetrics';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2, FileText } from 'lucide-react';
 import { LGEmailButton } from '@/components/lg-capture/LGEmailButton';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -142,6 +143,32 @@ export default function LGCaptureResults() {
   const hasExtractedData = patient.ai_extracted_name || patient.ai_extracted_nhs || patient.ai_extracted_dob;
   const isProcessing = ['queued', 'processing', 'uploading'].includes(patient.job_status);
 
+  // Get PDF URLs
+  const pdfUrl = (patient as any).pdf_url;
+  const pdfPartUrls = (patient as any).pdf_part_urls;
+  const hasPdf = pdfUrl || (pdfPartUrls && pdfPartUrls.length > 0);
+
+  const handleDownloadPdf = async (url: string, partNumber?: number) => {
+    try {
+      // Extract the path from the URL or use it directly
+      const path = url.includes('lg/') ? url.split('lg/')[1] : url;
+      const { data, error } = await supabase.storage
+        .from('lg')
+        .createSignedUrl(path, 60);
+      
+      if (error || !data?.signedUrl) {
+        toast.error('Failed to generate download link');
+        return;
+      }
+      
+      window.open(data.signedUrl, '_blank');
+      toast.success(partNumber ? `Opening PDF Part ${partNumber}` : 'Opening PDF');
+    } catch (err) {
+      console.error('PDF download error:', err);
+      toast.error('Failed to download PDF');
+    }
+  };
+
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
       <Button
@@ -156,27 +183,60 @@ export default function LGCaptureResults() {
       {/* Patient Info - AI Extracted */}
       <Card className={patient.requires_verification ? 'border-amber-500' : ''}>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base flex items-center gap-2">
-            <User className="h-4 w-4" />
-            Patient Details
-            {isProcessing && (
-              <span className="text-xs font-normal text-muted-foreground ml-2">
-                (Extracting from documents...)
-              </span>
+          <div className="flex items-start justify-between">
+            <CardTitle className="text-base flex items-center gap-2">
+              <User className="h-4 w-4" />
+              Patient Details
+              {isProcessing && (
+                <span className="text-xs font-normal text-muted-foreground ml-2">
+                  (Extracting from documents...)
+                </span>
+              )}
+              {patient.requires_verification && (
+                <span className="text-xs font-normal text-amber-600 ml-2 flex items-center gap-1">
+                  <AlertTriangle className="h-3 w-3" />
+                  Needs verification
+                </span>
+              )}
+              {hasExtractedData && !patient.requires_verification && patient.job_status === 'succeeded' && (
+                <span className="text-xs font-normal text-green-600 ml-2 flex items-center gap-1">
+                  <CheckCircle2 className="h-3 w-3" />
+                  AI Extracted
+                </span>
+              )}
+            </CardTitle>
+            
+            {/* PDF Download Icons */}
+            {hasPdf && (
+              <div className="flex items-center gap-1">
+                {pdfPartUrls && pdfPartUrls.length > 0 ? (
+                  // Multiple PDF parts
+                  pdfPartUrls.map((url: string, index: number) => (
+                    <button
+                      key={index}
+                      onClick={() => handleDownloadPdf(url, index + 1)}
+                      className="p-2 rounded-lg hover:bg-muted transition-colors group relative"
+                      title={`Download PDF Part ${index + 1}`}
+                    >
+                      <FileText className="h-6 w-6 text-red-600 group-hover:text-red-700" />
+                      <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                        {index + 1}
+                      </span>
+                    </button>
+                  ))
+                ) : pdfUrl ? (
+                  // Single PDF
+                  <button
+                    onClick={() => handleDownloadPdf(pdfUrl)}
+                    className="p-2 rounded-lg hover:bg-muted transition-colors"
+                    title="Download PDF"
+                  >
+                    <FileText className="h-6 w-6 text-red-600 hover:text-red-700" />
+                  </button>
+                ) : null}
+              </div>
             )}
-            {patient.requires_verification && (
-              <span className="text-xs font-normal text-amber-600 ml-2 flex items-center gap-1">
-                <AlertTriangle className="h-3 w-3" />
-                Needs verification
-              </span>
-            )}
-            {hasExtractedData && !patient.requires_verification && patient.job_status === 'succeeded' && (
-              <span className="text-xs font-normal text-green-600 ml-2 flex items-center gap-1">
-                <CheckCircle2 className="h-3 w-3" />
-                AI Extracted
-              </span>
-            )}
-          </CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           {isProcessing && !hasExtractedData ? (
