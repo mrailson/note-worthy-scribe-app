@@ -3545,6 +3545,63 @@ export type Database = {
         }
         Relationships: []
       }
+      lg_patients_archive: {
+        Row: {
+          billable_pages: number | null
+          created_at: string
+          deleted_at: string
+          deleted_by: string | null
+          id: string
+          nhs_number: string | null
+          original_patient_id: string
+          pages_blank: number | null
+          pages_scanned: number
+          patient_dob: string | null
+          patient_name: string | null
+          practice_name: string | null
+          practice_ods: string | null
+          scan_date: string | null
+          scanned_by: string | null
+          scanned_by_user_id: string | null
+        }
+        Insert: {
+          billable_pages?: number | null
+          created_at?: string
+          deleted_at?: string
+          deleted_by?: string | null
+          id?: string
+          nhs_number?: string | null
+          original_patient_id: string
+          pages_blank?: number | null
+          pages_scanned?: number
+          patient_dob?: string | null
+          patient_name?: string | null
+          practice_name?: string | null
+          practice_ods?: string | null
+          scan_date?: string | null
+          scanned_by?: string | null
+          scanned_by_user_id?: string | null
+        }
+        Update: {
+          billable_pages?: number | null
+          created_at?: string
+          deleted_at?: string
+          deleted_by?: string | null
+          id?: string
+          nhs_number?: string | null
+          original_patient_id?: string
+          pages_blank?: number | null
+          pages_scanned?: number
+          patient_dob?: string | null
+          patient_name?: string | null
+          practice_name?: string | null
+          practice_ods?: string | null
+          scan_date?: string | null
+          scanned_by?: string | null
+          scanned_by_user_id?: string | null
+        }
+        Relationships: []
+      }
       live_meeting_notes: {
         Row: {
           created_at: string
