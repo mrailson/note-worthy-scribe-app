@@ -249,135 +249,146 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
           <DialogTitle>Validate Upload to Clinical System</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Expected Patient Details */}
-          <div className="space-y-2">
-            <Label>Expected Patient Details:</Label>
-            <div className="bg-muted/50 p-4 rounded-lg border space-y-1">
-              <p><span className="text-muted-foreground">Name:</span> <span className="font-medium">{patient.patient_name || '—'}</span></p>
-              <p className="flex items-center gap-2">
-                <span className="text-muted-foreground">NHS:</span> 
-                <span className="font-mono font-medium">{formatNhsNumber(patient.nhs_number)}</span>
-                {patient.nhs_number && (
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(patient.nhs_number?.replace(/\s/g, '') || '');
-                      toast.success('NHS number copied');
-                    }}
-                    className="p-1 hover:bg-muted rounded transition-colors"
-                    title="Copy NHS number"
-                  >
-                    <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                  </button>
-                )}
-              </p>
-              <p className="flex items-center gap-2">
-                <span className="text-muted-foreground">DOB:</span> 
-                <span className="font-medium">{formatDate(patient.dob)}</span>
-                {patient.dob && (
-                  <button
-                    onClick={() => {
-                      navigator.clipboard.writeText(formatDate(patient.dob));
-                      toast.success('DOB copied');
-                    }}
-                    className="p-1 hover:bg-muted rounded transition-colors"
-                    title="Copy date of birth"
-                  >
-                    <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
-                  </button>
-                )}
-              </p>
+        <div className="space-y-5 py-4">
+          {/* Step 1: Open Clinical System */}
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">1</div>
+            <div className="flex-1">
+              <p className="font-medium">Open your Clinical System</p>
+              <p className="text-sm text-muted-foreground">Open EMIS Web or SystmOne</p>
             </div>
           </div>
 
-          {/* File Details */}
-          <div className="space-y-2">
-            <Label>File to Look For:</Label>
-            <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg border border-blue-200 dark:border-blue-900 space-y-1">
-            <p>
-                <span className="text-muted-foreground">Filename:</span>{' '}
-                <span className="font-mono font-medium text-sm break-all">
-                  {(() => {
-                    const nhsNum = patient.nhs_number?.replace(/\s/g, '') || 'Unknown';
-                    const dobFormatted = patient.dob 
-                      ? new Date(patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
-                      : 'Unknown';
-                    const scanDate = new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_');
-                    return `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan.pdf`;
-                  })()}
-                </span>
-              </p>
-              <p>
-                <span className="text-muted-foreground">Pages:</span>{' '}
-                <span className="font-medium">{patient.images_count || '—'}</span>
-              </p>
-              <p>
-                <span className="text-muted-foreground">File Size:</span>{' '}
-                <span className="font-medium">
-                  {patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB` : '—'}
-                </span>
-              </p>
-              <p>
-                <span className="text-muted-foreground">Scan Date:</span>{' '}
-                <span className="font-medium">
-                  {new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
-                </span>
-                <span className="text-muted-foreground ml-2">at</span>{' '}
-                <span className="font-medium">
-                  {new Date(patient.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </p>
+          {/* Step 2: Open Patient Record */}
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">2</div>
+            <div className="flex-1">
+              <p className="font-medium">Open the record for patient: <span className="text-primary">{patient.patient_name || 'Unknown'}</span></p>
+              <div className="mt-2 bg-muted/50 p-3 rounded-lg border space-y-1 text-sm">
+                <p className="flex items-center gap-2 flex-wrap">
+                  <span className="text-muted-foreground">NHS:</span> 
+                  <span className="font-mono font-semibold">{formatNhsNumber(patient.nhs_number)}</span>
+                  {patient.nhs_number && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(patient.nhs_number?.replace(/\s/g, '') || '');
+                        toast.success('NHS number copied');
+                      }}
+                      className="p-1 hover:bg-muted rounded transition-colors"
+                      title="Copy NHS number"
+                    >
+                      <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  )}
+                  <span className="text-xs text-muted-foreground italic">(click to copy for search)</span>
+                </p>
+                <p className="flex items-center gap-2 flex-wrap">
+                  <span className="text-muted-foreground">DOB:</span> 
+                  <span className="font-semibold">{formatDate(patient.dob)}</span>
+                  {patient.dob && (
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(formatDate(patient.dob));
+                        toast.success('DOB copied');
+                      }}
+                      className="p-1 hover:bg-muted rounded transition-colors"
+                      title="Copy date of birth"
+                    >
+                      <Copy className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                    </button>
+                  )}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Screenshot Upload */}
-          <div className="space-y-2">
-            <Label>Upload screenshot showing patient record with uploaded file:</Label>
-            <div
-              {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-                isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
-              }`}
-            >
-              <input {...getInputProps()} />
-              {screenshotPreview ? (
-                <div className="space-y-3">
-                  <img 
-                    src={screenshotPreview} 
-                    alt="Screenshot preview" 
-                    className="max-h-48 mx-auto rounded border"
-                  />
-                  <p className="text-sm text-muted-foreground">Click or drag to replace</p>
+          {/* Step 3: Attach File */}
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">3</div>
+            <div className="flex-1">
+              <p className="font-medium">Attach the Lloyd George file to the patient record</p>
+              <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-900 space-y-1 text-sm">
+                <p className="break-all">
+                  <span className="text-muted-foreground">Filename:</span>{' '}
+                  <span className="font-mono font-semibold">
+                    {(() => {
+                      const nhsNum = patient.nhs_number?.replace(/\s/g, '') || 'Unknown';
+                      const dobFormatted = patient.dob 
+                        ? new Date(patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
+                        : 'Unknown';
+                      const scanDate = new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_');
+                      return `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan.pdf`;
+                    })()}
+                  </span>
+                </p>
+                <p className="text-xs text-muted-foreground italic">Tip: the filename always starts with the NHS number</p>
+                <div className="flex gap-4 pt-1">
+                  <span><span className="text-muted-foreground">Pages:</span> <span className="font-medium">{patient.images_count || '—'}</span></span>
+                  <span><span className="text-muted-foreground">Size:</span> <span className="font-medium">{patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB` : '—'}</span></span>
                 </div>
-              ) : (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-center gap-3">
-                    <ImageIcon className="h-10 w-10 text-muted-foreground/50" />
-                    <Clipboard className="h-8 w-8 text-muted-foreground/50" />
+              </div>
+            </div>
+          </div>
+
+          {/* Step 4: Take Screenshot */}
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">4</div>
+            <div className="flex-1">
+              <p className="font-medium">Take a screenshot and paste it below</p>
+              <p className="text-sm text-muted-foreground mb-2">Press <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs font-mono">Win</kbd> + <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs font-mono">Shift</kbd> + <kbd className="px-1.5 py-0.5 bg-muted rounded border text-xs font-mono">S</kbd> to capture, then paste below</p>
+              
+              <div
+                {...getRootProps()}
+                className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
+                  isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
+                }`}
+              >
+                <input {...getInputProps()} />
+                {screenshotPreview ? (
+                  <div className="space-y-2">
+                    <img 
+                      src={screenshotPreview} 
+                      alt="Screenshot preview" 
+                      className="max-h-40 mx-auto rounded border"
+                    />
+                    <p className="text-sm text-muted-foreground">Click or drag to replace</p>
                   </div>
-                  <div>
-                    <p className="font-medium">Drag & drop, click to upload, or Ctrl+V / ⌘+V</p>
-                    <p className="text-sm text-muted-foreground">Supports: PNG, JPG, WEBP (max 10MB)</p>
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-center gap-3">
+                      <ImageIcon className="h-8 w-8 text-muted-foreground/50" />
+                      <Clipboard className="h-7 w-7 text-muted-foreground/50" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-sm">Drag & drop, click to upload, or Ctrl+V / ⌘+V</p>
+                      <p className="text-xs text-muted-foreground">Supports: PNG, JPG, WEBP (max 10MB)</p>
+                    </div>
                   </div>
-                </div>
+                )}
+              </div>
+              
+              {!screenshotPreview && (
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={handlePasteFromClipboard}
+                  className="w-full mt-2"
+                  size="sm"
+                >
+                  <Clipboard className="h-4 w-4 mr-2" />
+                  Paste from Clipboard
+                </Button>
               )}
             </div>
-            
-            {/* Paste from Clipboard button */}
-            {!screenshotPreview && (
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={handlePasteFromClipboard}
-                className="w-full"
-              >
-                <Clipboard className="h-4 w-4 mr-2" />
-                Paste from Clipboard
-              </Button>
-            )}
-            <p className="text-xs text-muted-foreground italic">
-              This screenshot is used only to verify the correct patient file was uploaded to the correct patient record in the clinical system. It is not stored or retained.
-            </p>
+          </div>
+
+          {/* Step 5: Verify */}
+          <div className="flex gap-3">
+            <div className="flex-shrink-0 w-7 h-7 rounded-full bg-muted text-muted-foreground flex items-center justify-center text-sm font-semibold">5</div>
+            <div className="flex-1">
+              <p className="font-medium text-muted-foreground">Notewell will verify the correct file was uploaded to the correct patient</p>
+              <p className="text-xs text-muted-foreground italic mt-1">The screenshot is used only for verification and is not stored or retained.</p>
+            </div>
           </div>
 
           {/* Validate Button */}
