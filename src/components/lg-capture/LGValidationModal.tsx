@@ -315,7 +315,7 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                   <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mt-1">
                     ⚠️ This record has been split into {patient.pdf_part_urls.length} parts. Each file must be uploaded and verified separately.
                   </p>
-                  <div className="mt-2 space-y-2">
+                  <div className="mt-3 space-y-2">
                     {patient.pdf_part_urls.map((partUrl, index) => {
                       const nhsNum = patient.nhs_number?.replace(/\s/g, '') || 'Unknown';
                       const dobFormatted = patient.dob 
@@ -323,20 +323,24 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                         : 'Unknown';
                       const scanDate = new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_');
                       const partNumber = index + 1;
+                      const totalParts = patient.pdf_part_urls!.length;
                       const filename = `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan_Part_${partNumber}.pdf`;
                       
                       return (
-                        <div key={index} className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-900 text-sm">
-                          <div className="flex items-center justify-between gap-2">
+                        <div key={index} className="bg-primary p-4 rounded-lg text-primary-foreground">
+                          <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <p className="font-medium text-primary">Part {partNumber} of {patient.pdf_part_urls!.length}</p>
-                              <p className="break-all font-mono text-xs mt-1">{filename}</p>
+                              <p className="font-semibold text-lg">Lloyd George PDF ({partNumber} of {totalParts})</p>
+                              <p className="text-primary-foreground/80 text-sm mt-0.5">
+                                Searchable PDF • {patient.images_count || '—'} pages total • {patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB total` : '—'}
+                              </p>
+                              <p className="text-primary-foreground/80 text-sm mt-1">
+                                {patient.patient_name || 'Unknown'} | NHS: {formatNhsNumber(patient.nhs_number)} | DOB: {formatDate(patient.dob)}
+                              </p>
                             </div>
-                            <Button
+                            <button
                               type="button"
-                              variant="outline"
-                              size="sm"
-                              className="h-7 px-2 py-1 flex-shrink-0"
+                              className="flex-shrink-0 p-2 hover:bg-primary-foreground/10 rounded transition-colors"
                               onClick={async () => {
                                 try {
                                   const storagePath = partUrl.startsWith('lg/') 
@@ -354,20 +358,15 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                                   toast.error('Failed to download file');
                                 }
                               }}
+                              title={`Download Part ${partNumber}`}
                             >
-                              <Download className="h-3.5 w-3.5 mr-1" />
-                              Download
-                            </Button>
+                              <Download className="h-5 w-5" />
+                            </button>
                           </div>
                         </div>
                       );
                     })}
                   </div>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    <span className="text-muted-foreground">Pages:</span> <span className="font-medium">{patient.images_count || '—'}</span>
-                    <span className="mx-2">•</span>
-                    <span className="text-muted-foreground">Total Size:</span> <span className="font-medium">{patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB` : '—'}</span>
-                  </p>
                 </>
               ) : (
                 <>
