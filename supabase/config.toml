@@ -299,3 +299,6 @@ verify_jwt = true
 
 [functions.lg-validate-upload]
 verify_jwt = true
+
+[functions.plaud-webhook]
+verify_jwt = false
