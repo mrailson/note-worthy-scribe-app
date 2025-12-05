@@ -6957,6 +6957,7 @@ export type Database = {
           fridge_monitoring_access: boolean
           gp_scribe_access: boolean | null
           id: string
+          lg_capture_access: boolean | null
           meeting_notes_access: boolean | null
           mic_test_service_access: boolean | null
           practice_id: string | null
@@ -6981,6 +6982,7 @@ export type Database = {
           fridge_monitoring_access?: boolean
           gp_scribe_access?: boolean | null
           id?: string
+          lg_capture_access?: boolean | null
           meeting_notes_access?: boolean | null
           mic_test_service_access?: boolean | null
           practice_id?: string | null
@@ -7005,6 +7007,7 @@ export type Database = {
           fridge_monitoring_access?: boolean
           gp_scribe_access?: boolean | null
           id?: string
+          lg_capture_access?: boolean | null
           meeting_notes_access?: boolean | null
           mic_test_service_access?: boolean | null
           practice_id?: string | null
