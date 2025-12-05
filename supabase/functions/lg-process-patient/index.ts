@@ -614,6 +614,22 @@ serve(async (req) => {
       .update({ ocr_completed_at: ocrCompletedTime })
       .eq('id', patientId);
 
+    // Save OCR text to storage so lg-generate-pdf can use it for page summaries
+    try {
+      const ocrMergedJson = JSON.stringify({ ocr_text: fullOcrText }, null, 2);
+      const ocrBlob = new Blob([ocrMergedJson], { type: 'application/json' });
+      const { error: ocrUploadError } = await supabase.storage
+        .from('lg')
+        .upload(`${basePath}/work/ocr_merged.json`, ocrBlob, { upsert: true });
+      if (ocrUploadError) {
+        console.warn('Failed to save OCR merged file:', ocrUploadError.message);
+      } else {
+        console.log(`✅ Saved OCR text to work/ocr_merged.json (${fullOcrText.length} chars)`);
+      }
+    } catch (ocrSaveErr) {
+      console.warn('Error saving OCR text:', ocrSaveErr);
+    }
+
     // Step 3: Extract patient details from OCR text (NEW!)
     console.log('=== PATIENT EXTRACTION START ===');
     console.log('OpenAI key available:', !!openaiKey);
