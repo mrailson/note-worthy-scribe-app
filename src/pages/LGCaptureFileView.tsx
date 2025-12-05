@@ -19,8 +19,12 @@ import {
   Archive,
   FileText,
   Loader2,
-  RefreshCw
+  RefreshCw,
+  ShieldCheck,
+  AlertTriangle
 } from 'lucide-react';
+import { LGValidationModal } from '@/components/lg-capture/LGValidationModal';
+import { LGValidationAuditReport } from '@/components/lg-capture/LGValidationAuditReport';
 
 interface LGPatientFile {
   id: string;
@@ -37,6 +41,15 @@ interface LGPatientFile {
   uploaded_to_s1_at: string | null;
   validated_at: string | null;
   archived_at: string | null;
+  validation_result?: {
+    clinical_system?: string;
+    nhs_match?: boolean;
+    dob_match?: boolean;
+    file_detected?: boolean;
+    confidence?: number;
+    manual_override?: boolean;
+    override_reason?: string | null;
+  } | null;
 }
 
 const formatNhsNumber = (nhs: string | null): string => {
@@ -80,6 +93,8 @@ export default function LGCaptureFileView() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [downloading, setDownloading] = useState(false);
   const [activeTab, setActiveTab] = useState('ready');
+  const [validationModalOpen, setValidationModalOpen] = useState(false);
+  const [selectedPatientForValidation, setSelectedPatientForValidation] = useState<LGPatientFile | null>(null);
 
   useEffect(() => {
     if (user) {
@@ -94,7 +109,7 @@ export default function LGCaptureFileView() {
       const supabaseAny = supabase as any;
       const { data, error } = await supabaseAny
         .from('lg_patients')
-        .select('id, patient_name, nhs_number, dob, images_count, created_at, pdf_url, pdf_part_urls, pdf_split, publish_status, downloaded_at, uploaded_to_s1_at, validated_at, archived_at')
+        .select('id, patient_name, nhs_number, dob, images_count, created_at, pdf_url, pdf_part_urls, pdf_split, publish_status, downloaded_at, uploaded_to_s1_at, validated_at, archived_at, validation_result')
         .eq('user_id', user?.id)
         .eq('job_status', 'succeeded')
         .order('created_at', { ascending: false });
@@ -116,7 +131,8 @@ export default function LGCaptureFileView() {
         downloaded_at: item.downloaded_at,
         uploaded_to_s1_at: item.uploaded_to_s1_at,
         validated_at: item.validated_at,
-        archived_at: item.archived_at
+        archived_at: item.archived_at,
+        validation_result: item.validation_result as LGPatientFile['validation_result']
       }));
       
       setPatients(typedData);
@@ -453,7 +469,7 @@ export default function LGCaptureFileView() {
                           {formatDateTime(patient.created_at)}
                         </td>
                         <td className="py-3">
-                          <div className="flex items-center justify-end gap-2">
+                          <div className="flex items-center justify-end gap-2 flex-wrap">
                             {activeTab === 'ready' && (
                               <Button 
                                 variant="outline" 
@@ -476,6 +492,18 @@ export default function LGCaptureFileView() {
                                   <Download className="h-3 w-3" />
                                 </Button>
                                 <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedPatientForValidation(patient);
+                                    setValidationModalOpen(true);
+                                  }}
+                                  className="gap-1"
+                                >
+                                  <ShieldCheck className="h-3 w-3" />
+                                  Validate
+                                </Button>
+                                <Button 
                                   variant="default" 
                                   size="sm"
                                   onClick={() => markAsUploaded(patient.id)}
@@ -496,6 +524,34 @@ export default function LGCaptureFileView() {
                                 >
                                   <Download className="h-3 w-3" />
                                 </Button>
+                                {!patient.validated_at ? (
+                                  <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedPatientForValidation(patient);
+                                      setValidationModalOpen(true);
+                                    }}
+                                    className="gap-1"
+                                  >
+                                    <ShieldCheck className="h-3 w-3" />
+                                    Validate
+                                  </Button>
+                                ) : (
+                                  <>
+                                    <Badge 
+                                      variant={patient.validation_result?.manual_override ? 'destructive' : 'default'}
+                                      className="gap-1"
+                                    >
+                                      {patient.validation_result?.manual_override ? (
+                                        <><AlertTriangle className="h-3 w-3" /> Override</>
+                                      ) : (
+                                        <><CheckCircle className="h-3 w-3" /> Validated</>
+                                      )}
+                                    </Badge>
+                                    <LGValidationAuditReport patient={patient} />
+                                  </>
+                                )}
                                 <Button 
                                   variant="secondary" 
                                   size="sm"
@@ -508,15 +564,32 @@ export default function LGCaptureFileView() {
                               </>
                             )}
                             {activeTab === 'archived' && (
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => downloadSingleFile(patient)}
-                                className="gap-1"
-                              >
-                                <Download className="h-3 w-3" />
-                                Re-download
-                              </Button>
+                              <>
+                                <Button 
+                                  variant="outline" 
+                                  size="sm"
+                                  onClick={() => downloadSingleFile(patient)}
+                                  className="gap-1"
+                                >
+                                  <Download className="h-3 w-3" />
+                                  Re-download
+                                </Button>
+                                {patient.validated_at && (
+                                  <>
+                                    <Badge 
+                                      variant={patient.validation_result?.manual_override ? 'destructive' : 'default'}
+                                      className="gap-1"
+                                    >
+                                      {patient.validation_result?.manual_override ? (
+                                        <><AlertTriangle className="h-3 w-3" /> Override</>
+                                      ) : (
+                                        <><CheckCircle className="h-3 w-3" /> Validated</>
+                                      )}
+                                    </Badge>
+                                    <LGValidationAuditReport patient={patient} />
+                                  </>
+                                )}
+                              </>
                             )}
                           </div>
                         </td>
@@ -529,6 +602,19 @@ export default function LGCaptureFileView() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Validation Modal */}
+      {selectedPatientForValidation && (
+        <LGValidationModal
+          open={validationModalOpen}
+          onClose={() => {
+            setValidationModalOpen(false);
+            setSelectedPatientForValidation(null);
+          }}
+          patient={selectedPatientForValidation}
+          onValidated={fetchPatients}
+        />
+      )}
     </div>
   );
 }
