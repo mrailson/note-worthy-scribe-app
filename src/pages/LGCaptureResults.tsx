@@ -7,7 +7,8 @@ import { LGSummaryPreview } from '@/components/lg-capture/LGSummaryPreview';
 import { LGProcessingMetrics } from '@/components/lg-capture/LGProcessingMetrics';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2, FileText } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
+import pdfIcon from '@/assets/pdf-icon.png';
 import { LGEmailButton } from '@/components/lg-capture/LGEmailButton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -215,10 +216,10 @@ export default function LGCaptureResults() {
                     <button
                       key={index}
                       onClick={() => handleDownloadPdf(url, index + 1)}
-                      className="p-2 rounded-lg hover:bg-muted transition-colors group relative"
+                      className="p-1 rounded-lg hover:bg-muted transition-colors group relative"
                       title={`Download PDF Part ${index + 1}`}
                     >
-                      <FileText className="h-6 w-6 text-red-600 group-hover:text-red-700" />
+                      <img src={pdfIcon} alt="PDF" className="h-8 w-8 group-hover:opacity-80" />
                       <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
                         {index + 1}
                       </span>
@@ -228,10 +229,10 @@ export default function LGCaptureResults() {
                   // Single PDF
                   <button
                     onClick={() => handleDownloadPdf(pdfUrl)}
-                    className="p-2 rounded-lg hover:bg-muted transition-colors"
+                    className="p-1 rounded-lg hover:bg-muted transition-colors"
                     title="Download PDF"
                   >
-                    <FileText className="h-6 w-6 text-red-600 hover:text-red-700" />
+                    <img src={pdfIcon} alt="PDF" className="h-8 w-8 hover:opacity-80" />
                   </button>
                 ) : null}
               </div>
