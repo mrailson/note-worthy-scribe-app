@@ -990,9 +990,12 @@ serve(async (req) => {
         // Don't throw - continue and flag the issue
       }
 
-      // Save PDF
+      // Save PDF with minimal CPU overhead
       console.log('Saving PDF...');
-      let pdfBytes = await pdfDoc.save();
+      let pdfBytes = await pdfDoc.save({ 
+        useObjectStreams: false,  // Reduces CPU time during serialization
+        addDefaultPage: false,
+      });
       pdfSizeMb = pdfBytes.length / (1024 * 1024);
       
       if (compressionAttempt === 0) {
@@ -1088,7 +1091,10 @@ serve(async (req) => {
       const expectedFallbackPages = 3 + files.length + (failedPages.length > 0 ? 1 : 0);
       console.log(`Fallback PDF page count = ${fallbackPageCount}, expected = ${expectedFallbackPages}`);
       
-      let pdfBytes = await pdfDoc.save();
+      let pdfBytes = await pdfDoc.save({ 
+        useObjectStreams: false,
+        addDefaultPage: false,
+      });
       
       // Apply final compression pass
       pdfBytes = await applyFinalCompressionPass(pdfBytes);
