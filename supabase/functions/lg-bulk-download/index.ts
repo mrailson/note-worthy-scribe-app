@@ -126,38 +126,7 @@ serve(async (req) => {
         }
       }
 
-      // Download SNOMED CSV if exists
-      const basePath = patient.pdf_url?.split('/').slice(0, -1).join('/');
-      if (basePath) {
-        try {
-          const csvPath = `${basePath}/snomed_codes.csv`;
-          const { data: csvData, error: csvError } = await supabase.storage
-            .from('lg')
-            .download(csvPath);
-          
-          if (!csvError && csvData) {
-            const arrayBuffer = await csvData.arrayBuffer();
-            folder.file('SNOMED_Codes.csv', arrayBuffer);
-          }
-        } catch (err) {
-          // CSV might not exist, ignore
-        }
-
-        // Download summary JSON if exists
-        try {
-          const summaryPath = `${basePath}/summary.json`;
-          const { data: summaryData, error: summaryError } = await supabase.storage
-            .from('lg')
-            .download(summaryPath);
-          
-          if (!summaryError && summaryData) {
-            const arrayBuffer = await summaryData.arrayBuffer();
-            folder.file('Clinical_Summary.json', arrayBuffer);
-          }
-        } catch (err) {
-          // Summary might not exist, ignore
-        }
-      }
+      // Only PDFs are included in bulk download - CSV/JSON available from Results page
     }
 
     // Generate ZIP as base64
