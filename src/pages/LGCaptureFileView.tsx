@@ -492,7 +492,7 @@ export default function LGCaptureFileView() {
                                   <Download className="h-3 w-3" />
                                 </Button>
                                 <Button 
-                                  variant="outline" 
+                                  variant="default" 
                                   size="sm"
                                   onClick={() => {
                                     setSelectedPatientForValidation(patient);
@@ -501,16 +501,7 @@ export default function LGCaptureFileView() {
                                   className="gap-1"
                                 >
                                   <ShieldCheck className="h-3 w-3" />
-                                  Validate
-                                </Button>
-                                <Button 
-                                  variant="default" 
-                                  size="sm"
-                                  onClick={() => markAsUploaded(patient.id)}
-                                  className="gap-1"
-                                >
-                                  <Upload className="h-3 w-3" />
-                                  Mark Uploaded
+                                  Validate & Upload
                                 </Button>
                               </>
                             )}

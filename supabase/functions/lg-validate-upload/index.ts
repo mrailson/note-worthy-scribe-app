@@ -160,13 +160,17 @@ If you cannot find a field, use null for that field.`;
       file_detected: extracted.uploaded_files.length > 0
     };
 
+    const isFullyValidated = validation.nhs_match && validation.dob_match;
+
     console.log('Validation result:', {
       extracted: { nhs: extractedNhs, dob: extractedDob, files: extracted.uploaded_files },
       expected: { nhs: expectedNhsNorm, dob: expectedDobNorm },
-      validation
+      validation,
+      isFullyValidated
     });
 
     // Store screenshot in storage for audit trail
+    let screenshotPath: string | null = null;
     if (patientId) {
       try {
         // Convert base64 to Uint8Array
@@ -177,7 +181,7 @@ If you cannot find a field, use null for that field.`;
           bytes[i] = binaryString.charCodeAt(i);
         }
 
-        const screenshotPath = `validation/${patientId}/screenshot_${Date.now()}.png`;
+        screenshotPath = `validation/${patientId}/screenshot_${Date.now()}.png`;
         
         const { error: uploadError } = await supabase.storage
           .from('lg')
@@ -188,11 +192,44 @@ If you cannot find a field, use null for that field.`;
 
         if (uploadError) {
           console.error('Error storing validation screenshot:', uploadError);
+          screenshotPath = null;
         } else {
           console.log('Validation screenshot stored:', screenshotPath);
         }
       } catch (storageError) {
         console.error('Storage error:', storageError);
+      }
+
+      // If validation passed (NHS + DOB match), automatically mark as uploaded
+      if (isFullyValidated) {
+        const now = new Date().toISOString();
+        const validationResult = {
+          clinical_system: clinicalSystem,
+          nhs_match: validation.nhs_match,
+          dob_match: validation.dob_match,
+          file_detected: validation.file_detected,
+          confidence: extracted.confidence,
+          extracted_nhs: extractedNhs,
+          extracted_dob: extractedDob,
+          screenshot_path: screenshotPath,
+          manual_override: false
+        };
+
+        const { error: updateError } = await supabase
+          .from('lg_patients')
+          .update({
+            validated_at: now,
+            uploaded_to_s1_at: now,
+            publish_status: 'uploaded',
+            validation_result: validationResult
+          })
+          .eq('id', patientId);
+
+        if (updateError) {
+          console.error('Error updating patient record:', updateError);
+        } else {
+          console.log('Patient record updated: validated and marked as uploaded');
+        }
       }
     }
 
@@ -205,7 +242,8 @@ If you cannot find a field, use null for that field.`;
         confidence: extracted.confidence,
         raw_text: extracted.raw_text_found
       },
-      validation
+      validation,
+      autoUploaded: isFullyValidated
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
