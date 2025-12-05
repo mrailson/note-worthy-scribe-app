@@ -30,6 +30,8 @@ interface LGValidationModalProps {
     created_at: string;
     pdf_url: string | null;
     pdf_final_size_mb: number | null;
+    pdf_part_urls?: string[] | null;
+    pdf_split?: boolean | null;
   };
   onValidated: () => void;
 }
@@ -303,59 +305,123 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
             </div>
           </div>
 
-          {/* Step 3: Attach File */}
+          {/* Step 3: Attach File(s) */}
           <div className="flex gap-3">
             <div className="flex-shrink-0 w-7 h-7 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-sm font-semibold">3</div>
             <div className="flex-1">
-              <p className="font-medium">Attach the Lloyd George file to the patient record</p>
-              <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-900 space-y-2 text-sm">
-                <p className="break-all">
-                  <span className="text-muted-foreground">Filename:</span>{' '}
-                  <span className="font-mono font-semibold">
-                    {(() => {
+              {patient.pdf_split && patient.pdf_part_urls && patient.pdf_part_urls.length > 1 ? (
+                <>
+                  <p className="font-medium">Attach <span className="text-destructive font-bold">ALL {patient.pdf_part_urls.length}</span> Lloyd George files to the patient record</p>
+                  <p className="text-sm text-amber-600 dark:text-amber-400 font-medium mt-1">
+                    ⚠️ This record has been split into {patient.pdf_part_urls.length} parts. Each file must be uploaded and verified separately.
+                  </p>
+                  <div className="mt-2 space-y-2">
+                    {patient.pdf_part_urls.map((partUrl, index) => {
                       const nhsNum = patient.nhs_number?.replace(/\s/g, '') || 'Unknown';
                       const dobFormatted = patient.dob 
                         ? new Date(patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
                         : 'Unknown';
                       const scanDate = new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_');
-                      return `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan.pdf`;
-                    })()}
-                  </span>
-                </p>
-                <p className="text-xs text-muted-foreground italic">Tip: the filename always starts with the NHS number</p>
-                <div className="flex items-center gap-4 pt-1 flex-wrap">
-                  <span><span className="text-muted-foreground">Pages:</span> <span className="font-medium">{patient.images_count || '—'}</span></span>
-                  <span><span className="text-muted-foreground">Size:</span> <span className="font-medium">{patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB` : '—'}</span></span>
-                  {patient.pdf_url && (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      className="h-7 px-2 py-1"
-                      onClick={async () => {
-                        try {
-                          const storagePath = patient.pdf_url!.startsWith('lg/') 
-                            ? patient.pdf_url!.substring(3) 
-                            : patient.pdf_url!;
-                          const { data, error } = await supabase.storage
-                            .from('lg')
-                            .createSignedUrl(storagePath, 3600);
-                          if (error || !data?.signedUrl) {
-                            toast.error('Failed to get download link');
-                            return;
-                          }
-                          window.open(data.signedUrl, '_blank');
-                        } catch {
-                          toast.error('Failed to download file');
-                        }
-                      }}
-                    >
-                      <Download className="h-3.5 w-3.5 mr-1" />
-                      Download
-                    </Button>
-                  )}
-                </div>
-              </div>
+                      const partNumber = index + 1;
+                      const filename = `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan_Part_${partNumber}.pdf`;
+                      
+                      return (
+                        <div key={index} className="bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-900 text-sm">
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium text-primary">Part {partNumber} of {patient.pdf_part_urls!.length}</p>
+                              <p className="break-all font-mono text-xs mt-1">{filename}</p>
+                            </div>
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              className="h-7 px-2 py-1 flex-shrink-0"
+                              onClick={async () => {
+                                try {
+                                  const storagePath = partUrl.startsWith('lg/') 
+                                    ? partUrl.substring(3) 
+                                    : partUrl;
+                                  const { data, error } = await supabase.storage
+                                    .from('lg')
+                                    .createSignedUrl(storagePath, 3600);
+                                  if (error || !data?.signedUrl) {
+                                    toast.error('Failed to get download link');
+                                    return;
+                                  }
+                                  window.open(data.signedUrl, '_blank');
+                                } catch {
+                                  toast.error('Failed to download file');
+                                }
+                              }}
+                            >
+                              <Download className="h-3.5 w-3.5 mr-1" />
+                              Download
+                            </Button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    <span className="text-muted-foreground">Pages:</span> <span className="font-medium">{patient.images_count || '—'}</span>
+                    <span className="mx-2">•</span>
+                    <span className="text-muted-foreground">Total Size:</span> <span className="font-medium">{patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB` : '—'}</span>
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium">Attach the Lloyd George file to the patient record</p>
+                  <div className="mt-2 bg-blue-50 dark:bg-blue-950/30 p-3 rounded-lg border border-blue-200 dark:border-blue-900 space-y-2 text-sm">
+                    <p className="break-all">
+                      <span className="text-muted-foreground">Filename:</span>{' '}
+                      <span className="font-mono font-semibold">
+                        {(() => {
+                          const nhsNum = patient.nhs_number?.replace(/\s/g, '') || 'Unknown';
+                          const dobFormatted = patient.dob 
+                            ? new Date(patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
+                            : 'Unknown';
+                          const scanDate = new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_');
+                          return `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan.pdf`;
+                        })()}
+                      </span>
+                    </p>
+                    <p className="text-xs text-muted-foreground italic">Tip: the filename always starts with the NHS number</p>
+                    <div className="flex items-center gap-4 pt-1 flex-wrap">
+                      <span><span className="text-muted-foreground">Pages:</span> <span className="font-medium">{patient.images_count || '—'}</span></span>
+                      <span><span className="text-muted-foreground">Size:</span> <span className="font-medium">{patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB` : '—'}</span></span>
+                      {patient.pdf_url && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="h-7 px-2 py-1"
+                          onClick={async () => {
+                            try {
+                              const storagePath = patient.pdf_url!.startsWith('lg/') 
+                                ? patient.pdf_url!.substring(3) 
+                                : patient.pdf_url!;
+                              const { data, error } = await supabase.storage
+                                .from('lg')
+                                .createSignedUrl(storagePath, 3600);
+                              if (error || !data?.signedUrl) {
+                                toast.error('Failed to get download link');
+                                return;
+                              }
+                              window.open(data.signedUrl, '_blank');
+                            } catch {
+                              toast.error('Failed to download file');
+                            }
+                          }}
+                        >
+                          <Download className="h-3.5 w-3.5 mr-1" />
+                          Download
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
           </div>
 
