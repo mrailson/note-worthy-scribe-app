@@ -21,6 +21,7 @@ import {
 import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
+import pdfIcon from '@/assets/pdf-icon.png';
 
 function formatNhsNumber(nhs: string | null | undefined): string {
   if (!nhs) return '—';
@@ -283,41 +284,91 @@ export default function LGCapturePatients() {
         </Card>
       ) : (
         <div className="space-y-3">
-          {patients.map((patient) => (
-            <Card
-              key={patient.id}
-              className="cursor-pointer hover:bg-muted/50 transition-colors"
-              onClick={() => navigate(`/lg-capture/results/${patient.id}`)}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="space-y-1">
-                    <p className="font-medium">
-                      {patient.patient_name || patient.ai_extracted_name || 'Extracting...'}
-                    </p>
-                    <p className="text-sm text-muted-foreground font-mono">
-                      NHS: {formatNhsNumber(patient.nhs_number || patient.ai_extracted_nhs)}
-                    </p>
-                    <p className="text-sm text-muted-foreground">
-                      DOB: {formatDob(patient.dob || patient.ai_extracted_dob)}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {getStatusBadge(patient)}
-                    <span className="text-xs text-muted-foreground text-right">
-                      {patient.practice_ods}{practiceNames[patient.practice_ods] ? ` - ${practiceNames[patient.practice_ods]}` : ''}
-                      {patient.uploader_name && (
-                        <span className="block opacity-70">Scanned by {patient.uploader_name}</span>
+          {patients.map((patient) => {
+            const pdfUrl = (patient as any).pdf_url;
+            const pdfPartUrls = (patient as any).pdf_part_urls;
+            const hasPdf = pdfUrl || (pdfPartUrls && pdfPartUrls.length > 0);
+            
+            const handleDownloadPdf = async (url: string, e: React.MouseEvent) => {
+              e.stopPropagation();
+              try {
+                const { data, error } = await supabase.storage
+                  .from('lg')
+                  .createSignedUrl(url.replace('lg/', ''), 3600);
+                if (error) throw error;
+                window.open(data.signedUrl, '_blank');
+              } catch (err) {
+                console.error('PDF download error:', err);
+                toast.error('Failed to download PDF');
+              }
+            };
+            
+            return (
+              <Card
+                key={patient.id}
+                className="cursor-pointer hover:bg-muted/50 transition-colors"
+                onClick={() => navigate(`/lg-capture/results/${patient.id}`)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-start gap-3">
+                      {/* PDF Icons */}
+                      {hasPdf && patient.job_status === 'succeeded' && (
+                        <div className="flex items-center gap-1 flex-shrink-0">
+                          {pdfPartUrls && pdfPartUrls.length > 0 ? (
+                            pdfPartUrls.map((url: string, index: number) => (
+                              <button
+                                key={index}
+                                onClick={(e) => handleDownloadPdf(url, e)}
+                                className="p-1 rounded hover:bg-muted transition-colors group relative"
+                                title={`Download PDF Part ${index + 1}`}
+                              >
+                                <img src={pdfIcon} alt="PDF" className="h-8 w-8 group-hover:opacity-80" />
+                                <span className="absolute -bottom-1 -right-1 bg-primary text-primary-foreground text-[10px] font-bold rounded-full w-4 h-4 flex items-center justify-center">
+                                  {index + 1}
+                                </span>
+                              </button>
+                            ))
+                          ) : pdfUrl ? (
+                            <button
+                              onClick={(e) => handleDownloadPdf(pdfUrl, e)}
+                              className="p-1 rounded hover:bg-muted transition-colors"
+                              title="Download PDF"
+                            >
+                              <img src={pdfIcon} alt="PDF" className="h-8 w-8 hover:opacity-80" />
+                            </button>
+                          ) : null}
+                        </div>
                       )}
-                    </span>
-                    <span className="text-xs text-muted-foreground opacity-70">
-                      {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages
-                    </span>
+                      <div className="space-y-1">
+                        <p className="font-medium">
+                          {patient.patient_name || patient.ai_extracted_name || 'Extracting...'}
+                        </p>
+                        <p className="text-sm text-muted-foreground font-mono">
+                          NHS: {formatNhsNumber(patient.nhs_number || patient.ai_extracted_nhs)}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          DOB: {formatDob(patient.dob || patient.ai_extracted_dob)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      {getStatusBadge(patient)}
+                      <span className="text-xs text-muted-foreground text-right">
+                        {patient.practice_ods}{practiceNames[patient.practice_ods] ? ` - ${practiceNames[patient.practice_ods]}` : ''}
+                        {patient.uploader_name && (
+                          <span className="block opacity-70">Scanned by {patient.uploader_name}</span>
+                        )}
+                      </span>
+                      <span className="text-xs text-muted-foreground opacity-70">
+                        {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages
+                      </span>
+                    </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            );
+          })}
         </div>
       )}
 
