@@ -188,20 +188,16 @@ export default function LGCaptureFileView() {
   };
 
   const downloadSingleFile = async (patient: LGPatientFile) => {
-    // Check if PDF generation is complete
-    if (patient.pdf_generation_status !== 'complete') {
+    // If pdf_url exists, allow download regardless of status
+    if (!patient.pdf_url) {
+      // Only check status if no pdf_url
       if (patient.pdf_generation_status === 'generating' || patient.pdf_generation_status === 'queued') {
         toast.error('PDF is still being generated. Please wait and refresh.');
       } else if (patient.pdf_generation_status === 'failed') {
         toast.error('PDF generation failed. Please retry from the Results page.');
       } else {
-        toast.error('PDF not ready yet. Please wait for processing to complete.');
+        toast.error('No PDF available for this patient');
       }
-      return;
-    }
-
-    if (!patient.pdf_url) {
-      toast.error('No PDF available for this patient');
       return;
     }
 
