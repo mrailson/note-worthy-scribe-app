@@ -1774,30 +1774,9 @@ async function sendSummaryEmailWithPdf(
     const pdfBase64 = btoa(binary);
     console.log(`PDF attachment ready, size: ${pdfBase64.length} chars`);
 
-    // Fetch CSV file
-    let csvBase64: string | null = null;
-    const basePath = `${patient.practice_ods}/${patient.id}`;
-    const csvPath = `${basePath}/final/snomed.csv`;
-    console.log(`Attempting to fetch CSV from: ${csvPath}`);
-    try {
-      const { data: csvFile, error: csvError } = await supabase.storage
-        .from('lg')
-        .download(csvPath);
-      if (csvError) {
-        console.log(`CSV fetch error: ${csvError.message}`);
-      } else if (csvFile) {
-        const csvText = await csvFile.text();
-        csvBase64 = btoa(csvText);
-        console.log(`CSV attachment ready, size: ${csvBase64.length} chars`);
-      }
-    } catch (csvErr) {
-      console.log('Could not fetch CSV file:', csvErr);
-    }
-
     const formattedDob = formatDobForFilename(dob);
     const cleanNhs = (nhsNumber || '').replace(/\s/g, '');
     const pdfFilename = `LG_${cleanNhs}_${formattedDob}.pdf`;
-    const csvFilename = `LG_${cleanNhs}_${formattedDob}_snomed_codes.csv`;
 
     const attachments: Array<{ filename: string; content: string; type: string }> = [
       {
@@ -1806,14 +1785,6 @@ async function sendSummaryEmailWithPdf(
         type: 'application/pdf',
       }
     ];
-    
-    if (csvBase64) {
-      attachments.push({
-        filename: csvFilename,
-        content: csvBase64,
-        type: 'text/csv',
-      });
-    }
 
     const { error: emailError } = await supabase.functions.invoke('send-email-resend', {
       body: {
