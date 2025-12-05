@@ -406,44 +406,44 @@ export default function LGCaptureLanding() {
         </Button>
         <Button
           variant="outline"
-          onClick={() => navigate('/lg-capture/file-view')}
+          onClick={async () => {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+              toast.error('Please log in first');
+              return;
+            }
+            const { generateULID } = await import('@/utils/ulid');
+            const patientId = generateULID();
+            const { error } = await supabase
+              .from('lg_patients')
+              .insert({
+                id: patientId,
+                user_id: user.id,
+                practice_ods: practiceOds || 'DEMO',
+                uploader_name: uploaderName || 'Demo User',
+                job_status: 'draft',
+                sex: 'unknown',
+              });
+            if (error) {
+              toast.error('Failed to create demo session');
+              return;
+            }
+            navigate(`/lg-capture/demo/${patientId}`);
+          }}
           className="w-full"
         >
-          <FolderDown className="mr-2 h-4 w-4" />
-          File Manager
+          <Play className="mr-2 h-4 w-4" />
+          Demo Service
         </Button>
       </div>
 
       <Button
         variant="outline"
-        onClick={async () => {
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) {
-            toast.error('Please log in first');
-            return;
-          }
-          const { generateULID } = await import('@/utils/ulid');
-          const patientId = generateULID();
-          const { error } = await supabase
-            .from('lg_patients')
-            .insert({
-              id: patientId,
-              user_id: user.id,
-              practice_ods: practiceOds || 'DEMO',
-              uploader_name: uploaderName || 'Demo User',
-              job_status: 'draft',
-              sex: 'unknown',
-            });
-          if (error) {
-            toast.error('Failed to create demo session');
-            return;
-          }
-          navigate(`/lg-capture/demo/${patientId}`);
-        }}
+        onClick={() => navigate('/lg-capture/file-view')}
         className="w-full"
       >
-        <Play className="mr-2 h-4 w-4" />
-        Demo Service
+        <FolderDown className="mr-2 h-4 w-4" />
+        File Manager
       </Button>
 
       <div className="grid grid-cols-2 gap-4">
