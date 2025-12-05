@@ -448,25 +448,30 @@ function addScannedPageWithHeader(
         page.drawImage(image, { x, y, width: scaledEffectiveWidth, height: scaledEffectiveHeight });
       } else {
         // Apply rotation using pdf-lib's rotate option
-        // For rotated images, we draw the original dimensions and let pdf-lib rotate
+        // pdf-lib rotates around the bottom-left corner of the drawn image
+        // We need to adjust x, y so the ROTATED image appears centered
         const scaledOrigWidth = Math.round(image.width * scale);
         const scaledOrigHeight = Math.round(image.height * scale);
         
-        // Calculate position so the rotated image is centered in available space
+        // Calculate position accounting for pdf-lib's rotation pivot (bottom-left of original image)
         let x: number, y: number;
         
         if (rotationDegrees === 90) {
-          // 90 CW: bottom-left becomes top-left
-          x = centerX - scaledEffectiveWidth / 2;
+          // 90° CW: Image rotates clockwise around bottom-left
+          // After rotation: original bottom-left stays put, image extends UP and LEFT
+          // To center the rotated image: x needs to be at center + half of rotated width (which is original height)
+          x = centerX + scaledEffectiveWidth / 2;
           y = centerY - scaledEffectiveHeight / 2;
         } else if (rotationDegrees === 270) {
-          // 270 CW (90 CCW): top-right becomes top-left
+          // 270° CW (90° CCW): Image rotates counter-clockwise around bottom-left
+          // After rotation: original bottom-left stays put, image extends DOWN and RIGHT
           x = centerX - scaledEffectiveWidth / 2;
-          y = centerY - scaledEffectiveHeight / 2;
+          y = centerY + scaledEffectiveHeight / 2;
         } else {
-          // 180: flip both axes
-          x = centerX - scaledEffectiveWidth / 2;
-          y = centerY - scaledEffectiveHeight / 2;
+          // 180°: Image flips around bottom-left
+          // After rotation: original bottom-left stays put, image extends UP and LEFT
+          x = centerX + scaledEffectiveWidth / 2;
+          y = centerY + scaledEffectiveHeight / 2;
         }
         
         page.drawImage(image, { 
