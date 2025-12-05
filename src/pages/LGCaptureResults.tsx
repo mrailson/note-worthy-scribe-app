@@ -348,12 +348,16 @@ export default function LGCaptureResults() {
       {/* Download Panel */}
       {patient.job_status === 'succeeded' && (
         <>
-          {/* Retry PDF Generation if stuck */}
-          {patient.pdf_generation_status === 'queued' && (
+          {/* Retry PDF Generation if stuck or failed */}
+          {(['queued', 'generating', 'failed'].includes(patient.pdf_generation_status || '') && patient.pdf_generation_status !== 'complete') && (
             <Card className="border-amber-500 bg-amber-50">
               <CardContent className="pt-4">
                 <p className="text-sm text-amber-700 mb-3">
-                  PDF generation is queued but hasn't started. Click below to retry.
+                  {patient.pdf_generation_status === 'failed' 
+                    ? 'PDF generation failed. Click below to retry.'
+                    : patient.pdf_generation_status === 'generating'
+                    ? 'PDF generation appears stuck. Click below to retry.'
+                    : 'PDF generation is queued but hasn\'t started. Click below to retry.'}
                 </p>
                 <Button
                   onClick={async () => {
