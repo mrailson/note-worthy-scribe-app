@@ -248,6 +248,9 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                 </div>
               )}
             </div>
+            <p className="text-xs text-muted-foreground italic">
+              This screenshot is used only to verify the correct patient file was uploaded to the correct patient record in the clinical system. It is not stored or retained.
+            </p>
           </div>
 
           {/* Validate Button */}
