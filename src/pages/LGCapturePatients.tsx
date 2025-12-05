@@ -78,31 +78,46 @@ export default function LGCapturePatients() {
     load();
   }, [listPatients]);
 
-  // Real-time subscription for live status updates
+  // Real-time subscription for live status updates - filtered by current user
   useEffect(() => {
-    const channel = supabase
-      .channel('lg-patients-realtime')
-      .on('postgres_changes', {
-        event: '*',
-        schema: 'public',
-        table: 'lg_patients',
-      }, (payload) => {
-        if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
-          const updated = payload.new as LGPatient;
-          setPatients(prev => {
-            const exists = prev.find(p => p.id === updated.id);
-            if (exists) {
-              return prev.map(p => p.id === updated.id ? updated : p);
-            } else {
-              return [updated, ...prev];
-            }
-          });
-        }
-      })
-      .subscribe();
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    
+    const setupSubscription = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      channel = supabase
+        .channel('lg-patients-realtime')
+        .on('postgres_changes', {
+          event: '*',
+          schema: 'public',
+          table: 'lg_patients',
+          filter: `user_id=eq.${user.id}`,
+        }, (payload) => {
+          if (payload.eventType === 'UPDATE' || payload.eventType === 'INSERT') {
+            const updated = payload.new as LGPatient;
+            // Defensive check: ensure record belongs to current user
+            if (updated.user_id !== user.id) return;
+            
+            setPatients(prev => {
+              const exists = prev.find(p => p.id === updated.id);
+              if (exists) {
+                return prev.map(p => p.id === updated.id ? updated : p);
+              } else {
+                return [updated, ...prev];
+              }
+            });
+          }
+        })
+        .subscribe();
+    };
+    
+    setupSubscription();
 
     return () => {
-      supabase.removeChannel(channel);
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, []);
 
