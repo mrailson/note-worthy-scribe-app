@@ -79,6 +79,19 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
     reader.readAsDataURL(file);
   }, []);
 
+  // Process image file/blob into base64
+  const processImageFile = useCallback((file: File | Blob) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result as string;
+      setScreenshot(base64);
+      setScreenshotPreview(base64);
+      setValidationResult(null);
+      toast.success('Screenshot loaded from clipboard');
+    };
+    reader.readAsDataURL(file);
+  }, []);
+
   // Handle paste from clipboard (Ctrl+V / Cmd+V)
   const handlePaste = useCallback((event: ClipboardEvent) => {
     const items = event.clipboardData?.items;
@@ -89,20 +102,31 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
         event.preventDefault();
         const file = item.getAsFile();
         if (file) {
-          const reader = new FileReader();
-          reader.onload = () => {
-            const base64 = reader.result as string;
-            setScreenshot(base64);
-            setScreenshotPreview(base64);
-            setValidationResult(null);
-            toast.success('Screenshot pasted from clipboard');
-          };
-          reader.readAsDataURL(file);
+          processImageFile(file);
         }
         break;
       }
     }
-  }, []);
+  }, [processImageFile]);
+
+  // Handle "Paste from Clipboard" button click (for right-click paste workflow)
+  const handlePasteFromClipboard = useCallback(async () => {
+    try {
+      const clipboardItems = await navigator.clipboard.read();
+      for (const item of clipboardItems) {
+        const imageType = item.types.find(type => type.startsWith('image/'));
+        if (imageType) {
+          const blob = await item.getType(imageType);
+          processImageFile(blob);
+          return;
+        }
+      }
+      toast.error('No image found in clipboard. Copy a screenshot first.');
+    } catch (err) {
+      console.error('Clipboard read error:', err);
+      toast.error('Unable to read clipboard. Try using Ctrl+V or drag & drop.');
+    }
+  }, [processImageFile]);
 
   // Listen for paste events when modal is open
   useEffect(() => {
@@ -279,12 +303,25 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                     <Clipboard className="h-8 w-8 text-muted-foreground/50" />
                   </div>
                   <div>
-                    <p className="font-medium">Drag & drop, click to upload, or paste (Ctrl+V)</p>
+                    <p className="font-medium">Drag & drop, click to upload, or Ctrl+V / ⌘+V</p>
                     <p className="text-sm text-muted-foreground">Supports: PNG, JPG, WEBP (max 10MB)</p>
                   </div>
                 </div>
               )}
             </div>
+            
+            {/* Paste from Clipboard button */}
+            {!screenshotPreview && (
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={handlePasteFromClipboard}
+                className="w-full"
+              >
+                <Clipboard className="h-4 w-4 mr-2" />
+                Paste from Clipboard
+              </Button>
+            )}
             <p className="text-xs text-muted-foreground italic">
               This screenshot is used only to verify the correct patient file was uploaded to the correct patient record in the clinical system. It is not stored or retained.
             </p>
