@@ -231,21 +231,25 @@ export default function LGCaptureFileView() {
 
       if (error) throw error;
 
-      if (data?.downloadUrl) {
-        // Download the ZIP
-        const response = await fetch(data.downloadUrl);
-        const blob = await response.blob();
+      if (data?.zipData) {
+        // Convert base64 to blob
+        const binaryString = atob(data.zipData);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+        const blob = new Blob([bytes], { type: 'application/zip' });
         
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `LG_Export_${new Date().toISOString().split('T')[0]}.zip`;
+        a.download = data.fileName || `LG_Export_${new Date().toISOString().split('T')[0]}.zip`;
         document.body.appendChild(a);
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
-        toast.success(`Downloaded ${selectedIds.size} patient files`);
+        toast.success(`Downloaded ${data.patientCount || selectedIds.size} patient files`);
         setSelectedIds(new Set());
         fetchPatients();
       }

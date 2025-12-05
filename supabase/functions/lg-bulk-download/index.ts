@@ -7,6 +7,16 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// Helper to convert Uint8Array to base64
+function uint8ArrayToBase64(bytes: Uint8Array): string {
+  let binary = '';
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -71,8 +81,8 @@ serve(async (req) => {
 
     for (const patient of patients) {
       const nhsClean = patient.nhs_number?.replace(/\s/g, '') || 'unknown';
-      const dobFormatted = patient.date_of_birth 
-        ? new Date(patient.date_of_birth).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
+      const dobFormatted = patient.dob 
+        ? new Date(patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
         : 'unknown_dob';
       
       const folderName = `${nhsClean}_${dobFormatted}`;
@@ -93,6 +103,7 @@ serve(async (req) => {
             if (!pdfError && pdfData) {
               const arrayBuffer = await pdfData.arrayBuffer();
               folder.file(`Lloyd_George_Part_${i + 1}.pdf`, arrayBuffer);
+              console.log(`Added PDF part ${i + 1} for ${nhsClean}`);
             }
           } catch (err) {
             console.error(`Error downloading PDF part ${i + 1} for ${nhsClean}:`, err);
@@ -108,6 +119,7 @@ serve(async (req) => {
           if (!pdfError && pdfData) {
             const arrayBuffer = await pdfData.arrayBuffer();
             folder.file('Lloyd_George.pdf', arrayBuffer);
+            console.log(`Added PDF for ${nhsClean}`);
           }
         } catch (err) {
           console.error(`Error downloading PDF for ${nhsClean}:`, err);
@@ -148,33 +160,12 @@ serve(async (req) => {
       }
     }
 
-    // Generate ZIP
+    // Generate ZIP as base64
     const zipContent = await zip.generateAsync({ type: 'uint8array' });
+    const zipBase64 = uint8ArrayToBase64(zipContent);
     const zipFileName = `LG_Export_${dateStr}.zip`;
 
-    // Upload ZIP to storage temporarily
-    const zipPath = `exports/${user.id}/${zipFileName}`;
-    const { error: uploadError } = await supabase.storage
-      .from('lg')
-      .upload(zipPath, zipContent, {
-        contentType: 'application/zip',
-        upsert: true
-      });
-
-    if (uploadError) {
-      console.error('Error uploading ZIP:', uploadError);
-      throw uploadError;
-    }
-
-    // Create signed URL for download (valid for 1 hour)
-    const { data: signedData, error: signedError } = await supabase.storage
-      .from('lg')
-      .createSignedUrl(zipPath, 3600);
-
-    if (signedError) {
-      console.error('Error creating signed URL:', signedError);
-      throw signedError;
-    }
+    console.log(`ZIP created: ${zipFileName}, size: ${zipContent.length} bytes`);
 
     // Update downloaded_at for all patients
     const now = new Date().toISOString();
@@ -189,9 +180,10 @@ serve(async (req) => {
 
     console.log(`Bulk download created successfully: ${zipFileName}`);
 
+    // Return ZIP as base64 data
     return new Response(JSON.stringify({ 
       success: true,
-      downloadUrl: signedData.signedUrl,
+      zipData: zipBase64,
       fileName: zipFileName,
       patientCount: patients.length
     }), {
