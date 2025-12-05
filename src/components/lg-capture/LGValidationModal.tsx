@@ -245,7 +245,7 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-lg">Now we have the completed LG electronically, we need to attach it to the patient record for <span className="text-primary">{patient.patient_name || 'the patient'}</span></DialogTitle>
         </DialogHeader>
