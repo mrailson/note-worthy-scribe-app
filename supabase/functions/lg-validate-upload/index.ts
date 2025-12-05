@@ -169,67 +169,35 @@ If you cannot find a field, use null for that field.`;
       isFullyValidated
     });
 
-    // Store screenshot in storage for audit trail
-    let screenshotPath: string | null = null;
-    if (patientId) {
-      try {
-        // Convert base64 to Uint8Array
-        const base64Data = screenshotBase64.split(',')[1] || screenshotBase64;
-        const binaryString = atob(base64Data);
-        const bytes = new Uint8Array(binaryString.length);
-        for (let i = 0; i < binaryString.length; i++) {
-          bytes[i] = binaryString.charCodeAt(i);
-        }
+    // Screenshot is NOT stored - only used for validation and discarded
+    // If validation passed (NHS + DOB match), automatically mark as uploaded
+    if (patientId && isFullyValidated) {
+      const now = new Date().toISOString();
+      const validationResult = {
+        clinical_system: clinicalSystem,
+        nhs_match: validation.nhs_match,
+        dob_match: validation.dob_match,
+        file_detected: validation.file_detected,
+        confidence: extracted.confidence,
+        extracted_nhs: extractedNhs,
+        extracted_dob: extractedDob,
+        manual_override: false
+      };
 
-        screenshotPath = `validation/${patientId}/screenshot_${Date.now()}.png`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('lg')
-          .upload(screenshotPath, bytes, {
-            contentType: 'image/png',
-            upsert: true
-          });
+      const { error: updateError } = await supabase
+        .from('lg_patients')
+        .update({
+          validated_at: now,
+          uploaded_to_s1_at: now,
+          publish_status: 'uploaded',
+          validation_result: validationResult
+        })
+        .eq('id', patientId);
 
-        if (uploadError) {
-          console.error('Error storing validation screenshot:', uploadError);
-          screenshotPath = null;
-        } else {
-          console.log('Validation screenshot stored:', screenshotPath);
-        }
-      } catch (storageError) {
-        console.error('Storage error:', storageError);
-      }
-
-      // If validation passed (NHS + DOB match), automatically mark as uploaded
-      if (isFullyValidated) {
-        const now = new Date().toISOString();
-        const validationResult = {
-          clinical_system: clinicalSystem,
-          nhs_match: validation.nhs_match,
-          dob_match: validation.dob_match,
-          file_detected: validation.file_detected,
-          confidence: extracted.confidence,
-          extracted_nhs: extractedNhs,
-          extracted_dob: extractedDob,
-          screenshot_path: screenshotPath,
-          manual_override: false
-        };
-
-        const { error: updateError } = await supabase
-          .from('lg_patients')
-          .update({
-            validated_at: now,
-            uploaded_to_s1_at: now,
-            publish_status: 'uploaded',
-            validation_result: validationResult
-          })
-          .eq('id', patientId);
-
-        if (updateError) {
-          console.error('Error updating patient record:', updateError);
-        } else {
-          console.log('Patient record updated: validated and marked as uploaded');
-        }
+      if (updateError) {
+        console.error('Error updating patient record:', updateError);
+      } else {
+        console.log('Patient record updated: validated and marked as uploaded');
       }
     }
 
