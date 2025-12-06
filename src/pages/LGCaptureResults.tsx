@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
 import pdfIcon from '@/assets/pdf-icon.png';
-import { LGEmailButton } from '@/components/lg-capture/LGEmailButton';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import {
@@ -403,8 +402,6 @@ export default function LGCaptureResults() {
             <RefreshCw className="mr-2 h-4 w-4" />
             Reprocess Record
           </Button>
-          
-          <LGEmailButton patient={patient} />
         </>
       )}
 
