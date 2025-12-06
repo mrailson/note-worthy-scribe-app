@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw, RotateCcw, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import pdfIcon from '@/assets/pdf-icon.png';
@@ -263,6 +263,29 @@ export default function LGCapturePatients() {
     }
   };
 
+  const handleDeleteStaleDraft = async (patientId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const { error } = await supabase
+        .from('lg_patients')
+        .delete()
+        .eq('id', patientId);
+      if (error) throw error;
+      setPatients(prev => prev.filter(p => p.id !== patientId));
+      toast.success('Draft deleted');
+    } catch (err) {
+      console.error('Delete draft error:', err);
+      toast.error('Failed to delete draft');
+    }
+  };
+
+  const isStaleDraft = (patient: LGPatient) => {
+    if (patient.job_status !== 'draft' || patient.images_count > 0) return false;
+    const createdAt = new Date(patient.created_at);
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    return createdAt < fiveMinutesAgo;
+  };
+
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
       <div className="flex items-center justify-between">
@@ -392,6 +415,16 @@ export default function LGCapturePatients() {
                     <div className="flex flex-col items-end gap-1">
                       <div className="flex items-center gap-2">
                         {getStatusBadge(patient)}
+                        {/* Delete stale draft icon */}
+                        {isStaleDraft(patient) && (
+                          <button
+                            onClick={(e) => handleDeleteStaleDraft(patient.id, e)}
+                            className="p-1 rounded hover:bg-destructive/10 transition-colors text-destructive"
+                            title="Delete stale draft"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
+                        )}
                         {/* PDF Icon - after badge */}
                         {hasPdf && patient.job_status === 'succeeded' && (
                           pdfPartUrls && pdfPartUrls.length > 0 ? (
