@@ -187,7 +187,7 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
 
       {/* Enlarged view dialog - nearly fullscreen */}
       <Dialog open={!!selectedPage} onOpenChange={() => setSelectedPage(null)}>
-        <DialogContent className="!max-w-[95vw] !w-[95vw] !h-[95vh] !max-h-[95vh] p-0 flex flex-col">
+        <DialogContent className="!max-w-xl !w-[50vw] !h-[95vh] !max-h-[95vh] p-0 flex flex-col">
           {selectedPage && (
             <>
               {/* Thumbnail strip at top */}
