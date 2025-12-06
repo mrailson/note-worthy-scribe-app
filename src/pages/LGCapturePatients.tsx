@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import pdfIcon from '@/assets/pdf-icon.png';
@@ -55,6 +55,7 @@ export default function LGCapturePatients() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [selectedPatientForValidation, setSelectedPatientForValidation] = useState<LGPatient | null>(null);
+  const [reprocessingId, setReprocessingId] = useState<string | null>(null);
 
   // Fetch practice names lookup
   useEffect(() => {
@@ -244,6 +245,24 @@ export default function LGCapturePatients() {
     toast.success('Refreshed');
   };
 
+  const handleReprocessSummary = async (patientId: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setReprocessingId(patientId);
+    try {
+      toast.info('Reprocessing patient details...');
+      const { error } = await supabase.functions.invoke('lg-process-summary', {
+        body: { patientId }
+      });
+      if (error) throw error;
+      toast.success('Reprocessing started - details will update automatically');
+    } catch (err) {
+      console.error('Reprocess error:', err);
+      toast.error('Failed to reprocess');
+    } finally {
+      setReprocessingId(null);
+    }
+  };
+
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
       <div className="flex items-center justify-between">
@@ -347,9 +366,22 @@ export default function LGCapturePatients() {
                 <CardContent className="p-4">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
-                      <p className="font-medium">
-                        {patient.patient_name || patient.ai_extracted_name || 'Extracting...'}
-                      </p>
+                      <div className="flex items-center gap-2">
+                        <p className="font-medium">
+                          {patient.patient_name || patient.ai_extracted_name || 'Extracting...'}
+                        </p>
+                        {/* Reprocess icon for records missing patient details */}
+                        {patient.job_status === 'succeeded' && !patient.patient_name && !patient.ai_extracted_name && (
+                          <button
+                            onClick={(e) => handleReprocessSummary(patient.id, e)}
+                            disabled={reprocessingId === patient.id}
+                            className="p-1 rounded hover:bg-amber-100 transition-colors text-amber-600"
+                            title="Reprocess to extract patient details"
+                          >
+                            <RotateCcw className={`h-4 w-4 ${reprocessingId === patient.id ? 'animate-spin' : ''}`} />
+                          </button>
+                        )}
+                      </div>
                       <p className="text-sm text-muted-foreground font-mono">
                         NHS: {formatNhsNumber(patient.nhs_number || patient.ai_extracted_nhs)}
                       </p>
