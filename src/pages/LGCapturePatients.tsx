@@ -246,7 +246,7 @@ export default function LGCapturePatients() {
           Back
         </Button>
         
-        <Button onClick={() => navigate('/lg-capture/start')}>
+        <Button onClick={() => navigate('/lg-capture/upload')}>
           <Plus className="mr-2 h-4 w-4" />
           New Patient
         </Button>
@@ -290,7 +290,7 @@ export default function LGCapturePatients() {
             <p className="text-muted-foreground">No captures found</p>
             <Button
               variant="link"
-              onClick={() => navigate('/lg-capture/start')}
+              onClick={() => navigate('/lg-capture/upload')}
               className="mt-2"
             >
               Start your first capture
