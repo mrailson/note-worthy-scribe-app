@@ -589,7 +589,8 @@ serve(async (req) => {
           updateData.dob = extractedPatient.date_of_birth;
         }
         if (patient.sex === 'unknown' && extractedPatient.sex && extractedPatient.sex !== 'unknown') {
-          updateData.sex = extractedPatient.sex;
+          // Normalise sex to lowercase to match database check constraint
+          updateData.sex = extractedPatient.sex.toLowerCase();
         }
         
         console.log('Updating patient with extracted details:', JSON.stringify(updateData));
