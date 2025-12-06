@@ -62,6 +62,406 @@ function getCompressionSettings(pageCount: number, attempt: number = 0): Compres
   };
 }
 
+// ============================================
+// PURE TYPESCRIPT JPEG ENCODER (Deno-compatible)
+// Based on JPEG baseline encoding without canvas.convertToBlob
+// ============================================
+
+// Standard JPEG luminance quantization table (quality-adjusted)
+function getQuantizationTable(quality: number): number[] {
+  // Base quantization table for luminance
+  const baseTable = [
+    16, 11, 10, 16, 24, 40, 51, 61,
+    12, 12, 14, 19, 26, 58, 60, 55,
+    14, 13, 16, 24, 40, 57, 69, 56,
+    14, 17, 22, 29, 51, 87, 80, 62,
+    18, 22, 37, 56, 68, 109, 103, 77,
+    24, 35, 55, 64, 81, 104, 113, 92,
+    49, 64, 78, 87, 103, 121, 120, 101,
+    72, 92, 95, 98, 112, 100, 103, 99
+  ];
+  
+  // Scale based on quality (1-100)
+  const scale = quality < 50 ? Math.floor(5000 / quality) : Math.floor(200 - quality * 2);
+  
+  return baseTable.map(val => {
+    const scaled = Math.floor((val * scale + 50) / 100);
+    return Math.max(1, Math.min(255, scaled));
+  });
+}
+
+// Chrominance quantization table
+function getChrominanceQuantTable(quality: number): number[] {
+  const baseTable = [
+    17, 18, 24, 47, 99, 99, 99, 99,
+    18, 21, 26, 66, 99, 99, 99, 99,
+    24, 26, 56, 99, 99, 99, 99, 99,
+    47, 66, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99,
+    99, 99, 99, 99, 99, 99, 99, 99
+  ];
+  
+  const scale = quality < 50 ? Math.floor(5000 / quality) : Math.floor(200 - quality * 2);
+  
+  return baseTable.map(val => {
+    const scaled = Math.floor((val * scale + 50) / 100);
+    return Math.max(1, Math.min(255, scaled));
+  });
+}
+
+// Zigzag order for DCT coefficients
+const ZIGZAG = [
+  0, 1, 8, 16, 9, 2, 3, 10,
+  17, 24, 32, 25, 18, 11, 4, 5,
+  12, 19, 26, 33, 40, 48, 41, 34,
+  27, 20, 13, 6, 7, 14, 21, 28,
+  35, 42, 49, 56, 57, 50, 43, 36,
+  29, 22, 15, 23, 30, 37, 44, 51,
+  58, 59, 52, 45, 38, 31, 39, 46,
+  53, 60, 61, 54, 47, 55, 62, 63
+];
+
+// Huffman tables for DC and AC coefficients (standard JPEG)
+const DC_LUMINANCE_BITS = [0, 1, 5, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0];
+const DC_LUMINANCE_VALUES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+const DC_CHROMINANCE_BITS = [0, 3, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0];
+const DC_CHROMINANCE_VALUES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+
+const AC_LUMINANCE_BITS = [0, 2, 1, 3, 3, 2, 4, 3, 5, 5, 4, 4, 0, 0, 1, 125];
+const AC_LUMINANCE_VALUES = [
+  0x01, 0x02, 0x03, 0x00, 0x04, 0x11, 0x05, 0x12, 0x21, 0x31, 0x41, 0x06, 0x13, 0x51, 0x61, 0x07,
+  0x22, 0x71, 0x14, 0x32, 0x81, 0x91, 0xa1, 0x08, 0x23, 0x42, 0xb1, 0xc1, 0x15, 0x52, 0xd1, 0xf0,
+  0x24, 0x33, 0x62, 0x72, 0x82, 0x09, 0x0a, 0x16, 0x17, 0x18, 0x19, 0x1a, 0x25, 0x26, 0x27, 0x28,
+  0x29, 0x2a, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49,
+  0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68, 0x69,
+  0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x83, 0x84, 0x85, 0x86, 0x87, 0x88, 0x89,
+  0x8a, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5, 0xa6, 0xa7,
+  0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3, 0xc4, 0xc5,
+  0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda, 0xe1, 0xe2,
+  0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xf1, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
+  0xf9, 0xfa
+];
+
+const AC_CHROMINANCE_BITS = [0, 2, 1, 2, 4, 4, 3, 4, 7, 5, 4, 4, 0, 1, 2, 119];
+const AC_CHROMINANCE_VALUES = [
+  0x00, 0x01, 0x02, 0x03, 0x11, 0x04, 0x05, 0x21, 0x31, 0x06, 0x12, 0x41, 0x51, 0x07, 0x61, 0x71,
+  0x13, 0x22, 0x32, 0x81, 0x08, 0x14, 0x42, 0x91, 0xa1, 0xb1, 0xc1, 0x09, 0x23, 0x33, 0x52, 0xf0,
+  0x15, 0x62, 0x72, 0xd1, 0x0a, 0x16, 0x24, 0x34, 0xe1, 0x25, 0xf1, 0x17, 0x18, 0x19, 0x1a, 0x26,
+  0x27, 0x28, 0x29, 0x2a, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3a, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48,
+  0x49, 0x4a, 0x53, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x63, 0x64, 0x65, 0x66, 0x67, 0x68,
+  0x69, 0x6a, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7a, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
+  0x88, 0x89, 0x8a, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9a, 0xa2, 0xa3, 0xa4, 0xa5,
+  0xa6, 0xa7, 0xa8, 0xa9, 0xaa, 0xb2, 0xb3, 0xb4, 0xb5, 0xb6, 0xb7, 0xb8, 0xb9, 0xba, 0xc2, 0xc3,
+  0xc4, 0xc5, 0xc6, 0xc7, 0xc8, 0xc9, 0xca, 0xd2, 0xd3, 0xd4, 0xd5, 0xd6, 0xd7, 0xd8, 0xd9, 0xda,
+  0xe2, 0xe3, 0xe4, 0xe5, 0xe6, 0xe7, 0xe8, 0xe9, 0xea, 0xf2, 0xf3, 0xf4, 0xf5, 0xf6, 0xf7, 0xf8,
+  0xf9, 0xfa
+];
+
+// Build Huffman table from bits and values
+function buildHuffmanTable(bits: number[], values: number[]): Map<number, { code: number; length: number }> {
+  const table = new Map<number, { code: number; length: number }>();
+  let code = 0;
+  let valueIndex = 0;
+  
+  for (let length = 1; length <= 16; length++) {
+    for (let i = 0; i < bits[length - 1]; i++) {
+      table.set(values[valueIndex], { code, length });
+      valueIndex++;
+      code++;
+    }
+    code <<= 1;
+  }
+  
+  return table;
+}
+
+// BitWriter for efficient bit-level output
+class BitWriter {
+  private buffer: number[] = [];
+  private currentByte = 0;
+  private bitPosition = 0;
+  
+  writeBits(value: number, numBits: number) {
+    for (let i = numBits - 1; i >= 0; i--) {
+      this.currentByte = (this.currentByte << 1) | ((value >> i) & 1);
+      this.bitPosition++;
+      
+      if (this.bitPosition === 8) {
+        this.buffer.push(this.currentByte);
+        // Byte stuffing for 0xFF
+        if (this.currentByte === 0xFF) {
+          this.buffer.push(0x00);
+        }
+        this.currentByte = 0;
+        this.bitPosition = 0;
+      }
+    }
+  }
+  
+  flush(): number[] {
+    if (this.bitPosition > 0) {
+      this.currentByte <<= (8 - this.bitPosition);
+      this.buffer.push(this.currentByte);
+      if (this.currentByte === 0xFF) {
+        this.buffer.push(0x00);
+      }
+    }
+    return this.buffer;
+  }
+}
+
+// DCT constants
+const COS_TABLE: number[][] = [];
+for (let i = 0; i < 8; i++) {
+  COS_TABLE[i] = [];
+  for (let j = 0; j < 8; j++) {
+    COS_TABLE[i][j] = Math.cos(((2 * j + 1) * i * Math.PI) / 16);
+  }
+}
+
+// Perform 8x8 DCT
+function dct8x8(block: number[]): number[] {
+  const result = new Array(64).fill(0);
+  
+  for (let u = 0; u < 8; u++) {
+    for (let v = 0; v < 8; v++) {
+      let sum = 0;
+      for (let x = 0; x < 8; x++) {
+        for (let y = 0; y < 8; y++) {
+          sum += block[x * 8 + y] * COS_TABLE[u][x] * COS_TABLE[v][y];
+        }
+      }
+      const cu = u === 0 ? 1 / Math.SQRT2 : 1;
+      const cv = v === 0 ? 1 / Math.SQRT2 : 1;
+      result[u * 8 + v] = 0.25 * cu * cv * sum;
+    }
+  }
+  
+  return result;
+}
+
+// Get category and additional bits for a DC/AC value
+function getCategoryAndBits(value: number): { category: number; bits: number; numBits: number } {
+  if (value === 0) return { category: 0, bits: 0, numBits: 0 };
+  
+  const absValue = Math.abs(value);
+  let category = 0;
+  let temp = absValue;
+  while (temp > 0) {
+    category++;
+    temp >>= 1;
+  }
+  
+  const bits = value < 0 ? value + (1 << category) - 1 : value;
+  return { category, bits, numBits: category };
+}
+
+// Encode a single 8x8 block
+function encodeBlock(
+  block: number[],
+  quantTable: number[],
+  dcTable: Map<number, { code: number; length: number }>,
+  acTable: Map<number, { code: number; length: number }>,
+  prevDC: number,
+  writer: BitWriter
+): number {
+  // Apply DCT
+  const dctBlock = dct8x8(block);
+  
+  // Quantize
+  const quantized = dctBlock.map((val, i) => Math.round(val / quantTable[i]));
+  
+  // Encode DC coefficient
+  const dcDiff = quantized[0] - prevDC;
+  const dcCatBits = getCategoryAndBits(dcDiff);
+  const dcHuff = dcTable.get(dcCatBits.category);
+  if (dcHuff) {
+    writer.writeBits(dcHuff.code, dcHuff.length);
+    if (dcCatBits.numBits > 0) {
+      writer.writeBits(dcCatBits.bits, dcCatBits.numBits);
+    }
+  }
+  
+  // Encode AC coefficients in zigzag order
+  let zeroCount = 0;
+  for (let i = 1; i < 64; i++) {
+    const acValue = quantized[ZIGZAG[i]];
+    
+    if (acValue === 0) {
+      zeroCount++;
+    } else {
+      // Write any runs of 16 zeros
+      while (zeroCount >= 16) {
+        const zrl = acTable.get(0xF0); // ZRL marker
+        if (zrl) writer.writeBits(zrl.code, zrl.length);
+        zeroCount -= 16;
+      }
+      
+      // Write run-length + value
+      const acCatBits = getCategoryAndBits(acValue);
+      const runCat = (zeroCount << 4) | acCatBits.category;
+      const acHuff = acTable.get(runCat);
+      if (acHuff) {
+        writer.writeBits(acHuff.code, acHuff.length);
+        writer.writeBits(acCatBits.bits, acCatBits.numBits);
+      }
+      zeroCount = 0;
+    }
+  }
+  
+  // Write EOB if needed
+  if (zeroCount > 0) {
+    const eob = acTable.get(0x00);
+    if (eob) writer.writeBits(eob.code, eob.length);
+  }
+  
+  return quantized[0];
+}
+
+// Main JPEG encoder function
+function encodeJPEG(rgba: Uint8ClampedArray, width: number, height: number, quality: number): Uint8Array {
+  // Build Huffman tables
+  const dcLumTable = buildHuffmanTable(DC_LUMINANCE_BITS, DC_LUMINANCE_VALUES);
+  const acLumTable = buildHuffmanTable(AC_LUMINANCE_BITS, AC_LUMINANCE_VALUES);
+  const dcChromTable = buildHuffmanTable(DC_CHROMINANCE_BITS, DC_CHROMINANCE_VALUES);
+  const acChromTable = buildHuffmanTable(AC_CHROMINANCE_BITS, AC_CHROMINANCE_VALUES);
+  
+  // Get quantization tables
+  const lumQuantTable = getQuantizationTable(quality);
+  const chromQuantTable = getChrominanceQuantTable(quality);
+  
+  // Convert RGBA to YCbCr
+  const paddedWidth = Math.ceil(width / 8) * 8;
+  const paddedHeight = Math.ceil(height / 8) * 8;
+  
+  const Y = new Float32Array(paddedWidth * paddedHeight);
+  const Cb = new Float32Array(paddedWidth * paddedHeight);
+  const Cr = new Float32Array(paddedWidth * paddedHeight);
+  
+  for (let y = 0; y < paddedHeight; y++) {
+    for (let x = 0; x < paddedWidth; x++) {
+      const srcX = Math.min(x, width - 1);
+      const srcY = Math.min(y, height - 1);
+      const i = (srcY * width + srcX) * 4;
+      
+      const r = rgba[i];
+      const g = rgba[i + 1];
+      const b = rgba[i + 2];
+      
+      const idx = y * paddedWidth + x;
+      Y[idx] = 0.299 * r + 0.587 * g + 0.114 * b - 128;
+      Cb[idx] = -0.168736 * r - 0.331264 * g + 0.5 * b;
+      Cr[idx] = 0.5 * r - 0.418688 * g - 0.081312 * b;
+    }
+  }
+  
+  // Build JPEG file
+  const output: number[] = [];
+  
+  // SOI marker
+  output.push(0xFF, 0xD8);
+  
+  // JFIF APP0 marker
+  output.push(0xFF, 0xE0);
+  output.push(0x00, 0x10); // Length
+  output.push(0x4A, 0x46, 0x49, 0x46, 0x00); // "JFIF\0"
+  output.push(0x01, 0x01); // Version 1.1
+  output.push(0x00); // Aspect ratio units (0 = no units)
+  output.push(0x00, 0x01); // X density
+  output.push(0x00, 0x01); // Y density
+  output.push(0x00, 0x00); // Thumbnail dimensions
+  
+  // DQT marker (quantization tables)
+  output.push(0xFF, 0xDB);
+  output.push(0x00, 0x43); // Length (67 bytes)
+  output.push(0x00); // Table 0 (luminance), 8-bit precision
+  for (let i = 0; i < 64; i++) {
+    output.push(lumQuantTable[ZIGZAG[i]]);
+  }
+  
+  output.push(0xFF, 0xDB);
+  output.push(0x00, 0x43);
+  output.push(0x01); // Table 1 (chrominance)
+  for (let i = 0; i < 64; i++) {
+    output.push(chromQuantTable[ZIGZAG[i]]);
+  }
+  
+  // SOF0 marker (baseline DCT)
+  output.push(0xFF, 0xC0);
+  output.push(0x00, 0x11); // Length
+  output.push(0x08); // Precision (8 bits)
+  output.push((height >> 8) & 0xFF, height & 0xFF);
+  output.push((width >> 8) & 0xFF, width & 0xFF);
+  output.push(0x03); // 3 components (YCbCr)
+  output.push(0x01, 0x11, 0x00); // Y: ID=1, sampling 1x1, quant table 0
+  output.push(0x02, 0x11, 0x01); // Cb: ID=2, sampling 1x1, quant table 1
+  output.push(0x03, 0x11, 0x01); // Cr: ID=3, sampling 1x1, quant table 1
+  
+  // DHT markers (Huffman tables)
+  function writeHuffmanTable(tableClass: number, tableId: number, bits: number[], values: number[]) {
+    output.push(0xFF, 0xC4);
+    const length = 3 + bits.length + values.length;
+    output.push((length >> 8) & 0xFF, length & 0xFF);
+    output.push((tableClass << 4) | tableId);
+    for (const b of bits) output.push(b);
+    for (const v of values) output.push(v);
+  }
+  
+  writeHuffmanTable(0, 0, DC_LUMINANCE_BITS, DC_LUMINANCE_VALUES);
+  writeHuffmanTable(1, 0, AC_LUMINANCE_BITS, AC_LUMINANCE_VALUES);
+  writeHuffmanTable(0, 1, DC_CHROMINANCE_BITS, DC_CHROMINANCE_VALUES);
+  writeHuffmanTable(1, 1, AC_CHROMINANCE_BITS, AC_CHROMINANCE_VALUES);
+  
+  // SOS marker (start of scan)
+  output.push(0xFF, 0xDA);
+  output.push(0x00, 0x0C); // Length
+  output.push(0x03); // 3 components
+  output.push(0x01, 0x00); // Y: DC table 0, AC table 0
+  output.push(0x02, 0x11); // Cb: DC table 1, AC table 1
+  output.push(0x03, 0x11); // Cr: DC table 1, AC table 1
+  output.push(0x00, 0x3F, 0x00); // Spectral selection and successive approximation
+  
+  // Encode image data
+  const writer = new BitWriter();
+  let prevDCY = 0, prevDCCb = 0, prevDCCr = 0;
+  
+  for (let blockY = 0; blockY < paddedHeight; blockY += 8) {
+    for (let blockX = 0; blockX < paddedWidth; blockX += 8) {
+      // Extract 8x8 blocks
+      const yBlock = new Array(64);
+      const cbBlock = new Array(64);
+      const crBlock = new Array(64);
+      
+      for (let y = 0; y < 8; y++) {
+        for (let x = 0; x < 8; x++) {
+          const idx = (blockY + y) * paddedWidth + (blockX + x);
+          yBlock[y * 8 + x] = Y[idx];
+          cbBlock[y * 8 + x] = Cb[idx];
+          crBlock[y * 8 + x] = Cr[idx];
+        }
+      }
+      
+      // Encode blocks
+      prevDCY = encodeBlock(yBlock, lumQuantTable, dcLumTable, acLumTable, prevDCY, writer);
+      prevDCCb = encodeBlock(cbBlock, chromQuantTable, dcChromTable, acChromTable, prevDCCb, writer);
+      prevDCCr = encodeBlock(crBlock, chromQuantTable, dcChromTable, acChromTable, prevDCCr, writer);
+    }
+  }
+  
+  // Flush bit writer
+  const scanData = writer.flush();
+  for (const byte of scanData) {
+    output.push(byte);
+  }
+  
+  // EOI marker
+  output.push(0xFF, 0xD9);
+  
+  return new Uint8Array(output);
+}
+
 // Parse EXIF orientation from JPEG bytes
 function parseExifOrientation(bytes: Uint8Array): number {
   if (bytes.length < 12) return 1;
@@ -223,29 +623,15 @@ async function compressImage(
       ctx.putImageData(imageData, 0, 0);
     }
     
-    // Try JPEG first, fall back to PNG if Deno doesn't support JPEG output
-    let compressedBlob;
-    try {
-      compressedBlob = await canvas.convertToBlob({
-        type: 'image/jpeg',
-        quality: settings.jpegQuality,
-      });
-      console.log('Used JPEG compression');
-    } catch (jpegErr) {
-      console.log('JPEG not supported in Deno, falling back to PNG:', jpegErr);
-      // Deno canvas doesn't support JPEG output, use PNG instead
-      compressedBlob = await canvas.convertToBlob({
-        type: 'image/png',
-      });
-      console.log('Used PNG compression as fallback');
-    }
+    // Get raw pixel data from canvas for manual JPEG encoding
+    const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
     
-    const arrayBuffer = await compressedBlob.arrayBuffer();
-    const compressedBytes = new Uint8Array(arrayBuffer);
-    console.log(`Compressed image: ${imageBytes.length} -> ${compressedBytes.length} bytes (${Math.round(compressedBytes.length / imageBytes.length * 100)}%)`);
+    // Encode as JPEG using pure TypeScript encoder (Deno doesn't support canvas.convertToBlob with JPEG)
+    const jpegBytes = encodeJPEG(imageData.data, canvasWidth, canvasHeight, Math.round(settings.jpegQuality * 100));
+    console.log(`JPEG encoded: ${imageBytes.length} -> ${jpegBytes.length} bytes (${Math.round(jpegBytes.length / imageBytes.length * 100)}%)`);
     
     // Return compressed bytes with flag indicating rotation WAS applied
-    return { bytes: compressedBytes, rotationApplied: true };
+    return { bytes: jpegBytes, rotationApplied: true };
     
   } catch (err) {
     console.warn('Image compression failed completely, using original:', err);
