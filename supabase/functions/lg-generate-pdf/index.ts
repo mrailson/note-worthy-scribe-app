@@ -23,8 +23,8 @@ const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
 // Large document thresholds
 const LARGE_DOC_THRESHOLD = 75; // Skip compression for docs > 75 pages
-const MAX_PAGES_PER_SPLIT_PART = 15; // Maximum pages per PDF part for large docs (was ~25-30)
-const UPLOAD_RETRY_ATTEMPTS = 3; // Retry upload failures
+const MAX_PAGES_PER_SPLIT_PART = 5; // Maximum pages per PDF part (reduced to avoid 413 errors)
+const UPLOAD_RETRY_ATTEMPTS = 2; // Retry upload failures (reduced to save time)
 
 // Tracking interfaces for failed pages
 interface FailedPage {
@@ -533,21 +533,15 @@ async function splitPdfIntoParts(
     return [];
   }
   
-  // Use fixed smaller page count per part for large documents to avoid 413 errors
-  // For very large docs, use even smaller chunks
+  // Use fixed small page count per part to avoid 413 Payload too large errors
+  // Supabase storage has a ~6MB upload limit, uncompressed images are large
   let pagesPerPart: number;
-  if (scannedPageCount > 150) {
-    pagesPerPart = 10; // Very large docs: 10 pages per part
-  } else if (scannedPageCount > 75) {
-    pagesPerPart = MAX_PAGES_PER_SPLIT_PART; // Large docs: 15 pages per part
+  if (scannedPageCount > 100) {
+    pagesPerPart = 3; // Very large docs: 3 pages per part (safest)
+  } else if (scannedPageCount > 50) {
+    pagesPerPart = 4; // Large docs: 4 pages per part
   } else {
-    // Estimate based on size for smaller docs
-    const avgPageSize = pdfBytes.length / totalPages;
-    const frontMatterEstimate = avgPageSize * 3.5;
-    pagesPerPart = Math.min(
-      MAX_PAGES_PER_SPLIT_PART,
-      Math.max(5, Math.floor((SPLIT_THRESHOLD_BYTES - frontMatterEstimate) / avgPageSize))
-    );
+    pagesPerPart = MAX_PAGES_PER_SPLIT_PART; // Normal: 5 pages per part
   }
   
   console.log(`Split config: ${scannedPageCount} scanned pages, ${pagesPerPart} pages per part (fixed limit: ${MAX_PAGES_PER_SPLIT_PART})`);
