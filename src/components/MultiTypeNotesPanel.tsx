@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import DOMPurify from 'dompurify';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +15,11 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 
+// Helper to sanitize markdown-style bold text to HTML
+const sanitizeBoldText = (text: string): string => {
+  const html = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+  return DOMPurify.sanitize(html, { ALLOWED_TAGS: ['strong'] });
+};
 // Import the generateAdvancedWordDocument function from FullPageNotesModal
 // We'll create a simpler version for now
 const generateAdvancedWordDocument = async (content: string, title: string) => {
@@ -335,7 +341,7 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
                   {sectionContent.split('•').filter(s => s.trim()).map((decision, i) => (
                     <Alert key={i} className="border-blue-200 bg-blue-50/50">
                       <AlertDescription className="text-sm">
-                        <div dangerouslySetInnerHTML={{ __html: decision.trim().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                        <div dangerouslySetInnerHTML={{ __html: sanitizeBoldText(decision.trim()) }} />
                       </AlertDescription>
                     </Alert>
                   ))}
@@ -357,7 +363,7 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
                   {sectionContent.split('•').filter(s => s.trim()).map((action, i) => (
                     <Alert key={i} className="border-amber-200 bg-amber-50/50">
                       <AlertDescription className="text-sm">
-                        <div dangerouslySetInnerHTML={{ __html: action.trim().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                        <div dangerouslySetInnerHTML={{ __html: sanitizeBoldText(action.trim()) }} />
                       </AlertDescription>
                     </Alert>
                   ))}
@@ -387,7 +393,7 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
                             <TrendingUp className="h-4 w-4 text-green-600 mt-0.5" />
                           )}
                           <AlertDescription className="text-sm flex-1">
-                            <div dangerouslySetInnerHTML={{ __html: item.trim().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                            <div dangerouslySetInnerHTML={{ __html: sanitizeBoldText(item.trim()) }} />
                           </AlertDescription>
                         </div>
                       </Alert>
@@ -411,7 +417,7 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {sectionContent.split('•').filter(s => s.trim()).map((metric, i) => (
                       <div key={i} className="p-3 bg-purple-50 rounded-lg border border-purple-100">
-                        <p className="text-sm" dangerouslySetInnerHTML={{ __html: metric.trim().replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                        <p className="text-sm" dangerouslySetInnerHTML={{ __html: sanitizeBoldText(metric.trim()) }} />
                       </div>
                     ))}
                   </div>
@@ -447,7 +453,7 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
               </CardHeader>
               <CardContent>
                 <div className="prose prose-sm max-w-none">
-                  <div dangerouslySetInnerHTML={{ __html: sectionContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>') }} />
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeBoldText(sectionContent) }} />
                 </div>
               </CardContent>
             </Card>
