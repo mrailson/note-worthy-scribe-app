@@ -2,13 +2,14 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink, ChevronDown, FileWarning, Eye, EyeOff } from 'lucide-react';
+import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink, ChevronDown, FileWarning, Eye, EyeOff, Loader2, Minimize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 import { toast } from 'sonner';
 import { useIsIPhone } from '@/hooks/use-mobile';
 import { LGPdfThumbnailPreview } from './LGPdfThumbnailPreview';
 import { generateLGFilename, generateLGBaseFilename } from '@/utils/lgFilenameGenerator';
+import { Badge } from '@/components/ui/badge';
 
 interface LGDownloadPanelProps {
   patient: LGPatient;
@@ -17,6 +18,12 @@ interface LGDownloadPanelProps {
 export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [showPreview, setShowPreview] = useState(false);
+  const [isCompressing, setIsCompressing] = useState(false);
+  const [compressionResult, setCompressionResult] = useState<{
+    originalSizeMb: number;
+    compressedSizeMb: number;
+    compressionRatio: number;
+  } | null>(null);
   const isIPhone = useIsIPhone();
   
   // Parse pdf_part_urls if it exists
@@ -24,6 +31,45 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     ? patient.pdf_part_urls 
     : [];
   const totalParts = pdfPartUrls.length > 0 ? pdfPartUrls.length : 1;
+
+  // Check if compressed version exists
+  const hasCompressedPdf = !!(patient as any).compressed_pdf_url;
+  const compressedSizeMb = (patient as any).compressed_pdf_size_mb;
+
+  const handleCompress = async () => {
+    setIsCompressing(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Please log in to compress files');
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke('lg-compress-pdf', {
+        body: { patientId: patient.id },
+      });
+
+      if (error) throw error;
+
+      if (data.success) {
+        setCompressionResult({
+          originalSizeMb: data.originalSizeMb,
+          compressedSizeMb: data.compressedSizeMb,
+          compressionRatio: data.compressionRatio,
+        });
+        toast.success(`Compressed! ${data.compressionRatio.toFixed(1)}% smaller`);
+      } else {
+        throw new Error(data.error || 'Compression failed');
+      }
+    } catch (err) {
+      console.error('Compression error:', err);
+      toast.error('Failed to compress PDF');
+    } finally {
+      setIsCompressing(false);
+    }
+  };
+
+  
 
   const openFileForViewing = async (url: string | null, filename: string) => {
     if (!url) {
@@ -142,6 +188,16 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     partNumber: 1,
     totalParts
   });
+
+  const downloadCompressedPdf = async () => {
+    const compressedUrl = (patient as any).compressed_pdf_url || 
+      (compressionResult ? `lg/${patient.practice_ods}/${patient.id}/final/lloyd-george-compressed.pdf` : null);
+    
+    if (!compressedUrl) return;
+    
+    const path = compressedUrl.replace('lg/', '');
+    handleFileAction(path, primaryFilename.replace('.pdf', '_compressed.pdf'));
+  };
 
   const primaryFile = {
     label: 'Lloyd George PDF',
@@ -290,6 +346,76 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
             </Button>
           )}
         </div>
+
+        {/* PDF Compression Service */}
+        {!patient.pdf_split && patient.pdf_url && (
+          <div className="border rounded-lg p-3 bg-muted/30 space-y-2">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Minimize2 className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">PDF Compression</span>
+              </div>
+              {(hasCompressedPdf || compressionResult) && (
+                <Badge variant="secondary" className="text-xs">
+                  {(compressedSizeMb || compressionResult?.compressedSizeMb)?.toFixed(2)} MB
+                </Badge>
+              )}
+            </div>
+            
+            {compressionResult ? (
+              <div className="space-y-2">
+                <div className="text-xs text-muted-foreground">
+                  Reduced from {compressionResult.originalSizeMb.toFixed(2)} MB to {compressionResult.compressedSizeMb.toFixed(2)} MB 
+                  <span className="text-green-600 font-medium ml-1">({compressionResult.compressionRatio.toFixed(1)}% smaller)</span>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={downloadCompressedPdf}
+                >
+                  <Download className="h-3.5 w-3.5 mr-2" />
+                  Download Compressed PDF
+                </Button>
+              </div>
+            ) : hasCompressedPdf ? (
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={downloadCompressedPdf}
+              >
+                <Download className="h-3.5 w-3.5 mr-2" />
+                Download Compressed PDF ({compressedSizeMb?.toFixed(2)} MB)
+              </Button>
+            ) : (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground">
+                  Create a smaller B&W version for archiving. Target: ~3MB per 100 pages.
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full"
+                  onClick={handleCompress}
+                  disabled={isCompressing}
+                >
+                  {isCompressing ? (
+                    <>
+                      <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
+                      Compressing...
+                    </>
+                  ) : (
+                    <>
+                      <Minimize2 className="h-3.5 w-3.5 mr-2" />
+                      Compress PDF
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* PDF Thumbnail Preview */}
         {showPreview && patient.pdf_url && !patient.pdf_split && (
