@@ -223,17 +223,32 @@ async function compressImage(
       ctx.putImageData(imageData, 0, 0);
     }
     
-    const compressedBlob = await canvas.convertToBlob({
-      type: 'image/jpeg',
-      quality: settings.jpegQuality,
-    });
+    // Try JPEG first, fall back to PNG if Deno doesn't support JPEG output
+    let compressedBlob;
+    try {
+      compressedBlob = await canvas.convertToBlob({
+        type: 'image/jpeg',
+        quality: settings.jpegQuality,
+      });
+      console.log('Used JPEG compression');
+    } catch (jpegErr) {
+      console.log('JPEG not supported in Deno, falling back to PNG:', jpegErr);
+      // Deno canvas doesn't support JPEG output, use PNG instead
+      compressedBlob = await canvas.convertToBlob({
+        type: 'image/png',
+      });
+      console.log('Used PNG compression as fallback');
+    }
     
     const arrayBuffer = await compressedBlob.arrayBuffer();
+    const compressedBytes = new Uint8Array(arrayBuffer);
+    console.log(`Compressed image: ${imageBytes.length} -> ${compressedBytes.length} bytes (${Math.round(compressedBytes.length / imageBytes.length * 100)}%)`);
+    
     // Return compressed bytes with flag indicating rotation WAS applied
-    return { bytes: new Uint8Array(arrayBuffer), rotationApplied: true };
+    return { bytes: compressedBytes, rotationApplied: true };
     
   } catch (err) {
-    console.warn('Image compression failed, using original:', err);
+    console.warn('Image compression failed completely, using original:', err);
     // Return original bytes with flag indicating rotation was NOT applied
     return { bytes: imageBytes, rotationApplied: false };
   }
