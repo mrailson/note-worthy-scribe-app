@@ -30,7 +30,7 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
   const [error, setError] = useState<string | null>(null);
 
   const INITIAL_PAGES = 5;
-  const THUMBNAIL_SCALE = 0.3; // Low scale for fast thumbnails
+  const THUMBNAIL_SCALE = 1.5; // Higher scale for better quality when viewing enlarged
 
   useEffect(() => {
     extractThumbnails();
@@ -217,16 +217,15 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
               </div>
 
               {/* Main image area */}
-              <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden bg-muted/20">
-                <div className="text-sm text-muted-foreground mb-2">
+              <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden bg-muted/20 min-h-0">
+                <div className="text-sm text-muted-foreground mb-2 flex-shrink-0">
                   Page {selectedPage.pageNum} of {thumbnails.length}
                 </div>
-                <div className="flex-1 flex items-center justify-center overflow-auto w-full">
+                <div className="flex-1 flex items-center justify-center w-full min-h-0">
                   <img
                     src={selectedPage.dataUrl}
                     alt={`Page ${selectedPage.pageNum}`}
-                    className="max-w-full max-h-full object-contain rounded-md border shadow-lg"
-                    style={{ maxHeight: 'calc(95vh - 140px)' }}
+                    className="h-full w-auto object-contain rounded-md border shadow-lg"
                   />
                 </div>
                 <div className="flex gap-2 mt-4 flex-shrink-0">
