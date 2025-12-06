@@ -1095,7 +1095,7 @@ function formatDobDisplay(dateStr: string | null | undefined): string {
   return dateStr || 'Unknown';
 }
 
-function formatDobForFilename(dateStr: string | null | undefined): string {
+function formatDateForFilename(dateStr: string | null | undefined): string {
   if (!dateStr || dateStr === 'Unknown') return 'Unknown';
   try {
     const date = new Date(dateStr);
@@ -1107,7 +1107,47 @@ function formatDobForFilename(dateStr: string | null | undefined): string {
       return `${day}_${month}_${year}`;
     }
   } catch {}
-  return dateStr || 'Unknown';
+  return 'Unknown';
+}
+
+/**
+ * Parses patient name into last name and first name components
+ */
+function parsePatientName(fullName: string | null | undefined): { lastName: string; firstName: string } {
+  if (!fullName || fullName.trim() === '') {
+    return { lastName: 'Unknown', firstName: 'Unknown' };
+  }
+  const trimmed = fullName.trim();
+  const parts = trimmed.split(/\s+/);
+  if (parts.length === 1) {
+    return { lastName: parts[0], firstName: 'Unknown' };
+  }
+  const lastName = parts[parts.length - 1];
+  const firstName = parts.slice(0, -1).join('_');
+  return { 
+    lastName: lastName.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_'), 
+    firstName: firstName.replace(/[<>:"/\\|?*]/g, '').replace(/\s+/g, '_') 
+  };
+}
+
+/**
+ * Generates standardised Lloyd George Record filename
+ */
+function generateLGFilename(
+  patientName: string | null | undefined,
+  nhsNumber: string | null | undefined,
+  dob: string | null | undefined,
+  scanDate: string | null | undefined,
+  partNumber: number = 1,
+  totalParts: number = 1
+): string {
+  const { lastName, firstName } = parsePatientName(patientName);
+  const cleanNhs = (nhsNumber || 'Unknown').replace(/\s/g, '');
+  const dobFormatted = formatDateForFilename(dob);
+  const scanDateFormatted = formatDateForFilename(scanDate);
+  const partNumStr = String(partNumber).padStart(2, '0');
+  const totalPartsStr = String(totalParts).padStart(2, '0');
+  return `Lloyd_George_Record_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}_${scanDateFormatted}.pdf`;
 }
 
 async function sendSummaryEmail(
@@ -1183,7 +1223,7 @@ async function sendSummaryEmail(
 
     // Build attachments array
     const attachments = pdfBase64 ? [{
-      filename: `LG_${(nhsNumber || '').replace(/\s/g, '')}_${formatDobForFilename(dob)}.pdf`,
+      filename: generateLGFilename(patientName, nhsNumber, dob, patient.created_at, 1, 1),
       content: pdfBase64,
       type: 'application/pdf',
     }] : [];
