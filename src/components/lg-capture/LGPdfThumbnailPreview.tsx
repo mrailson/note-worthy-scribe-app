@@ -187,18 +187,20 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
 
       {/* Enlarged view dialog */}
       <Dialog open={!!selectedPage} onOpenChange={() => setSelectedPage(null)}>
-        <DialogContent className="max-w-3xl p-2">
+        <DialogContent className="max-w-lg w-[90vw] max-h-[95vh] p-4">
           {selectedPage && (
-            <div className="flex flex-col items-center">
+            <div className="flex flex-col items-center h-full">
               <div className="text-sm text-muted-foreground mb-2">
                 Page {selectedPage.pageNum} of {thumbnails.length}
               </div>
-              <img
-                src={selectedPage.dataUrl}
-                alt={`Page ${selectedPage.pageNum}`}
-                className="max-h-[75vh] w-auto rounded-md border"
-              />
-              <div className="flex gap-2 mt-3">
+              <div className="flex-1 overflow-auto flex items-center justify-center">
+                <img
+                  src={selectedPage.dataUrl}
+                  alt={`Page ${selectedPage.pageNum}`}
+                  className="max-h-[80vh] w-auto rounded-md border shadow-lg"
+                />
+              </div>
+              <div className="flex gap-2 mt-4">
                 <Button
                   variant="outline"
                   size="sm"
