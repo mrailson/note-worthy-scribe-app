@@ -305,9 +305,9 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
             totalParts: pdfPartUrls.length
           });
           const isDownloadingPart = downloading === partFilename;
-          // Get part sizes from patient data if available
-          const partSizes = (patient as any).pdf_part_sizes as number[] | undefined;
-          const partSizeMb = partSizes?.[index];
+          // Estimate ~4.8MB per part (split threshold) - last part may be smaller
+          const isLastPart = index === pdfPartUrls.length - 1;
+          const estimatedSizeMb = isLastPart ? '≤4.8' : '~4.8';
           
           return (
             <Button
@@ -319,7 +319,7 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
             >
               <FileText className="h-5 w-5 mr-3 flex-shrink-0" />
               <div className="text-left flex-1">
-                <div className="font-medium">Part {index + 1} of {pdfPartUrls.length}{partSizeMb ? ` • ${partSizeMb.toFixed(2)} MB` : ''}</div>
+                <div className="font-medium">Part {index + 1} of {pdfPartUrls.length} • {estimatedSizeMb} MB</div>
                 <div className={`text-xs ${index === 0 ? 'text-primary-foreground/70' : 'text-muted-foreground'} truncate max-w-[280px]`} title={partFilename}>
                   {partFilename}
                 </div>
