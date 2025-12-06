@@ -105,7 +105,6 @@ export default function LGCaptureDemoService() {
         })
       );
       setImages(loadedImages);
-      toast.success(`Loaded ${count} demo pages`);
     } catch (error) {
       console.error('Error loading demo images:', error);
       toast.error('Failed to load demo images');

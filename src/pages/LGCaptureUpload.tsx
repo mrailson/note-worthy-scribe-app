@@ -97,12 +97,6 @@ export default function LGCaptureUpload() {
 
       if (newImages.length > 0) {
         setImages(prev => [...prev, ...newImages]);
-        const blankInNew = newImages.filter(img => img.isBlank).length;
-        if (blankInNew > 0) {
-          toast.success(`Added ${newImages.length} page(s) • ${blankInNew} blank detected`);
-        } else {
-          toast.success(`Added ${newImages.length} page(s)`);
-        }
       }
     } catch (error) {
       console.error('File processing error:', error);
@@ -201,7 +195,6 @@ export default function LGCaptureUpload() {
 
   const removeAllBlanks = useCallback(() => {
     setImages(prev => prev.filter(img => !img.isBlank));
-    toast.success(`Removed ${blankCount} blank page(s)`);
   }, [blankCount]);
 
   const handleDragStart = (index: number) => {
@@ -267,11 +260,6 @@ export default function LGCaptureUpload() {
       // Queue for upload and processing (only non-blank images)
       queuePatient(patientId, practiceOds, imagesToSubmit);
       
-      if (blankCount > 0) {
-        toast.success(`${imagesToSubmit.length} pages queued (${blankCount} blank excluded)`);
-      } else {
-        toast.success('Files queued for processing');
-      }
       navigate('/lg-capture/patients');
     } catch (error) {
       console.error('Submit error:', error);

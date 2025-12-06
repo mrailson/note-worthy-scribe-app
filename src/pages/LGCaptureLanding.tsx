@@ -157,9 +157,6 @@ export default function LGCaptureLanding() {
 
     // Auto-save to database immediately
     const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name);
-    if (saved) {
-      toast.success(`Practice saved: ${practice.name}`);
-    }
   };
 
   const filteredPractices = practices.filter(practice => {
@@ -199,7 +196,6 @@ export default function LGCaptureLanding() {
     setIsSaving(false);
 
     if (saved) {
-      toast.success('Settings saved');
       setShowSettings(false);
     } else {
       toast.error('Failed to save settings');

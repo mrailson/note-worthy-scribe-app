@@ -219,7 +219,6 @@ export function LGValidationAuditReport({ patient, uploaderName = 'Unknown', pra
       const nhsClean = patient.nhs_number?.replace(/\s/g, '') || 'unknown';
       const filename = `LG_Validation_Audit_${nhsClean}_${new Date().toISOString().split('T')[0]}.docx`;
       saveAs(blob, filename);
-      toast.success('Audit report downloaded');
     } catch (err) {
       console.error('Error generating audit report:', err);
       toast.error('Failed to generate audit report');
@@ -277,7 +276,6 @@ export function LGValidationAuditReport({ patient, uploaderName = 'Unknown', pra
       });
 
       if (error) throw error;
-      toast.success('Audit report sent to your email');
     } catch (err) {
       console.error('Error emailing audit report:', err);
       toast.error('Failed to send audit report');

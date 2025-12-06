@@ -109,7 +109,6 @@ export default function LGCaptureResults() {
     if (!patient) return;
     const success = await triggerProcessing(patient.id);
     if (success) {
-      toast.success('Processing restarted');
       loadPatient();
     }
   };
@@ -118,7 +117,6 @@ export default function LGCaptureResults() {
     if (!patient) return;
     const success = await retrySummary(patient.id);
     if (success) {
-      toast.success('Summary generation restarted');
       loadPatient();
     }
   };
@@ -162,7 +160,6 @@ export default function LGCaptureResults() {
       }
       
       window.open(data.signedUrl, '_blank');
-      toast.success(partNumber ? `Opening PDF Part ${partNumber}` : 'Opening PDF');
     } catch (err) {
       console.error('PDF download error:', err);
       toast.error('Failed to download PDF');
@@ -366,7 +363,6 @@ export default function LGCaptureResults() {
             onClick={async () => {
               const success = await restartOCR(patient.id);
               if (success) {
-                toast.success('OCR restarted from scratch');
                 loadPatient();
               }
             }}
@@ -391,7 +387,6 @@ export default function LGCaptureResults() {
             onClick={async () => {
               const success = await restartOCR(patient.id);
               if (success) {
-                toast.success('Reprocessing started - this will re-extract all data');
                 loadPatient();
               }
             }}
