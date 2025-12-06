@@ -592,10 +592,17 @@ serve(async (req) => {
           updateData.sex = extractedPatient.sex;
         }
         
-        await supabase
+        console.log('Updating patient with extracted details:', JSON.stringify(updateData));
+        const { error: updateError } = await supabase
           .from('lg_patients')
           .update(updateData)
           .eq('id', patientId);
+        
+        if (updateError) {
+          console.error('Failed to update patient with extracted details:', updateError);
+        } else {
+          console.log('Patient details saved successfully');
+        }
           
       } catch (extractErr) {
         console.error('Patient extraction failed:', extractErr);
