@@ -208,13 +208,17 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
             </>
           )}
           
-          {/* Total */}
           {totalDuration > 0 && (
             <>
               <hr className="border-border" />
               <div className="flex justify-between items-center font-medium">
                 <span>Total Processing Time:</span>
-                <span className="font-mono">{formatDuration(totalDuration)}</span>
+                <span className="font-mono">
+                  {formatDuration(totalDuration)}
+                  <span className="text-muted-foreground font-normal ml-2">
+                    ({formatSecondsPerPage(totalDuration, pageCount)})
+                  </span>
+                </span>
               </div>
             </>
           )}
