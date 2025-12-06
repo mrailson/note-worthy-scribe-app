@@ -21,6 +21,11 @@ const RETRY_BATCH_SIZE = 2; // Retry with 2 pages per batch on memory issues
 const MAX_PDF_SIZE_MB = 5;
 const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
+// Large document thresholds
+const LARGE_DOC_THRESHOLD = 75; // Skip compression for docs > 75 pages
+const MAX_PAGES_PER_SPLIT_PART = 15; // Maximum pages per PDF part for large docs (was ~25-30)
+const UPLOAD_RETRY_ATTEMPTS = 3; // Retry upload failures
+
 // Tracking interfaces for failed pages
 interface FailedPage {
   pageNum: number;
@@ -504,6 +509,7 @@ function addScannedPageWithHeader(
 }
 
 // Split PDF into multiple parts for SystmOne 5MB upload limit
+// FIXED: Uses smaller page chunks and retries uploads on failure
 async function splitPdfIntoParts(
   pdfBytes: Uint8Array,
   basePath: string,
@@ -514,6 +520,7 @@ async function splitPdfIntoParts(
 ): Promise<string[]> {
   const SPLIT_THRESHOLD_BYTES = 4.8 * 1024 * 1024; // 4.8MB per part
   const partUrls: string[] = [];
+  const failedParts: number[] = [];
   
   // Load PDF from bytes to avoid scope issues
   const originalPdfDoc = await PDFDocument.load(pdfBytes);
@@ -526,13 +533,24 @@ async function splitPdfIntoParts(
     return [];
   }
   
-  // Estimate average page size
-  const avgPageSize = pdfBytes.length / totalPages;
-  // Estimate how many scanned pages can fit per part (leaving room for front matter)
-  const frontMatterEstimate = avgPageSize * 3.5; // Front matter with some buffer
-  const pagesPerPart = Math.max(1, Math.floor((SPLIT_THRESHOLD_BYTES - frontMatterEstimate) / avgPageSize));
+  // Use fixed smaller page count per part for large documents to avoid 413 errors
+  // For very large docs, use even smaller chunks
+  let pagesPerPart: number;
+  if (scannedPageCount > 150) {
+    pagesPerPart = 10; // Very large docs: 10 pages per part
+  } else if (scannedPageCount > 75) {
+    pagesPerPart = MAX_PAGES_PER_SPLIT_PART; // Large docs: 15 pages per part
+  } else {
+    // Estimate based on size for smaller docs
+    const avgPageSize = pdfBytes.length / totalPages;
+    const frontMatterEstimate = avgPageSize * 3.5;
+    pagesPerPart = Math.min(
+      MAX_PAGES_PER_SPLIT_PART,
+      Math.max(5, Math.floor((SPLIT_THRESHOLD_BYTES - frontMatterEstimate) / avgPageSize))
+    );
+  }
   
-  console.log(`Split estimation: ${scannedPageCount} scanned pages, ~${pagesPerPart} pages per part, avg page size ${(avgPageSize / 1024).toFixed(0)}KB`);
+  console.log(`Split config: ${scannedPageCount} scanned pages, ${pagesPerPart} pages per part (fixed limit: ${MAX_PAGES_PER_SPLIT_PART})`);
   
   let currentScannedPage = 0;
   let partNumber = 1;
@@ -576,41 +594,75 @@ async function splitPdfIntoParts(
       }
     }
     
-    // Save part
-    const partBytes = await partDoc.save();
+    // Save part with minimal overhead
+    const partBytes = await partDoc.save({ useObjectStreams: false });
     const partSizeMb = partBytes.length / (1024 * 1024);
     console.log(`Part ${partNumber} size: ${partSizeMb.toFixed(2)}MB (${partDoc.getPageCount()} pages)`);
     
-    // Upload part
+    // Upload part with retries
     const partFilename = `lloyd-george_part${partNumber}.pdf`;
     const partPath = `${basePath}/final/${partFilename}`;
     const partBlob = new Blob([partBytes], { type: 'application/pdf' });
     
-    const { error: uploadError } = await supabase.storage
-      .from('lg')
-      .upload(partPath, partBlob, {
-        contentType: 'application/pdf',
-        upsert: true,
-      });
+    let uploadSuccess = false;
+    for (let attempt = 1; attempt <= UPLOAD_RETRY_ATTEMPTS; attempt++) {
+      const { error: uploadError } = await supabase.storage
+        .from('lg')
+        .upload(partPath, partBlob, {
+          contentType: 'application/pdf',
+          upsert: true,
+        });
+      
+      if (!uploadError) {
+        partUrls.push(`lg/${partPath}`);
+        console.log(`Part ${partNumber} uploaded: lg/${partPath} (attempt ${attempt})`);
+        uploadSuccess = true;
+        break;
+      } else {
+        console.error(`Failed to upload part ${partNumber} (attempt ${attempt}/${UPLOAD_RETRY_ATTEMPTS}):`, uploadError);
+        if (attempt < UPLOAD_RETRY_ATTEMPTS) {
+          // Wait before retry with exponential backoff
+          await new Promise(resolve => setTimeout(resolve, 1000 * attempt));
+        }
+      }
+    }
     
-    if (uploadError) {
-      console.error(`Failed to upload part ${partNumber}:`, uploadError);
-    } else {
-      partUrls.push(`lg/${partPath}`);
-      console.log(`Part ${partNumber} uploaded: lg/${partPath}`);
+    if (!uploadSuccess) {
+      failedParts.push(partNumber);
+      console.error(`Part ${partNumber} failed after ${UPLOAD_RETRY_ATTEMPTS} attempts`);
     }
     
     currentScannedPage += pagesInThisPart;
     partNumber++;
+    
+    // Small delay between parts to reduce CPU pressure
+    if (currentScannedPage < scannedPageCount) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   }
   
-  // Also upload the complete PDF for reference (may be >5MB but useful for archival)
-  const fullPdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
-  await supabase.storage.from('lg').upload(`${basePath}/final/lloyd-george_complete.pdf`, fullPdfBlob, {
-    contentType: 'application/pdf',
-    upsert: true,
-  });
-  console.log('Complete PDF also uploaded for archival');
+  // Log summary
+  if (failedParts.length > 0) {
+    console.error(`PDF split completed with ${failedParts.length} failed parts: ${failedParts.join(', ')}`);
+  } else {
+    console.log(`PDF split completed successfully: ${partUrls.length} parts uploaded`);
+  }
+  
+  // Skip archival upload for very large documents to avoid 413 errors
+  if (pdfBytes.length < 10 * 1024 * 1024) { // Only upload complete PDF if < 10MB
+    try {
+      const fullPdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
+      await supabase.storage.from('lg').upload(`${basePath}/final/lloyd-george_complete.pdf`, fullPdfBlob, {
+        contentType: 'application/pdf',
+        upsert: true,
+      });
+      console.log('Complete PDF also uploaded for archival');
+    } catch (archiveErr) {
+      console.warn('Could not upload complete PDF archive (too large):', archiveErr);
+    }
+  } else {
+    console.log(`Skipping archival upload (PDF size ${(pdfBytes.length / 1024 / 1024).toFixed(1)}MB exceeds 10MB limit)`);
+  }
   
   return partUrls;
 }
@@ -887,9 +939,15 @@ serve(async (req) => {
     const formattedNhs = formatNhsNumber(nhsNumber);
     const formattedDob = formatDateUK(dob);
 
-    // Generate page summaries (batched)
-    console.log('Generating page summaries...');
-    const pageSummaries = await generatePageSummaries(ocrText, pageCount);
+    // Generate page summaries (batched) - skip for very large documents to save CPU
+    let pageSummaries: string[];
+    if (pageCount > LARGE_DOC_THRESHOLD) {
+      console.log(`Skipping AI page summaries for large document (${pageCount} pages > ${LARGE_DOC_THRESHOLD} threshold)`);
+      pageSummaries = Array.from({ length: pageCount }, (_, i) => `Scanned page ${i + 1} of ${pageCount}`);
+    } else {
+      console.log('Generating page summaries...');
+      pageSummaries = await generatePageSummaries(ocrText, pageCount);
+    }
 
     // Track failed pages
     const failedPages: FailedPage[] = [];
@@ -1103,7 +1161,31 @@ serve(async (req) => {
     }
 
     // Update patient record with completion info
+    // FIXED: Only mark complete if we have valid PDF URLs
     const pdfCompletedTime = new Date().toISOString();
+    const hasValidPdf = needsSplit ? (pdfPartUrls.length > 0) : true;
+    
+    if (!hasValidPdf) {
+      console.error('PDF generation completed but no valid URLs - marking as failed');
+      await supabase
+        .from('lg_patients')
+        .update({
+          pdf_generation_status: 'failed',
+          error_message: 'PDF split upload failed - no parts were successfully uploaded',
+          pdf_completed_at: pdfCompletedTime,
+        })
+        .eq('id', patientId);
+      
+      return new Response(
+        JSON.stringify({ 
+          success: false, 
+          error: 'PDF split upload failed',
+          patientId,
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     await supabase
       .from('lg_patients')
       .update({
