@@ -257,48 +257,69 @@ serve(async (req) => {
           }
         }
 
-        const { width, height } = image;
+        const { width: imgWidth, height: imgHeight } = image;
         
-        // Add header band height
-        const headerHeight = 30;
-        const page = pdfDoc.addPage([width, height + headerHeight]);
+        // Use A4 page size with margins for white border
+        const pageWidth = 595;  // A4 width
+        const pageHeight = 842; // A4 height
+        const headerHeight = 40;
+        const margin = 30; // White border margin
+        const footerHeight = 30;
+        
+        // Calculate available space for image
+        const availableWidth = pageWidth - (margin * 2);
+        const availableHeight = pageHeight - headerHeight - footerHeight - margin;
+        
+        // Scale image to fit within available space while maintaining aspect ratio
+        const scaleX = availableWidth / imgWidth;
+        const scaleY = availableHeight / imgHeight;
+        const scale = Math.min(scaleX, scaleY, 1); // Don't scale up, only down
+        
+        const scaledWidth = imgWidth * scale;
+        const scaledHeight = imgHeight * scale;
+        
+        // Center the image horizontally
+        const imageX = (pageWidth - scaledWidth) / 2;
+        const imageY = footerHeight + ((availableHeight - scaledHeight) / 2);
+        
+        const page = pdfDoc.addPage([pageWidth, pageHeight]);
 
-        // Draw white header band at top
+        // Fill page with white background
         page.drawRectangle({
           x: 0,
-          y: height,
-          width: width,
-          height: headerHeight,
+          y: 0,
+          width: pageWidth,
+          height: pageHeight,
           color: rgb(1, 1, 1),
         });
 
-        // Draw header text
+        // Draw header text at top
         const fontSize = 10;
         page.drawText(sanitizeForPdf(headerText), {
-          x: 10,
-          y: height + 10,
+          x: margin,
+          y: pageHeight - 25,
           size: fontSize,
           font,
           color: rgb(0, 0, 0),
         });
 
-        // Draw page number on right
+        // Draw page number on right of header
         const pageNumText = `Page ${frontMatterPages + i + 1}`;
         const pageNumWidth = font.widthOfTextAtSize(pageNumText, fontSize);
         page.drawText(pageNumText, {
-          x: width - pageNumWidth - 10,
-          y: height + 10,
+          x: pageWidth - pageNumWidth - margin,
+          y: pageHeight - 25,
           size: fontSize,
           font,
           color: rgb(0, 0, 0),
         });
 
-        // Draw the image below header
+        // Draw the image centered with white border
         page.drawImage(image, {
-          x: 0,
-          y: 0,
-          width,
-          height,
+          x: imageX,
+          y: imageY,
+          width: scaledWidth,
+          height: scaledHeight,
         });
 
       } catch (pageErr) {
@@ -388,21 +409,40 @@ serve(async (req) => {
               }
             }
 
-            const { width, height } = image;
-            const headerHeight = 30;
-            const page = partDoc.addPage([width, height + headerHeight]);
+            const { width: imgWidth, height: imgHeight } = image;
+            
+            // Use A4 page size with margins for white border
+            const pageWidth = 595;
+            const pageHeight = 842;
+            const headerH = 40;
+            const margin = 30;
+            const footerH = 30;
+            
+            const availWidth = pageWidth - (margin * 2);
+            const availHeight = pageHeight - headerH - footerH - margin;
+            
+            const scaleX = availWidth / imgWidth;
+            const scaleY = availHeight / imgHeight;
+            const scale = Math.min(scaleX, scaleY, 1);
+            
+            const scaledW = imgWidth * scale;
+            const scaledH = imgHeight * scale;
+            const imgX = (pageWidth - scaledW) / 2;
+            const imgY = footerH + ((availHeight - scaledH) / 2);
+            
+            const page = partDoc.addPage([pageWidth, pageHeight]);
 
             page.drawRectangle({
               x: 0,
-              y: height,
-              width: width,
-              height: headerHeight,
+              y: 0,
+              width: pageWidth,
+              height: pageHeight,
               color: rgb(1, 1, 1),
             });
 
             page.drawText(sanitizeForPdf(headerText), {
-              x: 10,
-              y: height + 10,
+              x: margin,
+              y: pageHeight - 25,
               size: 10,
               font: partFont,
               color: rgb(0, 0, 0),
@@ -411,14 +451,14 @@ serve(async (req) => {
             const pageNumText = `Page ${partFrontMatter + i + 1}`;
             const pageNumWidth = partFont.widthOfTextAtSize(pageNumText, 10);
             page.drawText(pageNumText, {
-              x: width - pageNumWidth - 10,
-              y: height + 10,
+              x: pageWidth - pageNumWidth - margin,
+              y: pageHeight - 25,
               size: 10,
               font: partFont,
               color: rgb(0, 0, 0),
             });
 
-            page.drawImage(image, { x: 0, y: 0, width, height });
+            page.drawImage(image, { x: imgX, y: imgY, width: scaledW, height: scaledH });
 
           } catch (err) {
             console.error(`Part ${partNum + 1} page ${i + 1} error:`, err);
