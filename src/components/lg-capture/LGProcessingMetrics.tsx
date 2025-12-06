@@ -31,25 +31,34 @@ function calculateDuration(start: string | null | undefined, end: string | null 
 }
 
 function formatDuration(seconds: number): string {
-  if (seconds < 60) {
-    return `${seconds.toFixed(1)}s`;
+  // Round to nearest 0.5 second
+  const rounded = Math.round(seconds * 2) / 2;
+  if (rounded < 60) {
+    return `${rounded.toFixed(1)}s`;
   }
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  return `${mins}m ${secs.toFixed(0)}s`;
+  const mins = Math.floor(rounded / 60);
+  const secs = rounded % 60;
+  return `${mins}m ${secs.toFixed(1)}s`;
 }
 
 function formatTimestamp(dateString: string | null | undefined): string | null {
   if (!dateString) return null;
   const date = new Date(dateString);
   if (isNaN(date.getTime())) return null;
-  return date.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  // Format as HH:mm:ss
+  return date.toLocaleTimeString('en-GB', { 
+    hour: '2-digit', 
+    minute: '2-digit',
+    second: '2-digit'
+  });
 }
 
 function formatSecondsPerPage(seconds: number, pageCount: number): string {
   if (pageCount <= 0) return '-';
   const perPage = seconds / pageCount;
-  return `${perPage.toFixed(1)} sec/page`;
+  // Round to nearest 0.5 second
+  const rounded = Math.round(perPage * 2) / 2;
+  return `${rounded.toFixed(1)} sec/page`;
 }
 
 export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
@@ -78,7 +87,7 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-2 text-sm">
+        <div className="space-y-3 text-sm">
           {/* Total Pages */}
           {pageCount > 0 && (
             <div className="flex justify-between items-center">
@@ -87,53 +96,93 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
             </div>
           )}
           
-          {uploadDuration !== null && (
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">
-                Upload{formatTimestamp(patient.upload_started_at) && ` (${formatTimestamp(patient.upload_started_at)})`}:
-              </span>
-              <span className="font-medium font-mono">
-                {formatDuration(uploadDuration)}
-                <span className="text-muted-foreground ml-2">
-                  ({formatSecondsPerPage(uploadDuration, pageCount)})
-                </span>
-              </span>
+          {/* Upload Timing */}
+          {(patient.upload_started_at || patient.upload_completed_at) && (
+            <div className="space-y-1">
+              <div className="flex justify-between items-center text-muted-foreground text-xs">
+                <span>Upload Start:</span>
+                <span className="font-mono">{formatTimestamp(patient.upload_started_at) || '—'}</span>
+              </div>
+              <div className="flex justify-between items-center text-muted-foreground text-xs">
+                <span>Upload Complete:</span>
+                <span className="font-mono">{formatTimestamp(patient.upload_completed_at) || '—'}</span>
+              </div>
+              {uploadDuration !== null && (
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground font-medium">Upload Duration:</span>
+                  <span className="font-medium font-mono">
+                    {formatDuration(uploadDuration)}
+                    <span className="text-muted-foreground ml-2">
+                      ({formatSecondsPerPage(uploadDuration, pageCount)})
+                    </span>
+                  </span>
+                </div>
+              )}
             </div>
           )}
           
-          {ocrDuration !== null && (
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">
-                OCR{formatTimestamp(patient.ocr_started_at) && ` (${formatTimestamp(patient.ocr_started_at)})`}:
-              </span>
-              <span className="font-medium font-mono">
-                {formatDuration(ocrDuration)}
-                <span className="text-muted-foreground ml-2">
-                  ({formatSecondsPerPage(ocrDuration, pageCount)})
-                </span>
-              </span>
-            </div>
+          {/* OCR Timing */}
+          {(patient.ocr_started_at || patient.ocr_completed_at) && (
+            <>
+              <hr className="border-border" />
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-muted-foreground text-xs">
+                  <span>OCR Start:</span>
+                  <span className="font-mono">{formatTimestamp(patient.ocr_started_at) || '—'}</span>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground text-xs">
+                  <span>OCR Complete:</span>
+                  <span className="font-mono">{formatTimestamp(patient.ocr_completed_at) || '—'}</span>
+                </div>
+                {ocrDuration !== null && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">OCR Duration:</span>
+                    <span className="font-medium font-mono">
+                      {formatDuration(ocrDuration)}
+                      <span className="text-muted-foreground ml-2">
+                        ({formatSecondsPerPage(ocrDuration, pageCount)})
+                      </span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
           )}
           
-          {pdfDuration !== null && (
-            <div className="flex justify-between items-center">
-              <span className="text-muted-foreground">
-                PDF Creation{formatTimestamp(patient.pdf_started_at) && ` (${formatTimestamp(patient.pdf_started_at)})`}:
-              </span>
-              <span className="font-medium font-mono">
-                {formatDuration(pdfDuration)}
-                <span className="text-muted-foreground ml-2">
-                  ({formatSecondsPerPage(pdfDuration, pageCount)})
-                </span>
-              </span>
-            </div>
+          {/* PDF Creation Timing */}
+          {(patient.pdf_started_at || patient.pdf_completed_at) && (
+            <>
+              <hr className="border-border" />
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-muted-foreground text-xs">
+                  <span>PDF Create Start:</span>
+                  <span className="font-mono">{formatTimestamp(patient.pdf_started_at) || '—'}</span>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground text-xs">
+                  <span>PDF Ready:</span>
+                  <span className="font-mono">{formatTimestamp(patient.pdf_completed_at) || '—'}</span>
+                </div>
+                {pdfDuration !== null && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">PDF Duration:</span>
+                    <span className="font-medium font-mono">
+                      {formatDuration(pdfDuration)}
+                      <span className="text-muted-foreground ml-2">
+                        ({formatSecondsPerPage(pdfDuration, pageCount)})
+                      </span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
           )}
           
+          {/* Total */}
           {totalDuration > 0 && (
             <>
-              <hr className="my-2 border-border" />
+              <hr className="border-border" />
               <div className="flex justify-between items-center font-medium">
-                <span>Total:</span>
+                <span>Total Processing Time:</span>
                 <span className="font-mono">{formatDuration(totalDuration)}</span>
               </div>
             </>
@@ -142,7 +191,7 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
           {/* Compression Metrics */}
           {patient.pdf_final_size_mb !== undefined && patient.pdf_final_size_mb !== null && (
             <>
-              <hr className="my-2 border-border" />
+              <hr className="border-border" />
               <div className="flex justify-between items-center">
                 <span className="text-muted-foreground flex items-center gap-1">
                   <HardDrive className="h-3 w-3" />
