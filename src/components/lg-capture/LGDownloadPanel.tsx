@@ -8,6 +8,7 @@ import { LGPatient } from '@/hooks/useLGCapture';
 import { toast } from 'sonner';
 import { useIsIPhone } from '@/hooks/use-mobile';
 import { LGPdfThumbnailPreview } from './LGPdfThumbnailPreview';
+import { generateLGFilename, generateLGBaseFilename } from '@/utils/lgFilenameGenerator';
 
 interface LGDownloadPanelProps {
   patient: LGPatient;
@@ -22,6 +23,7 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
   const pdfPartUrls: string[] = Array.isArray(patient.pdf_part_urls) 
     ? patient.pdf_part_urls 
     : [];
+  const totalParts = pdfPartUrls.length > 0 ? pdfPartUrls.length : 1;
 
   const openFileForViewing = async (url: string | null, filename: string) => {
     if (!url) {
@@ -110,28 +112,10 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     return null;
   }
 
-  const formatDateForFilename = (dateStr: string | null | undefined): string => {
-    if (!dateStr) return 'Unknown';
-    try {
-      const date = new Date(dateStr);
-      if (isNaN(date.getTime())) return 'Unknown';
-      const day = String(date.getDate()).padStart(2, '0');
-      const month = date.toLocaleDateString('en-GB', { month: 'short' });
-      const year = date.getFullYear();
-      return `${day}_${month}_${year}`;
-    } catch {
-      return 'Unknown';
-    }
-  };
-
   const nhsNumber = (patient.ai_extracted_nhs || patient.nhs_number || patient.id).replace(/\s/g, '');
   const dob = patient.ai_extracted_dob || patient.dob;
   const scanDate = patient.processing_completed_at || patient.created_at;
-  
-  const dobFormatted = formatDateForFilename(dob);
-  const scanDateFormatted = formatDateForFilename(scanDate);
-  
-  const baseFilename = `${nhsNumber}_${dobFormatted}_${scanDateFormatted}`;
+  const patientNameForFile = patient.ai_extracted_name || patient.patient_name || 'Unknown';
 
   const [otherFilesOpen, setOtherFilesOpen] = useState(false);
 
@@ -144,12 +128,29 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
   const fileSizeMb = patient.pdf_final_size_mb;
   const pageCount = patient.images_count || 0;
 
+  // Generate filenames using new convention
+  const baseFilename = generateLGBaseFilename({
+    patientName: patientNameForFile,
+    nhsNumber,
+    dob,
+    scanDate
+  });
+
+  const primaryFilename = generateLGFilename({
+    patientName: patientNameForFile,
+    nhsNumber,
+    dob,
+    scanDate,
+    partNumber: 1,
+    totalParts
+  });
+
   const primaryFile = {
     label: 'Lloyd George PDF',
     description: `Searchable PDF${pageCount > 0 ? ` • ${pageCount} pages` : ''}${fileSizeMb ? ` • ${fileSizeMb.toFixed(2)} MB` : ''}`,
     patientDetails: `${patientName} | NHS: ${formattedNhs} | DOB: ${formattedDob}`,
     url: patient.pdf_url,
-    filename: `${baseFilename}___Lloyd George Scan.pdf`,
+    filename: primaryFilename,
     icon: FileText,
   };
 
@@ -224,7 +225,14 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
           <span>PDF split into {pdfPartUrls.length} parts for SystmOne compatibility (max 5MB each)</span>
         </div>
         {pdfPartUrls.map((url, index) => {
-          const partFilename = `${baseFilename}___Lloyd George Scan_Part${index + 1}.pdf`;
+          const partFilename = generateLGFilename({
+            patientName: patientNameForFile,
+            nhsNumber,
+            dob,
+            scanDate,
+            partNumber: index + 1,
+            totalParts: pdfPartUrls.length
+          });
           const isDownloadingPart = downloading === partFilename;
           
           return (

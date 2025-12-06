@@ -17,6 +17,7 @@ import {
   Download
 } from 'lucide-react';
 import { useDropzone } from 'react-dropzone';
+import { generateLGFilename } from '@/utils/lgFilenameGenerator';
 
 interface LGValidationModalProps {
   open: boolean;
@@ -381,17 +382,17 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                     <p className="break-all">
                       <span className="text-muted-foreground">Filename:</span>{' '}
                       <span className="font-mono font-semibold">
-                        {(() => {
-                          const nhsNum = patient.nhs_number?.replace(/\s/g, '') || 'Unknown';
-                          const dobFormatted = patient.dob 
-                            ? new Date(patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
-                            : 'Unknown';
-                          const scanDate = new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_');
-                          return `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan.pdf`;
-                        })()}
+                        {generateLGFilename({
+                          patientName: patient.patient_name,
+                          nhsNumber: patient.nhs_number,
+                          dob: patient.dob,
+                          scanDate: patient.created_at,
+                          partNumber: 1,
+                          totalParts: 1
+                        })}
                       </span>
                     </p>
-                    <p className="text-xs text-muted-foreground italic">Tip: the filename always starts with the NHS number</p>
+                    <p className="text-xs text-muted-foreground italic">Tip: the filename always starts with Lloyd_George_Record</p>
                     <div className="flex items-center gap-4 pt-1 flex-wrap">
                       <span><span className="text-muted-foreground">Pages:</span> <span className="font-medium">{patient.images_count || '—'}</span></span>
                       <span><span className="text-muted-foreground">Size:</span> <span className="font-medium">{patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB` : '—'}</span></span>
@@ -414,17 +415,20 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                                 return;
                               }
                               // Force download instead of opening in browser
-                              const nhsNum = patient.nhs_number?.replace(/\s/g, '') || 'Unknown';
-                              const dobFormatted = patient.dob 
-                                ? new Date(patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
-                                : 'Unknown';
-                              const scanDate = new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_');
+                              const downloadFilename = generateLGFilename({
+                                patientName: patient.patient_name,
+                                nhsNumber: patient.nhs_number,
+                                dob: patient.dob,
+                                scanDate: patient.created_at,
+                                partNumber: 1,
+                                totalParts: 1
+                              });
                               const response = await fetch(data.signedUrl);
                               const blob = await response.blob();
                               const url = window.URL.createObjectURL(blob);
                               const a = document.createElement('a');
                               a.href = url;
-                              a.download = `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan.pdf`;
+                              a.download = downloadFilename;
                               document.body.appendChild(a);
                               a.click();
                               document.body.removeChild(a);

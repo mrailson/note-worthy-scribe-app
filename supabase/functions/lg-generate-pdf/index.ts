@@ -1848,9 +1848,7 @@ async function sendSummaryEmailWithPdf(
     const pdfBase64 = btoa(binary);
     console.log(`PDF attachment ready, size: ${pdfBase64.length} chars`);
 
-    const formattedDob = formatDobForFilename(dob);
-    const cleanNhs = (nhsNumber || '').replace(/\s/g, '');
-    const pdfFilename = `LG_${cleanNhs}_${formattedDob}.pdf`;
+    const pdfFilename = generateLGFilename(patientName, nhsNumber, dob, patient.created_at, 1, 1);
 
     const attachments: Array<{ filename: string; content: string; type: string }> = [
       {
@@ -1883,20 +1881,78 @@ async function sendSummaryEmailWithPdf(
   }
 }
 
-function formatDobForFilename(dateStr: string): string {
+function formatDateForFilename(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'Unknown';
   try {
-    if (dateStr) {
-      const date = new Date(dateStr);
-      if (!isNaN(date.getTime())) {
-        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-        const day = String(date.getDate()).padStart(2, '0');
-        const month = months[date.getMonth()];
-        const year = date.getFullYear();
-        return `${day}_${month}_${year}`;
-      }
+    const date = new Date(dateStr);
+    if (!isNaN(date.getTime())) {
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+      const day = String(date.getDate()).padStart(2, '0');
+      const month = months[date.getMonth()];
+      const year = date.getFullYear();
+      return `${day}_${month}_${year}`;
     }
   } catch {}
-  return dateStr || 'Unknown';
+  return 'Unknown';
+}
+
+/**
+ * Parses patient name into last name and first name components
+ */
+function parsePatientName(fullName: string | null | undefined): { lastName: string; firstName: string } {
+  if (!fullName || fullName.trim() === '') {
+    return { lastName: 'Unknown', firstName: 'Unknown' };
+  }
+
+  const trimmed = fullName.trim();
+  const parts = trimmed.split(/\s+/);
+  
+  if (parts.length === 1) {
+    return { lastName: parts[0], firstName: 'Unknown' };
+  }
+  
+  // Assume last word is surname, everything else is first name(s)
+  const lastName = parts[parts.length - 1];
+  const firstName = parts.slice(0, -1).join('_');
+  
+  return { 
+    lastName: sanitiseForFilename(lastName), 
+    firstName: sanitiseForFilename(firstName) 
+  };
+}
+
+/**
+ * Sanitises a string for use in filenames
+ */
+function sanitiseForFilename(str: string): string {
+  return str
+    .replace(/[<>:"/\\|?*]/g, '')
+    .replace(/\s+/g, '_')
+    .replace(/_+/g, '_')
+    .trim();
+}
+
+/**
+ * Generates standardised Lloyd George Record filename
+ * Format: Lloyd_George_Record_XX_of_YY_LastName_FirstName_NHSNumber_DOB_ScanDate.pdf
+ */
+function generateLGFilename(
+  patientName: string | null | undefined,
+  nhsNumber: string | null | undefined,
+  dob: string | null | undefined,
+  scanDate: string | null | undefined,
+  partNumber: number = 1,
+  totalParts: number = 1
+): string {
+  const { lastName, firstName } = parsePatientName(patientName);
+  const cleanNhs = (nhsNumber || 'Unknown').replace(/\s/g, '');
+  const dobFormatted = formatDateForFilename(dob);
+  const scanDateFormatted = formatDateForFilename(scanDate);
+  
+  const partNumStr = String(partNumber).padStart(2, '0');
+  const totalPartsStr = String(totalParts).padStart(2, '0');
+  
+  return `Lloyd_George_Record_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}_${scanDateFormatted}.pdf`;
 }
 
 function formatDobDisplay(dateStr: string): string {
