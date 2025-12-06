@@ -1,7 +1,8 @@
-// LG-GENERATE-PDF v2.0 - Pure TypeScript JPEG encoder (cache bust: 20251206-1443)
+// LG-GENERATE-PDF v2.1 - jpeg-js decoder + pure TS encoder (cache bust: 20251206-1545)
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.1";
 import { PDFDocument, rgb, PDFName } from "https://esm.sh/pdf-lib@1.17.1";
+import { decode as decodeJpeg } from "https://esm.sh/jpeg-js@0.4.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -24,7 +25,7 @@ const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
 // Large document thresholds
 const LARGE_DOC_THRESHOLD = 200; // Only skip compression for extremely large docs
-const MAX_PAGES_PER_SPLIT_PART = 50; // Documents >50 pages split into 50-page parts
+const MAX_PAGES_PER_SPLIT_PART = 30; // Documents >30 pages split into 30-page parts
 const UPLOAD_RETRY_ATTEMPTS = 3; // Retry upload failures
 
 // Tracking interfaces for failed pages
@@ -51,15 +52,18 @@ interface CompressionSettings {
 }
 
 function getCompressionSettings(pageCount: number, attempt: number = 0): CompressionSettings {
-  // Use consistent 35% scale for ALL documents (matching 20-page layout - temp workaround)
-  const baseScale = 0.35;
+  // Always aggressive compression for reliability:
+  // - ≤50 pages: 35% scale
+  // - >50 pages: 25% scale (more aggressive)
+  // - ALWAYS grayscale to keep file size down
+  const baseScale = pageCount > 50 ? 0.25 : 0.35;
   const baseQuality = 0.55;
   
   return {
-    scaleFactor: Math.max(baseScale - (attempt * 0.05), 0.25), // 0.35, 0.30, 0.25
-    jpegQuality: Math.max(baseQuality - (attempt * 0.05), 0.40), // 0.55, 0.50, 0.45
-    grayscale: pageCount > 20 || attempt >= 2, // Grayscale for large docs or 3rd attempt (lowered from 30)
-    tier: pageCount > 20 ? 'Aggressive' as const : 'Standard' as const,
+    scaleFactor: Math.max(baseScale - (attempt * 0.05), 0.20), // Reduce on retry
+    jpegQuality: Math.max(baseQuality - (attempt * 0.05), 0.40), // Reduce on retry
+    grayscale: true, // ALWAYS grayscale per user preference
+    tier: pageCount > 50 ? 'Aggressive' as const : 'Standard' as const,
   };
 }
 
@@ -537,20 +541,88 @@ function stripExifData(bytes: Uint8Array): Uint8Array {
   return bytes;
 }
 
-// Skip compression entirely in Deno - createImageBitmap doesn't reliably decode JPEG
-// Just return original bytes; let pdf-lib handle embedding at original size
-// The PDF splitting will handle file size limits
+// Simple nearest-neighbour scaling of RGBA pixel data
+function scaleRGBA(
+  data: Uint8ClampedArray,
+  srcW: number,
+  srcH: number,
+  dstW: number,
+  dstH: number
+): Uint8ClampedArray {
+  const result = new Uint8ClampedArray(dstW * dstH * 4);
+  const xRatio = srcW / dstW;
+  const yRatio = srcH / dstH;
+  
+  for (let y = 0; y < dstH; y++) {
+    for (let x = 0; x < dstW; x++) {
+      const srcX = Math.floor(x * xRatio);
+      const srcY = Math.floor(y * yRatio);
+      const srcIdx = (srcY * srcW + srcX) * 4;
+      const dstIdx = (y * dstW + x) * 4;
+      result[dstIdx] = data[srcIdx];
+      result[dstIdx + 1] = data[srcIdx + 1];
+      result[dstIdx + 2] = data[srcIdx + 2];
+      result[dstIdx + 3] = data[srcIdx + 3];
+    }
+  }
+  return result;
+}
+
+// Convert RGBA pixels to grayscale (in-place modification)
+function convertToGrayscale(data: Uint8ClampedArray): void {
+  for (let i = 0; i < data.length; i += 4) {
+    const gray = Math.floor(0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2]);
+    data[i] = gray;
+    data[i + 1] = gray;
+    data[i + 2] = gray;
+    // Keep alpha as-is
+  }
+}
+
+// Compress image using jpeg-js decoder + pure TS encoder pipeline
 async function compressImage(
   imageBytes: Uint8Array,
   settings: CompressionSettings
 ): Promise<{ bytes: Uint8Array; rotationApplied: boolean }> {
-  // Deno edge functions don't support createImageBitmap with JPEG blobs reliably
-  // Instead of failing, just return original bytes - PDF will be split if too large
+  const originalSize = imageBytes.length;
   const orientation = parseExifOrientation(imageBytes);
-  console.log(`Skipping compression (Deno limitation), EXIF orientation: ${orientation}, size: ${(imageBytes.length / 1024).toFixed(0)}KB`);
   
-  // Return original bytes - rotation will be applied at embed time if possible
-  return { bytes: imageBytes, rotationApplied: false };
+  try {
+    // Step 1: Decode JPEG to raw RGBA pixels using jpeg-js
+    const decoded = decodeJpeg(imageBytes, { useTArray: true, formatAsRGBA: true });
+    console.log(`Decoded JPEG: ${decoded.width}x${decoded.height}, orientation: ${orientation}`);
+    
+    // Step 2: Calculate new dimensions based on scale factor
+    const newWidth = Math.max(Math.floor(decoded.width * settings.scaleFactor), 100);
+    const newHeight = Math.max(Math.floor(decoded.height * settings.scaleFactor), 100);
+    console.log(`Scaling: ${decoded.width}x${decoded.height} → ${newWidth}x${newHeight} (${(settings.scaleFactor * 100).toFixed(0)}%)`);
+    
+    // Step 3: Scale pixels down
+    const scaledPixels = scaleRGBA(
+      new Uint8ClampedArray(decoded.data),
+      decoded.width,
+      decoded.height,
+      newWidth,
+      newHeight
+    );
+    
+    // Step 4: Convert to grayscale (always, per user preference)
+    if (settings.grayscale) {
+      convertToGrayscale(scaledPixels);
+    }
+    
+    // Step 5: Re-encode to JPEG using pure TypeScript encoder
+    const quality = Math.floor(settings.jpegQuality * 100);
+    const compressedBytes = encodeJPEG(scaledPixels, newWidth, newHeight, quality);
+    
+    const compressionRatio = ((1 - compressedBytes.length / originalSize) * 100).toFixed(1);
+    console.log(`Compressed: ${(originalSize / 1024).toFixed(0)}KB → ${(compressedBytes.length / 1024).toFixed(0)}KB (${compressionRatio}% reduction, quality=${quality}, grayscale=${settings.grayscale})`);
+    
+    return { bytes: compressedBytes, rotationApplied: false };
+  } catch (err) {
+    console.warn(`Compression failed for image, using original:`, err);
+    return { bytes: imageBytes, rotationApplied: false };
+  }
 }
 
 // Embed image with fallback between JPEG and PNG
