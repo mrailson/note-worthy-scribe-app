@@ -185,46 +185,74 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
         </Button>
       )}
 
-      {/* Enlarged view dialog */}
+      {/* Enlarged view dialog - nearly fullscreen */}
       <Dialog open={!!selectedPage} onOpenChange={() => setSelectedPage(null)}>
-        <DialogContent className="max-w-2xl w-[95vw] max-h-[98vh] p-4">
+        <DialogContent className="!max-w-[95vw] !w-[95vw] !h-[95vh] !max-h-[95vh] p-0 flex flex-col">
           {selectedPage && (
-            <div className="flex flex-col items-center h-full">
-              <div className="text-sm text-muted-foreground mb-2">
-                Page {selectedPage.pageNum} of {thumbnails.length}
+            <>
+              {/* Thumbnail strip at top */}
+              <div className="flex-shrink-0 border-b bg-muted/50 p-2 overflow-x-auto">
+                <div className="flex gap-2 justify-center min-w-max">
+                  {thumbnails.map((thumb) => (
+                    <button
+                      key={thumb.pageNum}
+                      onClick={() => setSelectedPage(thumb)}
+                      className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-all ${
+                        thumb.pageNum === selectedPage.pageNum
+                          ? 'border-primary ring-2 ring-primary/30'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <img
+                        src={thumb.dataUrl}
+                        alt={`Page ${thumb.pageNum}`}
+                        className="w-12 h-16 object-cover"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center">
+                        {thumb.pageNum}
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
-              <div className="flex-1 overflow-auto flex items-center justify-center">
-                <img
-                  src={selectedPage.dataUrl}
-                  alt={`Page ${selectedPage.pageNum}`}
-                  className="max-h-[90vh] w-auto rounded-md border shadow-lg"
-                />
+
+              {/* Main image area */}
+              <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden bg-muted/20">
+                <div className="text-sm text-muted-foreground mb-2">
+                  Page {selectedPage.pageNum} of {thumbnails.length}
+                </div>
+                <div className="flex-1 flex items-center justify-center overflow-auto w-full">
+                  <img
+                    src={selectedPage.dataUrl}
+                    alt={`Page ${selectedPage.pageNum}`}
+                    className="max-w-full max-h-full object-contain rounded-md border shadow-lg"
+                    style={{ maxHeight: 'calc(95vh - 140px)' }}
+                  />
+                </div>
+                <div className="flex gap-2 mt-4 flex-shrink-0">
+                  <Button
+                    variant="outline"
+                    disabled={selectedPage.pageNum === 1}
+                    onClick={() => {
+                      const prev = thumbnails.find(t => t.pageNum === selectedPage.pageNum - 1);
+                      if (prev) setSelectedPage(prev);
+                    }}
+                  >
+                    Previous
+                  </Button>
+                  <Button
+                    variant="outline"
+                    disabled={selectedPage.pageNum === thumbnails.length}
+                    onClick={() => {
+                      const next = thumbnails.find(t => t.pageNum === selectedPage.pageNum + 1);
+                      if (next) setSelectedPage(next);
+                    }}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
-              <div className="flex gap-2 mt-4">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={selectedPage.pageNum === 1}
-                  onClick={() => {
-                    const prev = thumbnails.find(t => t.pageNum === selectedPage.pageNum - 1);
-                    if (prev) setSelectedPage(prev);
-                  }}
-                >
-                  Previous
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={selectedPage.pageNum === thumbnails.length}
-                  onClick={() => {
-                    const next = thumbnails.find(t => t.pageNum === selectedPage.pageNum + 1);
-                    if (next) setSelectedPage(next);
-                  }}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
+            </>
           )}
         </DialogContent>
       </Dialog>
