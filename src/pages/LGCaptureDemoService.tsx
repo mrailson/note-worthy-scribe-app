@@ -173,31 +173,12 @@ export default function LGCaptureDemoService() {
         </p>
       </div>
 
-      {/* Download Test Pages */}
-      <Card className="border-dashed">
+      {/* Info Card */}
+      <Card className="border-dashed bg-muted/30">
         <CardContent className="pt-4">
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
-            <div className="text-center sm:text-left">
-              <p className="font-medium text-sm">Want to test with your phone camera?</p>
-              <p className="text-xs text-muted-foreground">Download and print the test pages</p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              asChild
-              className="gap-2"
-            >
-              <a 
-                href="https://drive.google.com/drive/folders/1-EXAMPLE-FOLDER-ID" 
-                target="_blank" 
-                rel="noopener noreferrer"
-              >
-                <Download className="h-4 w-4" />
-                Download Test Pages
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            </Button>
-          </div>
+          <p className="text-sm text-muted-foreground text-center">
+            Use the demo buttons below to load pre-made test pages, or use the camera to capture your own
+          </p>
         </CardContent>
       </Card>
 
