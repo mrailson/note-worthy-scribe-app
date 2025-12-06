@@ -609,6 +609,14 @@ serve(async (req) => {
 
     // Generate AI Summary
     console.log('Generating clinical summary...');
+    
+    // Record summary start time
+    const summaryStartTime = new Date().toISOString();
+    await supabase
+      .from('lg_patients')
+      .update({ summary_started_at: summaryStartTime })
+      .eq('id', patientId);
+    
     let summaryJson: any = null;
     
     if (openaiKey && fullOcrText.length > 100) {
@@ -681,6 +689,13 @@ ${fullOcrText.substring(0, 30000)}`;
     } else {
       snomedJson = createEmptySnomed();
     }
+
+    // Record summary completion time (includes SNOMED extraction)
+    const summaryCompletedTime = new Date().toISOString();
+    await supabase
+      .from('lg_patients')
+      .update({ summary_completed_at: summaryCompletedTime })
+      .eq('id', patientId);
 
     // Generate CSV from SNOMED
     const snomedCsv = generateSnomedCsv(snomedJson, patientId, nhsNumber);
