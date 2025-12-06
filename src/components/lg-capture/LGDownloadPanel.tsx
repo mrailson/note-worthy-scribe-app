@@ -294,12 +294,15 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
           />
         )}
         
-        {/* Other files - collapsible */}
+        {/* Additional files - hidden by default, expandable on request */}
         <Collapsible open={otherFilesOpen} onOpenChange={setOtherFilesOpen}>
           <CollapsibleTrigger asChild>
-            <Button variant="ghost" className="w-full justify-between h-10 text-muted-foreground hover:text-foreground">
-              <span className="text-sm">Other files ({otherFiles.length})</span>
-              <ChevronDown className={`h-4 w-4 transition-transform ${otherFilesOpen ? 'rotate-180' : ''}`} />
+            <Button 
+              variant="link" 
+              className="w-full justify-start h-auto p-0 text-muted-foreground hover:text-foreground text-xs"
+            >
+              <span>{otherFilesOpen ? 'Hide additional files' : 'Need JSON/CSV files?'}</span>
+              <ChevronDown className={`h-3 w-3 ml-1 transition-transform ${otherFilesOpen ? 'rotate-180' : ''}`} />
             </Button>
           </CollapsibleTrigger>
           <CollapsibleContent className="space-y-2 pt-2">
