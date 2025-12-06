@@ -54,17 +54,21 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
     processingRef.current = true;
 
     try {
-      // Update status to uploading
+      // Update status to uploading with start timestamp
       setQueue(prev => prev.map(q => 
         q.patientId === nextInQueue.patientId 
           ? { ...q, status: 'uploading' as const } 
           : q
       ));
 
-      // Update DB status
+      // Update DB status with upload start time
       await supabase
         .from('lg_patients')
-        .update({ job_status: 'uploading', upload_progress: 0 })
+        .update({ 
+          job_status: 'uploading', 
+          upload_progress: 0,
+          upload_started_at: new Date().toISOString()
+        })
         .eq('id', nextInQueue.patientId);
 
       // Upload images one by one with progress
@@ -106,13 +110,14 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
           .eq('id', patientId);
       }
 
-      // Update images_count and status to queued (ready for processing)
+      // Update images_count and status to queued (ready for processing) with upload complete time
       await supabase
         .from('lg_patients')
         .update({ 
           images_count: images.length, 
           job_status: 'queued',
-          upload_progress: 100
+          upload_progress: 100,
+          upload_completed_at: new Date().toISOString()
         })
         .eq('id', patientId);
 
