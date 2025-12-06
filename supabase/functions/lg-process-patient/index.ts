@@ -769,26 +769,34 @@ Practice ODS: ${patient.practice_ods}
 Source: OCR text of scanned Lloyd George (unordered notes; may include handwritten OCR errors).
 
 Task:
-Return valid JSON matching this schema exactly:
+Return valid JSON matching this schema exactly. This is a FORMAT EXAMPLE ONLY - do NOT copy values from this example:
 
 {
-  "summary_line": "Brief summary: PMH: T2DM dx ~2009, HTN 2012; NKDA; cholecystectomy 2018; ex-smoker 2015.",
-  "diagnoses": [{"condition":"", "date_noted":"YYYY or YYYY-MM", "status":"active|resolved|unknown"}],
-  "surgeries": [{"procedure":"", "date":"YYYY or unknown", "notes":""}],
-  "allergies": [{"allergen":"", "reaction":"", "year":""}],
-  "immunisations": [{"vaccine":"", "date":"YYYY-MM-DD or unknown"}],
-  "family_history": [{"relation":"", "condition":""}],
-  "social_history": {"smoking_status":"never|current|ex", "stopped_year":"", "alcohol":"none|moderate|heavy", "occupation":""},
+  "summary_line": "",
+  "diagnoses": [],
+  "surgeries": [],
+  "allergies": [],
+  "immunisations": [],
+  "family_history": [],
+  "social_history": {"smoking_status":"unknown", "stopped_year":"", "alcohol":"unknown", "occupation":""},
   "reproductive_history": {"gravida":0, "para":0, "miscarriages":0, "notes":""},
-  "hospital_findings": [{"condition":"", "date":"YYYY", "outcome":""}],
-  "medications": [{"drug":"", "dose":"", "date":"YYYY or unknown"}],
-  "alerts": [{"type":"safeguarding|high_risk_meds|third_party_info", "note":""}],
-  "free_text_findings": "Short narrative (≤150 words) for anything important not mapped above.",
+  "hospital_findings": [],
+  "medications": [],
+  "alerts": [],
+  "free_text_findings": "",
   "summary_metadata": "Summary completed ${new Date().toISOString().split('T')[0]} by Notewell AI"
 }
 
-REMEMBER: Only include clinically significant, enduring information. Exclude minor illnesses, admin items, normal results.
-If something is not present, return an empty array or "". Never change keys. Dates can be approximate (year/month).
+CRITICAL ANTI-HALLUCINATION RULES:
+1. ONLY extract information that is EXPLICITLY WRITTEN in the OCR text below.
+2. If a field has NO clear evidence in the OCR, return an empty array [] or empty string "".
+3. DO NOT infer diagnoses from medications (e.g., don't assume "diabetes" from "metformin" unless "diabetes" is written).
+4. DO NOT copy from the schema example above - it is a FORMAT example only showing structure.
+5. When in doubt, LEAVE IT OUT.
+6. For medications: only include if the drug name appears VERBATIM in the OCR text.
+7. For surgeries: only include if the procedure name appears VERBATIM in the OCR text.
+8. Never fill in "typical" patterns - each patient record is unique.
+9. If OCR text is sparse or unclear, return mostly empty arrays - this is expected and correct behaviour.
 
 OCR Text:
 ${fullOcrText.substring(0, 50000)}`;
@@ -808,11 +816,11 @@ ${fullOcrText.substring(0, 50000)}`;
     console.log('Extracting SNOMED-coded clinical items...');
     let snomedJson: any = null;
 
-    if (openaiKey && summaryJson) {
-      const snomedPrompt = `Extract SNOMED-coded clinical items from this Lloyd George record.
+    if (openaiKey && fullOcrText.length > 100) {
+      const snomedPrompt = `Extract SNOMED-coded clinical items ONLY from the OCR text below.
 
-Summary JSON for context:
-${JSON.stringify(summaryJson, null, 2)}
+CRITICAL: Do NOT assume or infer any clinical information not explicitly present in the text.
+Extract ONLY what is VERBATIM in the OCR - if a diagnosis, surgery, or immunisation is not written, do not include it.
 
 OCR Text (note the page markers like "--- Page page_001.jpg ---"):
 ${fullOcrText.substring(0, 30000)}`;
