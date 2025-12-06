@@ -323,15 +323,15 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                         partNumber,
                         totalParts
                       });
-                      // Get part sizes from patient data if available
-                      const partSizes = (patient as any).pdf_part_sizes as number[] | undefined;
-                      const partSizeMb = partSizes?.[index];
+                      // Estimate ~4.8MB per part (split threshold) - last part may be smaller
+                      const isLastPart = index === patient.pdf_part_urls!.length - 1;
+                      const estimatedSizeMb = isLastPart ? '≤4.8' : '~4.8';
                       
                       return (
                         <div key={index} className="bg-primary p-4 rounded-lg text-primary-foreground">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-lg">Part {partNumber} of {totalParts}{partSizeMb ? ` • ${partSizeMb.toFixed(2)} MB` : ''}</p>
+                              <p className="font-semibold text-lg">Part {partNumber} of {totalParts} • {estimatedSizeMb} MB</p>
                               <p className="text-primary-foreground/80 text-sm mt-0.5 break-all">
                                 {filename}
                               </p>
