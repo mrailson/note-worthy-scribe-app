@@ -1848,7 +1848,7 @@ async function sendSummaryEmailWithPdf(
     const pdfBase64 = btoa(binary);
     console.log(`PDF attachment ready, size: ${pdfBase64.length} chars`);
 
-    const pdfFilename = generateLGFilename(patientName, nhsNumber, dob, patient.created_at, 1, 1);
+    const pdfFilename = generateLGFilename(patientName, nhsNumber, dob, 1, 1);
 
     const attachments: Array<{ filename: string; content: string; type: string }> = [
       {
@@ -1934,25 +1934,23 @@ function sanitiseForFilename(str: string): string {
 
 /**
  * Generates standardised Lloyd George Record filename
- * Format: Lloyd_George_Record_XX_of_YY_LastName_FirstName_NHSNumber_DOB_ScanDate.pdf
+ * Format: Lloyd_George_Record_XX_of_YY_LastName_FirstName_NHSNumber_DOB.pdf
  */
 function generateLGFilename(
   patientName: string | null | undefined,
   nhsNumber: string | null | undefined,
   dob: string | null | undefined,
-  scanDate: string | null | undefined,
   partNumber: number = 1,
   totalParts: number = 1
 ): string {
   const { lastName, firstName } = parsePatientName(patientName);
   const cleanNhs = (nhsNumber || 'Unknown').replace(/\s/g, '');
   const dobFormatted = formatDateForFilename(dob);
-  const scanDateFormatted = formatDateForFilename(scanDate);
   
   const partNumStr = String(partNumber).padStart(2, '0');
   const totalPartsStr = String(totalParts).padStart(2, '0');
   
-  return `Lloyd_George_Record_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}_${scanDateFormatted}.pdf`;
+  return `Lloyd_George_Record_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}.pdf`;
 }
 
 function formatDobDisplay(dateStr: string): string {

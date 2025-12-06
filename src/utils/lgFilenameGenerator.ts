@@ -1,13 +1,12 @@
 /**
  * Generates standardised Lloyd George Record filenames
- * Format: Lloyd_George_Record_XX_of_YY_LastName_FirstName_NHSNumber_DOB_ScanDate.pdf
+ * Format: Lloyd_George_Record_XX_of_YY_LastName_FirstName_NHSNumber_DOB.pdf
  */
 
 export interface LGFilenameParams {
   patientName: string | null | undefined;
   nhsNumber: string | null | undefined;
   dob: string | null | undefined;
-  scanDate: string | null | undefined;
   partNumber?: number;
   totalParts?: number;
 }
@@ -67,33 +66,31 @@ const sanitiseForFilename = (str: string): string => {
 
 /**
  * Generates the standardised Lloyd George Record filename
- * Format: Lloyd_George_Record_XX_of_YY_LastName_FirstName_NHSNumber_DOB_ScanDate.pdf
+ * Format: Lloyd_George_Record_XX_of_YY_LastName_FirstName_NHSNumber_DOB.pdf
  */
 export const generateLGFilename = (params: LGFilenameParams): string => {
-  const { patientName, nhsNumber, dob, scanDate, partNumber = 1, totalParts = 1 } = params;
+  const { patientName, nhsNumber, dob, partNumber = 1, totalParts = 1 } = params;
   
   const { lastName, firstName } = parsePatientName(patientName);
   const cleanNhs = (nhsNumber || 'Unknown').replace(/\s/g, '');
   const dobFormatted = formatDateForFilename(dob);
-  const scanDateFormatted = formatDateForFilename(scanDate);
   
   // Format part numbers with leading zeros (01, 02, etc.)
   const partNumStr = String(partNumber).padStart(2, '0');
   const totalPartsStr = String(totalParts).padStart(2, '0');
   
-  return `Lloyd_George_Record_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}_${scanDateFormatted}.pdf`;
+  return `Lloyd_George_Record_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}.pdf`;
 };
 
 /**
  * Generates filename for other LG Capture output files (JSON, CSV)
  */
 export const generateLGBaseFilename = (params: Omit<LGFilenameParams, 'partNumber' | 'totalParts'>): string => {
-  const { patientName, nhsNumber, dob, scanDate } = params;
+  const { patientName, nhsNumber, dob } = params;
   
   const { lastName, firstName } = parsePatientName(patientName);
   const cleanNhs = (nhsNumber || 'Unknown').replace(/\s/g, '');
   const dobFormatted = formatDateForFilename(dob);
-  const scanDateFormatted = formatDateForFilename(scanDate);
   
-  return `Lloyd_George_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}_${scanDateFormatted}`;
+  return `Lloyd_George_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}`;
 };

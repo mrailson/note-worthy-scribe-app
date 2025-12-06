@@ -1773,17 +1773,15 @@ function generateLGFilename(
   patientName: string | null | undefined,
   nhsNumber: string | null | undefined,
   dob: string | null | undefined,
-  scanDate: string | null | undefined,
   partNumber: number = 1,
   totalParts: number = 1
 ): string {
   const { lastName, firstName } = parsePatientName(patientName);
   const cleanNhs = (nhsNumber || 'Unknown').replace(/\s/g, '');
   const dobFormatted = formatDateForFilename(dob);
-  const scanDateFormatted = formatDateForFilename(scanDate);
   const partNumStr = String(partNumber).padStart(2, '0');
   const totalPartsStr = String(totalParts).padStart(2, '0');
-  return `Lloyd_George_Record_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}_${scanDateFormatted}.pdf`;
+  return `Lloyd_George_Record_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}.pdf`;
 }
 
 // Build HTML email for LG summary
