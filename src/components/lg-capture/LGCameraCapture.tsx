@@ -41,7 +41,7 @@ export function LGCameraCapture({
   images, 
   onImagesChange, 
   onFinish,
-  maxPages = 100, // Increased from 25 with batched processing support
+  maxPages = 500, // Increased to support very large Lloyd George records
   isProcessing = false
 }: LGCameraCaptureProps) {
   const [isCapturing, setIsCapturing] = useState(false);

@@ -537,108 +537,20 @@ function stripExifData(bytes: Uint8Array): Uint8Array {
   return bytes;
 }
 
-// Compress image using 40% scaling approach with EXIF rotation correction
-// Returns { bytes, rotationApplied } - rotationApplied is true if EXIF rotation was successfully applied
+// Skip compression entirely in Deno - createImageBitmap doesn't reliably decode JPEG
+// Just return original bytes; let pdf-lib handle embedding at original size
+// The PDF splitting will handle file size limits
 async function compressImage(
   imageBytes: Uint8Array,
   settings: CompressionSettings
 ): Promise<{ bytes: Uint8Array; rotationApplied: boolean }> {
-  try {
-    const orientation = parseExifOrientation(imageBytes);
-    
-    const blob = new Blob([imageBytes], { type: 'image/jpeg' });
-    const imageBitmap = await createImageBitmap(blob);
-    
-    const rotationSwapsDimensions = orientation >= 5 && orientation <= 8;
-    
-    let targetWidth = Math.round(imageBitmap.width * settings.scaleFactor);
-    let targetHeight = Math.round(imageBitmap.height * settings.scaleFactor);
-    
-    let canvasWidth = targetWidth;
-    let canvasHeight = targetHeight;
-    if (rotationSwapsDimensions) {
-      canvasWidth = targetHeight;
-      canvasHeight = targetWidth;
-    }
-    
-    const canvas = new OffscreenCanvas(canvasWidth, canvasHeight);
-    const ctx = canvas.getContext('2d');
-    
-    if (!ctx) {
-      console.warn('Canvas context unavailable, returning original');
-      return imageBytes;
-    }
-    
-    // Apply EXIF orientation transformation using standard approach
-    // Translate BEFORE rotate to position correctly
-    switch (orientation) {
-      case 2: // Flip horizontal
-        ctx.translate(canvasWidth, 0);
-        ctx.scale(-1, 1);
-        break;
-      case 3: // Rotate 180°
-        ctx.translate(canvasWidth, canvasHeight);
-        ctx.rotate(Math.PI);
-        break;
-      case 4: // Flip vertical
-        ctx.translate(0, canvasHeight);
-        ctx.scale(1, -1);
-        break;
-      case 5: // Rotate 90° CW then flip horizontal
-        ctx.rotate(Math.PI / 2);
-        ctx.scale(-1, 1);
-        break;
-      case 6: // Rotate 90° CW (portrait photo taken with camera rotated left)
-        ctx.translate(canvasWidth, 0);
-        ctx.rotate(Math.PI / 2);
-        break;
-      case 7: // Rotate 90° CCW then flip horizontal  
-        ctx.rotate(-Math.PI / 2);
-        ctx.translate(-canvasWidth, 0);
-        ctx.scale(-1, 1);
-        break;
-      case 8: // Rotate 90° CCW (portrait photo taken with camera rotated right)
-        ctx.translate(0, canvasHeight);
-        ctx.rotate(-Math.PI / 2);
-        break;
-      default:
-        // Orientation 1 or unknown - no transformation needed
-        break;
-    }
-    
-    console.log(`EXIF orientation ${orientation}: canvas ${canvasWidth}x${canvasHeight}, target ${targetWidth}x${targetHeight}`);
-    
-    ctx.drawImage(imageBitmap, 0, 0, targetWidth, targetHeight);
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    
-    // Apply grayscale if needed
-    if (settings.grayscale) {
-      const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const gray = 0.299 * data[i] + 0.587 * data[i + 1] + 0.114 * data[i + 2];
-        data[i] = gray;
-        data[i + 1] = gray;
-        data[i + 2] = gray;
-      }
-      ctx.putImageData(imageData, 0, 0);
-    }
-    
-    // Get raw pixel data from canvas for manual JPEG encoding
-    const imageData = ctx.getImageData(0, 0, canvasWidth, canvasHeight);
-    
-    // Encode as JPEG using pure TypeScript encoder (Deno doesn't support canvas.convertToBlob with JPEG)
-    const jpegBytes = encodeJPEG(imageData.data, canvasWidth, canvasHeight, Math.round(settings.jpegQuality * 100));
-    console.log(`JPEG encoded: ${imageBytes.length} -> ${jpegBytes.length} bytes (${Math.round(jpegBytes.length / imageBytes.length * 100)}%)`);
-    
-    // Return compressed bytes with flag indicating rotation WAS applied
-    return { bytes: jpegBytes, rotationApplied: true };
-    
-  } catch (err) {
-    console.warn('Image compression failed completely, using original:', err);
-    // Return original bytes with flag indicating rotation was NOT applied
-    return { bytes: imageBytes, rotationApplied: false };
-  }
+  // Deno edge functions don't support createImageBitmap with JPEG blobs reliably
+  // Instead of failing, just return original bytes - PDF will be split if too large
+  const orientation = parseExifOrientation(imageBytes);
+  console.log(`Skipping compression (Deno limitation), EXIF orientation: ${orientation}, size: ${(imageBytes.length / 1024).toFixed(0)}KB`);
+  
+  // Return original bytes - rotation will be applied at embed time if possible
+  return { bytes: imageBytes, rotationApplied: false };
 }
 
 // Embed image with fallback between JPEG and PNG
