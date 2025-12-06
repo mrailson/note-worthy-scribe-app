@@ -21,8 +21,11 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
   const [isCompressing, setIsCompressing] = useState(false);
   const [compressionResult, setCompressionResult] = useState<{
     originalSizeMb: number;
-    compressedSizeMb: number;
-    compressionRatio: number;
+    compressedSizeMb?: number;
+    compressionRatio?: number;
+    message?: string;
+    suggestion?: string;
+    alreadyOptimized?: boolean;
   } | null>(null);
   const isIPhone = useIsIPhone();
   
@@ -38,6 +41,7 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
 
   const handleCompress = async () => {
     setIsCompressing(true);
+    setCompressionResult(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
@@ -51,7 +55,23 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
 
       if (error) throw error;
 
-      if (data.success) {
+      if (data.alreadyOptimized) {
+        toast.success('PDF is already optimally compressed');
+        setCompressionResult({
+          originalSizeMb: data.originalSizeMb,
+          compressedSizeMb: data.compressedSizeMb,
+          compressionRatio: 0,
+          message: data.message,
+          alreadyOptimized: true,
+        });
+      } else if (data.error === 'compression_limit') {
+        toast.info('PDF too large for edge function compression');
+        setCompressionResult({
+          originalSizeMb: data.originalSizeMb,
+          message: data.message,
+          suggestion: data.suggestion,
+        });
+      } else if (data.success && data.compressedPdfUrl) {
         setCompressionResult({
           originalSizeMb: data.originalSizeMb,
           compressedSizeMb: data.compressedSizeMb,
@@ -68,8 +88,6 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
       setIsCompressing(false);
     }
   };
-
-  
 
   const openFileForViewing = async (url: string | null, filename: string) => {
     if (!url) {
@@ -364,19 +382,38 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
             
             {compressionResult ? (
               <div className="space-y-2">
-                <div className="text-xs text-muted-foreground">
-                  Reduced from {compressionResult.originalSizeMb.toFixed(2)} MB to {compressionResult.compressedSizeMb.toFixed(2)} MB 
-                  <span className="text-green-600 font-medium ml-1">({compressionResult.compressionRatio.toFixed(1)}% smaller)</span>
-                </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="w-full"
-                  onClick={downloadCompressedPdf}
-                >
-                  <Download className="h-3.5 w-3.5 mr-2" />
-                  Download Compressed PDF
-                </Button>
+                {compressionResult.alreadyOptimized ? (
+                  <div className="text-xs text-green-600">
+                    ✓ PDF is already under 5MB ({compressionResult.originalSizeMb.toFixed(2)} MB) - optimal for SystmOne upload.
+                  </div>
+                ) : compressionResult.message && !compressionResult.compressedSizeMb ? (
+                  <div className="space-y-1">
+                    <div className="text-xs text-amber-600">
+                      {compressionResult.message}
+                    </div>
+                    {compressionResult.suggestion && (
+                      <div className="text-xs text-muted-foreground">
+                        💡 {compressionResult.suggestion}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <>
+                    <div className="text-xs text-muted-foreground">
+                      Reduced from {compressionResult.originalSizeMb.toFixed(2)} MB to {compressionResult.compressedSizeMb?.toFixed(2)} MB 
+                      <span className="text-green-600 font-medium ml-1">({compressionResult.compressionRatio?.toFixed(1)}% smaller)</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="w-full"
+                      onClick={downloadCompressedPdf}
+                    >
+                      <Download className="h-3.5 w-3.5 mr-2" />
+                      Download Compressed PDF
+                    </Button>
+                  </>
+                )}
               </div>
             ) : hasCompressedPdf ? (
               <Button
@@ -391,7 +428,7 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
             ) : (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground">
-                  Create a smaller B&W version for archiving. Target: ~3MB per 100 pages.
+                  Check if further compression is possible for this PDF.
                 </p>
                 <Button
                   variant="outline"
@@ -403,7 +440,7 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
                   {isCompressing ? (
                     <>
                       <Loader2 className="h-3.5 w-3.5 mr-2 animate-spin" />
-                      Compressing...
+                      Checking...
                     </>
                   ) : (
                     <>

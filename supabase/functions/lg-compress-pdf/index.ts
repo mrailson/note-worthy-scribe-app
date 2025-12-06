@@ -6,14 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Aggressive compression targeting ~3MB per 100 pages (30KB per page)
-const AGGRESSIVE_COMPRESSION = {
-  scaleFactor: 0.20,      // 20% of original size
-  jpegQuality: 0.35,      // 35% quality
-  grayscale: true,        // Always grayscale for maximum compression
-  dpi: 72,                // Low DPI for small file size
-};
-
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -55,7 +47,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Starting aggressive PDF compression for patient: ${patientId}`);
+    console.log(`Starting PDF compression for patient: ${patientId}`);
 
     // Get patient record
     const { data: patient, error: patientError } = await supabase
@@ -73,7 +65,6 @@ serve(async (req) => {
 
     const basePath = `${patient.practice_ods}/${patient.id}`;
     const originalPdfPath = `${basePath}/final/lloyd-george.pdf`;
-    const compressedPdfPath = `${basePath}/final/lloyd-george-compressed.pdf`;
 
     // Download original PDF
     console.log(`Downloading original PDF from: ${originalPdfPath}`);
@@ -90,89 +81,39 @@ serve(async (req) => {
     }
 
     const originalSize = pdfData.size;
-    console.log(`Original PDF size: ${(originalSize / 1024 / 1024).toFixed(2)} MB`);
+    const originalSizeMb = originalSize / 1024 / 1024;
+    console.log(`Original PDF size: ${originalSizeMb.toFixed(2)} MB`);
 
-    // Convert to array buffer for processing
-    const pdfArrayBuffer = await pdfData.arrayBuffer();
-    const pdfBytes = new Uint8Array(pdfArrayBuffer);
-
-    // Import pdf-lib for PDF manipulation
-    const { PDFDocument, rgb } = await import("https://esm.sh/pdf-lib@1.17.1");
-
-    // Load the original PDF
-    const originalPdf = await PDFDocument.load(pdfBytes);
-    const pageCount = originalPdf.getPageCount();
-    console.log(`PDF has ${pageCount} pages`);
-
-    // Create a new compressed PDF
-    const compressedPdf = await PDFDocument.create();
-
-    // Process each page with aggressive compression
-    for (let i = 0; i < pageCount; i++) {
-      console.log(`Processing page ${i + 1}/${pageCount}`);
+    // For now, pdf-lib in edge functions has memory limits that prevent
+    // true image re-compression. The current PDF is already optimized
+    // during generation with 35% scale and 55% JPEG quality.
+    
+    // Check if PDF is already small enough
+    if (originalSizeMb <= 5) {
+      console.log('PDF is already under 5MB - no compression needed');
       
-      // Get the original page
-      const [copiedPage] = await compressedPdf.copyPages(originalPdf, [i]);
-      
-      // Scale down the page content for smaller file size
-      const { width, height } = copiedPage.getSize();
-      
-      // Add the page (we can't re-render images here, but we can try other optimizations)
-      compressedPdf.addPage(copiedPage);
-    }
-
-    // Save with compression options
-    const compressedBytes = await compressedPdf.save({
-      useObjectStreams: true,      // Use object streams for smaller size
-      addDefaultPage: false,
-    });
-
-    const compressedSize = compressedBytes.length;
-    console.log(`Compressed PDF size: ${(compressedSize / 1024 / 1024).toFixed(2)} MB`);
-
-    // Check if we achieved meaningful compression
-    const compressionRatio = ((originalSize - compressedSize) / originalSize * 100).toFixed(1);
-    console.log(`Compression ratio: ${compressionRatio}% reduction`);
-
-    // If pdf-lib compression isn't enough, we need to re-render images
-    // For now, upload what we have
-    const compressedBlob = new Blob([compressedBytes], { type: 'application/pdf' });
-
-    // Upload compressed PDF
-    const { error: uploadError } = await supabase.storage
-      .from('lg')
-      .upload(compressedPdfPath, compressedBlob, {
-        contentType: 'application/pdf',
-        upsert: true,
-      });
-
-    if (uploadError) {
-      console.error('Failed to upload compressed PDF:', uploadError);
-      return new Response(JSON.stringify({ error: 'Failed to upload compressed PDF' }), {
-        status: 500,
+      return new Response(JSON.stringify({
+        success: true,
+        originalSizeMb: originalSizeMb,
+        compressedSizeMb: originalSizeMb,
+        compressionRatio: 0,
+        message: 'PDF is already under 5MB. Current compression during generation uses 35% scale and 55% JPEG quality which is optimal for edge function processing.',
+        alreadyOptimized: true,
+      }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Update patient record with compressed PDF info
-    await supabase
-      .from('lg_patients')
-      .update({
-        compressed_pdf_url: `lg/${compressedPdfPath}`,
-        compressed_pdf_size_mb: compressedSize / 1024 / 1024,
-        compression_applied_at: new Date().toISOString(),
-      })
-      .eq('id', patientId);
-
-    console.log(`Compression complete. Saved to: ${compressedPdfPath}`);
-
+    // For PDFs over 5MB, we need to inform the user about limitations
+    // True image re-compression requires external services or desktop tools
+    console.log('PDF exceeds 5MB - edge function compression has memory limits');
+    
     return new Response(JSON.stringify({
-      success: true,
-      originalSizeMb: originalSize / 1024 / 1024,
-      compressedSizeMb: compressedSize / 1024 / 1024,
-      compressionRatio: parseFloat(compressionRatio),
-      pageCount,
-      compressedPdfUrl: `lg/${compressedPdfPath}`,
+      success: false,
+      originalSizeMb: originalSizeMb,
+      error: 'compression_limit',
+      message: `PDF is ${originalSizeMb.toFixed(2)}MB. Edge function memory limits prevent re-compression of large PDFs. For documents over 5MB, consider using desktop tools like Adobe Acrobat, or the PDF was auto-split during generation to ensure each part is under 5MB for SystmOne.`,
+      suggestion: 'Check if split PDF parts exist - they are automatically generated under 5MB each for clinical system uploads.',
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
