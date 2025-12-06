@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { ArrowLeft, Upload, FileImage, FileText, Trash2, RotateCcw, GripVertical, FastForward, Loader2, Eye, EyeOff } from 'lucide-react';
+import { ArrowLeft, Upload, FileImage, FileText, Trash2, RotateCcw, GripVertical, FastForward, Loader2, Eye, EyeOff, Camera } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -14,6 +14,7 @@ import { extractPdfPages, PdfExtractionProgress } from '@/utils/pdfPageExtractor
 import { analyseBlankness } from '@/utils/blankPageDetector';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { useDropzone } from 'react-dropzone';
+import { LGCameraModal } from '@/components/lg-capture/LGCameraModal';
 
 interface UploadImage extends CapturedImage {
   isBlank?: boolean;
@@ -30,6 +31,8 @@ export default function LGCaptureUpload() {
   const [extractionProgress, setExtractionProgress] = useState<PdfExtractionProgress | null>(null);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isAnalysingCapture, setIsAnalysingCapture] = useState(false);
   
   const maxPages = 100;
 
@@ -130,6 +133,31 @@ export default function LGCaptureUpload() {
       reader.readAsDataURL(file);
     });
   };
+
+  // Handle camera capture - adds image with blank detection
+  const handleCameraCapture = useCallback(async (capturedImage: CapturedImage) => {
+    setIsAnalysingCapture(true);
+    
+    let isBlank = false;
+    let blankConfidence = 0;
+    
+    try {
+      const result = await analyseBlankness(capturedImage.dataUrl);
+      isBlank = result.isBlank;
+      blankConfidence = result.confidence;
+    } catch {
+      // Ignore analysis errors
+    }
+    
+    const uploadImage: UploadImage = {
+      ...capturedImage,
+      isBlank,
+      blankConfidence,
+    };
+    
+    setImages(prev => [...prev, uploadImage]);
+    setIsAnalysingCapture(false);
+  }, []);
 
   const rotateImage = useCallback((index: number) => {
     const image = images[index];
@@ -273,9 +301,9 @@ export default function LGCaptureUpload() {
       </Button>
 
       <div className="text-center space-y-2">
-        <h1 className="text-2xl font-bold">Upload Lloyd George Files</h1>
+        <h1 className="text-2xl font-bold">Capture Lloyd George Pages</h1>
         <p className="text-muted-foreground text-sm">
-          Upload images or PDF files for a single patient
+          Upload files or use camera to capture pages for a single patient
         </p>
       </div>
 
@@ -325,6 +353,28 @@ export default function LGCaptureUpload() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Camera Button */}
+      <Button
+        onClick={() => setIsCameraOpen(true)}
+        variant="outline"
+        className="w-full h-14 text-lg"
+        size="lg"
+        disabled={isExtracting || isSubmitting || images.length >= maxPages}
+      >
+        <Camera className="mr-2 h-6 w-6" />
+        📷 Capture with Camera
+        {isAnalysingCapture && <Loader2 className="ml-2 h-4 w-4 animate-spin" />}
+      </Button>
+
+      {/* Camera Modal */}
+      <LGCameraModal
+        open={isCameraOpen}
+        onOpenChange={setIsCameraOpen}
+        onCapture={handleCameraCapture}
+        capturedCount={images.length}
+        maxPages={maxPages}
+      />
 
       {/* Submit Button - moved above image grid */}
       {images.length > 0 && (
