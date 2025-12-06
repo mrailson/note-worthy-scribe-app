@@ -9,6 +9,8 @@ interface ProcessingMetricsProps {
     upload_completed_at?: string | null;
     ocr_started_at?: string | null;
     ocr_completed_at?: string | null;
+    summary_started_at?: string | null;
+    summary_completed_at?: string | null;
     pdf_started_at?: string | null;
     pdf_completed_at?: string | null;
     // Compression fields
@@ -64,13 +66,14 @@ function formatSecondsPerPage(seconds: number, pageCount: number): string {
 export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
   const uploadDuration = calculateDuration(patient.upload_started_at, patient.upload_completed_at);
   const ocrDuration = calculateDuration(patient.ocr_started_at, patient.ocr_completed_at);
+  const summaryDuration = calculateDuration(patient.summary_started_at, patient.summary_completed_at);
   const pdfDuration = calculateDuration(patient.pdf_started_at, patient.pdf_completed_at);
 
-  const totalDuration = [uploadDuration, ocrDuration, pdfDuration]
+  const totalDuration = [uploadDuration, ocrDuration, summaryDuration, pdfDuration]
     .filter((d): d is number => d !== null)
     .reduce((a, b) => a + b, 0);
 
-  const hasAnyMetrics = uploadDuration !== null || ocrDuration !== null || pdfDuration !== null;
+  const hasAnyMetrics = uploadDuration !== null || ocrDuration !== null || summaryDuration !== null || pdfDuration !== null;
 
   if (!hasAnyMetrics) {
     return null;
@@ -142,6 +145,31 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
                       <span className="text-muted-foreground ml-2">
                         ({formatSecondsPerPage(ocrDuration, pageCount)})
                       </span>
+                    </span>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+          
+          {/* AI Summary & SNOMED Timing */}
+          {(patient.summary_started_at || patient.summary_completed_at) && (
+            <>
+              <hr className="border-border" />
+              <div className="space-y-1">
+                <div className="flex justify-between items-center text-muted-foreground text-xs">
+                  <span>AI Summary Start:</span>
+                  <span className="font-mono">{formatTimestamp(patient.summary_started_at) || '—'}</span>
+                </div>
+                <div className="flex justify-between items-center text-muted-foreground text-xs">
+                  <span>AI Summary Complete:</span>
+                  <span className="font-mono">{formatTimestamp(patient.summary_completed_at) || '—'}</span>
+                </div>
+                {summaryDuration !== null && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground font-medium">AI Summary Duration:</span>
+                    <span className="font-medium font-mono">
+                      {formatDuration(summaryDuration)}
                     </span>
                   </div>
                 )}

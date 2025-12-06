@@ -3412,7 +3412,9 @@ export type Database = {
           sex: string
           snomed_csv_url: string | null
           snomed_json_url: string | null
+          summary_completed_at: string | null
           summary_json_url: string | null
+          summary_started_at: string | null
           updated_at: string | null
           upload_completed_at: string | null
           upload_progress: number | null
@@ -3471,7 +3473,9 @@ export type Database = {
           sex?: string
           snomed_csv_url?: string | null
           snomed_json_url?: string | null
+          summary_completed_at?: string | null
           summary_json_url?: string | null
+          summary_started_at?: string | null
           updated_at?: string | null
           upload_completed_at?: string | null
           upload_progress?: number | null
@@ -3530,7 +3534,9 @@ export type Database = {
           sex?: string
           snomed_csv_url?: string | null
           snomed_json_url?: string | null
+          summary_completed_at?: string | null
           summary_json_url?: string | null
+          summary_started_at?: string | null
           updated_at?: string | null
           upload_completed_at?: string | null
           upload_progress?: number | null
