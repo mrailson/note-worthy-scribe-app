@@ -446,7 +446,7 @@ export default function LGCaptureResults() {
       {/* Start Next Patient */}
       {patient.job_status === 'succeeded' && (
         <Button
-          onClick={() => navigate('/lg-capture/start')}
+          onClick={() => navigate('/lg-capture')}
           className="w-full"
           size="lg"
         >
