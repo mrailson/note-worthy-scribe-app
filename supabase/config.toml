@@ -302,3 +302,6 @@ verify_jwt = true
 
 [functions.plaud-webhook]
 verify_jwt = false
+
+[functions.lg-compress-pdf]
+verify_jwt = true
