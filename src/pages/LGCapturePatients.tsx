@@ -18,10 +18,11 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2 } from 'lucide-react';
+import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import pdfIcon from '@/assets/pdf-icon.png';
+import { LGValidationModal } from '@/components/lg-capture/LGValidationModal';
 
 function formatNhsNumber(nhs: string | null | undefined): string {
   if (!nhs) return '—';
@@ -52,6 +53,8 @@ export default function LGCapturePatients() {
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [deleteConfirmText, setDeleteConfirmText] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
+  const [validationModalOpen, setValidationModalOpen] = useState(false);
+  const [selectedPatientForValidation, setSelectedPatientForValidation] = useState<LGPatient | null>(null);
 
   // Fetch practice names lookup
   useEffect(() => {
@@ -366,6 +369,20 @@ export default function LGCapturePatients() {
                             </button>
                           ) : null
                         )}
+                        {/* Validate & Upload Icon */}
+                        {patient.job_status === 'succeeded' && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedPatientForValidation(patient);
+                              setValidationModalOpen(true);
+                            }}
+                            className="p-1 rounded hover:bg-primary/10 transition-colors text-primary"
+                            title="Validate & Upload to Clinical System"
+                          >
+                            <ShieldCheck className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                       <span className="text-xs text-muted-foreground text-right">
                         {patient.practice_ods}{practiceNames[patient.practice_ods] ? ` - ${practiceNames[patient.practice_ods]}` : ''}
@@ -440,6 +457,33 @@ export default function LGCapturePatients() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Validation Modal */}
+      {selectedPatientForValidation && (
+        <LGValidationModal
+          open={validationModalOpen}
+          onClose={() => {
+            setValidationModalOpen(false);
+            setSelectedPatientForValidation(null);
+          }}
+          patient={{
+            id: selectedPatientForValidation.id,
+            patient_name: selectedPatientForValidation.patient_name || selectedPatientForValidation.ai_extracted_name,
+            nhs_number: selectedPatientForValidation.nhs_number || selectedPatientForValidation.ai_extracted_nhs,
+            dob: selectedPatientForValidation.dob || selectedPatientForValidation.ai_extracted_dob,
+            images_count: selectedPatientForValidation.images_count,
+            created_at: selectedPatientForValidation.created_at,
+            pdf_url: (selectedPatientForValidation as any).pdf_url || null,
+            pdf_final_size_mb: (selectedPatientForValidation as any).pdf_final_size_mb || null,
+            pdf_part_urls: (selectedPatientForValidation as any).pdf_part_urls || null,
+            pdf_split: (selectedPatientForValidation as any).pdf_split || null,
+          }}
+          onValidated={async () => {
+            const data = await listPatients();
+            setPatients(data);
+          }}
+        />
+      )}
     </div>
   );
 }
