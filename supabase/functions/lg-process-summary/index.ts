@@ -573,7 +573,7 @@ serve(async (req) => {
           ai_extracted_name: extractedPatient.patient_name || null,
           ai_extracted_nhs: extractedPatient.nhs_number?.replace(/\s/g, '') || null,
           ai_extracted_dob: extractedPatient.date_of_birth || null,
-          ai_extracted_sex: extractedPatient.sex || 'unknown',
+          ai_extracted_sex: (extractedPatient.sex || 'unknown').toLowerCase(),
           ai_extraction_confidence: extractedPatient.confidence || 0,
           requires_verification: (extractedPatient.confidence || 0) < 0.8,
         };
