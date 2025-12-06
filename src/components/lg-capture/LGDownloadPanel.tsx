@@ -2,11 +2,12 @@ import { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink, ChevronDown, FileWarning } from 'lucide-react';
+import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink, ChevronDown, FileWarning, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
 import { toast } from 'sonner';
 import { useIsIPhone } from '@/hooks/use-mobile';
+import { LGPdfThumbnailPreview } from './LGPdfThumbnailPreview';
 
 interface LGDownloadPanelProps {
   patient: LGPatient;
@@ -14,6 +15,7 @@ interface LGDownloadPanelProps {
 
 export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [showPreview, setShowPreview] = useState(false);
   const isIPhone = useIsIPhone();
   
   // Parse pdf_part_urls if it exists
@@ -266,7 +268,31 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {/* Primary file(s) - Lloyd George PDF (may be split) */}
-        {renderSplitPdfButtons()}
+        <div className="flex gap-2">
+          <div className="flex-1">
+            {renderSplitPdfButtons()}
+          </div>
+          {/* Preview toggle button - only for non-split PDFs */}
+          {!patient.pdf_split && patient.pdf_url && (
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-auto self-start"
+              onClick={() => setShowPreview(!showPreview)}
+              title={showPreview ? 'Hide preview' : 'Quick preview'}
+            >
+              {showPreview ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </Button>
+          )}
+        </div>
+
+        {/* PDF Thumbnail Preview */}
+        {showPreview && patient.pdf_url && !patient.pdf_split && (
+          <LGPdfThumbnailPreview 
+            pdfUrl={patient.pdf_url} 
+            totalPages={patient.images_count || 0} 
+          />
+        )}
         
         {/* Other files - collapsible */}
         <Collapsible open={otherFilesOpen} onOpenChange={setOtherFilesOpen}>
