@@ -18,7 +18,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck } from 'lucide-react';
+import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import pdfIcon from '@/assets/pdf-icon.png';
@@ -238,6 +238,12 @@ export default function LGCapturePatients() {
     }
   };
 
+  const handleRefresh = async () => {
+    const data = await listPatients(search || undefined);
+    setPatients(data);
+    toast.success('Refreshed');
+  };
+
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
       <div className="flex items-center justify-between">
@@ -249,9 +255,14 @@ export default function LGCapturePatients() {
           Back
         </Button>
         
-        <Button onClick={() => navigate('/lg-capture/upload')}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Patient
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleRefresh}
+          disabled={isLoading}
+          title="Refresh"
+        >
+          <RefreshCw className={`h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
         </Button>
       </div>
 
@@ -280,6 +291,12 @@ export default function LGCapturePatients() {
           <Search className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* New Patient Button - just above patient list */}
+      <Button onClick={() => navigate('/lg-capture/upload')} className="w-full">
+        <Plus className="mr-2 h-4 w-4" />
+        New Patient
+      </Button>
 
       {/* Patient List */}
       {isLoading ? (
