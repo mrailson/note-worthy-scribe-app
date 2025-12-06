@@ -314,24 +314,28 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                   </p>
                   <div className="mt-3 space-y-2">
                     {patient.pdf_part_urls.map((partUrl, index) => {
-                      const nhsNum = patient.nhs_number?.replace(/\s/g, '') || 'Unknown';
-                      const dobFormatted = patient.dob 
-                        ? new Date(patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
-                        : 'Unknown';
-                      const scanDate = new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_');
                       const partNumber = index + 1;
                       const totalParts = patient.pdf_part_urls!.length;
-                      const filename = `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan_Part_${partNumber}.pdf`;
+                      const filename = generateLGFilename({
+                        patientName: patient.patient_name,
+                        nhsNumber: patient.nhs_number,
+                        dob: patient.dob,
+                        partNumber,
+                        totalParts
+                      });
+                      // Get part sizes from patient data if available
+                      const partSizes = (patient as any).pdf_part_sizes as number[] | undefined;
+                      const partSizeMb = partSizes?.[index];
                       
                       return (
                         <div key={index} className="bg-primary p-4 rounded-lg text-primary-foreground">
                           <div className="flex items-start justify-between gap-3">
                             <div className="flex-1 min-w-0">
-                              <p className="font-semibold text-lg">Lloyd George PDF ({partNumber} of {totalParts})</p>
-                              <p className="text-primary-foreground/80 text-sm mt-0.5">
-                                Searchable PDF • {patient.images_count || '—'} pages total • {patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)} MB total` : '—'}
+                              <p className="font-semibold text-lg">Part {partNumber} of {totalParts}{partSizeMb ? ` • ${partSizeMb.toFixed(2)} MB` : ''}</p>
+                              <p className="text-primary-foreground/80 text-sm mt-0.5 break-all">
+                                {filename}
                               </p>
-                              <p className="text-primary-foreground/80 text-sm mt-1">
+                              <p className="text-primary-foreground/70 text-xs mt-1">
                                 {patient.patient_name || 'Unknown'} | NHS: {formatNhsNumber(patient.nhs_number)} | DOB: {formatDate(patient.dob)}
                               </p>
                             </div>
@@ -356,7 +360,7 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                                   const url = window.URL.createObjectURL(blob);
                                   const a = document.createElement('a');
                                   a.href = url;
-                                  a.download = `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan_Part${partNumber}.pdf`;
+                                  a.download = filename;
                                   document.body.appendChild(a);
                                   a.click();
                                   document.body.removeChild(a);
