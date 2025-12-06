@@ -353,7 +353,17 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                                     toast.error('Failed to get download link');
                                     return;
                                   }
-                                  window.open(data.signedUrl, '_blank');
+                                  // Force download instead of opening in browser
+                                  const response = await fetch(data.signedUrl);
+                                  const blob = await response.blob();
+                                  const url = window.URL.createObjectURL(blob);
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan_Part${partNumber}.pdf`;
+                                  document.body.appendChild(a);
+                                  a.click();
+                                  document.body.removeChild(a);
+                                  window.URL.revokeObjectURL(url);
                                 } catch {
                                   toast.error('Failed to download file');
                                 }
@@ -407,7 +417,22 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                                 toast.error('Failed to get download link');
                                 return;
                               }
-                              window.open(data.signedUrl, '_blank');
+                              // Force download instead of opening in browser
+                              const nhsNum = patient.nhs_number?.replace(/\s/g, '') || 'Unknown';
+                              const dobFormatted = patient.dob 
+                                ? new Date(patient.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_')
+                                : 'Unknown';
+                              const scanDate = new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '_');
+                              const response = await fetch(data.signedUrl);
+                              const blob = await response.blob();
+                              const url = window.URL.createObjectURL(blob);
+                              const a = document.createElement('a');
+                              a.href = url;
+                              a.download = `${nhsNum}_${dobFormatted}_${scanDate}___Lloyd George Scan.pdf`;
+                              document.body.appendChild(a);
+                              a.click();
+                              document.body.removeChild(a);
+                              window.URL.revokeObjectURL(url);
                             } catch {
                               toast.error('Failed to download file');
                             }
