@@ -384,29 +384,16 @@ export default function LGCaptureLanding() {
         <p className="text-xs text-muted-foreground">Proof of Concept</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <Button
-          onClick={() => navigate('/lg-capture/start')}
-          className="w-full h-14 text-lg"
-          size="lg"
-          disabled={!canStart}
-        >
-          <Camera className="mr-2 h-6 w-6" />
-          Camera Capture
-          <ArrowRight className="ml-2 h-5 w-5" />
-        </Button>
-        
-        <Button
-          onClick={() => navigate('/lg-capture/upload')}
-          variant="outline"
-          className="w-full h-14 text-lg"
-          size="lg"
-          disabled={!canStart}
-        >
-          <Upload className="mr-2 h-6 w-6" />
-          Upload Files
-        </Button>
-      </div>
+      <Button
+        onClick={() => navigate('/lg-capture/upload')}
+        className="w-full h-14 text-lg"
+        size="lg"
+        disabled={!canStart}
+      >
+        <Camera className="mr-2 h-6 w-6" />
+        Start Capture
+        <ArrowRight className="ml-2 h-5 w-5" />
+      </Button>
 
       <div className="grid grid-cols-2 gap-3">
         <Button
@@ -479,11 +466,11 @@ export default function LGCaptureLanding() {
           <ol className="space-y-2 text-sm">
             <li className="flex gap-3">
               <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">1</span>
-              <span>Tap to photograph each page of the Lloyd George notes</span>
+              <span>Upload files or use camera to capture Lloyd George pages</span>
             </li>
             <li className="flex gap-3">
               <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">2</span>
-              <span>Reorder pages if needed and remove any poor quality shots</span>
+              <span>Reorder pages if needed • blank pages auto-detected</span>
             </li>
             <li className="flex gap-3">
               <span className="bg-primary text-primary-foreground w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">3</span>
