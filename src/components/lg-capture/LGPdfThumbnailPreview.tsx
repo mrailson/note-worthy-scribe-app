@@ -191,57 +191,37 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
           {selectedPage && (
             <>
               {/* Thumbnail strip at top - scrollable when > 6 pages */}
-              {thumbnails.length > 6 ? (
-                <div className="flex-shrink-0 border-b bg-muted/50 p-2">
-                  <div className="flex gap-2 overflow-x-auto max-w-full scrollbar-thin scrollbar-thumb-muted-foreground/30 scrollbar-track-transparent pb-1">
-                    {thumbnails.map((thumb) => (
-                      <button
-                        key={thumb.pageNum}
-                        onClick={() => setSelectedPage(thumb)}
-                        className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-all ${
-                          thumb.pageNum === selectedPage.pageNum
-                            ? 'border-primary ring-2 ring-primary/30'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <img
-                          src={thumb.dataUrl}
-                          alt={`Page ${thumb.pageNum}`}
-                          className="w-12 h-16 object-cover"
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center">
-                          {thumb.pageNum}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
+              <div className="flex-shrink-0 border-b bg-muted/50 p-2 overflow-hidden">
+                <div 
+                  className={`flex gap-2 pb-1 ${
+                    thumbnails.length > 6 
+                      ? 'overflow-x-scroll' 
+                      : 'justify-center'
+                  }`}
+                  style={{ scrollbarWidth: 'thin' }}
+                >
+                  {thumbnails.map((thumb) => (
+                    <button
+                      key={thumb.pageNum}
+                      onClick={() => setSelectedPage(thumb)}
+                      className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-all ${
+                        thumb.pageNum === selectedPage.pageNum
+                          ? 'border-primary ring-2 ring-primary/30'
+                          : 'border-border hover:border-primary/50'
+                      }`}
+                    >
+                      <img
+                        src={thumb.dataUrl}
+                        alt={`Page ${thumb.pageNum}`}
+                        className="w-12 h-16 object-cover"
+                      />
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center">
+                        {thumb.pageNum}
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              ) : (
-                <div className="flex-shrink-0 border-b bg-muted/50 p-2">
-                  <div className="flex gap-2 justify-center">
-                    {thumbnails.map((thumb) => (
-                      <button
-                        key={thumb.pageNum}
-                        onClick={() => setSelectedPage(thumb)}
-                        className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-all ${
-                          thumb.pageNum === selectedPage.pageNum
-                            ? 'border-primary ring-2 ring-primary/30'
-                            : 'border-border hover:border-primary/50'
-                        }`}
-                      >
-                        <img
-                          src={thumb.dataUrl}
-                          alt={`Page ${thumb.pageNum}`}
-                          className="w-12 h-16 object-cover"
-                        />
-                        <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center">
-                          {thumb.pageNum}
-                        </div>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
+              </div>
 
               {/* Main image area */}
               <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden bg-muted/20 min-h-0">
