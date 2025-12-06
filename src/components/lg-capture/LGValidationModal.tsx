@@ -386,7 +386,6 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                           patientName: patient.patient_name,
                           nhsNumber: patient.nhs_number,
                           dob: patient.dob,
-                          scanDate: patient.created_at,
                           partNumber: 1,
                           totalParts: 1
                         })}
@@ -419,7 +418,6 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                                 patientName: patient.patient_name,
                                 nhsNumber: patient.nhs_number,
                                 dob: patient.dob,
-                                scanDate: patient.created_at,
                                 partNumber: 1,
                                 totalParts: 1
                               });

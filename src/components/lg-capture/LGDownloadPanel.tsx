@@ -132,15 +132,13 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
   const baseFilename = generateLGBaseFilename({
     patientName: patientNameForFile,
     nhsNumber,
-    dob,
-    scanDate
+    dob
   });
 
   const primaryFilename = generateLGFilename({
     patientName: patientNameForFile,
     nhsNumber,
     dob,
-    scanDate,
     partNumber: 1,
     totalParts
   });
@@ -229,7 +227,6 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
             patientName: patientNameForFile,
             nhsNumber,
             dob,
-            scanDate,
             partNumber: index + 1,
             totalParts: pdfPartUrls.length
           });
