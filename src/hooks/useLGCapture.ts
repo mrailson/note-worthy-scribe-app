@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { generateULID } from '@/utils/ulid';
 import { toast } from 'sonner';
-
+import { compressLgImageFromDataUrl } from '@/utils/lgImageCompressor';
 // Helper function to convert data URL to Blob (more reliable than fetch)
 function dataUrlToBlob(dataUrl: string): Blob {
   const arr = dataUrl.split(',');
@@ -177,30 +177,36 @@ export function useLGCapture() {
         console.error('Failed to update status:', statusError);
       }
 
-      // Upload each image
+      // Upload each image with CLIENT-SIDE COMPRESSION
       for (let i = 0; i < images.length; i++) {
         const image = images[i];
         const seq = String(i + 1).padStart(3, '0');
         const path = `${practiceOds}/${patientId}/raw/${seq}.jpg`;
         
-        console.log(`Uploading image ${i + 1}/${images.length} to path:`, path);
-        console.log(`DataUrl length: ${image.dataUrl?.length || 0}, starts with: ${image.dataUrl?.substring(0, 50)}`);
+        console.log(`Compressing and uploading image ${i + 1}/${images.length}`);
         
         // Validate data URL
         if (!image.dataUrl || !image.dataUrl.startsWith('data:')) {
           throw new Error(`Invalid image data for page ${i + 1}`);
         }
         
-        // Convert data URL to blob (more reliable method)
+        // COMPRESS IMAGE CLIENT-SIDE before upload
+        // Target: 600px wide, grayscale, 40% JPEG quality
         let blob: Blob;
         try {
-          blob = dataUrlToBlob(image.dataUrl);
-        } catch (convErr) {
-          console.error(`Failed to convert image ${i + 1}:`, convErr);
-          throw new Error(`Failed to process image ${i + 1}: ${convErr instanceof Error ? convErr.message : 'Unknown error'}`);
+          blob = await compressLgImageFromDataUrl(image.dataUrl);
+          console.log(`Page ${i + 1}: Compressed to ${(blob.size / 1024).toFixed(1)} KB`);
+        } catch (compressErr) {
+          console.error(`Failed to compress image ${i + 1}:`, compressErr);
+          // Fallback to original conversion
+          try {
+            blob = dataUrlToBlob(image.dataUrl);
+            console.log(`Page ${i + 1}: Using original (${(blob.size / 1024).toFixed(1)} KB)`);
+          } catch (convErr) {
+            console.error(`Failed to convert image ${i + 1}:`, convErr);
+            throw new Error(`Failed to process image ${i + 1}: ${convErr instanceof Error ? convErr.message : 'Unknown error'}`);
+          }
         }
-        
-        console.log(`Blob size: ${blob.size}, type: ${blob.type}`);
         
         if (blob.size === 0) {
           throw new Error(`Image ${i + 1} is empty - camera may not be working`);
@@ -225,6 +231,7 @@ export function useLGCapture() {
         await logAuditEvent(patientId, 'page_uploaded', user.email || 'unknown', user.id, {
           page_number: i + 1,
           total_pages: images.length,
+          compressed_size_kb: Math.round(blob.size / 1024),
         });
       }
 
