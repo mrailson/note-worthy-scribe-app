@@ -170,6 +170,9 @@ export function LGProcessingMetrics({ patient }: ProcessingMetricsProps) {
                     <span className="text-muted-foreground font-medium">AI Summary Duration:</span>
                     <span className="font-medium font-mono">
                       {formatDuration(summaryDuration)}
+                      <span className="text-muted-foreground ml-2">
+                        ({formatSecondsPerPage(summaryDuration, pageCount)})
+                      </span>
                     </span>
                   </div>
                 )}
