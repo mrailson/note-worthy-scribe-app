@@ -187,7 +187,6 @@ export default function LGCaptureFileView() {
     if (!nhs) return;
     const clean = nhs.replace(/\s/g, '');
     navigator.clipboard.writeText(clean);
-    toast.success('NHS number copied');
   };
 
   const downloadSingleFile = async (patient: LGPatientFile) => {
@@ -246,7 +245,6 @@ export default function LGCaptureFileView() {
         })
         .eq('id', patient.id);
 
-      toast.success('File downloaded');
       fetchPatients();
     } catch (err) {
       console.error('Download error:', err);
@@ -286,7 +284,6 @@ export default function LGCaptureFileView() {
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
 
-        toast.success(`Downloaded ${data.patientCount || selectedIds.size} patient files`);
         setSelectedIds(new Set());
         fetchPatients();
       }
@@ -308,7 +305,6 @@ export default function LGCaptureFileView() {
         })
         .eq('id', patientId);
 
-      toast.success('Marked as uploaded to SystmOne');
       fetchPatients();
     } catch (err) {
       console.error('Error marking as uploaded:', err);
@@ -326,7 +322,6 @@ export default function LGCaptureFileView() {
         })
         .eq('id', patientId);
 
-      toast.success('Record archived');
       fetchPatients();
     } catch (err) {
       console.error('Error archiving:', err);

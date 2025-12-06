@@ -123,8 +123,6 @@ export function LGQualityGateModal({
 
       setResults(data);
       setProgress(100);
-      
-      toast.success('Quality gate review complete');
     } catch (err) {
       console.error('Quality gate error:', err);
       toast.error('Failed to run quality gate: ' + (err instanceof Error ? err.message : 'Unknown error'));
@@ -199,7 +197,6 @@ export function LGQualityGateModal({
         .from('lg')
         .upload(snomedPath, new Blob([updatedJson], { type: 'application/json' }), { upsert: true });
 
-      toast.success('Corrections applied successfully');
       onComplete();
       onClose();
     } catch (err) {

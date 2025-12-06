@@ -232,8 +232,6 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
       });
 
       if (error) throw error;
-
-      toast.success(`Email sent to ${userEmail}`);
     } catch (err) {
       console.error('Failed to send email:', err);
       console.error('Error details:', err instanceof Error ? err.stack : err);

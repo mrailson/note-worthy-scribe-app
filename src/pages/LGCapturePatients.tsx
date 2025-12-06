@@ -148,7 +148,6 @@ export default function LGCapturePatients() {
       setPatients([]);
       setShowDeleteAllDialog(false);
       setDeleteConfirmText('');
-      toast.success('All LG captures deleted successfully');
     } catch (error) {
       console.error('Delete all error:', error);
       toast.error('Failed to delete all captures');
@@ -242,19 +241,16 @@ export default function LGCapturePatients() {
   const handleRefresh = async () => {
     const data = await listPatients(search || undefined);
     setPatients(data);
-    toast.success('Refreshed');
   };
 
   const handleReprocessSummary = async (patientId: string, e: React.MouseEvent) => {
     e.stopPropagation();
     setReprocessingId(patientId);
     try {
-      toast.info('Reprocessing patient details...');
       const { error } = await supabase.functions.invoke('lg-process-summary', {
         body: { patientId }
       });
       if (error) throw error;
-      toast.success('Reprocessing started - details will update automatically');
     } catch (err) {
       console.error('Reprocess error:', err);
       toast.error('Failed to reprocess');
@@ -272,7 +268,6 @@ export default function LGCapturePatients() {
         .eq('id', patientId);
       if (error) throw error;
       setPatients(prev => prev.filter(p => p.id !== patientId));
-      toast.success('Draft deleted');
     } catch (err) {
       console.error('Delete draft error:', err);
       toast.error('Failed to delete draft');

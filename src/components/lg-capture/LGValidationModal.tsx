@@ -94,7 +94,6 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
       setScreenshot(base64);
       setScreenshotPreview(base64);
       setValidationResult(null);
-      toast.success('Screenshot loaded from clipboard');
     };
     reader.readAsDataURL(file);
   }, []);
@@ -224,7 +223,6 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
 
       if (error) throw error;
 
-      toast.success(isOverride ? 'Validation confirmed with manual override' : 'Upload validated successfully');
       onValidated();
       handleClose();
     } catch (err) {
@@ -275,7 +273,6 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(patient.nhs_number?.replace(/\s/g, '') || '');
-                        toast.success('NHS number copied');
                       }}
                       className="p-1 hover:bg-muted rounded transition-colors"
                       title="Copy NHS number"
@@ -292,7 +289,6 @@ export function LGValidationModal({ open, onClose, patient, onValidated }: LGVal
                     <button
                       onClick={() => {
                         navigator.clipboard.writeText(formatDate(patient.dob));
-                        toast.success('DOB copied');
                       }}
                       className="p-1 hover:bg-muted rounded transition-colors"
                       title="Copy date of birth"
