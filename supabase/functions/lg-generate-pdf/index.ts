@@ -22,9 +22,9 @@ const MAX_PDF_SIZE_MB = 5;
 const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
 // Large document thresholds
-const LARGE_DOC_THRESHOLD = 75; // Skip compression for docs > 75 pages
-const MAX_PAGES_PER_SPLIT_PART = 5; // Maximum pages per PDF part (reduced to avoid 413 errors)
-const UPLOAD_RETRY_ATTEMPTS = 2; // Retry upload failures (reduced to save time)
+const LARGE_DOC_THRESHOLD = 200; // Only skip compression for extremely large docs
+const MAX_PAGES_PER_SPLIT_PART = 50; // Documents >50 pages split into 50-page parts
+const UPLOAD_RETRY_ATTEMPTS = 3; // Retry upload failures
 
 // Tracking interfaces for failed pages
 interface FailedPage {
@@ -533,18 +533,16 @@ async function splitPdfIntoParts(
     return [];
   }
   
-  // Use fixed small page count per part to avoid 413 Payload too large errors
-  // Supabase storage has a ~6MB upload limit, uncompressed images are large
+  // Documents >50 pages: split into 50-page parts
+  // Documents ≤50 pages: single PDF (compression keeps it under 5MB)
   let pagesPerPart: number;
-  if (scannedPageCount > 100) {
-    pagesPerPart = 3; // Very large docs: 3 pages per part (safest)
-  } else if (scannedPageCount > 50) {
-    pagesPerPart = 4; // Large docs: 4 pages per part
+  if (scannedPageCount > 50) {
+    pagesPerPart = MAX_PAGES_PER_SPLIT_PART; // 50 pages per part
   } else {
-    pagesPerPart = MAX_PAGES_PER_SPLIT_PART; // Normal: 5 pages per part
+    pagesPerPart = scannedPageCount; // Don't split - single PDF
   }
   
-  console.log(`Split config: ${scannedPageCount} scanned pages, ${pagesPerPart} pages per part (fixed limit: ${MAX_PAGES_PER_SPLIT_PART})`);
+  console.log(`Split config: ${scannedPageCount} scanned pages, ${pagesPerPart} pages per part`);
   
   let currentScannedPage = 0;
   let partNumber = 1;
@@ -731,19 +729,33 @@ async function processBatchWithMemoryProtection(
       const exifOrientation = parseExifOrientation(uint8Array);
       console.log(`Page ${i + 1}: ${(originalSize / 1024).toFixed(0)}KB, EXIF: ${exifOrientation}`);
       
-      // SKIP compression to save CPU - embed directly as PNG (more reliable in Deno)
+      // Compress image using 35% scale, 55% quality (restoring compression)
+      const compressionSettings = getCompressionSettings(files.length, 0);
+      let compressedBytes: Uint8Array;
+      let rotationApplied = 0;
+      
+      try {
+        const compressed = await compressImage(uint8Array, compressionSettings);
+        compressedBytes = compressed.bytes;
+        rotationApplied = compressed.rotationApplied;
+        console.log(`Compressed page ${i + 1}: ${(compressedBytes.length / 1024).toFixed(0)}KB (was ${(originalSize / 1024).toFixed(0)}KB), rotation: ${rotationApplied}`);
+      } catch (compressErr) {
+        console.warn(`Compression failed for page ${i + 1}, using original:`, compressErr);
+        compressedBytes = uint8Array;
+      }
+      
+      // Embed compressed image
       let image: any = null;
       try {
-        // Try PNG first - more reliable in Deno edge runtime
-        image = await pdfDoc.embedPng(uint8Array);
-        console.log(`Embedded PNG page ${i + 1}`);
-      } catch (pngErr) {
-        // Fallback to JPEG
+        image = await pdfDoc.embedJpg(compressedBytes);
+        console.log(`Embedded JPEG page ${i + 1}`);
+      } catch (jpgErr) {
+        // Fallback to PNG if JPEG fails
         try {
-          image = await pdfDoc.embedJpg(uint8Array);
-          console.log(`Embedded JPEG page ${i + 1}`);
-        } catch (jpgErr) {
-          console.error(`FAILED page ${i + 1}:`, jpgErr);
+          image = await pdfDoc.embedPng(uint8Array);
+          console.log(`Embedded PNG page ${i + 1} (fallback)`);
+        } catch (pngErr) {
+          console.error(`FAILED page ${i + 1}:`, pngErr);
           throw new Error(`Image embed failed`);
         }
       }
