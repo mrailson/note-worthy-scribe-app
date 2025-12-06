@@ -25,7 +25,7 @@ const MAX_PDF_SIZE_BYTES = MAX_PDF_SIZE_MB * 1024 * 1024;
 
 // Large document thresholds
 const LARGE_DOC_THRESHOLD = 200; // Only skip compression for extremely large docs
-const MAX_PAGES_PER_SPLIT_PART = 30; // Documents >30 pages split into 30-page parts
+const MAX_PAGES_PER_SPLIT_PART = 10; // Documents >10 pages split into 10-page parts (CPU limit)
 const UPLOAD_RETRY_ATTEMPTS = 3; // Retry upload failures
 
 // Tracking interfaces for failed pages
