@@ -272,15 +272,25 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
                     Diagnoses
                   </h4>
                   <div className="space-y-1">
-                    {conditions.map((item, i) => (
-                      <div key={i} className="text-sm p-2 bg-muted/30 rounded flex justify-between">
-                        <span>{item.condition}</span>
-                        <span className="text-muted-foreground">
-                          {formatUKDate('date_noted' in item ? item.date_noted : (item as any).first_noted)}
-                          {item.status && <Badge variant="outline" className="ml-2 text-xs">{item.status}</Badge>}
-                        </span>
-                      </div>
-                    ))}
+                    {conditions.map((item, i) => {
+                      // Handle both string and object formats
+                      if (typeof item === 'string') {
+                        return (
+                          <div key={i} className="text-sm p-2 bg-muted/30 rounded">
+                            <span>{item}</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div key={i} className="text-sm p-2 bg-muted/30 rounded flex justify-between">
+                          <span>{item.condition}</span>
+                          <span className="text-muted-foreground">
+                            {formatUKDate('date_noted' in item ? item.date_noted : (item as any).first_noted)}
+                            {item.status && <Badge variant="outline" className="ml-2 text-xs">{item.status}</Badge>}
+                          </span>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
