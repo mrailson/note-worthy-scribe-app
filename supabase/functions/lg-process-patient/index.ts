@@ -182,24 +182,40 @@ Do not add any extra top-level keys.
 - If the record says "?asthma" or is unclear, return MANUAL_REVIEW.
 - Prefer a more general but correct code over a very specific but risky one.
 
+=========================================
+## ⚠️ CRITICAL: EARLIEST DATE RULE (READ FIRST!)
+=========================================
+
+**THIS IS THE MOST IMPORTANT RULE FOR DIAGNOSES.**
+
+Before assigning ANY date to a diagnosis, you MUST:
+
+1. **SEARCH THE ENTIRE OCR** for ALL mentions of that condition across ALL pages.
+2. **LIST ALL DATES** where the condition appears (even as "Type 2 Diabetes - stable" or similar).
+3. **SELECT THE EARLIEST DATE** from your list. Earlier years ALWAYS win (2019 beats 2023).
+4. **Set source_page to the page with the EARLIEST date**, not the most recent page.
+
+**CONCRETE EXAMPLE FROM THIS RECORD TYPE:**
+- Page 4 (dated 01-Mar-2024): "Active Problems: Type 2 Diabetes" 
+- Page 10 (dated 06-Feb-2023): "Exacerbation of Type 2 Diabetes"
+- Page 13 (dated 15-Jun-2019): "Type 2 Diabetes - stable"
+
+→ **CORRECT OUTPUT**: date = "15-Jun-2019", source_page = 13
+→ **WRONG OUTPUT**: date = "06-Feb-2023" (this is NOT the earliest!)
+
+**FAILURE TO FOLLOW THIS RULE = INCORRECT CLINICAL DATA**
+
+The goal is to capture when the condition was FIRST documented, not when it was last mentioned.
+
 -----------------------------------------
-## 3.5 EARLIEST DATE RULE (CRITICAL FOR DIAGNOSES)
+## 3.5 DATE VERIFICATION CHECKLIST
 -----------------------------------------
 
-For each diagnosis, you MUST find and use the EARLIEST date mentioned in the Lloyd George record:
-
-1. **Scan the ENTIRE OCR text** for all mentions of the same condition.
-2. **Compare ALL dates** where the condition appears and select the EARLIEST one.
-3. **Year only is acceptable** if full date is not available (e.g., "2019" wins over "01-Mar-2024").
-4. **Earlier dates ALWAYS take precedence** - if "Type 2 Diabetes" appears on 15/06/2019 and again on 01/03/2024, use 15/06/2019.
-5. **Source page should reference the page with the EARLIEST date**, not the most recent mention.
-
-Example:
-- Page 5 dated 01-Mar-2024 shows "Type 2 Diabetes - stable"
-- Page 13 dated 15-Jun-2019 shows "Type 2 Diabetes - stable"
-→ You MUST use date "15-Jun-2019" and source_page referencing page 13 (the earliest mention)
-
-This is critical for historical Lloyd George records where conditions may appear multiple times across many years.
+Before outputting each diagnosis, mentally verify:
+☐ Did I search ALL pages for this condition?
+☐ Did I find the EARLIEST date it appears?
+☐ Is my source_page pointing to the page with that earliest date?
+☐ Am I NOT using a discharge/admission date when an earlier clinic note exists?
 
 -----------------------------------------
 ## 4. CONFIDENCE RULES (RAG RATING)
