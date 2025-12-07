@@ -47,6 +47,7 @@ export default function LGCaptureBulk() {
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   const [recentlyQueuedCount, setRecentlyQueuedCount] = useState(0);
   const [activeTab, setActiveTab] = useState('upload');
+  const [processingFilesCount, setProcessingFilesCount] = useState(0);
 
   const startNewBatch = () => {
     setFiles([]);
@@ -272,6 +273,11 @@ export default function LGCaptureBulk() {
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-4 w-4" />
             History
+            {processingFilesCount > 0 && (
+              <Badge variant="outline" className="ml-1 h-5 px-1.5 text-xs bg-amber-100 text-amber-700 border-amber-300">
+                {processingFilesCount}
+              </Badge>
+            )}
           </TabsTrigger>
         </TabsList>
 
@@ -494,7 +500,7 @@ export default function LGCaptureBulk() {
               Refresh
             </Button>
           </div>
-          <BulkUploadHistory refreshTrigger={historyRefreshTrigger} />
+          <BulkUploadHistory refreshTrigger={historyRefreshTrigger} onProcessingCountChange={setProcessingFilesCount} />
         </TabsContent>
       </Tabs>
     </div>
