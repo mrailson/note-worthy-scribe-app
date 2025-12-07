@@ -65,6 +65,46 @@ function sanitizeForPdf(text: string): string {
     .replace(/[^\x00-\x7F]/g, '');
 }
 
+// Format NHS number with standard spacing (XXX XXX XXXX)
+function formatNhsNumber(nhs: string): string {
+  const cleaned = nhs.replace(/\s+/g, '').replace(/\D/g, '');
+  if (cleaned.length !== 10) return nhs; // Return as-is if not valid 10-digit
+  return `${cleaned.slice(0, 3)} ${cleaned.slice(3, 6)} ${cleaned.slice(6)}`;
+}
+
+// Format date to UK standard (DD/MM/YYYY)
+function formatDateUK(dateStr: string): string {
+  if (!dateStr) return '';
+  
+  // Try to parse various date formats
+  let date: Date | null = null;
+  
+  // ISO format: YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+    date = new Date(dateStr);
+  }
+  // Already UK format: DD/MM/YYYY
+  else if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+    return dateStr;
+  }
+  // UK format without slashes: DDMMYYYY
+  else if (/^\d{8}$/.test(dateStr)) {
+    const day = dateStr.slice(0, 2);
+    const month = dateStr.slice(2, 4);
+    const year = dateStr.slice(4, 8);
+    return `${day}/${month}/${year}`;
+  }
+  
+  if (date && !isNaN(date.getTime())) {
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  
+  return dateStr; // Return original if can't parse
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -96,9 +136,13 @@ serve(async (req) => {
 
     const practiceOds = patient.practice_ods;
     const patientName = patient.ai_extracted_name || patient.patient_name || 'Unknown Patient';
-    const nhsNumber = patient.ai_extracted_nhs || patient.nhs_number || '';
-    const dob = patient.ai_extracted_dob || patient.dob || '';
+    const nhsNumberRaw = patient.ai_extracted_nhs || patient.nhs_number || '';
+    const dobRaw = patient.ai_extracted_dob || patient.dob || '';
     const basePath = `${practiceOds}/${patientId}`;
+    
+    // Format NHS number and DOB for display
+    const nhsNumber = formatNhsNumber(nhsNumberRaw);
+    const dob = formatDateUK(dobRaw);
 
     // Update status
     await supabase
