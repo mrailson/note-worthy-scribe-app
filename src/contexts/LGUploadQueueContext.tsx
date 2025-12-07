@@ -11,11 +11,19 @@ interface QueuedPatient {
   status: 'queued' | 'uploading' | 'processing' | 'complete' | 'failed';
   uploadProgress: number;
   error?: string;
+  fileName?: string;
+  fileSize?: number;
+  queuedAt: Date;
+}
+
+interface QueuePatientOptions {
+  fileName?: string;
+  fileSize?: number;
 }
 
 interface LGUploadQueueContextType {
   queue: QueuedPatient[];
-  queuePatient: (patientId: string, practiceOds: string, images: CapturedImage[]) => void;
+  queuePatient: (patientId: string, practiceOds: string, images: CapturedImage[], options?: QueuePatientOptions) => void;
   activeUploads: number;
   isProcessing: boolean;
 }
@@ -36,13 +44,16 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
   const isProcessing = queue.some(q => q.status === 'uploading' || q.status === 'processing');
   const activeUploads = queue.filter(q => q.status === 'queued' || q.status === 'uploading').length;
 
-  const queuePatient = useCallback((patientId: string, practiceOds: string, images: CapturedImage[]) => {
+  const queuePatient = useCallback((patientId: string, practiceOds: string, images: CapturedImage[], options?: QueuePatientOptions) => {
     setQueue(prev => [...prev, {
       patientId,
       practiceOds,
       images,
       status: 'queued',
-      uploadProgress: 0
+      uploadProgress: 0,
+      fileName: options?.fileName,
+      fileSize: options?.fileSize,
+      queuedAt: new Date()
     }]);
   }, []);
 
