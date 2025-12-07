@@ -4,61 +4,16 @@ import { useLGCapture, CapturedImage, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical, Download, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical } from 'lucide-react';
 import { toast } from 'sonner';
+import { extractPdfPages } from '@/utils/pdfPageExtractor';
 
-// Import demo images (pages 1-30)
-import demoPage1 from '@/assets/demo/lg-demo-page-1.jpg';
-import demoPage2 from '@/assets/demo/lg-demo-page-2.jpg';
-import demoPage3 from '@/assets/demo/lg-demo-page-3.jpg';
-import demoPage4 from '@/assets/demo/lg-demo-page-4.jpg';
-import demoPage5 from '@/assets/demo/lg-demo-page-5.jpg';
-import demoPage6 from '@/assets/demo/lg-demo-page-6.jpg';
-import demoPage7 from '@/assets/demo/lg-demo-page-7.jpg';
-import demoPage8 from '@/assets/demo/lg-demo-page-8.jpg';
-import demoPage9 from '@/assets/demo/lg-demo-page-9.jpg';
-import demoPage10 from '@/assets/demo/lg-demo-page-10.jpg';
-import demoPage11 from '@/assets/demo/lg-demo-page-11.jpg';
-import demoPage12 from '@/assets/demo/lg-demo-page-12.jpg';
-import demoPage13 from '@/assets/demo/lg-demo-page-13.jpg';
-import demoPage14 from '@/assets/demo/lg-demo-page-14.jpg';
-import demoPage15 from '@/assets/demo/lg-demo-page-15.jpg';
-import demoPage16 from '@/assets/demo/lg-demo-page-16.jpg';
-import demoPage17 from '@/assets/demo/lg-demo-page-17.jpg';
-import demoPage18 from '@/assets/demo/lg-demo-page-18.jpg';
-import demoPage19 from '@/assets/demo/lg-demo-page-19.jpg';
-import demoPage20 from '@/assets/demo/lg-demo-page-20.jpg';
-import demoPage21 from '@/assets/demo/lg-demo-page-21.jpg';
-import demoPage22 from '@/assets/demo/lg-demo-page-22.jpg';
-import demoPage23 from '@/assets/demo/lg-demo-page-23.jpg';
-import demoPage24 from '@/assets/demo/lg-demo-page-24.jpg';
-import demoPage25 from '@/assets/demo/lg-demo-page-25.jpg';
-import demoPage26 from '@/assets/demo/lg-demo-page-26.jpg';
-import demoPage27 from '@/assets/demo/lg-demo-page-27.jpg';
-import demoPage28 from '@/assets/demo/lg-demo-page-28.jpg';
-import demoPage29 from '@/assets/demo/lg-demo-page-29.jpg';
-import demoPage30 from '@/assets/demo/lg-demo-page-30.jpg';
-
-// All 30 demo images
-const ALL_DEMO_IMAGES = [
-  demoPage1, demoPage2, demoPage3, demoPage4, demoPage5,
-  demoPage6, demoPage7, demoPage8, demoPage9, demoPage10,
-  demoPage11, demoPage12, demoPage13, demoPage14, demoPage15,
-  demoPage16, demoPage17, demoPage18, demoPage19, demoPage20,
-  demoPage21, demoPage22, demoPage23, demoPage24, demoPage25,
-  demoPage26, demoPage27, demoPage28, demoPage29, demoPage30,
-];
-
-async function urlToDataUrl(url: string): Promise<string> {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
+// Demo PDF paths - Small, Medium, Large
+const DEMO_PDFS = {
+  small: '/demo/lg-small.pdf',
+  medium: '/demo/lg-medium.pdf',
+  large: '/demo/lg-large.pdf',
+};
 
 export default function LGCaptureDemoService() {
   const { id } = useParams<{ id: string }>();
@@ -69,6 +24,7 @@ export default function LGCaptureDemoService() {
   const [patient, setPatient] = useState<LGPatient | null>(null);
   const [images, setImages] = useState<CapturedImage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [loadingLabel, setLoadingLabel] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
   useEffect(() => {
@@ -85,31 +41,38 @@ export default function LGCaptureDemoService() {
     loadPatient();
   }, [id, getPatient, navigate]);
 
-  const loadDemoImages = async (count: number) => {
+  const loadDemoPdf = async (size: 'small' | 'medium' | 'large') => {
     setIsLoading(true);
+    setLoadingLabel(size.charAt(0).toUpperCase() + size.slice(1));
     try {
-      // Build list of images, cycling through the 30 available images as needed
-      const imagesToLoad: string[] = [];
-      for (let i = 0; i < count; i++) {
-        imagesToLoad.push(ALL_DEMO_IMAGES[i % ALL_DEMO_IMAGES.length]);
-      }
+      // Fetch the PDF file
+      const response = await fetch(DEMO_PDFS[size]);
+      const blob = await response.blob();
+      const file = new File([blob], `lg-${size}.pdf`, { type: 'application/pdf' });
       
-      const loadedImages: CapturedImage[] = await Promise.all(
-        imagesToLoad.map(async (imgUrl, index) => {
-          const dataUrl = await urlToDataUrl(imgUrl);
-          return {
-            id: `demo-${Date.now()}-${index}`,
-            dataUrl,
-            timestamp: Date.now() + index,
-          };
-        })
-      );
+      // Extract pages from PDF
+      const extractedPages = await extractPdfPages(file, 150, (progress) => {
+        // Could add progress UI here if needed
+      }, true);
+      
+      // Convert to CapturedImage format
+      const loadedImages: CapturedImage[] = extractedPages.map((page, index) => ({
+        id: `demo-${Date.now()}-${index}`,
+        dataUrl: page.dataUrl,
+        timestamp: Date.now() + index,
+        isBlank: page.isBlank,
+        isMostlyBlank: page.isMostlyBlank,
+        blankConfidence: page.blankConfidence,
+      }));
+      
       setImages(loadedImages);
+      toast.success(`Loaded ${loadedImages.length} pages from ${size} demo`);
     } catch (error) {
-      console.error('Error loading demo images:', error);
-      toast.error('Failed to load demo images');
+      console.error('Error loading demo PDF:', error);
+      toast.error('Failed to load demo PDF');
     } finally {
       setIsLoading(false);
+      setLoadingLabel('');
     }
   };
 
@@ -185,89 +148,39 @@ export default function LGCaptureDemoService() {
       {/* Demo Load Buttons */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Load Demo Pages</CardTitle>
+          <CardTitle className="text-base">Load Demo Lloyd George Record</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-3 gap-3">
             <Button
               variant="outline"
-              onClick={() => loadDemoImages(3)}
+              onClick={() => loadDemoPdf('small')}
               disabled={isLoading}
-              className="h-16 flex-col gap-1"
+              className="h-20 flex-col gap-1"
             >
               <FileImage className="h-5 w-5" />
-              <span>3 Pages</span>
-              <span className="text-xs text-muted-foreground">Quick</span>
+              <span className="font-medium">Small</span>
+              <span className="text-xs text-muted-foreground">Dorothy Shaw</span>
             </Button>
             <Button
               variant="outline"
-              onClick={() => loadDemoImages(10)}
+              onClick={() => loadDemoPdf('medium')}
               disabled={isLoading}
-              className="h-16 flex-col gap-1"
+              className="h-20 flex-col gap-1"
             >
               <FileImage className="h-5 w-5" />
-              <span>10 Pages</span>
-              <span className="text-xs text-muted-foreground">Standard</span>
+              <span className="font-medium">Medium</span>
+              <span className="text-xs text-muted-foreground">Edward Blackwood</span>
             </Button>
             <Button
               variant="outline"
-              onClick={() => loadDemoImages(15)}
+              onClick={() => loadDemoPdf('large')}
               disabled={isLoading}
-              className="h-16 flex-col gap-1"
+              className="h-20 flex-col gap-1"
             >
               <FileImage className="h-5 w-5" />
-              <span>15 Pages</span>
-              <span className="text-xs text-muted-foreground">Medium</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => loadDemoImages(20)}
-              disabled={isLoading}
-              className="h-16 flex-col gap-1"
-            >
-              <FileImage className="h-5 w-5" />
-              <span>20 Pages</span>
-              <span className="text-xs text-muted-foreground">Large</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => loadDemoImages(50)}
-              disabled={isLoading}
-              className="h-16 flex-col gap-1"
-            >
-              <FileImage className="h-5 w-5" />
-              <span>50 Pages</span>
-              <span className="text-xs text-muted-foreground">XL</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => loadDemoImages(75)}
-              disabled={isLoading}
-              className="h-16 flex-col gap-1"
-            >
-              <FileImage className="h-5 w-5" />
-              <span>75 Pages</span>
-              <span className="text-xs text-muted-foreground">XXL</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => loadDemoImages(100)}
-              disabled={isLoading}
-              className="h-16 flex-col gap-1"
-            >
-              <FileImage className="h-5 w-5" />
-              <span>100 Pages</span>
-              <span className="text-xs text-muted-foreground">Max</span>
-            </Button>
-            <Button
-              variant="outline"
-              onClick={() => loadDemoImages(200)}
-              disabled={isLoading}
-              className="h-16 flex-col gap-1"
-            >
-              <FileImage className="h-5 w-5" />
-              <span>200 Pages</span>
-              <span className="text-xs text-muted-foreground">Ultra</span>
+              <span className="font-medium">Large</span>
+              <span className="text-xs text-muted-foreground">Albert Thornton</span>
             </Button>
           </div>
         </CardContent>
@@ -277,7 +190,7 @@ export default function LGCaptureDemoService() {
       {isLoading && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2 text-muted-foreground">Loading demo images...</span>
+          <span className="ml-2 text-muted-foreground">Loading {loadingLabel} demo PDF...</span>
         </div>
       )}
 
