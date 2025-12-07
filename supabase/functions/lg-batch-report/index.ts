@@ -157,7 +157,7 @@ serve(async (req) => {
         "Content-Type": "application/json"
       },
       body: JSON.stringify({
-        from: "noreply@bluepcn.co.uk",
+        from: "Notewell AI <noreply@bluepcn.co.uk>",
         to: [userEmail],
         subject: `LG Capture Batch Report - ${new Date().toLocaleDateString("en-GB")} - ${totalFiles} files`,
         html: emailHtml
