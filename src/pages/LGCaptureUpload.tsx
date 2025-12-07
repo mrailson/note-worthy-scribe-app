@@ -68,7 +68,7 @@ export default function LGCaptureUpload() {
   const [batchId, setBatchId] = useState(() => crypto.randomUUID());
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   
-  const maxPages = 500;
+  const maxPages = 1000;
 
   const blankCount = images.filter(img => img.isBlank).length;
   const nonBlankImages = images.filter(img => !img.isBlank);
@@ -557,7 +557,7 @@ export default function LGCaptureUpload() {
                       or click to browse • Drop multiple PDFs to merge
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Supports: JPEG, PNG, WebP images and PDF files (up to 500 pages)
+                      Supports: JPEG, PNG, WebP images and PDF files (up to 1000 pages)
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Blank pages are automatically detected
