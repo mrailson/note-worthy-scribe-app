@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Loader2, XCircle, FileText, Brain, Code, Eye, FileDown } from 'lucide-react';
+import { CheckCircle2, Loader2, XCircle, FileText, Brain, Code, Eye, FileDown, ChevronDown, ChevronUp } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
 interface LGProcessingStatusProps {
   patient: LGPatient;
@@ -19,6 +20,8 @@ interface ExtendedPatient extends LGPatient {
 
 export function LGProcessingStatus({ patient, onStatusChange }: LGProcessingStatusProps) {
   const [currentPatient, setCurrentPatient] = useState<ExtendedPatient>(patient as ExtendedPatient);
+  // Collapse by default when processing is complete
+  const [isOpen, setIsOpen] = useState(patient.job_status !== 'succeeded');
 
   useEffect(() => {
     // Subscribe to changes
@@ -172,82 +175,95 @@ export function LGProcessingStatus({ patient, onStatusChange }: LGProcessingStat
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          {currentPatient.job_status === 'succeeded' ? (
-            <>
-              <CheckCircle2 className="h-5 w-5 text-green-600" />
-              Processing Complete
-            </>
-          ) : (
-            <>
-              <Loader2 className="h-5 w-5 animate-spin text-primary" />
-              Processing...
-            </>
-          )}
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-6">
-        <div className="space-y-2">
-          <Progress value={getProgress()} className="h-2" />
-          {isBatched && currentPatient.processing_phase === 'ocr' && (
-            <p className="text-xs text-muted-foreground text-center">
-              Reading text from pages: {ocrProgress}%
-            </p>
-          )}
-        </div>
-
-        <div className="space-y-3">
-          {STEPS.map((step) => {
-            const status = getStepStatus(step.key);
-            const Icon = step.icon;
-            
-            return (
-              <div
-                key={step.key}
-                className={`flex items-center gap-3 p-3 rounded-lg ${
-                  status === 'complete' ? 'bg-green-50 text-green-700' :
-                  status === 'current' ? 'bg-primary/10 text-primary' :
-                  status === 'failed' ? 'bg-destructive/10 text-destructive' :
-                  'bg-muted/50 text-muted-foreground'
-                }`}
-              >
-                {status === 'complete' ? (
-                  <CheckCircle2 className="h-5 w-5 text-green-600" />
-                ) : status === 'current' ? (
-                  <Loader2 className="h-5 w-5 animate-spin" />
-                ) : status === 'failed' ? (
-                  <XCircle className="h-5 w-5" />
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <CollapsibleTrigger asChild>
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                {currentPatient.job_status === 'succeeded' ? (
+                  <>
+                    <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    Processing Complete
+                  </>
                 ) : (
-                  <Icon className="h-5 w-5 opacity-50" />
+                  <>
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    Processing...
+                  </>
                 )}
-                <span className="text-sm font-medium">{step.label}</span>
               </div>
-            );
-          })}
-        </div>
+              {isOpen ? (
+                <ChevronUp className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                <ChevronDown className="h-4 w-4 text-muted-foreground" />
+              )}
+            </CardTitle>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent className="space-y-6">
+            <div className="space-y-2">
+              <Progress value={getProgress()} className="h-2" />
+              {isBatched && currentPatient.processing_phase === 'ocr' && (
+                <p className="text-xs text-muted-foreground text-center">
+                  Reading text from pages: {ocrProgress}%
+                </p>
+              )}
+            </div>
 
-        {/* PDF status for batched processing */}
-        {pdfStatus && currentPatient.job_status === 'succeeded' && (
-          <div className={`text-sm ${pdfStatus.color} flex items-center gap-2`}>
-            {pdfStatus.text === 'PDF ready' ? (
-              <CheckCircle2 className="h-4 w-4" />
-            ) : (
-              <Loader2 className="h-4 w-4 animate-spin" />
+            <div className="space-y-3">
+              {STEPS.map((step) => {
+                const status = getStepStatus(step.key);
+                const Icon = step.icon;
+                
+                return (
+                  <div
+                    key={step.key}
+                    className={`flex items-center gap-3 p-3 rounded-lg ${
+                      status === 'complete' ? 'bg-green-50 text-green-700' :
+                      status === 'current' ? 'bg-primary/10 text-primary' :
+                      status === 'failed' ? 'bg-destructive/10 text-destructive' :
+                      'bg-muted/50 text-muted-foreground'
+                    }`}
+                  >
+                    {status === 'complete' ? (
+                      <CheckCircle2 className="h-5 w-5 text-green-600" />
+                    ) : status === 'current' ? (
+                      <Loader2 className="h-5 w-5 animate-spin" />
+                    ) : status === 'failed' ? (
+                      <XCircle className="h-5 w-5" />
+                    ) : (
+                      <Icon className="h-5 w-5 opacity-50" />
+                    )}
+                    <span className="text-sm font-medium">{step.label}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* PDF status for batched processing */}
+            {pdfStatus && currentPatient.job_status === 'succeeded' && (
+              <div className={`text-sm ${pdfStatus.color} flex items-center gap-2`}>
+                {pdfStatus.text === 'PDF ready' ? (
+                  <CheckCircle2 className="h-4 w-4" />
+                ) : (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                )}
+                {pdfStatus.text}
+              </div>
             )}
-            {pdfStatus.text}
-          </div>
-        )}
 
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p>Patient: {currentPatient.patient_name || currentPatient.ai_extracted_name || 'Extracting...'}</p>
-          <p>NHS: {currentPatient.nhs_number || currentPatient.ai_extracted_nhs || 'Extracting...'}</p>
-          <p>Pages: {currentPatient.images_count}</p>
-          {isBatched && pdfStatus?.text !== 'PDF ready' && (
-            <p className="text-amber-600">Large record - using background processing</p>
-          )}
-        </div>
-      </CardContent>
+            <div className="text-xs text-muted-foreground space-y-1">
+              <p>Patient: {currentPatient.patient_name || currentPatient.ai_extracted_name || 'Extracting...'}</p>
+              <p>NHS: {currentPatient.nhs_number || currentPatient.ai_extracted_nhs || 'Extracting...'}</p>
+              <p>Pages: {currentPatient.images_count}</p>
+              {isBatched && pdfStatus?.text !== 'PDF ready' && (
+                <p className="text-amber-600">Large record - using background processing</p>
+              )}
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Collapsible>
     </Card>
   );
 }

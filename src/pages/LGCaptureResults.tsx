@@ -5,6 +5,7 @@ import { LGProcessingStatus } from '@/components/lg-capture/LGProcessingStatus';
 import { LGDownloadPanel } from '@/components/lg-capture/LGDownloadPanel';
 import { LGSummaryPreview } from '@/components/lg-capture/LGSummaryPreview';
 import { LGProcessingMetrics } from '@/components/lg-capture/LGProcessingMetrics';
+import { LGAskAI } from '@/components/lg-capture/LGAskAI';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2, ShieldCheck, ShieldAlert, ShieldX, Users } from 'lucide-react';
@@ -55,6 +56,8 @@ export default function LGCaptureResults() {
   const [patient, setPatient] = useState<LGPatient | null>(null);
   const [loading, setLoading] = useState(true);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [summaryJson, setSummaryJson] = useState<any>(null);
+  const [snomedJson, setSnomedJson] = useState<any>(null);
 
   const loadPatient = async () => {
     if (!id) return;
@@ -62,6 +65,28 @@ export default function LGCaptureResults() {
     const data = await getPatient(id);
     if (data) {
       setPatient(data);
+      
+      // Load summary and snomed JSON for Ask AI
+      if (data.job_status === 'succeeded') {
+        const basePath = `${data.practice_ods}/${id}`;
+        try {
+          const { data: summaryData } = await supabase.storage
+            .from('lg')
+            .download(`${basePath}/final/summary.json`);
+          if (summaryData) {
+            setSummaryJson(JSON.parse(await summaryData.text()));
+          }
+        } catch (e) { /* ignore */ }
+        
+        try {
+          const { data: snomedData } = await supabase.storage
+            .from('lg')
+            .download(`${basePath}/final/snomed.json`);
+          if (snomedData) {
+            setSnomedJson(JSON.parse(await snomedData.text()));
+          }
+        } catch (e) { /* ignore */ }
+      }
     } else {
       toast.error('Patient not found');
       navigate('/lg-capture');
@@ -314,16 +339,6 @@ export default function LGCaptureResults() {
                 </>
               )}
               
-              {/* NHS Validation Status */}
-              {patient.ai_extracted_nhs && (
-                <>
-                  <span className="text-muted-foreground">NHS Valid:</span>
-                  <span className={`font-medium ${patient.nhs_number_validated ? 'text-green-600' : 'text-amber-600'}`}>
-                    {patient.nhs_number_validated ? '✓ Checksum OK' : '⚠ Needs Review'}
-                  </span>
-                </>
-              )}
-              
               {/* Previous Names */}
               {previousNames.length > 0 && (
                 <>
@@ -410,6 +425,9 @@ export default function LGCaptureResults() {
           )}
           
           <LGDownloadPanel patient={patient} />
+          
+          {/* Ask AI about the record */}
+          <LGAskAI patient={patient} summaryJson={summaryJson} snomedJson={snomedJson} />
         </>
       )}
 

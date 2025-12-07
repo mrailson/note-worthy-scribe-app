@@ -308,3 +308,6 @@ verify_jwt = true
 
 [functions.lg-batch-report]
 verify_jwt = true
+
+[functions.lg-ask-ai]
+verify_jwt = true
