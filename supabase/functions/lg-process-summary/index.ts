@@ -663,12 +663,18 @@ Return valid JSON matching this schema exactly. This is a FORMAT EXAMPLE ONLY - 
   "social_history": {"smoking_status":"unknown", "stopped_year":"", "pack_years":"", "alcohol":"unknown", "occupation":""},
   "reproductive_history": {"gravida":0, "para":0, "miscarriages":0, "notes":""},
   "hospital_findings": [],
-  "medications": [],
+  "medications": [{"drug": "Drug Name", "dose": "Dose e.g. 1g BD", "date": "DD/MM/YYYY or year"}],
   "alerts": [],
   "free_text_findings": "",
   "verification_flags": {"all_active_problems_coded": false, "allergies_verified": false, "medications_verified": false},
   "summary_metadata": "Summary completed ${new Date().toISOString().split('T')[0]} by Notewell AI"
 }
+
+MEDICATION EXTRACTION (MANDATORY):
+- Extract ALL medications that appear VERBATIM in the OCR text
+- Include drug name, dose if present, and date/year if recorded
+- Look for "Current Medications", medication lists, prescription records
+- Common medications to look for: Metformin, Gliclazide, Lisinopril, Sertraline, Omeprazole, Atorvastatin, Ramipril, Amlodipine, etc.
 
 CRITICAL ANTI-HALLUCINATION RULES:
 1. ONLY extract information that is EXPLICITLY WRITTEN in the OCR text below.
