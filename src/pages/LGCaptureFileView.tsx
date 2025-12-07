@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { LGValidationModal } from '@/components/lg-capture/LGValidationModal';
 import { LGValidationAuditReport } from '@/components/lg-capture/LGValidationAuditReport';
+import { generateLGFilename } from '@/utils/lgFilenameGenerator';
 
 interface LGPatientFile {
   id: string;
@@ -230,7 +231,13 @@ export default function LGCaptureFileView() {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `${patient.nhs_number?.replace(/\s/g, '') || 'unknown'}_Lloyd_George.pdf`;
+      a.download = generateLGFilename({
+        patientName: patient.patient_name,
+        nhsNumber: patient.nhs_number,
+        dob: patient.dob,
+        partNumber: 1,
+        totalParts: 1
+      });
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
