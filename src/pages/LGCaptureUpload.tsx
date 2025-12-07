@@ -23,6 +23,7 @@ import { LGProcessingQueue } from '@/components/lg-capture/LGProcessingQueue';
 
 interface UploadImage extends CapturedImage {
   isBlank?: boolean;
+  isMostlyBlank?: boolean;
   blankConfidence?: number;
 }
 
@@ -69,8 +70,12 @@ export default function LGCaptureUpload() {
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   
   const maxPages = 1000;
+  
+  // Mostly blank highlight toggle
+  const [showMostlyBlanks, setShowMostlyBlanks] = useState(false);
 
   const blankCount = images.filter(img => img.isBlank).length;
+  const mostlyBlankCount = images.filter(img => img.isMostlyBlank && !img.isBlank).length;
   const nonBlankImages = images.filter(img => !img.isBlank);
 
   // Load settings on mount for bulk mode
@@ -139,10 +144,12 @@ export default function LGCaptureUpload() {
           const dataUrl = await readFileAsDataUrl(file);
           
           let isBlank = false;
+          let isMostlyBlank = false;
           let blankConfidence = 0;
           try {
             const result = await analyseBlankness(dataUrl);
             isBlank = result.isBlank;
+            isMostlyBlank = result.isMostlyBlank;
             blankConfidence = result.confidence;
           } catch {
             // Ignore analysis errors
@@ -153,6 +160,7 @@ export default function LGCaptureUpload() {
             dataUrl,
             timestamp: Date.now(),
             isBlank,
+            isMostlyBlank,
             blankConfidence,
           });
         }
@@ -219,11 +227,13 @@ export default function LGCaptureUpload() {
     setIsAnalysingCapture(true);
     
     let isBlank = false;
+    let isMostlyBlank = false;
     let blankConfidence = 0;
     
     try {
       const result = await analyseBlankness(capturedImage.dataUrl);
       isBlank = result.isBlank;
+      isMostlyBlank = result.isMostlyBlank;
       blankConfidence = result.confidence;
     } catch {
       // Ignore analysis errors
@@ -232,6 +242,7 @@ export default function LGCaptureUpload() {
     const uploadImage: UploadImage = {
       ...capturedImage,
       isBlank,
+      isMostlyBlank,
       blankConfidence,
     };
     
@@ -281,7 +292,16 @@ export default function LGCaptureUpload() {
 
   const removeAllBlanks = useCallback(() => {
     setImages(prev => prev.filter(img => !img.isBlank));
-  }, [blankCount]);
+  }, []);
+  
+  const markMostlyBlanksAsBlank = useCallback(() => {
+    setImages(prev => prev.map(img => 
+      img.isMostlyBlank && !img.isBlank 
+        ? { ...img, isBlank: true, blankConfidence: 0.7 }
+        : img
+    ));
+    setShowMostlyBlanks(false);
+  }, []);
 
   const handleDragStart = (index: number) => {
     setDraggedIndex(index);
@@ -626,8 +646,33 @@ export default function LGCaptureUpload() {
                       {blankCount} blank
                     </Badge>
                   )}
+                  {mostlyBlankCount > 0 && (
+                    <Badge 
+                      variant="secondary" 
+                      className={`cursor-pointer transition-colors ${
+                        showMostlyBlanks 
+                          ? 'bg-orange-500 text-white' 
+                          : 'bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-400 hover:bg-orange-200'
+                      }`}
+                      onClick={() => setShowMostlyBlanks(!showMostlyBlanks)}
+                      title="Click to highlight mostly blank pages"
+                    >
+                      {mostlyBlankCount} mostly blank
+                    </Badge>
+                  )}
                 </div>
                 <div className="flex gap-2">
+                  {showMostlyBlanks && mostlyBlankCount > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={markMostlyBlanksAsBlank}
+                      className="text-orange-600 border-orange-300 hover:bg-orange-50"
+                    >
+                      <EyeOff className="h-4 w-4 mr-1" />
+                      Mark all as blank
+                    </Button>
+                  )}
                   {blankCount > 0 && (
                     <Button
                       variant="outline"
@@ -652,7 +697,9 @@ export default function LGCaptureUpload() {
               </div>
               
               <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                {images.map((image, index) => (
+                {images.map((image, index) => {
+                  const isMostlyBlankHighlighted = showMostlyBlanks && image.isMostlyBlank && !image.isBlank;
+                  return (
                   <div
                     key={image.id}
                     draggable
@@ -661,13 +708,14 @@ export default function LGCaptureUpload() {
                     onDragEnd={handleDragEnd}
                     className={`relative aspect-[3/4] bg-muted rounded-lg overflow-hidden cursor-move border-2 ${
                       draggedIndex === index ? 'border-primary opacity-50' : 
-                      image.isBlank ? 'border-amber-400 opacity-60' : 'border-transparent'
+                      image.isBlank ? 'border-amber-400 opacity-60' : 
+                      isMostlyBlankHighlighted ? 'border-orange-400 opacity-70' : 'border-transparent'
                     }`}
                   >
                     <img
                       src={image.dataUrl}
                       alt={`Page ${index + 1}`}
-                      className={`absolute inset-0 w-full h-full object-cover ${image.isBlank ? 'grayscale' : ''}`}
+                      className={`absolute inset-0 w-full h-full object-cover ${image.isBlank ? 'grayscale' : isMostlyBlankHighlighted ? 'grayscale-[50%]' : ''}`}
                     />
                     
                     {image.isBlank && (
@@ -676,8 +724,15 @@ export default function LGCaptureUpload() {
                       </div>
                     )}
                     
+                    {isMostlyBlankHighlighted && (
+                      <div className="absolute inset-0 bg-orange-500/20 flex items-center justify-center">
+                        <Badge className="bg-orange-500 text-white text-xs">MOSTLY BLANK</Badge>
+                      </div>
+                    )}
+                    
                     <div className={`absolute top-1 left-1 text-xs font-bold px-2 py-1 rounded ${
-                      image.isBlank ? 'bg-amber-500 text-white' : 'bg-primary text-primary-foreground'
+                      image.isBlank ? 'bg-amber-500 text-white' : 
+                      isMostlyBlankHighlighted ? 'bg-orange-500 text-white' : 'bg-primary text-primary-foreground'
                     }`}>
                       {index + 1}
                     </div>
@@ -721,7 +776,8 @@ export default function LGCaptureUpload() {
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}

@@ -5,6 +5,7 @@
 
 export interface BlankAnalysisResult {
   isBlank: boolean;
+  isMostlyBlank: boolean;
   whitePercentage: number;
   stdDev: number;
   confidence: number;
@@ -81,6 +82,13 @@ export async function analyseBlankness(
         // Determine if blank - very conservative to avoid false positives
         // Blank only if: >99% white pixels AND very uniform/low std dev
         const isBlank = whitePercentage > whiteThreshold && stdDev < stdDevThreshold;
+        
+        // Mostly blank: looser thresholds for old scans with marks/artifacts
+        // >90% white pixels OR high white% with moderate uniformity
+        const isMostlyBlank = !isBlank && (
+          (whitePercentage > 90 && stdDev < 20) ||
+          (whitePercentage > 85 && stdDev < 12)
+        );
 
         // Calculate confidence (how sure we are it's blank)
         let confidence = 0;
@@ -94,6 +102,8 @@ export async function analyseBlankness(
           } else {
             confidence = 0.80;
           }
+        } else if (isMostlyBlank) {
+          confidence = 0.6 + (whitePercentage - 85) * 0.02; // 0.6-0.9 range
         }
 
         // Clean up
@@ -101,6 +111,7 @@ export async function analyseBlankness(
 
         resolve({
           isBlank,
+          isMostlyBlank,
           whitePercentage: Math.round(whitePercentage * 10) / 10,
           stdDev: Math.round(stdDev * 10) / 10,
           confidence,
@@ -138,6 +149,7 @@ export async function batchAnalyseBlankness(
       // If analysis fails, assume not blank
       results.push({
         isBlank: false,
+        isMostlyBlank: false,
         whitePercentage: 0,
         stdDev: 100,
         confidence: 0,
