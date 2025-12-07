@@ -14,13 +14,15 @@ interface WatchFolderState {
   pollingInterval: number;
   processedFiles: string[];
   recentActivity: ActivityLogEntry[];
+  importedFolderName: string | null;
+  outputFolderName: string | null;
 }
 
 export interface ActivityLogEntry {
   id: string;
   fileName: string;
   timestamp: Date;
-  status: 'detected' | 'processing' | 'queued' | 'failed';
+  status: 'detected' | 'processing' | 'queued' | 'failed' | 'moved';
   error?: string;
 }
 
@@ -45,12 +47,17 @@ export function useWatchFolder(
     folderName: null,
     pollingInterval: 30,
     processedFiles: [],
-    recentActivity: []
+    recentActivity: [],
+    importedFolderName: null,
+    outputFolderName: null
   });
 
   const directoryHandleRef = useRef<FileSystemDirectoryHandle | null>(null);
+  const importedFolderHandleRef = useRef<FileSystemDirectoryHandle | null>(null);
+  const outputFolderHandleRef = useRef<FileSystemDirectoryHandle | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const processedFilesRef = useRef<Set<string>>(new Set());
+  const patientOutputMapRef = useRef<Map<string, string>>(new Map()); // patientId -> original filename
   
   // Track if we're in iframe for error messaging
   const inIframe = isInIframe;
@@ -88,7 +95,37 @@ export function useWatchFolder(
     }));
   }, []);
 
-  const processFile = useCallback(async (file: File) => {
+  // Move file to "Imported to AI for processing" subfolder
+  const moveToImportedFolder = useCallback(async (fileName: string, fileHandle: FileSystemFileHandle) => {
+    if (!directoryHandleRef.current) return;
+
+    try {
+      // Get or create the imported subfolder within the watch folder
+      const dirHandle = directoryHandleRef.current as any;
+      const importedFolder = await dirHandle.getDirectoryHandle('Imported to AI for processing', { create: true });
+      
+      // Get the file content
+      const file = await fileHandle.getFile();
+      const arrayBuffer = await file.arrayBuffer();
+      
+      // Create the file in the imported folder
+      const newFileHandle = await importedFolder.getFileHandle(fileName, { create: true });
+      const writable = await newFileHandle.createWritable();
+      await writable.write(arrayBuffer);
+      await writable.close();
+      
+      // Delete the original file
+      await dirHandle.removeEntry(fileName);
+      
+      addActivity({ fileName, status: 'moved' });
+      console.log(`Moved ${fileName} to 'Imported to AI for processing' folder`);
+    } catch (err) {
+      console.error('Error moving file to imported folder:', err);
+      // Don't fail the whole process if move fails
+    }
+  }, [addActivity]);
+
+  const processFile = useCallback(async (file: File, fileHandle?: FileSystemFileHandle) => {
     if (!user?.id || !practiceOds || !uploaderName) {
       addActivity({ fileName: file.name, status: 'failed', error: 'Settings not configured' });
       return;
@@ -104,6 +141,9 @@ export function useWatchFolder(
 
       // Create patient record
       const patientId = generateULID();
+      
+      // Store mapping for later PDF download
+      patientOutputMapRef.current.set(patientId, file.name);
       
       const { error: insertError } = await supabase
         .from('lg_patients')
@@ -141,6 +181,11 @@ export function useWatchFolder(
       addActivity({ fileName: file.name, status: 'queued' });
       toast.success(`Auto-imported: ${file.name}`);
 
+      // Move to imported folder if we have write access and file handle
+      if (fileHandle) {
+        await moveToImportedFolder(file.name, fileHandle);
+      }
+
     } catch (err) {
       console.error('Error processing watched file:', file.name, err);
       addActivity({ 
@@ -149,7 +194,7 @@ export function useWatchFolder(
         error: err instanceof Error ? err.message : 'Unknown error' 
       });
     }
-  }, [user?.id, practiceOds, uploaderName, batchId, queuePatient, addActivity, saveProcessedFiles]);
+  }, [user?.id, practiceOds, uploaderName, batchId, queuePatient, addActivity, saveProcessedFiles, moveToImportedFolder]);
 
   const pollFolder = useCallback(async () => {
     if (!directoryHandleRef.current) return;
@@ -157,7 +202,6 @@ export function useWatchFolder(
     try {
       // Iterate through files in the directory using async iterator
       const dirHandle = directoryHandleRef.current as any;
-      const entries: FileSystemHandle[] = [];
       
       // Use async iterator pattern for directory entries
       for await (const [name, handle] of dirHandle.entries()) {
@@ -168,8 +212,8 @@ export function useWatchFolder(
           // Get the file
           const file = await (handle as FileSystemFileHandle).getFile();
           
-          // Process the file
-          await processFile(file);
+          // Process the file and pass the handle for moving
+          await processFile(file, handle as FileSystemFileHandle);
         }
       }
     } catch (err) {
@@ -195,7 +239,7 @@ export function useWatchFolder(
     try {
       // @ts-ignore - TypeScript doesn't know about showDirectoryPicker
       const handle = await window.showDirectoryPicker({
-        mode: 'read'
+        mode: 'readwrite' // Need write access to move files
       });
 
       directoryHandleRef.current = handle;
@@ -220,6 +264,53 @@ export function useWatchFolder(
       toast.error('Failed to select folder');
     }
   }, [state.isSupported, inIframe]);
+
+  const selectOutputFolder = useCallback(async () => {
+    if (!state.isSupported) {
+      toast.error('This feature requires Chrome or Edge browser');
+      return;
+    }
+
+    try {
+      // @ts-ignore - TypeScript doesn't know about showDirectoryPicker
+      const handle = await window.showDirectoryPicker({
+        mode: 'readwrite'
+      });
+
+      outputFolderHandleRef.current = handle;
+      setState(prev => ({ 
+        ...prev, 
+        outputFolderName: handle.name
+      }));
+
+      toast.success(`Output folder selected: ${handle.name}`);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      console.error('Error selecting output folder:', err);
+      toast.error('Failed to select output folder');
+    }
+  }, [state.isSupported]);
+
+  // Save completed PDF to output folder
+  const saveToOutputFolder = useCallback(async (pdfBlob: Blob, fileName: string) => {
+    if (!outputFolderHandleRef.current) {
+      console.log('No output folder selected, skipping auto-save');
+      return false;
+    }
+
+    try {
+      const fileHandle = await outputFolderHandleRef.current.getFileHandle(fileName, { create: true });
+      const writable = await fileHandle.createWritable();
+      await writable.write(pdfBlob);
+      await writable.close();
+      
+      toast.success(`Saved to AI Completed: ${fileName}`);
+      return true;
+    } catch (err) {
+      console.error('Error saving to output folder:', err);
+      return false;
+    }
+  }, []);
 
   const startWatching = useCallback(() => {
     if (!directoryHandleRef.current) {
@@ -267,6 +358,69 @@ export function useWatchFolder(
     toast.success('Processed files list cleared');
   }, []);
 
+  // Subscribe to patient completions and auto-download PDFs
+  useEffect(() => {
+    if (!outputFolderHandleRef.current || !user?.id) return;
+    
+    // Only subscribe when we have an output folder configured
+    const channel = supabase
+      .channel('watch-folder-completions')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'lg_patients',
+          filter: `user_id=eq.${user.id}`
+        },
+        async (payload) => {
+          const patient = payload.new as any;
+          
+          // Check if this patient just completed (status changed to succeeded)
+          if (patient.job_status === 'succeeded' && patient.pdf_url) {
+            // Check if this patient was from Watch Folder
+            const originalFileName = patientOutputMapRef.current.get(patient.id);
+            if (!originalFileName) return; // Not from Watch Folder
+            
+            try {
+              // Download the PDF from Supabase
+              const { data, error } = await supabase.storage
+                .from('lg')
+                .download(patient.pdf_url.replace(/^.*\/lg\//, ''));
+              
+              if (error || !data) {
+                console.error('Failed to download completed PDF:', error);
+                return;
+              }
+              
+              // Generate output filename
+              const baseName = originalFileName.replace('.pdf', '');
+              const outputFileName = `${baseName}_AI_Complete.pdf`;
+              
+              // Save to output folder
+              await saveToOutputFolder(data, outputFileName);
+              
+              // Remove from tracking map
+              patientOutputMapRef.current.delete(patient.id);
+              
+              addActivity({ 
+                fileName: outputFileName, 
+                status: 'queued' // Reuse status to show it was saved
+              });
+              
+            } catch (err) {
+              console.error('Error auto-downloading PDF:', err);
+            }
+          }
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, saveToOutputFolder, addActivity]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
@@ -279,9 +433,12 @@ export function useWatchFolder(
   return {
     ...state,
     selectFolder,
+    selectOutputFolder,
+    saveToOutputFolder,
     startWatching,
     stopWatching,
     setPollingInterval,
-    clearProcessedFiles
+    clearProcessedFiles,
+    hasOutputFolder: !!outputFolderHandleRef.current
   };
 }
