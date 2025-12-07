@@ -4,16 +4,30 @@ import { useLGCapture, CapturedImage, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical } from 'lucide-react';
+import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical, Users } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractPdfPages } from '@/utils/pdfPageExtractor';
 
-// Demo PDF paths - Small, Medium, Large
-const DEMO_PDFS = {
+// Demo PDF paths - Single Patient demos
+const SINGLE_PATIENT_DEMOS = {
   small: '/demo/lg-small.pdf',
   medium: '/demo/lg-medium.pdf',
   large: '/demo/lg-large.pdf',
 };
+
+// Multi-patient demo PDFs
+const MULTI_PATIENT_PDFS = [
+  { path: '/demo/multi-01-margaret-thompson.pdf', name: 'Margaret Thompson' },
+  { path: '/demo/multi-02-robert-hughes.pdf', name: 'Robert Hughes' },
+  { path: '/demo/multi-03-sophie-clarke.pdf', name: 'Sophie Clarke' },
+  { path: '/demo/multi-04-william-davies.pdf', name: 'William Davies' },
+  { path: '/demo/multi-05-patricia-brown.pdf', name: 'Patricia Brown' },
+  { path: '/demo/multi-06-daniel-taylor.pdf', name: 'Daniel Taylor' },
+  { path: '/demo/multi-07-dorothy-evans.pdf', name: 'Dorothy Evans' },
+  { path: '/demo/multi-08-michael-roberts.pdf', name: 'Michael Roberts' },
+  { path: '/demo/multi-09-emma-watson.pdf', name: 'Emma Watson' },
+  { path: '/demo/multi-10-george-mitchell.pdf', name: 'George Mitchell' },
+];
 
 export default function LGCaptureDemoService() {
   const { id } = useParams<{ id: string }>();
@@ -45,17 +59,12 @@ export default function LGCaptureDemoService() {
     setIsLoading(true);
     setLoadingLabel(size.charAt(0).toUpperCase() + size.slice(1));
     try {
-      // Fetch the PDF file
-      const response = await fetch(DEMO_PDFS[size]);
+      const response = await fetch(SINGLE_PATIENT_DEMOS[size]);
       const blob = await response.blob();
       const file = new File([blob], `lg-${size}.pdf`, { type: 'application/pdf' });
       
-      // Extract pages from PDF
-      const extractedPages = await extractPdfPages(file, 150, (progress) => {
-        // Could add progress UI here if needed
-      }, true);
+      const extractedPages = await extractPdfPages(file, 150, undefined, true);
       
-      // Convert to CapturedImage format
       const loadedImages: CapturedImage[] = extractedPages.map((page, index) => ({
         id: `demo-${Date.now()}-${index}`,
         dataUrl: page.dataUrl,
@@ -70,6 +79,47 @@ export default function LGCaptureDemoService() {
     } catch (error) {
       console.error('Error loading demo PDF:', error);
       toast.error('Failed to load demo PDF');
+    } finally {
+      setIsLoading(false);
+      setLoadingLabel('');
+    }
+  };
+
+  const loadMultiPatientDemo = async (size: 'small' | 'mid' | 'large') => {
+    const patientCount = size === 'small' ? 5 : size === 'mid' ? 10 : 20;
+    const patientsToLoad = MULTI_PATIENT_PDFS.slice(0, patientCount);
+    
+    setIsLoading(true);
+    setLoadingLabel(`Multi-Patient ${size.charAt(0).toUpperCase() + size.slice(1)} (${patientCount} patients)`);
+    
+    try {
+      const allImages: CapturedImage[] = [];
+      
+      for (let i = 0; i < patientsToLoad.length; i++) {
+        const patient = patientsToLoad[i];
+        const response = await fetch(patient.path);
+        const blob = await response.blob();
+        const file = new File([blob], `multi-${i + 1}.pdf`, { type: 'application/pdf' });
+        
+        const extractedPages = await extractPdfPages(file, 150, undefined, true);
+        
+        const patientImages: CapturedImage[] = extractedPages.map((page, pageIndex) => ({
+          id: `multi-${i}-${Date.now()}-${pageIndex}`,
+          dataUrl: page.dataUrl,
+          timestamp: Date.now() + (i * 1000) + pageIndex,
+          isBlank: page.isBlank,
+          isMostlyBlank: page.isMostlyBlank,
+          blankConfidence: page.blankConfidence,
+        }));
+        
+        allImages.push(...patientImages);
+      }
+      
+      setImages(allImages);
+      toast.success(`Loaded ${allImages.length} pages from ${patientCount} patients`);
+    } catch (error) {
+      console.error('Error loading multi-patient demo:', error);
+      toast.error('Failed to load multi-patient demo');
     } finally {
       setIsLoading(false);
       setLoadingLabel('');
@@ -145,10 +195,13 @@ export default function LGCaptureDemoService() {
         </CardContent>
       </Card>
 
-      {/* Demo Load Buttons */}
+      {/* Single Patient Demos */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base">Load Demo Lloyd George Record</CardTitle>
+          <CardTitle className="text-base flex items-center gap-2">
+            <FileImage className="h-4 w-4" />
+            Single LG Patient
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-3">
@@ -186,11 +239,55 @@ export default function LGCaptureDemoService() {
         </CardContent>
       </Card>
 
+      {/* Multi-Patient Demos */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Users className="h-4 w-4" />
+            Multi-Patient Scan
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-3 gap-3">
+            <Button
+              variant="outline"
+              onClick={() => loadMultiPatientDemo('small')}
+              disabled={isLoading}
+              className="h-20 flex-col gap-1"
+            >
+              <Users className="h-5 w-5" />
+              <span className="font-medium">Small</span>
+              <span className="text-xs text-muted-foreground">5 patients</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => loadMultiPatientDemo('mid')}
+              disabled={isLoading}
+              className="h-20 flex-col gap-1"
+            >
+              <Users className="h-5 w-5" />
+              <span className="font-medium">Mid</span>
+              <span className="text-xs text-muted-foreground">10 patients</span>
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => loadMultiPatientDemo('large')}
+              disabled={isLoading}
+              className="h-20 flex-col gap-1 opacity-50"
+            >
+              <Users className="h-5 w-5" />
+              <span className="font-medium">Large</span>
+              <span className="text-xs text-muted-foreground">Coming soon</span>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <span className="ml-2 text-muted-foreground">Loading {loadingLabel} demo PDF...</span>
+          <span className="ml-2 text-muted-foreground">Loading {loadingLabel}...</span>
         </div>
       )}
 
