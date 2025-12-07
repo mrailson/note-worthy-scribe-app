@@ -272,8 +272,8 @@ serve(async (req) => {
       throw new Error('No images found to process');
     }
 
-    // Generate page summaries from OCR
-    const pageSummaries = generatePageSummaries(ocrText, imagePaths.length);
+    // Generate page summaries from OCR (pass DOB to exclude patient birth date from date extraction)
+    const pageSummaries = generatePageSummaries(ocrText, imagePaths.length, dob);
 
     // Create the PDF
     const pdfDoc = await PDFDocument.create();
@@ -940,64 +940,80 @@ serve(async (req) => {
   }
 });
 
-// Extract date from page text if available
-function extractPageDate(pageText: string): string | null {
+// Normalise date to DD/MM/YYYY for comparison
+function normaliseDateForComparison(dateStr: string): string {
+  if (!dateStr) return '';
+  // Handle various formats and normalise to DD/MM/YYYY
+  const cleaned = dateStr.replace(/[-\.]/g, '/').trim();
+  // Try to parse DD/MM/YYYY or YYYY-MM-DD
+  const ddmmyyyy = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (ddmmyyyy) {
+    return `${ddmmyyyy[1].padStart(2, '0')}/${ddmmyyyy[2].padStart(2, '0')}/${ddmmyyyy[3]}`;
+  }
+  const yyyymmdd = cleaned.match(/^(\d{4})\/(\d{1,2})\/(\d{1,2})$/);
+  if (yyyymmdd) {
+    return `${yyyymmdd[3].padStart(2, '0')}/${yyyymmdd[2].padStart(2, '0')}/${yyyymmdd[1]}`;
+  }
+  return cleaned;
+}
+
+// Extract date from page text if available, excluding patient DOB
+function extractPageDate(pageText: string, patientDob?: string): string | null {
+  // Normalise patient DOB for comparison
+  const normalisedDob = patientDob ? normaliseDateForComparison(patientDob) : '';
+  
   // Common date patterns in Lloyd George records
   const datePatterns = [
     // DD/MM/YYYY or DD-MM-YYYY
-    /(\d{1,2})[\/\-](\d{1,2})[\/\-]((?:19|20)\d{2})/,
+    /(\d{1,2})[\/\-](\d{1,2})[\/\-]((?:19|20)\d{2})/g,
     // DD Month YYYY (e.g., "15 March 1985")
-    /(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+((?:19|20)\d{2})/i,
-    // Month DD, YYYY (e.g., "March 15, 1985")
-    /(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2}),?\s+((?:19|20)\d{2})/i,
-    // Just YYYY for older records
-    /\b(19[5-9]\d|20[0-2]\d)\b/,
+    /(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+((?:19|20)\d{2})/gi,
   ];
   
-  for (const pattern of datePatterns) {
-    const match = pageText.match(pattern);
-    if (match) {
-      try {
-        // Try to format the date nicely
-        if (match[3] && match[2] && match[1]) {
-          // Check if it's a text month format
-          const months: Record<string, string> = {
-            'jan': '01', 'january': '01', 'feb': '02', 'february': '02',
-            'mar': '03', 'march': '03', 'apr': '04', 'april': '04',
-            'may': '05', 'jun': '06', 'june': '06', 'jul': '07', 'july': '07',
-            'aug': '08', 'august': '08', 'sep': '09', 'september': '09',
-            'oct': '10', 'october': '10', 'nov': '11', 'november': '11',
-            'dec': '12', 'december': '12'
-          };
-          const monthLower = match[2].toLowerCase();
-          if (months[monthLower]) {
-            // Text month format: DD Month YYYY
-            const day = match[1].padStart(2, '0');
-            const month = months[monthLower];
-            const year = match[3];
-            return `${day}/${month}/${year}`;
-          } else if (/^\d+$/.test(match[1]) && /^\d+$/.test(match[2])) {
-            // DD/MM/YYYY format
-            const day = match[1].padStart(2, '0');
-            const month = match[2].padStart(2, '0');
-            const year = match[3];
-            return `${day}/${month}/${year}`;
-          }
-        } else if (match[1] && /^(19|20)\d{2}$/.test(match[1])) {
-          // Just year
-          return match[1];
-        }
-      } catch {
-        // Fall through to next pattern
-      }
+  const months: Record<string, string> = {
+    'jan': '01', 'january': '01', 'feb': '02', 'february': '02',
+    'mar': '03', 'march': '03', 'apr': '04', 'april': '04',
+    'may': '05', 'jun': '06', 'june': '06', 'jul': '07', 'july': '07',
+    'aug': '08', 'august': '08', 'sep': '09', 'september': '09',
+    'oct': '10', 'october': '10', 'nov': '11', 'november': '11',
+    'dec': '12', 'december': '12'
+  };
+  
+  // Collect all dates found (not just first match)
+  const foundDates: string[] = [];
+  
+  // Pattern 1: DD/MM/YYYY or DD-MM-YYYY
+  const numericPattern = /(\d{1,2})[\/\-](\d{1,2})[\/\-]((?:19|20)\d{2})/g;
+  let match;
+  while ((match = numericPattern.exec(pageText)) !== null) {
+    const day = match[1].padStart(2, '0');
+    const month = match[2].padStart(2, '0');
+    const year = match[3];
+    const formatted = `${day}/${month}/${year}`;
+    if (formatted !== normalisedDob) {
+      foundDates.push(formatted);
     }
   }
   
-  return null;
+  // Pattern 2: DD Month YYYY
+  const textPattern = /(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+((?:19|20)\d{2})/gi;
+  while ((match = textPattern.exec(pageText)) !== null) {
+    const day = match[1].padStart(2, '0');
+    const monthLower = match[2].toLowerCase();
+    const monthNum = months[monthLower] || '01';
+    const year = match[3];
+    const formatted = `${day}/${monthNum}/${year}`;
+    if (formatted !== normalisedDob) {
+      foundDates.push(formatted);
+    }
+  }
+  
+  // Return the first non-DOB date found, or null
+  return foundDates.length > 0 ? foundDates[0] : null;
 }
 
-// Generate page summaries from OCR text with dates
-function generatePageSummaries(ocrText: string, pageCount: number): string[] {
+// Generate page summaries from OCR text with dates (date AFTER summary)
+function generatePageSummaries(ocrText: string, pageCount: number, patientDob?: string): string[] {
   const summaries: string[] = [];
   
   // Parse OCR text to extract per-page content
@@ -1009,15 +1025,15 @@ function generatePageSummaries(ocrText: string, pageCount: number): string[] {
     if (pageText.trim().length < 20) {
       summaries.push('Mostly blank page');
     } else {
-      // Extract clinically meaningful summary and date
+      // Extract clinically meaningful summary and date (excluding patient DOB)
       const summary = extractClinicalSummary(pageText);
-      const pageDate = extractPageDate(pageText);
+      const pageDate = extractPageDate(pageText, patientDob);
       
-      // Combine date and summary if date found
+      // Date goes AFTER summary text
       if (pageDate) {
-        // Truncate summary to allow room for date prefix
+        // Truncate summary to allow room for date suffix
         const truncatedSummary = summary.substring(0, 40);
-        summaries.push(`(${pageDate}) ${truncatedSummary}`);
+        summaries.push(`${truncatedSummary} (${pageDate})`);
       } else {
         summaries.push(summary.substring(0, 55));
       }
