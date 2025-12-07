@@ -1107,17 +1107,22 @@ function addMedicationsPage(
   drawLine(`Patient: ${patientName} | NHS: ${nhsNumber} | DOB: ${dob}`, 10);
   y -= 20;
 
-  // Medications
+  // Medications - filter out entries with only "Unknown" drug names
   drawLine('MEDICATION HISTORY', 12, true);
   y -= 5;
-  const medications = summaryJson?.medications || [];
-  if (medications.length > 0) {
-    for (const med of medications) {
-      const text = `${med.drug || 'Unknown'} | ${med.dose || 'Dose not recorded'} | ${med.date || med.year || 'Not Known from LG'}`;
+  const allMedications = summaryJson?.medications || [];
+  const validMedications = allMedications.filter((med: any) => {
+    const drug = med.drug?.trim()?.toLowerCase();
+    return drug && drug !== 'unknown' && drug !== '(unknown)';
+  });
+  
+  if (validMedications.length > 0) {
+    for (const med of validMedications) {
+      const text = `${med.drug} | ${med.dose || 'Dose not recorded'} | ${med.date || med.year || 'Not Known from LG'}`;
       drawLine(text, 10, false, 15);
     }
   } else {
-    drawLine('No medications recorded', 10, false, 15);
+    drawLine('No Medications listed in LG', 10, false, 15);
   }
   y -= 15;
 

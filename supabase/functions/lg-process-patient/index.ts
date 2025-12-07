@@ -1906,7 +1906,15 @@ function buildSummaryEmailHtml(
   }
 
   if (summaryJson?.medications?.length) {
-    html += `<h3 style="color: #333;">Medication History</h3><ul>${summaryJson.medications.map((m: any) => `<li><strong>${m.drug || 'Unknown'}</strong> | ${m.dose || 'Dose not recorded'} | ${m.date || m.year || 'Not Known from LG'}</li>`).join('')}</ul>`;
+    const validMeds = summaryJson.medications.filter((m: any) => {
+      const drug = m.drug?.trim()?.toLowerCase();
+      return drug && drug !== 'unknown' && drug !== '(unknown)';
+    });
+    if (validMeds.length > 0) {
+      html += `<h3 style="color: #333;">Medication History</h3><ul>${validMeds.map((m: any) => `<li><strong>${m.drug}</strong> | ${m.dose || 'Dose not recorded'} | ${m.date || m.year || 'Not Known from LG'}</li>`).join('')}</ul>`;
+    } else {
+      html += `<h3 style="color: #333;">Medication History</h3><p style="color: #666; font-style: italic;">No Medications listed in LG</p>`;
+    }
   }
 
   if (summaryJson?.family_history?.length) {
