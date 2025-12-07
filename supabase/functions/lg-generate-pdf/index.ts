@@ -469,17 +469,11 @@ serve(async (req) => {
     // Add links from index entries to scanned pages
     for (const linkPos of linkYPositions) {
       const sourcePage = pages[linkPos.pageIndex];
-      if (sourcePage && linkPos.targetPage < pages.length) {
-        const targetPage = pages[linkPos.targetPage];
+      // Use scannedPageIndices to get the actual page index
+      const targetPageIdx = scannedPageIndices[linkPos.scannedIndex];
+      if (sourcePage && targetPageIdx !== undefined && targetPageIdx < pages.length) {
+        const targetPage = pages[targetPageIdx];
         if (targetPage) {
-          // Create link annotation for the index entry
-          sourcePage.node.set(
-            pdfDoc.context.obj({ Type: 'Annots' }),
-            pdfDoc.context.obj([
-              ...(sourcePage.node.get(pdfDoc.context.obj({ Type: 'Annots' })) || []),
-            ])
-          );
-          
           // Use page reference for internal link
           const linkAnnotation = pdfDoc.context.obj({
             Type: 'Annot',
@@ -714,8 +708,10 @@ serve(async (req) => {
         // Add links from index entries to scanned pages
         for (const linkPos of partLinkPositions) {
           const sourcePage = partPages[linkPos.pageIndex];
-          if (sourcePage && linkPos.targetPage < partPages.length) {
-            const targetPage = partPages[linkPos.targetPage];
+          // Use partScannedPageIndices to get the actual page index
+          const targetPageIdx = partScannedPageIndices[linkPos.scannedIndex];
+          if (sourcePage && targetPageIdx !== undefined && targetPageIdx < partPages.length) {
+            const targetPage = partPages[targetPageIdx];
             if (targetPage) {
               const linkAnnotation = partDoc.context.obj({
                 Type: 'Annot',
@@ -1423,11 +1419,11 @@ function addIndexPage(
     scanStartPage: number;
     partInfo?: string;
   }
-): { indexPageIndices: number[]; linkYPositions: { pageIndex: number; y: number; targetPage: number }[] } {
+): { indexPageIndices: number[]; linkYPositions: { pageIndex: number; y: number; scannedIndex: number }[] } {
   const { patientName, nhsNumber, pageSummaries, scanStartPage, partInfo } = opts;
   
   const indexPageIndices: number[] = [];
-  const linkYPositions: { pageIndex: number; y: number; targetPage: number }[] = [];
+  const linkYPositions: { pageIndex: number; y: number; scannedIndex: number }[] = [];
   
   const pageWidth = 595;
   let page = pdfDoc.addPage([pageWidth, 842]);
@@ -1479,10 +1475,11 @@ function addIndexPage(
     page.drawText(sanitizeForPdf(entryText), { x: leftMargin, y, size: 10, font });
     
     // Store position for link annotation (to be added after all pages exist)
+    // Store scannedIndex (index into scannedPageIndices array) instead of absolute page number
     linkYPositions.push({
       pageIndex: pdfDoc.getPageCount() - 1,
       y: y,
-      targetPage: pdfPageNum - 1, // 0-indexed target page
+      scannedIndex: i, // Index into scannedPageIndices array
     });
     
     y -= lineHeight;
