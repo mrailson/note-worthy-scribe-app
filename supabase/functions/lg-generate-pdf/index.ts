@@ -1191,7 +1191,9 @@ function addMedicationsPage(
   
   if (validMedications.length > 0) {
     for (const med of validMedications) {
-      const text = `${med.drug} | ${med.dose || 'Dose not recorded'} | ${med.date || med.year || 'Not Known from LG'}`;
+      const dateDisplay = med.most_recent_date || med.date || med.year;
+      const dateText = dateDisplay ? `Most Recently: ${dateDisplay}` : 'Not Known from LG';
+      const text = `${med.drug} | ${med.dose || 'Dose not recorded'} | ${dateText}`;
       drawLine(text, 10, false, 15);
     }
   } else {

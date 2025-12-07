@@ -299,8 +299,9 @@ function generateBatchEmailHtml(
         if (typeof m === "string") return m;
         const drug = m.drug || m.name || m.medication || 'Unknown';
         const dose = m.dose || 'Dose not recorded';
-        const date = m.date || m.year || 'Not Known from LG';
-        return `${drug} | ${dose} | ${date}`;
+        const dateDisplay = m.most_recent_date || m.date || m.year;
+        const dateText = dateDisplay ? `Most Recently: ${dateDisplay}` : 'Not Known from LG';
+        return `${drug} | ${dose} | ${dateText}`;
       });
       sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">Medication History: ${medDetails.join("; ")}${s.medications.length > 5 ? ` +${s.medications.length - 5} more` : ""}</p>`);
     }

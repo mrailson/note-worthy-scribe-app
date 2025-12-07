@@ -758,7 +758,7 @@ Return valid JSON matching this schema exactly. This is a FORMAT EXAMPLE ONLY - 
   "social_history": {"smoking_status":"unknown", "stopped_year":"", "pack_years":"", "alcohol":"unknown", "occupation":""},
   "reproductive_history": {"gravida":0, "para":0, "miscarriages":0, "notes":""},
   "hospital_findings": [],
-  "medications": [{"drug": "Drug Name", "dose": "Dose e.g. 1g BD", "date": "DD/MM/YYYY or year"}],
+  "medications": [{"drug": "Drug Name", "dose": "Dose e.g. 1g BD", "most_recent_date": "DD/MM/YYYY or year or Not Known from LG"}],
   "alerts": [],
   "free_text_findings": "",
   "verification_flags": {"all_active_problems_coded": false, "allergies_verified": false, "medications_verified": false},
@@ -808,6 +808,10 @@ ${fullOcrText.substring(0, 50000)}`;
       try {
         summaryJson = await callOpenAI(openaiKey, SUMMARISER_SYSTEM_PROMPT, summaryPrompt);
         console.log('Summary generated successfully');
+        
+        // Post-process: correct medication dates to use MOST RECENT date from OCR
+        summaryJson = correctMostRecentMedicationDates(summaryJson, fullOcrText, dob !== 'Unknown' ? dob : undefined);
+        console.log('Medication dates corrected to most recent');
       } catch (aiErr) {
         console.error('Summary generation failed:', aiErr);
         summaryJson = createEmptySummary();
@@ -1513,6 +1517,170 @@ function correctEarliestDates(snomedOutput: any, ocrText: string, patientDob?: s
   }
   
   return snomedOutput;
+}
+
+/**
+ * Find all dates from text that appear near a medication drug name
+ */
+function findAllDatesForMedication(drugName: string, ocrText: string): { date: string; pageNum: number }[] {
+  const results: { date: string; pageNum: number }[] = [];
+  if (!drugName || !ocrText) return results;
+  
+  // Build search variations for the drug name
+  const drugLower = drugName.toLowerCase().trim();
+  const searchTerms = new Set<string>();
+  
+  // Add base drug name
+  searchTerms.add(drugLower);
+  
+  // Add common variations (remove common suffixes)
+  searchTerms.add(drugLower.replace(/\s+(tablets?|capsules?|mg|mcg|ml|bd|od|tds|qds|prn)$/i, '').trim());
+  
+  // Filter to valid terms (>3 chars)
+  const validSearchTerms = Array.from(searchTerms).filter(t => t.length > 3);
+  
+  console.log(`Medication date search terms for "${drugName}": ${validSearchTerms.join(', ')}`);
+  
+  // Date extraction patterns - comprehensive
+  const datePatterns = [
+    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g,  // DD/MM/YYYY or DD-MM-YYYY
+    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})(?!\d)/g,  // DD/MM/YY
+    /(\d{1,2})[\/\-]([A-Za-z]{3})[\/\-](\d{4})/g,  // DD-MMM-YYYY
+    /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/g,  // YYYY-MM-DD
+  ];
+  
+  // Split by page markers
+  const pageRegex = /---\s*Page\s+page_(\d+)\.(jpg|jpeg|png)\s*---/gi;
+  const parts = ocrText.split(pageRegex);
+  
+  // If no pages found, search entire text
+  if (parts.length <= 1) {
+    const textLower = ocrText.toLowerCase();
+    const hasDrug = validSearchTerms.some(t => textLower.includes(t));
+    
+    if (hasDrug) {
+      for (const pattern of datePatterns) {
+        let match;
+        pattern.lastIndex = 0;
+        while ((match = pattern.exec(textLower)) !== null) {
+          const dateStr = match[0];
+          if (!results.some(r => r.date === dateStr)) {
+            results.push({ date: dateStr, pageNum: 1 });
+          }
+        }
+      }
+    }
+    return results;
+  }
+  
+  // Process each page from split results
+  for (let i = 1; i < parts.length; i += 3) {
+    const pageNumStr = parts[i];
+    const pageNum = parseInt(pageNumStr, 10);
+    if (isNaN(pageNum)) continue;
+    
+    const pageText = (parts[i + 2] || '').toLowerCase();
+    
+    // Check if this page mentions the medication
+    const hasDrug = validSearchTerms.some(t => pageText.includes(t));
+    if (!hasDrug) continue;
+    
+    // Find all dates on this page
+    for (const pattern of datePatterns) {
+      let match;
+      pattern.lastIndex = 0;
+      while ((match = pattern.exec(pageText)) !== null) {
+        const dateStr = match[0];
+        if (!results.some(r => r.date === dateStr && r.pageNum === pageNum)) {
+          results.push({ date: dateStr, pageNum });
+        }
+      }
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Find the LATEST (most recent) date from a list of date strings, excluding patient DOB
+ */
+function findLatestDate(dates: { date: string; pageNum: number }[], excludeDob?: Date | null): { date: string; pageNum: number } | null {
+  if (dates.length === 0) return null;
+  
+  let latest: { date: string; pageNum: number; parsed: Date } | null = null;
+  
+  for (const d of dates) {
+    const parsed = parseDate(d.date);
+    if (parsed) {
+      // Skip dates that match the patient's DOB (within 1 day tolerance)
+      if (excludeDob && Math.abs(parsed.getTime() - excludeDob.getTime()) < 86400000) {
+        continue;
+      }
+      
+      // Skip unrealistic future dates
+      const now = new Date();
+      if (parsed > now) continue;
+      
+      if (!latest || parsed > latest.parsed) {
+        latest = { date: d.date, pageNum: d.pageNum, parsed };
+      }
+    }
+  }
+  
+  if (latest) {
+    return { date: latest.date, pageNum: latest.pageNum };
+  }
+  return null;
+}
+
+/**
+ * Post-process summary to correct medication dates to the MOST RECENT found in OCR
+ */
+function correctMostRecentMedicationDates(summaryJson: any, ocrText: string, patientDob?: string): any {
+  if (!summaryJson || !ocrText || !summaryJson.medications) return summaryJson;
+  
+  const patientDobParsed = patientDob ? parseDate(patientDob) : null;
+  if (patientDobParsed) {
+    console.log(`Patient DOB parsed for medication date exclusion: ${patientDob}`);
+  }
+  
+  const medications = summaryJson.medications || [];
+  
+  for (const med of medications) {
+    const drug = med.drug || '';
+    if (!drug || drug.toLowerCase() === 'unknown') continue;
+    
+    // Find all dates for this medication in the OCR
+    const allDates = findAllDatesForMedication(drug, ocrText);
+    console.log(`Searching for most recent date for medication "${drug}": found ${allDates.length} date candidates`);
+    
+    if (allDates.length === 0) continue;
+    
+    // Find the LATEST (most recent) date, excluding patient DOB
+    const latest = findLatestDate(allDates, patientDobParsed);
+    if (!latest) continue;
+    
+    // Parse AI's current date
+    const currentDate = med.most_recent_date || med.date;
+    const aiDate = parseDate(currentDate);
+    const latestParsed = parseDate(latest.date);
+    
+    if (latestParsed && aiDate) {
+      // Only update if we found a more recent date
+      if (latestParsed > aiDate) {
+        console.log(`CORRECTING medication date for "${drug}": ${currentDate} → ${latest.date}`);
+        med.most_recent_date = formatToStandardDate(latest.date);
+        med.date_corrected = true;
+      }
+    } else if (latestParsed && !aiDate) {
+      // AI had no date, but we found one
+      console.log(`ADDING medication date for "${drug}": ${latest.date}`);
+      med.most_recent_date = formatToStandardDate(latest.date);
+      med.date_corrected = true;
+    }
+  }
+  
+  return summaryJson;
 }
 
 function createEmptySnomed() {
