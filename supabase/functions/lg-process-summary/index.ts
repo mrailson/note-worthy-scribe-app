@@ -6,7 +6,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-// Lloyd George Summariser system prompt - NHS/RCGP/GP2GP compliant (Optimised & Final)
+// Lloyd George Summariser system prompt - NHS/RCGP/GP2GP compliant (Enhanced v2)
 const SUMMARISER_SYSTEM_PROMPT = `You are a GP clinical summariser working under NHS England, RCGP, and GP2GP summarising standards.
 Your task is to read the uploaded scanned Lloyd George (LG) patient record and produce a structured, clinically relevant summary suitable for EMIS or SystmOne.
 
@@ -20,31 +20,47 @@ INCLUDE (Record as Coded Data)
 
 e.g. Type 2 diabetes, hypertension, asthma, COPD, CHD/IHD, acute coronary syndromes (NSTEMI/STEMI), stroke/TIA, cancer, CKD, thyroid disease, epilepsy, hepatitis, mental health disorders, osteoarthritis (knee/hip/spine), chronic back pain when clearly diagnosed.
 
-2. Major Procedures / Operations
+2. SECONDARY CONDITIONS FROM PROBLEM LISTS (NEW - MANDATORY)
+
+Extract ALL conditions from any problem list in the record, not just headline diagnoses:
+- Include conditions like glaucoma, sleep apnoea, hearing loss, tinnitus, cataracts, macular degeneration
+- If a medication clearly indicates a condition AND there is corroborating evidence, include it (e.g., Latanoprost drops → glaucoma if eye clinic letters present; CPAP → sleep apnoea if sleep study mentioned)
+- Do NOT assume a condition exists solely from medication - require additional evidence
+
+3. Major Procedures / Operations
 
 e.g. hysterectomy, cholecystectomy, CABG, joint replacement, mastectomy, bowel resections, pacemaker/ICD, PCI, cataract surgery (phaco + IOL), major orthopaedic operations.
 
-3. Allergies & Adverse Reactions
+4. Allergies & Adverse Reactions
 
 Include allergen, reaction, and date if present.
 
-4. Immunisations
+5. Immunisations
 
 Include all doses with approximate dates — including historical entries such as smallpox, tetanus, flu, pneumococcal, shingles, COVID-19, childhood vaccines.
 
-5. Family & Social History
+6. Family & Social History
 
 Smoking, alcohol, occupation, family history of major disease.
 
-6. Obstetric & Reproductive History
+7. LIFESTYLE DATA EXTRACTION (NEW - MANDATORY)
+
+ALWAYS extract smoking status if present - this is critical clinical data:
+- "current smoker" / "ex-smoker" / "never smoked" / "unknown"
+- If ex-smoker, include year stopped if documented (e.g., "stopped 2015")
+- Include pack-years if documented
+- Extract alcohol status: "none" / "social" / "moderate" / "heavy" / "unknown"
+- Extract occupation if documented
+
+8. Obstetric & Reproductive History
 
 Gravida/para, miscarriages, terminations, caesarean sections.
 
-7. Significant Hospital/Specialist Findings
+9. Significant Hospital/Specialist Findings
 
 Discharge diagnoses, PCI, imaging findings relevant to long-term care.
 
-8. Active or Long-Term Medications
+10. Active or Long-Term Medications
 
 e.g. warfarin, DOACs, lithium, steroids, HRT, chemotherapy, biologics.
 
@@ -642,26 +658,48 @@ Return valid JSON matching this schema exactly. This is a FORMAT EXAMPLE ONLY - 
   "surgeries": [],
   "allergies": [],
   "immunisations": [],
+  "immunisation_summary": "",
   "family_history": [],
-  "social_history": {"smoking_status":"unknown", "stopped_year":"", "alcohol":"unknown", "occupation":""},
+  "social_history": {"smoking_status":"unknown", "stopped_year":"", "pack_years":"", "alcohol":"unknown", "occupation":""},
   "reproductive_history": {"gravida":0, "para":0, "miscarriages":0, "notes":""},
   "hospital_findings": [],
   "medications": [],
   "alerts": [],
   "free_text_findings": "",
+  "verification_flags": {"all_active_problems_coded": false, "allergies_verified": false, "medications_verified": false},
   "summary_metadata": "Summary completed ${new Date().toISOString().split('T')[0]} by Notewell AI"
 }
 
 CRITICAL ANTI-HALLUCINATION RULES:
 1. ONLY extract information that is EXPLICITLY WRITTEN in the OCR text below.
 2. If a field has NO clear evidence in the OCR, return an empty array [] or empty string "".
-3. DO NOT infer diagnoses from medications (e.g., don't assume "diabetes" from "metformin" unless "diabetes" is written).
+3. DO NOT infer diagnoses from medications UNLESS there is corroborating evidence (e.g., clinic letter, problem list entry).
 4. DO NOT copy from the schema example above - it is a FORMAT example only showing structure.
 5. When in doubt, LEAVE IT OUT.
 6. For medications: only include if the drug name appears VERBATIM in the OCR text.
 7. For surgeries: only include if the procedure name appears VERBATIM in the OCR text.
 8. Never fill in "typical" patterns - each patient record is unique.
 9. If OCR text is sparse or unclear, return mostly empty arrays - this is expected and correct behaviour.
+
+SECONDARY CONDITIONS EXTRACTION:
+10. Extract ALL conditions from any problem list in the record, not just major headline diagnoses.
+11. Include conditions like glaucoma, sleep apnoea, hearing loss when explicitly documented.
+
+SMOKING STATUS (MANDATORY):
+12. ALWAYS extract smoking status if present - this is critical clinical data.
+13. Set social_history.smoking_status to: "current smoker", "ex-smoker", "never smoked", or "unknown".
+14. If ex-smoker, set stopped_year to the year they stopped (e.g., "2015").
+15. Include pack_years if documented.
+
+IMMUNISATION SUMMARY:
+16. After extracting individual immunisations, create a one-line immunisation_summary.
+17. Example: "Fully vaccinated incl. flu 2023, COVID booster 2023, pneumococcal 2022"
+18. If minimal immunisation data, leave as empty string.
+
+VERIFICATION FLAGS:
+19. Set all_active_problems_coded to true if you are confident all problem list items are captured.
+20. Set allergies_verified to true if allergy status is explicitly documented (including NKDA).
+21. Set medications_verified to true if medication list appears complete and current.
 
 OCR Text:
 ${fullOcrText.substring(0, 50000)}`;
