@@ -1,8 +1,8 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { analyseBlankness, BlankAnalysisResult } from './blankPageDetector';
 
-// Configure worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+// Configure worker using unpkg CDN (more reliable than cdnjs for dynamic imports)
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 export interface ExtractedPage {
   pageNumber: number;
