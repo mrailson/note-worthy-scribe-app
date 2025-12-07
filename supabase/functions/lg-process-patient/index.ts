@@ -183,6 +183,25 @@ Do not add any extra top-level keys.
 - Prefer a more general but correct code over a very specific but risky one.
 
 -----------------------------------------
+## 3.5 EARLIEST DATE RULE (CRITICAL FOR DIAGNOSES)
+-----------------------------------------
+
+For each diagnosis, you MUST find and use the EARLIEST date mentioned in the Lloyd George record:
+
+1. **Scan the ENTIRE OCR text** for all mentions of the same condition.
+2. **Compare ALL dates** where the condition appears and select the EARLIEST one.
+3. **Year only is acceptable** if full date is not available (e.g., "2019" wins over "01-Mar-2024").
+4. **Earlier dates ALWAYS take precedence** - if "Type 2 Diabetes" appears on 15/06/2019 and again on 01/03/2024, use 15/06/2019.
+5. **Source page should reference the page with the EARLIEST date**, not the most recent mention.
+
+Example:
+- Page 5 dated 01-Mar-2024 shows "Type 2 Diabetes - stable"
+- Page 13 dated 15-Jun-2019 shows "Type 2 Diabetes - stable"
+→ You MUST use date "15-Jun-2019" and source_page referencing page 13 (the earliest mention)
+
+This is critical for historical Lloyd George records where conditions may appear multiple times across many years.
+
+-----------------------------------------
 ## 4. CONFIDENCE RULES (RAG RATING)
 -----------------------------------------
 
