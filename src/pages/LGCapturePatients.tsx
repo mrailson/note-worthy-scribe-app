@@ -364,11 +364,21 @@ export default function LGCapturePatients() {
             const handleDownloadPdf = async (url: string, e: React.MouseEvent) => {
               e.stopPropagation();
               try {
+                const cleanPath = url.startsWith('lg/') ? url.slice(3) : url;
                 const { data, error } = await supabase.storage
                   .from('lg')
-                  .createSignedUrl(url.replace('lg/', ''), 3600);
-                if (error) throw error;
-                window.open(data.signedUrl, '_blank');
+                  .download(cleanPath);
+                if (error || !data) throw error || new Error('No data');
+                
+                // Create blob URL and trigger download
+                const blobUrl = URL.createObjectURL(data);
+                const link = document.createElement('a');
+                link.href = blobUrl;
+                link.download = cleanPath.split('/').pop() || 'document.pdf';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(blobUrl);
               } catch (err) {
                 console.error('PDF download error:', err);
                 toast.error('Failed to download PDF');
