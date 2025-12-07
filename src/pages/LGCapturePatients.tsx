@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -18,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw, RotateCcw, X } from 'lucide-react';
+import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw, RotateCcw, X, ListOrdered, History } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import pdfIcon from '@/assets/pdf-icon.png';
@@ -305,35 +306,48 @@ export default function LGCapturePatients() {
 
       <div>
         <h1 className="text-2xl font-bold mb-2">Recent LG Captures</h1>
-        <p className="text-muted-foreground text-sm">
-          Search by patient name or NHS number
-        </p>
-        {activeUploads > 0 && (
-          <div className="mt-2 flex items-center gap-2 text-sm text-amber-600">
-            <Upload className="h-4 w-4 animate-pulse" />
-            <span>{activeUploads} upload{activeUploads > 1 ? 's' : ''} in progress...</span>
+      </div>
+
+      <Tabs defaultValue="history" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            History
+          </TabsTrigger>
+          <TabsTrigger value="queue" className="flex items-center gap-2">
+            <ListOrdered className="h-4 w-4" />
+            LG Processing Queue
+            {(activeUploads > 0 || queue.length > 0) && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {activeUploads + queue.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="history" className="space-y-4 mt-4">
+          <p className="text-muted-foreground text-sm">
+            Search by patient name or NHS number
+          </p>
+          
+          {/* Search */}
+          <div className="flex gap-2">
+            <Input
+              placeholder="Search..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+            />
+            <Button onClick={handleSearch} disabled={isLoading}>
+              <Search className="h-4 w-4" />
+            </Button>
           </div>
-        )}
-      </div>
 
-      {/* Search */}
-      <div className="flex gap-2">
-        <Input
-          placeholder="Search..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-        />
-        <Button onClick={handleSearch} disabled={isLoading}>
-          <Search className="h-4 w-4" />
-        </Button>
-      </div>
-
-      {/* New Patient Button - just above patient list */}
-      <Button onClick={() => navigate('/lg-capture/upload')} className="w-full">
-        <Plus className="mr-2 h-4 w-4" />
-        New Patient
-      </Button>
+          {/* New Patient Button - just above patient list */}
+          <Button onClick={() => navigate('/lg-capture/upload')} className="w-full">
+            <Plus className="mr-2 h-4 w-4" />
+            New Patient
+          </Button>
 
       {/* Patient List */}
       {isLoading ? (
@@ -489,19 +503,84 @@ export default function LGCapturePatients() {
         </div>
       )}
 
-      {/* Delete All Button */}
-      {patients.length > 0 && (
-        <div className="pt-6 border-t">
-          <Button
-            variant="destructive"
-            onClick={() => setShowDeleteAllDialog(true)}
-            className="w-full"
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete All Captures
-          </Button>
-        </div>
-      )}
+          {/* Delete All Button */}
+          {patients.length > 0 && (
+            <div className="pt-6 border-t">
+              <Button
+                variant="destructive"
+                onClick={() => setShowDeleteAllDialog(true)}
+                className="w-full"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Delete All Captures
+              </Button>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="queue" className="space-y-4 mt-4">
+          <p className="text-muted-foreground text-sm">
+            View files currently being uploaded and processed
+          </p>
+
+          {queue.length === 0 && activeUploads === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center">
+                <ListOrdered className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                <p className="text-muted-foreground">No items in queue</p>
+                <p className="text-muted-foreground text-sm mt-1">
+                  Files will appear here when being processed
+                </p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-3">
+              {queue.map((item) => (
+                <Card key={item.patientId}>
+                  <CardContent className="py-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium truncate">
+                          Patient ID: {item.patientId.slice(0, 8)}...
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {item.images.length} pages
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        {item.status === 'uploading' ? (
+                          <>
+                            <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100">
+                              <Upload className="h-3 w-3 mr-1 animate-pulse" />
+                              Uploading
+                            </Badge>
+                            <Progress value={item.uploadProgress} className="w-24 h-1.5" />
+                          </>
+                        ) : item.status === 'queued' ? (
+                          <Badge variant="secondary">
+                            <Clock className="h-3 w-3 mr-1" />
+                            Queued
+                          </Badge>
+                        ) : item.status === 'complete' ? (
+                          <Badge className="bg-green-100 text-green-700 hover:bg-green-100">
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Complete
+                          </Badge>
+                        ) : item.status === 'failed' ? (
+                          <Badge variant="destructive">
+                            <XCircle className="h-3 w-3 mr-1" />
+                            Failed
+                          </Badge>
+                        ) : null}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+      </Tabs>
 
       {/* Delete All Confirmation Dialog */}
       <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>

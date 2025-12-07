@@ -569,7 +569,6 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, p
                 <th className="text-left py-2 px-2 font-medium">SNOMED Code</th>
                 <th className="text-left py-2 px-2 font-medium">Date</th>
                 <th className="text-center py-2 px-2 font-medium">Source</th>
-                <th className="text-right py-2 px-2 font-medium">Confidence</th>
               </tr>
             </thead>
             <tbody>
@@ -606,17 +605,6 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, p
                         <span className="text-muted-foreground text-xs">{sourceDisplay}</span>
                       )}
                     </td>
-                    <td className="py-2 px-2 text-right">
-                      <Badge 
-                        className={`text-xs ${
-                          item.confidence >= 0.8 
-                            ? 'bg-green-600 hover:bg-green-700 text-white' 
-                            : 'bg-red-600 hover:bg-red-700 text-white'
-                        }`}
-                      >
-                        {Math.round(item.confidence * 100)}%
-                      </Badge>
-                    </td>
                   </tr>
                 );
               })}
@@ -624,7 +612,7 @@ function SnomedCodesSection({ snomedData, practiceOds, patientId, patientName, p
           </table>
         </div>
         <p className="text-xs text-muted-foreground mt-2 italic">
-          NK = Not Known. Click <Eye className="h-3 w-3 inline mx-0.5" /> to view source scan. Review items with low confidence before coding.
+          NK = Not Known. Click <Eye className="h-3 w-3 inline mx-0.5" /> to view source scan.
         </p>
       </div>
 
