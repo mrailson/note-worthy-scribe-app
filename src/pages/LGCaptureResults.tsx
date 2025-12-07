@@ -1,16 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { useLGCapture, LGPatient } from '@/hooks/useLGCapture';
+import { useLGCapture, LGPatient, getPreviousNames, getIdentityIssues } from '@/hooks/useLGCapture';
 import { LGProcessingStatus } from '@/components/lg-capture/LGProcessingStatus';
 import { LGDownloadPanel } from '@/components/lg-capture/LGDownloadPanel';
 import { LGSummaryPreview } from '@/components/lg-capture/LGSummaryPreview';
 import { LGProcessingMetrics } from '@/components/lg-capture/LGProcessingMetrics';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2, ShieldCheck, ShieldAlert, ShieldX, Users } from 'lucide-react';
 import pdfIcon from '@/assets/pdf-icon.png';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
+import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,6 +141,9 @@ export default function LGCaptureResults() {
   // Check if we have AI-extracted data
   const hasExtractedData = patient.ai_extracted_name || patient.ai_extracted_nhs || patient.ai_extracted_dob;
   const isProcessing = ['queued', 'processing', 'uploading'].includes(patient.job_status);
+  const previousNames = getPreviousNames(patient);
+  const identityIssues = getIdentityIssues(patient);
+  const identityStatus = patient.identity_verification_status;
 
   // Get PDF URLs
   const pdfUrl = (patient as any).pdf_url;
@@ -178,7 +182,7 @@ export default function LGCaptureResults() {
       </Button>
 
       {/* Patient Info - AI Extracted */}
-      <Card className={patient.requires_verification ? 'border-amber-500' : ''}>
+      <Card className={patient.requires_verification ? 'border-amber-500' : identityStatus === 'conflict' ? 'border-destructive' : ''}>
         <CardHeader className="pb-2">
           <div className="flex items-start justify-between">
             <CardTitle className="text-base flex items-center gap-2">
@@ -234,6 +238,30 @@ export default function LGCaptureResults() {
               </div>
             )}
           </div>
+          
+          {/* Identity Verification Status Badge */}
+          {identityStatus && identityStatus !== 'pending' && (
+            <div className="mt-2">
+              {identityStatus === 'verified' && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  <ShieldCheck className="h-3 w-3 mr-1" />
+                  Identity Verified
+                </Badge>
+              )}
+              {identityStatus === 'warning' && (
+                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                  <ShieldAlert className="h-3 w-3 mr-1" />
+                  Review Recommended
+                </Badge>
+              )}
+              {identityStatus === 'conflict' && (
+                <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                  <ShieldX className="h-3 w-3 mr-1" />
+                  Identity Conflict Detected
+                </Badge>
+              )}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {isProcessing && !hasExtractedData ? (
@@ -286,8 +314,64 @@ export default function LGCaptureResults() {
                 </>
               )}
               
+              {/* NHS Validation Status */}
+              {patient.ai_extracted_nhs && (
+                <>
+                  <span className="text-muted-foreground">NHS Valid:</span>
+                  <span className={`font-medium ${patient.nhs_number_validated ? 'text-green-600' : 'text-amber-600'}`}>
+                    {patient.nhs_number_validated ? '✓ Checksum OK' : '⚠ Needs Review'}
+                  </span>
+                </>
+              )}
+              
+              {/* Previous Names */}
+              {previousNames.length > 0 && (
+                <>
+                  <span className="text-muted-foreground flex items-center gap-1">
+                    <Users className="h-3 w-3" />
+                    Previous Names:
+                  </span>
+                  <div className="space-y-1">
+                    {previousNames.map((prev, idx) => (
+                      <div key={idx} className="text-sm">
+                        <span className="font-medium">{prev.name}</span>
+                        <Badge variant="secondary" className="ml-2 text-[10px]">
+                          {prev.type}
+                        </Badge>
+                        {prev.evidence && (
+                          <span className="text-muted-foreground text-xs ml-1">
+                            ({prev.evidence})
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </>
+              )}
+              
               <span className="text-muted-foreground">ID:</span>
               <span className="font-mono text-xs">{patient.id}</span>
+            </div>
+          )}
+          
+          {/* Identity Issues Warning */}
+          {identityIssues.length > 0 && (
+            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+              <h4 className="text-sm font-medium text-red-800 mb-2 flex items-center gap-2">
+                <ShieldX className="h-4 w-4" />
+                Identity Verification Issues
+              </h4>
+              <ul className="space-y-1">
+                {identityIssues.map((issue, idx) => (
+                  <li key={idx} className="text-sm text-red-700">
+                    <strong className="capitalize">{issue.type.replace(/_/g, ' ')}:</strong>{' '}
+                    {issue.description}
+                    {issue.page_reference && (
+                      <span className="text-red-500 text-xs ml-1">({issue.page_reference})</span>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
           )}
         </CardContent>

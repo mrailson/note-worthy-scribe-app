@@ -3388,11 +3388,14 @@ export type Database = {
           email_sent_at: string | null
           error_message: string | null
           id: string
+          identity_verification_issues: Json | null
+          identity_verification_status: string | null
           images_count: number | null
           job_status: string | null
           last_audit_at: string | null
           last_audit_by: string | null
           nhs_number: string | null
+          nhs_number_validated: boolean | null
           ocr_batches_completed: number | null
           ocr_batches_total: number | null
           ocr_completed_at: string | null
@@ -3409,6 +3412,7 @@ export type Database = {
           pdf_started_at: string | null
           pdf_url: string | null
           practice_ods: string
+          previous_names: Json | null
           processing_completed_at: string | null
           processing_phase: string | null
           processing_started_at: string | null
@@ -3454,11 +3458,14 @@ export type Database = {
           email_sent_at?: string | null
           error_message?: string | null
           id: string
+          identity_verification_issues?: Json | null
+          identity_verification_status?: string | null
           images_count?: number | null
           job_status?: string | null
           last_audit_at?: string | null
           last_audit_by?: string | null
           nhs_number?: string | null
+          nhs_number_validated?: boolean | null
           ocr_batches_completed?: number | null
           ocr_batches_total?: number | null
           ocr_completed_at?: string | null
@@ -3475,6 +3482,7 @@ export type Database = {
           pdf_started_at?: string | null
           pdf_url?: string | null
           practice_ods: string
+          previous_names?: Json | null
           processing_completed_at?: string | null
           processing_phase?: string | null
           processing_started_at?: string | null
@@ -3520,11 +3528,14 @@ export type Database = {
           email_sent_at?: string | null
           error_message?: string | null
           id?: string
+          identity_verification_issues?: Json | null
+          identity_verification_status?: string | null
           images_count?: number | null
           job_status?: string | null
           last_audit_at?: string | null
           last_audit_by?: string | null
           nhs_number?: string | null
+          nhs_number_validated?: boolean | null
           ocr_batches_completed?: number | null
           ocr_batches_total?: number | null
           ocr_completed_at?: string | null
@@ -3541,6 +3552,7 @@ export type Database = {
           pdf_started_at?: string | null
           pdf_url?: string | null
           practice_ods?: string
+          previous_names?: Json | null
           processing_completed_at?: string | null
           processing_phase?: string | null
           processing_started_at?: string | null
