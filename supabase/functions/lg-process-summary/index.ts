@@ -1196,7 +1196,242 @@ function convertItemsToSnomedDomains(aiOutput: any, ocrText: string = ''): any {
   }
 
   console.log(`SNOMED conversion complete: ${result.diagnoses.length} diagnoses, ${result.surgeries.length} surgeries, ${result.allergies.length} allergies, ${result.immunisations.length} immunisations`);
-  return result;
+  
+  // POST-PROCESSING: Correct dates to use earliest found in OCR
+  const correctedResult = correctEarliestDates(result, ocrText);
+  
+  return correctedResult;
+}
+
+/**
+ * Parse a date string and return a Date object, or null if invalid
+ */
+function parseDate(dateStr: string): Date | null {
+  if (!dateStr || dateStr === 'NK' || dateStr === 'UNKNOWN' || dateStr === '') return null;
+  
+  // Try various date formats
+  const formats = [
+    // DD/MM/YYYY or DD-MM-YYYY
+    /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/,
+    // DD/MM/YY or DD-MM-YY
+    /^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})$/,
+    // DD-MMM-YYYY (e.g., 15-Jun-2019)
+    /^(\d{1,2})[\/\-]([A-Za-z]{3})[\/\-](\d{4})$/,
+    // YYYY-MM-DD
+    /^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/,
+    // Just year: YYYY
+    /^(\d{4})$/,
+  ];
+  
+  const monthNames: Record<string, number> = {
+    'jan': 0, 'feb': 1, 'mar': 2, 'apr': 3, 'may': 4, 'jun': 5,
+    'jul': 6, 'aug': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dec': 11
+  };
+  
+  // DD/MM/YYYY or DD-MM-YYYY
+  let match = dateStr.match(formats[0]);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const year = parseInt(match[3], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) return d;
+  }
+  
+  // DD/MM/YY
+  match = dateStr.match(formats[1]);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    let year = parseInt(match[3], 10);
+    year = year < 50 ? 2000 + year : 1900 + year;
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) return d;
+  }
+  
+  // DD-MMM-YYYY
+  match = dateStr.match(formats[2]);
+  if (match) {
+    const day = parseInt(match[1], 10);
+    const monthStr = match[2].toLowerCase();
+    const month = monthNames[monthStr];
+    const year = parseInt(match[3], 10);
+    if (month !== undefined) {
+      const d = new Date(year, month, day);
+      if (!isNaN(d.getTime())) return d;
+    }
+  }
+  
+  // YYYY-MM-DD
+  match = dateStr.match(formats[3]);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const day = parseInt(match[3], 10);
+    const d = new Date(year, month, day);
+    if (!isNaN(d.getTime())) return d;
+  }
+  
+  // Just year
+  match = dateStr.match(formats[4]);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const d = new Date(year, 0, 1); // January 1st of that year
+    if (!isNaN(d.getTime())) return d;
+  }
+  
+  // Try native Date parsing as last resort
+  const d = new Date(dateStr);
+  if (!isNaN(d.getTime())) return d;
+  
+  return null;
+}
+
+/**
+ * Extract all dates from text that appear near a diagnosis term
+ */
+function findAllDatesForTerm(term: string, ocrText: string): { date: string; pageNum: number }[] {
+  const results: { date: string; pageNum: number }[] = [];
+  if (!term || !ocrText) return results;
+  
+  // Build search variations for the term
+  const termLower = term.toLowerCase();
+  const searchTerms = [
+    termLower,
+    // Common variations
+    termLower.replace('type 2 ', 't2 '),
+    termLower.replace('type 2 ', ''),
+    termLower.replace(' mellitus', ''),
+    termLower.replace('diabetes mellitus type 2', 'diabetes'),
+    termLower.replace('diabetes mellitus type 2', 't2dm'),
+    termLower.replace('diabetes mellitus type 2', 'type 2 diabetes'),
+    termLower.replace('(disorder)', '').trim(),
+    termLower.replace(' (disorder)', '').trim(),
+  ].filter((t, i, arr) => t.length > 3 && arr.indexOf(t) === i);
+  
+  // Split OCR by page markers
+  const pageRegex = /---\s*Page\s+page_(\d+)\.(jpg|jpeg|png)\s*---/gi;
+  const parts = ocrText.split(pageRegex);
+  
+  // Date extraction patterns
+  const datePatterns = [
+    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g,  // DD/MM/YYYY or DD-MM-YYYY
+    /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})(?!\d)/g,  // DD/MM/YY
+    /(\d{1,2})[\/\-]([A-Za-z]{3})[\/\-](\d{4})/g,  // DD-MMM-YYYY
+    /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/g,  // YYYY-MM-DD
+    /\b(19\d{2}|20\d{2})\b/g,  // Just year (1900s or 2000s)
+  ];
+  
+  // Process each page
+  for (let i = 1; i < parts.length; i += 3) {
+    const pageNum = parseInt(parts[i], 10);
+    const pageText = (parts[i + 2] || '').toLowerCase();
+    
+    // Check if this page mentions the diagnosis
+    const hasTerm = searchTerms.some(t => pageText.includes(t));
+    if (!hasTerm) continue;
+    
+    // Find all dates on this page
+    for (const pattern of datePatterns) {
+      let match;
+      // Reset regex
+      pattern.lastIndex = 0;
+      while ((match = pattern.exec(pageText)) !== null) {
+        const dateStr = match[0];
+        // Don't add duplicates
+        if (!results.some(r => r.date === dateStr && r.pageNum === pageNum)) {
+          results.push({ date: dateStr, pageNum });
+        }
+      }
+    }
+  }
+  
+  return results;
+}
+
+/**
+ * Find the earliest date from a list of date strings
+ */
+function findEarliestDate(dates: { date: string; pageNum: number }[]): { date: string; pageNum: number } | null {
+  if (dates.length === 0) return null;
+  
+  let earliest: { date: string; pageNum: number; parsed: Date } | null = null;
+  
+  for (const d of dates) {
+    const parsed = parseDate(d.date);
+    if (parsed) {
+      if (!earliest || parsed < earliest.parsed) {
+        earliest = { date: d.date, pageNum: d.pageNum, parsed };
+      }
+    }
+  }
+  
+  if (earliest) {
+    return { date: earliest.date, pageNum: earliest.pageNum };
+  }
+  return null;
+}
+
+/**
+ * Format a date string to DD-MMM-YYYY format
+ */
+function formatToStandardDate(dateStr: string): string {
+  const parsed = parseDate(dateStr);
+  if (!parsed) return dateStr;
+  
+  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const day = String(parsed.getDate()).padStart(2, '0');
+  const month = months[parsed.getMonth()];
+  const year = parsed.getFullYear();
+  
+  return `${day}-${month}-${year}`;
+}
+
+/**
+ * Post-process SNOMED output to correct dates to the earliest found in OCR
+ */
+function correctEarliestDates(snomedOutput: any, ocrText: string): any {
+  if (!snomedOutput || !ocrText) return snomedOutput;
+  
+  // Only process diagnoses (most likely to have multiple date mentions)
+  const diagnoses = snomedOutput.diagnoses || [];
+  
+  for (const item of diagnoses) {
+    const term = item.term || '';
+    if (!term) continue;
+    
+    // Find all dates for this diagnosis in the OCR
+    const allDates = findAllDatesForTerm(term, ocrText);
+    console.log(`Searching for earliest date for "${term}": found ${allDates.length} date candidates`);
+    
+    if (allDates.length === 0) continue;
+    
+    // Find the earliest date
+    const earliest = findEarliestDate(allDates);
+    if (!earliest) continue;
+    
+    // Parse AI's current date
+    const aiDate = parseDate(item.date);
+    const earliestParsed = parseDate(earliest.date);
+    
+    if (earliestParsed && aiDate) {
+      if (earliestParsed < aiDate) {
+        console.log(`CORRECTING date for "${term}": ${item.date} → ${earliest.date} (page ${earliest.pageNum})`);
+        item.date = formatToStandardDate(earliest.date);
+        // Update source page to the page with earliest date
+        item.source_page = earliest.pageNum - 1; // 0-indexed
+        item.date_corrected = true;
+      }
+    } else if (earliestParsed && !aiDate) {
+      // AI had no date, but we found one
+      console.log(`ADDING date for "${term}": ${earliest.date} (page ${earliest.pageNum})`);
+      item.date = formatToStandardDate(earliest.date);
+      item.source_page = earliest.pageNum - 1;
+      item.date_corrected = true;
+    }
+  }
+  
+  return snomedOutput;
 }
 
 function createEmptySnomed() {
