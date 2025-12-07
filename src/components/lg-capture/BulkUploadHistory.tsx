@@ -52,9 +52,10 @@ interface BatchGroup {
 
 interface BulkUploadHistoryProps {
   refreshTrigger?: number;
+  onProcessingCountChange?: (count: number) => void;
 }
 
-export default function BulkUploadHistory({ refreshTrigger = 0 }: BulkUploadHistoryProps) {
+export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCountChange }: BulkUploadHistoryProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [pendingBatches, setPendingBatches] = useState<BatchGroup[]>([]);
@@ -218,6 +219,10 @@ export default function BulkUploadHistory({ refreshTrigger = 0 }: BulkUploadHist
       
       setPendingBatches(pending);
       setCompletedBatches(completed);
+      
+      // Notify parent of processing count
+      const totalProcessing = pending.reduce((sum, b) => sum + b.processingFiles, 0);
+      onProcessingCountChange?.(totalProcessing);
     } catch (err) {
       console.error('Error loading batch history:', err);
     } finally {
