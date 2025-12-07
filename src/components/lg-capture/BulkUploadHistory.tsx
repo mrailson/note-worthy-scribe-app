@@ -173,6 +173,26 @@ export default function BulkUploadHistory() {
     });
   };
 
+  const handleDownloadPdf = async (pdfPath: string) => {
+    try {
+      // Remove 'lg/' prefix if present since bucket is 'lg'
+      const cleanPath = pdfPath.startsWith('lg/') ? pdfPath.slice(3) : pdfPath;
+      
+      const { data, error } = await supabase.storage
+        .from('lg')
+        .createSignedUrl(cleanPath, 300); // 5 min expiry
+      
+      if (error || !data?.signedUrl) {
+        console.error('Error creating signed URL:', error);
+        return;
+      }
+      
+      window.open(data.signedUrl, '_blank');
+    } catch (err) {
+      console.error('Error downloading PDF:', err);
+    }
+  };
+
   const formatNhsNumber = (nhs: string | null): string => {
     if (!nhs) return '—';
     const cleaned = nhs.replace(/\s/g, '');
@@ -299,15 +319,13 @@ export default function BulkUploadHistory() {
                               <div className="flex items-center gap-2">
                                 <span>{patientName}</span>
                                 {patient.pdf_url && patient.job_status === 'succeeded' && (
-                                  <a
-                                    href={patient.pdf_url}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
+                                  <button
+                                    onClick={() => handleDownloadPdf(patient.pdf_url!)}
                                     className="text-[#005eb8] hover:text-[#003d7a] transition-colors"
                                     title="Download PDF"
                                   >
                                     <Download className="h-4 w-4" />
-                                  </a>
+                                  </button>
                                 )}
                               </div>
                             </td>
