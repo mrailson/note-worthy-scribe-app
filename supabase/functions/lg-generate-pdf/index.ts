@@ -1102,13 +1102,13 @@ function addMedicationsPage(
   };
 
   // Header
-  drawLine('MEDICATIONS & ADDITIONAL INFORMATION', 16, true);
+  drawLine('MEDICATION HISTORY & ADDITIONAL INFORMATION', 16, true);
   y -= 8;
   drawLine(`Patient: ${patientName} | NHS: ${nhsNumber} | DOB: ${dob}`, 10);
   y -= 20;
 
   // Medications
-  drawLine('CURRENT MEDICATIONS', 12, true);
+  drawLine('MEDICATION HISTORY', 12, true);
   y -= 5;
   const medications = summaryJson?.medications || [];
   if (medications.length > 0) {

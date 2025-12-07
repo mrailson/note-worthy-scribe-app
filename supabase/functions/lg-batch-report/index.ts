@@ -296,7 +296,7 @@ function generateBatchEmailHtml(
     
     if (s.medications?.length > 0) {
       const medNames = s.medications.map((m: any) => typeof m === "string" ? m : m.name || m.medication || JSON.stringify(m)).slice(0, 5);
-      sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">Medications: ${medNames.join(", ")}${s.medications.length > 5 ? ` +${s.medications.length - 5} more` : ""}</p>`);
+      sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">Medication History: ${medNames.join(", ")}${s.medications.length > 5 ? ` +${s.medications.length - 5} more` : ""}</p>`);
     }
     
     // Immunisation summary (new field) or fallback to count
