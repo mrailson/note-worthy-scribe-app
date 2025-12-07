@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play, BarChart3 } from 'lucide-react';
+import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play, BarChart3, Files } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsIPhone } from '@/hooks/use-mobile';
@@ -433,14 +433,24 @@ export default function LGCaptureLanding() {
         </Button>
       </div>
 
-      <Button
-        variant="outline"
-        onClick={() => navigate('/lg-capture/my-stats')}
-        className="w-full"
-      >
-        <BarChart3 className="mr-2 h-4 w-4" />
-        My Stats
-      </Button>
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          variant="outline"
+          onClick={() => navigate('/lg-capture/my-stats')}
+          className="w-full"
+        >
+          <BarChart3 className="mr-2 h-4 w-4" />
+          My Stats
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/lg-capture/bulk')}
+          className="w-full"
+        >
+          <Files className="mr-2 h-4 w-4" />
+          Bulk Capture
+        </Button>
+      </div>
 
       <div className="grid grid-cols-2 gap-4">
         {features.map((feature) => (

@@ -3374,6 +3374,8 @@ export type Database = {
           ai_extraction_confidence: number | null
           archived_at: string | null
           audit_report_url: string | null
+          batch_id: string | null
+          batch_report_sent: boolean | null
           compressed_pdf_size_mb: number | null
           compressed_pdf_url: string | null
           compression_applied_at: string | null
@@ -3438,6 +3440,8 @@ export type Database = {
           ai_extraction_confidence?: number | null
           archived_at?: string | null
           audit_report_url?: string | null
+          batch_id?: string | null
+          batch_report_sent?: boolean | null
           compressed_pdf_size_mb?: number | null
           compressed_pdf_url?: string | null
           compression_applied_at?: string | null
@@ -3502,6 +3506,8 @@ export type Database = {
           ai_extraction_confidence?: number | null
           archived_at?: string | null
           audit_report_url?: string | null
+          batch_id?: string | null
+          batch_report_sent?: boolean | null
           compressed_pdf_size_mb?: number | null
           compressed_pdf_url?: string | null
           compression_applied_at?: string | null
