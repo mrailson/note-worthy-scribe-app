@@ -532,6 +532,68 @@ serve(async (req) => {
       }
     }
 
+    // Check if this patient is part of a batch and if all batch items are complete
+    if (patient.batch_id) {
+      console.log(`Checking batch completion for batch: ${patient.batch_id}`);
+      
+      // Count total in batch
+      const { count: totalInBatch } = await supabase
+        .from('lg_patients')
+        .select('*', { count: 'exact', head: true })
+        .eq('batch_id', patient.batch_id);
+      
+      // Count completed in batch
+      const { count: completedInBatch } = await supabase
+        .from('lg_patients')
+        .select('*', { count: 'exact', head: true })
+        .eq('batch_id', patient.batch_id)
+        .in('job_status', ['succeeded', 'failed']);
+      
+      // Check if batch report already sent
+      const { data: batchReportCheck } = await supabase
+        .from('lg_patients')
+        .select('batch_report_sent')
+        .eq('batch_id', patient.batch_id)
+        .eq('batch_report_sent', true)
+        .limit(1);
+      
+      const reportAlreadySent = batchReportCheck && batchReportCheck.length > 0;
+      
+      console.log(`Batch status: ${completedInBatch}/${totalInBatch} complete, report sent: ${reportAlreadySent}`);
+      
+      if (totalInBatch && completedInBatch && totalInBatch === completedInBatch && !reportAlreadySent) {
+        console.log('All batch items complete! Triggering batch report...');
+        
+        // Get user email for the batch report
+        const { data: userData } = await supabase
+          .from('profiles')
+          .select('email, full_name')
+          .eq('id', patient.user_id)
+          .single();
+        
+        // Get practice name
+        const { data: practiceData } = await supabase
+          .from('gp_practices')
+          .select('name')
+          .eq('ods_code', patient.practice_ods)
+          .single();
+        
+        try {
+          await supabase.functions.invoke('lg-batch-report', {
+            body: {
+              batchId: patient.batch_id,
+              userEmail: userData?.email,
+              userName: userData?.full_name,
+              practiceName: practiceData?.name || patient.practice_ods,
+            },
+          });
+          console.log('Batch report triggered successfully');
+        } catch (batchErr) {
+          console.error('Failed to trigger batch report:', batchErr);
+        }
+      }
+    }
+
     const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
     console.log(`=== PDF Generation Complete in ${elapsed}s ===`);
 
