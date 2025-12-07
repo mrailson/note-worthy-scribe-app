@@ -271,8 +271,22 @@ function generateBatchEmailHtml(
       sections.push(`<p style="margin: 8px 0; font-size: 13px;"><strong>Summary:</strong> ${s.summary_line}</p>`);
     }
     
-    if (s.significant_past_history?.length > 0) {
-      sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">Diagnoses: ${s.significant_past_history.length}</p>`);
+    // Smoking status from social_history
+    if (s.social_history?.smoking_status && s.social_history.smoking_status !== "unknown") {
+      let smokingText = s.social_history.smoking_status;
+      if (s.social_history.stopped_year) {
+        smokingText += ` (stopped ${s.social_history.stopped_year})`;
+      }
+      if (s.social_history.pack_years) {
+        smokingText += `, ${s.social_history.pack_years} pack-years`;
+      }
+      sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">🚬 Smoking: ${smokingText}</p>`);
+    }
+    
+    // Diagnoses count
+    const diagnosesCount = (s.significant_past_history?.length || 0) + (s.diagnoses?.length || 0);
+    if (diagnosesCount > 0) {
+      sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">Diagnoses: ${diagnosesCount}</p>`);
     }
     
     if (s.allergies?.length > 0) {
@@ -285,8 +299,22 @@ function generateBatchEmailHtml(
       sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">Medications: ${medNames.join(", ")}${s.medications.length > 5 ? ` +${s.medications.length - 5} more` : ""}</p>`);
     }
     
-    if (s.immunisations?.length > 0) {
+    // Immunisation summary (new field) or fallback to count
+    if (s.immunisation_summary) {
+      sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">💉 Immunisations: ${s.immunisation_summary}</p>`);
+    } else if (s.immunisations?.length > 0) {
       sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">Immunisations: ${s.immunisations.length}</p>`);
+    }
+    
+    // Verification flags
+    if (s.verification_flags) {
+      const flags = [];
+      if (s.verification_flags.all_active_problems_coded) flags.push("✓ Problems coded");
+      if (s.verification_flags.allergies_verified) flags.push("✓ Allergies verified");
+      if (s.verification_flags.medications_verified) flags.push("✓ Medications verified");
+      if (flags.length > 0) {
+        sections.push(`<p style="margin: 4px 0; font-size: 11px; color: #10b981;">${flags.join(" • ")}</p>`);
+      }
     }
 
     return `
