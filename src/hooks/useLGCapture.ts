@@ -17,6 +17,18 @@ function dataUrlToBlob(dataUrl: string): Blob {
   return new Blob([u8arr], { type: mime });
 }
 
+export interface PreviousName {
+  name: string;
+  type: 'maiden' | 'married' | 'previous';
+  evidence?: string;
+}
+
+export interface IdentityIssue {
+  type: 'nhs_mismatch' | 'dob_mismatch' | 'name_mismatch' | 'third_party_document';
+  description: string;
+  page_reference?: string;
+}
+
 export interface LGPatient {
   id: string;
   created_at: string;
@@ -66,6 +78,22 @@ export interface LGPatient {
   original_size_mb: number | null;
   // Split PDF URLs
   pdf_part_urls: string[] | null;
+  // Previous names and identity verification (new) - use unknown for JSONB compatibility
+  previous_names: unknown;
+  identity_verification_status: string | null;
+  identity_verification_issues: unknown;
+  nhs_number_validated: boolean | null;
+}
+
+// Helper functions to safely extract typed data from JSONB fields
+export function getPreviousNames(patient: LGPatient): PreviousName[] {
+  if (!patient.previous_names || !Array.isArray(patient.previous_names)) return [];
+  return patient.previous_names as PreviousName[];
+}
+
+export function getIdentityIssues(patient: LGPatient): IdentityIssue[] {
+  if (!patient.identity_verification_issues || !Array.isArray(patient.identity_verification_issues)) return [];
+  return patient.identity_verification_issues as IdentityIssue[];
 }
 
 export interface CapturedImage {

@@ -499,7 +499,7 @@ At the end of processing:
 6. Apply legacy vaccine overrides again.
 7. Mark any changed entries with: "notes": "Corrected during final audit"`;
 
-// Patient details extraction prompt (Optimised & Final)
+// Patient details extraction prompt (Enhanced with Previous Names & NHS Validation)
 const PATIENT_EXTRACTION_PROMPT = `You are extracting patient demographic details from scanned Lloyd George records.
 
 Extract ONLY what is clearly visible in structured areas.
@@ -517,13 +517,55 @@ Return null for any field not clearly identifiable.
 OUTPUT FORMAT (respond with valid JSON only)
 {
   "patient_name": null,
+  "previous_names": [],
   "nhs_number": null,
   "date_of_birth": null,
   "sex": "unknown",
-  "confidence": 0.0
+  "confidence": 0.0,
+  "identity_issues": []
 }
 
 Replace null fields with actual values only when clearly identified.
+
+PREVIOUS NAMES EXTRACTION (MANDATORY)
+
+Look for and extract ALL previous names found in the Lloyd George records:
+- Maiden names: Look for "née", "born", maiden name annotations, or different surnames on older documents
+- Previous married names: Look for name changes, marriage certificates, or different surnames across time periods
+- Any name variants that appear on the LG cards
+
+For each previous name found, add an object to previous_names array:
+{
+  "name": "Full previous name",
+  "type": "maiden" | "married" | "previous",
+  "evidence": "Where found, e.g. 'LG card dated 1970' or 'marriage certificate'"
+}
+
+IDENTITY VERIFICATION (CRITICAL SAFETY CHECK)
+
+Scan ALL pages and verify that ALL documents belong to the SAME patient:
+- Check that NHS numbers are consistent across all pages
+- Check that DOBs are consistent across all pages
+- Check that names (accounting for previous names) are consistent
+
+If you find ANY inconsistencies, add to identity_issues array:
+{
+  "type": "nhs_mismatch" | "dob_mismatch" | "name_mismatch" | "third_party_document",
+  "description": "Clear description of the issue",
+  "page_reference": "Which page(s) have the issue"
+}
+
+NHS NUMBER VALIDATION
+
+The NHS number MUST be exactly 10 digits. Common OCR errors to watch for:
+- Extra digits at the start or end (e.g., "1" prepended)
+- Missing digits
+- Letters mistaken for numbers (O for 0, I for 1)
+
+If you find multiple NHS number candidates, extract the one that is:
+1. Exactly 10 digits
+2. Appears most consistently across documents
+3. Located in an official header/identification section
 
 FIELD RULES
 
@@ -531,7 +573,7 @@ patient_name
 Must appear in a structured location: LG card header, form header, identification block.
 
 nhs_number
-10-digit NHS number from structured sections.
+10-digit NHS number from structured sections. MUST be exactly 10 digits.
 
 date_of_birth
 Convert to YYYY-MM-DD.
@@ -541,11 +583,11 @@ From explicit markers (Male/Female/M/F). Otherwise "unknown".
 
 confidence
 
-0.9–1.0 if name + DOB + NHS number all clear
+0.9–1.0 if name + DOB + NHS number all clear AND no identity issues
 
-0.7–0.8 if name + one other identifier
+0.7–0.8 if name + one other identifier AND no identity issues
 
-0.4–0.6 if only name is clear
+0.4–0.6 if only name is clear OR if identity issues found
 
 <0.4 if uncertain`;
 
@@ -664,6 +706,62 @@ serve(async (req) => {
           extractedPatient.patient_name = null;
         }
         
+        // NHS NUMBER VALIDATION using Mod 11 checksum
+        let nhsNumberValidated = false;
+        if (extractedPatient.nhs_number) {
+          const cleanedNhs = extractedPatient.nhs_number.replace(/[\s-]/g, '');
+          
+          // Check length
+          if (cleanedNhs.length === 10 && /^\d{10}$/.test(cleanedNhs)) {
+            // Modulus 11 checksum validation
+            const weights = [10, 9, 8, 7, 6, 5, 4, 3, 2];
+            let sum = 0;
+            for (let i = 0; i < 9; i++) {
+              sum += parseInt(cleanedNhs[i], 10) * weights[i];
+            }
+            const remainder = sum % 11;
+            const checkDigit = 11 - remainder;
+            const expectedCheckDigit = checkDigit === 11 ? 0 : checkDigit;
+            const actualCheckDigit = parseInt(cleanedNhs[9], 10);
+            
+            if (checkDigit === 10) {
+              console.log('NHS number checksum validation: invalid (check digit would be 10)');
+              nhsNumberValidated = false;
+            } else if (expectedCheckDigit === actualCheckDigit) {
+              console.log('NHS number checksum validation: PASSED');
+              nhsNumberValidated = true;
+            } else {
+              console.log(`NHS number checksum validation: FAILED (expected ${expectedCheckDigit}, got ${actualCheckDigit})`);
+              nhsNumberValidated = false;
+            }
+          } else {
+            console.log(`NHS number length validation: FAILED (got ${cleanedNhs.length} digits, expected 10)`);
+            nhsNumberValidated = false;
+            
+            // Try to fix common OCR errors
+            if (cleanedNhs.length === 11 && cleanedNhs.startsWith('1')) {
+              // Extra "1" at the start - common OCR error
+              const corrected = cleanedNhs.substring(1);
+              console.log(`Attempting correction: removing leading 1 -> ${corrected}`);
+              extractedPatient.nhs_number = corrected;
+              // Re-validate after correction
+              const weights = [10, 9, 8, 7, 6, 5, 4, 3, 2];
+              let sum = 0;
+              for (let i = 0; i < 9; i++) {
+                sum += parseInt(corrected[i], 10) * weights[i];
+              }
+              const remainder = sum % 11;
+              const checkDigit = 11 - remainder;
+              const expectedCheckDigit = checkDigit === 11 ? 0 : checkDigit;
+              const actualCheckDigit = parseInt(corrected[9], 10);
+              if (checkDigit !== 10 && expectedCheckDigit === actualCheckDigit) {
+                console.log('Corrected NHS number checksum validation: PASSED');
+                nhsNumberValidated = true;
+              }
+            }
+          }
+        }
+        
         // Additional validation: Only save name if confidence is reasonable AND corroborated
         const shouldSaveName = extractedPatient.patient_name && (
           // High confidence with corroboration
@@ -677,7 +775,22 @@ serve(async (req) => {
           extractedPatient.patient_name = null;
         }
         
+        // Determine identity verification status
+        const identityIssues = extractedPatient.identity_issues || [];
+        let identityVerificationStatus = 'verified';
+        if (identityIssues.length > 0) {
+          const hasCritical = identityIssues.some((i: any) => 
+            i.type === 'nhs_mismatch' || i.type === 'third_party_document'
+          );
+          identityVerificationStatus = hasCritical ? 'conflict' : 'warning';
+        } else if (!nhsNumberValidated && extractedPatient.nhs_number) {
+          identityVerificationStatus = 'warning';
+        } else if (!extractedPatient.nhs_number && !extractedPatient.date_of_birth) {
+          identityVerificationStatus = 'pending';
+        }
+        
         console.log('Patient details after validation:', extractedPatient);
+        console.log('Identity verification status:', identityVerificationStatus);
         
         // Update patient record with extracted details
         const updateData: any = {
@@ -686,7 +799,12 @@ serve(async (req) => {
           ai_extracted_dob: extractedPatient.date_of_birth || null,
           ai_extracted_sex: (extractedPatient.sex || 'unknown').toLowerCase(),
           ai_extraction_confidence: extractedPatient.confidence || 0,
-          requires_verification: (extractedPatient.confidence || 0) < 0.8,
+          requires_verification: (extractedPatient.confidence || 0) < 0.8 || !nhsNumberValidated || identityIssues.length > 0,
+          // New fields
+          previous_names: extractedPatient.previous_names || [],
+          identity_verification_status: identityVerificationStatus,
+          identity_verification_issues: identityIssues,
+          nhs_number_validated: nhsNumberValidated,
         };
         
         // Also populate the main fields if they're null AND validated
