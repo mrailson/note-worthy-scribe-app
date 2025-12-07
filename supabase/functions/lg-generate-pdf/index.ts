@@ -266,7 +266,7 @@ serve(async (req) => {
         // Use A4 page size with margins for white border
         const pageWidth = 595;  // A4 width
         const pageHeight = 842; // A4 height
-        const headerHeight = 40;
+        const headerHeight = 55; // Increased for 2-line header (patient info + page summary)
         const margin = 30; // White border margin
         const footerHeight = 30;
         
@@ -298,11 +298,11 @@ serve(async (req) => {
           color: rgb(1, 1, 1),
         });
 
-        // Draw header text at top
+        // Draw header text at top (line 1: patient info)
         const fontSize = 10;
         page.drawText(sanitizeForPdf(headerText), {
           x: margin,
-          y: pageHeight - 25,
+          y: pageHeight - 20,
           size: fontSize,
           font,
           color: rgb(0, 0, 0),
@@ -313,10 +313,21 @@ serve(async (req) => {
         const pageNumWidth = font.widthOfTextAtSize(pageNumText, fontSize);
         page.drawText(pageNumText, {
           x: pageWidth - pageNumWidth - margin,
-          y: pageHeight - 25,
+          y: pageHeight - 20,
           size: fontSize,
           font,
           color: rgb(0, 0, 0),
+        });
+        
+        // Draw page summary on second line of header
+        const pageSummary = pageSummaries[i] || `Scanned page ${i + 1}`;
+        const truncatedSummary = pageSummary.length > 80 ? pageSummary.substring(0, 77) + '...' : pageSummary;
+        page.drawText(sanitizeForPdf(`Summary: ${truncatedSummary}`), {
+          x: margin,
+          y: pageHeight - 35,
+          size: 9,
+          font,
+          color: rgb(0.3, 0.3, 0.3), // Grey color for summary
         });
         
         // Draw "Back to Index" link text at bottom left
@@ -495,7 +506,7 @@ serve(async (req) => {
             // Use A4 page size with margins for white border
             const pageWidth = 595;
             const pageHeight = 842;
-            const headerH = 40;
+            const headerH = 55; // Increased for 2-line header
             const margin = 30;
             const footerH = 30;
             
@@ -522,9 +533,10 @@ serve(async (req) => {
               color: rgb(1, 1, 1),
             });
 
+            // Line 1: Patient info
             page.drawText(sanitizeForPdf(headerText), {
               x: margin,
-              y: pageHeight - 25,
+              y: pageHeight - 20,
               size: 10,
               font: partFont,
               color: rgb(0, 0, 0),
@@ -534,10 +546,21 @@ serve(async (req) => {
             const pageNumWidth = partFont.widthOfTextAtSize(pageNumText, 10);
             page.drawText(pageNumText, {
               x: pageWidth - pageNumWidth - margin,
-              y: pageHeight - 25,
+              y: pageHeight - 20,
               size: 10,
               font: partFont,
               color: rgb(0, 0, 0),
+            });
+            
+            // Line 2: Page summary
+            const partPageSummary = pageSummaries[partStart + i] || `Scanned page ${partStart + i + 1}`;
+            const truncPartSummary = partPageSummary.length > 80 ? partPageSummary.substring(0, 77) + '...' : partPageSummary;
+            page.drawText(sanitizeForPdf(`Summary: ${truncPartSummary}`), {
+              x: margin,
+              y: pageHeight - 35,
+              size: 9,
+              font: partFont,
+              color: rgb(0.3, 0.3, 0.3),
             });
             
             // Draw "Back to Index" link text
