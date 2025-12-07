@@ -172,7 +172,8 @@ export default function LGCaptureUpload() {
       }
     } catch (error) {
       console.error('File processing error:', error);
-      toast.error('Failed to process file(s)');
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Failed to process file(s): ${errorMessage}`);
     } finally {
       setIsExtracting(false);
       setExtractionProgress(null);
