@@ -940,7 +940,63 @@ serve(async (req) => {
   }
 });
 
-// Generate page summaries from OCR text
+// Extract date from page text if available
+function extractPageDate(pageText: string): string | null {
+  // Common date patterns in Lloyd George records
+  const datePatterns = [
+    // DD/MM/YYYY or DD-MM-YYYY
+    /(\d{1,2})[\/\-](\d{1,2})[\/\-]((?:19|20)\d{2})/,
+    // DD Month YYYY (e.g., "15 March 1985")
+    /(\d{1,2})\s+(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+((?:19|20)\d{2})/i,
+    // Month DD, YYYY (e.g., "March 15, 1985")
+    /(Jan(?:uary)?|Feb(?:ruary)?|Mar(?:ch)?|Apr(?:il)?|May|Jun(?:e)?|Jul(?:y)?|Aug(?:ust)?|Sep(?:tember)?|Oct(?:ober)?|Nov(?:ember)?|Dec(?:ember)?)\s+(\d{1,2}),?\s+((?:19|20)\d{2})/i,
+    // Just YYYY for older records
+    /\b(19[5-9]\d|20[0-2]\d)\b/,
+  ];
+  
+  for (const pattern of datePatterns) {
+    const match = pageText.match(pattern);
+    if (match) {
+      try {
+        // Try to format the date nicely
+        if (match[3] && match[2] && match[1]) {
+          // Check if it's a text month format
+          const months: Record<string, string> = {
+            'jan': '01', 'january': '01', 'feb': '02', 'february': '02',
+            'mar': '03', 'march': '03', 'apr': '04', 'april': '04',
+            'may': '05', 'jun': '06', 'june': '06', 'jul': '07', 'july': '07',
+            'aug': '08', 'august': '08', 'sep': '09', 'september': '09',
+            'oct': '10', 'october': '10', 'nov': '11', 'november': '11',
+            'dec': '12', 'december': '12'
+          };
+          const monthLower = match[2].toLowerCase();
+          if (months[monthLower]) {
+            // Text month format: DD Month YYYY
+            const day = match[1].padStart(2, '0');
+            const month = months[monthLower];
+            const year = match[3];
+            return `${day}/${month}/${year}`;
+          } else if (/^\d+$/.test(match[1]) && /^\d+$/.test(match[2])) {
+            // DD/MM/YYYY format
+            const day = match[1].padStart(2, '0');
+            const month = match[2].padStart(2, '0');
+            const year = match[3];
+            return `${day}/${month}/${year}`;
+          }
+        } else if (match[1] && /^(19|20)\d{2}$/.test(match[1])) {
+          // Just year
+          return match[1];
+        }
+      } catch {
+        // Fall through to next pattern
+      }
+    }
+  }
+  
+  return null;
+}
+
+// Generate page summaries from OCR text with dates
 function generatePageSummaries(ocrText: string, pageCount: number): string[] {
   const summaries: string[] = [];
   
@@ -953,9 +1009,18 @@ function generatePageSummaries(ocrText: string, pageCount: number): string[] {
     if (pageText.trim().length < 20) {
       summaries.push('Mostly blank page');
     } else {
-      // Extract clinically meaningful summary, not just first line
+      // Extract clinically meaningful summary and date
       const summary = extractClinicalSummary(pageText);
-      summaries.push(summary.substring(0, 55));
+      const pageDate = extractPageDate(pageText);
+      
+      // Combine date and summary if date found
+      if (pageDate) {
+        // Truncate summary to allow room for date prefix
+        const truncatedSummary = summary.substring(0, 40);
+        summaries.push(`(${pageDate}) ${truncatedSummary}`);
+      } else {
+        summaries.push(summary.substring(0, 55));
+      }
     }
   }
   
