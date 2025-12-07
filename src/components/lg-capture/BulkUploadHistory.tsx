@@ -177,14 +177,34 @@ export default function BulkUploadHistory({ refreshTrigger = 0 }: BulkUploadHist
     });
   };
 
-  const handleDownloadPdf = async (pdfPath: string) => {
+  const handleDownloadPdf = async (patient: BatchPatient) => {
     try {
-      // Remove 'lg/' prefix if present since bucket is 'lg'
-      const cleanPath = pdfPath.startsWith('lg/') ? pdfPath.slice(3) : pdfPath;
+      // First try to list the final folder to find the actual PDF file
+      const basePath = `${patient.practice_ods}/${patient.id}/final`;
+      
+      const { data: files, error: listError } = await supabase.storage
+        .from('lg')
+        .list(basePath, { limit: 20 });
+      
+      if (listError || !files) {
+        console.error('Error listing files:', listError);
+        return;
+      }
+      
+      // Find PDF files (prefer Lloyd_George format, fallback to any PDF)
+      const pdfFiles = files.filter(f => f.name.endsWith('.pdf'));
+      const targetFile = pdfFiles.find(f => f.name.startsWith('Lloyd_George')) || pdfFiles[0];
+      
+      if (!targetFile) {
+        console.error('No PDF found in final folder');
+        return;
+      }
+      
+      const fullPath = `${basePath}/${targetFile.name}`;
       
       const { data, error } = await supabase.storage
         .from('lg')
-        .download(cleanPath);
+        .download(fullPath);
       
       if (error || !data) {
         console.error('Error downloading PDF:', error);
@@ -195,7 +215,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0 }: BulkUploadHist
       const url = URL.createObjectURL(data);
       const link = document.createElement('a');
       link.href = url;
-      link.download = cleanPath.split('/').pop() || 'document.pdf';
+      link.download = targetFile.name;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -332,7 +352,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0 }: BulkUploadHist
                                 <span>{patientName}</span>
                                 {patient.pdf_url && patient.job_status === 'succeeded' && (
                                   <button
-                                    onClick={() => handleDownloadPdf(patient.pdf_url!)}
+                                    onClick={() => handleDownloadPdf(patient)}
                                     className="text-[#005eb8] hover:text-[#003d7a] transition-colors"
                                     title="Download PDF"
                                   >
