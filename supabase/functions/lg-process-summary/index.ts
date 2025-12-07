@@ -1199,7 +1199,7 @@ function generateLGFilename(
   const dobFormatted = formatDateForFilename(dob);
   const partNumStr = String(partNumber).padStart(2, '0');
   const totalPartsStr = String(totalParts).padStart(2, '0');
-  return `Lloyd_George_Record_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}.pdf`;
+  return `Lloyd_George_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}.pdf`;
 }
 
 async function sendSummaryEmail(
