@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Home, Upload, FileText, Check, X, Loader2, 
-  FolderOpen, AlertCircle, ArrowRight, Files, History 
+  FolderOpen, AlertCircle, ArrowRight, Files, History, RefreshCw 
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -43,6 +43,7 @@ export default function LGCaptureBulk() {
   const [practiceOds, setPracticeOds] = useState('');
   const [uploaderName, setUploaderName] = useState('');
   const [batchId, setBatchId] = useState(() => crypto.randomUUID());
+  const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
 
   const startNewBatch = () => {
     setFiles([]);
@@ -319,7 +320,7 @@ export default function LGCaptureBulk() {
                     <div className="flex-1 space-y-3">
                       {queuedCount > 0 && (
                         <p className="text-green-600 font-medium text-center text-sm">
-                          All Files uploaded and being processed by Notewell AI, you may start a New Batch when ready
+                          All Files uploaded, Please start a new batch when ready
                         </p>
                       )}
                       <Button
@@ -414,7 +415,17 @@ export default function LGCaptureBulk() {
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
-          <BulkUploadHistory />
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setHistoryRefreshTrigger(prev => prev + 1)}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+          <BulkUploadHistory refreshTrigger={historyRefreshTrigger} />
         </TabsContent>
       </Tabs>
     </div>

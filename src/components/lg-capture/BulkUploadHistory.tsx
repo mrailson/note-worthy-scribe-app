@@ -45,7 +45,11 @@ interface BatchGroup {
   practiceName: string;
 }
 
-export default function BulkUploadHistory() {
+interface BulkUploadHistoryProps {
+  refreshTrigger?: number;
+}
+
+export default function BulkUploadHistory({ refreshTrigger = 0 }: BulkUploadHistoryProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [batches, setBatches] = useState<BatchGroup[]>([]);
@@ -55,7 +59,7 @@ export default function BulkUploadHistory() {
     if (user?.id) {
       loadBatchHistory();
     }
-  }, [user?.id]);
+  }, [user?.id, refreshTrigger]);
 
   const loadBatchHistory = async () => {
     if (!user?.id) return;
