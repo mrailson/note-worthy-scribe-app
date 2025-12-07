@@ -45,10 +45,13 @@ export default function LGCaptureBulk() {
   const [uploaderName, setUploaderName] = useState('');
   const [batchId, setBatchId] = useState(() => crypto.randomUUID());
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
+  const [recentlyQueuedCount, setRecentlyQueuedCount] = useState(0);
+  const [activeTab, setActiveTab] = useState('upload');
 
   const startNewBatch = () => {
     setFiles([]);
     setBatchId(crypto.randomUUID());
+    setRecentlyQueuedCount(0);
   };
 
   // Load settings on mount
@@ -175,8 +178,11 @@ export default function LGCaptureBulk() {
             timestamp: Date.now()
           }));
 
-        // Queue for upload
-        queuePatient(patientId, practiceOds, capturedImages);
+        // Queue for upload with file metadata
+        queuePatient(patientId, practiceOds, capturedImages, {
+          fileName: qFile.fileName,
+          fileSize: qFile.fileSize
+        });
 
         setFiles(prev => prev.map(f => 
           f.id === qFile.id 
@@ -192,6 +198,17 @@ export default function LGCaptureBulk() {
             : f
         ));
       }
+    }
+
+    // After all files processed, clear the list and show confirmation
+    const successCount = files.filter(f => f.status !== 'failed').length + pendingFiles.filter(f => !files.find(pf => pf.id === f.id && pf.status === 'failed')).length;
+    const queuedNow = pendingFiles.length - files.filter(f => pendingFiles.find(pf => pf.id === f.id) && f.status === 'failed').length;
+    
+    if (queuedNow > 0) {
+      setRecentlyQueuedCount(queuedNow);
+      setFiles([]); // Clear files immediately
+      setBatchId(crypto.randomUUID()); // New batch ID for next uploads
+      toast.success(`${queuedNow} file${queuedNow !== 1 ? 's' : ''} queued for processing`);
     }
 
     setIsProcessing(false);
@@ -237,7 +254,7 @@ export default function LGCaptureBulk() {
         </p>
       </div>
 
-      <Tabs defaultValue="upload" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="upload" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
@@ -259,6 +276,41 @@ export default function LGCaptureBulk() {
         </TabsList>
 
         <TabsContent value="upload" className="space-y-6 mt-6">
+          {/* Confirmation Banner */}
+          {recentlyQueuedCount > 0 && (
+            <Card className="bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800">
+              <CardContent className="py-4">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="h-10 w-10 rounded-full bg-green-100 dark:bg-green-900 flex items-center justify-center">
+                      <Check className="h-5 w-5 text-green-600 dark:text-green-400" />
+                    </div>
+                    <div>
+                      <p className="font-medium text-green-800 dark:text-green-200">
+                        {recentlyQueuedCount} file{recentlyQueuedCount !== 1 ? 's' : ''} queued for processing
+                      </p>
+                      <p className="text-sm text-green-600 dark:text-green-400">
+                        You may add more files when ready
+                      </p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setActiveTab('queue');
+                      setRecentlyQueuedCount(0);
+                    }}
+                    className="border-green-300 text-green-700 hover:bg-green-100 dark:border-green-700 dark:text-green-300 dark:hover:bg-green-900"
+                  >
+                    View Queue
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Watch Folder Settings */}
           {/* Watch Folder Settings */}
           <WatchFolderSettings 
             practiceOds={practiceOds}
