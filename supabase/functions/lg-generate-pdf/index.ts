@@ -420,10 +420,22 @@ serve(async (req) => {
         const backToIndexText = '[Back to Index]';
         page.drawText(backToIndexText, {
           x: margin,
-          y: 15,
+          y: 25,
           size: 9,
           font,
           color: rgb(0, 0.35, 0.8), // Blue color for link
+        });
+        
+        // Draw footer disclaimer (centred)
+        const footerText = 'AI summary of LG papers only; may be inaccurate. Clinicians must verify independently.';
+        const footerFontSize = 7;
+        const footerTextWidth = font.widthOfTextAtSize(footerText, footerFontSize);
+        page.drawText(footerText, {
+          x: (pageWidth - footerTextWidth) / 2,
+          y: 10,
+          size: footerFontSize,
+          font,
+          color: rgb(0.4, 0.4, 0.4),
         });
 
         // Draw the image centered with white border
@@ -652,10 +664,22 @@ serve(async (req) => {
             // Draw "Back to Index" link text
             page.drawText('[Back to Index]', {
               x: margin,
-              y: 15,
+              y: 25,
               size: 9,
               font: partFont,
               color: rgb(0, 0.35, 0.8),
+            });
+            
+            // Draw footer disclaimer (centred)
+            const footerText = 'AI summary of LG papers only; may be inaccurate. Clinicians must verify independently.';
+            const footerFontSize = 7;
+            const footerTextWidth = partFont.widthOfTextAtSize(footerText, footerFontSize);
+            page.drawText(footerText, {
+              x: (pageWidth - footerTextWidth) / 2,
+              y: 10,
+              size: footerFontSize,
+              font: partFont,
+              color: rgb(0.4, 0.4, 0.4),
             });
 
             page.drawImage(image, { x: imgX, y: imgY, width: scaledW, height: scaledH });
@@ -1003,6 +1027,110 @@ function extractClinicalSummary(pageText: string): string {
   return 'Scanned document page';
 }
 
+// Extract date range from all clinical data
+function extractDateRange(summaryJson: any, snomedJson: any): { earliest: string | null; latest: string | null } {
+  const allDates: Date[] = [];
+  
+  // Helper to parse various date formats
+  const parseDate = (dateStr: string | undefined | null): Date | null => {
+    if (!dateStr || dateStr === 'NK' || dateStr === 'Unknown' || dateStr.toLowerCase().includes('not known')) {
+      return null;
+    }
+    
+    // Try different formats
+    // UK format: DD/MM/YYYY
+    if (/^\d{2}\/\d{2}\/\d{4}$/.test(dateStr)) {
+      const [day, month, year] = dateStr.split('/').map(Number);
+      return new Date(year, month - 1, day);
+    }
+    // Year only: YYYY
+    if (/^\d{4}$/.test(dateStr)) {
+      return new Date(parseInt(dateStr), 0, 1);
+    }
+    // ISO format: YYYY-MM-DD
+    if (/^\d{4}-\d{2}-\d{2}/.test(dateStr)) {
+      return new Date(dateStr);
+    }
+    // Month Year: e.g., "March 2019"
+    const monthMatch = dateStr.match(/([A-Za-z]+)\s+(\d{4})/);
+    if (monthMatch) {
+      const months = ['january', 'february', 'march', 'april', 'may', 'june', 
+                      'july', 'august', 'september', 'october', 'november', 'december'];
+      const monthIndex = months.indexOf(monthMatch[1].toLowerCase());
+      if (monthIndex >= 0) {
+        return new Date(parseInt(monthMatch[2]), monthIndex, 1);
+      }
+    }
+    
+    return null;
+  };
+  
+  // Extract dates from SNOMED data
+  const snomedSections = ['diagnoses', 'surgeries', 'allergies', 'immunisations'];
+  for (const section of snomedSections) {
+    const items = snomedJson?.[section] || [];
+    for (const item of items) {
+      const date = parseDate(item.date) || parseDate(item.year);
+      if (date && !isNaN(date.getTime())) {
+        allDates.push(date);
+      }
+    }
+  }
+  
+  // Extract dates from summary medications
+  const medications = summaryJson?.medications || [];
+  for (const med of medications) {
+    const date = parseDate(med.most_recent_date) || parseDate(med.date) || parseDate(med.year);
+    if (date && !isNaN(date.getTime())) {
+      allDates.push(date);
+    }
+  }
+  
+  // Extract dates from immunisations in summary
+  const immunisations = summaryJson?.immunisations || [];
+  for (const imm of immunisations) {
+    const date = parseDate(imm.date);
+    if (date && !isNaN(date.getTime())) {
+      allDates.push(date);
+    }
+  }
+  
+  if (allDates.length === 0) {
+    return { earliest: null, latest: null };
+  }
+  
+  // Sort dates and get earliest/latest
+  allDates.sort((a, b) => a.getTime() - b.getTime());
+  
+  const formatDate = (d: Date): string => {
+    const day = String(d.getDate()).padStart(2, '0');
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const year = d.getFullYear();
+    return `${day}/${month}/${year}`;
+  };
+  
+  return {
+    earliest: formatDate(allDates[0]),
+    latest: formatDate(allDates[allDates.length - 1]),
+  };
+}
+
+// Draw page footer with disclaimer
+function drawPageFooter(page: any, font: any, pageWidth: number) {
+  const footerText = 'AI summary of LG papers only; may be inaccurate. Clinicians must verify independently.';
+  const footerFontSize = 7;
+  const textWidth = font.widthOfTextAtSize(footerText, footerFontSize);
+  const xPos = (pageWidth - textWidth) / 2; // Center the text
+  
+  page.drawText(footerText, {
+    x: xPos,
+    y: 15,
+    size: footerFontSize,
+    font,
+    color: rgb(0.4, 0.4, 0.4), // Grey color
+  });
+}
+
 // Add clinical summary page
 function addClinicalSummaryPage(
   pdfDoc: PDFDocument,
@@ -1020,16 +1148,21 @@ function addClinicalSummaryPage(
 ) {
   const { patientName, nhsNumber, dob, totalPages, summaryJson, snomedJson, partInfo } = opts;
   
-  let page = pdfDoc.addPage([595, 842]); // A4
+  const pageWidth = 595;
+  let page = pdfDoc.addPage([pageWidth, 842]); // A4
   let y = 790;
   const leftMargin = 50;
   const lineHeight = 16;
   const pageMarginBottom = 60;
 
+  // Draw footer on first page
+  drawPageFooter(page, font, pageWidth);
+
   const drawLine = (text: string, size = 10, isBold = false, indent = 0) => {
     const safeText = sanitizeForPdf(text);
     if (y < pageMarginBottom) {
-      page = pdfDoc.addPage([595, 842]);
+      page = pdfDoc.addPage([pageWidth, 842]);
+      drawPageFooter(page, font, pageWidth); // Add footer to new page
       y = 790;
     }
     page.drawText(safeText, { 
@@ -1044,7 +1177,8 @@ function addClinicalSummaryPage(
   const addSpace = (lines = 1) => {
     y -= lineHeight * lines;
     if (y < pageMarginBottom) {
-      page = pdfDoc.addPage([595, 842]);
+      page = pdfDoc.addPage([pageWidth, 842]);
+      drawPageFooter(page, font, pageWidth); // Add footer to new page
       y = 790;
     }
   };
@@ -1062,6 +1196,16 @@ function addClinicalSummaryPage(
   drawLine(`Date of Birth: ${dob}`, 12);
   drawLine(`Generated: ${new Date().toLocaleDateString('en-GB')}`, 10);
   drawLine(`Total Scanned Pages: ${totalPages}`, 10);
+  
+  // Add date range line
+  const { earliest, latest } = extractDateRange(summaryJson, snomedJson);
+  if (earliest && latest) {
+    addSpace(0.5);
+    drawLine(`This summary is taken from the LG papers and covers the period ${earliest} to ${latest}`, 10);
+  } else if (earliest || latest) {
+    addSpace(0.5);
+    drawLine(`This summary is taken from the LG papers (dates: ${earliest || latest || 'not specified'})`, 10);
+  }
   addSpace(1);
 
   // Clinical Summary
@@ -1133,11 +1277,6 @@ function addClinicalSummaryPage(
       addSpace(0.5);
     }
   }
-
-  // Footer
-  addSpace(1);
-  drawLine('This summary was generated by AI from scanned Lloyd George records.', 9);
-  drawLine('All clinical information should be verified before use.', 9);
 }
 
 // Add medications page
@@ -1154,15 +1293,20 @@ function addMedicationsPage(
 ) {
   const { patientName, nhsNumber, dob, summaryJson } = opts;
   
-  let page = pdfDoc.addPage([595, 842]);
+  const pageWidth = 595;
+  let page = pdfDoc.addPage([pageWidth, 842]);
   let y = 790;
   const leftMargin = 50;
   const lineHeight = 16;
 
+  // Draw footer on page
+  drawPageFooter(page, font, pageWidth);
+
   const drawLine = (text: string, size = 10, isBold = false, indent = 0) => {
     const safeText = sanitizeForPdf(text);
     if (y < 60) {
-      page = pdfDoc.addPage([595, 842]);
+      page = pdfDoc.addPage([pageWidth, 842]);
+      drawPageFooter(page, font, pageWidth); // Add footer to new page
       y = 790;
     }
     page.drawText(safeText, { 
@@ -1266,8 +1410,10 @@ function addIndexPage(
   const indexPageIndices: number[] = [];
   const linkYPositions: { pageIndex: number; y: number; targetPage: number }[] = [];
   
-  let page = pdfDoc.addPage([595, 842]);
+  const pageWidth = 595;
+  let page = pdfDoc.addPage([pageWidth, 842]);
   indexPageIndices.push(pdfDoc.getPageCount() - 1);
+  drawPageFooter(page, font, pageWidth); // Add footer
   let y = 790;
   const leftMargin = 50;
   const lineHeight = 18;
@@ -1275,8 +1421,9 @@ function addIndexPage(
   const drawLine = (text: string, size = 10, isBold = false) => {
     const safeText = sanitizeForPdf(text);
     if (y < 60) {
-      page = pdfDoc.addPage([595, 842]);
+      page = pdfDoc.addPage([pageWidth, 842]);
       indexPageIndices.push(pdfDoc.getPageCount() - 1);
+      drawPageFooter(page, font, pageWidth); // Add footer to new page
       y = 790;
     }
     page.drawText(safeText, { x: leftMargin, y, size, font: isBold ? boldFont : font });
@@ -1303,8 +1450,9 @@ function addIndexPage(
     
     // Check if we need a new page
     if (y < 60) {
-      page = pdfDoc.addPage([595, 842]);
+      page = pdfDoc.addPage([pageWidth, 842]);
       indexPageIndices.push(pdfDoc.getPageCount() - 1);
+      drawPageFooter(page, font, pageWidth); // Add footer to new page
       y = 790;
     }
     
