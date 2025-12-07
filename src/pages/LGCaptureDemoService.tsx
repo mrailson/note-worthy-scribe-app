@@ -218,6 +218,20 @@ export default function LGCaptureDemoService() {
       }
     }
 
+    // Clean up the template patient record (it was only used for practice/uploader settings)
+    if (patient && successCount > 0) {
+      const { error: deleteError } = await supabase
+        .from('lg_patients')
+        .delete()
+        .eq('id', patient.id)
+        .eq('job_status', 'draft')
+        .eq('images_count', 0);
+      
+      if (!deleteError) {
+        console.log('Cleaned up unused template patient record:', patient.id);
+      }
+    }
+
     setIsProcessingMulti(false);
     setLoadingLabel('');
     
