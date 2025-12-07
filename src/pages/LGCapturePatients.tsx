@@ -378,10 +378,32 @@ export default function LGCapturePatients() {
             const handleDownloadPdf = async (url: string, e: React.MouseEvent) => {
               e.stopPropagation();
               try {
-                const cleanPath = url.startsWith('lg/') ? url.slice(3) : url;
-                const { data, error } = await supabase.storage
+                let cleanPath = url.startsWith('lg/') ? url.slice(3) : url;
+                
+                // Try direct download first
+                let { data, error } = await supabase.storage
                   .from('lg')
                   .download(cleanPath);
+                
+                // If direct path fails, try to find actual PDF in final folder
+                if (error || !data) {
+                  const basePath = `${patient.practice_ods}/${patient.id}/final`;
+                  const { data: files } = await supabase.storage
+                    .from('lg')
+                    .list(basePath, { limit: 20 });
+                  
+                  if (files && files.length > 0) {
+                    const pdfFiles = files.filter(f => f.name.endsWith('.pdf') && !f.name.includes('compressed'));
+                    const targetFile = pdfFiles.find(f => f.name.startsWith('Lloyd_George')) || pdfFiles[0];
+                    if (targetFile) {
+                      cleanPath = `${basePath}/${targetFile.name}`;
+                      const result = await supabase.storage.from('lg').download(cleanPath);
+                      data = result.data;
+                      error = result.error;
+                    }
+                  }
+                }
+                
                 if (error || !data) throw error || new Error('No data');
                 
                 // Create blob URL and trigger download
