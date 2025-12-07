@@ -105,6 +105,48 @@ function formatDateUK(dateStr: string): string {
   return dateStr; // Return original if can't parse
 }
 
+// Parse patient name into last name and first name
+function parsePatientName(patientName: string | null | undefined): { lastName: string; firstName: string } {
+  if (!patientName) return { lastName: 'Unknown', firstName: 'Patient' };
+  const parts = patientName.trim().split(/\s+/);
+  if (parts.length === 1) return { lastName: parts[0], firstName: '' };
+  const lastName = parts[parts.length - 1];
+  const firstName = parts.slice(0, -1).join('_');
+  return { lastName, firstName };
+}
+
+// Format date for filename (DD-MMM-YYYY)
+function formatDateForFilename(dateStr: string | null | undefined): string {
+  if (!dateStr) return 'UnknownDOB';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'UnknownDOB';
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = months[date.getMonth()];
+    const year = date.getFullYear();
+    return `${day}-${month}-${year}`;
+  } catch {
+    return 'UnknownDOB';
+  }
+}
+
+// Generate filename in the format: Lloyd_George_01_of_01_LastName_FirstName_NHS_DOB.pdf
+function generateLGFilename(
+  patientName: string | null | undefined,
+  nhsNumber: string | null | undefined,
+  dob: string | null | undefined,
+  partNumber: number = 1,
+  totalParts: number = 1
+): string {
+  const { lastName, firstName } = parsePatientName(patientName);
+  const cleanNhs = (nhsNumber || 'Unknown').replace(/\s/g, '');
+  const dobFormatted = formatDateForFilename(dob);
+  const partNumStr = String(partNumber).padStart(2, '0');
+  const totalPartsStr = String(totalParts).padStart(2, '0');
+  return `Lloyd_George_${partNumStr}_of_${totalPartsStr}_${lastName}_${firstName}_${cleanNhs}_${dobFormatted}.pdf`;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -676,7 +718,8 @@ serve(async (req) => {
 
         // Save and upload part
         const partBytes = await partDoc.save();
-        const partPath = `${basePath}/final/lloyd-george_part${partNum + 1}of${numParts}.pdf`;
+        const partFilename = generateLGFilename(patientName, nhsNumberRaw, dobRaw, partNum + 1, numParts);
+        const partPath = `${basePath}/final/${partFilename}`;
         
         const { error: uploadError } = await supabase.storage
           .from('lg')
@@ -691,7 +734,8 @@ serve(async (req) => {
       }
     } else {
       // Single PDF - upload directly
-      const outputPath = `${basePath}/final/lloyd-george.pdf`;
+      const filename = generateLGFilename(patientName, nhsNumberRaw, dobRaw, 1, 1);
+      const outputPath = `${basePath}/final/${filename}`;
       
       const { error: uploadError } = await supabase.storage
         .from('lg')
