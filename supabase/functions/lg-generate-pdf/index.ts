@@ -870,10 +870,9 @@ function generatePageSummaries(ocrText: string, pageCount: number): string[] {
     if (pageText.trim().length < 20) {
       summaries.push('Mostly blank page');
     } else {
-      // Extract first meaningful line as summary
-      const lines = pageText.trim().split('\n').filter(l => l.trim().length > 5);
-      const firstLine = lines[0] || 'Scanned document page';
-      summaries.push(firstLine.substring(0, 55));
+      // Extract clinically meaningful summary, not just first line
+      const summary = extractClinicalSummary(pageText);
+      summaries.push(summary.substring(0, 55));
     }
   }
   
@@ -883,6 +882,81 @@ function generatePageSummaries(ocrText: string, pageCount: number): string[] {
   }
   
   return summaries;
+}
+
+// Extract a clinically meaningful one-line summary from OCR page text
+function extractClinicalSummary(pageText: string): string {
+  const text = pageText.trim();
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 3);
+  
+  // Skip common headers/names that appear on every page
+  const skipPatterns = [
+    /^[A-Z][a-z]+ [A-Z][a-z]+$/,  // Just a name like "Sophie Clarke"
+    /^NHS\s*(No[:\.]?)?/i,
+    /^DOB[:\s]/i,
+    /^Date[:\s]/i,
+    /^Page\s+\d+/i,
+    /^\d{3}\s*\d{3}\s*\d{4}$/,  // NHS number
+    /^\d{2}[\/\-]\d{2}[\/\-]\d{2,4}$/,  // Date
+    /^Patient:/i,
+  ];
+  
+  // Look for clinically meaningful content patterns
+  const clinicalPatterns = [
+    { regex: /consultation note/i, label: 'Consultation note' },
+    { regex: /letter|correspondence/i, label: 'Correspondence' },
+    { regex: /discharge summary/i, label: 'Discharge summary' },
+    { regex: /emergency department/i, label: 'Emergency department record' },
+    { regex: /a\s*&\s*e|accident\s*(and|&)\s*emergency/i, label: 'A&E attendance' },
+    { regex: /hospital/i, label: 'Hospital record' },
+    { regex: /referral/i, label: 'Referral letter' },
+    { regex: /blood test|pathology|results?/i, label: 'Test results' },
+    { regex: /x-?ray|imaging|scan|mri|ct\s/i, label: 'Imaging report' },
+    { regex: /prescription|medication|drug/i, label: 'Prescription/medication record' },
+    { regex: /allerg(y|ies)/i, label: 'Allergy information' },
+    { regex: /immunis(ation|ization)|vaccin/i, label: 'Immunisation record' },
+    { regex: /active\s+problems?/i, label: 'Problem list / active conditions' },
+    { regex: /current\s+medications?/i, label: 'Current medications list' },
+    { regex: /smoking\s+status/i, label: 'Patient demographics card' },
+    { regex: /asthma|diabetes|hypertension|copd|epilepsy/i, label: (m: string) => `${m.charAt(0).toUpperCase() + m.slice(1).toLowerCase()} management note` },
+    { regex: /review\s+of|annual\s+review/i, label: 'Clinical review' },
+    { regex: /c\/o[:\s]|complaint[:\s]/i, label: 'Consultation record' },
+    { regex: /o\/e[:\s]|on\s+examination/i, label: 'Clinical examination' },
+    { regex: /plan[:\s]/i, label: 'Management plan' },
+  ];
+  
+  // Check full text for clinical patterns
+  for (const pattern of clinicalPatterns) {
+    const match = text.match(pattern.regex);
+    if (match) {
+      if (typeof pattern.label === 'function') {
+        return pattern.label(match[0]);
+      }
+      return pattern.label;
+    }
+  }
+  
+  // Find first meaningful line that isn't just a name or header
+  for (const line of lines) {
+    const isSkippable = skipPatterns.some(p => p.test(line));
+    if (!isSkippable && line.length > 8) {
+      // Prefer lines with clinical keywords
+      if (/diagnosis|asthma|medication|allergy|consultation|review|plan|findings/i.test(line)) {
+        return line;
+      }
+    }
+  }
+  
+  // Second pass: return first non-skippable line
+  for (const line of lines) {
+    const isSkippable = skipPatterns.some(p => p.test(line));
+    if (!isSkippable && line.length > 10) {
+      return line;
+    }
+  }
+  
+  // Fallback
+  return 'Scanned document page';
 }
 
 // Add clinical summary page
