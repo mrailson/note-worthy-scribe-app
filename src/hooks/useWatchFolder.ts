@@ -24,6 +24,9 @@ export interface ActivityLogEntry {
   error?: string;
 }
 
+// Check if running in iframe (showDirectoryPicker doesn't work in cross-origin iframes)
+const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+
 export function useWatchFolder(
   practiceOds: string,
   uploaderName: string,
@@ -32,8 +35,12 @@ export function useWatchFolder(
   const { user } = useAuth();
   const { queuePatient } = useLGUploadQueue();
   
+  // showDirectoryPicker requires Chrome/Edge AND cannot work in iframes
+  const apiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
+  const isSupported = apiSupported && !isInIframe;
+  
   const [state, setState] = useState<WatchFolderState>({
-    isSupported: typeof window !== 'undefined' && 'showDirectoryPicker' in window,
+    isSupported,
     isWatching: false,
     folderName: null,
     pollingInterval: 30,
@@ -44,6 +51,9 @@ export function useWatchFolder(
   const directoryHandleRef = useRef<FileSystemDirectoryHandle | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const processedFilesRef = useRef<Set<string>>(new Set());
+  
+  // Track if we're in iframe for error messaging
+  const inIframe = isInIframe;
 
   // Load processed files from localStorage
   useEffect(() => {
@@ -174,7 +184,11 @@ export function useWatchFolder(
 
   const selectFolder = useCallback(async () => {
     if (!state.isSupported) {
-      toast.error('Watch Folder requires Chrome or Edge browser');
+      if (inIframe) {
+        toast.error('Watch Folder requires opening the app in a new tab (not in preview iframe)');
+      } else {
+        toast.error('Watch Folder requires Chrome or Edge browser');
+      }
       return;
     }
 
@@ -195,10 +209,17 @@ export function useWatchFolder(
     } catch (err) {
       // User cancelled
       if (err instanceof DOMException && err.name === 'AbortError') return;
+      
+      // Handle iframe security error specifically
+      if (err instanceof DOMException && err.name === 'SecurityError') {
+        toast.error('Watch Folder requires opening the app in a new tab. Click the external link icon to open in new window.');
+        return;
+      }
+      
       console.error('Error selecting folder:', err);
       toast.error('Failed to select folder');
     }
-  }, [state.isSupported]);
+  }, [state.isSupported, inIframe]);
 
   const startWatching = useCallback(() => {
     if (!directoryHandleRef.current) {
