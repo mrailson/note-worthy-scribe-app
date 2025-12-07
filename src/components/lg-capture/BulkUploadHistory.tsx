@@ -4,7 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Loader2, FileText, Check, X, Clock, Calendar, Files, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, FileText, Check, X, Clock, Calendar, Files, ChevronDown, ChevronUp, Download } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format } from 'date-fns';
 
@@ -295,7 +295,22 @@ export default function BulkUploadHistory() {
 
                         return (
                           <tr key={patient.id} className="hover:bg-muted/30">
-                            <td className="p-3">{patientName}</td>
+                            <td className="p-3">
+                              <div className="flex items-center gap-2">
+                                <span>{patientName}</span>
+                                {patient.pdf_url && patient.job_status === 'succeeded' && (
+                                  <a
+                                    href={patient.pdf_url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-[#005eb8] hover:text-[#003d7a] transition-colors"
+                                    title="Download PDF"
+                                  >
+                                    <Download className="h-4 w-4" />
+                                  </a>
+                                )}
+                              </div>
+                            </td>
                             <td className="p-3">{formatDateUK(patient.dob)}</td>
                             <td className="p-3 text-center">{patient.images_count || 0}</td>
                             <td className="p-3 text-center">{summaryItems > 0 ? `${summaryItems} items` : '—'}</td>
