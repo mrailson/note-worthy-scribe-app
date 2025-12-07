@@ -342,10 +342,10 @@ export default function LGCaptureMyStats() {
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
-          onClick={() => navigate('/lg-capture')}
+          onClick={() => navigate('/lg-capture/upload')}
         >
           <Home className="mr-2 h-4 w-4" />
-          Back to LG Capture
+          Back to Bulk PDFs
         </Button>
         <Button
           variant="outline"
