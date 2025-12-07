@@ -2,11 +2,16 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLGCapture, CapturedImage, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical, Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
+import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical, Users, Check, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractPdfPages } from '@/utils/pdfPageExtractor';
+import { generateULID } from '@/utils/ulid';
+import { supabase } from '@/integrations/supabase/client';
 
 // Demo PDF paths - Single Patient demos
 const SINGLE_PATIENT_DEMOS = {
@@ -39,9 +44,18 @@ const MULTI_PATIENT_PDFS = [
   { path: '/demo/multi-20-maureen-bennett.pdf', name: 'Maureen Bennett' },
 ];
 
+interface MultiPatientProgress {
+  patientName: string;
+  status: 'pending' | 'extracting' | 'queued' | 'failed';
+  progress: number;
+  pageCount?: number;
+  error?: string;
+}
+
 export default function LGCaptureDemoService() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useAuth();
   const { getPatient } = useLGCapture();
   const { queuePatient } = useLGUploadQueue();
   
@@ -50,6 +64,10 @@ export default function LGCaptureDemoService() {
   const [isLoading, setIsLoading] = useState(false);
   const [loadingLabel, setLoadingLabel] = useState('');
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  
+  // Multi-patient state
+  const [multiPatientProgress, setMultiPatientProgress] = useState<MultiPatientProgress[]>([]);
+  const [isProcessingMulti, setIsProcessingMulti] = useState(false);
 
   useEffect(() => {
     const loadPatient = async () => {
@@ -96,43 +114,115 @@ export default function LGCaptureDemoService() {
   };
 
   const loadMultiPatientDemo = async (size: 'small' | 'mid' | 'large') => {
+    if (!user?.id || !patient) {
+      toast.error('Please ensure you are logged in');
+      return;
+    }
+
     const patientCount = size === 'small' ? 5 : size === 'mid' ? 10 : 20;
     const patientsToLoad = MULTI_PATIENT_PDFS.slice(0, patientCount);
+    const batchId = crypto.randomUUID();
     
-    setIsLoading(true);
-    setLoadingLabel(`Multi-Patient ${size.charAt(0).toUpperCase() + size.slice(1)} (${patientCount} patients)`);
+    // Initialize progress tracking
+    setMultiPatientProgress(patientsToLoad.map(p => ({
+      patientName: p.name,
+      status: 'pending',
+      progress: 0
+    })));
     
-    try {
-      const allImages: CapturedImage[] = [];
+    setIsProcessingMulti(true);
+    setLoadingLabel(`Processing ${patientCount} patients...`);
+    
+    let successCount = 0;
+    
+    for (let i = 0; i < patientsToLoad.length; i++) {
+      const patientData = patientsToLoad[i];
       
-      for (let i = 0; i < patientsToLoad.length; i++) {
-        const patient = patientsToLoad[i];
-        const response = await fetch(patient.path);
+      try {
+        // Update status to extracting
+        setMultiPatientProgress(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, status: 'extracting', progress: 20 } : p
+        ));
+
+        // Fetch and extract PDF
+        const response = await fetch(patientData.path);
         const blob = await response.blob();
-        const file = new File([blob], `multi-${i + 1}.pdf`, { type: 'application/pdf' });
+        const file = new File([blob], `${patientData.name}.pdf`, { type: 'application/pdf' });
         
-        const extractedPages = await extractPdfPages(file, 150, undefined, true);
+        const extractedPages = await extractPdfPages(file, 150, (progress) => {
+          setMultiPatientProgress(prev => prev.map((p, idx) => 
+            idx === i ? { ...p, progress: 20 + Math.round(progress.percentage * 0.4) } : p
+          ));
+        }, true);
+
+        const pageCount = extractedPages.length;
         
-        const patientImages: CapturedImage[] = extractedPages.map((page, pageIndex) => ({
-          id: `multi-${i}-${Date.now()}-${pageIndex}`,
-          dataUrl: page.dataUrl,
-          timestamp: Date.now() + (i * 1000) + pageIndex,
-          isBlank: page.isBlank,
-          isMostlyBlank: page.isMostlyBlank,
-          blankConfidence: page.blankConfidence,
-        }));
+        setMultiPatientProgress(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, pageCount, progress: 60 } : p
+        ));
+
+        // Create patient record in database
+        const patientId = generateULID();
         
-        allImages.push(...patientImages);
+        const { error: insertError } = await supabase
+          .from('lg_patients')
+          .insert({
+            id: patientId,
+            user_id: user.id,
+            practice_ods: patient.practice_ods,
+            uploader_name: patient.uploader_name || 'Demo User',
+            job_status: 'draft',
+            images_count: pageCount,
+            sex: 'unknown',
+            batch_id: batchId
+          });
+
+        if (insertError) {
+          throw new Error(`Failed to create patient record: ${insertError.message}`);
+        }
+
+        setMultiPatientProgress(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, progress: 80 } : p
+        ));
+
+        // Convert to CapturedImage format (filter out blank pages)
+        const capturedImages: CapturedImage[] = extractedPages
+          .filter(p => !p.isBlank)
+          .map((page, pageIndex) => ({
+            id: `${patientId}-page-${pageIndex + 1}`,
+            dataUrl: page.dataUrl,
+            timestamp: Date.now() + pageIndex
+          }));
+
+        // Queue for processing
+        queuePatient(patientId, patient.practice_ods, capturedImages, {
+          fileName: `${patientData.name}.pdf`,
+          fileSize: blob.size
+        });
+
+        setMultiPatientProgress(prev => prev.map((p, idx) => 
+          idx === i ? { ...p, status: 'queued', progress: 100 } : p
+        ));
+        
+        successCount++;
+
+      } catch (error) {
+        console.error(`Error processing ${patientData.name}:`, error);
+        setMultiPatientProgress(prev => prev.map((p, idx) => 
+          idx === i ? { 
+            ...p, 
+            status: 'failed', 
+            error: error instanceof Error ? error.message : 'Unknown error' 
+          } : p
+        ));
       }
-      
-      setImages(allImages);
-      toast.success(`Loaded ${allImages.length} pages from ${patientCount} patients`);
-    } catch (error) {
-      console.error('Error loading multi-patient demo:', error);
-      toast.error('Failed to load multi-patient demo');
-    } finally {
-      setIsLoading(false);
-      setLoadingLabel('');
+    }
+
+    setIsProcessingMulti(false);
+    setLoadingLabel('');
+    
+    if (successCount > 0) {
+      toast.success(`${successCount} patient${successCount !== 1 ? 's' : ''} queued for processing`);
     }
   };
 
@@ -170,6 +260,10 @@ export default function LGCaptureDemoService() {
     setDraggedIndex(null);
   };
 
+  const clearMultiProgress = () => {
+    setMultiPatientProgress([]);
+  };
+
   if (!patient) {
     return (
       <div className="container max-w-2xl mx-auto py-8 px-4 flex items-center justify-center">
@@ -177,6 +271,9 @@ export default function LGCaptureDemoService() {
       </div>
     );
   }
+
+  const queuedCount = multiPatientProgress.filter(p => p.status === 'queued').length;
+  const failedCount = multiPatientProgress.filter(p => p.status === 'failed').length;
 
   return (
     <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
@@ -218,7 +315,7 @@ export default function LGCaptureDemoService() {
             <Button
               variant="outline"
               onClick={() => loadDemoPdf('small')}
-              disabled={isLoading}
+              disabled={isLoading || isProcessingMulti}
               className="h-20 flex-col gap-1"
             >
               <FileImage className="h-5 w-5" />
@@ -228,7 +325,7 @@ export default function LGCaptureDemoService() {
             <Button
               variant="outline"
               onClick={() => loadDemoPdf('medium')}
-              disabled={isLoading}
+              disabled={isLoading || isProcessingMulti}
               className="h-20 flex-col gap-1"
             >
               <FileImage className="h-5 w-5" />
@@ -238,7 +335,7 @@ export default function LGCaptureDemoService() {
             <Button
               variant="outline"
               onClick={() => loadDemoPdf('large')}
-              disabled={isLoading}
+              disabled={isLoading || isProcessingMulti}
               className="h-20 flex-col gap-1"
             >
               <FileImage className="h-5 w-5" />
@@ -254,15 +351,18 @@ export default function LGCaptureDemoService() {
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             <Users className="h-4 w-4" />
-            Multi-Patient Scan
+            Multi-Patient Scan (Bulk PDF Demo)
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            Each PDF is processed as a separate patient record, just like the Bulk Capture workflow
+          </p>
           <div className="grid grid-cols-3 gap-3">
             <Button
               variant="outline"
               onClick={() => loadMultiPatientDemo('small')}
-              disabled={isLoading}
+              disabled={isLoading || isProcessingMulti}
               className="h-20 flex-col gap-1"
             >
               <Users className="h-5 w-5" />
@@ -272,7 +372,7 @@ export default function LGCaptureDemoService() {
             <Button
               variant="outline"
               onClick={() => loadMultiPatientDemo('mid')}
-              disabled={isLoading}
+              disabled={isLoading || isProcessingMulti}
               className="h-20 flex-col gap-1"
             >
               <Users className="h-5 w-5" />
@@ -282,7 +382,7 @@ export default function LGCaptureDemoService() {
             <Button
               variant="outline"
               onClick={() => loadMultiPatientDemo('large')}
-              disabled={isLoading}
+              disabled={isLoading || isProcessingMulti}
               className="h-20 flex-col gap-1"
             >
               <Users className="h-5 w-5" />
@@ -293,6 +393,84 @@ export default function LGCaptureDemoService() {
         </CardContent>
       </Card>
 
+      {/* Multi-Patient Progress */}
+      {multiPatientProgress.length > 0 && (
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base flex items-center justify-between">
+              <span>Processing {multiPatientProgress.length} Patients</span>
+              <div className="flex items-center gap-2">
+                {queuedCount > 0 && (
+                  <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-200">
+                    {queuedCount} Queued
+                  </Badge>
+                )}
+                {failedCount > 0 && (
+                  <Badge variant="destructive">{failedCount} Failed</Badge>
+                )}
+                {!isProcessingMulti && (
+                  <Button variant="ghost" size="sm" onClick={clearMultiProgress}>
+                    Clear
+                  </Button>
+                )}
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2 max-h-80 overflow-y-auto">
+              {multiPatientProgress.map((p, idx) => (
+                <div key={idx} className="flex items-center gap-3 p-2 rounded-lg border bg-muted/30">
+                  <FileText className="h-5 w-5 text-muted-foreground flex-shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="font-medium text-sm truncate">{p.patientName}</p>
+                    {p.pageCount && (
+                      <p className="text-xs text-muted-foreground">{p.pageCount} pages</p>
+                    )}
+                    {(p.status === 'extracting') && (
+                      <Progress value={p.progress} className="h-1 mt-1" />
+                    )}
+                    {p.error && (
+                      <p className="text-xs text-destructive mt-1">{p.error}</p>
+                    )}
+                  </div>
+                  <div>
+                    {p.status === 'pending' && (
+                      <Badge variant="secondary">Pending</Badge>
+                    )}
+                    {p.status === 'extracting' && (
+                      <Badge variant="outline" className="bg-blue-500/10 text-blue-600 border-blue-200">
+                        <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                        Processing
+                      </Badge>
+                    )}
+                    {p.status === 'queued' && (
+                      <Badge className="bg-green-500/10 text-green-600 border-green-200">
+                        <Check className="h-3 w-3 mr-1" />
+                        Queued
+                      </Badge>
+                    )}
+                    {p.status === 'failed' && (
+                      <Badge variant="destructive">Failed</Badge>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+            
+            {queuedCount > 0 && !isProcessingMulti && (
+              <div className="mt-4 pt-4 border-t">
+                <Button 
+                  onClick={() => navigate('/lg-capture/patients')}
+                  className="w-full"
+                >
+                  View Recent Captures ({queuedCount} queued)
+                </Button>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       {/* Loading State */}
       {isLoading && (
         <div className="flex items-center justify-center py-8">
@@ -301,7 +479,7 @@ export default function LGCaptureDemoService() {
         </div>
       )}
 
-      {/* Images Grid */}
+      {/* Images Grid (for single patient demos) */}
       {images.length > 0 && !isLoading && (
         <Card>
           <CardHeader className="pb-3">
