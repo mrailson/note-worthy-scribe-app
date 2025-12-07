@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Home, Upload, FileText, Check, X, Loader2, 
-  FolderOpen, AlertCircle, ArrowRight, Files 
+  FolderOpen, AlertCircle, ArrowRight, Files, History 
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -18,6 +19,7 @@ import { generateULID } from '@/utils/ulid';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import WatchFolderSettings from '@/components/lg-capture/WatchFolderSettings';
+import BulkUploadHistory from '@/components/lg-capture/BulkUploadHistory';
 
 interface QueuedFile {
   id: string;
@@ -237,151 +239,170 @@ export default function LGCaptureBulk() {
         </p>
       </div>
 
-      {/* Watch Folder Settings */}
-      <WatchFolderSettings 
-        practiceOds={practiceOds}
-        uploaderName={uploaderName}
-        batchId={batchId}
-      />
+      <Tabs defaultValue="upload" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="upload" className="flex items-center gap-2">
+            <Upload className="h-4 w-4" />
+            Upload
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            History
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Drop Zone */}
-      <Card>
-        <CardContent className="pt-6">
-          <div
-            {...getRootProps()}
-            className={`
-              border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
-              ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}
-            `}
-          >
-            <input {...getInputProps()} />
-            <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            {isDragActive ? (
-              <p className="text-primary font-medium">Drop PDF files here...</p>
-            ) : (
-              <div className="space-y-2">
-                <p className="font-medium">Drop PDF files here or click to browse</p>
-                <p className="text-sm text-muted-foreground">Each PDF will be treated as a separate patient record</p>
-              </div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+        <TabsContent value="upload" className="space-y-6 mt-6">
+          {/* Watch Folder Settings */}
+          <WatchFolderSettings 
+            practiceOds={practiceOds}
+            uploaderName={uploaderName}
+            batchId={batchId}
+          />
 
-      {/* File List */}
-      {files.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center justify-between">
-              <span>Files ({files.length})</span>
-              <div className="flex items-center gap-2 text-sm font-normal">
-                {queuedCount > 0 && (
-                  <span className="text-green-600">{queuedCount} queued</span>
-                )}
-                {failedCount > 0 && (
-                  <span className="text-destructive">{failedCount} failed</span>
-                )}
-              </div>
-            </CardTitle>
-            
-            {/* Queue Process Button - Above file list */}
-            <div className="flex gap-3 pt-3">
-              <Button
-                onClick={processFiles}
-                disabled={isProcessing || pendingCount === 0}
-                className="flex-1"
+          {/* Drop Zone */}
+          <Card>
+            <CardContent className="pt-6">
+              <div
+                {...getRootProps()}
+                className={`
+                  border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors
+                  ${isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'}
+                `}
               >
-                {isProcessing ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Processing...
-                  </>
+                <input {...getInputProps()} />
+                <Upload className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                {isDragActive ? (
+                  <p className="text-primary font-medium">Drop PDF files here...</p>
                 ) : (
-                  <>
-                    <ArrowRight className="mr-2 h-4 w-4" />
-                    Queue {pendingCount} File{pendingCount !== 1 ? 's' : ''} for Processing
-                  </>
-                )}
-              </Button>
-              {queuedCount > 0 && (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate('/lg-capture/patients')}
-                >
-                  View Recent Captures
-                </Button>
-              )}
-            </div>
-          </CardHeader>
-          <CardContent>
-            <ScrollArea className="h-[320px]">
-              <div className="space-y-3 pr-4">
-                {files.map(file => (
-                  <div
-                    key={file.id}
-                    className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30"
-                  >
-                    <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate text-sm">{file.fileName}</p>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <span>{(file.fileSize / 1024 / 1024).toFixed(2)} MB</span>
-                        {file.pageCount !== null && (
-                          <>
-                            <span>•</span>
-                            <span>{file.pageCount} pages</span>
-                          </>
-                        )}
-                      </div>
-                      {(file.status === 'extracting' || file.status === 'uploading') && (
-                        <Progress value={file.progress} className="h-1 mt-2" />
-                      )}
-                      {file.error && (
-                        <p className="text-xs text-destructive mt-1 flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          {file.error}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {getStatusBadge(file.status)}
-                      {file.status === 'pending' && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => removeFile(file.id)}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      )}
-                    </div>
+                  <div className="space-y-2">
+                    <p className="font-medium">Drop PDF files here or click to browse</p>
+                    <p className="text-sm text-muted-foreground">Each PDF will be treated as a separate patient record</p>
                   </div>
-                ))}
+                )}
               </div>
-            </ScrollArea>
-          </CardContent>
-        </Card>
-      )}
+            </CardContent>
+          </Card>
 
-      {/* Info Card */}
-      <Card className="bg-muted/30">
-        <CardContent className="pt-4">
-          <div className="flex items-start gap-3">
-            <FolderOpen className="h-5 w-5 text-primary mt-0.5" />
-            <div className="text-sm">
-              <p className="font-medium mb-1">How Bulk Capture Works</p>
-              <ul className="text-muted-foreground space-y-1 text-xs">
-                <li>• Each PDF is treated as one patient's Lloyd George record</li>
-                <li>• Pages are extracted and blank pages removed automatically</li>
-                <li>• Files are queued for background processing</li>
-                <li>• Email summaries arrive as each file completes</li>
-                <li>• A batch report email is sent when all files are processed</li>
-              </ul>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+          {/* File List */}
+          {files.length > 0 && (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center justify-between">
+                  <span>Files ({files.length})</span>
+                  <div className="flex items-center gap-2 text-sm font-normal">
+                    {queuedCount > 0 && (
+                      <span className="text-green-600">{queuedCount} queued</span>
+                    )}
+                    {failedCount > 0 && (
+                      <span className="text-destructive">{failedCount} failed</span>
+                    )}
+                  </div>
+                </CardTitle>
+                
+                {/* Queue Process Button - Above file list */}
+                <div className="flex gap-3 pt-3">
+                  <Button
+                    onClick={processFiles}
+                    disabled={isProcessing || pendingCount === 0}
+                    className="flex-1"
+                  >
+                    {isProcessing ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>
+                        <ArrowRight className="mr-2 h-4 w-4" />
+                        Queue {pendingCount} File{pendingCount !== 1 ? 's' : ''} for Processing
+                      </>
+                    )}
+                  </Button>
+                  {queuedCount > 0 && (
+                    <Button
+                      variant="outline"
+                      onClick={() => navigate('/lg-capture/patients')}
+                    >
+                      View Recent Captures
+                    </Button>
+                  )}
+                </div>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-[320px]">
+                  <div className="space-y-3 pr-4">
+                    {files.map(file => (
+                      <div
+                        key={file.id}
+                        className="flex items-center gap-3 p-3 rounded-lg border bg-muted/30"
+                      >
+                        <FileText className="h-8 w-8 text-muted-foreground flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate text-sm">{file.fileName}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span>{(file.fileSize / 1024 / 1024).toFixed(2)} MB</span>
+                            {file.pageCount !== null && (
+                              <>
+                                <span>•</span>
+                                <span>{file.pageCount} pages</span>
+                              </>
+                            )}
+                          </div>
+                          {(file.status === 'extracting' || file.status === 'uploading') && (
+                            <Progress value={file.progress} className="h-1 mt-2" />
+                          )}
+                          {file.error && (
+                            <p className="text-xs text-destructive mt-1 flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              {file.error}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2">
+                          {getStatusBadge(file.status)}
+                          {file.status === 'pending' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => removeFile(file.id)}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Info Card */}
+          <Card className="bg-muted/30">
+            <CardContent className="pt-4">
+              <div className="flex items-start gap-3">
+                <FolderOpen className="h-5 w-5 text-primary mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium mb-1">How Bulk Capture Works</p>
+                  <ul className="text-muted-foreground space-y-1 text-xs">
+                    <li>• Each PDF is treated as one patient's Lloyd George record</li>
+                    <li>• Pages are extracted and blank pages removed automatically</li>
+                    <li>• Files are queued for background processing</li>
+                    <li>• Email summaries arrive as each file completes</li>
+                    <li>• A batch report email is sent when all files are processed</li>
+                  </ul>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <BulkUploadHistory />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
