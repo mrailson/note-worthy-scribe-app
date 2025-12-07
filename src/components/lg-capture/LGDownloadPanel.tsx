@@ -89,6 +89,49 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     }
   };
 
+  // Helper to find actual PDF path in storage (handles renamed files)
+  const findActualPdfPath = async (storedUrl: string): Promise<string | null> => {
+    try {
+      // First try the stored path directly
+      const directPath = storedUrl.replace('lg/', '');
+      
+      // Try to get signed URL for the stored path
+      const { error: directError } = await supabase.storage
+        .from('lg')
+        .createSignedUrl(directPath, 60);
+      
+      // If direct path works, use it
+      if (!directError) {
+        return directPath;
+      }
+      
+      // Path not found - try listing the final folder to find actual PDF
+      const basePath = `${patient.practice_ods}/${patient.id}/final`;
+      const { data: files, error: listError } = await supabase.storage
+        .from('lg')
+        .list(basePath, { limit: 20 });
+      
+      if (listError || !files) {
+        console.error('Error listing files:', listError);
+        return null;
+      }
+      
+      // Find PDF files (prefer Lloyd_George format, fallback to any PDF)
+      const pdfFiles = files.filter(f => f.name.endsWith('.pdf') && !f.name.includes('compressed'));
+      const targetFile = pdfFiles.find(f => f.name.startsWith('Lloyd_George')) || pdfFiles[0];
+      
+      if (!targetFile) {
+        console.error('No PDF found in final folder');
+        return null;
+      }
+      
+      return `${basePath}/${targetFile.name}`;
+    } catch (err) {
+      console.error('Error finding PDF path:', err);
+      return null;
+    }
+  };
+
   const openFileForViewing = async (url: string | null, filename: string) => {
     if (!url) {
       toast.error('File not available');
@@ -98,7 +141,15 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     setDownloading(filename);
     
     try {
-      const path = url.replace('lg/', '');
+      // For PDFs, use smart path resolution
+      let path = url.replace('lg/', '');
+      if (url.endsWith('.pdf') && !url.includes('compressed')) {
+        const actualPath = await findActualPdfPath(url);
+        if (actualPath) {
+          path = actualPath;
+        }
+      }
+      
       const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('lg')
         .createSignedUrl(path, 3600); // 1 hour expiry
@@ -135,7 +186,15 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
     setDownloading(filename);
     
     try {
-      const path = url.replace('lg/', '');
+      // For PDFs, use smart path resolution
+      let path = url.replace('lg/', '');
+      if (url.endsWith('.pdf') && !url.includes('compressed')) {
+        const actualPath = await findActualPdfPath(url);
+        if (actualPath) {
+          path = actualPath;
+        }
+      }
+      
       const { data, error } = await supabase.storage
         .from('lg')
         .download(path);
