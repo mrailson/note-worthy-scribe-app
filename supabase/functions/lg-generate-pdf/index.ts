@@ -354,7 +354,7 @@ serve(async (req) => {
         const pageHeight = 842; // A4 height
         const headerHeight = 55; // Increased for 2-line header (patient info + page summary)
         const margin = 30; // White border margin
-        const footerHeight = 30;
+        const footerHeight = 50; // Space for "Back to Index" link and disclaimer
         
         // Calculate available space for image
         const availableWidth = pageWidth - (margin * 2);
@@ -416,11 +416,28 @@ serve(async (req) => {
           color: rgb(0.3, 0.3, 0.3), // Grey color for summary
         });
         
+        // Draw the image centered FIRST (before footer text so text appears on top)
+        page.drawImage(image, {
+          x: imageX,
+          y: imageY,
+          width: scaledWidth,
+          height: scaledHeight,
+        });
+        
+        // Draw footer background to ensure text is visible
+        page.drawRectangle({
+          x: 0,
+          y: 0,
+          width: pageWidth,
+          height: footerHeight,
+          color: rgb(1, 1, 1),
+        });
+        
         // Draw "Back to Index" link text at bottom left
         const backToIndexText = '[Back to Index]';
         page.drawText(backToIndexText, {
           x: margin,
-          y: 25,
+          y: 30,
           size: 9,
           font,
           color: rgb(0, 0.35, 0.8), // Blue color for link
@@ -432,18 +449,10 @@ serve(async (req) => {
         const footerTextWidth = font.widthOfTextAtSize(footerText, footerFontSize);
         page.drawText(footerText, {
           x: (pageWidth - footerTextWidth) / 2,
-          y: 10,
+          y: 12,
           size: footerFontSize,
           font,
           color: rgb(0.4, 0.4, 0.4),
-        });
-
-        // Draw the image centered with white border
-        page.drawImage(image, {
-          x: imageX,
-          y: imageY,
-          width: scaledWidth,
-          height: scaledHeight,
         });
 
       } catch (pageErr) {
@@ -499,7 +508,7 @@ serve(async (req) => {
           const backLinkAnnotation = pdfDoc.context.obj({
             Type: 'Annot',
             Subtype: 'Link',
-            Rect: [30, 10, 120, 25], // Bottom left clickable area
+            Rect: [30, 25, 120, 42], // Bottom left clickable area matching text position
             Border: [0, 0, 0],
             Dest: [indexPage.ref, 'XYZ', null, null, null],
           });
@@ -606,7 +615,7 @@ serve(async (req) => {
             const pageHeight = 842;
             const headerH = 55; // Increased for 2-line header
             const margin = 30;
-            const footerH = 30;
+            const footerH = 50; // Space for "Back to Index" link and disclaimer
             
             const availWidth = pageWidth - (margin * 2);
             const availHeight = pageHeight - headerH - footerH - margin;
@@ -661,10 +670,22 @@ serve(async (req) => {
               color: rgb(0.3, 0.3, 0.3),
             });
             
+            // Draw the image FIRST (before footer text so text appears on top)
+            page.drawImage(image, { x: imgX, y: imgY, width: scaledW, height: scaledH });
+            
+            // Draw footer background to ensure text is visible
+            page.drawRectangle({
+              x: 0,
+              y: 0,
+              width: pageWidth,
+              height: footerH,
+              color: rgb(1, 1, 1),
+            });
+            
             // Draw "Back to Index" link text
             page.drawText('[Back to Index]', {
               x: margin,
-              y: 25,
+              y: 30,
               size: 9,
               font: partFont,
               color: rgb(0, 0.35, 0.8),
@@ -676,13 +697,11 @@ serve(async (req) => {
             const footerTextWidth = partFont.widthOfTextAtSize(footerText, footerFontSize);
             page.drawText(footerText, {
               x: (pageWidth - footerTextWidth) / 2,
-              y: 10,
+              y: 12,
               size: footerFontSize,
               font: partFont,
               color: rgb(0.4, 0.4, 0.4),
             });
-
-            page.drawImage(image, { x: imgX, y: imgY, width: scaledW, height: scaledH });
 
           } catch (err) {
             console.error(`Part ${partNum + 1} page ${i + 1} error:`, err);
@@ -725,7 +744,7 @@ serve(async (req) => {
               const backLinkAnnotation = partDoc.context.obj({
                 Type: 'Annot',
                 Subtype: 'Link',
-                Rect: [30, 10, 120, 25],
+                Rect: [30, 25, 120, 42], // Bottom left clickable area matching text position
                 Border: [0, 0, 0],
                 Dest: [partIndexPage.ref, 'XYZ', null, null, null],
               });
