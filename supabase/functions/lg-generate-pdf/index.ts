@@ -1090,8 +1090,32 @@ function addClinicalSummaryPage(
     { key: 'immunisations', title: 'IMMUNISATIONS', showDate: true },
   ];
 
+  // Helper to deduplicate by SNOMED code, keeping earliest date
+  const deduplicateByCode = (items: any[]): any[] => {
+    const codeMap = new Map<string, any>();
+    for (const item of items) {
+      const code = item.code || 'UNKNOWN';
+      const existing = codeMap.get(code);
+      if (!existing) {
+        codeMap.set(code, item);
+      } else {
+        // Compare dates, keep earliest
+        const existingDate = existing.date || existing.year || '';
+        const itemDate = item.date || item.year || '';
+        if (itemDate && (!existingDate || itemDate < existingDate)) {
+          codeMap.set(code, item);
+        }
+      }
+    }
+    return Array.from(codeMap.values());
+  };
+
   for (const section of sections) {
-    const items = snomedJson?.[section.key] || [];
+    let items = snomedJson?.[section.key] || [];
+    // Deduplicate diagnoses and immunisations by SNOMED code
+    if (section.key === 'diagnoses' || section.key === 'immunisations') {
+      items = deduplicateByCode(items);
+    }
     if (items.length > 0) {
       drawLine(section.title, 12, true);
       addSpace(0.3);
