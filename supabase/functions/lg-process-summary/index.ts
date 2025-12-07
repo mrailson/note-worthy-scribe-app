@@ -90,7 +90,36 @@ If unknown → "unknown".
 
 Never create new diagnoses.
 
-Only summarise what is evidenced in the record.`;
+Only summarise what is evidenced in the record.
+
+GUARDRAILS - CURRENT STATUS LANGUAGE (CRITICAL)
+
+These are HISTORICAL RECORDS ONLY. You have NO information about the patient's current state.
+
+NEVER use language that implies knowledge of current patient status:
+- DO NOT say "currently stable", "well-controlled", "currently managed", "currently on", "presently"
+- DO NOT say "continues to", "remains on", "is being treated with", "is maintained on"
+- DO NOT make any statements about current condition, current treatment, or current status
+- DO NOT say "stable on medication", "controlled with", "managed with"
+
+CORRECT examples:
+- "Type 2 diabetes diagnosed 2019, treated with Metformin 1g BD at time of LG record"
+- "Hypertension - earliest LG mention 2015"
+- "On Atorvastatin 40mg as per LG record dated 2020"
+
+INCORRECT examples (NEVER USE):
+- "Type 2 diabetes currently stable on Metformin" ← WRONG
+- "Hypertension well-controlled" ← WRONG
+- "Currently managed with..." ← WRONG
+
+DIAGNOSIS DATE EXTRACTION (CRITICAL)
+
+For each diagnosis, extract the EARLIEST mention date found in the Lloyd George record:
+- Use year only (e.g., "2019") if full date is not known
+- Earlier dates take precedence over later dates (2019 wins over 01/06/2024)
+- If a condition appears multiple times, use the EARLIEST date
+- If no date can be determined, use "Not Known from LG"
+- Label dates conceptually as "earliest known date in LG"`;
 
 // SNOMED Mapping Prompt - NHS-standard SNOMED CT verification engine
 const SNOMED_MAPPING_PROMPT = `You are an NHS-standard SNOMED CT verification engine.

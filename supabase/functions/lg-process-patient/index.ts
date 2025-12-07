@@ -91,7 +91,36 @@ If unknown → "unknown".
 
 Never create new diagnoses.
 
-Only summarise what is evidenced in the record.`;
+Only summarise what is evidenced in the record.
+
+GUARDRAILS - CURRENT STATUS LANGUAGE (CRITICAL)
+
+These are HISTORICAL RECORDS ONLY. You have NO information about the patient's current state.
+
+NEVER use language that implies knowledge of current patient status:
+- DO NOT say "currently stable", "well-controlled", "currently managed", "currently on", "presently"
+- DO NOT say "continues to", "remains on", "is being treated with", "is maintained on"
+- DO NOT make any statements about current condition, current treatment, or current status
+- DO NOT say "stable on medication", "controlled with", "managed with"
+
+CORRECT examples:
+- "Type 2 diabetes diagnosed 2019, treated with Metformin 1g BD at time of LG record"
+- "Hypertension - earliest LG mention 2015"
+- "On Atorvastatin 40mg as per LG record dated 2020"
+
+INCORRECT examples (NEVER USE):
+- "Type 2 diabetes currently stable on Metformin" ← WRONG
+- "Hypertension well-controlled" ← WRONG
+- "Currently managed with..." ← WRONG
+
+DIAGNOSIS DATE EXTRACTION (CRITICAL)
+
+For each diagnosis, extract the EARLIEST mention date found in the Lloyd George record:
+- Use year only (e.g., "2019") if full date is not known
+- Earlier dates take precedence over later dates (2019 wins over 01/06/2024)
+- If a condition appears multiple times, use the EARLIEST date
+- If no date can be determined, use "Not Known from LG"
+- Label dates conceptually as "earliest known date in LG"`;
 
 // SNOMED Mapping Prompt - NHS-standard SNOMED CT verification engine
 const SNOMED_MAPPING_PROMPT = `You are an NHS-standard SNOMED CT verification engine.
@@ -789,7 +818,7 @@ Return valid JSON matching this schema exactly. This is a FORMAT EXAMPLE ONLY - 
 
 {
   "summary_line": "",
-  "diagnoses": [],
+  "diagnoses": [{"condition": "Condition Name", "earliest_lg_date": "YYYY or DD/MM/YYYY or Not Known from LG"}],
   "surgeries": [],
   "allergies": [],
   "immunisations": [],
@@ -841,6 +870,20 @@ MEDICATION EXTRACTION (MANDATORY):
 23. Include drug name, dose if present, and date/year if recorded.
 24. Look for "Current Medications", medication lists, prescription records.
 25. Common medications to look for: Metformin, Gliclazide, Lisinopril, Sertraline, Omeprazole, Atorvastatin, Ramipril, Amlodipine, etc.
+
+DIAGNOSIS DATE EXTRACTION (MANDATORY - EARLIEST DATE RULE):
+26. For each diagnosis, find the EARLIEST mention in the Lloyd George record.
+27. Use year only (e.g., "2019") if full date is not known.
+28. Earlier dates ALWAYS take precedence (e.g., 2019 wins over 01/06/2024).
+29. If same condition appears multiple times with different dates, use the EARLIEST date.
+30. If no date can be determined, use "Not Known from LG".
+31. NEVER use current year or recent dates unless explicitly documented as earliest mention.
+
+CLINICAL SUMMARY LANGUAGE (MANDATORY):
+32. NEVER use language implying current patient status (e.g., "currently stable", "well-controlled", "currently managed").
+33. These are HISTORICAL records - you have NO knowledge of current patient state.
+34. CORRECT: "Type 2 diabetes - earliest LG mention 2019"
+35. INCORRECT: "Type 2 diabetes currently stable on medication"
 
 OCR Text:
 ${fullOcrText.substring(0, 50000)}`;
