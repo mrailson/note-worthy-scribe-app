@@ -27,6 +27,16 @@ const MULTI_PATIENT_PDFS = [
   { path: '/demo/multi-08-michael-roberts.pdf', name: 'Michael Roberts' },
   { path: '/demo/multi-09-emma-watson.pdf', name: 'Emma Watson' },
   { path: '/demo/multi-10-george-mitchell.pdf', name: 'George Mitchell' },
+  { path: '/demo/multi-11-harold-jenkins.pdf', name: 'Harold Jenkins' },
+  { path: '/demo/multi-12-barbara-pearson.pdf', name: 'Barbara Pearson' },
+  { path: '/demo/multi-13-kenneth-williams.pdf', name: 'Kenneth Williams' },
+  { path: '/demo/multi-14-jean-foster.pdf', name: 'Jean Foster' },
+  { path: '/demo/multi-15-peter-griffiths.pdf', name: 'Peter Griffiths' },
+  { path: '/demo/multi-16-susan-chapman.pdf', name: 'Susan Chapman' },
+  { path: '/demo/multi-17-arthur-stevens.pdf', name: 'Arthur Stevens' },
+  { path: '/demo/multi-18-christine-howard.pdf', name: 'Christine Howard' },
+  { path: '/demo/multi-19-raymond-cox.pdf', name: 'Raymond Cox' },
+  { path: '/demo/multi-20-maureen-bennett.pdf', name: 'Maureen Bennett' },
 ];
 
 export default function LGCaptureDemoService() {
@@ -273,11 +283,11 @@ export default function LGCaptureDemoService() {
               variant="outline"
               onClick={() => loadMultiPatientDemo('large')}
               disabled={isLoading}
-              className="h-20 flex-col gap-1 opacity-50"
+              className="h-20 flex-col gap-1"
             >
               <Users className="h-5 w-5" />
               <span className="font-medium">Large</span>
-              <span className="text-xs text-muted-foreground">Coming soon</span>
+              <span className="text-xs text-muted-foreground">20 patients</span>
             </Button>
           </div>
         </CardContent>
