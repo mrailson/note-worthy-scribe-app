@@ -1294,53 +1294,120 @@ function findAllDatesForTerm(term: string, ocrText: string): { date: string; pag
   const results: { date: string; pageNum: number }[] = [];
   if (!term || !ocrText) return results;
   
-  // Build search variations for the term
+  // Build search variations for the term - be aggressive with variations
   const termLower = term.toLowerCase();
-  const searchTerms = [
-    termLower,
-    // Common variations
-    termLower.replace('type 2 ', 't2 '),
-    termLower.replace('type 2 ', ''),
-    termLower.replace(' mellitus', ''),
-    termLower.replace('diabetes mellitus type 2', 'diabetes'),
-    termLower.replace('diabetes mellitus type 2', 't2dm'),
-    termLower.replace('diabetes mellitus type 2', 'type 2 diabetes'),
-    termLower.replace('(disorder)', '').trim(),
-    termLower.replace(' (disorder)', '').trim(),
-  ].filter((t, i, arr) => t.length > 3 && arr.indexOf(t) === i);
+  const searchTerms = new Set<string>();
   
-  // Split OCR by page markers
-  const pageRegex = /---\s*Page\s+page_(\d+)\.(jpg|jpeg|png)\s*---/gi;
-  const parts = ocrText.split(pageRegex);
+  // Add base term
+  searchTerms.add(termLower);
   
-  // Date extraction patterns
+  // Remove common suffixes
+  searchTerms.add(termLower.replace(' (disorder)', '').trim());
+  searchTerms.add(termLower.replace('(disorder)', '').trim());
+  searchTerms.add(termLower.replace(' mellitus', '').trim());
+  
+  // Diabetes specific variations
+  if (termLower.includes('diabetes')) {
+    searchTerms.add('diabetes');
+    searchTerms.add('type 2 diabetes');
+    searchTerms.add('type2 diabetes');
+    searchTerms.add('t2 diabetes');
+    searchTerms.add('t2dm');
+    searchTerms.add('dm2');
+    searchTerms.add('dm type 2');
+    searchTerms.add('diabetic');
+  }
+  
+  // More variations
+  searchTerms.add(termLower.replace('type 2 ', 't2 '));
+  searchTerms.add(termLower.replace('type 2 ', ''));
+  
+  // Filter to valid terms (>3 chars)
+  const validSearchTerms = Array.from(searchTerms).filter(t => t.length > 3);
+  
+  console.log(`Date search terms for "${term}": ${validSearchTerms.join(', ')}`);
+  
+  // Date extraction patterns - comprehensive
   const datePatterns = [
     /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/g,  // DD/MM/YYYY or DD-MM-YYYY
     /(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2})(?!\d)/g,  // DD/MM/YY
     /(\d{1,2})[\/\-]([A-Za-z]{3})[\/\-](\d{4})/g,  // DD-MMM-YYYY
     /(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})/g,  // YYYY-MM-DD
-    /\b(19\d{2}|20\d{2})\b/g,  // Just year (1900s or 2000s)
   ];
   
-  // Process each page
+  // Try multiple page splitting strategies
+  // Strategy 1: --- Page page_X.jpg --- format
+  let pageRegex = /---\s*Page\s+page_(\d+)\.(jpg|jpeg|png)\s*---/gi;
+  let parts = ocrText.split(pageRegex);
+  
+  // Strategy 2: If that didn't work, try page_X.jpg marker alone
+  if (parts.length <= 1) {
+    pageRegex = /page_(\d+)\.(jpg|jpeg|png)/gi;
+    parts = [];
+    let lastIndex = 0;
+    let match;
+    while ((match = pageRegex.exec(ocrText)) !== null) {
+      if (lastIndex > 0) {
+        const pageNum = parseInt(parts[parts.length - 2], 10);
+        parts.push(ocrText.substring(lastIndex, match.index)); // page text
+      }
+      parts.push('marker'); // placeholder
+      parts.push(match[1]); // page number
+      parts.push(match[2]); // extension
+      lastIndex = match.index + match[0].length;
+    }
+    if (lastIndex > 0 && lastIndex < ocrText.length) {
+      parts.push(ocrText.substring(lastIndex));
+    }
+  }
+  
+  console.log(`Found ${Math.floor(parts.length / 3)} pages in OCR text`);
+  
+  // If still no pages found, search entire text without page tracking
+  if (parts.length <= 1) {
+    console.log('No page markers found, searching entire OCR text');
+    const textLower = ocrText.toLowerCase();
+    const hasTerm = validSearchTerms.some(t => textLower.includes(t));
+    
+    if (hasTerm) {
+      for (const pattern of datePatterns) {
+        let match;
+        pattern.lastIndex = 0;
+        while ((match = pattern.exec(textLower)) !== null) {
+          const dateStr = match[0];
+          if (!results.some(r => r.date === dateStr)) {
+            results.push({ date: dateStr, pageNum: 1 });
+          }
+        }
+      }
+    }
+    return results;
+  }
+  
+  // Process each page from split results
   for (let i = 1; i < parts.length; i += 3) {
-    const pageNum = parseInt(parts[i], 10);
+    const pageNumStr = parts[i];
+    const pageNum = parseInt(pageNumStr, 10);
+    if (isNaN(pageNum)) continue;
+    
     const pageText = (parts[i + 2] || '').toLowerCase();
     
     // Check if this page mentions the diagnosis
-    const hasTerm = searchTerms.some(t => pageText.includes(t));
+    const hasTerm = validSearchTerms.some(t => pageText.includes(t));
     if (!hasTerm) continue;
+    
+    console.log(`Page ${pageNum} contains diagnosis term`);
     
     // Find all dates on this page
     for (const pattern of datePatterns) {
       let match;
-      // Reset regex
       pattern.lastIndex = 0;
       while ((match = pattern.exec(pageText)) !== null) {
         const dateStr = match[0];
         // Don't add duplicates
         if (!results.some(r => r.date === dateStr && r.pageNum === pageNum)) {
           results.push({ date: dateStr, pageNum });
+          console.log(`Found date "${dateStr}" on page ${pageNum}`);
         }
       }
     }
