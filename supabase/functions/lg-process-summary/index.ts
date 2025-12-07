@@ -823,11 +823,20 @@ ${fullOcrText.substring(0, 50000)}`;
     if (openaiKey && fullOcrText.length > 100) {
       const snomedPrompt = `Extract SNOMED-coded clinical items ONLY from the OCR text below.
 
+CRITICAL PRE-PROCESSING STEP (DO THIS FIRST):
+Before extracting any diagnoses, you MUST scan the ENTIRE OCR text and create a mental list of ALL dates where each condition appears.
+For example, if you see "Type 2 Diabetes" mentioned on multiple pages with dates 2024, 2023, 2022, 2019 - the output date MUST be 2019 (the earliest).
+
+MANDATORY WORKFLOW:
+1. First pass: Scan ALL pages and list ALL conditions with ALL their dates
+2. For each condition, identify the EARLIEST date across all pages  
+3. Only then create the JSON output with that earliest date
+
 CRITICAL: Do NOT assume or infer any clinical information not explicitly present in the text.
 Extract ONLY what is VERBATIM in the OCR - if a diagnosis, surgery, or immunisation is not written, do not include it.
 
 OCR Text (note the page markers like "--- Page page_001.jpg ---"):
-${fullOcrText.substring(0, 30000)}`;
+${fullOcrText.substring(0, 50000)}`;
 
       try {
         // Single-step: AI extracts concepts AND provides SNOMED codes directly
