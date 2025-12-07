@@ -42,6 +42,9 @@ export default function WatchFolderSettings({
     clearProcessedFiles
   } = useWatchFolder(practiceOds, uploaderName, batchId);
 
+  // Check if in iframe
+  const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+
   if (!isSupported) {
     return (
       <Card className="border-amber-200 bg-amber-50/50">
@@ -49,8 +52,17 @@ export default function WatchFolderSettings({
           <div className="flex items-center gap-3 text-amber-700">
             <AlertTriangle className="h-5 w-5 flex-shrink-0" />
             <div className="text-sm">
-              <p className="font-medium">Watch Folder requires Chrome or Edge</p>
-              <p className="text-amber-600">This feature uses the File System Access API which is not supported in your browser.</p>
+              {isInIframe ? (
+                <>
+                  <p className="font-medium">Watch Folder requires a new browser tab</p>
+                  <p className="text-amber-600">This feature cannot work in the preview iframe. Open the app in a new tab using the external link icon.</p>
+                </>
+              ) : (
+                <>
+                  <p className="font-medium">Watch Folder requires Chrome or Edge</p>
+                  <p className="text-amber-600">This feature uses the File System Access API which is not supported in your browser.</p>
+                </>
+              )}
             </div>
           </div>
         </CardContent>
