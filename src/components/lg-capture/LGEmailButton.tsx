@@ -385,18 +385,14 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
             <th style="padding: 8px; text-align: left;">Term</th>
             <th style="padding: 8px; text-align: left;">SNOMED Code</th>
             <th style="padding: 8px; text-align: center;">Date</th>
-            <th style="padding: 8px; text-align: center;">Confidence</th>
           </tr>`;
         
         for (const entry of domainEntries) {
-          const confPercent = Math.round((typeof entry.confidence === 'number' ? entry.confidence : 0) * 100);
-          const confColor = confPercent >= 80 ? '#007F3B' : confPercent >= 60 ? '#ED8B00' : '#DA291C';
           const dateDisplay = entry.date && entry.date.trim() ? entry.date : '<span style="color: #999; font-style: italic;">NK</span>';
           html += `<tr style="border-bottom: 1px solid #ddd;">
             <td style="padding: 8px;">${safeString(entry.term)}</td>
             <td style="padding: 8px; font-family: monospace;">${safeString(entry.code)}</td>
             <td style="padding: 8px; text-align: center;">${dateDisplay}</td>
-            <td style="padding: 8px; text-align: center; color: ${confColor}; font-weight: bold;">${confPercent}%</td>
           </tr>`;
         }
         html += `</table>`;
