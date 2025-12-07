@@ -762,13 +762,6 @@ export default function LGCaptureUpload() {
           </TabsList>
 
           <TabsContent value="upload" className="space-y-6 mt-6">
-            {/* Watch Folder Settings */}
-            <WatchFolderSettings 
-              practiceOds={practiceOds}
-              uploaderName={uploaderName}
-              batchId={batchId}
-            />
-
             {/* Drop Zone */}
             <Card>
               <CardContent className="pt-6">
@@ -905,6 +898,13 @@ export default function LGCaptureUpload() {
                 </CardContent>
               </Card>
             )}
+
+            {/* Watch Folder Settings */}
+            <WatchFolderSettings 
+              practiceOds={practiceOds}
+              uploaderName={uploaderName}
+              batchId={batchId}
+            />
 
             {/* Info Card */}
             <Card className="bg-muted/30">
