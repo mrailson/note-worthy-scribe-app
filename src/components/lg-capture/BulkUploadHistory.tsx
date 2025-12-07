@@ -180,14 +180,22 @@ export default function BulkUploadHistory() {
       
       const { data, error } = await supabase.storage
         .from('lg')
-        .createSignedUrl(cleanPath, 300); // 5 min expiry
+        .download(cleanPath);
       
-      if (error || !data?.signedUrl) {
-        console.error('Error creating signed URL:', error);
+      if (error || !data) {
+        console.error('Error downloading PDF:', error);
         return;
       }
       
-      window.open(data.signedUrl, '_blank');
+      // Create blob URL and trigger download
+      const url = URL.createObjectURL(data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = cleanPath.split('/').pop() || 'document.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Error downloading PDF:', err);
     }
