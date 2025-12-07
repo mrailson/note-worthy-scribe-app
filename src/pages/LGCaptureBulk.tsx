@@ -42,7 +42,12 @@ export default function LGCaptureBulk() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [practiceOds, setPracticeOds] = useState('');
   const [uploaderName, setUploaderName] = useState('');
-  const [batchId] = useState(() => crypto.randomUUID());
+  const [batchId, setBatchId] = useState(() => crypto.randomUUID());
+
+  const startNewBatch = () => {
+    setFiles([]);
+    setBatchId(crypto.randomUUID());
+  };
 
   // Load settings on mount
   useEffect(() => {
@@ -300,24 +305,35 @@ export default function LGCaptureBulk() {
                 </CardTitle>
                 
                 {/* Queue Process Button - Above file list */}
-                <div className="flex gap-3 pt-3">
-                  <Button
-                    onClick={processFiles}
-                    disabled={isProcessing || pendingCount === 0}
-                    className="flex-1"
-                  >
-                    {isProcessing ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Processing...
-                      </>
-                    ) : (
-                      <>
-                        <ArrowRight className="mr-2 h-4 w-4" />
-                        Queue {pendingCount} File{pendingCount !== 1 ? 's' : ''} for Processing
-                      </>
-                    )}
-                  </Button>
+                <div className="flex gap-2 pt-3">
+                  {pendingCount > 0 ? (
+                    <Button
+                      onClick={processFiles}
+                      disabled={isProcessing}
+                      className="flex-1"
+                    >
+                      {isProcessing ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Processing...
+                        </>
+                      ) : (
+                        <>
+                          <ArrowRight className="mr-2 h-4 w-4" />
+                          Queue {pendingCount} File{pendingCount !== 1 ? 's' : ''} for Processing
+                        </>
+                      )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={startNewBatch}
+                      variant="default"
+                      className="flex-1"
+                    >
+                      <Files className="mr-2 h-4 w-4" />
+                      New Batch
+                    </Button>
+                  )}
                   {queuedCount > 0 && (
                     <Button
                       variant="outline"
