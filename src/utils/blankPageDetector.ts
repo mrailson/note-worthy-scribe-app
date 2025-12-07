@@ -83,11 +83,12 @@ export async function analyseBlankness(
         // Blank only if: >99% white pixels AND very uniform/low std dev
         const isBlank = whitePercentage > whiteThreshold && stdDev < stdDevThreshold;
         
-        // Mostly blank: looser thresholds for old scans with marks/artifacts
-        // >90% white pixels OR high white% with moderate uniformity
+        // Mostly blank: much looser thresholds for old scans with marks/artifacts/yellowing
+        // Old Lloyd George scans have noise, marks, yellowed paper that reduces white%
         const isMostlyBlank = !isBlank && (
-          (whitePercentage > 90 && stdDev < 20) ||
-          (whitePercentage > 85 && stdDev < 12)
+          (whitePercentage > 75 && stdDev < 30) ||  // High white with moderate uniformity
+          (whitePercentage > 65 && stdDev < 20) ||  // Medium white with good uniformity
+          (whitePercentage > 55 && stdDev < 12)     // Lower white but very uniform (yellowed blank)
         );
 
         // Calculate confidence (how sure we are it's blank)
