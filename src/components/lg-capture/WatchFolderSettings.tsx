@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   FolderSearch, FolderOpen, Check, X, Loader2, 
-  ChevronDown, AlertTriangle, Trash2, Clock 
+  ChevronDown, AlertTriangle, Trash2, Clock, FolderInput, FolderOutput, ArrowRight
 } from 'lucide-react';
 import { useWatchFolder, ActivityLogEntry } from '@/hooks/useWatchFolder';
 import { cn } from '@/lib/utils';
@@ -35,7 +35,9 @@ export default function WatchFolderSettings({
     pollingInterval,
     processedFiles,
     recentActivity,
+    outputFolderName,
     selectFolder,
+    selectOutputFolder,
     startWatching,
     stopWatching,
     setPollingInterval,
@@ -80,6 +82,8 @@ export default function WatchFolderSettings({
         return <Check className="h-3 w-3 text-green-500" />;
       case 'failed':
         return <X className="h-3 w-3 text-red-500" />;
+      case 'moved':
+        return <ArrowRight className="h-3 w-3 text-purple-500" />;
     }
   };
 
@@ -106,9 +110,12 @@ export default function WatchFolderSettings({
         
         <CollapsibleContent>
           <CardContent className="space-y-4">
-            {/* Folder Selection */}
+            {/* Watch Folder Selection */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">Selected Folder</Label>
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <FolderInput className="h-4 w-4" />
+                Watch Folder (source PDFs)
+              </Label>
               <div className="flex items-center gap-2">
                 <div className="flex-1 px-3 py-2 rounded-md bg-muted text-sm">
                   {folderName || 'No folder selected'}
@@ -118,6 +125,33 @@ export default function WatchFolderSettings({
                   {folderName ? 'Change' : 'Select'}
                 </Button>
               </div>
+              {folderName && (
+                <p className="text-xs text-muted-foreground">
+                  After import, files are moved to "{folderName}/Imported to AI for processing"
+                </p>
+              )}
+            </div>
+
+            {/* Output Folder Selection */}
+            <div className="space-y-2">
+              <Label className="text-sm font-medium flex items-center gap-2">
+                <FolderOutput className="h-4 w-4" />
+                Output Folder (AI Completed PDFs)
+              </Label>
+              <div className="flex items-center gap-2">
+                <div className="flex-1 px-3 py-2 rounded-md bg-muted text-sm">
+                  {outputFolderName || 'No folder selected (optional)'}
+                </div>
+                <Button variant="outline" onClick={selectOutputFolder}>
+                  <FolderSearch className="h-4 w-4 mr-2" />
+                  {outputFolderName ? 'Change' : 'Select'}
+                </Button>
+              </div>
+              {outputFolderName && (
+                <p className="text-xs text-muted-foreground">
+                  Completed AI PDFs will be automatically saved here
+                </p>
+              )}
             </div>
 
             {/* Controls */}
@@ -196,7 +230,7 @@ export default function WatchFolderSettings({
             {/* Help Text */}
             <p className="text-xs text-muted-foreground">
               When enabled, this folder is checked every {pollingInterval} seconds for new PDF files. 
-              New files are automatically queued for processing. Files are only processed once.
+              New files are automatically queued for processing and moved to the "Imported to AI for processing" subfolder.
             </p>
           </CardContent>
         </CollapsibleContent>
