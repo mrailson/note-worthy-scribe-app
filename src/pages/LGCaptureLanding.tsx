@@ -377,7 +377,6 @@ export default function LGCaptureLanding() {
         <p className="text-muted-foreground">
           Digitise Lloyd George paper records with AI-powered processing
         </p>
-        <p className="text-xs text-muted-foreground">Proof of Concept</p>
       </div>
 
       <Button
