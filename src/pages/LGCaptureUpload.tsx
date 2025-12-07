@@ -48,7 +48,7 @@ export default function LGCaptureUpload() {
   const { queuePatient, activeUploads, queue } = useLGUploadQueue();
   
   // Mode state - check URL param for initial mode
-  const initialMode = searchParams.get('mode') === 'bulk' ? 'bulk' : 'single';
+  const initialMode = searchParams.get('mode') === 'single' ? 'single' : 'bulk';
   const [mode, setMode] = useState<CaptureMode>(initialMode);
   
   // Single patient mode state
