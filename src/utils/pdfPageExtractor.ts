@@ -37,6 +37,7 @@ export async function extractPdfPages(
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const totalPages = pdf.numPages;
+  console.log(`PDF loaded: ${file.name} - ${totalPages} pages detected`);
   const extractedPages: ExtractedPage[] = [];
 
   // Scale factor: PDF default is 72 DPI
