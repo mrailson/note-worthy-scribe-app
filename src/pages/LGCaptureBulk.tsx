@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Home, Upload, FileText, Check, X, Loader2, 
-  FolderOpen, AlertCircle, ArrowRight, Files, History, RefreshCw 
+  FolderOpen, AlertCircle, ArrowRight, Files, History, RefreshCw, ListOrdered 
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +20,7 @@ import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import WatchFolderSettings from '@/components/lg-capture/WatchFolderSettings';
 import BulkUploadHistory from '@/components/lg-capture/BulkUploadHistory';
+import { LGProcessingQueue } from '@/components/lg-capture/LGProcessingQueue';
 
 interface QueuedFile {
   id: string;
@@ -37,7 +38,7 @@ interface QueuedFile {
 export default function LGCaptureBulk() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { queuePatient } = useLGUploadQueue();
+  const { queuePatient, activeUploads, queue } = useLGUploadQueue();
   const [files, setFiles] = useState<QueuedFile[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
   const [practiceOds, setPracticeOds] = useState('');
@@ -237,10 +238,19 @@ export default function LGCaptureBulk() {
       </div>
 
       <Tabs defaultValue="upload" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="upload" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
             Upload
+          </TabsTrigger>
+          <TabsTrigger value="queue" className="flex items-center gap-2">
+            <ListOrdered className="h-4 w-4" />
+            Queue
+            {(activeUploads > 0 || queue.length > 0) && (
+              <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                {activeUploads + queue.length}
+              </Badge>
+            )}
           </TabsTrigger>
           <TabsTrigger value="history" className="flex items-center gap-2">
             <History className="h-4 w-4" />
@@ -412,6 +422,13 @@ export default function LGCaptureBulk() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="queue" className="space-y-4 mt-6">
+          <p className="text-muted-foreground text-sm">
+            View files currently being uploaded and processed
+          </p>
+          <LGProcessingQueue />
         </TabsContent>
 
         <TabsContent value="history" className="mt-6">
