@@ -136,6 +136,7 @@ export default function LGCaptureUpload() {
               dataUrl: page.dataUrl,
               timestamp: Date.now(),
               isBlank: page.isBlank,
+              isMostlyBlank: page.isMostlyBlank,
               blankConfidence: page.blankConfidence,
             });
           }
