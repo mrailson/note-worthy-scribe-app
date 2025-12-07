@@ -1084,10 +1084,10 @@ function addClinicalSummaryPage(
 
   // SNOMED sections
   const sections = [
-    { key: 'diagnoses', title: 'DIAGNOSES' },
-    { key: 'surgeries', title: 'MAJOR SURGERIES' },
-    { key: 'allergies', title: 'ALLERGIES' },
-    { key: 'immunisations', title: 'IMMUNISATIONS' },
+    { key: 'diagnoses', title: 'DIAGNOSES', showDate: true },
+    { key: 'surgeries', title: 'MAJOR SURGERIES', showDate: true },
+    { key: 'allergies', title: 'ALLERGIES', showDate: false },
+    { key: 'immunisations', title: 'IMMUNISATIONS', showDate: true },
   ];
 
   for (const section of sections) {
@@ -1098,8 +1098,13 @@ function addClinicalSummaryPage(
       for (const item of items) {
         const code = item.code || 'UNKNOWN';
         const term = item.term || 'Unknown term';
-        const confidence = item.confidence ? `${Math.round(item.confidence * 100)}%` : '';
-        drawLine(`${term} [SNOMED: ${code}] ${confidence}`, 10, false, 15);
+        // Format date: show NK if not known
+        let dateStr = '';
+        if (section.showDate) {
+          const itemDate = item.date || item.year;
+          dateStr = itemDate ? ` (${itemDate})` : ' (NK)';
+        }
+        drawLine(`${term} [SNOMED: ${code}]${dateStr}`, 10, false, 15);
       }
       addSpace(0.5);
     }
