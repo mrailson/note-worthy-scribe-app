@@ -433,24 +433,14 @@ export default function LGCaptureLanding() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        <Button
-          variant="outline"
-          onClick={() => navigate('/lg-capture/my-stats')}
-          className="w-full"
-        >
-          <BarChart3 className="mr-2 h-4 w-4" />
-          My Stats
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => navigate('/lg-capture/bulk')}
-          className="w-full"
-        >
-          <Files className="mr-2 h-4 w-4" />
-          Bulk Capture
-        </Button>
-      </div>
+      <Button
+        variant="outline"
+        onClick={() => navigate('/lg-capture/my-stats')}
+        className="w-full"
+      >
+        <BarChart3 className="mr-2 h-4 w-4" />
+        My Stats
+      </Button>
 
       <div className="grid grid-cols-2 gap-4">
         {features.map((feature) => (
