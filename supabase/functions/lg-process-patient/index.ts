@@ -993,7 +993,8 @@ ${fullOcrText.substring(0, 50000)}`;
         console.log('AI SNOMED extraction complete:', JSON.stringify(aiSnomedOutput, null, 2));
         
         // Convert flat items array to domain-based structure for backward compatibility
-        snomedJson = convertItemsToSnomedDomains(aiSnomedOutput, fullOcrText);
+        // Pass patient DOB to EXCLUDE from diagnosis date search (prevents DOB being used as diagnosis date)
+        snomedJson = convertItemsToSnomedDomains(aiSnomedOutput, fullOcrText, dob !== 'Unknown' ? dob : undefined);
         console.log('SNOMED codes converted to domain structure');
       } catch (aiErr) {
         console.error('SNOMED extraction failed:', aiErr);
@@ -1322,7 +1323,7 @@ function findSourcePageFromEvidence(evidence: string, ocrText: string, term: str
 }
 
 // Convert AI SNOMED output (flat items array) to domain-based structure for backward compatibility
-function convertItemsToSnomedDomains(aiOutput: any, ocrText: string = ''): any {
+function convertItemsToSnomedDomains(aiOutput: any, ocrText: string = '', patientDob?: string): any {
   const result: any = {
     diagnoses: [],
     surgeries: [],
@@ -1381,8 +1382,8 @@ function convertItemsToSnomedDomains(aiOutput: any, ocrText: string = ''): any {
 
   console.log(`SNOMED conversion complete: ${result.diagnoses.length} diagnoses, ${result.surgeries.length} surgeries, ${result.allergies.length} allergies, ${result.immunisations.length} immunisations`);
   
-  // POST-PROCESSING: Correct dates to use earliest found in OCR
-  const correctedResult = correctEarliestDates(result, ocrText);
+  // POST-PROCESSING: Correct dates to use earliest found in OCR, EXCLUDING patient DOB
+  const correctedResult = correctEarliestDates(result, ocrText, patientDob);
   
   return correctedResult;
 }
@@ -1601,9 +1602,9 @@ function findAllDatesForTerm(term: string, ocrText: string): { date: string; pag
 }
 
 /**
- * Find the earliest date from a list of date strings
+ * Find the earliest date from a list of date strings, optionally excluding patient DOB
  */
-function findEarliestDate(dates: { date: string; pageNum: number }[]): { date: string; pageNum: number } | null {
+function findEarliestDate(dates: { date: string; pageNum: number }[], excludeDob?: Date | null): { date: string; pageNum: number } | null {
   if (dates.length === 0) return null;
   
   let earliest: { date: string; pageNum: number; parsed: Date } | null = null;
@@ -1611,6 +1612,12 @@ function findEarliestDate(dates: { date: string; pageNum: number }[]): { date: s
   for (const d of dates) {
     const parsed = parseDate(d.date);
     if (parsed) {
+      // CRITICAL: Skip dates that match the patient's DOB (within 1 day tolerance)
+      if (excludeDob && Math.abs(parsed.getTime() - excludeDob.getTime()) < 86400000) {
+        console.log(`SKIPPING date "${d.date}" - matches patient DOB`);
+        continue;
+      }
+      
       if (!earliest || parsed < earliest.parsed) {
         earliest = { date: d.date, pageNum: d.pageNum, parsed };
       }
@@ -1640,9 +1647,16 @@ function formatToStandardDate(dateStr: string): string {
 
 /**
  * Post-process SNOMED output to correct dates to the earliest found in OCR
+ * @param patientDob - Patient date of birth to EXCLUDE from diagnosis date search
  */
-function correctEarliestDates(snomedOutput: any, ocrText: string): any {
+function correctEarliestDates(snomedOutput: any, ocrText: string, patientDob?: string): any {
   if (!snomedOutput || !ocrText) return snomedOutput;
+  
+  // Parse patient DOB for exclusion - this is CRITICAL to prevent DOB being used as diagnosis date
+  const patientDobParsed = patientDob ? parseDate(patientDob) : null;
+  if (patientDobParsed) {
+    console.log(`Patient DOB parsed for exclusion: ${patientDob} → ${patientDobParsed.toISOString()}`);
+  }
   
   // Only process diagnoses (most likely to have multiple date mentions)
   const diagnoses = snomedOutput.diagnoses || [];
@@ -1657,8 +1671,8 @@ function correctEarliestDates(snomedOutput: any, ocrText: string): any {
     
     if (allDates.length === 0) continue;
     
-    // Find the earliest date
-    const earliest = findEarliestDate(allDates);
+    // Find the earliest date, EXCLUDING patient DOB
+    const earliest = findEarliestDate(allDates, patientDobParsed);
     if (!earliest) continue;
     
     // Parse AI's current date
