@@ -217,16 +217,20 @@ serve(async (req) => {
     // ===== PAGE 3: INDEX OF SCANNED PAGES =====
     console.log('Adding index page...');
     const frontMatterPages = pdfDoc.getPageCount();
-    addIndexPage(pdfDoc, font, boldFont, {
+    const { indexPageIndices, linkYPositions } = addIndexPage(pdfDoc, font, boldFont, {
       patientName,
       nhsNumber,
       pageSummaries,
       scanStartPage: frontMatterPages + 1,
     });
+    
+    // Store first index page for "back to index" links
+    const firstIndexPageIndex = indexPageIndices[0];
 
     // ===== SCANNED IMAGES =====
     console.log('Adding scanned images...');
     const headerText = `Patient: ${patientName} | NHS: ${nhsNumber} | DOB: ${dob}`;
+    const scannedPageIndices: number[] = []; // Track indices of scanned pages for linking
     
     for (let i = 0; i < imagePaths.length; i++) {
       const imagePath = imagePaths[i];
@@ -283,6 +287,7 @@ serve(async (req) => {
         const imageY = footerHeight + ((availableHeight - scaledHeight) / 2);
         
         const page = pdfDoc.addPage([pageWidth, pageHeight]);
+        scannedPageIndices.push(pdfDoc.getPageCount() - 1);
 
         // Fill page with white background
         page.drawRectangle({
@@ -313,6 +318,16 @@ serve(async (req) => {
           font,
           color: rgb(0, 0, 0),
         });
+        
+        // Draw "Back to Index" link text at bottom left
+        const backToIndexText = '[Back to Index]';
+        page.drawText(backToIndexText, {
+          x: margin,
+          y: 15,
+          size: 9,
+          font,
+          color: rgb(0, 0.35, 0.8), // Blue color for link
+        });
 
         // Draw the image centered with white border
         page.drawImage(image, {
@@ -328,6 +343,69 @@ serve(async (req) => {
     }
 
     console.log(`PDF complete with ${pdfDoc.getPageCount()} pages`);
+    
+    // ===== ADD HYPERLINK ANNOTATIONS =====
+    console.log('Adding hyperlink annotations...');
+    const pages = pdfDoc.getPages();
+    
+    // Add links from index entries to scanned pages
+    for (const linkPos of linkYPositions) {
+      const sourcePage = pages[linkPos.pageIndex];
+      if (sourcePage && linkPos.targetPage < pages.length) {
+        const targetPage = pages[linkPos.targetPage];
+        if (targetPage) {
+          // Create link annotation for the index entry
+          sourcePage.node.set(
+            pdfDoc.context.obj({ Type: 'Annots' }),
+            pdfDoc.context.obj([
+              ...(sourcePage.node.get(pdfDoc.context.obj({ Type: 'Annots' })) || []),
+            ])
+          );
+          
+          // Use page reference for internal link
+          const linkAnnotation = pdfDoc.context.obj({
+            Type: 'Annot',
+            Subtype: 'Link',
+            Rect: [50, linkPos.y - 5, 545, linkPos.y + 12], // Clickable area
+            Border: [0, 0, 0], // No visible border
+            Dest: [targetPage.ref, 'XYZ', null, null, null], // Internal destination
+          });
+          
+          const existingAnnots = sourcePage.node.get(pdfDoc.context.obj('Annots'));
+          if (existingAnnots) {
+            existingAnnots.push(linkAnnotation);
+          } else {
+            sourcePage.node.set(pdfDoc.context.obj('Annots'), pdfDoc.context.obj([linkAnnotation]));
+          }
+        }
+      }
+    }
+    
+    // Add "Back to Index" links on scanned pages
+    const indexPage = pages[firstIndexPageIndex];
+    if (indexPage) {
+      for (const scannedPageIdx of scannedPageIndices) {
+        const scannedPage = pages[scannedPageIdx];
+        if (scannedPage) {
+          const backLinkAnnotation = pdfDoc.context.obj({
+            Type: 'Annot',
+            Subtype: 'Link',
+            Rect: [30, 10, 120, 25], // Bottom left clickable area
+            Border: [0, 0, 0],
+            Dest: [indexPage.ref, 'XYZ', null, null, null],
+          });
+          
+          const existingAnnots = scannedPage.node.get(pdfDoc.context.obj('Annots'));
+          if (existingAnnots) {
+            existingAnnots.push(backLinkAnnotation);
+          } else {
+            scannedPage.node.set(pdfDoc.context.obj('Annots'), pdfDoc.context.obj([backLinkAnnotation]));
+          }
+        }
+      }
+    }
+    
+    console.log(`Added ${linkYPositions.length} index links and ${scannedPageIndices.length} back-to-index links`);
 
     // Save and check size
     const pdfBytes = await pdfDoc.save();
@@ -377,13 +455,16 @@ serve(async (req) => {
         });
 
         const partFrontMatter = partDoc.getPageCount();
-        addIndexPage(partDoc, partFont, partBoldFont, {
+        const { indexPageIndices: partIndexPages, linkYPositions: partLinkPositions } = addIndexPage(partDoc, partFont, partBoldFont, {
           patientName,
           nhsNumber,
           pageSummaries: pageSummaries.slice(partStart, partEnd),
           scanStartPage: partFrontMatter + 1,
           partInfo: `(Part ${partNum + 1}: Pages ${partStart + 1}-${partEnd} of ${totalScannedPages})`,
         });
+        
+        const partFirstIndexPage = partIndexPages[0];
+        const partScannedPageIndices: number[] = [];
 
         // Add images for this part
         for (let i = 0; i < partImages.length; i++) {
@@ -431,6 +512,7 @@ serve(async (req) => {
             const imgY = footerH + ((availHeight - scaledH) / 2);
             
             const page = partDoc.addPage([pageWidth, pageHeight]);
+            partScannedPageIndices.push(partDoc.getPageCount() - 1);
 
             page.drawRectangle({
               x: 0,
@@ -457,11 +539,71 @@ serve(async (req) => {
               font: partFont,
               color: rgb(0, 0, 0),
             });
+            
+            // Draw "Back to Index" link text
+            page.drawText('[Back to Index]', {
+              x: margin,
+              y: 15,
+              size: 9,
+              font: partFont,
+              color: rgb(0, 0.35, 0.8),
+            });
 
             page.drawImage(image, { x: imgX, y: imgY, width: scaledW, height: scaledH });
 
           } catch (err) {
             console.error(`Part ${partNum + 1} page ${i + 1} error:`, err);
+          }
+        }
+        
+        // Add hyperlink annotations for this part
+        const partPages = partDoc.getPages();
+        
+        // Add links from index entries to scanned pages
+        for (const linkPos of partLinkPositions) {
+          const sourcePage = partPages[linkPos.pageIndex];
+          if (sourcePage && linkPos.targetPage < partPages.length) {
+            const targetPage = partPages[linkPos.targetPage];
+            if (targetPage) {
+              const linkAnnotation = partDoc.context.obj({
+                Type: 'Annot',
+                Subtype: 'Link',
+                Rect: [50, linkPos.y - 5, 545, linkPos.y + 12],
+                Border: [0, 0, 0],
+                Dest: [targetPage.ref, 'XYZ', null, null, null],
+              });
+              
+              const existingAnnots = sourcePage.node.get(partDoc.context.obj('Annots'));
+              if (existingAnnots) {
+                existingAnnots.push(linkAnnotation);
+              } else {
+                sourcePage.node.set(partDoc.context.obj('Annots'), partDoc.context.obj([linkAnnotation]));
+              }
+            }
+          }
+        }
+        
+        // Add "Back to Index" links on scanned pages
+        const partIndexPage = partPages[partFirstIndexPage];
+        if (partIndexPage) {
+          for (const scannedPageIdx of partScannedPageIndices) {
+            const scannedPage = partPages[scannedPageIdx];
+            if (scannedPage) {
+              const backLinkAnnotation = partDoc.context.obj({
+                Type: 'Annot',
+                Subtype: 'Link',
+                Rect: [30, 10, 120, 25],
+                Border: [0, 0, 0],
+                Dest: [partIndexPage.ref, 'XYZ', null, null, null],
+              });
+              
+              const existingAnnots = scannedPage.node.get(partDoc.context.obj('Annots'));
+              if (existingAnnots) {
+                existingAnnots.push(backLinkAnnotation);
+              } else {
+                scannedPage.node.set(partDoc.context.obj('Annots'), partDoc.context.obj([backLinkAnnotation]));
+              }
+            }
           }
         }
 
@@ -885,7 +1027,7 @@ function addMedicationsPage(
   page.drawText('Page 2', { x: 545, y: 30, size: 9, font });
 }
 
-// Add index page
+// Add index page with hyperlinks
 function addIndexPage(
   pdfDoc: PDFDocument,
   font: any,
@@ -897,10 +1039,14 @@ function addIndexPage(
     scanStartPage: number;
     partInfo?: string;
   }
-) {
+): { indexPageIndices: number[]; linkYPositions: { pageIndex: number; y: number; targetPage: number }[] } {
   const { patientName, nhsNumber, pageSummaries, scanStartPage, partInfo } = opts;
   
+  const indexPageIndices: number[] = [];
+  const linkYPositions: { pageIndex: number; y: number; targetPage: number }[] = [];
+  
   let page = pdfDoc.addPage([595, 842]);
+  indexPageIndices.push(pdfDoc.getPageCount() - 1);
   let y = 790;
   const leftMargin = 50;
   const lineHeight = 18;
@@ -909,6 +1055,7 @@ function addIndexPage(
     const safeText = sanitizeForPdf(text);
     if (y < 60) {
       page = pdfDoc.addPage([595, 842]);
+      indexPageIndices.push(pdfDoc.getPageCount() - 1);
       y = 790;
     }
     page.drawText(safeText, { x: leftMargin, y, size, font: isBold ? boldFont : font });
@@ -927,16 +1074,37 @@ function addIndexPage(
   drawLine('--------    -----------', 10);
   y -= 5;
 
+  // Draw index entries and record positions for link annotations
   for (let i = 0; i < pageSummaries.length; i++) {
     const pdfPageNum = scanStartPage + i;
     const summary = pageSummaries[i] || `Scanned page ${i + 1}`;
     const truncatedSummary = summary.substring(0, 55);
-    drawLine(`Page ${String(pdfPageNum).padStart(3, ' ')}    ${truncatedSummary}`, 10);
+    
+    // Check if we need a new page
+    if (y < 60) {
+      page = pdfDoc.addPage([595, 842]);
+      indexPageIndices.push(pdfDoc.getPageCount() - 1);
+      y = 790;
+    }
+    
+    const entryText = `Page ${String(pdfPageNum).padStart(3, ' ')}    ${truncatedSummary}`;
+    page.drawText(sanitizeForPdf(entryText), { x: leftMargin, y, size: 10, font });
+    
+    // Store position for link annotation (to be added after all pages exist)
+    linkYPositions.push({
+      pageIndex: pdfDoc.getPageCount() - 1,
+      y: y,
+      targetPage: pdfPageNum - 1, // 0-indexed target page
+    });
+    
+    y -= lineHeight;
   }
 
   y -= 20;
-  drawLine('Click any "Page X" entry above to jump directly to that page.', 9);
+  drawLine('Click any entry above to jump to that page. Each page has a link back to this index.', 9);
 
   // Page number
   page.drawText('Page 3', { x: 545, y: 30, size: 9, font });
+  
+  return { indexPageIndices, linkYPositions };
 }
