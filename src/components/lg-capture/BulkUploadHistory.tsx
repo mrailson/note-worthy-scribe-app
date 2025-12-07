@@ -82,8 +82,8 @@ export default function BulkUploadHistory({ refreshTrigger = 0 }: BulkUploadHist
           filter: `user_id=eq.${user.id}`
         },
         () => {
-          // Refresh when any patient status changes
-          loadBatchHistory();
+          // Refresh without showing loading spinner (background refresh)
+          loadBatchHistory(false);
         }
       )
       .subscribe();
@@ -93,10 +93,12 @@ export default function BulkUploadHistory({ refreshTrigger = 0 }: BulkUploadHist
     };
   }, [user?.id]);
 
-  const loadBatchHistory = async () => {
+  const loadBatchHistory = async (showLoading = true) => {
     if (!user?.id) return;
     
-    setLoading(true);
+    if (showLoading) {
+      setLoading(true);
+    }
     try {
       // Fetch all patients with batch_id
       const { data: patients, error } = await supabase
