@@ -564,12 +564,17 @@ serve(async (req) => {
       if (totalInBatch && completedInBatch && totalInBatch === completedInBatch && !reportAlreadySent) {
         console.log('All batch items complete! Triggering batch report...');
         
-        // Get user email for the batch report
-        const { data: userData } = await supabase
+        // Get user email from auth.users (email is not always in profiles)
+        const { data: authUser } = await supabase.auth.admin.getUserById(patient.user_id);
+        const userEmail = authUser?.user?.email;
+        
+        // Get user name from profiles if available
+        const { data: profileData } = await supabase
           .from('profiles')
-          .select('email, full_name')
+          .select('full_name')
           .eq('id', patient.user_id)
           .single();
+        const userName = profileData?.full_name || userEmail?.split('@')[0] || 'LG Capture User';
         
         // Get practice name
         const { data: practiceData } = await supabase
@@ -582,8 +587,8 @@ serve(async (req) => {
           await supabase.functions.invoke('lg-batch-report', {
             body: {
               batchId: patient.batch_id,
-              userEmail: userData?.email,
-              userName: userData?.full_name,
+              userEmail: userEmail,
+              userName: userName,
               practiceName: practiceData?.name || patient.practice_ods,
             },
           });
