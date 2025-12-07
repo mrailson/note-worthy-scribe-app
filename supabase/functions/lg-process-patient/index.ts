@@ -1890,7 +1890,7 @@ function buildSummaryEmailHtml(
   }
 
   if (summaryJson?.diagnoses?.length) {
-    html += `<h3 style="color: #333;">Diagnoses</h3><ul>${summaryJson.diagnoses.map((d: any) => `<li><strong>${d.condition || 'Unknown'}</strong> - ${d.date_noted || 'Unknown'} (${d.status || 'unknown'})</li>`).join('')}</ul>`;
+    html += `<h3 style="color: #333;">Diagnoses</h3><ul>${summaryJson.diagnoses.map((d: any) => `<li><strong>${d.condition || 'Unknown'}</strong> - ${d.date_noted || d.year || 'Not Known from Lloyd George Record'}</li>`).join('')}</ul>`;
   }
 
   if (summaryJson?.surgeries?.length) {
@@ -1902,11 +1902,11 @@ function buildSummaryEmailHtml(
   }
 
   if (summaryJson?.immunisations?.length) {
-    html += `<h3 style="color: #333;">Immunisations</h3><ul>${summaryJson.immunisations.map((i: any) => `<li><strong>${i.vaccine || 'Unknown'}</strong> - ${i.date || 'Unknown'}</li>`).join('')}</ul>`;
+    html += `<h3 style="color: #333;">Immunisations</h3><ul>${summaryJson.immunisations.map((i: any) => `<li><strong>${i.vaccine || 'Unknown'}</strong> - ${i.date || i.year || 'Not Known from Lloyd George Record'}</li>`).join('')}</ul>`;
   }
 
   if (summaryJson?.medications?.length) {
-    html += `<h3 style="color: #333;">Medication History</h3><ul>${summaryJson.medications.map((m: any) => `<li><strong>${m.drug || 'Unknown'}</strong> ${m.dose || ''}${m.date ? ` - ${m.date}` : ''}</li>`).join('')}</ul>`;
+    html += `<h3 style="color: #333;">Medication History</h3><ul>${summaryJson.medications.map((m: any) => `<li><strong>${m.drug || 'Unknown'}</strong> | ${m.dose || 'Dose not recorded'} | ${m.date || m.year || 'Not Known from LG'}</li>`).join('')}</ul>`;
   }
 
   if (summaryJson?.family_history?.length) {

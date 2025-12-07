@@ -1113,7 +1113,7 @@ function addMedicationsPage(
   const medications = summaryJson?.medications || [];
   if (medications.length > 0) {
     for (const med of medications) {
-      const text = `${med.drug || ''} ${med.dose || ''} (${med.status || 'unknown'})`;
+      const text = `${med.drug || 'Unknown'} | ${med.dose || 'Dose not recorded'} | ${med.date || med.year || 'Not Known from LG'}`;
       drawLine(text, 10, false, 15);
     }
   } else {
