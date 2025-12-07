@@ -68,7 +68,7 @@ export default function LGCaptureUpload() {
   const [batchId, setBatchId] = useState(() => crypto.randomUUID());
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   
-  const maxPages = 100;
+  const maxPages = 500;
 
   const blankCount = images.filter(img => img.isBlank).length;
   const nonBlankImages = images.filter(img => !img.isBlank);
@@ -488,7 +488,7 @@ export default function LGCaptureUpload() {
         <h1 className="text-2xl font-bold">Capture Lloyd George Pages</h1>
         <p className="text-muted-foreground text-sm">
           {mode === 'single' 
-            ? 'Upload files or use camera to capture pages for a single patient'
+            ? 'Upload files or use camera. Drop multiple PDFs to merge into one record.'
             : 'Drop multiple PDF files to queue them all for processing automatically'
           }
         </p>
@@ -554,10 +554,10 @@ export default function LGCaptureUpload() {
                       {isDragActive ? 'Drop files here' : 'Drag & drop files here'}
                     </p>
                     <p className="text-sm text-muted-foreground mb-4">
-                      or click to browse
+                      or click to browse • Drop multiple PDFs to merge
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Supports: JPEG, PNG, WebP images and PDF files
+                      Supports: JPEG, PNG, WebP images and PDF files (up to 500 pages)
                     </p>
                     <p className="text-xs text-muted-foreground">
                       Blank pages are automatically detected
