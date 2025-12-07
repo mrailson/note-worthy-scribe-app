@@ -706,59 +706,116 @@ serve(async (req) => {
           extractedPatient.patient_name = null;
         }
         
-        // NHS NUMBER VALIDATION using Mod 11 checksum
-        let nhsNumberValidated = false;
-        if (extractedPatient.nhs_number) {
-          const cleanedNhs = extractedPatient.nhs_number.replace(/[\s-]/g, '');
+        // NHS NUMBER VALIDATION using Mod 11 checksum with multi-candidate fallback
+        
+        // Helper function to validate NHS number with Mod 11
+        const validateNhsMod11 = (nhs: string): boolean => {
+          const cleaned = nhs.replace(/[\s-]/g, '');
+          if (cleaned.length !== 10 || !/^\d{10}$/.test(cleaned)) return false;
           
-          // Check length
-          if (cleanedNhs.length === 10 && /^\d{10}$/.test(cleanedNhs)) {
-            // Modulus 11 checksum validation
-            const weights = [10, 9, 8, 7, 6, 5, 4, 3, 2];
-            let sum = 0;
-            for (let i = 0; i < 9; i++) {
-              sum += parseInt(cleanedNhs[i], 10) * weights[i];
+          const weights = [10, 9, 8, 7, 6, 5, 4, 3, 2];
+          let sum = 0;
+          for (let i = 0; i < 9; i++) {
+            sum += parseInt(cleaned[i], 10) * weights[i];
+          }
+          const remainder = sum % 11;
+          const checkDigit = 11 - remainder;
+          if (checkDigit === 10) return false; // Invalid NHS number
+          const expectedCheckDigit = checkDigit === 11 ? 0 : checkDigit;
+          const actualCheckDigit = parseInt(cleaned[9], 10);
+          return expectedCheckDigit === actualCheckDigit;
+        };
+        
+        // Extract all NHS number candidates from OCR text
+        const extractNhsCandidates = (ocrText: string): Map<string, number> => {
+          const candidates = new Map<string, number>();
+          
+          // Pattern 1: 10 digits with optional spaces/hyphens (XXX XXX XXXX or XXX-XXX-XXXX)
+          const pattern1 = /\b(\d{3})[\s-]?(\d{3})[\s-]?(\d{4})\b/g;
+          let match;
+          while ((match = pattern1.exec(ocrText)) !== null) {
+            const nhs = match[1] + match[2] + match[3];
+            candidates.set(nhs, (candidates.get(nhs) || 0) + 1);
+          }
+          
+          // Pattern 2: After "NHS" keyword
+          const pattern2 = /NHS\s*(?:Number|No\.?)?:?\s*(\d{3})[\s-]?(\d{3})[\s-]?(\d{4})/gi;
+          while ((match = pattern2.exec(ocrText)) !== null) {
+            const nhs = match[1] + match[2] + match[3];
+            candidates.set(nhs, (candidates.get(nhs) || 0) + 5); // Higher weight for labeled NHS numbers
+          }
+          
+          return candidates;
+        };
+        
+        let nhsNumberValidated = false;
+        let aiExtractedNhs = extractedPatient.nhs_number?.replace(/[\s-]/g, '') || '';
+        
+        // First, validate the AI-extracted NHS number
+        if (aiExtractedNhs && validateNhsMod11(aiExtractedNhs)) {
+          console.log(`AI-extracted NHS ${aiExtractedNhs} - Mod 11 validation: PASSED`);
+          nhsNumberValidated = true;
+        } else if (aiExtractedNhs) {
+          console.log(`AI-extracted NHS ${aiExtractedNhs} - Mod 11 validation: FAILED`);
+          
+          // Try common OCR corrections
+          if (aiExtractedNhs.length === 11 && aiExtractedNhs.startsWith('1')) {
+            const corrected = aiExtractedNhs.substring(1);
+            if (validateNhsMod11(corrected)) {
+              console.log(`Corrected NHS (removed leading 1): ${corrected} - PASSED`);
+              aiExtractedNhs = corrected;
+              extractedPatient.nhs_number = corrected;
+              nhsNumberValidated = true;
             }
-            const remainder = sum % 11;
-            const checkDigit = 11 - remainder;
-            const expectedCheckDigit = checkDigit === 11 ? 0 : checkDigit;
-            const actualCheckDigit = parseInt(cleanedNhs[9], 10);
+          }
+          
+          // If still invalid, search OCR for valid candidates
+          if (!nhsNumberValidated) {
+            console.log('Searching OCR text for valid NHS number candidates...');
+            const candidates = extractNhsCandidates(fullOcrText);
+            console.log(`Found ${candidates.size} unique NHS number candidates in OCR`);
             
-            if (checkDigit === 10) {
-              console.log('NHS number checksum validation: invalid (check digit would be 10)');
-              nhsNumberValidated = false;
-            } else if (expectedCheckDigit === actualCheckDigit) {
-              console.log('NHS number checksum validation: PASSED');
+            // Filter to only valid NHS numbers and sort by frequency
+            const validCandidates: Array<{ nhs: string; count: number }> = [];
+            candidates.forEach((count, nhs) => {
+              if (validateNhsMod11(nhs)) {
+                validCandidates.push({ nhs, count });
+                console.log(`  Valid candidate: ${nhs} (appears ${count} times)`);
+              }
+            });
+            
+            if (validCandidates.length > 0) {
+              // Sort by frequency (descending)
+              validCandidates.sort((a, b) => b.count - a.count);
+              const bestCandidate = validCandidates[0];
+              console.log(`Using most common valid NHS number: ${bestCandidate.nhs} (${bestCandidate.count} occurrences)`);
+              extractedPatient.nhs_number = bestCandidate.nhs;
+              aiExtractedNhs = bestCandidate.nhs;
               nhsNumberValidated = true;
             } else {
-              console.log(`NHS number checksum validation: FAILED (expected ${expectedCheckDigit}, got ${actualCheckDigit})`);
-              nhsNumberValidated = false;
+              console.log('No valid NHS number candidates found in OCR text');
             }
-          } else {
-            console.log(`NHS number length validation: FAILED (got ${cleanedNhs.length} digits, expected 10)`);
-            nhsNumberValidated = false;
-            
-            // Try to fix common OCR errors
-            if (cleanedNhs.length === 11 && cleanedNhs.startsWith('1')) {
-              // Extra "1" at the start - common OCR error
-              const corrected = cleanedNhs.substring(1);
-              console.log(`Attempting correction: removing leading 1 -> ${corrected}`);
-              extractedPatient.nhs_number = corrected;
-              // Re-validate after correction
-              const weights = [10, 9, 8, 7, 6, 5, 4, 3, 2];
-              let sum = 0;
-              for (let i = 0; i < 9; i++) {
-                sum += parseInt(corrected[i], 10) * weights[i];
-              }
-              const remainder = sum % 11;
-              const checkDigit = 11 - remainder;
-              const expectedCheckDigit = checkDigit === 11 ? 0 : checkDigit;
-              const actualCheckDigit = parseInt(corrected[9], 10);
-              if (checkDigit !== 10 && expectedCheckDigit === actualCheckDigit) {
-                console.log('Corrected NHS number checksum validation: PASSED');
-                nhsNumberValidated = true;
-              }
+          }
+        } else {
+          // No AI-extracted NHS, try to find one in OCR
+          console.log('No NHS number from AI extraction, searching OCR text...');
+          const candidates = extractNhsCandidates(fullOcrText);
+          console.log(`Found ${candidates.size} unique NHS number candidates in OCR`);
+          
+          const validCandidates: Array<{ nhs: string; count: number }> = [];
+          candidates.forEach((count, nhs) => {
+            if (validateNhsMod11(nhs)) {
+              validCandidates.push({ nhs, count });
+              console.log(`  Valid candidate: ${nhs} (appears ${count} times)`);
             }
+          });
+          
+          if (validCandidates.length > 0) {
+            validCandidates.sort((a, b) => b.count - a.count);
+            const bestCandidate = validCandidates[0];
+            console.log(`Using most common valid NHS number: ${bestCandidate.nhs} (${bestCandidate.count} occurrences)`);
+            extractedPatient.nhs_number = bestCandidate.nhs;
+            nhsNumberValidated = true;
           }
         }
         
