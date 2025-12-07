@@ -1517,7 +1517,7 @@ async function createSimplePdf(
     
     // Additional clinical sections from summary (not SNOMED coded)
     const clinicalSections = [
-      { key: 'medications', title: 'MEDICATIONS' },
+      { key: 'medications', title: 'MEDICATION HISTORY' },
       { key: 'diagnoses', title: 'DIAGNOSES (DETAILED)' },
     ];
     
@@ -1906,7 +1906,7 @@ function buildSummaryEmailHtml(
   }
 
   if (summaryJson?.medications?.length) {
-    html += `<h3 style="color: #333;">Medications</h3><ul>${summaryJson.medications.map((m: any) => `<li><strong>${m.drug || 'Unknown'}</strong> ${m.dose || ''}${m.date ? ` - ${m.date}` : ''}</li>`).join('')}</ul>`;
+    html += `<h3 style="color: #333;">Medication History</h3><ul>${summaryJson.medications.map((m: any) => `<li><strong>${m.drug || 'Unknown'}</strong> ${m.dose || ''}${m.date ? ` - ${m.date}` : ''}</li>`).join('')}</ul>`;
   }
 
   if (summaryJson?.family_history?.length) {
