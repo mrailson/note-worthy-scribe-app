@@ -97,30 +97,51 @@ export function useWatchFolder(
 
   // Move file to "Imported to AI for processing" subfolder
   const moveToImportedFolder = useCallback(async (fileName: string, fileHandle: FileSystemFileHandle) => {
-    if (!directoryHandleRef.current) return;
+    if (!directoryHandleRef.current) {
+      console.log('[Watch Folder] No directory handle, cannot move file');
+      return;
+    }
 
     try {
+      console.log('[Watch Folder] Moving file to imported folder:', fileName);
+      
       // Get or create the imported subfolder within the watch folder
       const dirHandle = directoryHandleRef.current as any;
-      const importedFolder = await dirHandle.getDirectoryHandle('Imported to AI for processing', { create: true });
+      
+      // Create the imported folder if it doesn't exist
+      let importedFolder: FileSystemDirectoryHandle;
+      try {
+        importedFolder = await dirHandle.getDirectoryHandle('Imported to AI for processing', { create: true });
+        console.log('[Watch Folder] Got/created imported folder');
+      } catch (folderErr) {
+        console.error('[Watch Folder] Failed to create imported folder:', folderErr);
+        return;
+      }
       
       // Get the file content
       const file = await fileHandle.getFile();
       const arrayBuffer = await file.arrayBuffer();
+      console.log('[Watch Folder] Read file content, size:', arrayBuffer.byteLength);
       
       // Create the file in the imported folder
-      const newFileHandle = await importedFolder.getFileHandle(fileName, { create: true });
+      const newFileHandle = await (importedFolder as any).getFileHandle(fileName, { create: true });
       const writable = await newFileHandle.createWritable();
       await writable.write(arrayBuffer);
       await writable.close();
+      console.log('[Watch Folder] Wrote file to imported folder');
       
       // Delete the original file
-      await dirHandle.removeEntry(fileName);
+      try {
+        await dirHandle.removeEntry(fileName);
+        console.log('[Watch Folder] Removed original file');
+      } catch (removeErr) {
+        console.warn('[Watch Folder] Could not remove original file:', removeErr);
+      }
       
       addActivity({ fileName, status: 'moved' });
-      console.log(`Moved ${fileName} to 'Imported to AI for processing' folder`);
+      console.log(`[Watch Folder] Successfully moved ${fileName} to 'Imported to AI for processing' folder`);
     } catch (err) {
-      console.error('Error moving file to imported folder:', err);
+      console.error('[Watch Folder] Error moving file to imported folder:', err);
       // Don't fail the whole process if move fails
     }
   }, [addActivity]);
@@ -359,10 +380,12 @@ export function useWatchFolder(
   }, []);
 
   // Subscribe to patient completions and auto-download PDFs
+  // Use state value to trigger re-subscription when output folder is selected
   useEffect(() => {
-    if (!outputFolderHandleRef.current || !user?.id) return;
+    if (!state.outputFolderName || !user?.id) return;
     
-    // Only subscribe when we have an output folder configured
+    console.log('[Watch Folder] Subscribing to patient completions for PDF auto-download');
+    
     const channel = supabase
       .channel('watch-folder-completions')
       .on(
@@ -375,41 +398,65 @@ export function useWatchFolder(
         },
         async (payload) => {
           const patient = payload.new as any;
+          console.log('[Watch Folder] Patient update received:', patient.id, patient.job_status);
           
           // Check if this patient just completed (status changed to succeeded)
           if (patient.job_status === 'succeeded' && patient.pdf_url) {
             // Check if this patient was from Watch Folder
             const originalFileName = patientOutputMapRef.current.get(patient.id);
-            if (!originalFileName) return; // Not from Watch Folder
+            console.log('[Watch Folder] Original filename for patient:', originalFileName);
+            
+            if (!originalFileName) {
+              console.log('[Watch Folder] Patient not from Watch Folder, skipping');
+              return;
+            }
+            
+            if (!outputFolderHandleRef.current) {
+              console.log('[Watch Folder] No output folder handle available');
+              return;
+            }
             
             try {
+              console.log('[Watch Folder] Downloading completed PDF:', patient.pdf_url);
+              
+              // Extract the storage path from the URL
+              let storagePath = patient.pdf_url;
+              // Handle different URL formats
+              if (storagePath.includes('/lg/')) {
+                storagePath = storagePath.split('/lg/').pop() || storagePath;
+              }
+              
               // Download the PDF from Supabase
               const { data, error } = await supabase.storage
                 .from('lg')
-                .download(patient.pdf_url.replace(/^.*\/lg\//, ''));
+                .download(storagePath);
               
               if (error || !data) {
-                console.error('Failed to download completed PDF:', error);
+                console.error('[Watch Folder] Failed to download completed PDF:', error);
                 return;
               }
               
               // Generate output filename
-              const baseName = originalFileName.replace('.pdf', '');
+              const baseName = originalFileName.replace('.pdf', '').replace('.PDF', '');
               const outputFileName = `${baseName}_AI_Complete.pdf`;
               
+              console.log('[Watch Folder] Saving to output folder:', outputFileName);
+              
               // Save to output folder
-              await saveToOutputFolder(data, outputFileName);
+              const saved = await saveToOutputFolder(data, outputFileName);
               
-              // Remove from tracking map
-              patientOutputMapRef.current.delete(patient.id);
-              
-              addActivity({ 
-                fileName: outputFileName, 
-                status: 'queued' // Reuse status to show it was saved
-              });
+              if (saved) {
+                // Remove from tracking map
+                patientOutputMapRef.current.delete(patient.id);
+                
+                addActivity({ 
+                  fileName: outputFileName, 
+                  status: 'moved' // Show as saved/moved
+                });
+              }
               
             } catch (err) {
-              console.error('Error auto-downloading PDF:', err);
+              console.error('[Watch Folder] Error auto-downloading PDF:', err);
             }
           }
         }
@@ -417,9 +464,10 @@ export function useWatchFolder(
       .subscribe();
     
     return () => {
+      console.log('[Watch Folder] Unsubscribing from patient completions');
       supabase.removeChannel(channel);
     };
-  }, [user?.id, saveToOutputFolder, addActivity]);
+  }, [user?.id, state.outputFolderName, saveToOutputFolder, addActivity]);
 
   // Cleanup on unmount
   useEffect(() => {
