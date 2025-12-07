@@ -283,10 +283,39 @@ export default function LGCaptureBulk() {
                 )}
               </div>
             </CardTitle>
+            
+            {/* Queue Process Button - Above file list */}
+            <div className="flex gap-3 pt-3">
+              <Button
+                onClick={processFiles}
+                disabled={isProcessing || pendingCount === 0}
+                className="flex-1"
+              >
+                {isProcessing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing...
+                  </>
+                ) : (
+                  <>
+                    <ArrowRight className="mr-2 h-4 w-4" />
+                    Queue {pendingCount} File{pendingCount !== 1 ? 's' : ''} for Processing
+                  </>
+                )}
+              </Button>
+              {queuedCount > 0 && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate('/lg-capture/patients')}
+                >
+                  View Recent Captures
+                </Button>
+              )}
+            </div>
           </CardHeader>
           <CardContent>
-            <ScrollArea className="max-h-[400px]">
-              <div className="space-y-3">
+            <ScrollArea className="h-[320px]">
+              <div className="space-y-3 pr-4">
                 {files.map(file => (
                   <div
                     key={file.id}
@@ -333,37 +362,6 @@ export default function LGCaptureBulk() {
             </ScrollArea>
           </CardContent>
         </Card>
-      )}
-
-      {/* Action Buttons */}
-      {files.length > 0 && (
-        <div className="flex gap-3">
-          <Button
-            onClick={processFiles}
-            disabled={isProcessing || pendingCount === 0}
-            className="flex-1"
-          >
-            {isProcessing ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Processing...
-              </>
-            ) : (
-              <>
-                <ArrowRight className="mr-2 h-4 w-4" />
-                Queue {pendingCount} File{pendingCount !== 1 ? 's' : ''} for Processing
-              </>
-            )}
-          </Button>
-          {queuedCount > 0 && (
-            <Button
-              variant="outline"
-              onClick={() => navigate('/lg-capture/patients')}
-            >
-              View Recent Captures
-            </Button>
-          )}
-        </div>
       )}
 
       {/* Info Card */}
