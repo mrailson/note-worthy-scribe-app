@@ -798,7 +798,7 @@ Return valid JSON matching this schema exactly. This is a FORMAT EXAMPLE ONLY - 
   "social_history": {"smoking_status":"unknown", "stopped_year":"", "pack_years":"", "alcohol":"unknown", "occupation":""},
   "reproductive_history": {"gravida":0, "para":0, "miscarriages":0, "notes":""},
   "hospital_findings": [],
-  "medications": [],
+  "medications": [{"drug": "Drug Name", "dose": "Dose e.g. 1g BD", "date": "DD/MM/YYYY or year"}],
   "alerts": [],
   "free_text_findings": "",
   "verification_flags": {"all_active_problems_coded": false, "allergies_verified": false, "medications_verified": false},
@@ -835,6 +835,12 @@ VERIFICATION FLAGS:
 19. Set all_active_problems_coded to true if you are confident all problem list items are captured.
 20. Set allergies_verified to true if allergy status is explicitly documented (including NKDA).
 21. Set medications_verified to true if medication list appears complete and current.
+
+MEDICATION EXTRACTION (MANDATORY):
+22. Extract ALL medications that appear VERBATIM in the OCR text.
+23. Include drug name, dose if present, and date/year if recorded.
+24. Look for "Current Medications", medication lists, prescription records.
+25. Common medications to look for: Metformin, Gliclazide, Lisinopril, Sertraline, Omeprazole, Atorvastatin, Ramipril, Amlodipine, etc.
 
 OCR Text:
 ${fullOcrText.substring(0, 50000)}`;
