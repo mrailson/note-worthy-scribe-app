@@ -6,7 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { ArrowLeft, Upload, FileImage, FileText, Trash2, RotateCcw, GripVertical, FastForward, Loader2, Eye, EyeOff, Camera, Files, X, Check, AlertCircle, ArrowRight, History, ListOrdered, RefreshCw, FolderOpen } from 'lucide-react';
+import { ArrowLeft, Upload, FileImage, FileText, Trash2, RotateCcw, GripVertical, FastForward, Loader2, Eye, EyeOff, Camera, Files, X, Check, AlertCircle, ArrowRight, History, ListOrdered, RefreshCw, FolderOpen, BarChart3 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -924,6 +924,16 @@ export default function LGCaptureUpload() {
               uploaderName={uploaderName}
               batchId={batchId}
             />
+
+            {/* My Stats Button */}
+            <Button
+              variant="outline"
+              onClick={() => navigate('/lg-capture/my-stats')}
+              className="w-full"
+            >
+              <BarChart3 className="mr-2 h-4 w-4" />
+              My Stats
+            </Button>
           </TabsContent>
 
           <TabsContent value="queue" className="space-y-4 mt-6">
