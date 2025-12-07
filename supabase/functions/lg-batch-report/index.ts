@@ -276,11 +276,12 @@ function generateBatchEmailHtml(
     }
     
     if (s.allergies?.length > 0) {
-      sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">Allergies: ${s.allergies.join(", ")}</p>`);
+      const allergyNames = s.allergies.map((a: any) => typeof a === "string" ? a : a.name || a.allergen || JSON.stringify(a)).slice(0, 5);
+      sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">Allergies: ${allergyNames.join(", ")}${s.allergies.length > 5 ? ` +${s.allergies.length - 5} more` : ""}</p>`);
     }
     
     if (s.medications?.length > 0) {
-      const medNames = s.medications.map((m: any) => typeof m === "string" ? m : m.name || m).slice(0, 5);
+      const medNames = s.medications.map((m: any) => typeof m === "string" ? m : m.name || m.medication || JSON.stringify(m)).slice(0, 5);
       sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">Medications: ${medNames.join(", ")}${s.medications.length > 5 ? ` +${s.medications.length - 5} more` : ""}</p>`);
     }
     
