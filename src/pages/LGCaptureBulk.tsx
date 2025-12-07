@@ -182,8 +182,6 @@ export default function LGCaptureBulk() {
             : f
         ));
 
-        toast.success(`${qFile.fileName} queued for processing`);
-
       } catch (err) {
         console.error('Error processing file:', qFile.fileName, err);
         setFiles(prev => prev.map(f => 
@@ -195,13 +193,6 @@ export default function LGCaptureBulk() {
     }
 
     setIsProcessing(false);
-    
-    const successCount = files.filter(f => f.status === 'queued').length + 
-      pendingFiles.filter(f => files.find(ff => ff.id === f.id)?.status === 'queued').length;
-    
-    if (successCount > 0) {
-      toast.success(`${successCount} file(s) queued for processing. Emails will arrive as each completes.`);
-    }
   };
 
   const removeFile = (id: string) => {
@@ -296,7 +287,7 @@ export default function LGCaptureBulk() {
                   <span>Files ({files.length})</span>
                   <div className="flex items-center gap-2 text-sm font-normal">
                     {queuedCount > 0 && (
-                      <span className="text-green-600">{queuedCount} queued</span>
+                      <span className="text-green-600">{queuedCount} Queued for Processing by Notewell AI</span>
                     )}
                     {failedCount > 0 && (
                       <span className="text-destructive">{failedCount} failed</span>
@@ -325,14 +316,21 @@ export default function LGCaptureBulk() {
                       )}
                     </Button>
                   ) : (
-                    <Button
-                      onClick={startNewBatch}
-                      variant="default"
-                      className="flex-1"
-                    >
-                      <Files className="mr-2 h-4 w-4" />
-                      New Batch
-                    </Button>
+                    <div className="flex-1 space-y-3">
+                      {queuedCount > 0 && (
+                        <p className="text-green-600 font-medium text-center text-sm">
+                          All Files uploaded and being processed by Notewell AI, you may start a New Batch when ready
+                        </p>
+                      )}
+                      <Button
+                        onClick={startNewBatch}
+                        variant="default"
+                        className="w-full"
+                      >
+                        <Files className="mr-2 h-4 w-4" />
+                        New Batch
+                      </Button>
+                    </div>
                   )}
                   {queuedCount > 0 && (
                     <Button
