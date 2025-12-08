@@ -5,8 +5,7 @@ import { Heart, ArrowLeft } from 'lucide-react';
 import nresLogo from '@/assets/nres-logo.png';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { BPTextInput } from '@/components/bp-calculator/BPTextInput';
-import { BPImageUpload } from '@/components/bp-calculator/BPImageUpload';
+import { BPInputOptions } from '@/components/bp-calculator/BPInputOptions';
 import { BPReadingsTable } from '@/components/bp-calculator/BPReadingsTable';
 import { BPSummaryCard } from '@/components/bp-calculator/BPSummaryCard';
 import { BPNICESummaryCard } from '@/components/bp-calculator/BPNICESummaryCard';
@@ -131,20 +130,15 @@ const BPCalculator = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
         {/* Input Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <BPTextInput 
-            value={textInput}
-            onChange={setTextInput}
-            disabled={isProcessing}
-          />
-          <BPImageUpload 
-            file={uploadedFile}
-            onFileChange={setUploadedFile}
-            disabled={isProcessing}
-          />
-        </div>
+        <BPInputOptions 
+          textValue={textInput}
+          onTextChange={setTextInput}
+          file={uploadedFile}
+          onFileChange={setUploadedFile}
+          disabled={isProcessing}
+        />
 
         {/* Action Buttons */}
         <div className="flex gap-4 justify-center">
