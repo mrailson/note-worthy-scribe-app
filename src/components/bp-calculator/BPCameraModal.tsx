@@ -215,6 +215,7 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
 
   const handleDone = useCallback(async () => {
     if (capturedImages.length === 0) {
+      stopCamera();
       onOpenChange(false);
       return;
     }
@@ -228,7 +229,9 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
       })
     );
     
+    // Stop camera first, then pass files and close
     stopCamera();
+    setCapturedImages([]);
     onCapture(files);
     onOpenChange(false);
   }, [capturedImages, onCapture, onOpenChange, stopCamera]);
