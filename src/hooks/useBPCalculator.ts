@@ -81,7 +81,52 @@ export const useBPCalculator = () => {
   const parseImageInput = useCallback(async (file: File) => {
     setIsProcessing(true);
     try {
-      // Convert file to base64
+      const fileName = file.name.toLowerCase();
+      const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
+      const isWord = fileName.endsWith('.docx') || fileName.endsWith('.doc');
+      const isText = fileName.endsWith('.txt');
+      
+      // For Excel, Word, and text files - extract text client-side first
+      if (isExcel || isWord || isText) {
+        const { FileProcessorManager } = await import('@/utils/fileProcessors/FileProcessorManager');
+        const processed = await FileProcessorManager.processFile(file);
+        
+        // Send extracted text to the API in text mode
+        const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
+          body: { text: processed.content, mode: 'text' }
+        });
+        
+        if (error) throw error;
+        
+        if (data.readings && data.readings.length > 0) {
+          const newReadings: BPReading[] = data.readings.map((r: any, index: number) => ({
+            id: `reading-${Date.now()}-${index}`,
+            systolic: r.systolic,
+            diastolic: r.diastolic,
+            pulse: r.pulse,
+            date: r.date,
+            time: r.time,
+            sourceText: r.sourceText,
+            included: !r.excluded,
+            excludeReason: r.excludeReason
+          }));
+          
+          const validCount = newReadings.filter(r => r.included).length;
+          const excludedCount = newReadings.filter(r => !r.included).length;
+          setReadings(prev => [...prev, ...newReadings]);
+          
+          if (excludedCount > 0) {
+            toast.success(`Found ${validCount} valid reading(s), ${excludedCount} excluded`);
+          } else {
+            toast.success(`Found ${newReadings.length} BP reading(s) from file`);
+          }
+        } else {
+          toast.warning('No BP readings found in the file');
+        }
+        return;
+      }
+      
+      // For images and PDFs - send to vision API
       const reader = new FileReader();
       const base64 = await new Promise<string>((resolve, reject) => {
         reader.onload = () => resolve(reader.result as string);
