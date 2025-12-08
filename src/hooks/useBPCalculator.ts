@@ -1,6 +1,21 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import {
+  BPAverages,
+  NHSCategory,
+  NICEHomeBPAverage,
+  BPTrends,
+  DataQuality,
+  DateRange,
+  QOFRelevance,
+  calculateNICEHomeBPAverage,
+  getNICEHomeBPCategory,
+  calculateTrends,
+  calculateDataQuality,
+  getDateRange,
+  getQOFRelevance
+} from '@/utils/bpCalculations';
 
 export interface BPReading {
   id: string;
@@ -14,23 +29,7 @@ export interface BPReading {
   excludeReason?: string;
 }
 
-interface BPAverages {
-  systolic: number;
-  diastolic: number;
-  pulse?: number;
-  systolicMin: number;
-  systolicMax: number;
-  diastolicMin: number;
-  diastolicMax: number;
-  pulseMin?: number;
-  pulseMax?: number;
-}
-
-interface NHSCategory {
-  label: string;
-  color: 'green' | 'yellow' | 'orange' | 'red';
-  description: string;
-}
+export type { BPAverages, NHSCategory, NICEHomeBPAverage, BPTrends, DataQuality, DateRange, QOFRelevance };
 
 export const useBPCalculator = () => {
   const [readings, setReadings] = useState<BPReading[]>([]);
@@ -177,39 +176,50 @@ export const useBPCalculator = () => {
     };
   }, [readings]);
 
+  // Get NICE Home BP Category based on NICE NG136 thresholds
+  const getNICECategory = useCallback((): NHSCategory | null => {
+    const niceAvg = calculateNICEHomeBPAverage(readings);
+    if (!niceAvg.isValid || niceAvg.systolic === null || niceAvg.diastolic === null) {
+      // Fall back to raw averages if NICE average not available
+      const averages = getAverages();
+      if (!averages) return null;
+      return getNICEHomeBPCategory(averages.systolic, averages.diastolic);
+    }
+    return getNICEHomeBPCategory(niceAvg.systolic, niceAvg.diastolic);
+  }, [readings, getAverages]);
+
+  // Legacy method for backwards compatibility - uses raw averages
   const getNHSCategory = useCallback((): NHSCategory | null => {
     const averages = getAverages();
     if (!averages) return null;
-
-    const { systolic, diastolic } = averages;
-
-    if (systolic >= 140 || diastolic >= 90) {
-      return {
-        label: 'Stage 2 Hypertension',
-        color: 'red',
-        description: 'High blood pressure - medical attention recommended'
-      };
-    }
-    if ((systolic >= 130 && systolic < 140) || (diastolic >= 80 && diastolic < 90)) {
-      return {
-        label: 'Stage 1 Hypertension',
-        color: 'orange',
-        description: 'Elevated blood pressure - lifestyle changes recommended'
-      };
-    }
-    if (systolic >= 120 && systolic < 130 && diastolic < 80) {
-      return {
-        label: 'Elevated',
-        color: 'yellow',
-        description: 'Elevated blood pressure - monitor regularly'
-      };
-    }
-    return {
-      label: 'Normal',
-      color: 'green',
-      description: 'Blood pressure within normal range'
-    };
+    return getNICEHomeBPCategory(averages.systolic, averages.diastolic);
   }, [getAverages]);
+
+  // Get NICE Home BP Average
+  const getNICEHomeBPAverageData = useCallback((): NICEHomeBPAverage => {
+    return calculateNICEHomeBPAverage(readings);
+  }, [readings]);
+
+  // Get trends data
+  const getTrends = useCallback((): BPTrends => {
+    return calculateTrends(readings);
+  }, [readings]);
+
+  // Get data quality score
+  const getDataQualityScore = useCallback((): DataQuality => {
+    return calculateDataQuality(readings);
+  }, [readings]);
+
+  // Get date range
+  const getDateRangeData = useCallback((): DateRange => {
+    return getDateRange(readings);
+  }, [readings]);
+
+  // Get QOF relevance
+  const getQOFRelevanceData = useCallback((): QOFRelevance => {
+    const niceAvg = calculateNICEHomeBPAverage(readings);
+    return getQOFRelevance(readings, niceAvg);
+  }, [readings]);
 
   return {
     readings,
@@ -221,6 +231,12 @@ export const useBPCalculator = () => {
     updateReading,
     deleteReading,
     getAverages,
-    getNHSCategory
+    getNHSCategory,
+    getNICECategory,
+    getNICEHomeBPAverage: getNICEHomeBPAverageData,
+    getTrends,
+    getDataQualityScore,
+    getDateRange: getDateRangeData,
+    getQOFRelevance: getQOFRelevanceData
   };
 };
