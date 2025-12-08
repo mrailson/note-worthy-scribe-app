@@ -86,11 +86,18 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
                     <div className="flex items-center gap-2">
                       {index + 1}
                       {!reading.included && (
-                        <Badge variant="outline" className="text-muted-foreground border-muted-foreground/50 text-xs">
+                        <Badge 
+                          variant="outline" 
+                          className="text-muted-foreground border-muted-foreground/50 text-xs"
+                          title={reading.excludeReason || 'Excluded'}
+                        >
                           Excluded
                         </Badge>
                       )}
                     </div>
+                    {reading.excludeReason && !reading.included && (
+                      <p className="text-xs text-muted-foreground mt-1">{reading.excludeReason}</p>
+                    )}
                   </TableCell>
                   <TableCell>
                     {reading.date ? (

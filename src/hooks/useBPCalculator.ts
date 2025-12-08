@@ -11,6 +11,7 @@ export interface BPReading {
   time?: string;
   sourceText?: string;
   included: boolean;
+  excludeReason?: string;
 }
 
 interface BPAverages {
@@ -53,11 +54,19 @@ export const useBPCalculator = () => {
           date: r.date,
           time: r.time,
           sourceText: r.sourceText,
-          included: true
+          included: !r.excluded,
+          excludeReason: r.excludeReason
         }));
         
+        const validCount = newReadings.filter(r => r.included).length;
+        const excludedCount = newReadings.filter(r => !r.included).length;
         setReadings(prev => [...prev, ...newReadings]);
-        toast.success(`Found ${newReadings.length} BP reading(s)`);
+        
+        if (excludedCount > 0) {
+          toast.success(`Found ${validCount} valid reading(s), ${excludedCount} excluded`);
+        } else {
+          toast.success(`Found ${newReadings.length} BP reading(s)`);
+        }
       } else {
         toast.warning('No BP readings found in the text');
       }
@@ -100,11 +109,19 @@ export const useBPCalculator = () => {
           date: r.date,
           time: r.time,
           sourceText: r.sourceText,
-          included: true
+          included: !r.excluded,
+          excludeReason: r.excludeReason
         }));
         
+        const validCount = newReadings.filter(r => r.included).length;
+        const excludedCount = newReadings.filter(r => !r.included).length;
         setReadings(prev => [...prev, ...newReadings]);
-        toast.success(`Found ${newReadings.length} BP reading(s) from image`);
+        
+        if (excludedCount > 0) {
+          toast.success(`Found ${validCount} valid reading(s), ${excludedCount} excluded`);
+        } else {
+          toast.success(`Found ${newReadings.length} BP reading(s) from image`);
+        }
       } else {
         toast.warning('No BP readings found in the image');
       }
