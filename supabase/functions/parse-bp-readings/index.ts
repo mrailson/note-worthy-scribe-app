@@ -14,6 +14,8 @@ interface BPReading {
   date?: string;
   time?: string;
   sourceText?: string;
+  excluded?: boolean;
+  excludeReason?: string;
 }
 
 serve(async (req) => {
@@ -196,16 +198,43 @@ IMPORTANT:
       }
     }
 
-    // Validate readings
-    readings = readings.filter(r => {
-      const validSystolic = r.systolic >= 70 && r.systolic <= 250;
-      const validDiastolic = r.diastolic >= 40 && r.diastolic <= 150;
-      const systolicHigher = r.systolic > r.diastolic;
-      const validPulse = !r.pulse || (r.pulse >= 40 && r.pulse <= 200);
-      return validSystolic && validDiastolic && systolicHigher && validPulse;
+    // Validate readings - mark invalid ones as excluded rather than removing
+    readings = readings.map(r => {
+      const reasons: string[] = [];
+      
+      if (r.systolic < 70 || r.systolic > 250) {
+        reasons.push(`Systolic ${r.systolic} out of range (70-250)`);
+      }
+      if (r.diastolic < 40 || r.diastolic > 150) {
+        reasons.push(`Diastolic ${r.diastolic} out of range (40-150)`);
+      }
+      if (r.systolic <= r.diastolic) {
+        reasons.push('Systolic must be higher than diastolic');
+      }
+      if (r.pulse && (r.pulse < 40 || r.pulse > 200)) {
+        reasons.push(`Pulse ${r.pulse} out of range (40-200)`);
+      }
+      
+      // Validate time format (HH:MM should have valid hours 0-23 and minutes 0-59)
+      if (r.time) {
+        const timeMatch = r.time.match(/^(\d{1,2}):(\d{2})$/);
+        if (timeMatch) {
+          const hours = parseInt(timeMatch[1], 10);
+          const minutes = parseInt(timeMatch[2], 10);
+          if (hours > 23 || minutes > 59) {
+            reasons.push(`Invalid time ${r.time}`);
+          }
+        }
+      }
+      
+      if (reasons.length > 0) {
+        return { ...r, excluded: true, excludeReason: reasons.join('; ') };
+      }
+      return r;
     });
 
-    console.log(`Found ${readings.length} valid BP readings`);
+    const validCount = readings.filter(r => !r.excluded).length;
+    console.log(`Found ${readings.length} BP readings (${validCount} valid, ${readings.length - validCount} excluded)`);
 
     return new Response(
       JSON.stringify({ 
