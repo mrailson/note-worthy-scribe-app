@@ -565,68 +565,216 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
         imageName = originalImage.name;
       }
 
+      const targets = getTargetBP();
+      const considerations = niceCategory ? getClinicalConsiderations(niceCategory) : [];
+
       // Build HTML email content
       const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
           <style>
-            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+            body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; margin: 0; padding: 0; }
             .header { background: #2563EB; color: white; padding: 20px; text-align: center; }
-            .content { padding: 20px; }
-            .summary-box { background: #F0F9FF; border: 1px solid #BAE6FD; border-radius: 8px; padding: 15px; margin: 15px 0; }
-            .average { font-size: 24px; font-weight: bold; color: #2563EB; }
-            .category { background: #DBEAFE; padding: 8px 12px; border-radius: 4px; display: inline-block; margin: 10px 0; }
+            .content { padding: 20px; max-width: 800px; margin: 0 auto; }
+            .section { margin: 20px 0; }
+            .section-title { color: #2563EB; font-size: 18px; font-weight: bold; margin-bottom: 10px; border-bottom: 2px solid #DBEAFE; padding-bottom: 5px; }
+            .summary-box { background: #F0F9FF; border: 2px solid #BAE6FD; border-radius: 8px; padding: 20px; margin: 15px 0; }
+            .summary-grid { display: flex; flex-wrap: wrap; gap: 20px; }
+            .summary-item { flex: 1; min-width: 150px; text-align: center; }
+            .summary-label { font-size: 12px; color: #6B7280; margin-bottom: 5px; }
+            .summary-value { font-size: 24px; font-weight: bold; color: #1F2937; }
+            .summary-sublabel { font-size: 11px; color: #9CA3AF; }
+            .nice-box { background: #EFF6FF; border: 2px solid #3B82F6; border-radius: 8px; padding: 20px; margin: 15px 0; }
+            .category-badge { padding: 6px 12px; border-radius: 4px; display: inline-block; font-weight: bold; margin: 5px 0; }
+            .category-green { background: #D1FAE5; color: #065F46; }
+            .category-orange { background: #FED7AA; color: #C2410C; }
+            .category-red { background: #FECACA; color: #DC2626; }
+            .target-box { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 15px; margin: 15px 0; }
+            .trend-box { background: #FAF5FF; border: 1px solid #E9D5FF; border-radius: 8px; padding: 15px; margin: 15px 0; font-family: monospace; }
+            .quality-box { background: #ECFDF5; border: 1px solid #A7F3D0; border-radius: 8px; padding: 15px; margin: 15px 0; }
+            .quality-excellent { color: #065F46; }
+            .quality-good { color: #2563EB; }
+            .quality-fair { color: #CA8A04; }
+            .quality-poor { color: #DC2626; }
+            .qof-box { background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 8px; padding: 15px; margin: 15px 0; }
+            .warning-flag { background: #FEF3C7; color: #B45309; padding: 4px 8px; border-radius: 4px; margin: 2px 0; display: inline-block; }
             table { width: 100%; border-collapse: collapse; margin: 15px 0; }
             th { background: #2563EB; color: white; padding: 10px; text-align: left; }
             td { border: 1px solid #E5E7EB; padding: 8px; }
             .excluded th { background: #DC2626; }
-            .original-input { background: #F9FAFB; border: 1px solid #E5E7EB; border-radius: 8px; padding: 15px; margin: 15px 0; }
             .disclaimer { background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 8px; padding: 15px; margin: 20px 0; }
             .disclaimer-title { color: #B45309; font-weight: bold; }
             .footer { text-align: center; color: #9CA3AF; font-size: 12px; padding: 20px; border-top: 1px solid #E5E7EB; margin-top: 20px; }
+            .consideration-list { margin: 10px 0; padding-left: 20px; }
+            .consideration-list li { color: #6B7280; margin: 5px 0; }
           </style>
         </head>
         <body>
           <div class="header">
-            <h1>Blood Pressure Average Report</h1>
+            <h1>📊 Blood Pressure Average Report</h1>
             <p>Generated: ${new Date().toLocaleString('en-GB')}</p>
           </div>
           
           <div class="content">
-            <div class="summary-box">
-              <p class="average">Average: ${averages.systolic}/${averages.diastolic} mmHg</p>
-              <p><strong>Readings:</strong> ${includedReadings.length} included${excludedReadings.length > 0 ? `, ${excludedReadings.length} excluded` : ''}</p>
-              ${category ? `<div class="category"><strong>NHS Category:</strong> ${category.label}</div><p>${category.description}</p>` : ''}
-              <p><strong>Systolic Range:</strong> ${averages.systolicMin} – ${averages.systolicMax} mmHg</p>
-              <p><strong>Diastolic Range:</strong> ${averages.diastolicMin} – ${averages.diastolicMax} mmHg</p>
-              ${averages.pulse ? `<p><strong>Average Pulse:</strong> ${averages.pulse} bpm</p>` : ''}
+            <!-- Average BP (All Valid Readings) -->
+            <div class="section">
+              <div class="section-title">📊 Average BP (All Valid Readings)</div>
+              <div class="summary-box">
+                <div class="summary-grid">
+                  <div class="summary-item">
+                    <div class="summary-label">Average BP</div>
+                    <div class="summary-value">${averages.systolic}/${averages.diastolic}</div>
+                    <div class="summary-sublabel">mmHg</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-label">Systolic Range</div>
+                    <div class="summary-value" style="font-size: 18px;">${averages.systolicMin} – ${averages.systolicMax}</div>
+                    <div class="summary-sublabel">Min – Max</div>
+                  </div>
+                  <div class="summary-item">
+                    <div class="summary-label">Diastolic Range</div>
+                    <div class="summary-value" style="font-size: 18px;">${averages.diastolicMin} – ${averages.diastolicMax}</div>
+                    <div class="summary-sublabel">Min – Max</div>
+                  </div>
+                  ${averages.pulse ? `
+                  <div class="summary-item">
+                    <div class="summary-label">Avg Pulse</div>
+                    <div class="summary-value">${averages.pulse}</div>
+                    <div class="summary-sublabel">bpm</div>
+                  </div>
+                  ` : ''}
+                </div>
+                ${category ? `
+                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #BAE6FD;">
+                  <span class="category-badge category-${category.color}">${category.label}</span>
+                  <span style="color: #6B7280; margin-left: 10px;">${category.description}</span>
+                  <div style="text-align: right; color: #9CA3AF; font-size: 12px;">Based on ${includedReadings.length} readings</div>
+                </div>
+                ` : ''}
+              </div>
             </div>
 
-            <h2>Included Readings</h2>
-            <table>
-              <tr>
-                <th>#</th>
-                <th>Systolic</th>
-                <th>Diastolic</th>
-                <th>Pulse</th>
-                <th>Date</th>
-                <th>Time</th>
-              </tr>
-              ${includedReadings.map((r, i) => `
+            <!-- NICE Home BP Average -->
+            <div class="section">
+              <div class="section-title">🏠 NICE Home BP Average (NG136)</div>
+              <div class="nice-box">
+                ${niceAverage.isValid && niceAverage.systolic && niceAverage.diastolic ? `
+                  <div style="font-size: 28px; font-weight: bold; color: #1F2937;">${niceAverage.systolic}/${niceAverage.diastolic} mmHg</div>
+                ` : `
+                  <div style="color: #6B7280; font-style: italic;">Not available</div>
+                `}
+                <div style="color: #6B7280; font-style: italic; margin-top: 5px;">${niceAverage.message}</div>
+              </div>
+            </div>
+
+            <!-- Interpretation -->
+            <div class="section">
+              <div class="section-title">🩺 Interpretation (NICE NG136)</div>
+              ${niceCategory ? `
+                <div>
+                  <span class="category-badge category-${niceCategory.color}">${niceCategory.label}</span>
+                  ${niceCategory.isUrgent ? '<span class="category-badge category-red" style="margin-left: 5px;">Urgent Review</span>' : ''}
+                </div>
+                <p style="color: #6B7280;">${niceCategory.description}</p>
+                ${considerations.length > 0 ? `
+                  <div style="margin-top: 10px;">
+                    <strong>Clinical Considerations:</strong>
+                    <ul class="consideration-list">
+                      ${considerations.map(c => `<li>${c}</li>`).join('')}
+                    </ul>
+                  </div>
+                ` : ''}
+              ` : '<p style="color: #6B7280;">Classification not available</p>'}
+            </div>
+
+            <!-- Target BP -->
+            <div class="section">
+              <div class="section-title">🎯 Target Blood Pressure</div>
+              <div class="target-box">
+                <p><strong>Clinic target:</strong> ${targets.clinic.general}</p>
+                <p><strong>Home target:</strong> ${targets.home.general}</p>
+              </div>
+            </div>
+
+            <!-- Trends -->
+            <div class="section">
+              <div class="section-title">📈 Trends</div>
+              <div class="trend-box">
+                <p><strong>Systolic trend:</strong> ${trends.systolicTrend}</p>
+                <p><strong>Diastolic trend:</strong> ${trends.diastolicTrend}</p>
+                <p><strong>Pulse trend:</strong> ${trends.pulseTrend}</p>
+                ${trends.patternFlags.length > 0 ? `
+                  <div style="margin-top: 10px;">
+                    <strong>Pattern flags:</strong><br>
+                    ${trends.patternFlags.map(f => `<span class="warning-flag">⚠️ ${f}</span>`).join('<br>')}
+                  </div>
+                ` : ''}
+              </div>
+            </div>
+
+            <!-- Data Quality Score -->
+            <div class="section">
+              <div class="section-title">📋 Data Quality Score: ${dataQuality.score}/5</div>
+              <div class="quality-box">
+                <div class="quality-${dataQuality.rating.toLowerCase()}" style="font-size: 18px; font-weight: bold;">${dataQuality.rating}</div>
+                <ul style="margin: 10px 0; padding-left: 20px;">
+                  ${dataQuality.reasons.map(r => `<li style="color: #6B7280;">${r}</li>`).join('')}
+                </ul>
+              </div>
+            </div>
+
+            <!-- QOF Relevance -->
+            <div class="section">
+              <div class="section-title">QOF Relevance</div>
+              <div class="qof-box">
+                <p><strong>Meets monitoring requirement:</strong> <span style="color: ${qofRelevance.meetsBPMonitoring ? '#065F46' : '#DC2626'};">${qofRelevance.meetsBPMonitoring ? 'Yes' : 'No'}</span></p>
+                <p><strong>Suitable for annual review:</strong> <span style="color: ${qofRelevance.suitableForAnnualReview ? '#065F46' : '#DC2626'};">${qofRelevance.suitableForAnnualReview ? 'Yes' : 'No'}</span></p>
+                <p><strong>Monitor validation:</strong> ${qofRelevance.monitorValidation}</p>
+              </div>
+            </div>
+
+            <!-- Reading Summary -->
+            <div class="section">
+              <div class="section-title">📅 Reading Summary</div>
+              <div class="target-box">
+                <p><strong>Total readings:</strong> ${readings.length}</p>
+                <p><strong>Included:</strong> <span style="color: #065F46;">${includedReadings.length}</span></p>
+                ${excludedReadings.length > 0 ? `<p><strong>Excluded:</strong> <span style="color: #DC2626;">${excludedReadings.length}</span></p>` : ''}
+                <p><strong>Date range:</strong> ${dateRange.start && dateRange.end ? `${dateRange.start} → ${dateRange.end}` : 'Unknown'}</p>
+                <p><strong>Source:</strong> Home BP diary (extracted text/image)</p>
+              </div>
+            </div>
+
+            <!-- Individual Readings -->
+            <div class="section">
+              <div class="section-title">📄 Individual Readings</div>
+              <table>
                 <tr>
-                  <td>${i + 1}</td>
-                  <td>${r.systolic}</td>
-                  <td>${r.diastolic}</td>
-                  <td>${r.pulse || '-'}</td>
-                  <td>${r.date || '-'}</td>
-                  <td>${r.time || '-'}</td>
+                  <th>#</th>
+                  <th>Systolic</th>
+                  <th>Diastolic</th>
+                  <th>Pulse</th>
+                  <th>Date</th>
+                  <th>Time</th>
                 </tr>
-              `).join('')}
-            </table>
+                ${includedReadings.map((r, i) => `
+                  <tr>
+                    <td>${i + 1}</td>
+                    <td>${r.systolic}</td>
+                    <td>${r.diastolic}</td>
+                    <td>${r.pulse || '-'}</td>
+                    <td>${r.date || '-'}</td>
+                    <td>${r.time || '-'}</td>
+                  </tr>
+                `).join('')}
+              </table>
+            </div>
 
             ${excludedReadings.length > 0 ? `
-              <h2 style="color: #DC2626;">Excluded Readings</h2>
+            <!-- Excluded Readings -->
+            <div class="section">
+              <div class="section-title" style="color: #DC2626;">🚫 Excluded Readings & Reasons</div>
               <table class="excluded">
                 <tr>
                   <th>#</th>
@@ -645,25 +793,12 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
                   </tr>
                 `).join('')}
               </table>
-            ` : ''}
-
-            ${originalText ? `
-              <div class="original-input">
-                <h3>Original Input Text</h3>
-                <pre style="white-space: pre-wrap; font-family: inherit;">${originalText}</pre>
-              </div>
-            ` : ''}
-
-            ${originalImage ? `
-              <div class="original-input">
-                <h3>Original Image</h3>
-                <p><em>Image attached: ${originalImage.name}</em></p>
-              </div>
+            </div>
             ` : ''}
 
             <div class="disclaimer">
               <p class="disclaimer-title">⚠️ AI Disclaimer</p>
-              <p>This report was produced by AI which can make mistakes. Verification and audit of the results is advised before clinical use.</p>
+              <p>This report was generated by AI and may contain errors. All results should be checked by a clinician before use in patient care. No clinical decisions should be made without appropriate review.</p>
             </div>
           </div>
 
