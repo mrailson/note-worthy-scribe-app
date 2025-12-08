@@ -90,6 +90,7 @@ import LGCaptureDemoService from "./pages/LGCaptureDemoService";
 import LGCaptureFileView from "./pages/LGCaptureFileView";
 import LGCaptureMyStats from "./pages/LGCaptureMyStats";
 import LGCaptureBulk from "./pages/LGCaptureBulk";
+import BPCalculator from "./pages/BPCalculator";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 
 const App = () => {
@@ -257,6 +258,7 @@ const App = () => {
               <Route path="/lg-capture/patients" element={<LGUploadQueueProvider><LGCapturePatients /></LGUploadQueueProvider>} />
               <Route path="/lg-capture/my-stats" element={<LGUploadQueueProvider><LGCaptureMyStats /></LGUploadQueueProvider>} />
               <Route path="/lg-capture/bulk" element={<LGUploadQueueProvider><LGCaptureBulk /></LGUploadQueueProvider>} />
+              <Route path="/bp-calculator" element={<BPCalculator />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

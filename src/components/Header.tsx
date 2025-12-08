@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -334,6 +334,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             LG Capture
                           </DropdownMenuItem>
                         )}
+                        <DropdownMenuItem 
+                          onClick={() => navigate('/bp-calculator')}
+                          className="cursor-pointer py-3"
+                        >
+                          <Heart className="h-4 w-4 mr-2" />
+                          BP Average Service
+                        </DropdownMenuItem>
                   </DropdownMenuContent>
               </DropdownMenu>
             )}
