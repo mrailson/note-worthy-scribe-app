@@ -334,13 +334,15 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             LG Capture
                           </DropdownMenuItem>
                         )}
-                        <DropdownMenuItem 
-                          onClick={() => navigate('/bp-calculator')}
-                          className="cursor-pointer py-3"
-                        >
-                          <Heart className="h-4 w-4 mr-2" />
-                          BP Average Service
-                        </DropdownMenuItem>
+                        {hasServiceAccess('bp_service') && (
+                          <DropdownMenuItem 
+                            onClick={() => navigate('/bp-calculator')}
+                            className="cursor-pointer py-3"
+                          >
+                            <Heart className="h-4 w-4 mr-2" />
+                            BP Average Service
+                          </DropdownMenuItem>
+                        )}
                   </DropdownMenuContent>
               </DropdownMenu>
             )}
