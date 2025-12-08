@@ -36,7 +36,8 @@ const BPCalculator = () => {
     getTrends,
     getDataQualityScore,
     getDateRange,
-    getQOFRelevance
+    getQOFRelevance,
+    getTimeOfDayAverages
   } = useBPCalculator();
 
   const handleCalculate = async () => {
@@ -73,6 +74,7 @@ const BPCalculator = () => {
   const dataQuality = getDataQualityScore();
   const dateRange = getDateRange();
   const qofRelevance = getQOFRelevance();
+  const timeOfDayAverages = getTimeOfDayAverages();
 
   const includedCount = readings.filter(r => r.included).length;
   const excludedCount = readings.filter(r => !r.included).length;
@@ -180,6 +182,7 @@ const BPCalculator = () => {
                 averages={averages}
                 category={category}
                 readingsCount={includedCount}
+                timeOfDayAverages={timeOfDayAverages}
               />
             )}
 
@@ -219,6 +222,7 @@ const BPCalculator = () => {
               dataQuality={dataQuality}
               dateRange={dateRange}
               qofRelevance={qofRelevance}
+              timeOfDayAverages={timeOfDayAverages}
               originalText={textInput}
               originalImages={uploadedFiles}
               userEmail={user?.email}
