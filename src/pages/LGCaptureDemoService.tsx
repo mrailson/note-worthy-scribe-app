@@ -9,7 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical, Users, Check, FileText, Settings } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical, Users, Check, FileText, Settings, ChevronDown } from 'lucide-react';
 
 type ServiceLevel = 'rename_only' | 'index_summary' | 'full_service';
 import { toast } from 'sonner';
@@ -326,50 +327,63 @@ export default function LGCaptureDemoService() {
         </CardContent>
       </Card>
 
-      {/* Service Level Selector */}
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base flex items-center gap-2">
-            <Settings className="h-4 w-4" />
-            Service Level
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <RadioGroup
-            value={serviceLevel}
-            onValueChange={(value) => setServiceLevel(value as ServiceLevel)}
-            className="space-y-3"
-          >
-            <div className="flex items-start space-x-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
-              <RadioGroupItem value="rename_only" id="demo-rename_only" className="mt-0.5" />
-              <Label htmlFor="demo-rename_only" className="flex-1 cursor-pointer">
-                <div className="font-medium">Rename Only</div>
-                <div className="text-xs text-muted-foreground">
-                  Quick rename to Lloyd George format, no AI processing
+      {/* Service Level Selector - Collapsible */}
+      <Collapsible defaultOpen={false}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="pb-3 cursor-pointer hover:bg-muted/30 transition-colors">
+              <CardTitle className="text-base flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Settings className="h-4 w-4" />
+                  Service Level
+                  <Badge variant="secondary" className="text-xs font-normal">
+                    {serviceLevel === 'full_service' ? 'Full Service' : 
+                     serviceLevel === 'index_summary' ? 'Rename + Index' : 'Rename Only'}
+                  </Badge>
+                </span>
+                <ChevronDown className="h-4 w-4 transition-transform duration-200 group-data-[state=open]:rotate-180" />
+              </CardTitle>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <RadioGroup
+                value={serviceLevel}
+                onValueChange={(value) => setServiceLevel(value as ServiceLevel)}
+                className="space-y-3"
+              >
+                <div className="flex items-start space-x-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="rename_only" id="demo-rename_only" className="mt-0.5" />
+                  <Label htmlFor="demo-rename_only" className="flex-1 cursor-pointer">
+                    <div className="font-medium">Rename Only</div>
+                    <div className="text-xs text-muted-foreground">
+                      Quick rename to Lloyd George format, no AI processing
+                    </div>
+                  </Label>
                 </div>
-              </Label>
-            </div>
-            <div className="flex items-start space-x-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
-              <RadioGroupItem value="index_summary" id="demo-index_summary" className="mt-0.5" />
-              <Label htmlFor="demo-index_summary" className="flex-1 cursor-pointer">
-                <div className="font-medium">Rename + Index</div>
-                <div className="text-xs text-muted-foreground">
-                  Add index page and summary header, no SNOMED coding
+                <div className="flex items-start space-x-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="index_summary" id="demo-index_summary" className="mt-0.5" />
+                  <Label htmlFor="demo-index_summary" className="flex-1 cursor-pointer">
+                    <div className="font-medium">Rename + Index</div>
+                    <div className="text-xs text-muted-foreground">
+                      Add index page and summary header, no SNOMED coding
+                    </div>
+                  </Label>
                 </div>
-              </Label>
-            </div>
-            <div className="flex items-start space-x-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
-              <RadioGroupItem value="full_service" id="demo-full_service" className="mt-0.5" />
-              <Label htmlFor="demo-full_service" className="flex-1 cursor-pointer">
-                <div className="font-medium">Full Service</div>
-                <div className="text-xs text-muted-foreground">
-                  Complete AI summary with SNOMED codes (current behaviour)
+                <div className="flex items-start space-x-3 p-3 rounded-lg border bg-muted/30 hover:bg-muted/50 transition-colors">
+                  <RadioGroupItem value="full_service" id="demo-full_service" className="mt-0.5" />
+                  <Label htmlFor="demo-full_service" className="flex-1 cursor-pointer">
+                    <div className="font-medium">Full Service</div>
+                    <div className="text-xs text-muted-foreground">
+                      Complete AI summary with SNOMED codes (current behaviour)
+                    </div>
+                  </Label>
                 </div>
-              </Label>
-            </div>
-          </RadioGroup>
-        </CardContent>
-      </Card>
+              </RadioGroup>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Single Patient Demos */}
       <Card>
