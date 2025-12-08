@@ -425,14 +425,28 @@ export default function LGCaptureResults() {
           )}
           
           <LGDownloadPanel patient={patient} />
-          
-          {/* Ask AI about the record */}
-          <LGAskAI patient={patient} summaryJson={summaryJson} snomedJson={snomedJson} />
         </>
       )}
 
-      {/* Processing Status */}
-      <LGProcessingStatus patient={patient} onStatusChange={handleStatusChange} />
+      {/* Summary and Metrics - shown after processing complete */}
+      {patient.job_status === 'succeeded' && (
+        <>
+          <LGSummaryPreview patient={patient} />
+          
+          {/* Ask AI about the record - below Clinical Summary */}
+          <LGAskAI patient={patient} summaryJson={summaryJson} snomedJson={snomedJson} />
+          
+          {/* Processing Status - below Ask AI */}
+          <LGProcessingStatus patient={patient} onStatusChange={handleStatusChange} />
+          
+          <LGProcessingMetrics patient={patient} />
+        </>
+      )}
+
+      {/* Processing Status for non-succeeded states */}
+      {patient.job_status !== 'succeeded' && (
+        <LGProcessingStatus patient={patient} onStatusChange={handleStatusChange} />
+      )}
 
       {/* Retry Button for Failed or Stuck Queued */}
       {(patient.job_status === 'failed' || 
@@ -478,28 +492,22 @@ export default function LGCaptureResults() {
         </div>
       )}
 
-      {/* Summary and Metrics - shown after processing complete */}
+      {/* Reprocess Button - for re-running with updated logic */}
       {patient.job_status === 'succeeded' && (
-        <>
-          <LGSummaryPreview patient={patient} />
-          <LGProcessingMetrics patient={patient} />
-          
-          {/* Reprocess Button - for re-running with updated logic */}
-          <Button
-            onClick={async () => {
-              const success = await restartOCR(patient.id);
-              if (success) {
-                loadPatient();
-              }
-            }}
-            variant="outline"
-            className="w-full"
-            disabled={actionLoading}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Reprocess Record
-          </Button>
-        </>
+        <Button
+          onClick={async () => {
+            const success = await restartOCR(patient.id);
+            if (success) {
+              loadPatient();
+            }
+          }}
+          variant="outline"
+          className="w-full"
+          disabled={actionLoading}
+        >
+          <RefreshCw className="mr-2 h-4 w-4" />
+          Reprocess Record
+        </Button>
       )}
 
       {/* Delete Record */}
