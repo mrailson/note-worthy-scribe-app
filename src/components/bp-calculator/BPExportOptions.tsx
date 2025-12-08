@@ -97,8 +97,20 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
     right: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
   };
 
+  const summaryBoxBorder = {
+    top: { style: BorderStyle.SINGLE, size: 12, color: "DBEAFE" },
+    bottom: { style: BorderStyle.SINGLE, size: 12, color: "DBEAFE" },
+    left: { style: BorderStyle.SINGLE, size: 12, color: "DBEAFE" },
+    right: { style: BorderStyle.SINGLE, size: 12, color: "DBEAFE" },
+  };
+
   const createWordDocument = async () => {
     if (!averages) return null;
+
+    // Calculate pulse range if readings have pulse data
+    const pulsesWithData = includedReadings.filter(r => r.pulse);
+    const pulseMin = pulsesWithData.length > 0 ? Math.min(...pulsesWithData.map(r => r.pulse!)) : null;
+    const pulseMax = pulsesWithData.length > 0 ? Math.max(...pulsesWithData.map(r => r.pulse!)) : null;
 
     // Create readings table rows
     const tableRows = [
@@ -126,6 +138,89 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
       ),
     ];
 
+    // Create summary box table (4 columns like the screen view)
+    const summaryTable = new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            // Average BP column
+            new TableCell({
+              children: [
+                new Paragraph({ children: [new TextRun({ text: "📊 Average BP", size: 18, color: "6B7280" })], spacing: { after: 80 } }),
+                new Paragraph({ children: [new TextRun({ text: `${averages.systolic}/${averages.diastolic}`, bold: true, size: 36, color: "1F2937" })], spacing: { after: 40 } }),
+                new Paragraph({ children: [new TextRun({ text: "mmHg", size: 18, color: "6B7280" })] }),
+              ],
+              borders: summaryBoxBorder,
+              shading: { fill: "F0F9FF" },
+              width: { size: 25, type: WidthType.PERCENTAGE },
+            }),
+            // Systolic Range column
+            new TableCell({
+              children: [
+                new Paragraph({ children: [new TextRun({ text: "📈 Systolic Range", size: 18, color: "6B7280" })], spacing: { after: 80 } }),
+                new Paragraph({ children: [new TextRun({ text: `${averages.systolicMin} – ${averages.systolicMax}`, bold: true, size: 28, color: "1F2937" })], spacing: { after: 40 } }),
+                new Paragraph({ children: [new TextRun({ text: "Min – Max", size: 18, color: "6B7280" })] }),
+              ],
+              borders: summaryBoxBorder,
+              shading: { fill: "F0F9FF" },
+              width: { size: 25, type: WidthType.PERCENTAGE },
+            }),
+            // Diastolic Range column
+            new TableCell({
+              children: [
+                new Paragraph({ children: [new TextRun({ text: "📉 Diastolic Range", size: 18, color: "6B7280" })], spacing: { after: 80 } }),
+                new Paragraph({ children: [new TextRun({ text: `${averages.diastolicMin} – ${averages.diastolicMax}`, bold: true, size: 28, color: "1F2937" })], spacing: { after: 40 } }),
+                new Paragraph({ children: [new TextRun({ text: "Min – Max", size: 18, color: "6B7280" })] }),
+              ],
+              borders: summaryBoxBorder,
+              shading: { fill: "F0F9FF" },
+              width: { size: 25, type: WidthType.PERCENTAGE },
+            }),
+            // Average Pulse column
+            new TableCell({
+              children: [
+                new Paragraph({ children: [new TextRun({ text: "💓 Avg Pulse", size: 18, color: "6B7280" })], spacing: { after: 80 } }),
+                new Paragraph({ children: [new TextRun({ text: averages.pulse ? String(averages.pulse) : "-", bold: true, size: 36, color: "1F2937" })], spacing: { after: 40 } }),
+                new Paragraph({ children: [new TextRun({ text: pulseMin && pulseMax ? `${pulseMin} – ${pulseMax} bpm` : "bpm", size: 18, color: "6B7280" })] }),
+              ],
+              borders: summaryBoxBorder,
+              shading: { fill: "F0F9FF" },
+              width: { size: 25, type: WidthType.PERCENTAGE },
+            }),
+          ],
+        }),
+      ],
+    });
+
+    // Category row table
+    const categoryTable = category ? new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({
+              children: [
+                new Paragraph({
+                  children: [
+                    new TextRun({ text: category.label, bold: true, size: 22, color: category.color === 'green' ? "16A34A" : category.color === 'yellow' ? "CA8A04" : category.color === 'orange' ? "EA580C" : "DC2626" }),
+                    new TextRun({ text: `   ${category.description}`, size: 20, color: "6B7280" }),
+                  ],
+                }),
+                new Paragraph({
+                  children: [new TextRun({ text: `Based on ${includedReadings.length} readings`, size: 18, color: "9CA3AF" })],
+                  alignment: AlignmentType.RIGHT,
+                  spacing: { before: 80 },
+                }),
+              ],
+              borders: summaryBoxBorder,
+              shading: { fill: "F9FAFB" },
+            }),
+          ],
+        }),
+      ],
+    }) : null;
+
     const doc = new Document({
       sections: [{
         children: [
@@ -142,72 +237,16 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             spacing: { after: 400 },
           }),
 
-          // Summary section
-          new Paragraph({
-            children: [new TextRun({ text: "Summary", bold: true, size: 28, color: "2563EB" })],
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 200, after: 200 },
-          }),
+          // Summary box table
+          summaryTable,
 
-          // Average BP - prominent
-          new Paragraph({
-            children: [
-              new TextRun({ text: "Average Blood Pressure: ", size: 24 }),
-              new TextRun({ text: `${averages.systolic}/${averages.diastolic} mmHg`, bold: true, size: 28 }),
-            ],
-            spacing: { after: 100 },
-          }),
-
-          // Number of readings
-          new Paragraph({
-            children: [
-              new TextRun({ text: "Number of Readings: ", size: 22 }),
-              new TextRun({ text: String(includedReadings.length), bold: true, size: 22 }),
-            ],
-            spacing: { after: 100 },
-          }),
-
-          // Category if present
-          ...(category ? [
-            new Paragraph({
-              children: [
-                new TextRun({ text: "NHS Category: ", size: 22 }),
-                new TextRun({ text: category.label, bold: true, size: 22 }),
-              ],
-              spacing: { after: 50 },
-            }),
-            new Paragraph({
-              children: [new TextRun({ text: category.description, size: 20, italics: true, color: "666666" })],
-              spacing: { after: 100 },
-            }),
+          // Category row (if present)
+          ...(categoryTable ? [
+            new Paragraph({ children: [], spacing: { after: 100 } }),
+            categoryTable,
           ] : []),
 
-          // Ranges
-          new Paragraph({
-            children: [
-              new TextRun({ text: "Systolic Range: ", size: 22 }),
-              new TextRun({ text: `${averages.systolicMin} – ${averages.systolicMax} mmHg`, size: 22 }),
-            ],
-            spacing: { after: 50 },
-          }),
-          new Paragraph({
-            children: [
-              new TextRun({ text: "Diastolic Range: ", size: 22 }),
-              new TextRun({ text: `${averages.diastolicMin} – ${averages.diastolicMax} mmHg`, size: 22 }),
-            ],
-            spacing: { after: 50 },
-          }),
-
-          // Pulse if present
-          ...(averages.pulse ? [
-            new Paragraph({
-              children: [
-                new TextRun({ text: "Average Pulse: ", size: 22 }),
-                new TextRun({ text: `${averages.pulse} bpm`, size: 22 }),
-              ],
-              spacing: { after: 100 },
-            }),
-          ] : []),
+          new Paragraph({ children: [], spacing: { after: 300 } }),
 
           // Readings section
           new Paragraph({
