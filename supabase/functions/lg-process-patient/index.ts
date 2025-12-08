@@ -636,17 +636,17 @@ serve(async (req) => {
     const BATCH_SIZE = 10;
 
     // =====================================================
-    // RENAME ONLY PATH: Skip all AI processing, just create PDF
+    // RENAME ONLY PATH: Do minimal OCR (first page only for patient details), skip AI summary/SNOMED
     // =====================================================
     if (serviceLevel === 'rename_only') {
-      console.log(`RENAME ONLY mode - skipping OCR and AI processing`);
+      console.log(`RENAME ONLY mode - minimal OCR for patient details, skip AI processing`);
       
       await supabase
         .from('lg_patients')
         .update({ 
           job_status: 'processing',
           processing_started_at: new Date().toISOString(),
-          processing_phase: 'pdf-generation',
+          processing_phase: 'ocr-minimal',
         })
         .eq('id', patientId);
 
@@ -655,7 +655,90 @@ serve(async (req) => {
         processing_mode: 'rename_only',
       });
 
-      // Call lg-generate-pdf directly with minimal options
+      // Do OCR on first page only to extract patient details
+      const firstImageFile = files[0];
+      const firstImagePath = `${rawPath}/${firstImageFile.name}`;
+      
+      let extractedName = patient.patient_name || '';
+      let extractedNhs = patient.nhs_number || '';
+      let extractedDob = patient.dob || '';
+      
+      try {
+        // Download first image
+        const { data: imageData } = await supabase.storage
+          .from('lg')
+          .download(firstImagePath);
+        
+        if (imageData) {
+          const imageBytes = await imageData.arrayBuffer();
+          const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBytes)));
+          
+          // Quick OCR to extract patient details
+          const openaiApiKey = Deno.env.get('OPENAI_API_KEY');
+          if (openaiApiKey) {
+            const visionResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${openaiApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'gpt-4o-mini',
+                messages: [
+                  {
+                    role: 'user',
+                    content: [
+                      {
+                        type: 'text',
+                        text: `Extract the patient's name, NHS number, and date of birth from this Lloyd George record image. Return ONLY a JSON object with keys: "name", "nhs_number", "dob". If any value cannot be found, use null. Format DOB as DD/MM/YYYY.`,
+                      },
+                      {
+                        type: 'image_url',
+                        image_url: { url: `data:image/jpeg;base64,${base64Image}` },
+                      },
+                    ],
+                  },
+                ],
+                max_tokens: 200,
+              }),
+            });
+
+            if (visionResponse.ok) {
+              const visionData = await visionResponse.json();
+              const content = visionData.choices?.[0]?.message?.content || '';
+              
+              // Parse JSON from response
+              const jsonMatch = content.match(/\{[\s\S]*\}/);
+              if (jsonMatch) {
+                try {
+                  const parsed = JSON.parse(jsonMatch[0]);
+                  extractedName = parsed.name || extractedName;
+                  extractedNhs = parsed.nhs_number || extractedNhs;
+                  extractedDob = parsed.dob || extractedDob;
+                  console.log(`Extracted patient details: ${extractedName}, ${extractedNhs}, ${extractedDob}`);
+                } catch (e) {
+                  console.log('Failed to parse patient details JSON');
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.log('Error extracting patient details:', e);
+      }
+
+      // Update patient record with extracted details
+      await supabase
+        .from('lg_patients')
+        .update({
+          ai_extracted_name: extractedName || null,
+          ai_extracted_nhs: extractedNhs || null,
+          ai_extracted_dob: extractedDob || null,
+          processing_phase: 'pdf-generation',
+        })
+        .eq('id', patientId);
+
+      // Call lg-generate-pdf directly
       const { data: pdfResult, error: pdfError } = await supabase.functions.invoke('lg-generate-pdf', {
         body: { 
           patientId, 
