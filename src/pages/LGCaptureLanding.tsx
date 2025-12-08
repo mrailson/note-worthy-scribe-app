@@ -26,6 +26,7 @@ export default function LGCaptureLanding() {
   const [practiceOds, setPracticeOds] = useState('');
   const [practiceName, setPracticeName] = useState('');
   const [uploaderName, setUploaderName] = useState('');
+  const [serviceLevel, setServiceLevel] = useState<'rename_only' | 'index_summary' | 'full_service'>('full_service');
   const [showSettings, setShowSettings] = useState(false);
   const [practices, setPractices] = useState<Practice[]>([]);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
@@ -67,10 +68,11 @@ export default function LGCaptureLanding() {
         .maybeSingle();
       
       if (settingsData?.setting_value) {
-        const defaults = settingsData.setting_value as { practiceOds?: string; uploaderName?: string; practiceName?: string };
+        const defaults = settingsData.setting_value as { practiceOds?: string; uploaderName?: string; practiceName?: string; serviceLevel?: 'rename_only' | 'index_summary' | 'full_service' };
         if (defaults.practiceOds) loadedOds = defaults.practiceOds;
         if (defaults.uploaderName) loadedName = defaults.uploaderName;
         if (defaults.practiceName) loadedPracticeName = defaults.practiceName;
+        if (defaults.serviceLevel) setServiceLevel(defaults.serviceLevel);
       }
 
       // 2. If name not set, get from user profile
@@ -117,7 +119,7 @@ export default function LGCaptureLanding() {
   }, [user?.id]);
 
   // Save to database helper - called on practice select AND save button
-  const saveToDatabase = async (ods: string, name: string, pName: string) => {
+  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service') => {
     if (!user?.id) return false;
     
     const { error } = await supabase
@@ -128,7 +130,8 @@ export default function LGCaptureLanding() {
         setting_value: {
           practiceOds: ods.trim(),
           practiceName: pName.trim(),
-          uploaderName: name.trim()
+          uploaderName: name.trim(),
+          serviceLevel: svcLevel
         },
         updated_at: new Date().toISOString()
       }, { 
@@ -156,7 +159,7 @@ export default function LGCaptureLanding() {
     setSearchTerm('');
 
     // Auto-save to database immediately
-    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name);
+    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel);
   };
 
   const filteredPractices = practices.filter(practice => {
@@ -192,7 +195,7 @@ export default function LGCaptureLanding() {
     }
 
     setIsSaving(true);
-    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName);
+    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel);
     setIsSaving(false);
 
     if (saved) {
@@ -513,6 +516,62 @@ export default function LGCaptureLanding() {
                 placeholder="e.g. Malcolm Railson"
                 className={isIPhone ? "h-12 text-base" : ""}
               />
+            </div>
+            <div className="space-y-2">
+              <Label>Service Level</Label>
+              <div className="space-y-2">
+                <label className={cn(
+                  "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                  serviceLevel === 'rename_only' ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                )}>
+                  <input
+                    type="radio"
+                    name="serviceLevel"
+                    value="rename_only"
+                    checked={serviceLevel === 'rename_only'}
+                    onChange={(e) => setServiceLevel(e.target.value as 'rename_only')}
+                    className="mt-1"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Rename Only</p>
+                    <p className="text-xs text-muted-foreground">Quick rename to Lloyd George format, no AI processing</p>
+                  </div>
+                </label>
+                <label className={cn(
+                  "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                  serviceLevel === 'index_summary' ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                )}>
+                  <input
+                    type="radio"
+                    name="serviceLevel"
+                    value="index_summary"
+                    checked={serviceLevel === 'index_summary'}
+                    onChange={(e) => setServiceLevel(e.target.value as 'index_summary')}
+                    className="mt-1"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Rename + Index</p>
+                    <p className="text-xs text-muted-foreground">Add index page and summary header, no SNOMED coding</p>
+                  </div>
+                </label>
+                <label className={cn(
+                  "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                  serviceLevel === 'full_service' ? "border-primary bg-primary/5" : "border-border hover:bg-muted/50"
+                )}>
+                  <input
+                    type="radio"
+                    name="serviceLevel"
+                    value="full_service"
+                    checked={serviceLevel === 'full_service'}
+                    onChange={(e) => setServiceLevel(e.target.value as 'full_service')}
+                    className="mt-1"
+                  />
+                  <div>
+                    <p className="font-medium text-sm">Full Service</p>
+                    <p className="text-xs text-muted-foreground">Complete AI summary with SNOMED codes</p>
+                  </div>
+                </label>
+              </div>
             </div>
             <Button 
               onClick={saveSettings} 
