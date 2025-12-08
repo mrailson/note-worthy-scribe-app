@@ -30,7 +30,7 @@ const playClickSound = () => {
 interface BPCameraModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCapture: (file: File) => void;
+  onCapture: (files: File[]) => void;
 }
 
 export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalProps) {
@@ -40,7 +40,8 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
   const [availableCameras, setAvailableCameras] = useState<MediaDeviceInfo[]>([]);
   const [selectedCameraIndex, setSelectedCameraIndex] = useState(0);
   const [isRotated, setIsRotated] = useState(false);
-  const [capturedImage, setCapturedImage] = useState<string | null>(null);
+  const [capturedImages, setCapturedImages] = useState<string[]>([]);
+  const [showFlash, setShowFlash] = useState(false);
   
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -59,7 +60,6 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
 
   const startCamera = useCallback(async (deviceId?: string) => {
     setIsCameraLoading(true);
-    setCapturedImage(null);
     try {
       const constraints: MediaStreamConstraints = {
         video: deviceId 
@@ -118,7 +118,7 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
   // Start camera when modal opens
   useEffect(() => {
     if (open) {
-      setCapturedImage(null);
+      setCapturedImages([]);
       startCamera();
     } else {
       stopCamera();
@@ -204,27 +204,34 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
     const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
     
     playClickSound();
-    setCapturedImage(dataUrl);
-    stopCamera();
-  }, [isRotated, stopCamera]);
-
-  const handleRetake = useCallback(() => {
-    setCapturedImage(null);
-    startCamera(availableCameras[selectedCameraIndex]?.deviceId);
-  }, [availableCameras, selectedCameraIndex, startCamera]);
-
-  const handleConfirm = useCallback(() => {
-    if (!capturedImage) return;
     
-    // Convert data URL to File
-    fetch(capturedImage)
-      .then(res => res.blob())
-      .then(blob => {
-        const file = new File([blob], `bp-photo-${Date.now()}.jpg`, { type: 'image/jpeg' });
-        onCapture(file);
-        onOpenChange(false);
-      });
-  }, [capturedImage, onCapture, onOpenChange]);
+    // Flash effect
+    setShowFlash(true);
+    setTimeout(() => setShowFlash(false), 150);
+    
+    // Add to captured images array
+    setCapturedImages(prev => [...prev, dataUrl]);
+  }, [isRotated]);
+
+  const handleDone = useCallback(async () => {
+    if (capturedImages.length === 0) {
+      onOpenChange(false);
+      return;
+    }
+    
+    // Convert all data URLs to Files
+    const files: File[] = await Promise.all(
+      capturedImages.map(async (dataUrl, index) => {
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+        return new File([blob], `bp-photo-${Date.now()}-${index + 1}.jpg`, { type: 'image/jpeg' });
+      })
+    );
+    
+    stopCamera();
+    onCapture(files);
+    onOpenChange(false);
+  }, [capturedImages, onCapture, onOpenChange, stopCamera]);
 
   const handleClose = () => {
     stopCamera();
@@ -235,23 +242,20 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
         <div className="relative aspect-[3/4] bg-black">
-          {capturedImage ? (
-            <img 
-              src={capturedImage} 
-              alt="Captured BP readings" 
-              className="absolute inset-0 w-full h-full object-cover"
-            />
-          ) : (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              webkit-playsinline="true"
-              className={`absolute inset-0 w-full h-full object-cover pointer-events-none transition-all ${
-                isCapturing ? 'opacity-100' : 'opacity-0'
-              } ${isRotated ? 'rotate-180' : ''}`}
-            />
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            webkit-playsinline="true"
+            className={`absolute inset-0 w-full h-full object-cover pointer-events-none transition-all ${
+              isCapturing ? 'opacity-100' : 'opacity-0'
+            } ${isRotated ? 'rotate-180' : ''}`}
+          />
+          
+          {/* Flash effect */}
+          {showFlash && (
+            <div className="absolute inset-0 bg-white z-20 animate-pulse" />
           )}
           
           {isCameraLoading && (
@@ -280,8 +284,15 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
             <X className="h-5 w-5" />
           </Button>
           
+          {/* Page count badge */}
+          {capturedImages.length > 0 && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 bg-green-600 text-white px-4 py-2 rounded-full text-sm font-medium z-10">
+              {capturedImages.length} page{capturedImages.length !== 1 ? 's' : ''} captured
+            </div>
+          )}
+          
           {/* Camera controls - only show when capturing */}
-          {isCapturing && !capturedImage && (
+          {isCapturing && (
             <div className="absolute top-2 right-2 flex gap-2 z-10">
               <Button
                 onClick={() => setIsRotated(!isRotated)}
@@ -305,45 +316,40 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
             </div>
           )}
           
-          {/* Capture button */}
-          {isCapturing && !capturedImage && (
+          {/* Capture button and Done button */}
+          {isCapturing && (
             <div className="absolute bottom-4 left-0 right-0 flex flex-col items-center gap-3 z-10">
-              <Button
-                onClick={captureImage}
-                size="lg"
-                className="h-16 w-16 rounded-full bg-white hover:bg-gray-100 text-black shadow-lg"
-              >
-                <Camera className="h-8 w-8" />
-              </Button>
+              <div className="flex items-center gap-4">
+                <Button
+                  onClick={captureImage}
+                  size="lg"
+                  className="h-16 w-16 rounded-full bg-white hover:bg-gray-100 text-black shadow-lg"
+                >
+                  <Camera className="h-8 w-8" />
+                </Button>
+                {capturedImages.length > 0 && (
+                  <Button
+                    onClick={handleDone}
+                    size="lg"
+                    className="h-14 px-6 bg-green-600 hover:bg-green-700 text-white shadow-lg rounded-full"
+                  >
+                    <Check className="h-5 w-5 mr-2" />
+                    Done
+                  </Button>
+                )}
+              </div>
               <div className="bg-black/60 text-white px-4 py-2 rounded-full text-sm">
-                <span>Tap button to capture BP readings</span>
+                <span>
+                  {capturedImages.length === 0 
+                    ? 'Tap to capture BP readings (multiple pages supported)'
+                    : 'Take more photos or tap Done when finished'}
+                </span>
               </div>
             </div>
           )}
           
           <canvas ref={canvasRef} className="hidden" />
         </div>
-        
-        {/* Confirm/Retake buttons */}
-        {capturedImage && (
-          <div className="p-4 bg-background flex gap-3">
-            <Button
-              onClick={handleRetake}
-              variant="outline"
-              className="flex-1 h-12"
-            >
-              <RotateCcw className="h-4 w-4 mr-2" />
-              Retake
-            </Button>
-            <Button
-              onClick={handleConfirm}
-              className="flex-1 h-12 bg-green-600 hover:bg-green-700"
-            >
-              <Check className="h-4 w-4 mr-2" />
-              Use Photo
-            </Button>
-          </div>
-        )}
       </DialogContent>
     </Dialog>
   );
