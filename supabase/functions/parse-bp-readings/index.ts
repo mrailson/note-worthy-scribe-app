@@ -17,12 +17,16 @@ interface BPReading {
   excluded?: boolean;
   excludeReason?: string;
   confidence?: 'confirmed' | 'single_source' | 'needs_review';
+  position?: 'sitting' | 'standing' | 'standard';
+  standingMinutes?: number;
 }
 
-// Enhanced BP Diary Parser System Prompt for UK GP Practice
+// Enhanced BP Diary Parser System Prompt for UK GP Practice with Sit/Stand support
 const BP_DIARY_PARSER_SYSTEM_PROMPT = `You are a blood pressure (BP) diary parser for a UK general practice.
 
-You receive a handwritten HOME blood pressure diary page. The diary usually has columns by DATE, with AM and/or PM readings underneath each date.
+You receive a HOME blood pressure diary page. The diary may contain:
+1. Standard home BP readings (single column)
+2. Sit/Stand BP assessments with separate Sitting and Standing columns
 
 Your job is to reconstruct a complete, error-checked table of readings suitable for NICE NG136 home BP averaging and GP clinical review.
 
@@ -36,10 +40,36 @@ From the image or text, build a clean list of BP readings, each with:
 - date (DD/MM/YY)
 - time_of_day ("AM" or "PM")
 - source_row (approximate row number from top of page, starting at 1)
+- position ("sitting", "standing", or null for standard readings)
+- standing_minutes (1 or 3 if standing reading indicates time after standing, null otherwise)
 - valid (true/false)
 - reason_invalid (string or null)
 
-RULES
+POSITION DETECTION RULES
+------------------------
+
+1. Column Headers: Look for column headers indicating "Sitting" or "Standing":
+   - "Sitting", "Sit", "Seated", "Sat" → position = "sitting"
+   - "Standing", "Stand", "Stood" → position = "standing"
+   
+2. If the document has separate Sitting and Standing columns:
+   - Readings under the "Sitting" column header → position = "sitting"
+   - Readings under the "Standing" column header → position = "standing"
+   
+3. Inline Position Markers: Look for position indicators in text:
+   - "Sitting: 140/90" or "Sit 140/90" → position = "sitting"
+   - "Standing: 130/85" or "Stand 130/85" → position = "standing"
+   - "After 1 min standing", "1 min", "1min" → standing_minutes = 1
+   - "After 3 min standing", "3 min", "3min" → standing_minutes = 3
+   
+4. If no position indicators are found, set position = null (standard reading)
+
+5. IMPORTANT: In spreadsheet/tabular data with Sitting and Standing columns:
+   - Extract BOTH sitting AND standing readings as separate entries
+   - Each row with both values should produce TWO readings: one sitting, one standing
+   - Use the same date/time for both but different positions
+
+RULES (BP PARSING)
 ------
 
 1. Identify blood pressure readings
@@ -54,38 +84,30 @@ RULES
 
 2. Pulse extraction
    - If a third number appears on the same row as the BP (for example "147/93 78") and is between 30 and 130, treat it as PULSE.
+   - For Sit/Stand data, each position column may have its own pulse value.
    - If no suitable third number is present, set pulse = null.
    - Ignore obvious noise numbers (e.g. page numbers, 2025, etc.).
 
 3. Time-of-day (AM/PM)
    - If the row contains "AM" or "PM" (any case), use that as time_of_day.
    - If a row has a BP but no AM/PM, and the immediately previous BP row in the same column has AM or PM, INHERIT that value.
+   - If a time like "1145" or "2100" is given, infer AM (before 12:00) or PM (12:00 onwards).
    - If you cannot infer AM/PM reliably, set time_of_day = null.
 
 4. Date handling and INHERITANCE (critical)
-   - Diaries are organised by DATE at the top of a column, with AM/PM readings under that date.
-   - If a row includes a clear date (e.g. "18/11/25"), treat that as the current_date for subsequent rows in that column.
-   - For the next BP rows in sequence that appear to belong to that column (e.g. directly underneath in the text order), if they do NOT contain their own date, INHERIT current_date.
+   - Diaries are organised by DATE at the top of a column or as a row label.
+   - Date formats: "1st", "2nd", "3rd", "4th"... should be interpreted with the month/year context.
+   - If the dominant month is October 2025, "1st" = "01/10/25", "15th" = "15/10/25".
+   - For the next BP rows in sequence, if they do NOT contain their own date, INHERIT current_date.
    - Never leave date empty if there is an obvious date immediately above in the same sequence of rows.
    - DO NOT invent dates that do not appear at all in the page.
 
-5. Dominant month/year and correction of OCR mistakes
-   - Determine the dominant month and year from clearly recognised dates (for example, most dates might be in November 2025, written as 18/11/25, 19/11/25, etc.).
-   - If a single date appears with a different month that is clearly inconsistent with all the others (for example 23/01/25 when all other dates are **/11/25 and the handwriting style suggests "11"), CORRECT it to match the dominant month/year (e.g. 23/11/25).
-   - Only make such a correction if it is strongly supported by context. If you cannot be confident, mark the reading:
-     - valid = false
-     - reason_invalid = "unreliable date"
-   - Never introduce months or years that are absent from the diary (e.g. do not invent January 2025 if the diary is clearly November 2025).
-
-6. Multiple readings on the same date
+5. Multiple readings on the same date
    - It is normal to have both AM and PM readings on the same date.
-   - Treat each BP pair as a separate reading with the same date but different time_of_day.
+   - It is also normal to have both Sitting and Standing readings at the same time.
+   - Create separate reading entries for each.
 
-7. Notes and non-BP rows
-   - Ignore notes like "NEW MEDICINE", "HOME BP", "READINGS", etc. Do not turn them into readings.
-   - If a row has no valid BP pattern, skip it entirely.
-
-8. Validity and exclusion
+6. Validity and exclusion
    - A reading is valid if:
      - The BP values pass the numeric checks (Rule 1),
      - There is at least a plausible date (either direct or inherited),
@@ -100,40 +122,49 @@ Your priority is maximum accuracy and safety for clinical use:
 - follow the diary structure carefully,
 - be conservative when guessing dates.`;
 
-// Enhanced handwriting recognition prompt for vision mode
-const HANDWRITING_VISION_PROMPT = `HANDWRITTEN DOCUMENT ANALYSIS - BLOOD PRESSURE DIARY
+// Enhanced handwriting recognition prompt for vision mode with Sit/Stand
+const HANDWRITING_VISION_PROMPT = `HANDWRITTEN DOCUMENT ANALYSIS - BLOOD PRESSURE DIARY (with Sit/Stand Support)
 
 Please perform careful handwriting recognition on this BP diary image:
 
 1. SCAN THE ENTIRE PAGE systematically from top-left to bottom-right
-2. IDENTIFY ALL COLUMNS - each column typically represents a different date
-3. For each column, read from TOP to BOTTOM:
-   - Look for the DATE at the top of the column (usually DD/MM/YY format)
-   - Find AM readings (morning)
-   - Find PM readings (evening)
+
+2. IDENTIFY THE LAYOUT TYPE:
+   a) Standard BP diary (single BP column per time)
+   b) Sit/Stand assessment (separate Sitting and Standing columns)
+   
+3. LOOK FOR COLUMN HEADERS:
+   - "Sitting", "Sit", "Seated" columns → position = "sitting"  
+   - "Standing", "Stand", "Stood" columns → position = "standing"
+   - If Sitting and Standing columns exist, extract BOTH readings per row
+
+4. For each column/section, read from TOP to BOTTOM:
+   - Look for the DATE (DD/MM/YY format, or "1st", "2nd", etc.)
+   - Find AM/PM indicators or times like "1145", "2100"
    - BP format is typically NNN/NN or NN/NN (systolic/diastolic)
    - Pulse may appear as a third number after BP
 
-4. HANDWRITING RECOGNITION TIPS:
+5. FOR SIT/STAND SPREADSHEETS:
+   - Each row typically has: Date | Time | Sitting SYS/DIA/Pulse | Standing SYS/DIA/Pulse
+   - Create TWO readings per row: one with position="sitting", one with position="standing"
+   - Use same date/time for both readings
+
+6. HANDWRITING RECOGNITION TIPS:
    - 1 and 7 can look similar - check context and typical BP values
-   - 4 and 9 may be confused - verify with typical BP ranges (systolic 100-180, diastolic 60-100)
+   - 4 and 9 may be confused - verify with typical BP ranges
    - 0 and 6 handwritten can look alike
    - Slashes in BP readings (/) may be faint or angled
-   - Look for underlines or boxes that may group readings
-   - Written numbers may have varying slants
 
-5. DATE INHERITANCE: If a reading has no date directly above it in its column, inherit the date from the column header at the top.
+7. EXTRACT EVERY VISIBLE BP READING - do not skip any.
 
-6. EXTRACT EVERY VISIBLE BP READING - do not skip any. Include all readings even if handwriting is slightly unclear.
+Call the extract_bp_readings function with ALL readings found, including position for each.`;
 
-Call the extract_bp_readings function with ALL readings found.`;
-
-// Tool schema for structured BP extraction
+// Tool schema for structured BP extraction with position fields
 const BP_EXTRACTION_TOOL = {
   type: 'function',
   function: {
     name: 'extract_bp_readings',
-    description: 'Extract blood pressure readings from BP diary',
+    description: 'Extract blood pressure readings from BP diary, including position (sitting/standing) where indicated',
     parameters: {
       type: 'object',
       properties: {
@@ -148,6 +179,8 @@ const BP_EXTRACTION_TOOL = {
               date: { type: 'string', description: 'Date in DD/MM/YY format' },
               time_of_day: { type: 'string', enum: ['AM', 'PM'], description: 'Time of day (AM or PM)' },
               source_row: { type: 'number', description: 'Approximate row number from top of page' },
+              position: { type: 'string', enum: ['sitting', 'standing'], description: 'Position when reading was taken: "sitting" or "standing". Null if not specified (standard reading).' },
+              standing_minutes: { type: 'number', enum: [1, 3], description: 'Minutes after standing for standing readings (1 or 3), null otherwise' },
               valid: { type: 'boolean', description: 'Whether the reading passes validation rules' },
               reason_invalid: { type: 'string', description: 'Reason if reading is invalid, null otherwise' }
             },
@@ -191,19 +224,44 @@ function formatAsNumberedRows(text: string): string {
   return `ROWS:\n${rows.join('\n')}`;
 }
 
+// Detect if text contains sit/stand indicators
+function detectSitStandMode(text: string): boolean {
+  const sitStandPatterns = [
+    /\bsitting\b/i,
+    /\bstanding\b/i,
+    /\bsit\b/i,
+    /\bstand\b/i,
+    /\bseated\b/i,
+    /\bpostural\b/i,
+    /sitting.*standing/i,
+    /sit.*stand/i
+  ];
+  return sitStandPatterns.some(pattern => pattern.test(text));
+}
+
 // Run single extraction with specified model
 async function runExtraction(
   content: { type: 'text'; text: string } | { type: 'image'; dataUrl: string },
-  model: string = 'google/gemini-2.5-flash'
+  model: string = 'google/gemini-2.5-flash',
+  isSitStandMode: boolean = false
 ): Promise<BPReading[]> {
   const messages: any[] = [];
+  
+  // Auto-detect sit/stand from text content
+  if (content.type === 'text') {
+    isSitStandMode = isSitStandMode || detectSitStandMode(content.text);
+  }
+  
+  const sitStandInstruction = isSitStandMode 
+    ? '\n\nIMPORTANT: This appears to be a Sit/Stand BP assessment. Look carefully for Sitting and Standing columns or indicators. Extract BOTH sitting and standing readings as separate entries with the appropriate position field.'
+    : '';
   
   if (content.type === 'image') {
     // Vision mode - optimized for handwritten document analysis
     messages.push({
       role: 'user',
       content: [
-        { type: 'text', text: HANDWRITING_VISION_PROMPT },
+        { type: 'text', text: HANDWRITING_VISION_PROMPT + sitStandInstruction },
         { type: 'image_url', image_url: { url: content.dataUrl } }
       ]
     });
@@ -212,11 +270,11 @@ async function runExtraction(
     const formattedText = formatAsNumberedRows(content.text);
     messages.push({
       role: 'user',
-      content: `Parse the blood pressure readings from this diary text. Call the extract_bp_readings function with the results.\n\n${formattedText}`
+      content: `Parse the blood pressure readings from this diary text. Call the extract_bp_readings function with the results.${sitStandInstruction}\n\n${formattedText}`
     });
   }
 
-  console.log(`Calling ${model} for extraction...`);
+  console.log(`Calling ${model} for extraction (sitStandMode: ${isSitStandMode})...`);
   const extractStart = Date.now();
   
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -240,7 +298,7 @@ async function runExtraction(
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.error('Gemini Pro extraction error:', response.status, errorText);
+    console.error('Extraction error:', response.status, errorText);
     throw new Error(`Extraction failed: ${response.status}`);
   }
 
@@ -252,6 +310,14 @@ async function runExtraction(
       const parsed = JSON.parse(toolCall.function.arguments);
       const rawReadings = parsed.readings || [];
       
+      console.log(`Parsed ${rawReadings.length} raw readings from AI response`);
+      
+      // Log position distribution
+      const sittingCount = rawReadings.filter((r: any) => r.position === 'sitting').length;
+      const standingCount = rawReadings.filter((r: any) => r.position === 'standing').length;
+      const standardCount = rawReadings.filter((r: any) => !r.position).length;
+      console.log(`Position breakdown: ${sittingCount} sitting, ${standingCount} standing, ${standardCount} standard`);
+      
       // Transform to frontend format
       return rawReadings.map((r: any, idx: number) => ({
         systolic: r.systolic,
@@ -262,10 +328,12 @@ async function runExtraction(
         sourceRow: r.source_row,
         excluded: !r.valid,
         excludeReason: r.reason_invalid ?? undefined,
-        confidence: 'confirmed' as const
+        confidence: 'confirmed' as const,
+        position: r.position ?? undefined,
+        standingMinutes: r.standing_minutes ?? undefined
       }));
     } catch (e) {
-      console.error('Failed to parse Gemini Pro response:', e);
+      console.error('Failed to parse response:', e);
     }
   }
 
@@ -285,7 +353,9 @@ async function runExtraction(
           sourceRow: r.source_row,
           excluded: !r.valid,
           excludeReason: r.reason_invalid ?? undefined,
-          confidence: 'confirmed' as const
+          confidence: 'confirmed' as const,
+          position: r.position ?? undefined,
+          standingMinutes: r.standing_minutes ?? undefined
         }));
       }
     } catch (e) {
@@ -328,12 +398,12 @@ serve(async (req) => {
   }
 
   try {
-    const { text, imageData, dataUrl, mode } = await req.json();
+    const { text, imageData, dataUrl, mode, isSitStandMode } = await req.json();
     const imageSource = imageData || dataUrl; // Support both parameter names
     
-    // Default to Flash for speed, can use Pro for complex cases
+    // Default to Flash for speed
     const model = 'google/gemini-2.5-flash';
-    console.log(`Processing BP readings in ${mode} mode with ${model}`);
+    console.log(`Processing BP readings in ${mode} mode with ${model}, sitStandMode: ${isSitStandMode}`);
     const startTime = Date.now();
 
     let readings: BPReading[] = [];
@@ -341,12 +411,12 @@ serve(async (req) => {
     if (mode === 'image' && imageSource) {
       // Single-pass vision extraction
       console.log(`Running vision extraction with ${model} (handwriting optimized)...`);
-      readings = await runExtraction({ type: 'image', dataUrl: imageSource }, model);
+      readings = await runExtraction({ type: 'image', dataUrl: imageSource }, model, isSitStandMode);
       console.log(`Extracted ${readings.length} readings from image`);
     } else if (text) {
       // Text mode extraction
       console.log(`Running text extraction with ${model}...`);
-      readings = await runExtraction({ type: 'text', text }, model);
+      readings = await runExtraction({ type: 'text', text }, model, isSitStandMode);
       console.log(`Extracted ${readings.length} readings from text`);
     }
 
