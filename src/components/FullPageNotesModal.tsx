@@ -296,8 +296,16 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsRenderingMinutes(false); // Reset rendering state
   }, [isOpen, meeting?.id]);
 
+  // State to allow user override of long meeting plain text view
+  const [forceFancyView, setForceFancyView] = useState(false);
+
+  // Reset override when meeting changes
+  useEffect(() => {
+    setForceFancyView(false);
+  }, [meeting?.id]);
+
   // Determine if this is a long meeting (60+ minutes) to skip expensive rendering
-  const isLongMeeting = React.useMemo(() => {
+  const isLongMeetingRaw = React.useMemo(() => {
     if (!meeting) return false;
 
     // Prefer stored duration if available
@@ -317,6 +325,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
     return false;
   }, [meeting?.id, meeting?.duration_minutes, meeting?.start_time, meeting?.end_time]);
+
+  // User can override the long meeting check to see fancy view
+  const isLongMeeting = isLongMeetingRaw && !forceFancyView;
 
   // Log for debugging
   useEffect(() => {
@@ -3643,7 +3654,13 @@ ${transcriptToUse}`;
                                         /* Long meeting: Show basic/plain view without heavy formatting */
                                         <div className="flex flex-col h-full space-y-2">
                                           <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded px-3 py-2">
-                                            This meeting is over 60 minutes long. Showing basic text notes to keep things responsive.
+                                            This meeting is over 60 minutes long. Showing basic text notes to keep things responsive.{' '}
+                                            <button 
+                                              onClick={() => setForceFancyView(true)}
+                                              className="underline hover:text-amber-900 font-medium"
+                                            >
+                                              Switch to formatted view
+                                            </button>
                                           </div>
 
                                           <ScrollArea className="flex-1 rounded border bg-white p-4">
