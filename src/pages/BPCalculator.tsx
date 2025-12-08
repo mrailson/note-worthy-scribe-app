@@ -131,7 +131,7 @@ const BPCalculator = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
         {/* Input Section */}
         <BPInputOptions 
           textValue={textInput}
