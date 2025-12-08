@@ -185,7 +185,7 @@ export const BPInputOptions = ({
 • Blood pressure reading: 140 over 90
 
 Paste the full email content here...`}
-            className="min-h-[400px] font-mono text-sm resize-y"
+            className="min-h-[500px] font-mono text-sm resize-y"
             disabled={disabled}
           />
           <p className="text-xs text-muted-foreground mt-2">
