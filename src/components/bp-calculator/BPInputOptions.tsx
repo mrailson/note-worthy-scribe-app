@@ -49,9 +49,14 @@ export const BPInputOptions = ({
   };
 
   const handleCameraCapture = (capturedFiles: File[]) => {
+    console.log('[BPInputOptions] handleCameraCapture called with', capturedFiles.length, 'files');
+    console.log('[BPInputOptions] Current files before:', files.length);
     if (capturedFiles.length > 0) {
-      onFilesChange([...files, ...capturedFiles]);
+      const newFiles = [...files, ...capturedFiles];
+      console.log('[BPInputOptions] Setting new files:', newFiles.length);
+      onFilesChange(newFiles);
     }
+    setCameraOpen(false);
     setSelectedMethod(null);
   };
 
