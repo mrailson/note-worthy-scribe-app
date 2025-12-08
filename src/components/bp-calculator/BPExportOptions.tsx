@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Copy, Download, FileText, Mail, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
 import { BPReading } from '@/hooks/useBPCalculator';
 import { 
   BPAverages, 
@@ -68,9 +67,8 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
 
     try {
       await navigator.clipboard.writeText(text);
-      toast.success('Copied to clipboard');
     } catch (error) {
-      toast.error('Failed to copy');
+      console.error('Failed to copy:', error);
     }
   };
 
@@ -104,7 +102,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
     a.download = `bp-readings-${new Date().toISOString().split('T')[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-    toast.success('CSV downloaded');
   };
 
   const tableBorder = {
@@ -526,7 +523,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
 
     const blob = await Packer.toBlob(doc);
     saveAs(blob, `bp-report-${new Date().toISOString().split('T')[0]}.docx`);
-    toast.success('Word report downloaded');
   };
 
   // Helper function to convert ArrayBuffer to base64 without stack overflow
@@ -543,7 +539,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
 
   const sendEmailReport = async () => {
     if (!averages || !userEmail) {
-      toast.error('Unable to send email - missing data or email address');
       return;
     }
 
@@ -843,11 +838,8 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
       });
 
       if (error) throw error;
-
-      toast.success('Email sent successfully');
     } catch (error) {
       console.error('Error sending email:', error);
-      toast.error('Failed to send email');
     } finally {
       setIsSendingEmail(false);
     }

@@ -2,7 +2,6 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Camera, X, RotateCcw, SwitchCamera, AlertTriangle, Loader2, Check } from 'lucide-react';
-import { toast } from 'sonner';
 
 // Convert data URL to Blob without using fetch (to avoid CSP issues)
 const dataURLtoBlob = (dataURL: string): Blob => {
@@ -114,7 +113,6 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
     } catch (err) {
       console.error('Camera error:', err);
       setIsCameraLoading(false);
-      toast.error('Failed to access camera');
       onOpenChange(false);
     }
   }, [enumerateCameras, onOpenChange]);
@@ -254,7 +252,6 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
       onOpenChange(false);
     } catch (err) {
       console.error('[BPCameraModal] Error in handleDone:', err);
-      toast.error('Failed to process captured images');
     }
   }, [capturedImages, onCapture, onOpenChange, stopCamera]);
 
