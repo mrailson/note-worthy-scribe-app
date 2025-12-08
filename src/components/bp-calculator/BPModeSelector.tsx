@@ -14,7 +14,7 @@ interface BPModeSelectorProps {
 export const BPModeSelector = ({ mode, onModeChange, disabled }: BPModeSelectorProps) => {
   return (
     <Card className="border-dashed">
-      <CardContent className="pt-4 pb-4">
+      <CardContent className="py-6">
         <div className="flex items-center gap-4">
           <Label className="text-sm font-medium text-muted-foreground">Mode:</Label>
           <RadioGroup
