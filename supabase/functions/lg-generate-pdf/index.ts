@@ -285,6 +285,7 @@ serve(async (req) => {
     let indexPageIndices: number[] = [];
     let linkYPositions: { pageIndex: number; y: number; scannedIndex: number }[] = [];
     let firstIndexPageIndex = 0;
+    let frontMatterPages = 0; // Initialize here to be available for all service levels
 
     // Add front matter based on service level
     if (serviceLevel === 'full_service') {
@@ -310,7 +311,7 @@ serve(async (req) => {
 
       // ===== PAGE 3: INDEX OF SCANNED PAGES =====
       console.log('Adding index page...');
-      const frontMatterPages = pdfDoc.getPageCount();
+      frontMatterPages = pdfDoc.getPageCount();
       const indexResult = addIndexPage(pdfDoc, font, boldFont, {
         patientName,
         nhsNumber,
@@ -378,7 +379,7 @@ serve(async (req) => {
       });
       
       // Add index page
-      const frontMatterPages = pdfDoc.getPageCount();
+      frontMatterPages = pdfDoc.getPageCount();
       const indexResult = addIndexPage(pdfDoc, font, boldFont, {
         patientName,
         nhsNumber,
