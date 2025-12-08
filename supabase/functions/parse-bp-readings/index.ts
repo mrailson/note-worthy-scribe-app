@@ -100,6 +100,34 @@ Your priority is maximum accuracy and safety for clinical use:
 - follow the diary structure carefully,
 - be conservative when guessing dates.`;
 
+// Enhanced handwriting recognition prompt for vision mode
+const HANDWRITING_VISION_PROMPT = `HANDWRITTEN DOCUMENT ANALYSIS - BLOOD PRESSURE DIARY
+
+Please perform careful handwriting recognition on this BP diary image:
+
+1. SCAN THE ENTIRE PAGE systematically from top-left to bottom-right
+2. IDENTIFY ALL COLUMNS - each column typically represents a different date
+3. For each column, read from TOP to BOTTOM:
+   - Look for the DATE at the top of the column (usually DD/MM/YY format)
+   - Find AM readings (morning)
+   - Find PM readings (evening)
+   - BP format is typically NNN/NN or NN/NN (systolic/diastolic)
+   - Pulse may appear as a third number after BP
+
+4. HANDWRITING RECOGNITION TIPS:
+   - 1 and 7 can look similar - check context and typical BP values
+   - 4 and 9 may be confused - verify with typical BP ranges (systolic 100-180, diastolic 60-100)
+   - 0 and 6 handwritten can look alike
+   - Slashes in BP readings (/) may be faint or angled
+   - Look for underlines or boxes that may group readings
+   - Written numbers may have varying slants
+
+5. DATE INHERITANCE: If a reading has no date directly above it in its column, inherit the date from the column header at the top.
+
+6. EXTRACT EVERY VISIBLE BP READING - do not skip any. Include all readings even if handwriting is slightly unclear.
+
+Call the extract_bp_readings function with ALL readings found.`;
+
 // Tool schema for structured BP extraction
 const BP_EXTRACTION_TOOL = {
   type: 'function',
@@ -170,14 +198,11 @@ async function runExtraction(
   const messages: any[] = [];
   
   if (content.type === 'image') {
-    // Vision mode - direct image analysis with handwriting recognition
+    // Vision mode - optimized for handwritten document analysis with Gemini 2.5 Pro
     messages.push({
       role: 'user',
       content: [
-        { 
-          type: 'text', 
-          text: 'Please carefully analyze this handwritten blood pressure diary image. Look at each reading carefully, paying attention to the handwriting. Extract all BP readings using the date inheritance rules for readings that don\'t have their own date. Call the extract_bp_readings function with the results.' 
-        },
+        { type: 'text', text: HANDWRITING_VISION_PROMPT },
         { type: 'image_url', image_url: { url: content.dataUrl } }
       ]
     });
@@ -309,7 +334,7 @@ serve(async (req) => {
 
     if (mode === 'image' && imageSource) {
       // Single-pass vision extraction with Gemini 2.5 Pro
-      console.log('Running vision extraction with Gemini 2.5 Pro...');
+      console.log('Running vision extraction with Gemini 2.5 Pro (handwriting optimized)...');
       readings = await runExtraction({ type: 'image', dataUrl: imageSource });
       console.log(`Extracted ${readings.length} readings from image`);
     } else if (text) {
