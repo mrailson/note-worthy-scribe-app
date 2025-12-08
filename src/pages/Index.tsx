@@ -83,6 +83,17 @@ const Index = () => {
       window.history.replaceState({}, '', '/');
       
       toast.success(`Continuing "${data.title}". Press the mic button to start recording.`);
+      
+      // Scroll to the recorder section on mobile
+      setTimeout(() => {
+        const recorderElement = document.getElementById('meeting-recorder');
+        if (recorderElement) {
+          recorderElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        } else {
+          // Fallback: scroll to top where recorder is
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+      }, 100);
     }
   }, [location.state]);
 
@@ -370,7 +381,9 @@ const Index = () => {
         <div className="container mx-auto px-3 py-4 sm:px-4 sm:py-6 lg:py-8 space-y-4 sm:space-y-6 max-w-4xl">
           <MaintenanceBanner />
           
-          <MeetingRecorder onTranscriptUpdate={setTranscript} onDurationUpdate={setDuration} onWordCountUpdate={setWordCount} initialSettings={meetingSettings} />
+          <div id="meeting-recorder">
+            <MeetingRecorder onTranscriptUpdate={setTranscript} onDurationUpdate={setDuration} onWordCountUpdate={setWordCount} initialSettings={meetingSettings} />
+          </div>
         </div>
 
         {/* Discreet floating icon for Executive Overview - mobile only (hidden on iPhone) */}
