@@ -3418,6 +3418,7 @@ export type Database = {
           processing_started_at: string | null
           publish_status: string | null
           requires_verification: boolean | null
+          service_level: string | null
           sex: string
           snomed_csv_url: string | null
           snomed_json_url: string | null
@@ -3488,6 +3489,7 @@ export type Database = {
           processing_started_at?: string | null
           publish_status?: string | null
           requires_verification?: boolean | null
+          service_level?: string | null
           sex?: string
           snomed_csv_url?: string | null
           snomed_json_url?: string | null
@@ -3558,6 +3560,7 @@ export type Database = {
           processing_started_at?: string | null
           publish_status?: string | null
           requires_verification?: boolean | null
+          service_level?: string | null
           sex?: string
           snomed_csv_url?: string | null
           snomed_json_url?: string | null

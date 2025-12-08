@@ -563,13 +563,13 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { patientId } = await req.json();
+    const { patientId, serviceLevel = 'full_service' } = await req.json();
     
     if (!patientId) {
       throw new Error('Missing patientId');
     }
 
-    console.log(`Processing patient: ${patientId}`);
+    console.log(`Processing patient: ${patientId}, service level: ${serviceLevel}`);
 
     // Get patient record
     const { data: patient, error: patientError } = await supabase
@@ -581,6 +581,12 @@ serve(async (req) => {
     if (patientError || !patient) {
       throw new Error(`Patient not found: ${patientError?.message}`);
     }
+
+    // Store service level on patient record
+    await supabase
+      .from('lg_patients')
+      .update({ service_level: serviceLevel })
+      .eq('id', patientId);
 
     const basePath = `${patient.practice_ods}/${patientId}`;
 
@@ -629,6 +635,59 @@ serve(async (req) => {
     const BATCH_THRESHOLD = 15; // Switch to batched processing above this (lowered for memory safety)
     const BATCH_SIZE = 10;
 
+    // =====================================================
+    // RENAME ONLY PATH: Skip all AI processing, just create PDF
+    // =====================================================
+    if (serviceLevel === 'rename_only') {
+      console.log(`RENAME ONLY mode - skipping OCR and AI processing`);
+      
+      await supabase
+        .from('lg_patients')
+        .update({ 
+          job_status: 'processing',
+          processing_started_at: new Date().toISOString(),
+          processing_phase: 'pdf-generation',
+        })
+        .eq('id', patientId);
+
+      await logAudit(supabase, patientId, 'processing_started', patient.uploader_name, {
+        images_count: imageCount,
+        processing_mode: 'rename_only',
+      });
+
+      // Call lg-generate-pdf directly with minimal options
+      const { data: pdfResult, error: pdfError } = await supabase.functions.invoke('lg-generate-pdf', {
+        body: { 
+          patientId, 
+          serviceLevel: 'rename_only',
+          isBackground: false,
+          sendEmail: true,
+        },
+      });
+
+      if (pdfError) {
+        console.error('lg-generate-pdf error:', pdfError);
+        throw new Error(`PDF generation failed: ${pdfError.message}`);
+      }
+
+      await supabase
+        .from('lg_patients')
+        .update({
+          job_status: 'succeeded',
+          processing_completed_at: new Date().toISOString(),
+        })
+        .eq('id', patientId);
+
+      await logAudit(supabase, patientId, 'processing_completed', patient.uploader_name, {
+        service_level: 'rename_only',
+      });
+
+      return new Response(
+        JSON.stringify({ success: true, patientId, mode: 'rename_only' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Update status to processing with OCR start time
     const ocrStartTime = new Date().toISOString();
     await supabase
@@ -647,6 +706,7 @@ serve(async (req) => {
     await logAudit(supabase, patientId, 'processing_started', patient.uploader_name, {
       images_count: imageCount,
       processing_mode: imageCount > BATCH_THRESHOLD ? 'batched' : 'single-pass',
+      service_level: serviceLevel,
     });
 
     // =====================================================
@@ -655,9 +715,9 @@ serve(async (req) => {
     if (imageCount > BATCH_THRESHOLD) {
       console.log(`Large record (${imageCount} pages) - using batched OCR processing`);
       
-      // Trigger first OCR batch (fire-and-forget chain)
+      // Trigger first OCR batch (fire-and-forget chain) - pass service level
       await supabase.functions.invoke('lg-ocr-batch', {
-        body: { patientId, batchNumber: 0 },
+        body: { patientId, batchNumber: 0, serviceLevel },
       });
 
       // Return immediately - batched processing continues in background
@@ -969,11 +1029,11 @@ ${fullOcrText.substring(0, 50000)}`;
       summaryJson = createEmptySummary();
     }
 
-    // Step 5: Generate SNOMED codes using AI-driven direct code generation
+    // Step 5: Generate SNOMED codes using AI-driven direct code generation (SKIP for index_summary)
     console.log('Extracting SNOMED-coded clinical items...');
     let snomedJson: any = null;
 
-    if (openaiKey && fullOcrText.length > 100) {
+    if (serviceLevel === 'full_service' && openaiKey && fullOcrText.length > 100) {
       const snomedPrompt = `Extract SNOMED-coded clinical items ONLY from the OCR text below.
 
 CRITICAL PRE-PROCESSING STEP (DO THIS FIRST):
@@ -1004,6 +1064,9 @@ ${fullOcrText.substring(0, 50000)}`;
         console.error('SNOMED extraction failed:', aiErr);
         snomedJson = createEmptySnomed();
       }
+    } else if (serviceLevel === 'index_summary') {
+      console.log('Skipping SNOMED extraction for index_summary service level');
+      snomedJson = createEmptySnomed();
     } else {
       snomedJson = createEmptySnomed();
     }
@@ -1059,6 +1122,7 @@ ${fullOcrText.substring(0, 50000)}`;
     const { data: pdfResult, error: pdfError } = await supabase.functions.invoke('lg-generate-pdf', {
       body: { 
         patientId, 
+        serviceLevel,
         isBackground: false,
         sendEmail: true  // Let lg-generate-pdf handle email with PDF attachment
       },

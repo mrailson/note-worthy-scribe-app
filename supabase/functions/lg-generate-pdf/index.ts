@@ -36,6 +36,7 @@ interface GeneratePdfRequest {
   patientHeader?: PatientHeader;
   sendEmail?: boolean;
   isBackground?: boolean;
+  serviceLevel?: 'rename_only' | 'index_summary' | 'full_service';
 }
 
 // Sanitize text to remove characters not supported by WinAnsi encoding
@@ -161,9 +162,10 @@ serve(async (req) => {
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const body = await req.json() as GeneratePdfRequest;
-    const { patientId, imagePaths: directImagePaths, sendEmail = false } = body;
+    const { patientId, imagePaths: directImagePaths, sendEmail = false, serviceLevel = 'full_service' } = body;
 
     console.log('Patient ID:', patientId);
+    console.log('Service Level:', serviceLevel);
 
     // Fetch patient record
     const { data: patient, error: patientError } = await supabase
@@ -280,38 +282,117 @@ serve(async (req) => {
     const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
     const boldFont = await pdfDoc.embedFont(StandardFonts.HelveticaBold);
 
-    // ===== PAGE 1: CLINICAL SUMMARY =====
-    console.log('Adding clinical summary front page...');
-    addClinicalSummaryPage(pdfDoc, font, boldFont, {
-      patientName,
-      nhsNumber,
-      dob,
-      totalPages: imagePaths.length,
-      summaryJson,
-      snomedJson,
-    });
+    let indexPageIndices: number[] = [];
+    let linkYPositions: { pageIndex: number; y: number; scannedIndex: number }[] = [];
+    let firstIndexPageIndex = 0;
 
-    // ===== PAGE 2: MEDICATIONS & ADDITIONAL INFO =====
-    console.log('Adding medications page...');
-    addMedicationsPage(pdfDoc, font, boldFont, {
-      patientName,
-      nhsNumber,
-      dob,
-      summaryJson,
-    });
+    // Add front matter based on service level
+    if (serviceLevel === 'full_service') {
+      // ===== PAGE 1: CLINICAL SUMMARY =====
+      console.log('Adding clinical summary front page...');
+      addClinicalSummaryPage(pdfDoc, font, boldFont, {
+        patientName,
+        nhsNumber,
+        dob,
+        totalPages: imagePaths.length,
+        summaryJson,
+        snomedJson,
+      });
 
-    // ===== PAGE 3: INDEX OF SCANNED PAGES =====
-    console.log('Adding index page...');
-    const frontMatterPages = pdfDoc.getPageCount();
-    const { indexPageIndices, linkYPositions } = addIndexPage(pdfDoc, font, boldFont, {
-      patientName,
-      nhsNumber,
-      pageSummaries,
-      scanStartPage: frontMatterPages + 1,
-    });
+      // ===== PAGE 2: MEDICATIONS & ADDITIONAL INFO =====
+      console.log('Adding medications page...');
+      addMedicationsPage(pdfDoc, font, boldFont, {
+        patientName,
+        nhsNumber,
+        dob,
+        summaryJson,
+      });
+
+      // ===== PAGE 3: INDEX OF SCANNED PAGES =====
+      console.log('Adding index page...');
+      const frontMatterPages = pdfDoc.getPageCount();
+      const indexResult = addIndexPage(pdfDoc, font, boldFont, {
+        patientName,
+        nhsNumber,
+        pageSummaries,
+        scanStartPage: frontMatterPages + 1,
+      });
+      indexPageIndices = indexResult.indexPageIndices;
+      linkYPositions = indexResult.linkYPositions;
+      firstIndexPageIndex = indexPageIndices[0];
+    } else if (serviceLevel === 'index_summary') {
+      // INDEX_SUMMARY: Add index page with summaries, but no SNOMED or clinical summary
+      console.log('Adding index page only (index_summary mode)...');
+      
+      // Add a simple cover page with patient info
+      const coverPage = pdfDoc.addPage([595, 842]);
+      const coverFont = font;
+      const coverBoldFont = boldFont;
+      
+      coverPage.drawText('Lloyd George Record Summary', {
+        x: 50,
+        y: 750,
+        size: 20,
+        font: coverBoldFont,
+        color: rgb(0, 0, 0),
+      });
+      
+      coverPage.drawText(`Patient: ${sanitizeForPdf(patientName)}`, {
+        x: 50,
+        y: 700,
+        size: 12,
+        font: coverFont,
+        color: rgb(0, 0, 0),
+      });
+      
+      coverPage.drawText(`NHS Number: ${nhsNumber}`, {
+        x: 50,
+        y: 680,
+        size: 12,
+        font: coverFont,
+        color: rgb(0, 0, 0),
+      });
+      
+      coverPage.drawText(`Date of Birth: ${dob}`, {
+        x: 50,
+        y: 660,
+        size: 12,
+        font: coverFont,
+        color: rgb(0, 0, 0),
+      });
+      
+      coverPage.drawText(`Total Pages: ${imagePaths.length}`, {
+        x: 50,
+        y: 640,
+        size: 12,
+        font: coverFont,
+        color: rgb(0, 0, 0),
+      });
+      
+      coverPage.drawText('Service Level: Rename + Index (No SNOMED Coding)', {
+        x: 50,
+        y: 600,
+        size: 10,
+        font: coverFont,
+        color: rgb(0.5, 0.5, 0.5),
+      });
+      
+      // Add index page
+      const frontMatterPages = pdfDoc.getPageCount();
+      const indexResult = addIndexPage(pdfDoc, font, boldFont, {
+        patientName,
+        nhsNumber,
+        pageSummaries,
+        scanStartPage: frontMatterPages + 1,
+      });
+      indexPageIndices = indexResult.indexPageIndices;
+      linkYPositions = indexResult.linkYPositions;
+      firstIndexPageIndex = indexPageIndices[0];
+    }
+    // For rename_only: No front matter at all, just the scanned images
     
-    // Store first index page for "back to index" links
-    const firstIndexPageIndex = indexPageIndices[0];
+    // Store first index page for "back to index" links (if any front matter was added)
+    const hasFrontMatter = serviceLevel !== 'rename_only';
 
     // ===== SCANNED IMAGES =====
     console.log('Adding scanned images...');

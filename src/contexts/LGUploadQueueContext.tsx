@@ -4,6 +4,8 @@ import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { compressLgImageFromDataUrl } from '@/utils/lgImageCompressor';
 
+export type ServiceLevel = 'rename_only' | 'index_summary' | 'full_service';
+
 interface QueuedPatient {
   patientId: string;
   practiceOds: string;
@@ -13,12 +15,14 @@ interface QueuedPatient {
   error?: string;
   fileName?: string;
   fileSize?: number;
+  serviceLevel: ServiceLevel;
   queuedAt: Date;
 }
 
 interface QueuePatientOptions {
   fileName?: string;
   fileSize?: number;
+  serviceLevel?: ServiceLevel;
 }
 
 interface LGUploadQueueContextType {
@@ -53,6 +57,7 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
       uploadProgress: 0,
       fileName: options?.fileName,
       fileSize: options?.fileSize,
+      serviceLevel: options?.serviceLevel || 'full_service',
       queuedAt: new Date()
     }]);
   }, []);
@@ -153,9 +158,9 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
           : q
       ));
 
-      // Trigger processing (fire and forget)
+      // Trigger processing (fire and forget) - pass service level
       supabase.functions.invoke('lg-process-patient', {
-        body: { patientId }
+        body: { patientId, serviceLevel: nextInQueue.serviceLevel }
       }).catch(err => {
         console.error('Processing trigger error:', err);
       });
