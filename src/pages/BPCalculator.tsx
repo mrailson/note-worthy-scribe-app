@@ -11,6 +11,8 @@ import { BPSummaryCard } from '@/components/bp-calculator/BPSummaryCard';
 import { BPNICESummaryCard } from '@/components/bp-calculator/BPNICESummaryCard';
 import { BPTrendAnalysis } from '@/components/bp-calculator/BPTrendAnalysis';
 import { BPExportOptions } from '@/components/bp-calculator/BPExportOptions';
+import { BPModeSelector, BPMode } from '@/components/bp-calculator/BPModeSelector';
+import { BPSitStandSummaryCard } from '@/components/bp-calculator/BPSitStandSummaryCard';
 import { useBPCalculator } from '@/hooks/useBPCalculator';
 import { toast } from 'sonner';
 
@@ -19,6 +21,7 @@ const BPCalculator = () => {
   const navigate = useNavigate();
   const [textInput, setTextInput] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [bpMode, setBpMode] = useState<BPMode>('standard');
   
   const {
     readings,
@@ -36,8 +39,11 @@ const BPCalculator = () => {
     getTrends,
     getDataQualityScore,
     getDateRange,
-    getQOFRelevance
+    getQOFRelevance,
+    getSitStandAverages
   } = useBPCalculator();
+
+  const isSitStandMode = bpMode === 'sit-stand';
 
   const handleCalculate = async () => {
     if (!textInput.trim() && uploadedFiles.length === 0) {
@@ -47,11 +53,11 @@ const BPCalculator = () => {
 
     try {
       if (textInput.trim()) {
-        await parseTextInput(textInput);
+        await parseTextInput(textInput, isSitStandMode);
       }
       // Process all uploaded files
       for (const file of uploadedFiles) {
-        await parseImageInput(file);
+        await parseImageInput(file, isSitStandMode);
       }
     } catch (error) {
       console.error('Error parsing BP readings:', error);
@@ -73,9 +79,13 @@ const BPCalculator = () => {
   const dataQuality = getDataQualityScore();
   const dateRange = getDateRange();
   const qofRelevance = getQOFRelevance();
+  const sitStandAverages = getSitStandAverages();
 
   const includedCount = readings.filter(r => r.included).length;
   const excludedCount = readings.filter(r => !r.included).length;
+
+  // Check if we have sit/stand readings
+  const hasSitStandReadings = readings.some(r => r.position === 'sitting' || r.position === 'standing');
 
   if (!user) {
     return (
@@ -132,6 +142,13 @@ const BPCalculator = () => {
 
       {/* Main Content */}
       <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* Mode Selector */}
+        <BPModeSelector 
+          mode={bpMode} 
+          onModeChange={setBpMode}
+          disabled={isProcessing || readings.length > 0}
+        />
+
         {/* Input Section */}
         <BPInputOptions 
           textValue={textInput}
@@ -174,6 +191,11 @@ const BPCalculator = () => {
         {/* Results Section */}
         {readings.length > 0 && (
           <div className="space-y-6">
+            {/* Sit/Stand Summary (shown when in sit-stand mode or when readings have positions) */}
+            {(isSitStandMode || hasSitStandReadings) && (
+              <BPSitStandSummaryCard sitStandAverages={sitStandAverages} />
+            )}
+
             {/* Raw Average Summary Card */}
             {averages && (
               <BPSummaryCard 
@@ -206,6 +228,7 @@ const BPCalculator = () => {
               onToggle={toggleReading}
               onUpdate={updateReading}
               onDelete={deleteReading}
+              showPositionColumn={isSitStandMode || hasSitStandReadings}
             />
 
             {/* Export Options */}
@@ -222,6 +245,7 @@ const BPCalculator = () => {
               originalText={textInput}
               originalImages={uploadedFiles}
               userEmail={user?.email}
+              sitStandAverages={isSitStandMode || hasSitStandReadings ? sitStandAverages : undefined}
             />
           </div>
         )}

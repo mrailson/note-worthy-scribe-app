@@ -51,6 +51,19 @@ export interface QOFRelevance {
   monitorValidation: string;
 }
 
+export interface PosturalDrop {
+  systolic: number;
+  diastolic: number;
+  isOrthostatic: boolean;
+  message: string;
+}
+
+export interface SitStandAverages {
+  sitting: BPAverages | null;
+  standing: BPAverages | null;
+  posturalDrop: PosturalDrop | null;
+}
+
 // Group readings by date
 export const groupReadingsByDate = (readings: BPReading[]): Map<string, BPReading[]> => {
   const groups = new Map<string, BPReading[]>();
@@ -420,4 +433,72 @@ export const getClinicalConsiderations = (category: NHSCategory): string[] => {
   }
   
   return considerations;
+};
+
+// Calculate averages for a subset of readings
+const calculateSubsetAverages = (readings: BPReading[]): BPAverages | null => {
+  if (readings.length === 0) return null;
+
+  const systolicValues = readings.map(r => r.systolic);
+  const diastolicValues = readings.map(r => r.diastolic);
+  const pulseValues = readings.filter(r => r.pulse).map(r => r.pulse!);
+
+  return {
+    systolic: Math.round(systolicValues.reduce((a, b) => a + b, 0) / systolicValues.length),
+    diastolic: Math.round(diastolicValues.reduce((a, b) => a + b, 0) / diastolicValues.length),
+    pulse: pulseValues.length > 0 
+      ? Math.round(pulseValues.reduce((a, b) => a + b, 0) / pulseValues.length)
+      : undefined,
+    systolicMin: Math.min(...systolicValues),
+    systolicMax: Math.max(...systolicValues),
+    diastolicMin: Math.min(...diastolicValues),
+    diastolicMax: Math.max(...diastolicValues),
+    pulseMin: pulseValues.length > 0 ? Math.min(...pulseValues) : undefined,
+    pulseMax: pulseValues.length > 0 ? Math.max(...pulseValues) : undefined
+  };
+};
+
+// Calculate sit/stand averages with postural drop
+export const calculateSitStandAverages = (readings: BPReading[]): SitStandAverages => {
+  const includedReadings = readings.filter(r => r.included);
+  
+  const sittingReadings = includedReadings.filter(r => r.position === 'sitting');
+  const standingReadings = includedReadings.filter(r => r.position === 'standing');
+  
+  const sitting = calculateSubsetAverages(sittingReadings);
+  const standing = calculateSubsetAverages(standingReadings);
+  
+  let posturalDrop: PosturalDrop | null = null;
+  
+  if (sitting && standing) {
+    const systolicDrop = standing.systolic - sitting.systolic;
+    const diastolicDrop = standing.diastolic - sitting.diastolic;
+    
+    // Orthostatic hypotension: systolic drop ≥20 mmHg OR diastolic drop ≥10 mmHg
+    const isOrthostatic = systolicDrop <= -20 || diastolicDrop <= -10;
+    
+    let message: string;
+    if (isOrthostatic) {
+      if (systolicDrop <= -20 && diastolicDrop <= -10) {
+        message = 'Significant systolic and diastolic drop detected - orthostatic hypotension criteria met';
+      } else if (systolicDrop <= -20) {
+        message = `Systolic drop of ${Math.abs(systolicDrop)} mmHg meets orthostatic hypotension criteria (≥20 mmHg)`;
+      } else {
+        message = `Diastolic drop of ${Math.abs(diastolicDrop)} mmHg meets orthostatic hypotension criteria (≥10 mmHg)`;
+      }
+    } else if (systolicDrop <= -15 || diastolicDrop <= -8) {
+      message = 'Borderline postural drop - consider repeat testing';
+    } else {
+      message = 'No significant postural blood pressure drop detected';
+    }
+    
+    posturalDrop = {
+      systolic: systolicDrop,
+      diastolic: diastolicDrop,
+      isOrthostatic,
+      message
+    };
+  }
+  
+  return { sitting, standing, posturalDrop };
 };
