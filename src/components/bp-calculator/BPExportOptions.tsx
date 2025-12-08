@@ -12,6 +12,7 @@ import {
   DataQuality, 
   DateRange, 
   QOFRelevance,
+  SitStandAverages,
   getTargetBP,
   getClinicalConsiderations
 } from '@/utils/bpCalculations';
@@ -32,6 +33,7 @@ interface BPExportOptionsProps {
   originalText?: string;
   originalImages?: File[];
   userEmail?: string;
+  sitStandAverages?: SitStandAverages;
 }
 
 export const BPExportOptions = ({ 
@@ -46,7 +48,8 @@ export const BPExportOptions = ({
   qofRelevance,
   originalText, 
   originalImages, 
-  userEmail 
+  userEmail,
+  sitStandAverages
 }: BPExportOptionsProps) => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const includedReadings = readings.filter(r => r.included);

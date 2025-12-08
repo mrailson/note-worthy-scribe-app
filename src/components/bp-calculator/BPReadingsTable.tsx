@@ -6,25 +6,27 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Trash2, Edit2, Check, X, AlertTriangle, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
-import { BPReading } from '@/hooks/useBPCalculator';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Trash2, Edit2, Check, X, AlertTriangle, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, Armchair, PersonStanding, Activity } from 'lucide-react';
+import { BPReading, BPPosition } from '@/hooks/useBPCalculator';
 
 interface BPReadingsTableProps {
   readings: BPReading[];
   onToggle: (id: string) => void;
   onUpdate: (id: string, updates: Partial<BPReading>) => void;
   onDelete: (id: string) => void;
+  showPositionColumn?: boolean;
 }
 
-type SortField = 'datetime' | 'systolic' | 'diastolic' | 'pulse' | null;
+type SortField = 'datetime' | 'systolic' | 'diastolic' | 'pulse' | 'position' | null;
 type SortDirection = 'asc' | 'desc';
 
-export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPReadingsTableProps) => {
+export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete, showPositionColumn = false }: BPReadingsTableProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
   const [sortField, setSortField] = useState<SortField>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
-  const [editValues, setEditValues] = useState<{ systolic: number; diastolic: number; pulse?: number }>({ 
+  const [editValues, setEditValues] = useState<{ systolic: number; diastolic: number; pulse?: number; position?: BPPosition; standingMinutes?: number }>({ 
     systolic: 0, 
     diastolic: 0 
   });
@@ -66,6 +68,12 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
     return 0;
   };
 
+  const getPositionSortValue = (position?: BPPosition): number => {
+    if (position === 'sitting') return 1;
+    if (position === 'standing') return 2;
+    return 0; // standard or undefined
+  };
+
   const sortedReadings = useMemo(() => {
     if (!sortField) return readings;
     
@@ -87,6 +95,9 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
           const pulseB = b.pulse ?? 0;
           comparison = pulseA - pulseB;
           break;
+        case 'position':
+          comparison = getPositionSortValue(a.position) - getPositionSortValue(b.position);
+          break;
       }
       
       return sortDirection === 'asc' ? comparison : -comparison;
@@ -107,7 +118,9 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
     setEditValues({
       systolic: reading.systolic,
       diastolic: reading.diastolic,
-      pulse: reading.pulse
+      pulse: reading.pulse,
+      position: reading.position,
+      standingMinutes: reading.standingMinutes
     });
   };
 
@@ -132,6 +145,47 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
     return readings.findIndex(r => r.id === reading.id) + 1;
   };
 
+  const getPositionIcon = (position?: BPPosition) => {
+    if (position === 'sitting') return <Armchair className="h-3 w-3" />;
+    if (position === 'standing') return <PersonStanding className="h-3 w-3" />;
+    return <Activity className="h-3 w-3" />;
+  };
+
+  const getPositionLabel = (position?: BPPosition, standingMinutes?: number) => {
+    if (position === 'sitting') return 'Sitting';
+    if (position === 'standing') {
+      return standingMinutes ? `Stand ${standingMinutes}m` : 'Standing';
+    }
+    return 'Standard';
+  };
+
+  const getPositionBadgeStyle = (position?: BPPosition) => {
+    if (position === 'sitting') return 'bg-blue-100 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800';
+    if (position === 'standing') return 'bg-purple-100 text-purple-700 border-purple-200 dark:bg-purple-950 dark:text-purple-300 dark:border-purple-800';
+    return 'bg-muted text-muted-foreground';
+  };
+
+  const handlePositionChange = (readingId: string, value: string) => {
+    let position: BPPosition | undefined;
+    let standingMinutes: number | undefined;
+    
+    if (value === 'sitting') {
+      position = 'sitting';
+    } else if (value === 'standing-1') {
+      position = 'standing';
+      standingMinutes = 1;
+    } else if (value === 'standing-3') {
+      position = 'standing';
+      standingMinutes = 3;
+    } else if (value === 'standing') {
+      position = 'standing';
+    } else {
+      position = 'standard';
+    }
+    
+    onUpdate(readingId, { position, standingMinutes });
+  };
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
@@ -141,6 +195,12 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
               <h3 className="text-lg font-semibold">Detected BP Readings</h3>
               <p className="text-sm text-muted-foreground">
                 {readings.filter(r => r.included).length} of {readings.length} readings included in average
+                {showPositionColumn && (
+                  <span className="ml-2">
+                    • {readings.filter(r => r.position === 'sitting').length} sitting
+                    • {readings.filter(r => r.position === 'standing').length} standing
+                  </span>
+                )}
               </p>
             </div>
             <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
@@ -190,6 +250,17 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
                     <SortIcon field="pulse" />
                   </div>
                 </TableHead>
+                {showPositionColumn && (
+                  <TableHead 
+                    className="cursor-pointer hover:bg-muted/50 select-none"
+                    onClick={() => toggleSort('position')}
+                  >
+                    <div className="flex items-center">
+                      Position
+                      <SortIcon field="position" />
+                    </div>
+                  </TableHead>
+                )}
                 <TableHead className="hidden md:table-cell">Source</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
@@ -198,7 +269,7 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
             {sortedReadings.map((reading) => (
                 <TableRow 
                   key={reading.id}
-                  className={`${!reading.included ? 'bg-muted/50' : ''} ${isOutlier(reading) ? 'bg-amber-50 dark:bg-amber-950/20' : ''}`}
+                  className={`${!reading.included ? 'bg-muted/50' : ''} ${isOutlier(reading) ? 'bg-amber-50 dark:bg-amber-950/20' : ''} ${reading.position === 'sitting' ? 'bg-blue-50/50 dark:bg-blue-950/10' : ''} ${reading.position === 'standing' ? 'bg-purple-50/50 dark:bg-purple-950/10' : ''}`}
                 >
                   <TableCell>
                     <Checkbox
@@ -270,6 +341,57 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
                       <span className="font-mono">{reading.pulse || '—'}</span>
                     )}
                   </TableCell>
+                  {showPositionColumn && (
+                    <TableCell>
+                      <Select
+                        value={reading.position === 'standing' && reading.standingMinutes 
+                          ? `standing-${reading.standingMinutes}` 
+                          : reading.position || 'standard'}
+                        onValueChange={(value) => handlePositionChange(reading.id, value)}
+                      >
+                        <SelectTrigger className="w-[120px] h-8">
+                          <SelectValue>
+                            <Badge variant="outline" className={`gap-1 ${getPositionBadgeStyle(reading.position)}`}>
+                              {getPositionIcon(reading.position)}
+                              {getPositionLabel(reading.position, reading.standingMinutes)}
+                            </Badge>
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="standard">
+                            <div className="flex items-center gap-2">
+                              <Activity className="h-3 w-3" />
+                              Standard
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="sitting">
+                            <div className="flex items-center gap-2">
+                              <Armchair className="h-3 w-3 text-blue-600" />
+                              Sitting
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="standing">
+                            <div className="flex items-center gap-2">
+                              <PersonStanding className="h-3 w-3 text-purple-600" />
+                              Standing
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="standing-1">
+                            <div className="flex items-center gap-2">
+                              <PersonStanding className="h-3 w-3 text-purple-600" />
+                              Standing (1 min)
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="standing-3">
+                            <div className="flex items-center gap-2">
+                              <PersonStanding className="h-3 w-3 text-purple-600" />
+                              Standing (3 min)
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                  )}
                   <TableCell className="hidden md:table-cell">
                     <span className="text-xs text-muted-foreground truncate max-w-[200px] block">
                       {reading.sourceText || '—'}

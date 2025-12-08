@@ -9,13 +9,17 @@ import {
   DataQuality,
   DateRange,
   QOFRelevance,
+  SitStandAverages,
   calculateNICEHomeBPAverage,
   getNICEHomeBPCategory,
   calculateTrends,
   calculateDataQuality,
   getDateRange,
-  getQOFRelevance
+  getQOFRelevance,
+  calculateSitStandAverages
 } from '@/utils/bpCalculations';
+
+export type BPPosition = 'sitting' | 'standing' | 'standard';
 
 export interface BPReading {
   id: string;
@@ -27,19 +31,21 @@ export interface BPReading {
   sourceText?: string;
   included: boolean;
   excludeReason?: string;
+  position?: BPPosition;
+  standingMinutes?: number; // 1 or 3 minutes after standing
 }
 
-export type { BPAverages, NHSCategory, NICEHomeBPAverage, BPTrends, DataQuality, DateRange, QOFRelevance };
+export type { BPAverages, NHSCategory, NICEHomeBPAverage, BPTrends, DataQuality, DateRange, QOFRelevance, SitStandAverages };
 
 export const useBPCalculator = () => {
   const [readings, setReadings] = useState<BPReading[]>([]);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  const parseTextInput = useCallback(async (text: string) => {
+  const parseTextInput = useCallback(async (text: string, isSitStandMode: boolean = false) => {
     setIsProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
-        body: { text, mode: 'text' }
+        body: { text, mode: 'text', sitStandMode: isSitStandMode }
       });
 
       if (error) throw error;
@@ -54,7 +60,9 @@ export const useBPCalculator = () => {
           time: r.time,
           sourceText: r.sourceText,
           included: !r.excluded,
-          excludeReason: r.excludeReason
+          excludeReason: r.excludeReason,
+          position: r.position || (isSitStandMode ? undefined : 'standard'),
+          standingMinutes: r.standing_minutes
         }));
         
         const validCount = newReadings.filter(r => r.included).length;
@@ -78,7 +86,7 @@ export const useBPCalculator = () => {
     }
   }, []);
 
-  const parseImageInput = useCallback(async (file: File) => {
+  const parseImageInput = useCallback(async (file: File, isSitStandMode: boolean = false) => {
     setIsProcessing(true);
     try {
       const fileName = file.name.toLowerCase();
@@ -93,7 +101,7 @@ export const useBPCalculator = () => {
         
         // Send extracted text to the API in text mode
         const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
-          body: { text: processed.content, mode: 'text' }
+          body: { text: processed.content, mode: 'text', sitStandMode: isSitStandMode }
         });
         
         if (error) throw error;
@@ -108,7 +116,9 @@ export const useBPCalculator = () => {
             time: r.time,
             sourceText: r.sourceText,
             included: !r.excluded,
-            excludeReason: r.excludeReason
+            excludeReason: r.excludeReason,
+            position: r.position || (isSitStandMode ? undefined : 'standard'),
+            standingMinutes: r.standing_minutes
           }));
           
           const validCount = newReadings.filter(r => r.included).length;
@@ -138,7 +148,8 @@ export const useBPCalculator = () => {
         body: { 
           imageData: base64,
           fileName: file.name,
-          mode: 'image'
+          mode: 'image',
+          sitStandMode: isSitStandMode
         }
       });
 
@@ -154,7 +165,9 @@ export const useBPCalculator = () => {
           time: r.time,
           sourceText: r.sourceText,
           included: !r.excluded,
-          excludeReason: r.excludeReason
+          excludeReason: r.excludeReason,
+          position: r.position || (isSitStandMode ? undefined : 'standard'),
+          standingMinutes: r.standing_minutes
         }));
         
         const validCount = newReadings.filter(r => r.included).length;
@@ -266,6 +279,11 @@ export const useBPCalculator = () => {
     return getQOFRelevance(readings, niceAvg);
   }, [readings]);
 
+  // Get sit/stand averages with postural drop
+  const getSitStandAverages = useCallback((): SitStandAverages => {
+    return calculateSitStandAverages(readings);
+  }, [readings]);
+
   return {
     readings,
     setReadings,
@@ -282,6 +300,7 @@ export const useBPCalculator = () => {
     getTrends,
     getDataQualityScore,
     getDateRange: getDateRangeData,
-    getQOFRelevance: getQOFRelevanceData
+    getQOFRelevance: getQOFRelevanceData,
+    getSitStandAverages
   };
 };
