@@ -37,7 +37,9 @@ export const BPInputOptions = ({
       'application/pdf': ['.pdf'],
       'text/plain': ['.txt'],
       'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
+      'application/vnd.ms-excel': ['.xls'],
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
     },
     multiple: true,
     disabled
@@ -242,7 +244,7 @@ Paste the full email content here...`}
                   {isDragActive ? 'Drop the file here' : 'Drag & drop or click to select'}
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Supports images (PNG, JPG), PDF, TXT, and Word documents
+                  Supports images, PDF, TXT, Word, and Excel files
                 </p>
               </div>
             </div>
