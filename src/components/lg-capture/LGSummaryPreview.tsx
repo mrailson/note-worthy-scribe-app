@@ -10,6 +10,7 @@ import { LGPatient } from '@/hooks/useLGCapture';
 import { LGImageVerificationModal, SnomedItemForVerification } from './LGImageVerificationModal';
 import { LGSnomedAuditModal } from './LGSnomedAuditModal';
 import { LGQualityGateModal } from './LGQualityGateModal';
+import { LGSnomedCodingReport } from './LGSnomedCodingReport';
 // Format date as MMM-YYYY or DD-MMM-YYYY depending on available info
 // Handles "Pre" prefix for first-mention dates (e.g., "Pre Oct 2020")
 const formatUKDate = (dateStr: string | null | undefined): string => {
@@ -207,10 +208,13 @@ export function LGSummaryPreview({ patient }: LGSummaryPreviewProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <FileText className="h-5 w-5" />
-          Clinical Summary
-        </CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Clinical Summary
+          </CardTitle>
+          <LGSnomedCodingReport patient={patient} snomedData={snomedData} />
+        </div>
       </CardHeader>
       <CardContent>
         {/* Alerts Banner */}
