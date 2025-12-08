@@ -4,6 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Camera, X, RotateCcw, SwitchCamera, AlertTriangle, Loader2, Check } from 'lucide-react';
 import { toast } from 'sonner';
 
+// Convert data URL to Blob without using fetch (to avoid CSP issues)
+const dataURLtoBlob = (dataURL: string): Blob => {
+  const arr = dataURL.split(',');
+  const mime = arr[0].match(/:(.*?);/)?.[1] || 'image/jpeg';
+  const bstr = atob(arr[1]);
+  let n = bstr.length;
+  const u8arr = new Uint8Array(n);
+  while (n--) {
+    u8arr[n] = bstr.charCodeAt(n);
+  }
+  return new Blob([u8arr], { type: mime });
+};
+
 // Create click sound using Web Audio API
 const playClickSound = () => {
   try {
@@ -213,7 +226,7 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
     setCapturedImages(prev => [...prev, dataUrl]);
   }, [isRotated]);
 
-  const handleDone = useCallback(async () => {
+  const handleDone = useCallback(() => {
     console.log('[BPCameraModal] handleDone called, capturedImages:', capturedImages.length);
     
     if (capturedImages.length === 0) {
@@ -224,15 +237,12 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
     }
     
     try {
-      // Convert all data URLs to Files
+      // Convert all data URLs to Files using dataURLtoBlob (avoids CSP fetch issues)
       console.log('[BPCameraModal] Converting', capturedImages.length, 'images to files');
-      const files: File[] = await Promise.all(
-        capturedImages.map(async (dataUrl, index) => {
-          const res = await fetch(dataUrl);
-          const blob = await res.blob();
-          return new File([blob], `bp-photo-${Date.now()}-${index + 1}.jpg`, { type: 'image/jpeg' });
-        })
-      );
+      const files: File[] = capturedImages.map((dataUrl, index) => {
+        const blob = dataURLtoBlob(dataUrl);
+        return new File([blob], `bp-photo-${Date.now()}-${index + 1}.jpg`, { type: 'image/jpeg' });
+      });
       
       console.log('[BPCameraModal] Created files:', files.map(f => f.name));
       
@@ -244,6 +254,7 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
       onOpenChange(false);
     } catch (err) {
       console.error('[BPCameraModal] Error in handleDone:', err);
+      toast.error('Failed to process captured images');
     }
   }, [capturedImages, onCapture, onOpenChange, stopCamera]);
 
