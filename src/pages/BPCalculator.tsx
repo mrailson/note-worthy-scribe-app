@@ -191,8 +191,8 @@ const BPCalculator = () => {
         {/* Results Section */}
         {readings.length > 0 && (
           <div className="space-y-6">
-            {/* Sit/Stand Summary (shown when in sit-stand mode or when readings have positions) */}
-            {(isSitStandMode || hasSitStandReadings) && (
+            {/* Sit/Stand Summary - ONLY shown when sit-stand mode is selected */}
+            {isSitStandMode && (
               <BPSitStandSummaryCard sitStandAverages={sitStandAverages} />
             )}
 
@@ -228,7 +228,7 @@ const BPCalculator = () => {
               onToggle={toggleReading}
               onUpdate={updateReading}
               onDelete={deleteReading}
-              showPositionColumn={isSitStandMode || hasSitStandReadings}
+              showPositionColumn={isSitStandMode}
             />
 
             {/* Export Options */}
@@ -245,7 +245,7 @@ const BPCalculator = () => {
               originalText={textInput}
               originalImages={uploadedFiles}
               userEmail={user?.email}
-              sitStandAverages={isSitStandMode || hasSitStandReadings ? sitStandAverages : undefined}
+              sitStandAverages={isSitStandMode ? sitStandAverages : undefined}
             />
           </div>
         )}
