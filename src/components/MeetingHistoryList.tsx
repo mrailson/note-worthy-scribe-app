@@ -64,7 +64,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { format } from "date-fns";
+import { format, isToday } from "date-fns";
 import { MeetingDetailsTabs } from "@/components/meeting-details/MeetingDetailsTabs";
 import { supabase } from "@/integrations/supabase/client";
 import { useState, useEffect, useRef } from "react";
@@ -1198,6 +1198,66 @@ export const MeetingHistoryList = ({
     throw new Error(`Timeout waiting for ${noteType} to complete`);
   };
 
+  // Handle continue meeting - navigate to recorder with existing meeting data
+  const handleContinueMeeting = async (meeting: Meeting) => {
+    if (!isResourceOperationSafe()) {
+      toast.error("Cannot continue meeting while another recording is active.");
+      return;
+    }
+
+    try {
+      // Fetch existing transcript
+      const { data: transcriptData } = await supabase.rpc('get_meeting_full_transcript', { 
+        p_meeting_id: meeting.id 
+      });
+      const existingTranscript = transcriptData?.[0]?.transcript || '';
+
+      // Fetch attendees for this meeting
+      const { data: attendeeLinks } = await supabase
+        .from('meeting_attendees')
+        .select(`
+          meeting_id,
+          meeting_role,
+          attendee_id,
+          attendees:attendee_id (
+            id,
+            name,
+            title,
+            email,
+            organization
+          )
+        `)
+        .eq('meeting_id', meeting.id);
+
+      const attendees = attendeeLinks?.map((link: any) => link.attendees?.name).filter(Boolean).join(', ') || '';
+
+      // Navigate to recorder with continuation data
+      navigate('/', {
+        state: {
+          continueMeeting: true,
+          meetingData: {
+            id: meeting.id,
+            title: meeting.title,
+            description: meeting.description,
+            meeting_type: meeting.meeting_type,
+            meeting_format: meeting.meeting_format || 'teams',
+            meeting_location: meeting.meeting_location,
+            folder_id: meeting.folder_id,
+            existingTranscript,
+            existingDuration: meeting.duration_minutes || 0,
+            attendees,
+            start_time: meeting.start_time
+          }
+        }
+      });
+
+      toast.success(`Continuing "${meeting.title}". New transcript will be appended.`);
+    } catch (error) {
+      console.error('Error preparing meeting continuation:', error);
+      toast.error('Failed to prepare meeting continuation');
+    }
+  };
+
   // Handle process button click - auto-regenerate Standard, Overview, and Style Gallery
   const handleProcessClick = async (meeting: Meeting) => {
     const meetingId = meeting.id;
@@ -2294,6 +2354,29 @@ export const MeetingHistoryList = ({
                   />
                 )}
                 
+                {/* Continue Meeting button - Only show for today's meetings */}
+                {isToday(new Date(meeting.created_at)) && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleContinueMeeting(meeting)}
+                          disabled={!isResourceOperationSafe()}
+                          className="flex items-center justify-center gap-2 touch-manipulation min-h-[44px] text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/20"
+                        >
+                          <Play className="h-4 w-4" />
+                          <span className="hidden sm:inline">Continue</span>
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Continue recording this meeting. New transcript will be appended.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+
                 {/* View Notes button */}
                 <Button
                   variant="default"

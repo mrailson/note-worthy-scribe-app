@@ -55,15 +55,34 @@ const Index = () => {
   useEffect(() => {
     const state = location.state as any;
     if (state?.continueMeeting && state?.meetingData) {
+      const data = state.meetingData;
+      
+      // Set meeting settings from the continued meeting
       setMeetingSettings({
-        title: state.meetingData.title || "Continued Meeting",
-        description: "Meeting continued from previous session",
-        meetingType: "general",
-        attendees: "",
+        title: data.title || "Continued Meeting",
+        description: data.description || "Meeting continued from previous session",
+        meetingType: data.meeting_type || "general",
+        attendees: data.attendees || "",
         practiceId: "",
-        meetingFormat: "teams"
+        meetingFormat: data.meeting_format || "teams"
       });
-      toast.success("Meeting session restored. You can continue recording.");
+      
+      // Set existing transcript and duration if available
+      if (data.existingTranscript) {
+        const sessionMarker = `\n\n[Session 2 - ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}]\n\n`;
+        setTranscript(data.existingTranscript + sessionMarker);
+        setWordCount(data.existingTranscript.split(' ').filter((word: string) => word.length > 0).length);
+      }
+      
+      // Set current meeting ID for appending
+      if (data.id) {
+        setCurrentMeetingId(data.id);
+      }
+      
+      // Clear the navigation state to prevent re-triggering on refresh
+      window.history.replaceState({}, '', '/');
+      
+      toast.success(`Continuing "${data.title}". Press the mic button to start recording.`);
     }
   }, [location.state]);
 
