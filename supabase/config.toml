@@ -311,3 +311,6 @@ verify_jwt = true
 
 [functions.lg-ask-ai]
 verify_jwt = true
+
+[functions.parse-bp-readings]
+verify_jwt = true
