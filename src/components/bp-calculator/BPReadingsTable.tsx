@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Trash2, Edit2, Check, X, AlertTriangle } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Trash2, Edit2, Check, X, AlertTriangle, ChevronDown } from 'lucide-react';
 import { BPReading } from '@/hooks/useBPCalculator';
 
 interface BPReadingsTableProps {
@@ -17,6 +18,7 @@ interface BPReadingsTableProps {
 
 export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPReadingsTableProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isOpen, setIsOpen] = useState(true);
   const [editValues, setEditValues] = useState<{ systolic: number; diastolic: number; pulse?: number }>({ 
     systolic: 0, 
     diastolic: 0 
@@ -48,13 +50,20 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-lg">Detected BP Readings</CardTitle>
-        <CardDescription>
-          {readings.filter(r => r.included).length} of {readings.length} readings included in average
-        </CardDescription>
-      </CardHeader>
+    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+      <Card>
+        <CollapsibleTrigger asChild>
+          <div className="flex items-center justify-between px-6 py-4 cursor-pointer hover:bg-muted/50 transition-colors">
+            <div>
+              <h3 className="text-lg font-semibold">Detected BP Readings</h3>
+              <p className="text-sm text-muted-foreground">
+                {readings.filter(r => r.included).length} of {readings.length} readings included in average
+              </p>
+            </div>
+            <ChevronDown className={`h-5 w-5 text-muted-foreground transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
       <CardContent>
         <div className="overflow-x-auto">
           <Table>
@@ -191,6 +200,8 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
           </p>
         )}
       </CardContent>
-    </Card>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 };
