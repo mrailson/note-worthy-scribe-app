@@ -45,7 +45,7 @@ export const useBPCalculator = () => {
     setIsProcessing(true);
     try {
       const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
-        body: { text, mode: 'text', sitStandMode: isSitStandMode }
+        body: { text, mode: 'text', isSitStandMode }
       });
 
       if (error) throw error;
@@ -101,7 +101,7 @@ export const useBPCalculator = () => {
         
         // Send extracted text to the API in text mode
         const { data, error } = await supabase.functions.invoke('parse-bp-readings', {
-          body: { text: processed.content, mode: 'text', sitStandMode: isSitStandMode }
+          body: { text: processed.content, mode: 'text', isSitStandMode }
         });
         
         if (error) throw error;
@@ -149,7 +149,7 @@ export const useBPCalculator = () => {
           imageData: base64,
           fileName: file.name,
           mode: 'image',
-          sitStandMode: isSitStandMode
+          isSitStandMode
         }
       });
 
