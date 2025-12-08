@@ -30,6 +30,7 @@ interface BPExportOptionsProps {
 
 export const BPExportOptions = ({ readings, averages, category }: BPExportOptionsProps) => {
   const includedReadings = readings.filter(r => r.included);
+  const excludedReadings = readings.filter(r => !r.included);
 
   const copyToClipboard = async () => {
     if (!averages) return;
@@ -221,6 +222,44 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: tableRows,
           }),
+
+          // Excluded readings section (if any)
+          ...(excludedReadings.length > 0 ? [
+            new Paragraph({
+              children: [new TextRun({ text: "Excluded Readings", bold: true, size: 28, color: "DC2626" })],
+              heading: HeadingLevel.HEADING_2,
+              spacing: { before: 400, after: 200 },
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: "The following readings were excluded from the average calculation:", size: 20, italics: true, color: "666666" })],
+              spacing: { after: 200 },
+            }),
+            new Table({
+              width: { size: 100, type: WidthType.PERCENTAGE },
+              rows: [
+                new TableRow({
+                  children: [
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "#", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "DC2626" }, width: { size: 8, type: WidthType.PERCENTAGE } }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Systolic", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "DC2626" }, width: { size: 15, type: WidthType.PERCENTAGE } }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Diastolic", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "DC2626" }, width: { size: 15, type: WidthType.PERCENTAGE } }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date/Time", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "DC2626" }, width: { size: 22, type: WidthType.PERCENTAGE } }),
+                    new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Reason Excluded", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "DC2626" }, width: { size: 40, type: WidthType.PERCENTAGE } }),
+                  ],
+                }),
+                ...excludedReadings.map((r, i) => 
+                  new TableRow({
+                    children: [
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(i + 1), size: 22 })] })], borders: tableBorder }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(r.systolic), size: 22 })] })], borders: tableBorder }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(r.diastolic), size: 22 })] })], borders: tableBorder }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: `${r.date || "-"} ${r.time || ""}`.trim(), size: 22 })] })], borders: tableBorder }),
+                      new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: r.excludeReason || "Manually excluded", size: 22, color: "DC2626" })] })], borders: tableBorder }),
+                    ],
+                  })
+                ),
+              ],
+            }),
+          ] : []),
 
           // Footer
           new Paragraph({
