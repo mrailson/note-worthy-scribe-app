@@ -71,10 +71,10 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
               </TableRow>
             </TableHeader>
             <TableBody>
-              {readings.map((reading, index) => (
+            {readings.map((reading, index) => (
                 <TableRow 
                   key={reading.id}
-                  className={`${!reading.included ? 'opacity-50' : ''} ${isOutlier(reading) ? 'bg-amber-50 dark:bg-amber-950/20' : ''}`}
+                  className={`${!reading.included ? 'bg-muted/50' : ''} ${isOutlier(reading) ? 'bg-amber-50 dark:bg-amber-950/20' : ''}`}
                 >
                   <TableCell>
                     <Checkbox
@@ -82,7 +82,16 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
                       onCheckedChange={() => onToggle(reading.id)}
                     />
                   </TableCell>
-                  <TableCell className="font-medium">{index + 1}</TableCell>
+                  <TableCell className="font-medium">
+                    <div className="flex items-center gap-2">
+                      {index + 1}
+                      {!reading.included && (
+                        <Badge variant="outline" className="text-muted-foreground border-muted-foreground/50 text-xs">
+                          Excluded
+                        </Badge>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {reading.date ? (
                       <span className="text-sm">
