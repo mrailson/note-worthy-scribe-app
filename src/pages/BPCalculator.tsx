@@ -116,7 +116,7 @@ const BPCalculator = () => {
                 <div>
                   <h1 className="text-xl font-semibold text-foreground">BP Average Service</h1>
                   <p className="text-sm text-muted-foreground">
-                    Calculate average blood pressure from emails, letters, or handwritten logs
+                    Calculate average blood pressure from photos, scans, emails, letters, or handwritten logs
                   </p>
                 </div>
               </div>
