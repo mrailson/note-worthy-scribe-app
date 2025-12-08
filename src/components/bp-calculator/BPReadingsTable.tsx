@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Button } from '@/components/ui/button';
@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Trash2, Edit2, Check, X, AlertTriangle, ChevronDown } from 'lucide-react';
+import { Trash2, Edit2, Check, X, AlertTriangle, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { BPReading } from '@/hooks/useBPCalculator';
 
 interface BPReadingsTableProps {
@@ -16,13 +16,91 @@ interface BPReadingsTableProps {
   onDelete: (id: string) => void;
 }
 
+type SortField = 'datetime' | 'systolic' | 'diastolic' | 'pulse' | null;
+type SortDirection = 'asc' | 'desc';
+
 export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPReadingsTableProps) => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(true);
+  const [sortField, setSortField] = useState<SortField>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>('asc');
   const [editValues, setEditValues] = useState<{ systolic: number; diastolic: number; pulse?: number }>({ 
     systolic: 0, 
     diastolic: 0 
   });
+
+  const toggleSort = (field: SortField) => {
+    if (sortField === field) {
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else {
+        setSortField(null);
+        setSortDirection('asc');
+      }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const parseDateTime = (reading: BPReading): number => {
+    if (!reading.date) return 0;
+    // Parse DD/MM/YYYY format
+    const dateParts = reading.date.split('/');
+    if (dateParts.length === 3) {
+      const day = parseInt(dateParts[0], 10);
+      const month = parseInt(dateParts[1], 10) - 1;
+      const year = parseInt(dateParts[2], 10);
+      const fullYear = year < 100 ? (year > 50 ? 1900 + year : 2000 + year) : year;
+      
+      let hours = 0, minutes = 0;
+      if (reading.time) {
+        const timeParts = reading.time.match(/(\d{1,2}):(\d{2})/);
+        if (timeParts) {
+          hours = parseInt(timeParts[1], 10);
+          minutes = parseInt(timeParts[2], 10);
+        }
+      }
+      return new Date(fullYear, month, day, hours, minutes).getTime();
+    }
+    return 0;
+  };
+
+  const sortedReadings = useMemo(() => {
+    if (!sortField) return readings;
+    
+    return [...readings].sort((a, b) => {
+      let comparison = 0;
+      
+      switch (sortField) {
+        case 'datetime':
+          comparison = parseDateTime(a) - parseDateTime(b);
+          break;
+        case 'systolic':
+          comparison = a.systolic - b.systolic;
+          break;
+        case 'diastolic':
+          comparison = a.diastolic - b.diastolic;
+          break;
+        case 'pulse':
+          const pulseA = a.pulse ?? 0;
+          const pulseB = b.pulse ?? 0;
+          comparison = pulseA - pulseB;
+          break;
+      }
+      
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [readings, sortField, sortDirection]);
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="h-3 w-3 ml-1 opacity-50" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="h-3 w-3 ml-1" />
+      : <ArrowDown className="h-3 w-3 ml-1" />;
+  };
 
   const startEditing = (reading: BPReading) => {
     setEditingId(reading.id);
@@ -49,6 +127,11 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
            reading.diastolic < 50 || reading.diastolic > 110;
   };
 
+  // Get original index for display
+  const getOriginalIndex = (reading: BPReading) => {
+    return readings.findIndex(r => r.id === reading.id) + 1;
+  };
+
   return (
     <Collapsible open={isOpen} onOpenChange={setIsOpen}>
       <Card>
@@ -71,16 +154,48 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
               <TableRow>
                 <TableHead className="w-[50px]">Include</TableHead>
                 <TableHead className="w-[60px]">#</TableHead>
-                <TableHead>Date/Time</TableHead>
-                <TableHead>Systolic</TableHead>
-                <TableHead>Diastolic</TableHead>
-                <TableHead>Pulse</TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => toggleSort('datetime')}
+                >
+                  <div className="flex items-center">
+                    Date/Time
+                    <SortIcon field="datetime" />
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => toggleSort('systolic')}
+                >
+                  <div className="flex items-center">
+                    Systolic
+                    <SortIcon field="systolic" />
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => toggleSort('diastolic')}
+                >
+                  <div className="flex items-center">
+                    Diastolic
+                    <SortIcon field="diastolic" />
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="cursor-pointer hover:bg-muted/50 select-none"
+                  onClick={() => toggleSort('pulse')}
+                >
+                  <div className="flex items-center">
+                    Pulse
+                    <SortIcon field="pulse" />
+                  </div>
+                </TableHead>
                 <TableHead className="hidden md:table-cell">Source</TableHead>
                 <TableHead className="w-[100px]">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-            {readings.map((reading, index) => (
+            {sortedReadings.map((reading) => (
                 <TableRow 
                   key={reading.id}
                   className={`${!reading.included ? 'bg-muted/50' : ''} ${isOutlier(reading) ? 'bg-amber-50 dark:bg-amber-950/20' : ''}`}
@@ -93,7 +208,7 @@ export const BPReadingsTable = ({ readings, onToggle, onUpdate, onDelete }: BPRe
                   </TableCell>
                   <TableCell className="font-medium">
                     <div className="flex items-center gap-2">
-                      {index + 1}
+                      {getOriginalIndex(reading)}
                       {!reading.included && (
                         <Badge 
                           variant="outline" 
