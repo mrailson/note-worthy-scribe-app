@@ -747,32 +747,6 @@ export default function Settings() {
                 </CardContent>
               </Card>
 
-              {/* Voice Testing Card */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Headphones className="h-5 w-5" />
-                    Voice Testing Suite
-                  </CardTitle>
-                  <p className="text-muted-foreground">
-                    Test and compare all available TTS voices for audio overviews.
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <p className="text-sm text-muted-foreground">
-                      Access the voice testing suite to compare Deepgram and ElevenLabs voices with sample medical meeting summaries.
-                    </p>
-                    <Button 
-                      onClick={() => window.location.href = '/voice-test'} 
-                      className="w-full sm:w-auto"
-                    >
-                      <Headphones className="h-4 w-4 mr-2" />
-                      Open Voice Test Page
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
 
 
               {/* Password Change Card */}
