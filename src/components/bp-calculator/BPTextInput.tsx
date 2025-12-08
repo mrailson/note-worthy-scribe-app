@@ -32,7 +32,7 @@ export const BPTextInput = ({ value, onChange, disabled }: BPTextInputProps) => 
 • Blood pressure reading: 140 over 90
 
 Paste the full email content here...`}
-          className="min-h-[250px] font-mono text-sm resize-none"
+          className="min-h-[500px] font-mono text-sm resize-y"
           disabled={disabled}
         />
         <p className="text-xs text-muted-foreground mt-2">
