@@ -3,6 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Copy, Download, FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { BPReading } from '@/hooks/useBPCalculator';
+import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, HeadingLevel } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface BPAverages {
   systolic: number;
@@ -81,41 +83,158 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
     toast.success('CSV downloaded');
   };
 
-  const downloadSummary = () => {
+  const downloadWordReport = async () => {
     if (!averages) return;
 
-    const content = `BP AVERAGE REPORT
-Generated: ${new Date().toLocaleString('en-GB')}
+    const noBorder = {
+      top: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      bottom: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      left: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+      right: { style: BorderStyle.NONE, size: 0, color: "FFFFFF" },
+    };
 
-SUMMARY
-═══════════════════════════════════════
-Average Blood Pressure: ${averages.systolic}/${averages.diastolic} mmHg
-Number of Readings: ${includedReadings.length}
-${category ? `NHS Category: ${category.label}` : ''}
-${category ? `${category.description}` : ''}
+    const tableBorder = {
+      top: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+      bottom: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+      left: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+      right: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+    };
 
-Systolic Range: ${averages.systolicMin} – ${averages.systolicMax} mmHg
-Diastolic Range: ${averages.diastolicMin} – ${averages.diastolicMax} mmHg
-${averages.pulse ? `Average Pulse: ${averages.pulse} bpm` : ''}
+    // Create readings table rows
+    const tableRows = [
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "#", bold: true, size: 22 })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 8, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Systolic", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 18, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Diastolic", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 18, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Pulse", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 14, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Date", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 20, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Time", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 14, type: WidthType.PERCENTAGE } }),
+        ],
+      }),
+      ...includedReadings.map((r, i) => 
+        new TableRow({
+          children: [
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(i + 1), size: 22 })] })], borders: tableBorder }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(r.systolic), size: 22 })] })], borders: tableBorder }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: String(r.diastolic), size: 22 })] })], borders: tableBorder }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: r.pulse ? String(r.pulse) : "-", size: 22 })] })], borders: tableBorder }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: r.date || "-", size: 22 })] })], borders: tableBorder }),
+            new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: r.time || "-", size: 22 })] })], borders: tableBorder }),
+          ],
+        })
+      ),
+    ];
 
-INDIVIDUAL READINGS
-═══════════════════════════════════════
-${includedReadings.map((r, i) => 
-  `${(i + 1).toString().padStart(2)}. ${r.systolic.toString().padStart(3)}/${r.diastolic.toString().padStart(3)}${r.pulse ? ` (Pulse: ${r.pulse})` : ''}${r.date ? ` – ${r.date}${r.time ? ` ${r.time}` : ''}` : ''}`
-).join('\n')}
+    const doc = new Document({
+      sections: [{
+        children: [
+          // Title
+          new Paragraph({
+            children: [new TextRun({ text: "Blood Pressure Average Report", bold: true, size: 36, color: "2563EB" })],
+            heading: HeadingLevel.HEADING_1,
+            spacing: { after: 200 },
+          }),
+          
+          // Generated date
+          new Paragraph({
+            children: [new TextRun({ text: `Generated: ${new Date().toLocaleString('en-GB')}`, size: 20, color: "666666" })],
+            spacing: { after: 400 },
+          }),
 
-═══════════════════════════════════════
-Report generated by Notewell AI BP Average Service
-`;
+          // Summary section
+          new Paragraph({
+            children: [new TextRun({ text: "Summary", bold: true, size: 28, color: "2563EB" })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 200, after: 200 },
+          }),
 
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `bp-report-${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success('Report downloaded');
+          // Average BP - prominent
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Average Blood Pressure: ", size: 24 }),
+              new TextRun({ text: `${averages.systolic}/${averages.diastolic} mmHg`, bold: true, size: 28 }),
+            ],
+            spacing: { after: 100 },
+          }),
+
+          // Number of readings
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Number of Readings: ", size: 22 }),
+              new TextRun({ text: String(includedReadings.length), bold: true, size: 22 }),
+            ],
+            spacing: { after: 100 },
+          }),
+
+          // Category if present
+          ...(category ? [
+            new Paragraph({
+              children: [
+                new TextRun({ text: "NHS Category: ", size: 22 }),
+                new TextRun({ text: category.label, bold: true, size: 22 }),
+              ],
+              spacing: { after: 50 },
+            }),
+            new Paragraph({
+              children: [new TextRun({ text: category.description, size: 20, italics: true, color: "666666" })],
+              spacing: { after: 100 },
+            }),
+          ] : []),
+
+          // Ranges
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Systolic Range: ", size: 22 }),
+              new TextRun({ text: `${averages.systolicMin} – ${averages.systolicMax} mmHg`, size: 22 }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Diastolic Range: ", size: 22 }),
+              new TextRun({ text: `${averages.diastolicMin} – ${averages.diastolicMax} mmHg`, size: 22 }),
+            ],
+            spacing: { after: 50 },
+          }),
+
+          // Pulse if present
+          ...(averages.pulse ? [
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Average Pulse: ", size: 22 }),
+                new TextRun({ text: `${averages.pulse} bpm`, size: 22 }),
+              ],
+              spacing: { after: 100 },
+            }),
+          ] : []),
+
+          // Readings section
+          new Paragraph({
+            children: [new TextRun({ text: "Individual Readings", bold: true, size: 28, color: "2563EB" })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 },
+          }),
+
+          // Readings table
+          new Table({
+            width: { size: 100, type: WidthType.PERCENTAGE },
+            rows: tableRows,
+          }),
+
+          // Footer
+          new Paragraph({
+            children: [new TextRun({ text: "Report generated by Notewell AI BP Average Service", size: 18, color: "999999" })],
+            spacing: { before: 400 },
+            alignment: AlignmentType.CENTER,
+          }),
+        ],
+      }],
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, `bp-report-${new Date().toISOString().split('T')[0]}.docx`);
+    toast.success('Word report downloaded');
   };
 
   return (
@@ -133,7 +252,7 @@ Report generated by Notewell AI BP Average Service
             <Download className="mr-2 h-4 w-4" />
             Download CSV
           </Button>
-          <Button onClick={downloadSummary} variant="outline">
+          <Button onClick={downloadWordReport} variant="outline">
             <FileText className="mr-2 h-4 w-4" />
             Download Report
           </Button>
