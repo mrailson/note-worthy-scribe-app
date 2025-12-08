@@ -214,26 +214,37 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
   }, [isRotated]);
 
   const handleDone = useCallback(async () => {
+    console.log('[BPCameraModal] handleDone called, capturedImages:', capturedImages.length);
+    
     if (capturedImages.length === 0) {
+      console.log('[BPCameraModal] No images captured, closing modal');
       stopCamera();
       onOpenChange(false);
       return;
     }
     
-    // Convert all data URLs to Files
-    const files: File[] = await Promise.all(
-      capturedImages.map(async (dataUrl, index) => {
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
-        return new File([blob], `bp-photo-${Date.now()}-${index + 1}.jpg`, { type: 'image/jpeg' });
-      })
-    );
-    
-    // Stop camera first, then pass files and close
-    stopCamera();
-    setCapturedImages([]);
-    onCapture(files);
-    onOpenChange(false);
+    try {
+      // Convert all data URLs to Files
+      console.log('[BPCameraModal] Converting', capturedImages.length, 'images to files');
+      const files: File[] = await Promise.all(
+        capturedImages.map(async (dataUrl, index) => {
+          const res = await fetch(dataUrl);
+          const blob = await res.blob();
+          return new File([blob], `bp-photo-${Date.now()}-${index + 1}.jpg`, { type: 'image/jpeg' });
+        })
+      );
+      
+      console.log('[BPCameraModal] Created files:', files.map(f => f.name));
+      
+      // Stop camera first, then pass files and close
+      stopCamera();
+      setCapturedImages([]);
+      console.log('[BPCameraModal] Calling onCapture with', files.length, 'files');
+      onCapture(files);
+      onOpenChange(false);
+    } catch (err) {
+      console.error('[BPCameraModal] Error in handleDone:', err);
+    }
   }, [capturedImages, onCapture, onOpenChange, stopCamera]);
 
   const handleClose = () => {
