@@ -268,9 +268,26 @@ async function runExtraction(
   } else {
     // Text mode - format as numbered rows
     const formattedText = formatAsNumberedRows(content.text);
+    
+    // Check if this looks like CSV/tabular data with Sitting/Standing columns
+    const hasTableHeaders = content.text.toLowerCase().includes('sitting') && 
+                           content.text.toLowerCase().includes('standing');
+    
+    const tableInstruction = hasTableHeaders 
+      ? `\n\nCRITICAL: This is TABULAR data with SEPARATE Sitting and Standing columns. 
+For EACH ROW that has BP readings in both Sitting AND Standing columns, you MUST create TWO separate readings:
+1. One reading with position="sitting" using the Sitting column values (SYS, DIA, Pulse)
+2. One reading with position="standing" using the Standing column values (SYS, DIA, Pulse)
+Both readings should have the same date and time.
+
+Example: If row shows "1st,1145,136,/,67,54,118,/,65,56" 
+- Create reading 1: systolic=136, diastolic=67, pulse=54, position="sitting"
+- Create reading 2: systolic=118, diastolic=65, pulse=56, position="standing"`
+      : '';
+    
     messages.push({
       role: 'user',
-      content: `Parse the blood pressure readings from this diary text. Call the extract_bp_readings function with the results.${sitStandInstruction}\n\n${formattedText}`
+      content: `Parse the blood pressure readings from this diary text. Call the extract_bp_readings function with the results.${sitStandInstruction}${tableInstruction}\n\n${formattedText}`
     });
   }
 
