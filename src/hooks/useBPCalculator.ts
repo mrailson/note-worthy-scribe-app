@@ -9,14 +9,12 @@ import {
   DataQuality,
   DateRange,
   QOFRelevance,
-  TimeOfDayAverages,
   calculateNICEHomeBPAverage,
   getNICEHomeBPCategory,
   calculateTrends,
   calculateDataQuality,
   getDateRange,
-  getQOFRelevance,
-  calculateTimeOfDayAverages
+  getQOFRelevance
 } from '@/utils/bpCalculations';
 
 export interface BPReading {
@@ -31,7 +29,7 @@ export interface BPReading {
   excludeReason?: string;
 }
 
-export type { BPAverages, NHSCategory, NICEHomeBPAverage, BPTrends, DataQuality, DateRange, QOFRelevance, TimeOfDayAverages };
+export type { BPAverages, NHSCategory, NICEHomeBPAverage, BPTrends, DataQuality, DateRange, QOFRelevance };
 
 export const useBPCalculator = () => {
   const [readings, setReadings] = useState<BPReading[]>([]);
@@ -268,11 +266,6 @@ export const useBPCalculator = () => {
     return getQOFRelevance(readings, niceAvg);
   }, [readings]);
 
-  // Get AM/PM averages
-  const getTimeOfDayAverages = useCallback((): TimeOfDayAverages => {
-    return calculateTimeOfDayAverages(readings);
-  }, [readings]);
-
   return {
     readings,
     setReadings,
@@ -289,7 +282,6 @@ export const useBPCalculator = () => {
     getTrends,
     getDataQualityScore,
     getDateRange: getDateRangeData,
-    getQOFRelevance: getQOFRelevanceData,
-    getTimeOfDayAverages
+    getQOFRelevance: getQOFRelevanceData
   };
 };

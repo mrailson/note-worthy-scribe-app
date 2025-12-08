@@ -12,7 +12,6 @@ import {
   DataQuality, 
   DateRange, 
   QOFRelevance,
-  TimeOfDayAverages,
   getTargetBP,
   getClinicalConsiderations
 } from '@/utils/bpCalculations';
@@ -30,7 +29,6 @@ interface BPExportOptionsProps {
   dataQuality: DataQuality;
   dateRange: DateRange;
   qofRelevance: QOFRelevance;
-  timeOfDayAverages?: TimeOfDayAverages;
   originalText?: string;
   originalImages?: File[];
   userEmail?: string;
@@ -46,7 +44,6 @@ export const BPExportOptions = ({
   dataQuality,
   dateRange,
   qofRelevance,
-  timeOfDayAverages,
   originalText, 
   originalImages, 
   userEmail 
@@ -261,72 +258,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
           }),
           summaryTable,
           ...(categoryTable ? [new Paragraph({ children: [], spacing: { after: 100 } }), categoryTable] : []),
-
-          // ☀️🌙 AM/PM Averages
-          ...(timeOfDayAverages && (timeOfDayAverages.am.count > 0 || timeOfDayAverages.pm.count > 0) ? [
-            new Paragraph({
-              children: [new TextRun({ text: "☀️🌙 AM/PM Averages", bold: true, size: 28, color: "2563EB" })],
-              heading: HeadingLevel.HEADING_2,
-              spacing: { before: 400, after: 200 },
-            }),
-            new Table({
-              width: { size: 100, type: WidthType.PERCENTAGE },
-              rows: [
-                new TableRow({
-                  children: [
-                    new TableCell({
-                      children: [
-                        new Paragraph({ children: [new TextRun({ text: "☀️ AM Average", size: 20, color: "B45309" })], spacing: { after: 80 } }),
-                        new Paragraph({ 
-                          children: timeOfDayAverages.am.count > 0 
-                            ? [new TextRun({ text: `${timeOfDayAverages.am.systolic}/${timeOfDayAverages.am.diastolic} mmHg`, bold: true, size: 28, color: "1F2937" })]
-                            : [new TextRun({ text: "No AM readings", size: 20, color: "6B7280", italics: true })]
-                        }),
-                        new Paragraph({ 
-                          children: [
-                            new TextRun({ 
-                              text: timeOfDayAverages.am.count > 0 
-                                ? `${timeOfDayAverages.am.count} readings${timeOfDayAverages.am.pulse ? ` • ${timeOfDayAverages.am.pulse} bpm` : ''}`
-                                : '', 
-                              size: 18, 
-                              color: "6B7280" 
-                            })
-                          ] 
-                        }),
-                      ],
-                      borders: summaryBoxBorder,
-                      shading: { fill: "FFFBEB" },
-                      width: { size: 50, type: WidthType.PERCENTAGE },
-                    }),
-                    new TableCell({
-                      children: [
-                        new Paragraph({ children: [new TextRun({ text: "🌙 PM Average", size: 20, color: "4338CA" })], spacing: { after: 80 } }),
-                        new Paragraph({ 
-                          children: timeOfDayAverages.pm.count > 0 
-                            ? [new TextRun({ text: `${timeOfDayAverages.pm.systolic}/${timeOfDayAverages.pm.diastolic} mmHg`, bold: true, size: 28, color: "1F2937" })]
-                            : [new TextRun({ text: "No PM readings", size: 20, color: "6B7280", italics: true })]
-                        }),
-                        new Paragraph({ 
-                          children: [
-                            new TextRun({ 
-                              text: timeOfDayAverages.pm.count > 0 
-                                ? `${timeOfDayAverages.pm.count} readings${timeOfDayAverages.pm.pulse ? ` • ${timeOfDayAverages.pm.pulse} bpm` : ''}`
-                                : '', 
-                              size: 18, 
-                              color: "6B7280" 
-                            })
-                          ] 
-                        }),
-                      ],
-                      borders: summaryBoxBorder,
-                      shading: { fill: "EEF2FF" },
-                      width: { size: 50, type: WidthType.PERCENTAGE },
-                    }),
-                  ],
-                }),
-              ],
-            }),
-          ] : []),
 
           // 🏠 NICE Home BP Average (NG136)
           new Paragraph({

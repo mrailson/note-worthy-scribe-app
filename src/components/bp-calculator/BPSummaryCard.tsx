@@ -1,6 +1,6 @@
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Heart, TrendingUp, TrendingDown, Activity, Sun, Moon } from 'lucide-react';
+import { Heart, TrendingUp, TrendingDown, Activity } from 'lucide-react';
 
 interface BPAverages {
   systolic: number;
@@ -20,29 +20,13 @@ interface NHSCategory {
   description: string;
 }
 
-interface TimeOfDayAverages {
-  am: {
-    systolic: number | null;
-    diastolic: number | null;
-    pulse?: number;
-    count: number;
-  };
-  pm: {
-    systolic: number | null;
-    diastolic: number | null;
-    pulse?: number;
-    count: number;
-  };
-}
-
 interface BPSummaryCardProps {
   averages: BPAverages;
   category: NHSCategory | null;
   readingsCount: number;
-  timeOfDayAverages?: TimeOfDayAverages;
 }
 
-export const BPSummaryCard = ({ averages, category, readingsCount, timeOfDayAverages }: BPSummaryCardProps) => {
+export const BPSummaryCard = ({ averages, category, readingsCount }: BPSummaryCardProps) => {
   const getCategoryBadgeClass = (color: string) => {
     switch (color) {
       case 'green':
@@ -57,8 +41,6 @@ export const BPSummaryCard = ({ averages, category, readingsCount, timeOfDayAver
         return 'bg-muted text-muted-foreground';
     }
   };
-
-  const hasAmPmData = timeOfDayAverages && (timeOfDayAverages.am.count > 0 || timeOfDayAverages.pm.count > 0);
 
   return (
     <Card className="bg-gradient-to-br from-red-50 to-pink-50 dark:from-red-950/20 dark:to-pink-950/20 border-red-200 dark:border-red-800">
@@ -122,61 +104,6 @@ export const BPSummaryCard = ({ averages, category, readingsCount, timeOfDayAver
             </div>
           )}
         </div>
-
-        {/* AM/PM Averages */}
-        {hasAmPmData && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6 pt-4 border-t border-red-200 dark:border-red-800">
-            {/* AM Average */}
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-800">
-              <div className="flex items-center gap-2">
-                <Sun className="h-5 w-5 text-amber-500" />
-                <span className="text-sm font-medium text-amber-700 dark:text-amber-400">AM Average</span>
-              </div>
-              {timeOfDayAverages.am.count > 0 ? (
-                <div className="flex items-center gap-3">
-                  <span className="text-xl font-bold text-foreground">
-                    {timeOfDayAverages.am.systolic}/{timeOfDayAverages.am.diastolic}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    ({timeOfDayAverages.am.count} readings)
-                  </span>
-                  {timeOfDayAverages.am.pulse && (
-                    <span className="text-sm text-purple-600 dark:text-purple-400">
-                      {timeOfDayAverages.am.pulse} bpm
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <span className="text-sm text-muted-foreground italic">No AM readings</span>
-              )}
-            </div>
-
-            {/* PM Average */}
-            <div className="flex items-center gap-4 p-3 rounded-lg bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-200 dark:border-indigo-800">
-              <div className="flex items-center gap-2">
-                <Moon className="h-5 w-5 text-indigo-500" />
-                <span className="text-sm font-medium text-indigo-700 dark:text-indigo-400">PM Average</span>
-              </div>
-              {timeOfDayAverages.pm.count > 0 ? (
-                <div className="flex items-center gap-3">
-                  <span className="text-xl font-bold text-foreground">
-                    {timeOfDayAverages.pm.systolic}/{timeOfDayAverages.pm.diastolic}
-                  </span>
-                  <span className="text-sm text-muted-foreground">
-                    ({timeOfDayAverages.pm.count} readings)
-                  </span>
-                  {timeOfDayAverages.pm.pulse && (
-                    <span className="text-sm text-purple-600 dark:text-purple-400">
-                      {timeOfDayAverages.pm.pulse} bpm
-                    </span>
-                  )}
-                </div>
-              ) : (
-                <span className="text-sm text-muted-foreground italic">No PM readings</span>
-              )}
-            </div>
-          </div>
-        )}
 
         {/* NHS Category and Readings Count */}
         <div className="flex flex-wrap items-center justify-between mt-6 pt-4 border-t border-red-200 dark:border-red-800">

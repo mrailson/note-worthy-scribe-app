@@ -12,21 +12,6 @@ export interface BPAverages {
   pulseMax?: number;
 }
 
-export interface TimeOfDayAverages {
-  am: {
-    systolic: number | null;
-    diastolic: number | null;
-    pulse?: number;
-    count: number;
-  };
-  pm: {
-    systolic: number | null;
-    diastolic: number | null;
-    pulse?: number;
-    count: number;
-  };
-}
-
 export interface NHSCategory {
   label: string;
   color: 'green' | 'yellow' | 'orange' | 'red';
@@ -435,48 +420,4 @@ export const getClinicalConsiderations = (category: NHSCategory): string[] => {
   }
   
   return considerations;
-}
-
-// Calculate AM/PM averages
-export const calculateTimeOfDayAverages = (readings: BPReading[]): TimeOfDayAverages => {
-  const includedReadings = readings.filter(r => r.included);
-  
-  // Filter AM readings (time before 12:00 or marked as AM)
-  const amReadings = includedReadings.filter(r => {
-    if (!r.time) return false;
-    const hour = parseInt(r.time.split(':')[0]);
-    return hour >= 0 && hour < 12;
-  });
-  
-  // Filter PM readings (time 12:00 or later)
-  const pmReadings = includedReadings.filter(r => {
-    if (!r.time) return false;
-    const hour = parseInt(r.time.split(':')[0]);
-    return hour >= 12 && hour < 24;
-  });
-  
-  const calculateAvg = (readings: BPReading[]) => {
-    if (readings.length === 0) {
-      return { systolic: null, diastolic: null, pulse: undefined, count: 0 };
-    }
-    
-    const systolicAvg = Math.round(readings.reduce((sum, r) => sum + r.systolic, 0) / readings.length);
-    const diastolicAvg = Math.round(readings.reduce((sum, r) => sum + r.diastolic, 0) / readings.length);
-    const pulsesWithData = readings.filter(r => r.pulse);
-    const pulseAvg = pulsesWithData.length > 0 
-      ? Math.round(pulsesWithData.reduce((sum, r) => sum + r.pulse!, 0) / pulsesWithData.length)
-      : undefined;
-    
-    return { 
-      systolic: systolicAvg, 
-      diastolic: diastolicAvg, 
-      pulse: pulseAvg, 
-      count: readings.length 
-    };
-  };
-  
-  return {
-    am: calculateAvg(amReadings),
-    pm: calculateAvg(pmReadings)
-  };
 };
