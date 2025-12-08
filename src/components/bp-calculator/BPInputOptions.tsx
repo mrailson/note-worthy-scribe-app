@@ -185,7 +185,7 @@ export const BPInputOptions = ({
 • Blood pressure reading: 140 over 90
 
 Paste the full email content here...`}
-            style={{ minHeight: '500px' }}
+            style={{ minHeight: '350px' }}
             className="font-mono text-sm resize-y"
             disabled={disabled}
           />
