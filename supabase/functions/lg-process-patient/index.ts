@@ -656,6 +656,7 @@ serve(async (req) => {
       });
 
       // Do OCR on first page only to extract patient details
+      const rawPath = `${basePath}/raw`;
       const firstImageFile = files[0];
       const firstImagePath = `${rawPath}/${firstImageFile.name}`;
       
