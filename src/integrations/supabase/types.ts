@@ -7074,6 +7074,7 @@ export type Database = {
           api_testing_service_access: boolean | null
           assigned_at: string | null
           assigned_by: string | null
+          bp_service_access: boolean | null
           complaints_admin_access: boolean | null
           complaints_manager_access: boolean | null
           cqc_compliance_access: boolean | null
@@ -7099,6 +7100,7 @@ export type Database = {
           api_testing_service_access?: boolean | null
           assigned_at?: string | null
           assigned_by?: string | null
+          bp_service_access?: boolean | null
           complaints_admin_access?: boolean | null
           complaints_manager_access?: boolean | null
           cqc_compliance_access?: boolean | null
@@ -7124,6 +7126,7 @@ export type Database = {
           api_testing_service_access?: boolean | null
           assigned_at?: string | null
           assigned_by?: string | null
+          bp_service_access?: boolean | null
           complaints_admin_access?: boolean | null
           complaints_manager_access?: boolean | null
           cqc_compliance_access?: boolean | null
