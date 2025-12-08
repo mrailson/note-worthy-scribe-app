@@ -191,14 +191,15 @@ function formatAsNumberedRows(text: string): string {
   return `ROWS:\n${rows.join('\n')}`;
 }
 
-// Run single extraction with Gemini 2.5 Pro
+// Run single extraction with specified model
 async function runExtraction(
-  content: { type: 'text'; text: string } | { type: 'image'; dataUrl: string }
+  content: { type: 'text'; text: string } | { type: 'image'; dataUrl: string },
+  model: string = 'google/gemini-2.5-flash'
 ): Promise<BPReading[]> {
   const messages: any[] = [];
   
   if (content.type === 'image') {
-    // Vision mode - optimized for handwritten document analysis with Gemini 2.5 Pro
+    // Vision mode - optimized for handwritten document analysis
     messages.push({
       role: 'user',
       content: [
@@ -215,7 +216,8 @@ async function runExtraction(
     });
   }
 
-  console.log('Calling Gemini 2.5 Pro for extraction...');
+  console.log(`Calling ${model} for extraction...`);
+  const extractStart = Date.now();
   
   const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
@@ -224,7 +226,7 @@ async function runExtraction(
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'google/gemini-2.5-pro',
+      model,
       messages: [
         { role: 'system', content: BP_DIARY_PARSER_SYSTEM_PROMPT },
         ...messages
@@ -233,6 +235,8 @@ async function runExtraction(
       tool_choice: { type: 'function', function: { name: 'extract_bp_readings' } }
     }),
   });
+  
+  console.log(`${model} API call took ${Date.now() - extractStart}ms`);
 
   if (!response.ok) {
     const errorText = await response.text();
@@ -327,20 +331,22 @@ serve(async (req) => {
     const { text, imageData, dataUrl, mode } = await req.json();
     const imageSource = imageData || dataUrl; // Support both parameter names
     
-    console.log(`Processing BP readings in ${mode} mode with Gemini 2.5 Pro`);
+    // Default to Flash for speed, can use Pro for complex cases
+    const model = 'google/gemini-2.5-flash';
+    console.log(`Processing BP readings in ${mode} mode with ${model}`);
     const startTime = Date.now();
 
     let readings: BPReading[] = [];
 
     if (mode === 'image' && imageSource) {
-      // Single-pass vision extraction with Gemini 2.5 Pro
-      console.log('Running vision extraction with Gemini 2.5 Pro (handwriting optimized)...');
-      readings = await runExtraction({ type: 'image', dataUrl: imageSource });
+      // Single-pass vision extraction
+      console.log(`Running vision extraction with ${model} (handwriting optimized)...`);
+      readings = await runExtraction({ type: 'image', dataUrl: imageSource }, model);
       console.log(`Extracted ${readings.length} readings from image`);
     } else if (text) {
       // Text mode extraction
-      console.log('Running text extraction with Gemini 2.5 Pro...');
-      readings = await runExtraction({ type: 'text', text });
+      console.log(`Running text extraction with ${model}...`);
+      readings = await runExtraction({ type: 'text', text }, model);
       console.log(`Extracted ${readings.length} readings from text`);
     }
 
