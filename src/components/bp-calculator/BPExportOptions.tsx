@@ -4,36 +4,50 @@ import { Button } from '@/components/ui/button';
 import { Copy, Download, FileText, Mail, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { BPReading } from '@/hooks/useBPCalculator';
+import { 
+  BPAverages, 
+  NHSCategory, 
+  NICEHomeBPAverage, 
+  BPTrends, 
+  DataQuality, 
+  DateRange, 
+  QOFRelevance,
+  getTargetBP,
+  getClinicalConsiderations
+} from '@/utils/bpCalculations';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
-
-interface BPAverages {
-  systolic: number;
-  diastolic: number;
-  pulse?: number;
-  systolicMin: number;
-  systolicMax: number;
-  diastolicMin: number;
-  diastolicMax: number;
-}
-
-interface NHSCategory {
-  label: string;
-  color: string;
-  description: string;
-}
 
 interface BPExportOptionsProps {
   readings: BPReading[];
   averages: BPAverages | null;
   category: NHSCategory | null;
+  niceAverage: NICEHomeBPAverage;
+  niceCategory: NHSCategory | null;
+  trends: BPTrends;
+  dataQuality: DataQuality;
+  dateRange: DateRange;
+  qofRelevance: QOFRelevance;
   originalText?: string;
   originalImage?: File | null;
   userEmail?: string;
 }
 
-export const BPExportOptions = ({ readings, averages, category, originalText, originalImage, userEmail }: BPExportOptionsProps) => {
+export const BPExportOptions = ({ 
+  readings, 
+  averages, 
+  category, 
+  niceAverage,
+  niceCategory,
+  trends,
+  dataQuality,
+  dateRange,
+  qofRelevance,
+  originalText, 
+  originalImage, 
+  userEmail 
+}: BPExportOptionsProps) => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
   const includedReadings = readings.filter(r => r.included);
   const excludedReadings = readings.filter(r => !r.included);
@@ -107,6 +121,9 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
   const createWordDocument = async () => {
     if (!averages) return null;
 
+    const targets = getTargetBP();
+    const considerations = niceCategory ? getClinicalConsiderations(niceCategory) : [];
+
     // Calculate pulse range if readings have pulse data
     const pulsesWithData = includedReadings.filter(r => r.pulse);
     const pulseMin = pulsesWithData.length > 0 ? Math.min(...pulsesWithData.map(r => r.pulse!)) : null;
@@ -116,7 +133,7 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
     const tableRows = [
       new TableRow({
         children: [
-          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "#", bold: true, size: 22 })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 8, type: WidthType.PERCENTAGE } }),
+          new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "#", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 8, type: WidthType.PERCENTAGE } }),
           new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Systolic", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 18, type: WidthType.PERCENTAGE } }),
           new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Diastolic", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 18, type: WidthType.PERCENTAGE } }),
           new TableCell({ children: [new Paragraph({ children: [new TextRun({ text: "Pulse", bold: true, size: 22, color: "FFFFFF" })] })], borders: tableBorder, shading: { fill: "2563EB" }, width: { size: 14, type: WidthType.PERCENTAGE } }),
@@ -144,7 +161,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
       rows: [
         new TableRow({
           children: [
-            // Average BP column
             new TableCell({
               children: [
                 new Paragraph({ children: [new TextRun({ text: "📊 Average BP", size: 18, color: "6B7280" })], spacing: { after: 80 } }),
@@ -155,7 +171,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
               shading: { fill: "F0F9FF" },
               width: { size: 25, type: WidthType.PERCENTAGE },
             }),
-            // Systolic Range column
             new TableCell({
               children: [
                 new Paragraph({ children: [new TextRun({ text: "📈 Systolic Range", size: 18, color: "6B7280" })], spacing: { after: 80 } }),
@@ -166,7 +181,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
               shading: { fill: "F0F9FF" },
               width: { size: 25, type: WidthType.PERCENTAGE },
             }),
-            // Diastolic Range column
             new TableCell({
               children: [
                 new Paragraph({ children: [new TextRun({ text: "📉 Diastolic Range", size: 18, color: "6B7280" })], spacing: { after: 80 } }),
@@ -177,7 +191,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
               shading: { fill: "F0F9FF" },
               width: { size: 25, type: WidthType.PERCENTAGE },
             }),
-            // Average Pulse column
             new TableCell({
               children: [
                 new Paragraph({ children: [new TextRun({ text: "💓 Avg Pulse", size: 18, color: "6B7280" })], spacing: { after: 80 } }),
@@ -237,40 +250,222 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             spacing: { after: 400 },
           }),
 
-          // Summary box table
-          summaryTable,
-
-          // Category row (if present)
-          ...(categoryTable ? [
-            new Paragraph({ children: [], spacing: { after: 100 } }),
-            categoryTable,
-          ] : []),
-
-          new Paragraph({ children: [], spacing: { after: 300 } }),
-
-          // Readings section
+          // 📊 Average BP (All Valid Readings)
           new Paragraph({
-            children: [new TextRun({ text: "Individual Readings", bold: true, size: 28, color: "2563EB" })],
+            children: [new TextRun({ text: "📊 Average BP (All Valid Readings)", bold: true, size: 28, color: "2563EB" })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 200, after: 200 },
+          }),
+          summaryTable,
+          ...(categoryTable ? [new Paragraph({ children: [], spacing: { after: 100 } }), categoryTable] : []),
+
+          // 🏠 NICE Home BP Average (NG136)
+          new Paragraph({
+            children: [new TextRun({ text: "🏠 NICE Home BP Average (NG136)", bold: true, size: 28, color: "2563EB" })],
             heading: HeadingLevel.HEADING_2,
             spacing: { before: 400, after: 200 },
           }),
+          new Paragraph({
+            children: niceAverage.isValid && niceAverage.systolic && niceAverage.diastolic
+              ? [new TextRun({ text: `${niceAverage.systolic}/${niceAverage.diastolic} mmHg`, bold: true, size: 28, color: "1F2937" })]
+              : [new TextRun({ text: "Not available", size: 22, color: "6B7280", italics: true })],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: niceAverage.message, size: 20, color: "6B7280", italics: true })],
+            spacing: { after: 200 },
+          }),
 
-          // Readings table
+          // 🩺 Interpretation (NICE NG136)
+          new Paragraph({
+            children: [new TextRun({ text: "🩺 Interpretation (NICE NG136)", bold: true, size: 28, color: "2563EB" })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 },
+          }),
+          new Paragraph({
+            children: niceCategory
+              ? [
+                  new TextRun({ text: niceCategory.label, bold: true, size: 24, color: niceCategory.color === 'green' ? "16A34A" : niceCategory.color === 'red' ? "DC2626" : "EA580C" }),
+                  new TextRun({ text: niceCategory.isUrgent ? " (Urgent Review)" : "", bold: true, size: 22, color: "DC2626" }),
+                ]
+              : [new TextRun({ text: "Classification not available", size: 22, color: "6B7280" })],
+            spacing: { after: 100 },
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: niceCategory?.description || "", size: 20, color: "6B7280" })],
+            spacing: { after: 150 },
+          }),
+          ...(considerations.length > 0 ? [
+            new Paragraph({
+              children: [new TextRun({ text: "Clinical Considerations:", bold: true, size: 20, color: "1F2937" })],
+              spacing: { after: 100 },
+            }),
+            ...considerations.map(c => new Paragraph({
+              children: [new TextRun({ text: `• ${c}`, size: 20, color: "6B7280" })],
+              spacing: { after: 50 },
+            })),
+          ] : []),
+
+          // 🎯 Target Blood Pressure
+          new Paragraph({
+            children: [new TextRun({ text: "🎯 Target Blood Pressure", bold: true, size: 28, color: "2563EB" })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Clinic target: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: targets.clinic.general, bold: true, size: 20, color: "1F2937" }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Home target: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: targets.home.general, bold: true, size: 20, color: "1F2937" }),
+            ],
+            spacing: { after: 200 },
+          }),
+
+          // 📈 Trends
+          new Paragraph({
+            children: [new TextRun({ text: "📈 Trends", bold: true, size: 28, color: "2563EB" })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Systolic trend: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: trends.systolicTrend, size: 20, color: "1F2937" }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Diastolic trend: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: trends.diastolicTrend, size: 20, color: "1F2937" }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Pulse trend: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: trends.pulseTrend, size: 20, color: "1F2937" }),
+            ],
+            spacing: { after: 150 },
+          }),
+          ...(trends.patternFlags.length > 0 ? [
+            new Paragraph({
+              children: [new TextRun({ text: "Pattern flags:", bold: true, size: 20, color: "B45309" })],
+              spacing: { after: 100 },
+            }),
+            ...trends.patternFlags.map(flag => new Paragraph({
+              children: [new TextRun({ text: `⚠️ ${flag}`, size: 20, color: "B45309" })],
+              spacing: { after: 50 },
+            })),
+          ] : []),
+
+          // 📋 Data Quality Score
+          new Paragraph({
+            children: [new TextRun({ text: `📋 Data Quality Score: ${dataQuality.score}/5`, bold: true, size: 28, color: "2563EB" })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 },
+          }),
+          new Paragraph({
+            children: [new TextRun({ text: dataQuality.rating, bold: true, size: 24, color: dataQuality.rating === 'Excellent' ? "16A34A" : dataQuality.rating === 'Good' ? "2563EB" : dataQuality.rating === 'Fair' ? "CA8A04" : "DC2626" })],
+            spacing: { after: 100 },
+          }),
+          ...dataQuality.reasons.map(reason => new Paragraph({
+            children: [new TextRun({ text: `• ${reason}`, size: 20, color: "6B7280" })],
+            spacing: { after: 50 },
+          })),
+
+          // QOF Relevance
+          new Paragraph({
+            children: [new TextRun({ text: "QOF Relevance", bold: true, size: 24, color: "1F2937" })],
+            spacing: { before: 300, after: 150 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Meets monitoring requirement: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: qofRelevance.meetsBPMonitoring ? "Yes" : "No", bold: true, size: 20, color: qofRelevance.meetsBPMonitoring ? "16A34A" : "DC2626" }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Suitable for annual review: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: qofRelevance.suitableForAnnualReview ? "Yes" : "No", bold: true, size: 20, color: qofRelevance.suitableForAnnualReview ? "16A34A" : "DC2626" }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Monitor validation: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: qofRelevance.monitorValidation, size: 20, color: "6B7280" }),
+            ],
+            spacing: { after: 200 },
+          }),
+
+          // 📅 Reading Summary
+          new Paragraph({
+            children: [new TextRun({ text: "📅 Reading Summary", bold: true, size: 28, color: "2563EB" })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Total readings: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: String(readings.length), bold: true, size: 20, color: "1F2937" }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Included: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: String(includedReadings.length), bold: true, size: 20, color: "16A34A" }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Excluded: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: String(excludedReadings.length), bold: true, size: 20, color: excludedReadings.length > 0 ? "DC2626" : "6B7280" }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Date range: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: dateRange.start && dateRange.end ? `${dateRange.start} → ${dateRange.end}` : "Unknown", size: 20, color: "1F2937" }),
+            ],
+            spacing: { after: 50 },
+          }),
+          new Paragraph({
+            children: [
+              new TextRun({ text: "Source: ", size: 20, color: "6B7280" }),
+              new TextRun({ text: "Home BP diary (extracted text/image)", size: 20, color: "1F2937" }),
+            ],
+            spacing: { after: 200 },
+          }),
+
+          // 📄 Individual Readings
+          new Paragraph({
+            children: [new TextRun({ text: "📄 Individual Readings", bold: true, size: 28, color: "2563EB" })],
+            heading: HeadingLevel.HEADING_2,
+            spacing: { before: 400, after: 200 },
+          }),
           new Table({
             width: { size: 100, type: WidthType.PERCENTAGE },
             rows: tableRows,
           }),
 
-          // Excluded readings section (if any)
+          // 🚫 Excluded Readings
           ...(excludedReadings.length > 0 ? [
             new Paragraph({
-              children: [new TextRun({ text: "Excluded Readings", bold: true, size: 28, color: "DC2626" })],
+              children: [new TextRun({ text: "🚫 Excluded Readings & Reasons", bold: true, size: 28, color: "DC2626" })],
               heading: HeadingLevel.HEADING_2,
               spacing: { before: 400, after: 200 },
-            }),
-            new Paragraph({
-              children: [new TextRun({ text: "The following readings were excluded from the average calculation:", size: 20, italics: true, color: "666666" })],
-              spacing: { after: 200 },
             }),
             new Table({
               width: { size: 100, type: WidthType.PERCENTAGE },
@@ -299,13 +494,13 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             }),
           ] : []),
 
-          // Disclaimer
+          // ⚠️ AI Disclaimer
           new Paragraph({
             children: [new TextRun({ text: "⚠️ AI Disclaimer", bold: true, size: 22, color: "B45309" })],
             spacing: { before: 400, after: 100 },
           }),
           new Paragraph({
-            children: [new TextRun({ text: "This report was produced by AI which can make mistakes. Verification and audit of the results is advised before clinical use.", size: 20, italics: true, color: "92400E" })],
+            children: [new TextRun({ text: "This report was generated by AI and may contain errors. All results should be checked by a clinician before use in patient care. No clinical decisions should be made without appropriate review.", size: 20, italics: true, color: "92400E" })],
             spacing: { after: 200 },
           }),
 

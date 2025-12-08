@@ -8,6 +8,8 @@ import { BPTextInput } from '@/components/bp-calculator/BPTextInput';
 import { BPImageUpload } from '@/components/bp-calculator/BPImageUpload';
 import { BPReadingsTable } from '@/components/bp-calculator/BPReadingsTable';
 import { BPSummaryCard } from '@/components/bp-calculator/BPSummaryCard';
+import { BPNICESummaryCard } from '@/components/bp-calculator/BPNICESummaryCard';
+import { BPTrendAnalysis } from '@/components/bp-calculator/BPTrendAnalysis';
 import { BPExportOptions } from '@/components/bp-calculator/BPExportOptions';
 import { useBPCalculator } from '@/hooks/useBPCalculator';
 import { toast } from 'sonner';
@@ -28,7 +30,13 @@ const BPCalculator = () => {
     updateReading,
     deleteReading,
     getAverages,
-    getNHSCategory
+    getNHSCategory,
+    getNICECategory,
+    getNICEHomeBPAverage,
+    getTrends,
+    getDataQualityScore,
+    getDateRange,
+    getQOFRelevance
   } = useBPCalculator();
 
   const handleCalculate = async () => {
@@ -58,6 +66,15 @@ const BPCalculator = () => {
 
   const averages = getAverages();
   const category = getNHSCategory();
+  const niceCategory = getNICECategory();
+  const niceAverage = getNICEHomeBPAverage();
+  const trends = getTrends();
+  const dataQuality = getDataQualityScore();
+  const dateRange = getDateRange();
+  const qofRelevance = getQOFRelevance();
+
+  const includedCount = readings.filter(r => r.included).length;
+  const excludedCount = readings.filter(r => !r.included).length;
 
   if (!user) {
     return (
@@ -154,14 +171,31 @@ const BPCalculator = () => {
         {/* Results Section */}
         {readings.length > 0 && (
           <div className="space-y-6">
-            {/* Summary Card */}
+            {/* Raw Average Summary Card */}
             {averages && (
               <BPSummaryCard 
                 averages={averages}
                 category={category}
-                readingsCount={readings.filter(r => r.included).length}
+                readingsCount={includedCount}
               />
             )}
+
+            {/* NICE Home BP Average Card */}
+            <BPNICESummaryCard 
+              niceAverage={niceAverage}
+              category={niceCategory}
+            />
+
+            {/* Trends and Data Quality */}
+            <BPTrendAnalysis 
+              trends={trends}
+              dataQuality={dataQuality}
+              dateRange={dateRange}
+              qofRelevance={qofRelevance}
+              totalReadings={readings.length}
+              includedCount={includedCount}
+              excludedCount={excludedCount}
+            />
 
             {/* Readings Table */}
             <BPReadingsTable 
@@ -176,6 +210,12 @@ const BPCalculator = () => {
               readings={readings}
               averages={averages}
               category={category}
+              niceAverage={niceAverage}
+              niceCategory={niceCategory}
+              trends={trends}
+              dataQuality={dataQuality}
+              dateRange={dateRange}
+              qofRelevance={qofRelevance}
               originalText={textInput}
               originalImage={uploadedFile}
               userEmail={user?.email}
