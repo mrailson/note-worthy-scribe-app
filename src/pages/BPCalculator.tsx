@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Heart, ArrowLeft } from 'lucide-react';
+import nresLogo from '@/assets/nres-logo.png';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { BPTextInput } from '@/components/bp-calculator/BPTextInput';
@@ -99,25 +100,32 @@ const BPCalculator = () => {
       {/* Header */}
       <div className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex items-center gap-4">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate('/')}
-            >
-              <ArrowLeft className="h-5 w-5" />
-            </Button>
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
-                <Heart className="h-6 w-6 text-red-600 dark:text-red-400" />
-              </div>
-              <div>
-                <h1 className="text-xl font-semibold text-foreground">BP Average Service</h1>
-                <p className="text-sm text-muted-foreground">
-                  Calculate average blood pressure from emails, letters, or handwritten logs
-                </p>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => navigate('/')}
+              >
+                <ArrowLeft className="h-5 w-5" />
+              </Button>
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+                  <Heart className="h-6 w-6 text-red-600 dark:text-red-400" />
+                </div>
+                <div>
+                  <h1 className="text-xl font-semibold text-foreground">BP Average Service</h1>
+                  <p className="text-sm text-muted-foreground">
+                    Calculate average blood pressure from emails, letters, or handwritten logs
+                  </p>
+                </div>
               </div>
             </div>
+            <img 
+              src={nresLogo} 
+              alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
+              className="h-14 w-auto hidden sm:block"
+            />
           </div>
         </div>
       </div>
