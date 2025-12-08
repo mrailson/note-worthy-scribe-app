@@ -16,7 +16,6 @@ import { BPSitStandSummaryCard } from '@/components/bp-calculator/BPSitStandSumm
 import { BPHistorySection } from '@/components/bp-calculator/BPHistorySection';
 import { useBPCalculator, BPReading } from '@/hooks/useBPCalculator';
 import { useBPHistory } from '@/hooks/useBPHistory';
-import { toast } from 'sonner';
 
 const BPCalculator = () => {
   const { user } = useAuth();
@@ -52,7 +51,6 @@ const BPCalculator = () => {
 
   const handleCalculate = async () => {
     if (!textInput.trim() && uploadedFiles.length === 0) {
-      toast.error('Please enter text or upload an image');
       return;
     }
 
@@ -66,7 +64,6 @@ const BPCalculator = () => {
       }
     } catch (error) {
       console.error('Error parsing BP readings:', error);
-      toast.error('Failed to parse BP readings');
     }
   };
 
@@ -125,7 +122,6 @@ const BPCalculator = () => {
     setUploadedFiles([]);
     // Mark as already saved to prevent re-saving
     lastSavedReadingsCount.current = sessionReadings.length;
-    toast.success('Readings loaded from history');
   };
 
   if (!user) {

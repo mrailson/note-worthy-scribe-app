@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
 import { BPReading, BPAverages, NHSCategory } from './useBPCalculator';
 
 export interface BPSession {
@@ -106,7 +105,6 @@ export const useBPHistory = () => {
     sourceFilesCount: number;
   }) => {
     if (!user) {
-      toast.error('Please log in to save sessions');
       return null;
     }
 
@@ -149,12 +147,10 @@ export const useBPHistory = () => {
 
       if (error) throw error;
 
-      toast.success('Session saved to history');
       await fetchSessions();
       return data;
     } catch (error) {
       console.error('Error saving BP session:', error);
-      toast.error('Failed to save session');
       return null;
     }
   };
@@ -169,10 +165,8 @@ export const useBPHistory = () => {
       if (error) throw error;
 
       setSessions(prev => prev.filter(s => s.id !== sessionId));
-      toast.success('Session deleted');
     } catch (error) {
       console.error('Error deleting BP session:', error);
-      toast.error('Failed to delete session');
     }
   };
 

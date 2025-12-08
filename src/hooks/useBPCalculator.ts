@@ -1,6 +1,5 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
 import {
   BPAverages,
   NHSCategory,
@@ -68,18 +67,9 @@ export const useBPCalculator = () => {
         const validCount = newReadings.filter(r => r.included).length;
         const excludedCount = newReadings.filter(r => !r.included).length;
         setReadings(prev => [...prev, ...newReadings]);
-        
-        if (excludedCount > 0) {
-          toast.success(`Found ${validCount} valid reading(s), ${excludedCount} excluded`);
-        } else {
-          toast.success(`Found ${newReadings.length} BP reading(s)`);
-        }
-      } else {
-        toast.warning('No BP readings found in the text');
       }
     } catch (error) {
       console.error('Error parsing text:', error);
-      toast.error('Failed to parse BP readings from text');
       throw error;
     } finally {
       setIsProcessing(false);
@@ -124,14 +114,6 @@ export const useBPCalculator = () => {
           const validCount = newReadings.filter(r => r.included).length;
           const excludedCount = newReadings.filter(r => !r.included).length;
           setReadings(prev => [...prev, ...newReadings]);
-          
-          if (excludedCount > 0) {
-            toast.success(`Found ${validCount} valid reading(s), ${excludedCount} excluded`);
-          } else {
-            toast.success(`Found ${newReadings.length} BP reading(s) from file`);
-          }
-        } else {
-          toast.warning('No BP readings found in the file');
         }
         return;
       }
@@ -173,18 +155,9 @@ export const useBPCalculator = () => {
         const validCount = newReadings.filter(r => r.included).length;
         const excludedCount = newReadings.filter(r => !r.included).length;
         setReadings(prev => [...prev, ...newReadings]);
-        
-        if (excludedCount > 0) {
-          toast.success(`Found ${validCount} valid reading(s), ${excludedCount} excluded`);
-        } else {
-          toast.success(`Found ${newReadings.length} BP reading(s) from image`);
-        }
-      } else {
-        toast.warning('No BP readings found in the image');
       }
     } catch (error) {
       console.error('Error parsing image:', error);
-      toast.error('Failed to parse BP readings from image');
       throw error;
     } finally {
       setIsProcessing(false);
