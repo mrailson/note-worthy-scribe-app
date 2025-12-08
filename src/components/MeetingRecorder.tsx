@@ -29,7 +29,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder, Loader2 } from "lucide-react";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
@@ -5136,34 +5136,51 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                      <button
                        type="button"
                        onClick={onMicButtonClick}
-                       
-                       className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 cursor-pointer ${
-                         doubleClickProtection 
-                           ? 'bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 animate-pulse hover:bg-amber-200 dark:hover:bg-amber-900/50' 
-                           : isRecording 
-                             ? 'bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50' 
-                             : 'bg-primary/5 hover:bg-primary/10'
+                       disabled={isStoppingRecording}
+                       className={`p-2 rounded-full w-12 h-12 mx-auto mb-2 flex items-center justify-center transition-all duration-200 ${
+                         isStoppingRecording
+                           ? 'bg-muted cursor-not-allowed opacity-50'
+                           : doubleClickProtection 
+                             ? 'bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-400 animate-pulse hover:bg-amber-200 dark:hover:bg-amber-900/50 cursor-pointer' 
+                             : isRecording 
+                               ? 'bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50 cursor-pointer' 
+                               : 'bg-primary/5 hover:bg-primary/10 cursor-pointer'
                        }`}
-                       aria-label={isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
-                       title={isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
+                       aria-label={isStoppingRecording ? 'Stopping recording...' : isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
+                       title={isStoppingRecording ? 'Stopping recording...' : isRecording ? (doubleClickProtection ? 'Click again to stop recording' : 'Double-click to stop recording') : 'Start recording'}
                      >
-                        <Mic className={`h-6 w-6 ${
-                          doubleClickProtection 
-                            ? 'text-amber-600 dark:text-amber-400' 
-                            : isRecording 
-                              ? 'text-red-500' 
-                              : 'text-primary/60'
-                        }`} />
+                        {isStoppingRecording ? (
+                          <Loader2 className="h-6 w-6 text-muted-foreground animate-spin" />
+                        ) : (
+                          <Mic className={`h-6 w-6 ${
+                            doubleClickProtection 
+                              ? 'text-amber-600 dark:text-amber-400' 
+                              : isRecording 
+                                ? 'text-red-500' 
+                                : 'text-primary/60'
+                          }`} />
+                        )}
                      </button>
-                     {!isRecording ? (
-                      <>
-                        <h4 className="text-base font-medium mb-1">Ready to Record</h4>
-                        <p className="text-xs text-muted-foreground">
-                          Allow Microphone Access if Requested
-                        </p>
-                      </>
-                    ) : (
-
+                     {isStoppingRecording ? (
+                       <>
+                         <h4 className="text-base font-medium mb-1 text-muted-foreground">Stopping...</h4>
+                         <p className="text-xs text-muted-foreground">
+                           Please wait while the recording is saved
+                         </p>
+                         {stopRecordingStep && (
+                           <div className="mt-2 text-xs font-medium text-blue-600 dark:text-blue-400 animate-pulse">
+                             {stopRecordingStep}
+                           </div>
+                         )}
+                       </>
+                     ) : !isRecording ? (
+                       <>
+                         <h4 className="text-base font-medium mb-1">Ready to Record</h4>
+                         <p className="text-xs text-muted-foreground">
+                           Allow Microphone Access if Requested
+                         </p>
+                       </>
+                     ) : (
                        <>
                           <h4 className={`text-base font-medium mb-1 ${
                             doubleClickProtection 
