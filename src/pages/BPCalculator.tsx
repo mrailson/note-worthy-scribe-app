@@ -294,6 +294,11 @@ const BPCalculator = () => {
           onDelete={deleteSession}
           onLoadSession={handleLoadSession}
         />
+
+        {/* Credit Footer */}
+        <p className="text-center text-xs text-muted-foreground pt-4 pb-2">
+          Concept by Alex Whitehead — The Parks Medical Practice
+        </p>
       </div>
     </div>
   );
