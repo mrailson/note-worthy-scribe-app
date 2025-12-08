@@ -176,6 +176,9 @@ const BPCalculator = () => {
               readings={readings}
               averages={averages}
               category={category}
+              originalText={textInput}
+              originalImage={uploadedFile}
+              userEmail={user?.email}
             />
           </div>
         )}
