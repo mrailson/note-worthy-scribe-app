@@ -18,7 +18,7 @@ const BPCalculator = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [textInput, setTextInput] = useState('');
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   
   const {
     readings,
@@ -40,7 +40,7 @@ const BPCalculator = () => {
   } = useBPCalculator();
 
   const handleCalculate = async () => {
-    if (!textInput.trim() && !uploadedFile) {
+    if (!textInput.trim() && uploadedFiles.length === 0) {
       toast.error('Please enter text or upload an image');
       return;
     }
@@ -49,8 +49,9 @@ const BPCalculator = () => {
       if (textInput.trim()) {
         await parseTextInput(textInput);
       }
-      if (uploadedFile) {
-        await parseImageInput(uploadedFile);
+      // Process all uploaded files
+      for (const file of uploadedFiles) {
+        await parseImageInput(file);
       }
     } catch (error) {
       console.error('Error parsing BP readings:', error);
@@ -60,7 +61,7 @@ const BPCalculator = () => {
 
   const handleClear = () => {
     setTextInput('');
-    setUploadedFile(null);
+    setUploadedFiles([]);
     setReadings([]);
   };
 
@@ -135,8 +136,8 @@ const BPCalculator = () => {
         <BPInputOptions 
           textValue={textInput}
           onTextChange={setTextInput}
-          file={uploadedFile}
-          onFileChange={setUploadedFile}
+          files={uploadedFiles}
+          onFilesChange={setUploadedFiles}
           disabled={isProcessing}
         />
 
@@ -144,7 +145,7 @@ const BPCalculator = () => {
         <div className="flex gap-4 justify-center">
           <Button
             onClick={handleCalculate}
-            disabled={isProcessing || (!textInput.trim() && !uploadedFile)}
+            disabled={isProcessing || (!textInput.trim() && uploadedFiles.length === 0)}
             size="lg"
             className="min-w-[200px]"
           >
@@ -219,7 +220,7 @@ const BPCalculator = () => {
               dateRange={dateRange}
               qofRelevance={qofRelevance}
               originalText={textInput}
-              originalImage={uploadedFile}
+              originalImages={uploadedFiles}
               userEmail={user?.email}
             />
           </div>

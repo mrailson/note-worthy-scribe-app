@@ -30,7 +30,7 @@ interface BPExportOptionsProps {
   dateRange: DateRange;
   qofRelevance: QOFRelevance;
   originalText?: string;
-  originalImage?: File | null;
+  originalImages?: File[];
   userEmail?: string;
 }
 
@@ -45,7 +45,7 @@ export const BPExportOptions = ({
   dateRange,
   qofRelevance,
   originalText, 
-  originalImage, 
+  originalImages, 
   userEmail 
 }: BPExportOptionsProps) => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
@@ -556,13 +556,16 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
       const docArrayBuffer = await docBlob.arrayBuffer();
       const docBase64 = arrayBufferToBase64(docArrayBuffer);
 
-      // Convert image to base64 if present
+      // Convert images to base64 if present (use first image for attachment)
       let imageBase64 = '';
       let imageName = '';
-      if (originalImage) {
-        const imageArrayBuffer = await originalImage.arrayBuffer();
+      let imageType = 'image/png';
+      if (originalImages && originalImages.length > 0) {
+        const firstImage = originalImages[0];
+        const imageArrayBuffer = await firstImage.arrayBuffer();
         imageBase64 = arrayBufferToBase64(imageArrayBuffer);
-        imageName = originalImage.name;
+        imageName = firstImage.name;
+        imageType = firstImage.type;
       }
 
       const targets = getTargetBP();
@@ -822,7 +825,7 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
         attachments.push({
           filename: imageName,
           content: imageBase64,
-          type: originalImage?.type || 'image/png'
+          type: imageType
         });
       }
 

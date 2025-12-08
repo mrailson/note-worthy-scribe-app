@@ -11,16 +11,16 @@ type InputMethod = 'paste' | 'upload' | 'camera';
 interface BPInputOptionsProps {
   textValue: string;
   onTextChange: (value: string) => void;
-  file: File | null;
-  onFileChange: (file: File | null) => void;
+  files: File[];
+  onFilesChange: (files: File[]) => void;
   disabled?: boolean;
 }
 
 export const BPInputOptions = ({ 
   textValue, 
   onTextChange, 
-  file, 
-  onFileChange,
+  files, 
+  onFilesChange,
   disabled 
 }: BPInputOptionsProps) => {
   const [selectedMethod, setSelectedMethod] = useState<InputMethod | null>(null);
@@ -29,14 +29,14 @@ export const BPInputOptions = ({
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
       if (acceptedFiles.length > 0) {
-        onFileChange(acceptedFiles[0]);
+        onFilesChange([...files, ...acceptedFiles]);
       }
     },
     accept: {
       'image/*': ['.png', '.jpg', '.jpeg', '.webp'],
       'application/pdf': ['.pdf']
     },
-    maxFiles: 1,
+    multiple: true,
     disabled
   });
 
@@ -48,26 +48,34 @@ export const BPInputOptions = ({
     }
   };
 
-  const handleCameraCapture = (capturedFile: File) => {
-    onFileChange(capturedFile);
+  const handleCameraCapture = (capturedFiles: File[]) => {
+    if (capturedFiles.length > 0) {
+      onFilesChange([...files, ...capturedFiles]);
+    }
     setSelectedMethod(null);
   };
 
   const handleClear = () => {
     onTextChange('');
-    onFileChange(null);
+    onFilesChange([]);
     setSelectedMethod(null);
   };
 
-  // If file is set (from camera or upload), show preview
-  if (file) {
+  const removeFile = (index: number) => {
+    onFilesChange(files.filter((_, i) => i !== index));
+  };
+
+  // If files are set (from camera or upload), show preview
+  if (files.length > 0) {
     return (
       <Card className="w-full">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Image className="h-5 w-5 text-primary" />
-              <CardTitle className="text-lg">File Ready</CardTitle>
+              <CardTitle className="text-lg">
+                {files.length} File{files.length !== 1 ? 's' : ''} Ready
+              </CardTitle>
             </div>
             <Button
               variant="ghost"
@@ -80,27 +88,59 @@ export const BPInputOptions = ({
           </div>
         </CardHeader>
         <CardContent>
-          <div className="border-2 border-dashed border-primary/30 rounded-lg p-6 bg-primary/5">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-primary/10 rounded-lg">
-                {file.type.includes('pdf') ? (
-                  <Upload className="h-6 w-6 text-primary" />
-                ) : (
-                  <Image className="h-6 w-6 text-primary" />
-                )}
+          <div className="space-y-2">
+            {files.map((file, index) => (
+              <div 
+                key={index}
+                className="border border-border rounded-lg p-3 bg-muted/30 flex items-center justify-between"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="p-1.5 bg-primary/10 rounded">
+                    {file.type.includes('pdf') ? (
+                      <Upload className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Image className="h-4 w-4 text-primary" />
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-foreground">{file.name}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {(file.size / 1024).toFixed(1)} KB
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => removeFile(index)}
+                  disabled={disabled}
+                  className="h-8 w-8"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
               </div>
-              <div>
-                <p className="font-medium text-foreground">{file.name}</p>
-                <p className="text-sm text-muted-foreground">
-                  {(file.size / 1024).toFixed(1)} KB
-                </p>
-              </div>
-            </div>
+            ))}
+          </div>
+          <div className="flex items-center gap-2 mt-3">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setCameraOpen(true)}
+              disabled={disabled}
+            >
+              <Camera className="h-4 w-4 mr-1" />
+              Add More Photos
+            </Button>
           </div>
           <p className="text-xs text-muted-foreground mt-2">
-            AI vision will extract BP readings from this image
+            AI vision will extract BP readings from {files.length > 1 ? 'all images' : 'this image'}
           </p>
         </CardContent>
+        <BPCameraModal
+          open={cameraOpen}
+          onOpenChange={setCameraOpen}
+          onCapture={handleCameraCapture}
+        />
       </Card>
     );
   }
