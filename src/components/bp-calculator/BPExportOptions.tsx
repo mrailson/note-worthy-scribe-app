@@ -292,6 +292,18 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
     toast.success('Word report downloaded');
   };
 
+  // Helper function to convert ArrayBuffer to base64 without stack overflow
+  const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      const chunk = bytes.subarray(i, i + chunkSize);
+      binary += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    return btoa(binary);
+  };
+
   const sendEmailReport = async () => {
     if (!averages || !userEmail) {
       toast.error('Unable to send email - missing data or email address');
@@ -308,14 +320,14 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
       }
       const docBlob = await Packer.toBlob(doc);
       const docArrayBuffer = await docBlob.arrayBuffer();
-      const docBase64 = btoa(String.fromCharCode(...new Uint8Array(docArrayBuffer)));
+      const docBase64 = arrayBufferToBase64(docArrayBuffer);
 
       // Convert image to base64 if present
       let imageBase64 = '';
       let imageName = '';
       if (originalImage) {
         const imageArrayBuffer = await originalImage.arrayBuffer();
-        imageBase64 = btoa(String.fromCharCode(...new Uint8Array(imageArrayBuffer)));
+        imageBase64 = arrayBufferToBase64(imageArrayBuffer);
         imageName = originalImage.name;
       }
 
