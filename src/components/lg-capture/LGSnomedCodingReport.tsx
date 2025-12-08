@@ -227,16 +227,16 @@ export function LGSnomedCodingReport({ patient, snomedData }: LGSnomedCodingRepo
         spacing: { after: 300 }
       }),
 
-      // Important Disclaimer Box
+      // Important Disclaimer Box - lighter yellow background
       new Paragraph({
-        shading: { fill: 'FFF3CD', type: ShadingType.SOLID },
-        border: { top: { color: 'FFC107', size: 6, style: 'single' }, bottom: { color: 'FFC107', size: 6, style: 'single' }, left: { color: 'FFC107', size: 6, style: 'single' }, right: { color: 'FFC107', size: 6, style: 'single' } },
-        children: [new TextRun({ text: '⚠️ IMPORTANT: AI-GENERATED SUGGESTIONS ONLY', bold: true, size: 22, color: '856404' })],
+        shading: { fill: 'FFFBEB', type: ShadingType.SOLID },
+        border: { top: { color: 'F59E0B', size: 6, style: 'single' }, bottom: { color: 'F59E0B', size: 6, style: 'single' }, left: { color: 'F59E0B', size: 6, style: 'single' }, right: { color: 'F59E0B', size: 6, style: 'single' } },
+        children: [new TextRun({ text: '⚠️ IMPORTANT: AI-GENERATED SUGGESTIONS ONLY', bold: true, size: 22, color: '92400E' })],
         spacing: { before: 100, after: 60 }
       }),
       new Paragraph({
-        shading: { fill: 'FFF3CD', type: ShadingType.SOLID },
-        children: [new TextRun({ text: 'This report contains AI-generated coding suggestions extracted from scanned Lloyd George records. A qualified clinical coder or clinician MUST independently verify all codes against source documents before recording in EMIS Web or SystmOne. These suggestions do not constitute clinical advice.', size: 18, color: '856404' })],
+        shading: { fill: 'FFFBEB', type: ShadingType.SOLID },
+        children: [new TextRun({ text: 'This report contains AI-generated coding suggestions extracted from scanned Lloyd George records. A qualified clinical coder or clinician MUST independently verify all codes against source documents before recording in EMIS Web or SystmOne. These suggestions do not constitute clinical advice.', size: 18, color: '78350F' })],
         spacing: { after: 300 }
       }),
 
@@ -292,7 +292,11 @@ export function LGSnomedCodingReport({ patient, snomedData }: LGSnomedCodingRepo
       createBulletPoint('Illegible or ambiguous entries without corroborating evidence'),
 
       new Paragraph({
-        children: [new TextRun({ text: 'Reference: NHS Digital SNOMED CT Implementation Guide for Primary Care', size: 18, italics: true, color: '666666' })],
+        children: [
+          new TextRun({ text: 'Reference: ', size: 18, italics: true, color: '666666' }),
+          new TextRun({ text: 'NHS Digital SNOMED CT Implementation Guide for Primary Care', size: 18, italics: true, color: '005EB8', underline: {} }),
+          new TextRun({ text: ' (https://digital.nhs.uk/services/terminology-and-classifications/snomed-ct)', size: 16, italics: true, color: '666666' })
+        ],
         spacing: { before: 100, after: 300 }
       })
     ];
