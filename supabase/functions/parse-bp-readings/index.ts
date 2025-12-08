@@ -170,21 +170,21 @@ const BP_EXTRACTION_TOOL = {
       properties: {
         readings: {
           type: 'array',
+          description: 'Array of BP readings extracted from the document',
           items: {
             type: 'object',
             properties: {
-              systolic: { type: 'number', description: 'Systolic pressure (higher number)' },
-              diastolic: { type: 'number', description: 'Diastolic pressure (lower number)' },
-              pulse: { type: 'number', description: 'Pulse/heart rate if present (30-130 range), null if not present' },
+              systolic: { type: 'number', description: 'Systolic pressure (higher number) - REQUIRED' },
+              diastolic: { type: 'number', description: 'Diastolic pressure (lower number) - REQUIRED' },
+              pulse: { type: 'number', description: 'Pulse/heart rate if present (30-130 range)' },
               date: { type: 'string', description: 'Date in DD/MM/YY format' },
-              time_of_day: { type: 'string', enum: ['AM', 'PM'], description: 'Time of day (AM or PM)' },
+              time_of_day: { type: 'string', description: 'Time of day: AM or PM' },
               source_row: { type: 'number', description: 'Approximate row number from top of page' },
-              position: { type: 'string', enum: ['sitting', 'standing'], description: 'Position when reading was taken: "sitting" or "standing". Null if not specified (standard reading).' },
-              standing_minutes: { type: 'number', enum: [1, 3], description: 'Minutes after standing for standing readings (1 or 3), null otherwise' },
-              valid: { type: 'boolean', description: 'Whether the reading passes validation rules' },
-              reason_invalid: { type: 'string', description: 'Reason if reading is invalid, null otherwise' }
-            },
-            required: ['systolic', 'diastolic', 'valid']
+              position: { type: 'string', description: 'Position: "sitting" or "standing". Leave empty for standard readings.' },
+              standing_minutes: { type: 'number', description: 'Minutes after standing (1 or 3) for standing readings' },
+              valid: { type: 'boolean', description: 'Whether the reading passes validation rules - REQUIRED' },
+              reason_invalid: { type: 'string', description: 'Reason if reading is invalid' }
+            }
           }
         }
       },
