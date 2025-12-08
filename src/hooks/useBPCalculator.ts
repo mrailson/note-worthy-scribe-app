@@ -62,7 +62,7 @@ export const useBPCalculator = () => {
           included: !r.excluded,
           excludeReason: r.excludeReason,
           position: r.position || (isSitStandMode ? undefined : 'standard'),
-          standingMinutes: r.standing_minutes
+          standingMinutes: r.standingMinutes || r.standing_minutes
         }));
         
         const validCount = newReadings.filter(r => r.included).length;
@@ -118,7 +118,7 @@ export const useBPCalculator = () => {
             included: !r.excluded,
             excludeReason: r.excludeReason,
             position: r.position || (isSitStandMode ? undefined : 'standard'),
-            standingMinutes: r.standing_minutes
+            standingMinutes: r.standingMinutes || r.standing_minutes
           }));
           
           const validCount = newReadings.filter(r => r.included).length;
@@ -167,7 +167,7 @@ export const useBPCalculator = () => {
           included: !r.excluded,
           excludeReason: r.excludeReason,
           position: r.position || (isSitStandMode ? undefined : 'standard'),
-          standingMinutes: r.standing_minutes
+          standingMinutes: r.standingMinutes || r.standing_minutes
         }));
         
         const validCount = newReadings.filter(r => r.included).length;
