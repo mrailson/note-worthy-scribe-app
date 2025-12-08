@@ -462,6 +462,96 @@ export type Database = {
         }
         Relationships: []
       }
+      bp_sessions: {
+        Row: {
+          avg_diastolic: number | null
+          avg_pulse: number | null
+          avg_systolic: number | null
+          created_at: string
+          data_quality: Json | null
+          date_range: Json | null
+          diastolic_max: number | null
+          diastolic_min: number | null
+          excluded_count: number
+          id: string
+          included_count: number
+          mode: string
+          nhs_category: string | null
+          nice_category: string | null
+          nice_diastolic: number | null
+          nice_systolic: number | null
+          qof_relevance: Json | null
+          readings: Json
+          readings_count: number
+          sit_stand_averages: Json | null
+          source_files_count: number | null
+          source_text: string | null
+          systolic_max: number | null
+          systolic_min: number | null
+          trends: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avg_diastolic?: number | null
+          avg_pulse?: number | null
+          avg_systolic?: number | null
+          created_at?: string
+          data_quality?: Json | null
+          date_range?: Json | null
+          diastolic_max?: number | null
+          diastolic_min?: number | null
+          excluded_count?: number
+          id?: string
+          included_count?: number
+          mode?: string
+          nhs_category?: string | null
+          nice_category?: string | null
+          nice_diastolic?: number | null
+          nice_systolic?: number | null
+          qof_relevance?: Json | null
+          readings: Json
+          readings_count?: number
+          sit_stand_averages?: Json | null
+          source_files_count?: number | null
+          source_text?: string | null
+          systolic_max?: number | null
+          systolic_min?: number | null
+          trends?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avg_diastolic?: number | null
+          avg_pulse?: number | null
+          avg_systolic?: number | null
+          created_at?: string
+          data_quality?: Json | null
+          date_range?: Json | null
+          diastolic_max?: number | null
+          diastolic_min?: number | null
+          excluded_count?: number
+          id?: string
+          included_count?: number
+          mode?: string
+          nhs_category?: string | null
+          nice_category?: string | null
+          nice_diastolic?: number | null
+          nice_systolic?: number | null
+          qof_relevance?: Json | null
+          readings?: Json
+          readings_count?: number
+          sit_stand_averages?: Json | null
+          source_files_count?: number | null
+          source_text?: string | null
+          systolic_max?: number | null
+          systolic_min?: number | null
+          trends?: Json | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       chunk_cleaning_stats: {
         Row: {
           active_meetings_monitored: number | null
