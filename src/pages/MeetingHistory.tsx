@@ -1558,6 +1558,43 @@ const MeetingHistory = () => {
     }
   };
 
+  const [isDeletingEmpty, setIsDeletingEmpty] = useState(false);
+
+  const handleClearEmptyMeetings = async () => {
+    if (!user?.id) return;
+    
+    setIsDeletingEmpty(true);
+    try {
+      // Calculate 90 minutes ago
+      const ninetyMinutesAgo = new Date(Date.now() - 90 * 60 * 1000).toISOString();
+      
+      // Delete meetings older than 90 mins with no word count (0 or null)
+      const { data: deletedMeetings, error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('user_id', user.id)
+        .lt('created_at', ninetyMinutesAgo)
+        .or('word_count.is.null,word_count.eq.0')
+        .select('id');
+
+      if (error) throw error;
+
+      const count = deletedMeetings?.length || 0;
+      if (count > 0) {
+        showToast.success(`Cleared ${count} empty meeting${count > 1 ? 's' : ''}`, { section: 'meeting_manager' });
+      } else {
+        showToast.info('No empty meetings to clear', { section: 'meeting_manager' });
+      }
+
+      fetchMeetings();
+    } catch (error: any) {
+      console.error("Error clearing empty meetings:", error.message);
+      showToast.error('Failed to clear empty meetings', { section: 'meeting_manager' });
+    } finally {
+      setIsDeletingEmpty(false);
+    }
+  };
+
   // Multi-select handlers
   const handleSelectMeeting = (meetingId: string, checked: boolean) => {
     if (checked) {
@@ -1939,6 +1976,23 @@ const MeetingHistory = () => {
                  </AlertDialogContent>
                </AlertDialog>
              )}
+
+              {meetings.length > 0 && !isMobile && (
+                <Button 
+                  variant="outline" 
+                  size="default"
+                  onClick={handleClearEmptyMeetings}
+                  disabled={isDeletingEmpty}
+                  className="touch-manipulation min-h-[44px] font-inter shadow-sm hover:shadow-md transition-all"
+                >
+                  {isDeletingEmpty ? (
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <Trash2 className="h-4 w-4 mr-2" />
+                  )}
+                  Clear Empty
+                </Button>
+              )}
 
               {meetings.length > 0 && !isMobile && (
                 <AlertDialog>
