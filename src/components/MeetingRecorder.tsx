@@ -3857,10 +3857,8 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           
           if (consolidationError) {
             console.error('❌ Consolidation failed:', consolidationError);
-            showToast.warning('Transcript consolidation had issues, but continuing...');
           } else {
             console.log('✅ Consolidation result:', consolidationData);
-            showToast.success(`Consolidated ${consolidationData.chunksProcessed} transcript chunks`);
           }
         } else {
           console.log('ℹ️ No chunks to consolidate');
