@@ -105,13 +105,17 @@ const Index = () => {
   }, [editMeetingId, user]);
 
   // Conditional homepage redirect: AI4GP users → AI4GP, others → Meeting Manager
+  // Skip redirect if user is continuing a meeting
   useEffect(() => {
-    if (user && !loading && !editMeetingId && hasModuleAccess('ai4gp_access')) {
+    const state = location.state as any;
+    const isContinuingMeeting = state?.continueMeeting;
+    
+    if (user && !loading && !editMeetingId && !isContinuingMeeting && hasModuleAccess('ai4gp_access')) {
       navigate('/ai4gp', {
         replace: true
       });
     }
-  }, [user, loading, editMeetingId, hasModuleAccess, navigate]);
+  }, [user, loading, editMeetingId, location.state, hasModuleAccess, navigate]);
   const loadMeetingForEditing = async (meetingId: string) => {
     try {
       const {
