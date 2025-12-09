@@ -17,6 +17,7 @@ interface UserMeetingStats {
   all_time: number;
   avg_duration_mins: number;
   total_duration_mins: number;
+  deleted_meetings_count: number;
 }
 
 interface SystemStats {
@@ -61,6 +62,7 @@ export const MeetingUsageReport = () => {
         avg_duration_mins: number;
         total_duration_mins: number;
         total_words: number;
+        deleted_meetings_count: number;
       }>;
 
       // Calculate system-wide totals from all users
@@ -90,6 +92,7 @@ export const MeetingUsageReport = () => {
         all_time: r.all_time || 0,
         avg_duration_mins: r.avg_duration_mins || 0,
         total_duration_mins: r.total_duration_mins || 0,
+        deleted_meetings_count: r.deleted_meetings_count || 0,
       }));
 
       setUserStats(userStatsArray);
@@ -204,6 +207,7 @@ export const MeetingUsageReport = () => {
                   <TableHead className="text-center">7 Days</TableHead>
                   <TableHead className="text-center">30 Days</TableHead>
                   <TableHead className="text-center">All Time</TableHead>
+                  <TableHead className="text-center">Deleted</TableHead>
                   <TableHead className="text-right">Avg Duration</TableHead>
                   <TableHead className="text-right">Total Time</TableHead>
                 </TableRow>
@@ -211,7 +215,7 @@ export const MeetingUsageReport = () => {
               <TableBody>
                 {userStats.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={8} className="text-center text-muted-foreground py-8">
                       No completed meetings found
                     </TableCell>
                   </TableRow>
@@ -246,6 +250,13 @@ export const MeetingUsageReport = () => {
                         )}
                       </TableCell>
                       <TableCell className="text-center font-medium">{user.all_time}</TableCell>
+                      <TableCell className="text-center">
+                        {user.deleted_meetings_count > 0 ? (
+                          <Badge variant="destructive">{user.deleted_meetings_count}</Badge>
+                        ) : (
+                          <span className="text-muted-foreground">0</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right text-sm">{formatDuration(user.avg_duration_mins)}</TableCell>
                       <TableCell className="text-right text-sm">{formatDuration(user.total_duration_mins)}</TableCell>
                     </TableRow>

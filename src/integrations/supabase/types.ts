@@ -7756,6 +7756,7 @@ export type Database = {
         Returns: {
           all_time: number
           avg_duration_mins: number
+          deleted_meetings_count: number
           email: string
           full_name: string
           last_24h: number
