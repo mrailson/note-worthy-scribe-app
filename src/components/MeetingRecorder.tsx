@@ -5023,13 +5023,31 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                       
                          <Button
                           onClick={handleStopWithConfirmation}
-                          variant="destructive"
+                          variant={isStoppingRecording ? "secondary" : "destructive"}
                           size="lg"
-                          disabled={isPreparingToStop}
-                          className="shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+                          disabled={isPreparingToStop || isStoppingRecording}
+                          className={`shadow-lg transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg disabled:cursor-not-allowed ${
+                            isStoppingRecording 
+                              ? 'bg-amber-100 dark:bg-amber-900/30 border-2 border-amber-500 text-amber-700 dark:text-amber-300 animate-pulse' 
+                              : 'hover:shadow-xl transform hover:scale-105 disabled:opacity-50 disabled:transform-none'
+                          }`}
                         >
-                          <Square className="h-5 w-5 mr-2" />
-                          {isPreparingToStop ? "Finishing meeting recording...please wait" : isPaused ? "Meeting Paused" : "Stop Recording"}
+                          {isStoppingRecording ? (
+                            <>
+                              <Loader2 className="h-5 w-5 mr-2 animate-spin" />
+                              <span className="flex flex-col items-start">
+                                <span>Finalising Meeting...</span>
+                                {stopRecordingStep && (
+                                  <span className="text-xs opacity-80 font-normal">{stopRecordingStep}</span>
+                                )}
+                              </span>
+                            </>
+                          ) : (
+                            <>
+                              <Square className="h-5 w-5 mr-2" />
+                              {isPreparingToStop ? "Finishing meeting recording...please wait" : isPaused ? "Meeting Paused" : "Stop Recording"}
+                            </>
+                          )}
                         </Button>
                        </div>
                     )}
