@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -38,47 +38,48 @@ const defaultVisibility: ServiceVisibility = {
 
 export const useServiceVisibility = () => {
   const { user } = useAuth();
-  const [visibility, setVisibility] = useState<ServiceVisibility>(defaultVisibility);
-  const [loading, setLoading] = useState(true);
+  const queryClient = useQueryClient();
 
-  const loadVisibility = async () => {
-    if (!user) {
-      setLoading(false);
-      return;
-    }
+  const { data: visibility, isLoading: loading } = useQuery({
+    queryKey: ['service-visibility', user?.id],
+    queryFn: async () => {
+      if (!user) return defaultVisibility;
 
-    try {
       const { data, error } = await supabase
         .from('user_settings')
         .select('setting_value')
         .eq('user_id', user.id)
         .eq('setting_key', 'service_visibility');
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error loading service visibility:', error);
+        return defaultVisibility;
+      }
 
       if (data && data.length > 0) {
         const savedVisibility = data[0].setting_value as unknown as Partial<ServiceVisibility>;
-        setVisibility({ ...defaultVisibility, ...savedVisibility });
+        return { ...defaultVisibility, ...savedVisibility };
       }
-    } catch (error) {
-      console.error('Error loading service visibility:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  useEffect(() => {
-    loadVisibility();
-  }, [user]);
+      return defaultVisibility;
+    },
+    enabled: !!user,
+    staleTime: 0, // Always fetch fresh data
+    refetchOnWindowFocus: true,
+  });
 
   const isServiceVisible = (serviceKey: keyof ServiceVisibility): boolean => {
-    return visibility[serviceKey] ?? true;
+    return visibility?.[serviceKey] ?? true;
+  };
+
+  const refresh = () => {
+    queryClient.invalidateQueries({ queryKey: ['service-visibility', user?.id] });
   };
 
   return {
-    visibility,
+    visibility: visibility ?? defaultVisibility,
     loading,
     isServiceVisible,
-    refresh: loadVisibility
+    refresh
   };
 };
