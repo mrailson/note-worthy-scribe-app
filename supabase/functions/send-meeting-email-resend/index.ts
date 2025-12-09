@@ -77,12 +77,9 @@ const handler = async (req: Request): Promise<Response> => {
       console.log("📎 Adding Word attachment:", emailData.word_attachment.filename);
     }
 
-    // Construct sender name
-    const fromName = emailData.from_name || 'Notewell AI';
-    
-    // Send email via Resend
+    // Send email via Resend - always use Notewell AI as sender name
     const emailResponse = await resend.emails.send({
-      from: `${fromName} <noreply@bluepcn.co.uk>`,
+      from: `Notewell AI <noreply@bluepcn.co.uk>`,
       to: toRecipients,
       cc: ccRecipients.length > 0 ? ccRecipients : undefined,
       subject: emailData.subject,
