@@ -1291,13 +1291,6 @@ const MeetingHistory = () => {
         return;
       }
 
-      // v4 - ULTIMATE DEBUG - Use alert to bypass any console filtering
-      const rawFirstMeeting = meetingsData[0] as unknown as Record<string, unknown>;
-      const folderIdValue = rawFirstMeeting['folder_id'];
-      const hasKey = 'folder_id' in rawFirstMeeting;
-      
-      // This WILL show even if console is filtered
-      alert(`folder_id DEBUG:\nValue: ${folderIdValue}\nType: ${typeof folderIdValue}\nHas key: ${hasKey}`);
 
       // Load additional data in parallel (counts only, not full content)
       const meetingIds = meetingsData.map(m => m.id);

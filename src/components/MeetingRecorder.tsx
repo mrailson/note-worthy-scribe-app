@@ -4217,6 +4217,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           right_audio_url,
           recording_created_at,
           notes_style_3,
+          folder_id,
           meeting_overviews (
             overview,
             audio_overview_url,
