@@ -14,6 +14,7 @@ import {
 import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
+import { useServiceVisibility } from "@/hooks/useServiceVisibility";
 import { useLocation, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription, DrawerTrigger, DrawerClose, DrawerFooter } from "@/components/ui/drawer";
@@ -29,6 +30,7 @@ interface HeaderProps {
 export const Header = ({ onNewMeeting }: HeaderProps) => {
   const { user, signOut, hasModuleAccess, refreshUserModules, isSystemAdmin } = useAuth();
   const { hasServiceAccess } = useServiceActivation();
+  const { isServiceVisible, refresh: refreshVisibility } = useServiceVisibility();
   const location = useLocation();
   const navigate = useNavigate();
   const [sharedDriveVisible, setSharedDriveVisible] = useState(true);
@@ -152,6 +154,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                      onClick={async () => {
                        try {
                          await refreshUserModules();
+                         await refreshVisibility();
                          if (user?.id) {
                            const { data: settings } = await supabase
                              .from('user_settings')
@@ -177,14 +180,16 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                    align="end" 
                     className="bg-background border border-border shadow-lg w-48 z-50"
                   >
-                      <DropdownMenuItem 
-                        onClick={() => navigate('/ai4gp')}
-                        className="cursor-pointer py-3"
-                      >
-                        <Sparkles className="h-4 w-4 mr-2" />
-                        AI4PM Service
-                      </DropdownMenuItem>
-                     {hasModuleAccess('meeting_recorder') && (
+                      {isServiceVisible('ai4pm_service') && (
+                        <DropdownMenuItem 
+                          onClick={() => navigate('/ai4gp')}
+                          className="cursor-pointer py-3"
+                        >
+                          <Sparkles className="h-4 w-4 mr-2" />
+                          AI4PM Service
+                        </DropdownMenuItem>
+                      )}
+                     {hasModuleAccess('meeting_recorder') && isServiceVisible('meeting_notes') && (
                        <DropdownMenuItem 
                           onClick={() => navigate('/')}
                          className="cursor-pointer py-3"
@@ -193,7 +198,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                          Meeting Notes
                        </DropdownMenuItem>
                      )}
-                    {hasModuleAccess('gp_scribe') && (
+                    {hasModuleAccess('gp_scribe') && isServiceVisible('gp_scribe') && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/gp-scribe')}
                         className="cursor-pointer py-3"
@@ -202,7 +207,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         GP Scribe
                       </DropdownMenuItem>
                     )}
-                    {hasModuleAccess('complaints_system') && (
+                    {hasModuleAccess('complaints_system') && isServiceVisible('complaints_system') && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/complaints')}
                         className="cursor-pointer py-3"
@@ -211,7 +216,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         Complaints System
                       </DropdownMenuItem>
                     )}
-                    {hasModuleAccess('ai_4_pm') && (
+                    {hasModuleAccess('ai_4_pm') && isServiceVisible('ai_4_pm') && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/ai-4-pm')}
                         className="cursor-pointer py-3"
@@ -220,7 +225,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         AI 4 PM Assistant
                       </DropdownMenuItem>
                       )}
-                      {hasModuleAccess('enhanced_access') && (
+                      {hasModuleAccess('enhanced_access') && isServiceVisible('enhanced_access') && (
                       <DropdownMenuItem 
                         onClick={() => navigate('/enhanced-access')}
                         className="cursor-pointer py-3"
@@ -229,7 +234,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                         Enhanced Access
                       </DropdownMenuItem>
                      )}
-                       {hasModuleAccess('cqc_compliance_access') && (
+                       {hasModuleAccess('cqc_compliance_access') && isServiceVisible('cqc_compliance') && (
                          <DropdownMenuItem 
                            onClick={() => navigate('/cqc-compliance')}
                            className="cursor-pointer py-3"
@@ -238,7 +243,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            CQC Compliance
                          </DropdownMenuItem>
                         )}
-                         {hasModuleAccess('shared_drive_access') && (
+                         {hasModuleAccess('shared_drive_access') && isServiceVisible('shared_drive') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/shared-drive')}
                             className="cursor-pointer py-3"
@@ -249,7 +254,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           )}
                           
                           {/* Only show NRES if user has activation */}
-                          {hasServiceAccess('nres') && (
+                          {hasServiceAccess('nres') && isServiceVisible('nres') && (
                             <DropdownMenuSub>
                               <DropdownMenuSubTrigger className="cursor-pointer py-3">
                                 <Building2 className="h-4 w-4 mr-2" />
@@ -288,7 +293,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                           </DropdownMenuSub>
                           )}
                          
-                         {hasModuleAccess('mic_test_service_access') && (
+                         {hasModuleAccess('mic_test_service_access') && isServiceVisible('mic_test') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/mic-test')}
                             className="cursor-pointer py-3"
@@ -297,7 +302,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Mic Test Service
                           </DropdownMenuItem>
                         )}
-                         {hasModuleAccess('translation_service') && (
+                         {hasModuleAccess('translation_service') && isServiceVisible('translation') && (
                           <DropdownMenuItem 
                             onClick={() => {
                               // Check if mobile and redirect accordingly
@@ -316,7 +321,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Translation Service
                           </DropdownMenuItem>
                         )}
-                        {hasModuleAccess('fridge_monitoring_access') && (
+                        {hasModuleAccess('fridge_monitoring_access') && isServiceVisible('fridge_monitoring') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/practice-admin/fridges')}
                             className="cursor-pointer py-3"
@@ -325,7 +330,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             Fridge Monitoring
                           </DropdownMenuItem>
                         )}
-                        {hasServiceAccess('lg_capture') && (
+                        {hasServiceAccess('lg_capture') && isServiceVisible('lg_capture') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/lg-capture')}
                             className="cursor-pointer py-3"
@@ -334,7 +339,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                             LG Capture
                           </DropdownMenuItem>
                         )}
-                        {hasServiceAccess('bp_service') && (
+                        {hasServiceAccess('bp_service') && isServiceVisible('bp_service') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/bp-calculator')}
                             className="cursor-pointer py-3"

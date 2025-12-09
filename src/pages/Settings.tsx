@@ -55,6 +55,7 @@ import {
   Plug
 } from 'lucide-react';
 import { PlaudIntegrationSettings } from '@/components/settings/PlaudIntegrationSettings';
+import { ServiceVisibilitySettings } from '@/components/settings/ServiceVisibilitySettings';
 import { useToast } from '@/hooks/use-toast';
 import { useToastPreferences } from '@/hooks/useToastPreferences';
 import { useVoicePreference } from '@/hooks/useVoicePreference';
@@ -560,6 +561,9 @@ export default function Settings() {
                   </div>
                 </CardContent>
               </Card>
+
+              {/* Service Menu Visibility */}
+              <ServiceVisibilitySettings />
 
               <Card>
                 <CardHeader>
