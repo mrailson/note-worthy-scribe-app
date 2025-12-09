@@ -219,8 +219,11 @@ export const MeetingHistoryList = ({
   
   // Sync localMeetings with meetings prop - database is source of truth
   useEffect(() => {
-    console.log('🔄 Child: Syncing localMeetings with parent meetings', meetings.length);
-    console.log('🔄 Incoming folder_ids:', meetings.slice(0, 5).map(m => ({ id: m.id.slice(0,8), folder_id: m.folder_id })));
+    // EXPLICIT STRING TRACE - won't get collapsed by console
+    const folderTrace = meetings.slice(0, 10).map(m => 
+      `${m.id.slice(0,8)}:${m.folder_id ?? 'NULL'}`
+    ).join(', ');
+    console.log('🔴🔴🔴 CHILD RECEIVED folder_ids:', folderTrace);
     
     // Always sync from database - don't skip
     setLocalMeetings(meetings);
