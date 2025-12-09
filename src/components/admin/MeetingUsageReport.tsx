@@ -42,88 +42,55 @@ export const MeetingUsageReport = () => {
     try {
       setLoading(true);
 
-      // Fetch system-wide stats
-      const now = new Date();
-      const last24h = new Date(now.getTime() - 24 * 60 * 60 * 1000).toISOString();
-      const last7d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const last30d = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString();
+      // Use RPC function to bypass RLS and get all users' stats
+      const { data, error } = await supabase.rpc('get_meeting_usage_report');
 
-      // Get all completed meetings with user info
-      const { data: meetings, error: meetingsError } = await supabase
-        .from('meetings')
-        .select('id, user_id, created_at, duration_minutes, word_count, status')
-        .eq('status', 'completed');
+      if (error) {
+        console.error('Error fetching meeting usage report:', error);
+        return;
+      }
 
-      if (meetingsError) throw meetingsError;
+      const results = (data || []) as Array<{
+        user_id: string;
+        email: string;
+        full_name: string | null;
+        last_24h: number;
+        last_7d: number;
+        last_30d: number;
+        all_time: number;
+        avg_duration_mins: number;
+        total_duration_mins: number;
+        total_words: number;
+      }>;
 
-      // Get user profiles
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select('user_id, email, full_name');
-
-      if (profilesError) throw profilesError;
-
-      const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-
-      // Calculate system-wide stats
-      const completedMeetings = meetings || [];
+      // Calculate system-wide totals from all users
       const systemStatsCalc: SystemStats = {
-        last_24h: completedMeetings.filter(m => new Date(m.created_at) >= new Date(last24h)).length,
-        last_7d: completedMeetings.filter(m => new Date(m.created_at) >= new Date(last7d)).length,
-        last_30d: completedMeetings.filter(m => new Date(m.created_at) >= new Date(last30d)).length,
-        all_time: completedMeetings.length,
-        total_duration_mins: completedMeetings.reduce((sum, m) => sum + (m.duration_minutes || 0), 0),
-        avg_duration_mins: completedMeetings.length > 0 
-          ? Math.round(completedMeetings.reduce((sum, m) => sum + (m.duration_minutes || 0), 0) / completedMeetings.length)
+        last_24h: results.reduce((sum, r) => sum + (r.last_24h || 0), 0),
+        last_7d: results.reduce((sum, r) => sum + (r.last_7d || 0), 0),
+        last_30d: results.reduce((sum, r) => sum + (r.last_30d || 0), 0),
+        all_time: results.reduce((sum, r) => sum + (r.all_time || 0), 0),
+        total_duration_mins: results.reduce((sum, r) => sum + (r.total_duration_mins || 0), 0),
+        avg_duration_mins: results.length > 0
+          ? Math.round(results.reduce((sum, r) => sum + (r.total_duration_mins || 0), 0) / 
+                       results.reduce((sum, r) => sum + (r.all_time || 0), 0))
           : 0,
-        total_words: completedMeetings.reduce((sum, m) => sum + (m.word_count || 0), 0),
+        total_words: results.reduce((sum, r) => sum + (r.total_words || 0), 0),
       };
 
       setSystemStats(systemStatsCalc);
 
-      // Calculate per-user stats
-      const userStatsMap = new Map<string, UserMeetingStats>();
-
-      completedMeetings.forEach(meeting => {
-        const userId = meeting.user_id;
-        const profile = profileMap.get(userId);
-        
-        if (!userStatsMap.has(userId)) {
-          userStatsMap.set(userId, {
-            user_id: userId,
-            email: profile?.email || 'Unknown',
-            full_name: profile?.full_name || null,
-            last_24h: 0,
-            last_7d: 0,
-            last_30d: 0,
-            all_time: 0,
-            avg_duration_mins: 0,
-            total_duration_mins: 0,
-          });
-        }
-
-        const stats = userStatsMap.get(userId)!;
-        const meetingDate = new Date(meeting.created_at);
-        const duration = meeting.duration_minutes || 0;
-
-        stats.all_time += 1;
-        stats.total_duration_mins += duration;
-
-        if (meetingDate >= new Date(last24h)) stats.last_24h += 1;
-        if (meetingDate >= new Date(last7d)) stats.last_7d += 1;
-        if (meetingDate >= new Date(last30d)) stats.last_30d += 1;
-      });
-
-      // Calculate averages and sort by all_time descending
-      const userStatsArray = Array.from(userStatsMap.values())
-        .map(stats => ({
-          ...stats,
-          avg_duration_mins: stats.all_time > 0 
-            ? Math.round(stats.total_duration_mins / stats.all_time) 
-            : 0,
-        }))
-        .filter(stats => stats.all_time > 0)
-        .sort((a, b) => b.all_time - a.all_time);
+      // Map to user stats
+      const userStatsArray: UserMeetingStats[] = results.map(r => ({
+        user_id: r.user_id,
+        email: r.email || 'Unknown',
+        full_name: r.full_name,
+        last_24h: r.last_24h || 0,
+        last_7d: r.last_7d || 0,
+        last_30d: r.last_30d || 0,
+        all_time: r.all_time || 0,
+        avg_duration_mins: r.avg_duration_mins || 0,
+        total_duration_mins: r.total_duration_mins || 0,
+      }));
 
       setUserStats(userStatsArray);
     } catch (error) {
