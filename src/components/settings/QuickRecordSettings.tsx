@@ -102,7 +102,7 @@ export const QuickRecordSettings = () => {
   };
 
   const getQuickRecordUrl = (token: string) => {
-    return `${window.location.origin}/quick-record?token=${token}`;
+    return `https://gpnotewell.co.uk/quick-record?token=${token}`;
   };
 
   const copyToClipboard = async (token: string, id: string) => {
