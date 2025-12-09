@@ -1293,16 +1293,12 @@ const MeetingHistory = () => {
 
       console.log('✅ Loaded', meetingsData.length, 'meetings');
 
-      // Log RAW folder IDs from database - this is critical debugging
-      console.log('📁📁📁 RAW DB DATA folder_id values:', meetingsData.slice(0, 10).map(m => {
-        const raw = m as any;
-        return {
-          id: m.id.slice(0, 8),
-          folder_id_value: raw.folder_id,
-          folder_id_typeof: typeof raw.folder_id,
-          keys: Object.keys(m).filter(k => k.includes('folder'))
-        };
-      }));
+      // EXPLICIT STRING TRACE - won't get collapsed by console
+      const rawFolderTrace = meetingsData.slice(0, 10).map(m => {
+        const raw = m as unknown as Record<string, unknown>;
+        return `${m.id.slice(0,8)}:${raw.folder_id ?? 'NULL'}`;
+      }).join(', ');
+      console.log('🔴🔴🔴 RAW DB folder_ids:', rawFolderTrace);
 
       // Load additional data in parallel (counts only, not full content)
       const meetingIds = meetingsData.map(m => m.id);
@@ -1347,14 +1343,15 @@ const MeetingHistory = () => {
       ]);
 
       // Create meetings with lightweight data
-      // CRITICAL: Access folder_id directly before spreading to avoid it being overwritten
+      // CRITICAL FIX: folder_id must be assigned AFTER spread to avoid being overwritten
       const enrichedMeetings = meetingsData.map(meeting => {
-        const rawMeeting = meeting as Record<string, unknown>;
-        const folderId = rawMeeting.folder_id as string | null | undefined;
+        // Access raw data before any TypeScript transformation
+        const rawData = meeting as unknown as Record<string, unknown>;
+        const extractedFolderId = rawData.folder_id;
         
-        return {
+        // Build object with folder_id EXPLICITLY at the end (after spread)
+        const enriched = {
           ...meeting,
-          folder_id: folderId ?? null, // Use nullish coalescing, preserve the actual value
           transcript_count: transcriptCounts[meeting.id] || 0,
           summary_exists: !!summaryExists[meeting.id],
           transcript: null,
@@ -1364,15 +1361,19 @@ const MeetingHistory = () => {
           overview: meeting.meeting_overviews?.overview || null,
           audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
           audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
-          audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null
+          audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null,
+          // CRITICAL: folder_id MUST be last to override any undefined from spread
+          folder_id: (extractedFolderId as string | null) ?? null
         };
+        
+        return enriched;
       });
 
-      console.log('📁 Enriched meetings (first 10):', enrichedMeetings.slice(0, 10).map(m => ({
-        id: m.id,
-        title: m.title,
-        folder_id: m.folder_id,
-      })));
+      // Trace folder_ids explicitly as string to avoid console collapsing
+      const folderTrace = enrichedMeetings.slice(0, 10).map(m => 
+        `${m.id.slice(0,8)}:${m.folder_id ?? 'NULL'}`
+      ).join(', ');
+      console.log('🔴🔴🔴 ENRICHED folder_ids:', folderTrace);
 
       setMeetings(enrichedMeetings);
       setCurrentPage(pageToFetch);
