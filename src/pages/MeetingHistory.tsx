@@ -1291,9 +1291,17 @@ const MeetingHistory = () => {
         return;
       }
 
-      // IMMEDIATE RAW LOG - BEFORE ANY PROCESSING
-      console.log('🟢🟢🟢 SUPABASE RAW RESPONSE - first meeting:', JSON.stringify(meetingsData[0], null, 2));
-      console.log('✅ Loaded', meetingsData.length, 'meetings');
+      // IMMEDIATE RAW LOG - BEFORE ANY PROCESSING - v2 timestamp check
+      const firstMeeting = meetingsData[0] as unknown as Record<string, unknown>;
+      console.log('🟢🟢🟢 SUPABASE RAW RESPONSE v2:', {
+        id: firstMeeting.id,
+        title: firstMeeting.title,
+        folder_id: firstMeeting.folder_id,
+        folder_id_type: typeof firstMeeting.folder_id,
+        has_folder_id_key: 'folder_id' in firstMeeting,
+        all_keys: Object.keys(firstMeeting).filter(k => k.includes('folder'))
+      });
+      console.log('✅ Loaded', meetingsData.length, 'meetings at', new Date().toISOString());
 
       // EXPLICIT STRING TRACE - won't get collapsed by console
       const rawFolderTrace = meetingsData.slice(0, 10).map(m => {
