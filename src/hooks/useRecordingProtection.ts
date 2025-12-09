@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useToast } from "@/hooks/use-toast";
+import { useIsIPhone } from "@/hooks/use-mobile";
 
 interface UseRecordingProtectionProps {
   isRecording: boolean;
@@ -15,6 +16,7 @@ export const useRecordingProtection = ({
   onStopRecording,
 }: UseRecordingProtectionProps) => {
   const { toast } = useToast();
+  const isIPhone = useIsIPhone();
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [doubleClickProtection, setDoubleClickProtection] = useState(false);
   const [isPreparingToStop, setIsPreparingToStop] = useState(false);
@@ -81,7 +83,7 @@ export const useRecordingProtection = ({
   // Page visibility change handling
   useEffect(() => {
     const handleVisibilityChange = () => {
-      if (isRecording && document.visibilityState === 'hidden') {
+      if (isRecording && document.visibilityState === 'hidden' && !isIPhone) {
         toast({
           title: "⚠️ Recording Active",
           description: "Keep this tab open to continue recording",
@@ -128,11 +130,14 @@ export const useRecordingProtection = ({
       lastClickTimeRef.current = now;
       setDoubleClickProtection(true);
       
-      toast({
-        title: "🔄 Double-click to stop",
-        description: "Click the mic icon again to confirm stopping",
-        duration: 2000,
-      });
+      // Only show toast on non-iPhone devices
+      if (!isIPhone) {
+        toast({
+          title: "🔄 Double-click to stop",
+          description: "Click the mic icon again to confirm stopping",
+          duration: 2000,
+        });
+      }
 
       // Reset double-click protection after 3 seconds
       doubleClickTimeoutRef.current = setTimeout(() => {
