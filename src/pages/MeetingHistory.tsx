@@ -1343,8 +1343,10 @@ const MeetingHistory = () => {
       ]);
 
       // Create meetings with lightweight data
+      // NOTE: Explicitly map folder_id as TypeScript types may not include it
       const enrichedMeetings = meetingsData.map(meeting => ({
         ...meeting,
+        folder_id: (meeting as any).folder_id || null, // Explicitly preserve folder_id
         transcript_count: transcriptCounts[meeting.id] || 0,
         summary_exists: !!summaryExists[meeting.id],
         transcript: null,
