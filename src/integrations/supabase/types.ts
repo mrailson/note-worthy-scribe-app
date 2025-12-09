@@ -5015,6 +5015,39 @@ export type Database = {
           },
         ]
       }
+      meetings_archive: {
+        Row: {
+          deleted_at: string | null
+          duration_minutes: number | null
+          id: string
+          original_created_at: string | null
+          original_meeting_id: string
+          title: string | null
+          user_id: string
+          word_count: number | null
+        }
+        Insert: {
+          deleted_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          original_created_at?: string | null
+          original_meeting_id: string
+          title?: string | null
+          user_id: string
+          word_count?: number | null
+        }
+        Update: {
+          deleted_at?: string | null
+          duration_minutes?: number | null
+          id?: string
+          original_created_at?: string | null
+          original_meeting_id?: string
+          title?: string | null
+          user_id?: string
+          word_count?: number | null
+        }
+        Relationships: []
+      }
       monitoring_alerts: {
         Row: {
           alert_type: string
