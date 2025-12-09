@@ -1291,15 +1291,13 @@ const MeetingHistory = () => {
         return;
       }
 
-      // v3 - SUPER AGGRESSIVE DEBUG - Check raw Supabase response
+      // v4 - ULTIMATE DEBUG - Use alert to bypass any console filtering
       const rawFirstMeeting = meetingsData[0] as unknown as Record<string, unknown>;
       const folderIdValue = rawFirstMeeting['folder_id'];
-      const allKeys = Object.keys(rawFirstMeeting);
+      const hasKey = 'folder_id' in rawFirstMeeting;
       
-      // Use console.warn which is harder to miss
-      console.warn('🟢🟢🟢 SUPABASE RAW v3 - folder_id:', folderIdValue, 'type:', typeof folderIdValue);
-      console.warn('🟢🟢🟢 ALL KEYS:', allKeys.join(', '));
-      console.warn('🟢🟢🟢 First meeting stringified:', JSON.stringify(rawFirstMeeting, null, 2).slice(0, 500));
+      // This WILL show even if console is filtered
+      alert(`folder_id DEBUG:\nValue: ${folderIdValue}\nType: ${typeof folderIdValue}\nHas key: ${hasKey}`);
 
       // Load additional data in parallel (counts only, not full content)
       const meetingIds = meetingsData.map(m => m.id);
