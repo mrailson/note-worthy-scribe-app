@@ -1387,6 +1387,13 @@ const MeetingHistory = () => {
     console.log('🚨 Search query:', `"${searchQuery}"`);
     console.log('🚨 Filter type:', filterType);
     
+    // Log folder_ids from the meetings state
+    console.log('📁📁📁 FILTER: meetings folder_ids:', meetings.slice(0, 10).map(m => ({
+      id: m.id.slice(0, 8),
+      folder_id: m.folder_id,
+      folder_id_type: typeof m.folder_id
+    })));
+    
     let filtered = meetings;
 
     // Apply search query filter
