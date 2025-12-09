@@ -163,7 +163,21 @@ export const useMeetingFolders = () => {
         throw error;
       }
  
-      console.log('✅ assignMeetingToFolder success - updated row:', data);
+      // Check if the update actually happened
+      if (!data) {
+        console.error('🛑 assignMeetingToFolder: No rows updated - meeting may not exist or RLS blocked the update');
+        showToast.error('Failed to assign meeting to folder - please try again');
+        return false;
+      }
+
+      // Verify the folder_id was actually set correctly
+      if (data.folder_id !== folderId) {
+        console.error('🛑 assignMeetingToFolder: folder_id mismatch', { expected: folderId, actual: data.folder_id });
+        showToast.error('Folder assignment did not persist correctly');
+        return false;
+      }
+ 
+      console.log('✅ assignMeetingToFolder success - verified update:', data);
  
       showToast.success(folderId ? 'Meeting assigned to folder' : 'Meeting removed from folder');
       return true;
