@@ -1347,21 +1347,26 @@ const MeetingHistory = () => {
       ]);
 
       // Create meetings with lightweight data
-      // NOTE: Explicitly map folder_id as TypeScript types may not include it
-      const enrichedMeetings = meetingsData.map(meeting => ({
-        ...meeting,
-        folder_id: (meeting as any).folder_id || null, // Explicitly preserve folder_id
-        transcript_count: transcriptCounts[meeting.id] || 0,
-        summary_exists: !!summaryExists[meeting.id],
-        transcript: null,
-        meeting_summary: meeting.notes_style_3 || null,
-        document_count: documentCounts[meeting.id] || 0,
-        documents: [],
-        overview: meeting.meeting_overviews?.overview || null,
-        audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
-        audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
-        audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null
-      }));
+      // CRITICAL: Access folder_id directly before spreading to avoid it being overwritten
+      const enrichedMeetings = meetingsData.map(meeting => {
+        const rawMeeting = meeting as Record<string, unknown>;
+        const folderId = rawMeeting.folder_id as string | null | undefined;
+        
+        return {
+          ...meeting,
+          folder_id: folderId ?? null, // Use nullish coalescing, preserve the actual value
+          transcript_count: transcriptCounts[meeting.id] || 0,
+          summary_exists: !!summaryExists[meeting.id],
+          transcript: null,
+          meeting_summary: meeting.notes_style_3 || null,
+          document_count: documentCounts[meeting.id] || 0,
+          documents: [],
+          overview: meeting.meeting_overviews?.overview || null,
+          audio_overview_url: meeting.meeting_overviews?.audio_overview_url || null,
+          audio_overview_text: meeting.meeting_overviews?.audio_overview_text || null,
+          audio_overview_duration: meeting.meeting_overviews?.audio_overview_duration || null
+        };
+      });
 
       console.log('📁 Enriched meetings (first 10):', enrichedMeetings.slice(0, 10).map(m => ({
         id: m.id,
