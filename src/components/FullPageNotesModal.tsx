@@ -3,7 +3,7 @@ import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialo
 import { sanitiseActionOwners } from "@/utils/sanitiseActionOwners";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
-import { InlineWordCorrector } from "@/components/InlineWordCorrector";
+
 import { StyleGalleryContainer } from "@/components/meeting/StyleGallery/StyleGalleryContainer";
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
 import { MeetingAttendeeModal } from "@/components/MeetingAttendeeModal";
@@ -1586,143 +1586,6 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setIsEditing(!isEditing);
   };
 
-
-  // Handle inline word correction from InlineWordCorrector component
-  const handleInlineCorrection = async (correction: {
-    original: string;
-    replacement: string;
-    applyToAll: boolean;
-    saveForFuture: boolean;
-  }) => {
-    try {
-      setIsGenerating(true);
-      
-      // 1. Store current state for undo
-      const undoState: UndoState = {
-        style3: notesStyle3,
-        style4: notesStyle4,
-        timestamp: Date.now()
-      };
-      setUndoStack(prev => [...prev, undoState]);
-      
-      // 2. Create regex for replacement
-      const escapedOriginal = correction.original.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      const regex = new RegExp(`\\b${escapedOriginal}\\b`, 'gi');
-      
-      let updatedTabs: string[] = [];
-      let totalReplacements = 0;
-      
-      // 3. Apply to all tabs if checked (default behaviour)
-      if (correction.applyToAll) {
-        // Minutes - Standard (style3)
-        const style3Matches = (notesStyle3.match(regex) || []).length;
-        if (style3Matches > 0) {
-          const newStyle3 = notesStyle3.replace(regex, correction.replacement);
-          setNotesStyle3(newStyle3);
-          await saveNoteStyleToDatabase(3, newStyle3);
-          updatedTabs.push('Minutes');
-          totalReplacements += style3Matches;
-        }
-        
-        // Executive Summary (style4)
-        const style4Matches = (notesStyle4.match(regex) || []).length;
-        if (style4Matches > 0) {
-          const newStyle4 = notesStyle4.replace(regex, correction.replacement);
-          setNotesStyle4(newStyle4);
-          await saveNoteStyleToDatabase(4, newStyle4);
-          updatedTabs.push('Executive');
-          totalReplacements += style4Matches;
-        }
-      } else {
-        // Apply only to current tab
-        switch (activeNotesStyleTab) {
-          case 'style1':
-            const newStyle3 = notesStyle3.replace(regex, correction.replacement);
-            setNotesStyle3(newStyle3);
-            await saveNoteStyleToDatabase(3, newStyle3);
-            updatedTabs.push('Minutes');
-            totalReplacements = (notesStyle3.match(regex) || []).length;
-            break;
-          case 'style4':
-            const newStyle4 = notesStyle4.replace(regex, correction.replacement);
-            setNotesStyle4(newStyle4);
-            await saveNoteStyleToDatabase(4, newStyle4);
-            updatedTabs.push('Executive');
-            totalReplacements = (notesStyle4.match(regex) || []).length;
-            break;
-        }
-      }
-      
-      // 4. Save to database for future use (auto-save enabled by default)
-      if (correction.saveForFuture && user?.id) {
-        await medicalTermCorrector.addCorrection(
-          correction.original,
-          correction.replacement,
-          undefined,
-          user.id
-        );
-      }
-      
-      // 5. Show success toast with undo button
-      if (updatedTabs.length > 0) {
-        const isDeletion = correction.replacement === '';
-        const message = isDeletion
-          ? `Deleted "${correction.original}" from ${updatedTabs.join(', ')} (${totalReplacements} occurrence${totalReplacements !== 1 ? 's' : ''})`
-          : `Replaced "${correction.original}" with "${correction.replacement}" in ${updatedTabs.join(', ')} (${totalReplacements} occurrence${totalReplacements !== 1 ? 's' : ''})`;
-        
-        toast.success(message, {
-          duration: 8000,
-          action: {
-            label: 'Undo',
-            onClick: () => handleUndoInlineCorrection()
-          }
-          }
-        );
-      } else {
-        toast.info('No occurrences found to replace');
-      }
-      
-    } catch (error) {
-      console.error('Inline correction error:', error);
-      toast.error('Failed to apply correction');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
-
-  // Handle undo for inline corrections
-  const handleUndoInlineCorrection = async () => {
-    if (undoStack.length === 0) {
-      toast.error('Nothing to undo');
-      return;
-    }
-    
-    try {
-      setIsGenerating(true);
-      
-      // Get last state
-      const lastState = undoStack[undoStack.length - 1];
-      
-      // Restore all tabs
-      setNotesStyle3(lastState.style3);
-      setNotesStyle4(lastState.style4);
-      
-      // Save to database
-      await saveNoteStyleToDatabase(3, lastState.style3);
-      await saveNoteStyleToDatabase(4, lastState.style4);
-      
-      // Remove from undo stack
-      setUndoStack(prev => prev.slice(0, -1));
-      
-      toast.success('Correction undone');
-      
-    } catch (error) {
-      console.error('Undo error:', error);
-      toast.error('Failed to undo correction');
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   // Simple transcript cleaning function using string similarity
   const cleanTranscriptDuplicates = (text: string): string => {
@@ -3730,16 +3593,6 @@ ${transcriptToUse}`;
                                                   }}
                                                 />
                                              </div>
-                                               <InlineWordCorrector
-                                                content={selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3)}
-                                                 allTabsContent={{
-                                                   style3: selectedFormatVariation === 'standard' ? notesStyle3 : (formatVariationContent || notesStyle3),
-                                                   style4: notesStyle4
-                                                 }}
-                                                onApplyCorrection={handleInlineCorrection}
-                                                isActive={!isEditing && activeNotesStyleTab === 'style1'}
-                                                selectionRootRef={minutesContainerRef}
-                                              />
                                             </>
                                           )}
                                         </>
