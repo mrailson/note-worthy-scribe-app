@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Grid3X3, FileText, Stethoscope, MessageSquareWarning, Sparkles, Clock, Shield, FolderOpen, Building2, Wrench, Languages, Thermometer, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
+import { useServiceActivation } from '@/hooks/useServiceActivation';
 import { useToast } from '@/hooks/use-toast';
 
 interface ServiceVisibility {
@@ -41,25 +43,28 @@ const defaultVisibility: ServiceVisibility = {
   bp_service: true,
 };
 
+// Service config with access check keys
 const serviceConfig = [
-  { key: 'ai4pm_service', label: 'AI4PM Service', icon: Sparkles },
-  { key: 'meeting_notes', label: 'Meeting Notes', icon: FileText },
-  { key: 'gp_scribe', label: 'GP Scribe', icon: Stethoscope },
-  { key: 'complaints_system', label: 'Complaints System', icon: MessageSquareWarning },
-  { key: 'ai_4_pm', label: 'AI 4 PM Assistant', icon: Sparkles },
-  { key: 'enhanced_access', label: 'Enhanced Access', icon: Clock },
-  { key: 'cqc_compliance', label: 'CQC Compliance', icon: Shield },
-  { key: 'shared_drive', label: 'Shared Drive', icon: FolderOpen },
-  { key: 'nres', label: 'NRES', icon: Building2 },
-  { key: 'mic_test', label: 'Mic Test Service', icon: Wrench },
-  { key: 'translation', label: 'Translation Service', icon: Languages },
-  { key: 'fridge_monitoring', label: 'Fridge Monitoring', icon: Thermometer },
-  { key: 'lg_capture', label: 'LG Capture', icon: FileText },
-  { key: 'bp_service', label: 'BP Average Service', icon: Heart },
+  { key: 'ai4pm_service', label: 'AI4PM Service', icon: Sparkles, accessKey: null }, // Always available
+  { key: 'meeting_notes', label: 'Meeting Notes', icon: FileText, accessKey: 'meeting_recorder' },
+  { key: 'gp_scribe', label: 'GP Scribe', icon: Stethoscope, accessKey: 'gp_scribe' },
+  { key: 'complaints_system', label: 'Complaints System', icon: MessageSquareWarning, accessKey: 'complaints_system' },
+  { key: 'ai_4_pm', label: 'AI 4 PM Assistant', icon: Sparkles, accessKey: 'ai_4_pm' },
+  { key: 'enhanced_access', label: 'Enhanced Access', icon: Clock, accessKey: 'enhanced_access' },
+  { key: 'cqc_compliance', label: 'CQC Compliance', icon: Shield, accessKey: 'cqc_compliance_access' },
+  { key: 'shared_drive', label: 'Shared Drive', icon: FolderOpen, accessKey: 'shared_drive_access' },
+  { key: 'nres', label: 'NRES', icon: Building2, accessKey: 'nres' },
+  { key: 'mic_test', label: 'Mic Test Service', icon: Wrench, accessKey: 'mic_test_service_access' },
+  { key: 'translation', label: 'Translation Service', icon: Languages, accessKey: 'translation_service' },
+  { key: 'fridge_monitoring', label: 'Fridge Monitoring', icon: Thermometer, accessKey: 'fridge_monitoring_access' },
+  { key: 'lg_capture', label: 'LG Capture', icon: FileText, accessKey: 'lg_capture' },
+  { key: 'bp_service', label: 'BP Average Service', icon: Heart, accessKey: 'bp_service' },
 ] as const;
 
 export const ServiceVisibilitySettings = () => {
-  const { user } = useAuth();
+  const { user, hasModuleAccess } = useAuth();
+  const { hasServiceAccess } = useServiceActivation();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [visibility, setVisibility] = useState<ServiceVisibility>(defaultVisibility);
   const [loading, setLoading] = useState(true);
@@ -111,6 +116,9 @@ export const ServiceVisibilitySettings = () => {
 
       if (error) throw error;
 
+      // Invalidate the query cache so Header picks up the change
+      queryClient.invalidateQueries({ queryKey: ['service-visibility', user.id] });
+
       toast({
         title: "Service visibility updated"
       });
@@ -124,6 +132,26 @@ export const ServiceVisibilitySettings = () => {
       });
     }
   };
+
+  // Check if user has access to a service
+  const userHasServiceAccess = (accessKey: string | null): boolean => {
+    if (accessKey === null) return true; // Always available (like AI4PM)
+    
+    // Check module access first (from AuthContext)
+    if (hasModuleAccess(accessKey)) return true;
+    
+    // Check service activation (from useServiceActivation)
+    if (accessKey === 'nres') return hasServiceAccess('nres');
+    if (accessKey === 'lg_capture') return hasServiceAccess('lg_capture');
+    if (accessKey === 'bp_service') return hasServiceAccess('bp_service');
+    
+    return false;
+  };
+
+  // Filter to only show services the user has access to
+  const availableServices = serviceConfig.filter(service => 
+    userHasServiceAccess(service.accessKey)
+  );
 
   if (loading) {
     return (
@@ -141,6 +169,10 @@ export const ServiceVisibilitySettings = () => {
     );
   }
 
+  if (availableServices.length === 0) {
+    return null; // Don't show section if no services available
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -149,12 +181,12 @@ export const ServiceVisibilitySettings = () => {
           Service Menu Visibility
         </CardTitle>
         <p className="text-muted-foreground text-sm">
-          Choose which services appear in your Select Service menu. Only services you have access to will be shown.
+          Choose which of your available services appear in the Select Service menu.
         </p>
       </CardHeader>
       <CardContent>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {serviceConfig.map(({ key, label, icon: Icon }) => (
+          {availableServices.map(({ key, label, icon: Icon }) => (
             <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
               <div className="flex items-center gap-3">
                 <Icon className="h-4 w-4 text-muted-foreground" />
