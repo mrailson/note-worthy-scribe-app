@@ -51,6 +51,7 @@ import { MeetingFoldersManager } from "@/components/meeting-folders/MeetingFolde
 import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { TabAudioGuidanceDialog } from "@/components/meeting/TabAudioGuidanceDialog";
 import { AudioCaptureStatusIndicator } from "@/components/meeting/AudioCaptureStatusIndicator";
+import { QuickRecordQRLink } from "@/components/meeting/QuickRecordQRLink";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -4851,14 +4852,17 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                           </div>
                         )}
                         
-                        <Button
-                         onClick={startRecording}
-                         size="lg"
-                         className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
-                       >
-                         <Mic className="h-5 w-5 mr-2" />
-                         Start Recording
-                       </Button>
+                        <div className="flex items-center justify-center gap-4">
+                          <Button
+                           onClick={startRecording}
+                           size="lg"
+                           className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
+                         >
+                           <Mic className="h-5 w-5 mr-2" />
+                           Start Recording
+                         </Button>
+                         <QuickRecordQRLink />
+                        </div>
                      </div>
                    ) : (
                       <div className="space-y-1">
