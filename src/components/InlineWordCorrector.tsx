@@ -128,31 +128,31 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
     };
   }, [isActive, showPopup, selectionRootRef]);
 
-  // Capture-phase guard on the popup itself to mark internal interactions
+  // Capture-phase guard on the popup itself - stop propagation to prevent global handler
   useEffect(() => {
     if (!showPopup || !popupRef.current) return;
     const node = popupRef.current;
 
     const onPopupPointerDownCapture = (e: PointerEvent) => {
+      // Stop the event from reaching the global pointerdown handler
+      e.stopPropagation();
+      e.stopImmediatePropagation();
       internalPointerDownRef.current = true;
-      // Reset on pointerup instead of requestAnimationFrame for reliable timing
     };
 
     const onPopupPointerUpCapture = () => {
-      // Delay reset to ensure global handler has checked the flag
       setTimeout(() => {
         internalPointerDownRef.current = false;
       }, 150);
     };
 
-    node.addEventListener('pointerdown', onPopupPointerDownCapture as any, { capture: true } as any);
-    node.addEventListener('pointerup', onPopupPointerUpCapture as any, { capture: true } as any);
-    document.addEventListener('pointerup', onPopupPointerUpCapture as any, { capture: true } as any);
+    // Use capture phase to intercept before bubbling
+    node.addEventListener('pointerdown', onPopupPointerDownCapture, true);
+    node.addEventListener('pointerup', onPopupPointerUpCapture, true);
     
     return () => {
-      node.removeEventListener('pointerdown', onPopupPointerDownCapture as any, { capture: true } as any);
-      node.removeEventListener('pointerup', onPopupPointerUpCapture as any, { capture: true } as any);
-      document.removeEventListener('pointerup', onPopupPointerUpCapture as any, { capture: true } as any);
+      node.removeEventListener('pointerdown', onPopupPointerDownCapture, true);
+      node.removeEventListener('pointerup', onPopupPointerUpCapture, true);
     };
   }, [showPopup]);
 
