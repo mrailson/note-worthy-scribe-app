@@ -178,8 +178,6 @@ export const useMeetingFolders = () => {
       }
  
       console.log('✅ assignMeetingToFolder success - verified update:', data);
- 
-      showToast.success(folderId ? 'Meeting assigned to folder' : 'Meeting removed from folder');
       return true;
     } catch (error: any) {
       console.error('Error assigning meeting to folder (caught):', {
