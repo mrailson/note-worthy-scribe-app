@@ -81,6 +81,29 @@ export const parseContentToDocxElements = async (content: string) => {
         const headerCells = parseCells(tableLines[0]);
         const bodyRows = tableLines.slice(1).map(parseCells);
         
+        // Check if this is an action items table (has Priority column)
+        const priorityColIndex = headerCells.findIndex(h => h.toLowerCase().includes('priority'));
+        const deadlineColIndex = headerCells.findIndex(h => h.toLowerCase().includes('deadline') || h.toLowerCase().includes('due'));
+        
+        // Helper to get priority colour
+        const getPriorityStyle = (priority: string) => {
+          const p = priority.toLowerCase().trim();
+          if (p === 'high' || p === 'urgent') return { color: NHS_COLORS.priorityHigh, bg: NHS_COLORS.priorityHighBg };
+          if (p === 'medium' || p === 'normal') return { color: NHS_COLORS.priorityMedium, bg: NHS_COLORS.priorityMediumBg };
+          if (p === 'low') return { color: NHS_COLORS.priorityLow, bg: NHS_COLORS.priorityLowBg };
+          return null;
+        };
+        
+        // Helper to suggest deadline if TBC
+        const suggestDeadline = (deadline: string) => {
+          if (deadline.toLowerCase() === 'tbc' || deadline.toLowerCase() === 'to be confirmed') {
+            const twoWeeks = new Date();
+            twoWeeks.setDate(twoWeeks.getDate() + 14);
+            return twoWeeks.toLocaleDateString('en-GB');
+          }
+          return deadline;
+        };
+        
         // Create table with NHS blue header
         const table = new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
@@ -117,27 +140,49 @@ export const parseContentToDocxElements = async (content: string) => {
                 })
               ),
             }),
-            // Body rows
+            // Body rows with priority colouring and deadline suggestions
             ...bodyRows.map(row => 
               new TableRow({
-                children: row.map(cell => 
-                  new TableCell({
+                children: row.map((cell, colIndex) => {
+                  let displayText = cell;
+                  let cellColor = NHS_COLORS.textGrey;
+                  let cellBg: string | undefined = undefined;
+                  let isBold = false;
+                  
+                  // Apply priority colouring
+                  if (colIndex === priorityColIndex && priorityColIndex >= 0) {
+                    const style = getPriorityStyle(cell);
+                    if (style) {
+                      cellColor = style.color;
+                      cellBg = style.bg;
+                      isBold = true;
+                    }
+                  }
+                  
+                  // Suggest deadline if TBC
+                  if (colIndex === deadlineColIndex && deadlineColIndex >= 0) {
+                    displayText = suggestDeadline(cell);
+                  }
+                  
+                  return new TableCell({
                     children: [new Paragraph({
                       children: [new TextRun({ 
-                        text: cell, 
+                        text: displayText, 
                         size: FONTS.size.body,
-                        color: NHS_COLORS.textGrey,
+                        color: cellColor,
                         font: FONTS.default,
+                        bold: isBold,
                       })],
                     })],
+                    shading: cellBg ? { fill: cellBg } : undefined,
                     margins: {
                       top: 80,
                       bottom: 80,
                       left: 100,
                       right: 100,
                     },
-                  })
-                ),
+                  });
+                }),
               })
             ),
           ],
