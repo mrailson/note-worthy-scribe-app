@@ -5725,6 +5725,39 @@ export type Database = {
         }
         Relationships: []
       }
+      quick_record_tokens: {
+        Row: {
+          created_at: string
+          device_name: string | null
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          last_used_at: string | null
+          token: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          device_name?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          token: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          device_name?: string | null
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          last_used_at?: string | null
+          token?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       raw_transcript_chunks: {
         Row: {
           chunk_id: number
