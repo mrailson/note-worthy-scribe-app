@@ -135,15 +135,24 @@ export const InlineWordCorrector: React.FC<InlineWordCorrectorProps> = ({
 
     const onPopupPointerDownCapture = (e: PointerEvent) => {
       internalPointerDownRef.current = true;
-      // don't prevent default to allow focusing inputs
-      requestAnimationFrame(() => {
+      // Reset on pointerup instead of requestAnimationFrame for reliable timing
+    };
+
+    const onPopupPointerUpCapture = () => {
+      // Delay reset to ensure global handler has checked the flag
+      setTimeout(() => {
         internalPointerDownRef.current = false;
-      });
+      }, 150);
     };
 
     node.addEventListener('pointerdown', onPopupPointerDownCapture as any, { capture: true } as any);
+    node.addEventListener('pointerup', onPopupPointerUpCapture as any, { capture: true } as any);
+    document.addEventListener('pointerup', onPopupPointerUpCapture as any, { capture: true } as any);
+    
     return () => {
       node.removeEventListener('pointerdown', onPopupPointerDownCapture as any, { capture: true } as any);
+      node.removeEventListener('pointerup', onPopupPointerUpCapture as any, { capture: true } as any);
+      document.removeEventListener('pointerup', onPopupPointerUpCapture as any, { capture: true } as any);
     };
   }, [showPopup]);
 
