@@ -314,3 +314,9 @@ verify_jwt = true
 
 [functions.parse-bp-readings]
 verify_jwt = true
+
+[functions.send-meeting-email-resend]
+verify_jwt = false
+
+[functions.validate-quick-record-token]
+verify_jwt = false
