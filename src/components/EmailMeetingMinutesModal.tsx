@@ -513,20 +513,23 @@ export function EmailMeetingMinutesModal({
         return;
       }
 
+      // Primary recipient is the first one, rest are CC
+      const primaryRecipient = uniqueRecipients[0];
+      const ccRecipients = uniqueRecipients.slice(1);
+
+      const htmlContent = `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;"><div style="margin-bottom: 20px;"><p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">${emailBody.replace(/\n/g, '<br>')}</p></div><hr style="border: none; border-top: 3px solid #0066cc; margin: 20px 0;" /><div style="margin-top: 20px;">${formattedNotes}</div></div>`;
+
       const emailData = {
-        to_email: uniqueRecipients.join(', '),
+        to_email: primaryRecipient,
+        cc_emails: ccRecipients,
         subject: subject.trim(),
-        message: `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;"><div style="margin-bottom: 20px;"><p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">${emailBody.replace(/\n/g, '<br>')}</p></div><hr style="border: none; border-top: 3px solid #0066cc; margin: 20px 0;" /><div style="margin-top: 20px;">${formattedNotes}</div></div>`,
-        template_type: 'meeting_minutes',
-        from_name: 'GP Tools - Meeting Minutes',
-        reply_to: 'noreply@gp-tools.nhs.uk',
-        word_attachment: wordAttachment,
-        meeting_title: meetingTitle,
-        meeting_id: meetingId
+        html_content: htmlContent,
+        from_name: 'Notewell AI - Meeting Notes',
+        word_attachment: wordAttachment
       };
 
-      // Send email via Supabase edge function
-      const { data, error } = await supabase.functions.invoke('send-email-via-emailjs', {
+      // Send email via Resend edge function
+      const { data, error } = await supabase.functions.invoke('send-meeting-email-resend', {
         body: emailData
       });
 
@@ -536,12 +539,11 @@ export function EmailMeetingMinutesModal({
       }
 
       if (!data?.success) {
-        console.error('EmailJS error:', data);
-        throw new Error(data?.error || 'Failed to send email via EmailJS');
+        console.error('Resend error:', data);
+        throw new Error(data?.error || 'Failed to send email');
       }
 
       // Toast removed - user finds it distracting
-      // toast.success(`Meeting minutes sent successfully to ${toEmail}`);
       onOpenChange(false);
       
     } catch (error: any) {
