@@ -67,7 +67,7 @@ import {
   Sparkles, 
   Edit3, 
   Copy, 
-  FileText, 
+  FileText,
   Download,
   Search,
   Type,
@@ -98,6 +98,7 @@ import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 import { medicalTermCorrector } from '@/utils/MedicalTermCorrector';
 import { exportConsultationToWord } from '@/utils/consultationWordExport';
+import { WordIcon } from '@/components/icons/WordIcon';
 
 // Maximum length for Standard minutes rendering - skip expensive formatting for very long notes
 const MAX_MINUTES_RENDER_LENGTH = 12000;
@@ -3309,7 +3310,7 @@ ${transcriptToUse}`;
                                       }
                                     }}
                                   >
-                                    <FileText className="h-4 w-4" />
+                                    <WordIcon className="h-4 w-4" />
                                   </Button>
                                   <Button
                                     variant="outline"
