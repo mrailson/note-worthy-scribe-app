@@ -7751,6 +7751,21 @@ export type Database = {
         Args: { p_meeting_id: string }
         Returns: string
       }
+      get_meeting_usage_report: {
+        Args: never
+        Returns: {
+          all_time: number
+          avg_duration_mins: number
+          email: string
+          full_name: string
+          last_24h: number
+          last_30d: number
+          last_7d: number
+          total_duration_mins: number
+          total_words: number
+          user_id: string
+        }[]
+      }
       get_monitoring_dashboard: {
         Args: never
         Returns: {
