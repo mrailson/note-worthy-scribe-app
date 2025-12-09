@@ -7905,6 +7905,20 @@ export type Database = {
       is_system_admin: { Args: { _user_id?: string }; Returns: boolean }
       log_complaint_action:
         | {
+            Args: { p_action: string; p_complaint_id: string; p_details?: Json }
+            Returns: string
+          }
+        | {
+            Args: {
+              p_action_description: string
+              p_action_type: string
+              p_complaint_id: string
+              p_new_values?: Json
+              p_old_values?: Json
+            }
+            Returns: undefined
+          }
+        | {
             Args: {
               p_action_description: string
               p_action_type: string
@@ -7915,20 +7929,6 @@ export type Database = {
               p_user_agent?: string
             }
             Returns: undefined
-          }
-        | {
-            Args: {
-              p_action_description: string
-              p_action_type: string
-              p_complaint_id: string
-              p_new_values?: Json
-              p_old_values?: Json
-            }
-            Returns: undefined
-          }
-        | {
-            Args: { p_action: string; p_complaint_id: string; p_details?: Json }
-            Returns: string
           }
       log_complaint_activity: {
         Args: {
@@ -7953,16 +7953,16 @@ export type Database = {
       }
       log_complaint_view:
         | {
+            Args: { p_complaint_id: string; p_view_context?: string }
+            Returns: undefined
+          }
+        | {
             Args: {
               p_complaint_id: string
               p_ip_address?: string
               p_user_agent?: string
               p_view_context?: string
             }
-            Returns: undefined
-          }
-        | {
-            Args: { p_complaint_id: string; p_view_context?: string }
             Returns: undefined
           }
       log_compliance_change: {
@@ -7985,10 +7985,7 @@ export type Database = {
         Returns: undefined
       }
       log_security_event:
-        | {
-            Args: { p_details?: Json; p_event_type: string; p_user_id: string }
-            Returns: string
-          }
+        | { Args: { event_data: Json; event_type: string }; Returns: undefined }
         | {
             Args: {
               p_event_details?: Json
@@ -8001,7 +7998,6 @@ export type Database = {
             }
             Returns: string
           }
-        | { Args: { event_data: Json; event_type: string }; Returns: undefined }
         | {
             Args: {
               p_event_details?: Json
@@ -8011,6 +8007,10 @@ export type Database = {
               p_user_agent?: string
             }
             Returns: undefined
+          }
+        | {
+            Args: { p_details?: Json; p_event_type: string; p_user_id: string }
+            Returns: string
           }
       log_session_access_attempt: {
         Args: { p_access_type: string; p_session_id: string }
