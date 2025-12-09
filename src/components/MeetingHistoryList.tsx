@@ -205,8 +205,8 @@ export const MeetingHistoryList = ({
   console.log('🚨 Loading state:', loading);
   console.log('🚨 About to render:', meetings.length === 0 ? 'NO MEETINGS MESSAGE' : 'MEETINGS LIST');
   
-  // Local state for meetings to allow immediate updates
-  const [localMeetings, setLocalMeetings] = useState<Meeting[]>(meetings);
+  // Local state for meetings to allow immediate updates - initialize empty, sync from prop
+  const [localMeetings, setLocalMeetings] = useState<Meeting[]>([]);
   const [meetingAttendees, setMeetingAttendees] = useState<Record<string, any[]>>({});
   const [expandedAttendees, setExpandedAttendees] = useState<Record<string, boolean>>({});
   const [userPractices, setUserPractices] = useState<Array<{id: string, practice_name: string}>>([]);
@@ -217,28 +217,16 @@ export const MeetingHistoryList = ({
   const [folderSheetOpen, setFolderSheetOpen] = useState(false);
   const [selectedMeetingForFolder, setSelectedMeetingForFolder] = useState<Meeting | null>(null);
   
-  // Sync localMeetings with meetings prop - always trust database values
+  // Sync localMeetings with meetings prop - always trust database values (source of truth)
   useEffect(() => {
     console.log('🔄 Child: Syncing localMeetings with parent meetings', meetings.length);
-    setLocalMeetings((prev) => {
-      return meetings.map((incoming) => {
-        const existing = prev.find((m) => m.id === incoming.id);
-        
-        // If incoming has folder_id, always use it (database is source of truth)
-        if (incoming.folder_id) {
-          console.log(`✅ Using DB folder_id for meeting ${incoming.id}:`, incoming.folder_id);
-          return incoming;
-        }
-        
-        // Otherwise preserve local folder_id (optimistic update not yet synced)
-        if (existing?.folder_id) {
-          console.log(`⏳ Preserving local folder_id for meeting ${incoming.id}:`, existing.folder_id);
-          return { ...incoming, folder_id: existing.folder_id };
-        }
-        
-        return incoming;
-      });
-    });
+    console.log('🔄 Incoming meetings folder_ids:', meetings.slice(0, 5).map(m => ({ id: m.id.slice(0,8), folder_id: m.folder_id })));
+    
+    // Don't sync if parent hasn't loaded yet
+    if (meetings.length === 0) return;
+    
+    // Always use incoming data - database is source of truth
+    setLocalMeetings(meetings);
   }, [meetings]);
 
   // Fetch user practices and custom locations
