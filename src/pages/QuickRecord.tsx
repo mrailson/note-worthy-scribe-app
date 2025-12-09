@@ -53,7 +53,7 @@ const QuickRecord = () => {
         }
 
         // Redirect to meeting recorder with autoStart
-        navigate('/meeting-recorder?autoStart=true', { replace: true });
+        navigate('/?autoStart=true', { replace: true });
       } catch (err) {
         console.error('Quick record error:', err);
         setStatus('error');
