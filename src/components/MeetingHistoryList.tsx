@@ -2354,28 +2354,6 @@ export const MeetingHistoryList = ({
                   />
                 )}
                 
-                {/* Continue Meeting button - Only show for today's meetings */}
-                {isToday(new Date(meeting.created_at)) && (
-                  <TooltipProvider>
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleContinueMeeting(meeting)}
-                          disabled={!isResourceOperationSafe()}
-                          className="flex items-center justify-center gap-2 touch-manipulation min-h-[44px] text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-950/20"
-                        >
-                          <Play className="h-4 w-4" />
-                          <span className="hidden sm:inline">Continue</span>
-                        </Button>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <p>Continue recording this meeting. New transcript will be appended.</p>
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                )}
 
                 {/* View Notes button */}
                 <Button
@@ -2451,6 +2429,22 @@ export const MeetingHistoryList = ({
                       className="w-48 bg-popover border shadow-md z-50"
                       sideOffset={5}
                     >
+                      {/* Continue Meeting - Only show for today's meetings */}
+                      {isToday(new Date(meeting.created_at)) && (
+                        <DropdownMenuItem 
+                          onSelect={(e) => {
+                            e.preventDefault();
+                            setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                            handleContinueMeeting(meeting);
+                          }}
+                          disabled={!isResourceOperationSafe()}
+                          className="text-green-600 focus:text-green-700"
+                        >
+                          <Play className="h-4 w-4 mr-2" />
+                          Continue Recording
+                        </DropdownMenuItem>
+                      )}
+
                        <DropdownMenuItem 
                           onSelect={(e) => {
                             e.preventDefault();
