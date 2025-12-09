@@ -97,7 +97,7 @@ export const QuickRecordQRLink = () => {
           
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground text-center">
-              Scan this QR code with your iPhone camera to continue recording on your phone.
+              Scan this QR code with your iPhone/Android camera to start recording a meeting on your phone.
             </p>
             
             {qrCodeUrl && (
