@@ -432,6 +432,14 @@ export function EmailMeetingMinutesModal({
             continue;
           }
           
+          // Handle markdown headers (# ## ###) - strip the hash characters
+          if (line.match(/^#{1,6}\s/)) {
+            const headerText = line.replace(/^#{1,6}\s*/, '').trim();
+            html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${headerText}</h2>\n`;
+            i++;
+            continue;
+          }
+          
           // Handle section headers (ALL CAPS lines)
           if (line.length > 0 && line === line.toUpperCase() && line.length < 100 && !line.match(/^\d/)) {
             html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${line}</h2>\n`;
