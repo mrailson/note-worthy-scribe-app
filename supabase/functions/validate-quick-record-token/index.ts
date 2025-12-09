@@ -74,7 +74,7 @@ serve(async (req) => {
       type: "magiclink",
       email: userData.user.email!,
       options: {
-        redirectTo: `${req.headers.get("origin") || supabaseUrl}/meeting-recorder?autoStart=true`,
+        redirectTo: `${req.headers.get("origin") || supabaseUrl}/?autoStart=true`,
       },
     });
 
@@ -98,7 +98,7 @@ serve(async (req) => {
         email: userData.user.email,
         auth_token: authToken,
         token_type: tokenType,
-        redirect_url: `/meeting-recorder?autoStart=true`,
+        redirect_url: `/?autoStart=true`,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
