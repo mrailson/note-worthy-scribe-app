@@ -9,6 +9,13 @@ export const NHS_COLORS = {
   tableHeaderBg: "2563EB",
   tableHeaderText: "FFFFFF",
   white: "FFFFFF",
+  // Priority colours
+  priorityHigh: "DC2626",    // Red-600
+  priorityMedium: "F59E0B",  // Amber-500
+  priorityLow: "22C55E",     // Green-500
+  priorityHighBg: "FEE2E2", // Red-100
+  priorityMediumBg: "FEF3C7", // Amber-100
+  priorityLowBg: "DCFCE7",   // Green-100
 };
 
 // Font configuration
