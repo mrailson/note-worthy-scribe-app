@@ -1943,10 +1943,14 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </Card>
             </div>
 
+          </TabsContent>
+
+          {/* Database Tab */}
+          <TabsContent value="database" className="space-y-6">
             {/* Meeting Usage Report */}
             <MeetingUsageReport />
 
-            {/* Meeting Statistics by User (Legacy) */}
+            {/* Meeting Statistics by User */}
             <MeetingStatsByUser />
           </TabsContent>
 
