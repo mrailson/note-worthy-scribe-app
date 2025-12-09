@@ -56,6 +56,7 @@ import { AdminMeetingControls } from '@/components/AdminMeetingControls';
 import { DCB0129Panel } from '@/components/admin/DCB0129Panel';
 import { ConsultationVisibilitySettings } from '@/components/admin/ConsultationVisibilitySettings';
 import { MeetingStatsByUser } from '@/components/admin/MeetingStatsByUser';
+import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
 
@@ -1942,7 +1943,10 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </Card>
             </div>
 
-            {/* Meeting Statistics by User */}
+            {/* Meeting Usage Report */}
+            <MeetingUsageReport />
+
+            {/* Meeting Statistics by User (Legacy) */}
             <MeetingStatsByUser />
           </TabsContent>
 
