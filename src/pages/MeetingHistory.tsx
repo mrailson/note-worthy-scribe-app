@@ -1293,12 +1293,16 @@ const MeetingHistory = () => {
 
       console.log('✅ Loaded', meetingsData.length, 'meetings');
 
-      // Log folder IDs for debugging
-      console.log('📁 Meetings from DB (first 10):', meetingsData.slice(0, 10).map(m => ({
-        id: m.id,
-        title: m.title,
-        folder_id: (m as any).folder_id,
-      })));
+      // Log RAW folder IDs from database - this is critical debugging
+      console.log('📁📁📁 RAW DB DATA folder_id values:', meetingsData.slice(0, 10).map(m => {
+        const raw = m as any;
+        return {
+          id: m.id.slice(0, 8),
+          folder_id_value: raw.folder_id,
+          folder_id_typeof: typeof raw.folder_id,
+          keys: Object.keys(m).filter(k => k.includes('folder'))
+        };
+      }));
 
       // Load additional data in parallel (counts only, not full content)
       const meetingIds = meetingsData.map(m => m.id);
