@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Dialog,
@@ -9,9 +9,11 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { FileText, PlayCircle, Loader2, CheckCircle, AlertCircle } from 'lucide-react';
+import { FileText, PlayCircle, Loader2, CheckCircle, AlertCircle, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { showToast } from "@/utils/toastWrapper";
+import { useAuth } from '@/contexts/AuthContext';
+import { generateMeetingNotesDocx } from '@/utils/generateMeetingNotesDocx';
 
 interface PostMeetingActionsModalProps {
   isOpen: boolean;
@@ -31,10 +33,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
   onStartNewMeeting,
 }) => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [notesStatus, setNotesStatus] = useState<'generating' | 'completed' | 'error'>('generating');
   const [meetingNotes, setMeetingNotes] = useState<string>('');
   const [meetingData, setMeetingData] = useState<any>(null);
   const [transcriptLength, setTranscriptLength] = useState<number>(0);
+  const [emailSent, setEmailSent] = useState(false);
+  const emailSentRef = useRef(false); // Prevent duplicate sends
 
   // Format number in K style (e.g., 4200 -> 4.2K)
   const formatNumberK = (num: number): string => {
@@ -150,6 +155,194 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     };
   }, [meetingId, isOpen]);
 
+  // Auto-send email when notes are ready
+  useEffect(() => {
+    if (notesStatus !== 'completed' || !meetingData || !user?.email || emailSentRef.current) {
+      return;
+    }
+
+    const sendAutoEmail = async () => {
+      // Prevent duplicate sends
+      emailSentRef.current = true;
+      setEmailSent(true);
+
+      try {
+        console.log('📧 Auto-sending meeting notes email...');
+        
+        // Get user's full name from profile
+        const { data: profileData } = await supabase
+          .from('profiles')
+          .select('full_name')
+          .eq('email', user.email)
+          .single();
+        
+        const senderName = profileData?.full_name || user.email?.split('@')[0] || 'Notewell AI';
+        
+        // Format the meeting date for subject
+        const meetingDate = meetingData.startTime 
+          ? new Date(meetingData.startTime).toLocaleDateString('en-GB', { 
+              day: 'numeric', 
+              month: 'long', 
+              year: 'numeric' 
+            })
+          : new Date().toLocaleDateString('en-GB', { 
+              day: 'numeric', 
+              month: 'long', 
+              year: 'numeric' 
+            });
+        
+        const subject = `Meeting Minutes - ${meetingData.title || meetingTitle} - ${meetingDate}`;
+        
+        // Convert notes content to styled HTML
+        const htmlContent = convertNotesToStyledHTML(
+          meetingData.content || meetingNotes,
+          senderName,
+          meetingData.title || meetingTitle
+        );
+        
+        // Generate Word document attachment
+        let wordAttachment = null;
+        try {
+          const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
+          const { parseContentToDocxElements, stripTranscriptSection } = await import('@/utils/generateMeetingNotesDocx');
+          const { buildNHSStyles, buildNumbering, NHS_COLORS, FONTS } = await import('@/utils/wordTheme');
+          
+          const cleanedContent = stripTranscriptSection(meetingData.content || meetingNotes);
+          const cleanTitle = (meetingData.title || meetingTitle).replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+          
+          const children: any[] = [];
+          
+          children.push(
+            new Paragraph({
+              children: [new TextRun({
+                text: cleanTitle,
+                bold: true,
+                size: FONTS.size.title,
+                color: NHS_COLORS.headingBlue,
+                font: FONTS.default,
+              })],
+              alignment: AlignmentType.CENTER,
+              spacing: { after: 240 },
+            })
+          );
+          
+          const contentElements = await parseContentToDocxElements(cleanedContent);
+          children.push(...contentElements);
+          
+          const now = new Date();
+          const dateStr = now.toLocaleDateString('en-GB');
+          const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+          
+          children.push(
+            new Paragraph({
+              children: [new TextRun({
+                text: `Generated on ${dateStr} ${timeStr}`,
+                italics: true,
+                size: FONTS.size.footer,
+                color: NHS_COLORS.textLightGrey,
+                font: FONTS.default,
+              })],
+              alignment: AlignmentType.CENTER,
+              spacing: { before: 480 },
+            })
+          );
+          
+          const styles = buildNHSStyles();
+          const numbering = buildNumbering();
+          
+          const doc = new Document({
+            styles: styles,
+            numbering: numbering,
+            sections: [{ children }],
+          });
+          
+          const blob = await Packer.toBlob(doc);
+          const reader = new FileReader();
+          const base64Promise = new Promise<string>((resolve) => {
+            reader.onloadend = () => {
+              const base64 = (reader.result as string).split(',')[1];
+              resolve(base64);
+            };
+          });
+          reader.readAsDataURL(blob);
+          const base64Content = await base64Promise;
+          
+          const safeFilename = (meetingData.title || meetingTitle)
+            .replace(/[^a-zA-Z0-9\s]/g, '')
+            .replace(/\s+/g, '_')
+            .substring(0, 50);
+          
+          wordAttachment = {
+            content: base64Content,
+            filename: `${safeFilename}_Meeting_Notes.docx`,
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+          };
+        } catch (docError) {
+          console.warn('Word document generation failed for auto-email:', docError);
+        }
+        
+        // Send email via Resend edge function
+        const { data, error } = await supabase.functions.invoke('send-meeting-email-resend', {
+          body: {
+            to_email: user.email,
+            cc_emails: [],
+            subject,
+            html_content: htmlContent,
+            from_name: senderName,
+            word_attachment: wordAttachment
+          }
+        });
+        
+        if (error) {
+          console.error('Auto-email sending error:', error);
+          return;
+        }
+        
+        if (data?.success) {
+          console.log('✅ Auto-email sent successfully to:', user.email);
+        } else {
+          console.error('Auto-email failed:', data);
+        }
+      } catch (error) {
+        console.error('Error sending auto-email:', error);
+      }
+    };
+
+    sendAutoEmail();
+  }, [notesStatus, meetingData, user?.email, meetingNotes, meetingTitle]);
+
+  // Reset email sent state when modal closes or meeting changes
+  useEffect(() => {
+    if (!isOpen) {
+      emailSentRef.current = false;
+      setEmailSent(false);
+    }
+  }, [isOpen, meetingId]);
+
+  // Helper function to convert notes to styled HTML for email
+  const convertNotesToStyledHTML = (content: string, senderName: string, title: string): string => {
+    // Strip markdown hash characters from headings
+    let html = content
+      .replace(/^#{1,6}\s*(.*?)$/gm, (_, text) => `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${text.trim()}</h2>`)
+      .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #2563EB;">$1</strong>')
+      .replace(/\n/g, '<br>');
+
+    return `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
+      <div style="margin-bottom: 20px;">
+        <p style="margin: 0 0 12px 0; color: #1a1a1a; font-size: 14px; line-height: 1.5;">
+          Dear ${senderName},<br><br>
+          Please find attached the meeting notes for "${title}".<br><br>
+          Kind regards,<br>
+          ${senderName}
+        </p>
+      </div>
+      <hr style="border: none; border-top: 3px solid #0066cc; margin: 20px 0;" />
+      <div style="margin-top: 20px;">
+        ${html}
+      </div>
+    </div>`;
+  };
+
   const handleViewMeeting = () => {
     if (notesStatus !== 'completed') {
       showToast.info('Meeting notes are still being generated. Please wait a moment.', { section: 'meeting_manager' });
@@ -239,7 +432,15 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
                 </span>
                 
                 <span className="font-medium text-foreground">Status:</span>
-                <div>{getStatusBadge()}</div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {getStatusBadge()}
+                  {emailSent && (
+                    <Badge variant="outline" className="flex items-center gap-1.5 text-muted-foreground border-muted-foreground/30">
+                      <Mail className="h-3 w-3" />
+                      Emailed
+                    </Badge>
+                  )}
+                </div>
               </div>
             </DialogDescription>
           </DialogHeader>
