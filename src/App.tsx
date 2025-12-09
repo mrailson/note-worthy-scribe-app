@@ -91,6 +91,7 @@ import LGCaptureFileView from "./pages/LGCaptureFileView";
 import LGCaptureMyStats from "./pages/LGCaptureMyStats";
 import LGCaptureBulk from "./pages/LGCaptureBulk";
 import BPCalculator from "./pages/BPCalculator";
+import QuickRecord from "./pages/QuickRecord";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 
 const App = () => {
@@ -110,6 +111,7 @@ const App = () => {
           <div className="mobile-keyboard-adjust">
             <Routes>
               <Route path="/" element={<Index />} />
+              <Route path="/quick-record" element={<QuickRecord />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/executive-overview" element={<ExecutiveOverview />} />
               <Route path="/demos" element={<DemoVideosPage />} />

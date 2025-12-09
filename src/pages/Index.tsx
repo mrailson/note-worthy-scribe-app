@@ -35,6 +35,7 @@ const Index = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const editMeetingId = searchParams.get('edit');
+  const autoStart = searchParams.get('autoStart') === 'true';
   const [currentView, setCurrentView] = useState<"recording" | "summary">("recording");
   const [transcript, setTranscript] = useState("");
   const [duration, setDuration] = useState("00:00");
@@ -386,7 +387,7 @@ const Index = () => {
           <MaintenanceBanner />
           
           <div id="meeting-recorder">
-            <MeetingRecorder onTranscriptUpdate={setTranscript} onDurationUpdate={setDuration} onWordCountUpdate={setWordCount} initialSettings={meetingSettings} />
+            <MeetingRecorder onTranscriptUpdate={setTranscript} onDurationUpdate={setDuration} onWordCountUpdate={setWordCount} initialSettings={meetingSettings} autoStart={autoStart} />
           </div>
         </div>
 

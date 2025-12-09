@@ -56,6 +56,7 @@ import {
 } from 'lucide-react';
 import { PlaudIntegrationSettings } from '@/components/settings/PlaudIntegrationSettings';
 import { ServiceVisibilitySettings } from '@/components/settings/ServiceVisibilitySettings';
+import { QuickRecordSettings } from '@/components/settings/QuickRecordSettings';
 import { useToast } from '@/hooks/use-toast';
 import { useToastPreferences } from '@/hooks/useToastPreferences';
 import { useVoicePreference } from '@/hooks/useVoicePreference';
@@ -564,6 +565,9 @@ export default function Settings() {
 
               {/* Service Menu Visibility */}
               <ServiceVisibilitySettings />
+
+              {/* Quick Record for iPhone */}
+              <QuickRecordSettings />
 
               <Card>
                 <CardHeader>

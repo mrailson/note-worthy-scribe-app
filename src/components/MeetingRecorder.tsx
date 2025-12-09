@@ -99,6 +99,7 @@ interface MeetingRecorderProps {
   onTranscriptUpdate: (transcript: string) => void;
   onDurationUpdate: (duration: string) => void;
   onWordCountUpdate: (count: number) => void;
+  autoStart?: boolean;
   initialSettings?: {
     title: string;
     description: string;
@@ -116,6 +117,7 @@ export const MeetingRecorder = ({
   onTranscriptUpdate, 
   onDurationUpdate, 
   onWordCountUpdate,
+  autoStart = false,
   initialSettings
 }: MeetingRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
@@ -148,6 +150,9 @@ export const MeetingRecorder = ({
 
     return () => clearInterval(interval);
   }, []);
+
+  // Auto-start recording ref (effect added after user declaration)
+  const autoStartTriggeredRef = useRef(false);
 
   // Calculate word count from all chunks
   useEffect(() => {
@@ -511,6 +516,19 @@ export const MeetingRecorder = ({
     
     fetchUserPractices();
   }, [user?.id]);
+
+  // Auto-start recording when autoStart prop is true (for Quick Record)
+  useEffect(() => {
+    if (autoStart && !isRecording && !autoStartTriggeredRef.current && user) {
+      autoStartTriggeredRef.current = true;
+      // Small delay to ensure component is fully mounted
+      const timer = setTimeout(() => {
+        console.log('🚀 Auto-starting recording from Quick Record...');
+        startRecording();
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [autoStart, isRecording, user]);
 
   // Update location when meeting type changes to face-to-face
   useEffect(() => {
