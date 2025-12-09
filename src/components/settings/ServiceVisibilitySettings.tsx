@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Grid3X3, FileText, Stethoscope, MessageSquareWarning, Sparkles, Clock, Shield, FolderOpen, Building2, Wrench, Languages, Thermometer, Heart } from 'lucide-react';
+import { Grid3X3, FileText, Stethoscope, MessageSquareWarning, Sparkles, Clock, Shield, FolderOpen, Building2, Wrench, Languages, Thermometer, Heart, ChevronDown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useServiceActivation } from '@/hooks/useServiceActivation';
@@ -174,35 +175,46 @@ export const ServiceVisibilitySettings = () => {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Grid3X3 className="h-5 w-5" />
-          Service Menu Visibility
-        </CardTitle>
-        <p className="text-muted-foreground text-sm">
-          Choose which of your available services appear in the Select Service menu.
-        </p>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {availableServices.map(({ key, label, icon: Icon }) => (
-            <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Icon className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
-                  {label}
-                </Label>
+    <Collapsible defaultOpen={false}>
+      <Card>
+        <CollapsibleTrigger className="w-full">
+          <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="flex items-center gap-2 text-left">
+                  <Grid3X3 className="h-5 w-5" />
+                  Service Menu Visibility
+                </CardTitle>
+                <p className="text-muted-foreground text-sm text-left mt-1">
+                  Choose which of your available services appear in the Select Service menu.
+                </p>
               </div>
-              <Switch
-                id={key}
-                checked={visibility[key as keyof ServiceVisibility]}
-                onCheckedChange={(checked) => updateVisibility(key as keyof ServiceVisibility, checked)}
-              />
+              <ChevronDown className="h-5 w-5 text-muted-foreground transition-transform duration-200 group-data-[state=open]:rotate-180" />
             </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
+          </CardHeader>
+        </CollapsibleTrigger>
+        <CollapsibleContent>
+          <CardContent>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {availableServices.map(({ key, label, icon: Icon }) => (
+                <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Icon className="h-4 w-4 text-muted-foreground" />
+                    <Label htmlFor={key} className="text-sm font-medium cursor-pointer">
+                      {label}
+                    </Label>
+                  </div>
+                  <Switch
+                    id={key}
+                    checked={visibility[key as keyof ServiceVisibility]}
+                    onCheckedChange={(checked) => updateVisibility(key as keyof ServiceVisibility, checked)}
+                  />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </CollapsibleContent>
+      </Card>
+    </Collapsible>
   );
 };
