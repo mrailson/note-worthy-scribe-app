@@ -1291,26 +1291,15 @@ const MeetingHistory = () => {
         return;
       }
 
-      // IMMEDIATE RAW LOG - BEFORE ANY PROCESSING - v2 timestamp check
-      const firstMeeting = meetingsData[0] as unknown as Record<string, unknown>;
-      console.log('🟢🟢🟢 SUPABASE RAW RESPONSE v2:', {
-        id: firstMeeting.id,
-        title: firstMeeting.title,
-        folder_id: firstMeeting.folder_id,
-        folder_id_type: typeof firstMeeting.folder_id,
-        has_folder_id_key: 'folder_id' in firstMeeting,
-        all_keys: Object.keys(firstMeeting).filter(k => k.includes('folder'))
-      });
-      console.log('✅ Loaded', meetingsData.length, 'meetings at', new Date().toISOString());
-
-      // EXPLICIT STRING TRACE - won't get collapsed by console
-      const rawFolderTrace = meetingsData.slice(0, 10).map(m => {
-        const raw = m as unknown as Record<string, unknown>;
-        const fid = raw.folder_id;
-        console.log(`🟡 Meeting ${m.id.slice(0,8)} raw.folder_id =`, fid, 'type:', typeof fid);
-        return `${m.id.slice(0,8)}:${fid ?? 'NULL'}`;
-      }).join(', ');
-      console.log('🔴🔴🔴 RAW DB folder_ids:', rawFolderTrace);
+      // v3 - SUPER AGGRESSIVE DEBUG - Check raw Supabase response
+      const rawFirstMeeting = meetingsData[0] as unknown as Record<string, unknown>;
+      const folderIdValue = rawFirstMeeting['folder_id'];
+      const allKeys = Object.keys(rawFirstMeeting);
+      
+      // Use console.warn which is harder to miss
+      console.warn('🟢🟢🟢 SUPABASE RAW v3 - folder_id:', folderIdValue, 'type:', typeof folderIdValue);
+      console.warn('🟢🟢🟢 ALL KEYS:', allKeys.join(', '));
+      console.warn('🟢🟢🟢 First meeting stringified:', JSON.stringify(rawFirstMeeting, null, 2).slice(0, 500));
 
       // Load additional data in parallel (counts only, not full content)
       const meetingIds = meetingsData.map(m => m.id);
