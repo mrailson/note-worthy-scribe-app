@@ -205,8 +205,8 @@ export const MeetingHistoryList = ({
   console.log('🚨 Loading state:', loading);
   console.log('🚨 About to render:', meetings.length === 0 ? 'NO MEETINGS MESSAGE' : 'MEETINGS LIST');
   
-  // Local state for meetings to allow immediate updates - initialize empty, sync from prop
-  const [localMeetings, setLocalMeetings] = useState<Meeting[]>([]);
+  // Local state for meetings - initialize with prop value, sync on changes
+  const [localMeetings, setLocalMeetings] = useState<Meeting[]>(meetings);
   const [meetingAttendees, setMeetingAttendees] = useState<Record<string, any[]>>({});
   const [expandedAttendees, setExpandedAttendees] = useState<Record<string, boolean>>({});
   const [userPractices, setUserPractices] = useState<Array<{id: string, practice_name: string}>>([]);
@@ -217,15 +217,12 @@ export const MeetingHistoryList = ({
   const [folderSheetOpen, setFolderSheetOpen] = useState(false);
   const [selectedMeetingForFolder, setSelectedMeetingForFolder] = useState<Meeting | null>(null);
   
-  // Sync localMeetings with meetings prop - always trust database values (source of truth)
+  // Sync localMeetings with meetings prop - database is source of truth
   useEffect(() => {
     console.log('🔄 Child: Syncing localMeetings with parent meetings', meetings.length);
-    console.log('🔄 Incoming meetings folder_ids:', meetings.slice(0, 5).map(m => ({ id: m.id.slice(0,8), folder_id: m.folder_id })));
+    console.log('🔄 Incoming folder_ids:', meetings.slice(0, 5).map(m => ({ id: m.id.slice(0,8), folder_id: m.folder_id })));
     
-    // Don't sync if parent hasn't loaded yet
-    if (meetings.length === 0) return;
-    
-    // Always use incoming data - database is source of truth
+    // Always sync from database - don't skip
     setLocalMeetings(meetings);
   }, [meetings]);
 
