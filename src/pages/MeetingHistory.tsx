@@ -1291,12 +1291,16 @@ const MeetingHistory = () => {
         return;
       }
 
+      // IMMEDIATE RAW LOG - BEFORE ANY PROCESSING
+      console.log('🟢🟢🟢 SUPABASE RAW RESPONSE - first meeting:', JSON.stringify(meetingsData[0], null, 2));
       console.log('✅ Loaded', meetingsData.length, 'meetings');
 
       // EXPLICIT STRING TRACE - won't get collapsed by console
       const rawFolderTrace = meetingsData.slice(0, 10).map(m => {
         const raw = m as unknown as Record<string, unknown>;
-        return `${m.id.slice(0,8)}:${raw.folder_id ?? 'NULL'}`;
+        const fid = raw.folder_id;
+        console.log(`🟡 Meeting ${m.id.slice(0,8)} raw.folder_id =`, fid, 'type:', typeof fid);
+        return `${m.id.slice(0,8)}:${fid ?? 'NULL'}`;
       }).join(', ');
       console.log('🔴🔴🔴 RAW DB folder_ids:', rawFolderTrace);
 
