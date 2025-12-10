@@ -205,6 +205,11 @@ const PublicBPCalculator = () => {
             malcolm.railson@nhs.net
           </a>
         </p>
+
+        <p className="text-center text-xs text-red-600 dark:text-red-400 font-medium pb-4 px-4">
+          This is a test developmental service. There are known issues with AI hallucinations. 
+          The clinician should always double-check the data before use.
+        </p>
       </div>
     </div>
   );
