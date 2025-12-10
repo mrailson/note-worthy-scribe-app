@@ -320,3 +320,6 @@ verify_jwt = false
 
 [functions.validate-quick-record-token]
 verify_jwt = false
+
+[functions.tone-audit-optimiser]
+verify_jwt = true
