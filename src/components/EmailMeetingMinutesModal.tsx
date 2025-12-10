@@ -44,6 +44,7 @@ export function EmailMeetingMinutesModal({
   const [selectedAttendeeEmails, setSelectedAttendeeEmails] = useState<string[]>([]);
   const [meetingDateTime, setMeetingDateTime] = useState<string>("");
   const [meetingDate, setMeetingDate] = useState<string>("");
+  const [freshNotes, setFreshNotes] = useState<string>("");
 
   // Helper function to round time to nearest 15 minutes
   const roundToNearest15Minutes = (date: Date): Date => {
@@ -239,13 +240,55 @@ export function EmailMeetingMinutesModal({
     fetchAttendees();
   }, [isOpen, meetingId, profile?.email]);
 
+  // Fetch fresh notes from database when modal opens to ensure we have the latest tone-audited version
+  useEffect(() => {
+    const fetchFreshNotes = async () => {
+      if (!isOpen || !meetingId) return;
+      
+      // Skip database query for test meeting IDs
+      if (meetingId.startsWith('test-meeting-id-')) {
+        setFreshNotes(meetingNotes);
+        return;
+      }
+      
+      try {
+        const { data, error } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error fetching fresh notes:', error);
+          setFreshNotes(meetingNotes); // Fall back to prop
+          return;
+        }
+        
+        if (data?.summary) {
+          console.log('📝 Using fresh notes from database');
+          setFreshNotes(data.summary);
+        } else {
+          setFreshNotes(meetingNotes); // Fall back to prop
+        }
+      } catch (error) {
+        console.error('Error fetching fresh notes:', error);
+        setFreshNotes(meetingNotes); // Fall back to prop
+      }
+    };
+
+    fetchFreshNotes();
+  }, [isOpen, meetingId, meetingNotes]);
+
   const handleSendEmail = async () => {
+    // Use fresh notes from database, fall back to prop
+    const notesToSend = freshNotes || meetingNotes;
+    
     if (!toEmail.trim()) {
       toast.error("Please enter an email address");
       return;
     }
 
-    if (!meetingNotes.trim()) {
+    if (!notesToSend.trim()) {
       toast.error("No meeting notes available to send");
       return;
     }
@@ -259,8 +302,8 @@ export function EmailMeetingMinutesModal({
         const { parseContentToDocxElements, stripTranscriptSection } = await import('@/utils/generateMeetingNotesDocx');
         const { buildNHSStyles, buildNumbering, NHS_COLORS, FONTS } = await import('@/utils/wordTheme');
         
-        // Strip transcript sections
-        const cleanedContent = stripTranscriptSection(meetingNotes);
+        // Strip transcript sections - use fresh notes
+        const cleanedContent = stripTranscriptSection(notesToSend);
         
         // Clean the title
         const cleanTitle = meetingTitle.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
@@ -503,8 +546,8 @@ export function EmailMeetingMinutesModal({
         return html;
       };
 
-      // Format meeting notes as styled HTML
-      const formattedNotes = convertToStyledHTML(meetingNotes);
+      // Format meeting notes as styled HTML - use fresh notes
+      const formattedNotes = convertToStyledHTML(notesToSend);
 
       // Check for audio overview and prepare attachment if available
       let audioAttachment = null;
