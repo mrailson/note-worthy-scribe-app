@@ -6,6 +6,7 @@ import { Smartphone, QrCode } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import QRCode from 'qrcode';
+import { useDeviceInfo } from '@/hooks/use-mobile';
 
 interface TokenRecord {
   id: string;
@@ -15,6 +16,7 @@ interface TokenRecord {
 
 export const QuickRecordQRLink = () => {
   const { user } = useAuth();
+  const { isIOS } = useDeviceInfo();
   const [activeToken, setActiveToken] = useState<TokenRecord | null>(null);
   const [showQrModal, setShowQrModal] = useState(false);
   const [qrCodeUrl, setQrCodeUrl] = useState<string | null>(null);
@@ -62,8 +64,11 @@ export const QuickRecordQRLink = () => {
     }
   };
 
-  // Don't render anything if no token is set up or still loading
-  if (loading || !activeToken) {
+  // Don't render on mobile/smartphone devices - they're already on phone
+  const isSmartphone = isIOS || /Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  
+  // Don't render anything if no token is set up, still loading, or on smartphone
+  if (loading || !activeToken || isSmartphone) {
     return null;
   }
 
