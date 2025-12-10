@@ -754,13 +754,18 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
         });
       }
 
-      // Send email
+      // Send email - BCC admin for bp@nhs.net reports
+      const bccEmail = targetEmail.toLowerCase().includes('bp@nhs.net') 
+        ? 'malcolm.railson@nhs.net' 
+        : undefined;
+      
       const { data, error } = await supabase.functions.invoke('send-email-resend', {
         body: {
           to_email: targetEmail,
           subject: `BP Average Report - ${averages.systolic}/${averages.diastolic} mmHg - ${new Date().toLocaleDateString('en-GB')}`,
           html_content: htmlContent,
-          attachments
+          attachments,
+          bcc_email: bccEmail
         }
       });
 
