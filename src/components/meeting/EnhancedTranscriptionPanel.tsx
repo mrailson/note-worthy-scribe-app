@@ -67,7 +67,7 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const [fontSize, setFontSize] = useState(15); // Default font size in pixels
   
   // Formatted view state
-  const [displayMode, setDisplayMode] = useState<'raw' | 'formatted'>('raw');
+  const [displayMode, setDisplayMode] = useState<'raw' | 'formatted'>('formatted');
   
   // PII State
   const [piiMatches, setPiiMatches] = useState<PIIMatch[]>([]);
