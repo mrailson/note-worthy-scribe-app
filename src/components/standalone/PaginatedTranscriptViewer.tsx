@@ -4,11 +4,10 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ChevronLeft, ChevronRight, Download, FilePlus2, Loader2, Sparkles } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Download, FilePlus2, Sparkles } from 'lucide-react';
 import { Document, Paragraph, TextRun, Packer } from 'docx';
 import { saveAs } from 'file-saver';
 import { toast } from 'sonner';
-import { supabase } from '@/integrations/supabase/client';
 
 interface PaginatedTranscriptViewerProps {
   transcript: string;
@@ -25,8 +24,6 @@ export const PaginatedTranscriptViewer: React.FC<PaginatedTranscriptViewerProps>
 }) => {
   const [currentPage, setCurrentPage] = useState(0);
   const [displayMode, setDisplayMode] = useState<'raw' | 'formatted'>('raw');
-  const [formattedTranscript, setFormattedTranscript] = useState<string | null>(null);
-  const [isFormatting, setIsFormatting] = useState(false);
 
   // Helper function to clean HTML from transcript
   const cleanHTMLFromTranscript = (text: string): string => {
@@ -63,46 +60,17 @@ export const PaginatedTranscriptViewer: React.FC<PaginatedTranscriptViewerProps>
     return paras.length ? paras : [text];
   };
 
-  // Handle toggle to formatted view
-  const handleToggleFormatted = async (checked: boolean) => {
-    if (checked) {
-      setDisplayMode('formatted');
-      
-      // If we already have formatted content, use it
-      if (formattedTranscript) return;
-      
-      // Otherwise, call the edge function to format
-      setIsFormatting(true);
-      try {
-        const { data, error } = await supabase.functions.invoke('format-transcript-paragraphs', {
-          body: { transcript }
-        });
-
-        if (error) {
-          console.error('Format transcript error:', error);
-          toast.error('Failed to format transcript');
-          setDisplayMode('raw');
-          return;
-        }
-
-        if (data?.formattedTranscript) {
-          setFormattedTranscript(data.formattedTranscript);
-          toast.success('Transcript formatted');
-        } else {
-          toast.error('No formatted transcript returned');
-          setDisplayMode('raw');
-        }
-      } catch (error) {
-        console.error('Error formatting transcript:', error);
-        toast.error('Failed to format transcript');
-        setDisplayMode('raw');
-      } finally {
-        setIsFormatting(false);
-      }
-    } else {
-      setDisplayMode('raw');
-    }
+  // Handle toggle to formatted view - uses local paragraph splitting (instant)
+  const handleToggleFormatted = (checked: boolean) => {
+    setDisplayMode(checked ? 'formatted' : 'raw');
   };
+
+  // Get formatted paragraphs for display (same logic as Word download)
+  const formattedParagraphs = useMemo(() => {
+    if (!transcript) return [];
+    const cleanedText = cleanHTMLFromTranscript(transcript);
+    return splitIntoParagraphs(cleanedText);
+  }, [transcript]);
 
   const handleDownloadWord = async () => {
     if (!transcript) {
@@ -364,19 +332,11 @@ export const PaginatedTranscriptViewer: React.FC<PaginatedTranscriptViewerProps>
               id="formatted-view-paginated" 
               checked={displayMode === 'formatted'}
               onCheckedChange={handleToggleFormatted}
-              disabled={isFormatting}
             />
             <Label htmlFor="formatted-view-paginated" className="cursor-pointer text-sm flex items-center gap-1.5">
-              {isFormatting ? (
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              ) : (
-                <Sparkles className="h-4 w-4 text-primary" />
-              )}
+              <Sparkles className="h-4 w-4 text-primary" />
               Formatted
             </Label>
-            {displayMode === 'formatted' && (
-              <Badge variant="secondary" className="text-xs">AI</Badge>
-            )}
           </div>
 
           {onAddContext && (
@@ -403,16 +363,10 @@ export const PaginatedTranscriptViewer: React.FC<PaginatedTranscriptViewerProps>
       </div>
 
       <div className="min-h-[300px] max-h-[500px] overflow-y-auto mb-4">
-        {isFormatting ? (
-          <div className="flex flex-col items-center justify-center h-[300px] text-muted-foreground gap-3">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            <p>Formatting transcript with AI...</p>
-            <p className="text-xs">This may take a few seconds</p>
-          </div>
-        ) : displayMode === 'formatted' && formattedTranscript ? (
-          <div className="prose prose-sm max-w-none">
-            {formattedTranscript.split('\n\n').filter(p => p.trim()).map((para, idx) => (
-              <p key={idx} className="text-foreground mb-4 leading-relaxed" style={{ lineHeight: '1.7' }}>
+        {displayMode === 'formatted' && formattedParagraphs.length > 0 ? (
+          <div className="prose prose-sm max-w-none space-y-4">
+            {formattedParagraphs.map((para, idx) => (
+              <p key={idx} className="text-foreground leading-relaxed" style={{ lineHeight: '1.7' }}>
                 {para.trim()}
               </p>
             ))}
