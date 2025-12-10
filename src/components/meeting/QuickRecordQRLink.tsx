@@ -67,8 +67,8 @@ export const QuickRecordQRLink = () => {
   // Don't render on mobile/smartphone devices - they're already on phone
   const isSmartphone = isIOS || /Android|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   
-  // Don't render anything if no token is set up, still loading, or on smartphone
-  if (loading || !activeToken || isSmartphone) {
+  // Don't render anything if on smartphone or no token after loading completes
+  if (isSmartphone || (!loading && !activeToken)) {
     return null;
   }
 
@@ -80,6 +80,7 @@ export const QuickRecordQRLink = () => {
             variant="ghost"
             size="sm"
             onClick={handleShowQr}
+            disabled={loading || !activeToken}
             className="text-muted-foreground hover:text-primary"
           >
             <Smartphone className="h-4 w-4 mr-1" />
