@@ -230,6 +230,12 @@ const BPCalculator = () => {
           </div>
         )}
 
+        <p className="text-center text-xs text-muted-foreground pt-4 pb-2">
+          For any suggestions or feedback, please email{' '}
+          <a href="mailto:malcolm.railson@nhs.net" className="underline hover:text-foreground">
+            malcolm.railson@nhs.net
+          </a>
+        </p>
       </div>
     </div>
   );
