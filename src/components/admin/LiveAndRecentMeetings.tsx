@@ -52,12 +52,12 @@ export function LiveAndRecentMeetings() {
       if (userIds.length > 0) {
         const { data: profiles } = await supabase
           .from('profiles')
-          .select('id, email, full_name')
-          .in('id', userIds);
+          .select('user_id, email, full_name')
+          .in('user_id', userIds);
         
         if (profiles) {
           profiles.forEach(p => {
-            userMap[p.id] = { email: p.email || '', name: p.full_name || '' };
+            userMap[p.user_id] = { email: p.email || '', name: p.full_name || '' };
           });
         }
       }
