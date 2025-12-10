@@ -13,6 +13,9 @@ async function runToneAudit(notes: string): Promise<string> {
     const supabase = createClient(supabaseUrl, supabaseKey);
     
     console.log('🎯 Running GPT-5 professional tone audit...');
+    console.log('📊 Input notes length:', notes.length);
+    console.log('📝 Input preview (first 200 chars):', notes.substring(0, 200));
+    
     const { data: auditResult, error: auditError } = await supabase.functions.invoke(
       'tone-audit-optimiser',
       { body: { minutes_text: notes } }
@@ -23,12 +26,17 @@ async function runToneAudit(notes: string): Promise<string> {
       return notes;
     }
     
+    console.log('📋 Audit result keys:', Object.keys(auditResult || {}));
+    console.log('📊 Polished minutes length:', auditResult?.polished_minutes?.length || 0);
+    
     if (auditResult?.polished_minutes) {
       console.log('✅ GPT-5 tone audit completed successfully');
+      console.log('📝 Output preview (first 200 chars):', auditResult.polished_minutes.substring(0, 200));
       return auditResult.polished_minutes;
     }
     
     console.warn('⚠️ Tone audit returned no polished_minutes, using original notes');
+    console.log('📋 Full audit result:', JSON.stringify(auditResult).substring(0, 500));
     return notes;
   } catch (auditError) {
     console.warn('⚠️ Tone audit error, using original notes:', auditError);
