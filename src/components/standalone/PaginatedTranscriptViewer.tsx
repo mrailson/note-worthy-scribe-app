@@ -23,7 +23,7 @@ export const PaginatedTranscriptViewer: React.FC<PaginatedTranscriptViewerProps>
   onAddContext
 }) => {
   const [currentPage, setCurrentPage] = useState(0);
-  const [displayMode, setDisplayMode] = useState<'raw' | 'formatted'>('raw');
+  const [displayMode, setDisplayMode] = useState<'raw' | 'formatted'>('formatted');
 
   // Helper function to clean HTML from transcript
   const cleanHTMLFromTranscript = (text: string): string => {
