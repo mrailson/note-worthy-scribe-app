@@ -8,8 +8,8 @@ import { toast } from 'sonner';
 import { Key } from 'lucide-react';
 
 export const QuickPasswordUpdate = () => {
-  const [email, setEmail] = useState('tom.howseman@nhs.net');
-  const [newPassword, setNewPassword] = useState('NhsSecure2024!');
+  const [email, setEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
   const [updating, setUpdating] = useState(false);
 
   const handlePasswordUpdate = async () => {
