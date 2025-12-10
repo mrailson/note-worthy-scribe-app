@@ -373,13 +373,171 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
     }
   }, [isOpen, meetingId]);
 
+  // Helper function to strip duplicate blocks from content
+  const stripDuplicateBlocks = (text: string): string => {
+    let cleaned = text;
+    
+    // Remove standalone "MEETING NOTES" headings (with/without markdown)
+    cleaned = cleaned.replace(/^#{0,2}\s*MEETING\s*NOTES\s*$/gim, '');
+    
+    // Remove standalone "MEETING DETAILS" headings (with/without markdown)
+    cleaned = cleaned.replace(/^#{0,2}\s*MEETING\s*DETAILS\s*$/gim, '');
+    
+    // Remove "Meeting Title:" lines (with optional bullets and markdown bold)
+    cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Meeting\s*Title:\*?\*?.*$/gim, '');
+    
+    // Remove "Date:" lines
+    cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Date:\*?\*?.*$/gim, '');
+    
+    // Remove "Time:" lines
+    cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Time:\*?\*?.*$/gim, '');
+    
+    // Remove "Location:" lines
+    cleaned = cleaned.replace(/^[\s•\-\*]*\*?\*?Location:\*?\*?.*$/gim, '');
+    
+    // Clean up excessive blank lines
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+    
+    return cleaned;
+  };
+
+  // Helper function to convert markdown and format to styled HTML with proper structure
+  const convertToStyledHTML = (text: string): string => {
+    // First strip duplicate blocks
+    const cleanedText = stripDuplicateBlocks(text);
+    // Strip bold markers
+    let processedText = cleanedText.replace(/\*\*/g, '');
+    
+    // Remove transcript sections
+    const transcriptIndex = processedText.indexOf('MEETING TRANSCRIPT FOR REFERENCE:');
+    if (transcriptIndex !== -1) {
+      processedText = processedText.substring(0, transcriptIndex).trim();
+    }
+    processedText = processedText.replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '');
+    processedText = processedText.replace(/\n*Transcript:[\s\S]*$/i, '');
+    processedText = processedText.replace(/\n*Full Transcript:[\s\S]*$/i, '');
+    
+    const lines = processedText.split('\n');
+    let html = '';
+    let i = 0;
+    
+    while (i < lines.length) {
+      const line = lines[i].trim();
+      
+      // Handle tables
+      if (line.includes('|')) {
+        let tableHTML = '<table style="border-collapse: collapse; width: 100%; margin: 16px 0; font-family: Arial, sans-serif;">\n';
+        let isFirstRow = true;
+        let inTable = true;
+        
+        while (i < lines.length && inTable) {
+          const currentLine = lines[i].trim();
+          
+          if (/^[\|\-\s]+$/.test(currentLine)) {
+            i++;
+            continue;
+          }
+          
+          if (currentLine.includes('|')) {
+            const cells = currentLine.split('|').map(cell => cell.trim()).filter(cell => cell.length > 0);
+            
+            if (cells.length > 0) {
+              tableHTML += '  <tr>\n';
+              cells.forEach(cell => {
+                if (isFirstRow) {
+                  tableHTML += `    <th style="border: 1px solid #ddd; padding: 10px; background-color: #f5f5f5; text-align: left; font-weight: 600;">${cell}</th>\n`;
+                } else {
+                  tableHTML += `    <td style="border: 1px solid #ddd; padding: 10px; text-align: left;">${cell}</td>\n`;
+                }
+              });
+              tableHTML += '  </tr>\n';
+              isFirstRow = false;
+            }
+            i++;
+          } else {
+            inTable = false;
+          }
+        }
+        
+        tableHTML += '</table>\n';
+        html += tableHTML;
+        continue;
+      }
+      
+      // Handle markdown headers (# ## ###) - strip the hash characters
+      if (line.match(/^#{1,6}\s/)) {
+        const headerText = line.replace(/^#{1,6}\s*/, '').trim();
+        html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${headerText}</h2>\n`;
+        i++;
+        continue;
+      }
+      
+      // Handle section headers (ALL CAPS lines)
+      if (line.length > 0 && line === line.toUpperCase() && line.length < 100 && !line.match(/^\d/)) {
+        html += `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${line}</h2>\n`;
+        i++;
+        continue;
+      }
+      
+      // Handle bullet points
+      if (line.match(/^[•\-\*]\s/)) {
+        let listHTML = '<ul style="margin: 8px 0 8px 20px; padding: 0;">\n';
+        while (i < lines.length && lines[i].trim().match(/^[•\-\*]\s/)) {
+          const itemText = lines[i].trim().replace(/^[•\-\*]\s/, '');
+          listHTML += `  <li style="margin: 4px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${itemText}</li>\n`;
+          i++;
+        }
+        listHTML += '</ul>\n';
+        html += listHTML;
+        continue;
+      }
+      
+      // Handle numbered lists - only the numbered heading should be bold and blue
+      // Body text that follows should remain regular weight and black
+      if (line.match(/^\d+\.\s/)) {
+        // Extract just the heading part (before the first colon if present)
+        const fullText = line.replace(/^\d+\.\s*/, '');
+        const numberMatch = line.match(/^(\d+)\.\s/);
+        const number = numberMatch ? numberMatch[1] : '';
+        
+        // If there's a colon, split heading from body text
+        const colonIndex = fullText.indexOf(':');
+        if (colonIndex !== -1) {
+          const heading = fullText.substring(0, colonIndex + 1);
+          const bodyText = fullText.substring(colonIndex + 1).trim();
+          
+          // Heading in blue and bold, body text in regular black
+          html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;">`;
+          html += `<strong style="color: #2563EB;">${number}. ${heading}</strong>`;
+          if (bodyText) {
+            html += ` <span style="color: #1a1a1a; font-weight: normal;">${bodyText}</span>`;
+          }
+          html += `</p>\n`;
+        } else {
+          // No colon, entire line is heading
+          html += `<p style="margin: 16px 0 8px 0; line-height: 1.5; font-family: Arial, sans-serif; font-size: 14px;"><strong style="color: #2563EB;">${number}. ${fullText}</strong></p>\n`;
+        }
+        i++;
+        continue;
+      }
+      
+      // Handle empty lines
+      if (line.length === 0) {
+        i++;
+        continue;
+      }
+      
+      // Handle regular paragraphs
+      html += `<p style="margin: 8px 0; line-height: 1.5; font-family: Arial, sans-serif; color: #1a1a1a; font-size: 14px;">${line}</p>\n`;
+      i++;
+    }
+    
+    return html;
+  };
+
   // Helper function to convert notes to styled HTML for email
   const convertNotesToStyledHTML = (content: string, senderName: string, title: string): string => {
-    // Strip markdown hash characters from headings
-    let html = content
-      .replace(/^#{1,6}\s*(.*?)$/gm, (_, text) => `<h2 style="color: #2563EB; font-size: 14px; font-weight: 700; margin: 20px 0 8px 0; font-family: Arial, sans-serif; text-transform: uppercase;">${text.trim()}</h2>`)
-      .replace(/\*\*(.*?)\*\*/g, '<strong style="color: #2563EB;">$1</strong>')
-      .replace(/\n/g, '<br>');
+    const formattedNotes = convertToStyledHTML(content);
 
     return `<div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
       <div style="margin-bottom: 20px;">
@@ -392,7 +550,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       </div>
       <hr style="border: none; border-top: 3px solid #0066cc; margin: 20px 0;" />
       <div style="margin-top: 20px;">
-        ${html}
+        ${formattedNotes}
       </div>
     </div>`;
   };
