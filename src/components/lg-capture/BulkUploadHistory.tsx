@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, FileText, Check, X, Clock, Calendar, Files, ChevronDown, ChevronUp, Download, AlertCircle, Timer } from 'lucide-react';
+import { Loader2, FileText, Check, X, Clock, Calendar, Files, ChevronDown, ChevronUp, Download, AlertCircle, Timer, RotateCcw, Trash2, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { format, formatDistanceToNow } from 'date-fns';
+import { format, formatDistanceToNow, differenceInMinutes } from 'date-fns';
+import { toast } from 'sonner';
 
 interface BatchPatient {
   id: string;
@@ -42,6 +43,7 @@ interface BatchGroup {
   successfulFiles: number;
   failedFiles: number;
   processingFiles: number;
+  stuckFiles: number;
   totalPagesScanned: number;
   processingTime: string;
   completedAt: Date | null;
@@ -156,9 +158,18 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
       batchMap.forEach((batchPatients, batchId) => {
         const successfulFiles = batchPatients.filter(p => p.job_status === 'succeeded').length;
         const failedFiles = batchPatients.filter(p => p.job_status === 'failed').length;
-        const processingFiles = batchPatients.filter(p => 
+        const processingPatients = batchPatients.filter(p => 
           p.job_status !== 'succeeded' && p.job_status !== 'failed'
-        ).length;
+        );
+        const processingFiles = processingPatients.length;
+        
+        // Count stuck files (processing for more than 10 minutes)
+        const stuckFiles = processingPatients.filter(p => {
+          if (p.job_status !== 'processing') return false;
+          const startTime = p.upload_started_at || p.created_at;
+          if (!startTime) return false;
+          return differenceInMinutes(new Date(), new Date(startTime)) > 10;
+        }).length;
         
         const allProcessed = processingFiles === 0;
         const totalFiles = batchPatients.length;
@@ -198,6 +209,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
           successfulFiles,
           failedFiles,
           processingFiles,
+          stuckFiles,
           totalPagesScanned,
           processingTime,
           completedAt,
@@ -227,6 +239,93 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
       console.error('Error loading batch history:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  // Helper to check if a patient is stuck (processing for more than 10 minutes)
+  const isStuck = (patient: BatchPatient): boolean => {
+    if (patient.job_status !== 'processing') return false;
+    const startTime = patient.upload_started_at || patient.created_at;
+    if (!startTime) return false;
+    return differenceInMinutes(new Date(), new Date(startTime)) > 10;
+  };
+
+  // Cancel a stuck record
+  const handleCancelRecord = async (patientId: string) => {
+    try {
+      const { error } = await supabase
+        .from('lg_patients')
+        .update({ 
+          job_status: 'failed',
+          error_message: 'Cancelled by user'
+        })
+        .eq('id', patientId);
+
+      if (error) throw error;
+      toast.success('Record cancelled');
+      loadBatchHistory(false);
+    } catch (err) {
+      console.error('Error cancelling record:', err);
+      toast.error('Failed to cancel record');
+    }
+  };
+
+  // Retry a failed/stuck record
+  const handleRetryRecord = async (patient: BatchPatient) => {
+    try {
+      // Reset status to queued
+      const { error: updateError } = await supabase
+        .from('lg_patients')
+        .update({ 
+          job_status: 'queued',
+          error_message: null,
+          processing_error: null
+        })
+        .eq('id', patient.id);
+
+      if (updateError) throw updateError;
+
+      // Trigger the processing edge function
+      const { error: invokeError } = await supabase.functions.invoke('lg-process-patient', {
+        body: { patientId: patient.id }
+      });
+
+      if (invokeError) {
+        console.warn('Edge function invocation failed, record still queued for background processing:', invokeError);
+      }
+
+      toast.success('Record queued for retry');
+      loadBatchHistory(false);
+    } catch (err) {
+      console.error('Error retrying record:', err);
+      toast.error('Failed to retry record');
+    }
+  };
+
+  // Cancel all stuck records in a batch
+  const handleCancelAllStuck = async (batchId: string, stuckPatients: BatchPatient[]) => {
+    try {
+      const stuckIds = stuckPatients.filter(p => isStuck(p)).map(p => p.id);
+      
+      if (stuckIds.length === 0) {
+        toast.info('No stuck records to cancel');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('lg_patients')
+        .update({ 
+          job_status: 'failed',
+          error_message: 'Cancelled by user (batch clear)'
+        })
+        .in('id', stuckIds);
+
+      if (error) throw error;
+      toast.success(`Cancelled ${stuckIds.length} stuck record(s)`);
+      loadBatchHistory(false);
+    } catch (err) {
+      console.error('Error cancelling stuck records:', err);
+      toast.error('Failed to cancel stuck records');
     }
   };
 
@@ -403,10 +502,10 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                 </div>
 
                 {/* Summary Stats */}
-                <div className="grid grid-cols-4 divide-x border-b">
+                <div className="grid grid-cols-5 divide-x border-b">
                   <div className="p-3 text-center">
                     <div className="text-xl font-bold text-amber-600">{batch.totalFiles}</div>
-                    <div className="text-xs text-muted-foreground uppercase">Total Files</div>
+                    <div className="text-xs text-muted-foreground uppercase">Total</div>
                   </div>
                   <div className="p-3 text-center">
                     <div className="text-xl font-bold text-blue-600">{batch.processingFiles}</div>
@@ -417,15 +516,40 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                     <div className="text-xs text-muted-foreground uppercase">Complete</div>
                   </div>
                   <div className="p-3 text-center">
+                    <div className={`text-xl font-bold ${batch.stuckFiles > 0 ? 'text-red-600' : 'text-muted-foreground'}`}>
+                      {batch.stuckFiles}
+                    </div>
+                    <div className="text-xs text-muted-foreground uppercase">Stuck</div>
+                  </div>
+                  <div className="p-3 text-center">
                     <div className="text-xl font-bold">{batch.totalPagesScanned}</div>
                     <div className="text-xs text-muted-foreground uppercase">Pages</div>
                   </div>
                 </div>
 
+                {/* Clear All Stuck Button */}
+                {batch.stuckFiles > 0 && (
+                  <div className="px-4 py-2 bg-red-50 border-b border-red-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-red-700 text-sm">
+                      <AlertTriangle className="h-4 w-4" />
+                      <span>{batch.stuckFiles} record(s) appear stuck (processing &gt;10 min)</span>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="border-red-300 text-red-700 hover:bg-red-100"
+                      onClick={() => handleCancelAllStuck(batch.batchId, batch.patients)}
+                    >
+                      <Trash2 className="h-3 w-3 mr-1" />
+                      Clear All Stuck
+                    </Button>
+                  </div>
+                )}
+
                 {/* Expanded file list */}
                 {expandedBatches.has(batch.batchId) && (
                   <div className="p-4">
-                    <ScrollArea className="max-h-[250px]">
+                    <ScrollArea className="max-h-[300px]">
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-muted/50 text-left">
@@ -433,19 +557,29 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                             <th className="p-2 font-semibold text-xs uppercase text-muted-foreground">Patient / File</th>
                             <th className="p-2 font-semibold text-xs uppercase text-muted-foreground text-center">Pages</th>
                             <th className="p-2 font-semibold text-xs uppercase text-muted-foreground text-center">Status</th>
+                            <th className="p-2 font-semibold text-xs uppercase text-muted-foreground text-center">Actions</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y">
                           {batch.patients.map((patient, idx) => {
                             const patientName = patient.ai_extracted_name || patient.patient_name || `File ${idx + 1}`;
                             const hasError = patient.job_status === 'failed' && (patient.error_message || patient.processing_error);
+                            const patientIsStuck = isStuck(patient);
+                            const canRetry = patient.job_status === 'failed' || patientIsStuck;
+                            const canCancel = patientIsStuck;
                             
                             return (
-                              <tr key={patient.id} className="hover:bg-muted/30">
+                              <tr key={patient.id} className={`hover:bg-muted/30 ${patientIsStuck ? 'bg-red-50' : ''}`}>
                                 <td className="p-2 text-muted-foreground">{idx + 1}</td>
                                 <td className="p-2">
                                   <div>
                                     <span>{patientName}</span>
+                                    {patientIsStuck && (
+                                      <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
+                                        <AlertTriangle className="h-3 w-3" />
+                                        Stuck - processing for over 10 minutes
+                                      </p>
+                                    )}
                                     {hasError && (
                                       <p className="text-xs text-destructive mt-0.5 flex items-center gap-1">
                                         <AlertCircle className="h-3 w-3" />
@@ -455,7 +589,44 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                                   </div>
                                 </td>
                                 <td className="p-2 text-center">{patient.images_count || '—'}</td>
-                                <td className="p-2 text-center">{getPatientStatusBadge(patient.job_status)}</td>
+                                <td className="p-2 text-center">
+                                  {patientIsStuck ? (
+                                    <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-red-200">
+                                      <AlertTriangle className="h-3 w-3 mr-1" />Stuck
+                                    </Badge>
+                                  ) : (
+                                    getPatientStatusBadge(patient.job_status)
+                                  )}
+                                </td>
+                                <td className="p-2 text-center">
+                                  <div className="flex items-center justify-center gap-1">
+                                    {canRetry && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                        onClick={() => handleRetryRecord(patient)}
+                                        title="Retry processing"
+                                      >
+                                        <RotateCcw className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                    {canCancel && (
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                        onClick={() => handleCancelRecord(patient.id)}
+                                        title="Cancel and mark as failed"
+                                      >
+                                        <X className="h-3 w-3" />
+                                      </Button>
+                                    )}
+                                    {!canRetry && !canCancel && (
+                                      <span className="text-muted-foreground text-xs">—</span>
+                                    )}
+                                  </div>
+                                </td>
                               </tr>
                             );
                           })}
