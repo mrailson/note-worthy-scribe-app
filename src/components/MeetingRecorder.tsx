@@ -5513,25 +5513,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                 </Select>
               )}
               <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={loadMeetingHistory}
-                  className="whitespace-nowrap"
-                  disabled={loadingHistory}
-                >
-                  {loadingHistory ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                      Refreshing...
-                    </>
-                  ) : (
-                    <>
-                      <RefreshCw className="h-4 w-4 mr-2" />
-                      Refresh Page
-                    </>
-                  )}
-                </Button>
               </div>
               {filteredMeetings.length > 0 && (
                 <span className="text-sm text-muted-foreground whitespace-nowrap">
@@ -5632,6 +5613,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={loadMeetingHistory} disabled={loadingHistory}>
+                          <RefreshCw className={`h-4 w-4 mr-2 ${loadingHistory ? 'animate-spin' : ''}`} />Refresh Page
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setFoldersDialogOpen(true)}>
                           <Folder className="h-4 w-4 mr-2" />Manage Folders
                         </DropdownMenuItem>
