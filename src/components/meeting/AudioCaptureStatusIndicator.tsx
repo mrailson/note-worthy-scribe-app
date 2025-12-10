@@ -63,7 +63,7 @@ export const AudioCaptureStatusIndicator = ({
       {audioActivity && (
         <Badge variant="outline" className="flex items-center gap-1.5 bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700 animate-fade-in">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-xs text-green-600 dark:text-green-400 font-medium">Voice</span>
+          <span className="text-xs text-green-600 dark:text-green-400 font-medium">Voice Detected and Transcribing...</span>
         </Badge>
       )}
 
