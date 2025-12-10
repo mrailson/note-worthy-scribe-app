@@ -8,6 +8,73 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// V2 Amanda-compliant system prompt for NHS governance
+const SYSTEM_PROMPT_V2 = `You are an expert NHS meeting secretary. You create professional, factual, and neutral minutes suitable for board and governance distribution.
+Use British English and adhere strictly to NHS and UK healthcare documentation standards.
+
+Additional Behavioural Rules:
+- Never include jokes, humour, idioms, or personal remarks (e.g. "wolf ready to pounce").
+- Filter out gossip, personal anecdotes, or informal exchanges — only retain professional, factual, or decision-relevant dialogue.
+- Replace informal references (e.g. "Rich's mother-in-law") with the person's correct role or designation if known (e.g. "SPLW candidate"). If uncertain, use a neutral descriptor like "a candidate for the SPLW post".
+- Where tone in a section may sound critical, rephrase diplomatically (e.g. "members discussed differing perspectives on autonomy" rather than "the federation was criticised").
+- Maintain balance: represent differing views fairly, but without attributing emotional tone.
+- Prioritise clarity, professionalism, and governance readability over verbatim fidelity.
+- NEVER use placeholder text in square brackets like [Insert X].`;
+
+// Professional-tone audit post-processing (v2)
+function performProfessionalToneAudit(content: string): string {
+  if (!content) return content;
+  
+  let audited = content;
+  
+  // Remove judgemental or sarcastic phrases
+  const judgementalPatterns = [
+    { pattern: /complained about/gi, replacement: 'raised concerns regarding' },
+    { pattern: /was criticised/gi, replacement: 'received feedback on' },
+    { pattern: /criticised the/gi, replacement: 'expressed concerns about the' },
+    { pattern: /attacked the/gi, replacement: 'questioned the' },
+    { pattern: /blamed\s+(\w+)\s+for/gi, replacement: 'attributed responsibility to $1 for' },
+    { pattern: /failed to/gi, replacement: 'did not' },
+    { pattern: /refused to/gi, replacement: 'declined to' },
+    { pattern: /angrily stated/gi, replacement: 'stated firmly' },
+    { pattern: /frustrated by/gi, replacement: 'noted challenges with' },
+    { pattern: /annoyed at/gi, replacement: 'expressed concerns about' },
+    { pattern: /demanded that/gi, replacement: 'requested that' },
+    { pattern: /insisted on/gi, replacement: 'emphasised the need for' },
+    { pattern: /members complained/gi, replacement: 'members raised concerns' },
+    { pattern: /staff complained/gi, replacement: 'staff raised concerns' },
+    { pattern: /the federation was criticised/gi, replacement: 'members discussed differing perspectives on federation governance' },
+    { pattern: /wolf ready to pounce/gi, replacement: '' },
+    { pattern: /like a wolf/gi, replacement: '' },
+  ];
+  
+  for (const { pattern, replacement } of judgementalPatterns) {
+    audited = audited.replace(pattern, replacement);
+  }
+  
+  // Remove informal/personal remarks
+  const informalPatterns = [
+    /\b(lol|haha|lmao)\b/gi,
+    /\(laughs\)/gi,
+    /\(laughter\)/gi,
+    /mother-in-law/gi,
+    /father-in-law/gi,
+    /my wife|my husband|my partner/gi,
+  ];
+  
+  for (const pattern of informalPatterns) {
+    audited = audited.replace(pattern, '');
+  }
+  
+  // Clean up any double spaces or excessive punctuation
+  audited = audited
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\n\s*\n\s*\n/g, '\n\n')
+    .trim();
+  
+  return audited;
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -58,112 +125,78 @@ serve(async (req) => {
 
     const roundedTime = roundToNearest15Minutes(meetingTime || '');
 
-    const prompt = `You are a professional meeting secretary creating detailed meeting minutes using British English conventions. Analyse the transcript and generate comprehensive, structured meeting minutes.
+    const prompt = `You are a professional meeting secretary generating detailed, polished minutes from the transcript below.
 
-CRITICAL RULES - ABSOLUTELY NO PLACEHOLDERS:
-- Use British English spellings throughout (organised, realise, colour, centre)
-- Use British date formats with ordinals (1st August 2025, 22nd October 2025)
-- Use 24-hour time format (e.g., 14:30, not 2:30 PM)
-- ONLY include information actually present in the transcript
-- NEVER make up or fabricate information
-- NEVER EVER use square brackets like [Insert X] or [Insert Name] or any similar placeholder
-- NEVER use phrases like "Not specified", "TBC", "To be confirmed"
-- If information is not in the transcript, either OMIT that field entirely or use descriptive text like "Practice team members" or "Team discussed"
-- If a section has no relevant information, OMIT that entire section completely
+Follow these STRICT RULES:
 
-FORMATTING RULES:
-Write the meeting minutes in the following structure. Replace instructional text with actual content from the transcript:
+✅ Language and Format
+- British English spelling, NHS style, and 24-hour time.
+- British date format with ordinals (e.g. 22nd October 2025).
+- Use "Location not specified" if no venue mentioned.
+- Attendees section: always "TBC".
+- Never use placeholders or square brackets.
+- Omit any section with no data.
+
+✅ Content Filtering and Tone Management
+- Exclude informal banter, personal anecdotes, humour, off-topic remarks, or non-work-related comments.
+- Preserve only substantive discussions, decisions, and actions relevant to NHS/PCN governance.
+- When sensitive or critical issues are discussed (e.g. "PCN autonomy vs federation"), maintain factual accuracy but use measured, neutral phrasing — no subjective or emotive language.
+- Ensure every paragraph could safely appear in a circulated Board pack.
+
+✅ Output Structure
 
 # MEETING DETAILS
 
-**Meeting Title:** ${meetingTitle || 'General Meeting'}
-**Date:** ${meetingDate || 'Date not recorded'}
-**Time:** ${roundedTime || 'Time not recorded'}
-**Location:** Location not specified
-
-INSTRUCTION FOR LOCATION: If a specific location is mentioned in the transcript (e.g., "Board Room", "via Microsoft Teams"), write it. Otherwise write "Location not specified".
-
----
+- Meeting Title: ${meetingTitle || 'General Meeting'}
+- Date: ${meetingDate || 'Date not recorded'}
+- Time: ${roundedTime || 'Time not recorded'}
+- Location: [explicitly stated or "Location not specified"]
+- Attendees: TBC
 
 # EXECUTIVE SUMMARY
 
-INSTRUCTION: Write 2-3 comprehensive paragraphs summarising the overall meeting. Include main purpose, key decisions, important outcomes, and next steps. Only use information from the transcript. If there's very little content, write 1 concise paragraph.
-
----
-
-# ATTENDEES
-
-TBC
-
-INSTRUCTION FOR ATTENDEES: Attendees should be managed separately through the meeting management interface. Always write "TBC" here and never extract names from the transcript.
-
----
+2–3 concise paragraphs summarising the purpose, key discussions, and main decisions. Use neutral, professional tone.
 
 # DISCUSSION SUMMARY
 
-## Background
-INSTRUCTION: Explain what led to this meeting and what prior situations are being addressed. Use only transcript content.
-
-## Key Points
-INSTRUCTION: List main discussion items as bullet points. Each bullet should be a complete sentence about topics discussed, points raised, concerns mentioned, or data shared.
-
-## Outcome
-INSTRUCTION: Summarise conclusions reached and how discussions resolved. Use only transcript content.
-
----
+For each major topic:
+- Background: brief context
+- Key Points: bullet list of factual discussion items
+- Outcome: concise summary of conclusion or next step
 
 # DECISIONS & RESOLUTIONS
 
-INSTRUCTION: List specific decisions as numbered items (1., 2., 3., etc.). Each should be a clear statement of what was decided or resolved. If NO decisions were made in the meeting, OMIT this entire DECISIONS & RESOLUTIONS section completely.
-
----
+Numbered list of specific, factual decisions.
 
 # ACTION ITEMS
-
-INSTRUCTION: Create a markdown table with columns: Action | Responsible Party | Deadline | Priority
-
-CRITICAL: For Responsible Party column: 
-- ONLY use names or roles EXPLICITLY mentioned in the transcript as responsible for that specific action
-- NEVER infer, assume, or make up who should be responsible
-- If not explicitly stated, write "TBC" (To Be Confirmed)
-
-For Deadline column: Use actual dates mentioned (e.g., "22nd October 2025") or write "TBC" if no deadline stated.
-
-For Priority column: Write "High", "Medium", or "Low" based on urgency mentioned in transcript.
-
-If NO action items were discussed, OMIT this entire ACTION ITEMS section completely.
-
-Example format:
 | Action | Responsible Party | Deadline | Priority |
 |--------|------------------|----------|----------|
-| Investigate telephony system messaging | IT Lead | 29th October 2025 | High |
-| Arrange staff training session | TBC | TBC | Medium |
+...
 
----
+Rules:
+- Only include explicit responsibilities from transcript.
+- "TBC" if not stated.
 
 # FOLLOW-UP REQUIREMENTS
 
-INSTRUCTION: List specific follow-up tasks or monitoring requirements as bullet points. Use only items mentioned in transcript. If NOTHING about follow-up was mentioned, OMIT this entire section completely.
-
----
+Bulleted list of follow-ups mentioned.
 
 # OPEN ITEMS & RISKS
 
-INSTRUCTION: List unresolved issues, outstanding questions, risks, or items needing further discussion as bullet points. Use only items from transcript. If NOTHING was mentioned, OMIT this entire section completely.
-
----
+Bulleted list of unresolved or risk items.
 
 # NEXT MEETING
 
-INSTRUCTION: Only include this section if a next meeting was explicitly scheduled or discussed. Include date, time, location, and agenda items if mentioned. If NO next meeting was mentioned, OMIT this entire section completely.
+Include only if mentioned explicitly.
 
----
+Post-Processing Instruction:
+After producing the draft minutes, perform a final "professional-tone audit":
+- Remove any phrase that could appear judgemental, sarcastic, or overly critical.
+- Soften phrasing around governance tension points using objective wording (e.g. "members raised concerns" instead of "members complained").
 
-DO NOT include a "Meeting Transcript for Reference" section at the end.
+DO NOT include a "Meeting Transcript for Reference" section.
 
 Detail preference: ${detailInstructions}
-
-IMPORTANT REMINDER: Never use square brackets, never write "[Insert anything]", never use placeholder text. Write real content from the transcript or omit the section entirely.
 
 Transcript to analyse:
 ${transcript}`;
@@ -181,7 +214,7 @@ ${transcript}`;
         messages: [
           { 
             role: 'system', 
-            content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. You create comprehensive, professional meeting minutes following British conventions. You are meticulous about only including factual information from transcripts, never fabricating details. You understand medical/healthcare terminology and NHS organisational structures. CRITICAL: Never use placeholder text like [Insert X] or square brackets in your output. Write actual content from the transcript or use phrases like "Practice team members" or "Location not specified" when specific details are not available. Follow the exact format provided, using proper markdown formatting including tables for action items.' 
+            content: SYSTEM_PROMPT_V2
           },
           { role: 'user', content: prompt }
         ],
@@ -201,11 +234,14 @@ ${transcript}`;
     generatedMinutes = generatedMinutes
       .replace(/\[Insert[^\]]*\]/gi, '')
       .replace(/Location:\s*\[Insert[^\]]*\]/gi, 'Location: Location not specified')
-      .replace(/Attendees:\s*\[Insert[^\]]*\]/gi, 'Attendees: Practice team members')
+      .replace(/Attendees:\s*\[Insert[^\]]*\]/gi, 'Attendees: TBC')
       .replace(/Apologies:\s*\[Insert[^\]]*\]/gi, '')
       .replace(/Owner:\s*\[Insert[^\]]*\]/gi, 'Owner: Team member')
       .replace(/\n\s*\n\s*\n/g, '\n\n')
       .trim();
+    
+    // Apply professional-tone audit post-processing
+    generatedMinutes = performProfessionalToneAudit(generatedMinutes);
 
     console.log('Meeting minutes generated successfully');
 
