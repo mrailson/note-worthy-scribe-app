@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CheckCircle, Target, Clock } from 'lucide-react';
-import { NICEHomeBPAverage, NHSCategory, getTargetBP, getClinicalConsiderations } from '@/utils/bpCalculations';
+import { NICEHomeBPAverage, NHSCategory, getTargetBP } from '@/utils/bpCalculations';
 
 interface BPNICESummaryCardProps {
   niceAverage: NICEHomeBPAverage;
@@ -10,7 +10,6 @@ interface BPNICESummaryCardProps {
 
 export const BPNICESummaryCard = ({ niceAverage, category }: BPNICESummaryCardProps) => {
   const targets = getTargetBP();
-  const considerations = category ? getClinicalConsiderations(category) : [];
 
   const getCategoryBadgeClass = (color: string) => {
     switch (color) {
@@ -62,7 +61,7 @@ export const BPNICESummaryCard = ({ niceAverage, category }: BPNICESummaryCardPr
 
         <p className="text-sm text-muted-foreground">{niceAverage.message}</p>
 
-        {/* Category and Interpretation */}
+        {/* Category */}
         {niceAverage.isValid && category && (
           <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
             <div className="flex items-center gap-3 mb-2">
@@ -76,21 +75,6 @@ export const BPNICESummaryCard = ({ niceAverage, category }: BPNICESummaryCardPr
               )}
             </div>
             <p className="text-sm text-muted-foreground">{category.description}</p>
-          </div>
-        )}
-
-        {/* Clinical Considerations */}
-        {considerations.length > 0 && (
-          <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
-            <h4 className="text-sm font-medium text-foreground mb-2">Clinical Considerations</h4>
-            <ul className="text-sm text-muted-foreground space-y-1">
-              {considerations.map((consideration, index) => (
-                <li key={index} className="flex items-center gap-2">
-                  <span className="w-1.5 h-1.5 bg-blue-500 rounded-full" />
-                  {consideration}
-                </li>
-              ))}
-            </ul>
           </div>
         )}
 
