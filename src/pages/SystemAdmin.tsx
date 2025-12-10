@@ -57,6 +57,7 @@ import { DCB0129Panel } from '@/components/admin/DCB0129Panel';
 import { ConsultationVisibilitySettings } from '@/components/admin/ConsultationVisibilitySettings';
 import { MeetingStatsByUser } from '@/components/admin/MeetingStatsByUser';
 import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
+import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings';
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
 
@@ -1947,6 +1948,9 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
           {/* Database Tab */}
           <TabsContent value="database" className="space-y-6">
+            {/* Live and Recent Meetings */}
+            <LiveAndRecentMeetings />
+
             {/* Meeting Usage Report */}
             <MeetingUsageReport />
 
