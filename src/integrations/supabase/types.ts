@@ -7653,6 +7653,18 @@ export type Database = {
       }
       generate_complaint_reference: { Args: never; Returns: string }
       generate_incident_reference: { Args: never; Returns: string }
+      get_all_live_recordings: {
+        Args: never
+        Returns: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          status: string
+          title: string
+          updated_at: string
+          user_id: string
+        }[]
+      }
       get_combined_transcript: {
         Args: { p_meeting_id: string; p_session_id: string }
         Returns: string
@@ -7856,6 +7868,18 @@ export type Database = {
           mic_test_service_access: boolean
           role: Database["public"]["Enums"]["app_role"]
           shared_drive_access: boolean
+          user_id: string
+        }[]
+      }
+      get_recent_completed_meetings: {
+        Args: { since_time: string }
+        Returns: {
+          created_at: string
+          duration_minutes: number
+          id: string
+          status: string
+          title: string
+          updated_at: string
           user_id: string
         }[]
       }
