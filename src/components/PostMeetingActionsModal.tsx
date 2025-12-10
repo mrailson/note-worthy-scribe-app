@@ -293,6 +293,47 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           console.warn('Word document generation failed for auto-email:', docError);
         }
         
+        // Check for audio overview and include if available
+        let audioAttachment = null;
+        try {
+          const { data: audioData } = await supabase
+            .from('audio_overview_sessions')
+            .select('audio_url, title')
+            .eq('id', meetingId)
+            .maybeSingle();
+          
+          if (audioData?.audio_url) {
+            console.log('🔊 Found audio overview, fetching for attachment...');
+            const audioResponse = await fetch(audioData.audio_url);
+            if (audioResponse.ok) {
+              const audioBlob = await audioResponse.blob();
+              const audioReader = new FileReader();
+              const audioBase64Promise = new Promise<string>((resolve) => {
+                audioReader.onloadend = () => {
+                  const base64 = (audioReader.result as string).split(',')[1];
+                  resolve(base64);
+                };
+              });
+              audioReader.readAsDataURL(audioBlob);
+              const audioBase64 = await audioBase64Promise;
+              
+              const safeAudioFilename = (meetingData.title || meetingTitle)
+                .replace(/[^a-zA-Z0-9\s]/g, '')
+                .replace(/\s+/g, '_')
+                .substring(0, 50);
+              
+              audioAttachment = {
+                content: audioBase64,
+                filename: `${safeAudioFilename}_Audio_Overview.mp3`,
+                type: 'audio/mpeg'
+              };
+              console.log('✅ Audio attachment prepared');
+            }
+          }
+        } catch (audioError) {
+          console.warn('Audio attachment fetch failed:', audioError);
+        }
+        
         // Send email via Resend edge function
         const { data, error } = await supabase.functions.invoke('send-meeting-email-resend', {
           body: {
@@ -301,7 +342,8 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
             subject,
             html_content: htmlContent,
             from_name: senderName,
-            word_attachment: wordAttachment
+            word_attachment: wordAttachment,
+            audio_attachment: audioAttachment
           }
         });
         
