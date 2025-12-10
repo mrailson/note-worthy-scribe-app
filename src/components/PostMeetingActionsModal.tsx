@@ -92,8 +92,20 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         // Set transcript length
         setTranscriptLength(data.word_count || 0);
         
-        // Use notes_style_3 (Standard Minutes) if available, fall back to overview
-        const detailedNotes = data.notes_style_3 || data.overview || '';
+        // Fetch full notes from meeting_summaries table (the AI-generated notes)
+        let fullNotes = '';
+        if (data.notes_generation_status === 'completed') {
+          const { data: summaryData } = await supabase
+            .from('meeting_summaries')
+            .select('summary')
+            .eq('meeting_id', meetingId)
+            .maybeSingle();
+          
+          // Use meeting_summaries.summary as primary, fall back to notes_style_3 then overview
+          fullNotes = summaryData?.summary || data.notes_style_3 || data.overview || '';
+        } else {
+          fullNotes = data.notes_style_3 || data.overview || '';
+        }
         
         // Set meeting data for export
         setMeetingData({
@@ -103,12 +115,12 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           attendees: data.participants || [],
           meetingLocation: '',
           overview: data.overview || '',
-          content: detailedNotes,
+          content: fullNotes,
         });
         
         if (data.notes_generation_status === 'completed') {
           setNotesStatus('completed');
-          setMeetingNotes(detailedNotes);
+          setMeetingNotes(fullNotes);
         } else if (data.notes_generation_status === 'error' || data.notes_generation_status === 'failed') {
           setNotesStatus('error');
         } else {
