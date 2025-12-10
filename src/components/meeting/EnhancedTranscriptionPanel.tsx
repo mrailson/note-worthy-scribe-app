@@ -66,6 +66,11 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
   const [showPIIPanel, setShowPIIPanel] = useState(!isMobile); // Collapsible on mobile
   const [fontSize, setFontSize] = useState(15); // Default font size in pixels
   
+  // Formatted view state
+  const [displayMode, setDisplayMode] = useState<'raw' | 'formatted'>('raw');
+  const [formattedTranscriptCache, setFormattedTranscriptCache] = useState<string | null>(null);
+  const [isFormattingView, setIsFormattingView] = useState(false);
+  
   // PII State
   const [piiMatches, setPiiMatches] = useState<PIIMatch[]>([]);
   const [selectedPII, setSelectedPII] = useState<Set<number>>(new Set());
@@ -335,6 +340,47 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
     setTranscriptHistory(prev => prev.slice(0, -1));
     onTranscriptChange(lastVersion);
     showToast.success('Changes undone', { section: 'meeting_manager' });
+  };
+
+  // Handle toggle to formatted view (for display only, cached)
+  const handleToggleFormattedView = async (checked: boolean) => {
+    if (checked) {
+      setDisplayMode('formatted');
+      
+      // If we already have formatted content cached, use it
+      if (formattedTranscriptCache) return;
+      
+      // Otherwise, call the edge function to format
+      setIsFormattingView(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('format-transcript-paragraphs', {
+          body: { transcript }
+        });
+
+        if (error) {
+          console.error('Format transcript error:', error);
+          showToast.error('Failed to format transcript');
+          setDisplayMode('raw');
+          return;
+        }
+
+        if (data?.formattedTranscript) {
+          setFormattedTranscriptCache(data.formattedTranscript);
+          showToast.success('Transcript formatted for display', { section: 'meeting_manager' });
+        } else {
+          showToast.error('No formatted transcript returned');
+          setDisplayMode('raw');
+        }
+      } catch (error) {
+        console.error('Error formatting transcript:', error);
+        showToast.error('Failed to format transcript');
+        setDisplayMode('raw');
+      } finally {
+        setIsFormattingView(false);
+      }
+    } else {
+      setDisplayMode('raw');
+    }
   };
 
   const handleFormatTranscript = async () => {
@@ -799,6 +845,35 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
 
   // Render highlighted transcript
   const renderHighlightedTranscript = () => {
+    // Calculate line height based on font size (1.7x ratio for readability)
+    const lineHeight = `${fontSize * 1.7}px`;
+    
+    // If formatting is in progress, show loading
+    if (isFormattingView) {
+      return (
+        <div className="flex flex-col items-center justify-center h-64 text-muted-foreground gap-3">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+          <p>Formatting transcript with AI...</p>
+          <p className="text-xs">This may take a few seconds</p>
+        </div>
+      );
+    }
+    
+    // If in formatted mode and we have cached content, use that
+    if (displayMode === 'formatted' && formattedTranscriptCache) {
+      const paragraphs = formattedTranscriptCache.split('\n\n').filter(p => p.trim());
+      return (
+        <div className="space-y-4" style={{ fontSize: `${fontSize}px`, lineHeight }}>
+          {paragraphs.map((para, idx) => (
+            <p key={idx} className="mb-4">
+              {para.trim()}
+            </p>
+          ))}
+        </div>
+      );
+    }
+    
+    // Raw mode - original logic
     // Clean HTML tags from transcript first
     const cleanedTranscript = cleanHTMLFromTranscript(transcript);
     
@@ -813,9 +888,6 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
         .split(/(?<=[.!?])\s*\n+(?=[A-Z])/g)
         .filter(p => p.trim());
     }
-    
-    // Calculate line height based on font size (1.6x ratio for readability)
-    const lineHeight = `${fontSize * 1.6}px`;
     
     if (!showPII || piiMatches.length === 0) {
       return (
@@ -1103,6 +1175,30 @@ export const EnhancedTranscriptionPanel: React.FC<EnhancedTranscriptionPanelProp
           "flex gap-2",
           isIPhone ? "flex-col" : "flex-wrap"
         )}>
+          {/* Formatted View Toggle */}
+          <div className="flex items-center gap-2 border rounded-md px-3 py-1.5">
+            <Switch 
+              id="formatted-view-enhanced" 
+              checked={displayMode === 'formatted'}
+              onCheckedChange={handleToggleFormattedView}
+              disabled={isFormattingView}
+            />
+            <Label htmlFor="formatted-view-enhanced" className={cn(
+              "cursor-pointer text-sm flex items-center gap-1.5",
+              isIPhone && "text-xs"
+            )}>
+              {isFormattingView ? (
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              ) : (
+                <Sparkles className="h-4 w-4 text-primary" />
+              )}
+              {isIPhone ? "Fmt" : "Formatted"}
+            </Label>
+            {displayMode === 'formatted' && (
+              <Badge variant="secondary" className="text-xs">AI</Badge>
+            )}
+          </div>
+
           {/* Font Size Controls */}
           <div className="flex items-center gap-1 border rounded-md p-1">
             <Type className="h-4 w-4 text-muted-foreground mr-1" />
