@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Mic, Monitor, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -17,6 +18,26 @@ export const AudioCaptureStatusIndicator = ({
   isRecording,
   audioActivity
 }: AudioCaptureStatusIndicatorProps) => {
+  const [showVoiceIndicator, setShowVoiceIndicator] = useState(true);
+  const [hasAutoHidden, setHasAutoHidden] = useState(false);
+
+  // Auto-hide after 20 seconds of recording
+  useEffect(() => {
+    if (!isRecording) {
+      // Reset states when recording stops
+      setShowVoiceIndicator(true);
+      setHasAutoHidden(false);
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setShowVoiceIndicator(false);
+      setHasAutoHidden(true);
+    }, 20000);
+
+    return () => clearTimeout(timer);
+  }, [isRecording]);
+
   if (!isRecording) return null;
 
   const getMicStatus = () => {
@@ -26,7 +47,7 @@ export const AudioCaptureStatusIndicator = ({
     }
 
     if (micCaptured) {
-      return { icon: CheckCircle2, color: "text-green-500", label: "Mic Active" };
+      return { icon: CheckCircle2, color: "text-green-500", label: hasAutoHidden ? "Click to show/hide voice activity" : "Mic Active" };
     }
 
     // Only treat as an error in mic-only mode
@@ -43,6 +64,12 @@ export const AudioCaptureStatusIndicator = ({
     return { icon: AlertCircle, color: "text-amber-500", label: "System Audio Not Detected" };
   };
 
+  const handleMicStatusClick = () => {
+    if (hasAutoHidden) {
+      setShowVoiceIndicator(prev => !prev);
+    }
+  };
+
   const micStatus = getMicStatus();
   const systemStatus = getSystemStatus();
 
@@ -50,7 +77,11 @@ export const AudioCaptureStatusIndicator = ({
     <div className="flex items-center gap-2 px-3 py-2 bg-secondary/50 rounded-lg border">
       <Tooltip>
         <TooltipTrigger asChild>
-          <Badge variant="outline" className="flex items-center gap-1.5 cursor-help">
+          <Badge 
+            variant="outline" 
+            className={`flex items-center gap-1.5 ${hasAutoHidden ? 'cursor-pointer hover:bg-secondary/80' : 'cursor-help'}`}
+            onClick={handleMicStatusClick}
+          >
             <micStatus.icon className={`h-3.5 w-3.5 ${micStatus.color}`} />
           </Badge>
         </TooltipTrigger>
@@ -59,8 +90,8 @@ export const AudioCaptureStatusIndicator = ({
         </TooltipContent>
       </Tooltip>
 
-      {/* Voice Detection Indicator */}
-      {audioActivity && (
+      {/* Voice Detection Indicator - only show if showVoiceIndicator is true */}
+      {audioActivity && showVoiceIndicator && (
         <Badge variant="outline" className="flex items-center gap-1.5 bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700 animate-fade-in">
           <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
           <span className="text-xs text-green-600 dark:text-green-400 font-medium">Voice Detected and Transcribing...</span>
