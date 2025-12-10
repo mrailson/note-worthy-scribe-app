@@ -9,6 +9,19 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+// V2 Amanda-compliant system prompt for NHS governance
+const SYSTEM_PROMPT_V2 = `You are an expert NHS meeting secretary. You create professional, factual, and neutral minutes suitable for board and governance distribution.
+Use British English and adhere strictly to NHS and UK healthcare documentation standards.
+
+Additional Behavioural Rules:
+- Never include jokes, humour, idioms, or personal remarks (e.g. "wolf ready to pounce").
+- Filter out gossip, personal anecdotes, or informal exchanges — only retain professional, factual, or decision-relevant dialogue.
+- Replace informal references (e.g. "Rich's mother-in-law") with the person's correct role or designation if known (e.g. "SPLW candidate"). If uncertain, use a neutral descriptor like "a candidate for the SPLW post".
+- Where tone in a section may sound critical, rephrase diplomatically (e.g. "members discussed differing perspectives on autonomy" rather than "the federation was criticised").
+- Maintain balance: represent differing views fairly, but without attributing emotional tone.
+- Prioritise clarity, professionalism, and governance readability over verbatim fidelity.
+- NEVER use placeholder text in square brackets like [Insert X].`;
+
 // Handle large transcripts with Gemini's 2M token context
 function handleLargeTranscript(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
   console.log('🔧 Using Lovable AI with google/gemini-2.5-flash (2M token context)');
@@ -57,6 +70,60 @@ function sanitizeMeetingMinutes(content: string): string {
     // Clean up multiple blank lines
     .replace(/\n\s*\n\s*\n/g, '\n\n')
     .trim();
+}
+
+// Professional-tone audit post-processing (v2)
+function performProfessionalToneAudit(content: string): string {
+  if (!content) return content;
+  
+  let audited = content;
+  
+  // Remove judgemental or sarcastic phrases
+  const judgemEntalPatterns = [
+    { pattern: /complained about/gi, replacement: 'raised concerns regarding' },
+    { pattern: /was criticised/gi, replacement: 'received feedback on' },
+    { pattern: /criticised the/gi, replacement: 'expressed concerns about the' },
+    { pattern: /attacked the/gi, replacement: 'questioned the' },
+    { pattern: /blamed\s+(\w+)\s+for/gi, replacement: 'attributed responsibility to $1 for' },
+    { pattern: /failed to/gi, replacement: 'did not' },
+    { pattern: /refused to/gi, replacement: 'declined to' },
+    { pattern: /angrily stated/gi, replacement: 'stated firmly' },
+    { pattern: /frustrated by/gi, replacement: 'noted challenges with' },
+    { pattern: /annoyed at/gi, replacement: 'expressed concerns about' },
+    { pattern: /demanded that/gi, replacement: 'requested that' },
+    { pattern: /insisted on/gi, replacement: 'emphasised the need for' },
+    { pattern: /members complained/gi, replacement: 'members raised concerns' },
+    { pattern: /staff complained/gi, replacement: 'staff raised concerns' },
+    { pattern: /the federation was criticised/gi, replacement: 'members discussed differing perspectives on federation governance' },
+    { pattern: /wolf ready to pounce/gi, replacement: '' },
+    { pattern: /like a wolf/gi, replacement: '' },
+  ];
+  
+  for (const { pattern, replacement } of judgemEntalPatterns) {
+    audited = audited.replace(pattern, replacement);
+  }
+  
+  // Remove informal/personal remarks
+  const informalPatterns = [
+    /\b(lol|haha|lmao)\b/gi,
+    /\(laughs\)/gi,
+    /\(laughter\)/gi,
+    /mother-in-law/gi,
+    /father-in-law/gi,
+    /my wife|my husband|my partner/gi,
+  ];
+  
+  for (const pattern of informalPatterns) {
+    audited = audited.replace(pattern, '');
+  }
+  
+  // Clean up any double spaces or excessive punctuation
+  audited = audited
+    .replace(/\s{2,}/g, ' ')
+    .replace(/\n\s*\n\s*\n/g, '\n\n')
+    .trim();
+  
+  return audited;
 }
 
 // Sanitise action item owners to prevent hallucinations
@@ -147,6 +214,8 @@ CRITICAL RULES:
 - Merge all agenda items chronologically
 - Remove duplicate action items and decisions
 - Maintain all specific details, names, dates
+- Filter out any informal banter, personal anecdotes, humour, or off-topic remarks
+- Ensure every paragraph could safely appear in a circulated Board pack
 
 CHUNK RESULTS TO CONSOLIDATE:
 ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
@@ -163,7 +232,7 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
       messages: [
         { 
           role: 'system', 
-          content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. Use British English and never include placeholder text in square brackets.' 
+          content: SYSTEM_PROMPT_V2
         },
         { 
           role: 'user', 
@@ -192,7 +261,8 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
   const content = data.choices[0].message.content;
   
   const sanitizeStartTime = Date.now();
-  const sanitized = sanitizeMeetingMinutes(content);
+  let sanitized = sanitizeMeetingMinutes(content);
+  sanitized = performProfessionalToneAudit(sanitized);
   console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
   console.log(`⏱️ Total consolidation time: ${Date.now() - startTime}ms`);
   
@@ -201,57 +271,77 @@ ${chunkResults.join('\n\n--- CHUNK SEPARATOR ---\n\n')}`;
 
 async function processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice) {
   const startTime = Date.now();
-  console.log('🎯 Processing chunk with Gemini Flash - NO PLACEHOLDERS');
+  console.log('🎯 Processing chunk with Gemini Flash - V2 Amanda-compliant');
   console.log(`📊 Transcript length: ${transcript.length} characters`);
   
-  const meetingNotesPrompt = `You are a professional meeting secretary creating detailed minutes using British English. Analyse the transcript and produce polished, factual minutes.
+  const meetingNotesPrompt = `You are a professional meeting secretary generating detailed, polished minutes from the transcript below.
 
-STRICT RULES:
-- Use British English spellings and 24-hour time format throughout
-- Use British date formats with ordinals (e.g., 22nd October 2025)
-- Only include information actually present in the transcript
-- NEVER use placeholders or square brackets like [Insert X], [Not specified], [To be confirmed]
-- If information is not available, omit the field/section entirely
-- Always write "TBC" for attendees (attendees should be managed separately, never extract from transcript)
-- Use "Location not specified" if location is unknown
-- Capture ALL agenda items, decisions, and action items from the transcript
+Follow these STRICT RULES:
 
-OUTPUT STRUCTURE:
+✅ Language and Format
+- British English spelling, NHS style, and 24-hour time.
+- British date format with ordinals (e.g. 22nd October 2025).
+- Use "Location not specified" if no venue mentioned.
+- Attendees section: always "TBC".
+- Never use placeholders or square brackets.
+- Omit any section with no data.
+
+✅ Content Filtering and Tone Management
+- Exclude informal banter, personal anecdotes, humour, off-topic remarks, or non-work-related comments.
+- Preserve only substantive discussions, decisions, and actions relevant to NHS/PCN governance.
+- When sensitive or critical issues are discussed (e.g. "PCN autonomy vs federation"), maintain factual accuracy but use measured, neutral phrasing — no subjective or emotive language.
+- Ensure every paragraph could safely appear in a circulated Board pack.
+
+✅ Output Structure
 
 # MEETING DETAILS
+
 - Meeting Title: ${meetingTitle || 'General Meeting'}
 - Date: ${meetingDate || 'Date not recorded'}
 - Time: ${meetingTime || 'Time not recorded'}
-- Location: [Only if explicitly mentioned in transcript, otherwise write "Location not specified"]
+- Location: [explicitly stated or "Location not specified"]
 - Attendees: TBC
 
 # EXECUTIVE SUMMARY
-Write 2-3 concise paragraphs covering: meeting purpose, key decisions, major outcomes, and next steps.
+
+2–3 concise paragraphs summarising the purpose, key discussions, and main decisions. Use neutral, professional tone.
 
 # DISCUSSION SUMMARY
-For each major topic discussed:
-- Background: Brief context
-- Key Points: Bullet points with important details
-- Outcome: Conclusions or decisions reached
+
+For each major topic:
+- Background: brief context
+- Key Points: bullet list of factual discussion items
+- Outcome: concise summary of conclusion or next step
 
 # DECISIONS & RESOLUTIONS
-Numbered list of specific decisions made. Omit section if no decisions.
+
+Numbered list of specific, factual decisions.
 
 # ACTION ITEMS
-Markdown table only if actions exist:
 | Action | Responsible Party | Deadline | Priority |
 |--------|------------------|----------|----------|
+...
 
-CRITICAL: ONLY use names/roles EXPLICITLY mentioned in transcript as responsible for specific actions. If not stated, write "TBC". Use "TBC" for unspecified deadlines. NEVER infer or assume responsibility.
+Rules:
+- Only include explicit responsibilities from transcript.
+- "TBC" if not stated.
 
 # FOLLOW-UP REQUIREMENTS
-Bullet points for monitoring/check-ins mentioned. Omit if none.
+
+Bulleted list of follow-ups mentioned.
 
 # OPEN ITEMS & RISKS
-Bullet points for unresolved issues or risks. Omit if none.
+
+Bulleted list of unresolved or risk items.
 
 # NEXT MEETING
-Only include if explicitly scheduled in transcript.
+
+Include only if mentioned explicitly.
+
+Post-Processing Instruction:
+After producing the draft minutes, perform a final "professional-tone audit":
+- Remove any phrase that could appear judgemental, sarcastic, or overly critical.
+- Soften phrasing around governance tension points using objective wording (e.g. "members raised concerns" instead of "members complained").
 
 DO NOT include a "Meeting Transcript for Reference" section.
 
@@ -272,7 +362,7 @@ ${transcript}`;
       messages: [
         { 
           role: 'system', 
-          content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. Use British English and never include placeholder text in square brackets.' 
+          content: SYSTEM_PROMPT_V2
         },
         { 
           role: 'user', 
@@ -302,7 +392,8 @@ ${transcript}`;
   const content = data.choices[0].message.content;
   
   const sanitizeStartTime = Date.now();
-  const sanitized = sanitizeMeetingMinutes(content);
+  let sanitized = sanitizeMeetingMinutes(content);
+  sanitized = performProfessionalToneAudit(sanitized);
   console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
   console.log(`⏱️ Total chunk processing time: ${Date.now() - startTime}ms`);
   
@@ -349,7 +440,7 @@ serve(async (req) => {
           messages: [
             { 
               role: 'system', 
-              content: 'You are an expert meeting secretary for NHS and UK healthcare organisations. Use British English throughout and never include placeholder text in square brackets like [Insert X].' 
+              content: SYSTEM_PROMPT_V2
             },
             { 
               role: 'user', 
@@ -381,6 +472,7 @@ serve(async (req) => {
       // Sanitize output
       const sanitizeStartTime = Date.now();
       generatedNotes = sanitizeMeetingMinutes(generatedNotes);
+      generatedNotes = performProfessionalToneAudit(generatedNotes);
       generatedNotes = sanitiseActionOwners(generatedNotes, transcript);
       console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
       
@@ -437,11 +529,12 @@ serve(async (req) => {
     const totalTime = Date.now() - functionStartTime;
     console.log('✅ Lovable AI meeting minutes generated successfully');
     console.log('📝 Generated minutes preview:', meetingMinutes.substring(0, 500));
-    console.log(`⏱️ TOTAL FUNCTION EXECUTION TIME: ${totalTime}ms (${(totalTime / 1000).toFixed(2)}s)`);
+    console.log(`⏱️ Total function execution time: ${totalTime}ms`);
 
     return new Response(JSON.stringify({ 
       success: true,
       meetingMinutes: meetingMinutes,
+      generatedNotes: meetingMinutes,
       processingTimeMs: totalTime
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -449,22 +542,11 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in generate-meeting-notes-claude function:', error);
-    
-    // Return user-friendly error messages
-    let userMessage = error.message;
-    let statusCode = 500;
-    
-    if (error.message.includes('Rate limit')) {
-      statusCode = 429;
-    } else if (error.message.includes('credits')) {
-      statusCode = 402;
-    }
-    
     return new Response(JSON.stringify({ 
       success: false,
-      error: userMessage
+      error: error.message 
     }), {
-      status: statusCode,
+      status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
