@@ -149,17 +149,13 @@ export function LiveAndRecentMeetings() {
                 >
                   <div className="flex-1">
                     <p className="font-medium text-sm">{meeting.title}</p>
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                      {meeting.user_name && (
-                        <span className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {meeting.user_name}
-                        </span>
-                      )}
-                      <span className="flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        Started {formatTime(meeting.created_at)}
-                      </span>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                      <User className="h-3 w-3" />
+                      <span className="font-medium">{meeting.user_email || meeting.user_name || 'Unknown user'}</span>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+                      <Clock className="h-3 w-3" />
+                      Started {formatTime(meeting.created_at)}
                     </div>
                   </div>
                   <Badge variant="destructive" className="animate-pulse">
