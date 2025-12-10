@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 
@@ -294,6 +295,9 @@ export const MeetingRecorder = ({
   const [isDeletingEmpty, setIsDeletingEmpty] = useState(false);
   const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
   const [showDeleteEmptyDialog, setShowDeleteEmptyDialog] = useState(false);
+  const [deleteAllConfirmChecked, setDeleteAllConfirmChecked] = useState(false);
+  const [deleteAllHoldProgress, setDeleteAllHoldProgress] = useState(0);
+  const deleteAllHoldRef = useRef<NodeJS.Timeout | null>(null);
   
   // Meeting editing state
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
@@ -5643,15 +5647,108 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
-                  <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+                  <AlertDialog open={showDeleteAllDialog} onOpenChange={(open) => {
+                    setShowDeleteAllDialog(open);
+                    if (!open) {
+                      setDeleteAllConfirmChecked(false);
+                      setDeleteAllHoldProgress(0);
+                    }
+                  }}>
                     <AlertDialogContent className="mx-4 max-w-md">
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
-                        <AlertDialogDescription className="text-sm">This will permanently delete all {meetings.length} meetings. This cannot be undone.</AlertDialogDescription>
+                        <AlertDialogTitle className="text-destructive flex items-center gap-2">
+                          <Trash2 className="h-5 w-5" />
+                          Delete All Meetings
+                        </AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm space-y-3">
+                          <p>This will <strong>permanently delete all {meetings.length} meeting{meetings.length > 1 ? 's' : ''}</strong>, including their transcripts, notes, and summaries.</p>
+                          <p className="text-destructive font-medium">⚠️ This action cannot be undone. Deleted meetings are not retrievable.</p>
+                        </AlertDialogDescription>
                       </AlertDialogHeader>
+                      <div className="flex items-start space-x-3 py-4 border-t border-b">
+                        <Checkbox 
+                          id="delete-all-confirm" 
+                          checked={deleteAllConfirmChecked}
+                          onCheckedChange={(checked) => setDeleteAllConfirmChecked(checked === true)}
+                          className="mt-0.5"
+                        />
+                        <label 
+                          htmlFor="delete-all-confirm" 
+                          className="text-sm cursor-pointer select-none leading-relaxed"
+                        >
+                          I understand that all {meetings.length} meetings will be permanently deleted and cannot be recovered.
+                        </label>
+                      </div>
                       <AlertDialogFooter className="flex-col sm:flex-row gap-2">
                         <AlertDialogCancel className="touch-manipulation min-h-[44px]">Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={() => { handleDeleteAll(); setShowDeleteAllDialog(false); }} className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]">Delete All</AlertDialogAction>
+                        <Button
+                          variant="destructive"
+                          disabled={!deleteAllConfirmChecked}
+                          className="touch-manipulation min-h-[44px] relative overflow-hidden"
+                          onMouseDown={() => {
+                            if (!deleteAllConfirmChecked) return;
+                            let progress = 0;
+                            const interval = setInterval(() => {
+                              progress += 2;
+                              setDeleteAllHoldProgress(progress);
+                              if (progress >= 100) {
+                                clearInterval(interval);
+                                deleteAllHoldRef.current = null;
+                                handleDeleteAll();
+                                setShowDeleteAllDialog(false);
+                                setDeleteAllConfirmChecked(false);
+                                setDeleteAllHoldProgress(0);
+                              }
+                            }, 20);
+                            deleteAllHoldRef.current = interval;
+                          }}
+                          onMouseUp={() => {
+                            if (deleteAllHoldRef.current) {
+                              clearInterval(deleteAllHoldRef.current);
+                              deleteAllHoldRef.current = null;
+                              setDeleteAllHoldProgress(0);
+                            }
+                          }}
+                          onMouseLeave={() => {
+                            if (deleteAllHoldRef.current) {
+                              clearInterval(deleteAllHoldRef.current);
+                              deleteAllHoldRef.current = null;
+                              setDeleteAllHoldProgress(0);
+                            }
+                          }}
+                          onTouchStart={() => {
+                            if (!deleteAllConfirmChecked) return;
+                            let progress = 0;
+                            const interval = setInterval(() => {
+                              progress += 2;
+                              setDeleteAllHoldProgress(progress);
+                              if (progress >= 100) {
+                                clearInterval(interval);
+                                deleteAllHoldRef.current = null;
+                                handleDeleteAll();
+                                setShowDeleteAllDialog(false);
+                                setDeleteAllConfirmChecked(false);
+                                setDeleteAllHoldProgress(0);
+                              }
+                            }, 20);
+                            deleteAllHoldRef.current = interval;
+                          }}
+                          onTouchEnd={() => {
+                            if (deleteAllHoldRef.current) {
+                              clearInterval(deleteAllHoldRef.current);
+                              deleteAllHoldRef.current = null;
+                              setDeleteAllHoldProgress(0);
+                            }
+                          }}
+                        >
+                          <div 
+                            className="absolute inset-0 bg-red-900/50 transition-all duration-75 ease-linear"
+                            style={{ width: `${deleteAllHoldProgress}%` }}
+                          />
+                          <span className="relative z-10">
+                            {deleteAllHoldProgress > 0 ? `Hold... ${Math.round(deleteAllHoldProgress)}%` : 'Hold to Delete All'}
+                          </span>
+                        </Button>
                       </AlertDialogFooter>
                     </AlertDialogContent>
                   </AlertDialog>
