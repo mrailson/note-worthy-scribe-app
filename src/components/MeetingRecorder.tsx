@@ -5437,27 +5437,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               </div>
             </div>
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="default"
-                onClick={() => setFoldersDialogOpen(true)}
-                className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
-              >
-                <Folder className="h-4 w-4" />
-                <span className="hidden sm:inline">Manage Folders</span>
-                <span className="sm:hidden">Folders</span>
-              </Button>
-              <Button
-                variant="default"
-                size="default"
-                onClick={() => setImportDialogOpen(true)}
-                className="touch-manipulation min-h-[44px] flex items-center gap-2 font-inter shadow-sm hover:shadow-md transition-all whitespace-nowrap"
-              >
-                <Sparkles className="h-4 w-4" />
-                <span className="hidden lg:inline">Demonstration Meeting</span>
-                <span className="hidden sm:inline lg:hidden">Demo Import</span>
-                <span className="sm:hidden">Import</span>
-              </Button>
             </div>
           </div>
 
@@ -5653,8 +5632,11 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end" className="w-56">
-                        <DropdownMenuItem onClick={handleClearEmptyMeetings} disabled={isDeletingEmpty}>
-                          <Trash2 className="h-4 w-4 mr-2" />Clear Empty (0 words, 90min+)
+                        <DropdownMenuItem onClick={() => setFoldersDialogOpen(true)}>
+                          <Folder className="h-4 w-4 mr-2" />Manage Folders
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
+                          <Sparkles className="h-4 w-4 mr-2" />Demonstration Meeting
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowDeleteEmptyDialog(true)} disabled={isDeletingEmpty}>
                           <Trash2 className="h-4 w-4 mr-2" />Delete Empty (&lt;100 words)
