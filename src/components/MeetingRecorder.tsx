@@ -54,6 +54,7 @@ import { useMeetingFolders } from "@/hooks/useMeetingFolders";
 import { TabAudioGuidanceDialog } from "@/components/meeting/TabAudioGuidanceDialog";
 import { AudioCaptureStatusIndicator } from "@/components/meeting/AudioCaptureStatusIndicator";
 import { QuickRecordQRLink } from "@/components/meeting/QuickRecordQRLink";
+import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscriptImportModal";
 
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
@@ -318,6 +319,7 @@ export const MeetingRecorder = ({
   
   // Import dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [teamsImportOpen, setTeamsImportOpen] = useState(false);
   
   // Recording context state
   const [showContextDialog, setShowContextDialog] = useState(false);
@@ -5636,6 +5638,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                         <DropdownMenuItem onClick={() => setFoldersDialogOpen(true)}>
                           <Folder className="h-4 w-4 mr-2" />Manage Folders
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setTeamsImportOpen(true)}>
+                          <Video className="h-4 w-4 mr-2" />Load Teams Transcript
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
                           <Sparkles className="h-4 w-4 mr-2" />Demonstration Meeting
                         </DropdownMenuItem>
@@ -5978,6 +5983,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
           setShowTabAudioGuidance(false);
           setPendingRecordingStart(false);
         }}
+      />
+      
+      {/* Teams Transcript Import Modal */}
+      <TeamsTranscriptImportModal
+        open={teamsImportOpen}
+        onOpenChange={setTeamsImportOpen}
       />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
