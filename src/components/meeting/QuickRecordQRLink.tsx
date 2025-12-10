@@ -113,7 +113,7 @@ export const QuickRecordQRLink = () => {
             )}
             
             <p className="text-xs text-muted-foreground text-center">
-              {activeToken.device_name || 'Quick Record'}
+              {activeToken?.device_name || 'Quick Record'}
             </p>
           </div>
         </DialogContent>
