@@ -152,8 +152,7 @@ export function LiveAndRecentMeetings() {
                   className="flex items-center justify-between p-3 bg-red-50 dark:bg-red-950/20 rounded-lg border border-red-200 dark:border-red-800"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{meeting.title}</p>
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                    <div className="flex items-center gap-1 text-sm">
                       <User className="h-3 w-3" />
                       <span className="font-medium">{meeting.user_email || meeting.user_name || 'Unknown user'}</span>
                     </div>
@@ -201,8 +200,9 @@ export function LiveAndRecentMeetings() {
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                 >
                   <div className="flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="font-medium text-sm">{meeting.title}</p>
+                    <div className="flex items-center gap-2 text-sm">
+                      <User className="h-3 w-3" />
+                      <span className="font-medium">{meeting.user_email || meeting.user_name || 'Unknown user'}</span>
                       {meeting.word_count && (
                         <span className="text-xs text-muted-foreground">
                           ({meeting.word_count.toLocaleString()} words)
