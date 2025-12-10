@@ -8,101 +8,102 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `You are a professional NHS governance editor.
-You review meeting minutes and polish the language so it is suitable for Board, ICB, Audit Committee, or formal organisational circulation.
-You must ensure the content remains factual but the tone is neutral, diplomatic, and professionally worded at all times.
+const SYSTEM_PROMPT = `You are an NHS governance editor.
+Your job is to transform meeting minutes into neutral, factual, diplomatic language suitable for Board, ICB, and partner organisation circulation.
+You must keep all factual content but remove any language that is emotive, critical, informal, political, adversarial, or personally identifying.`;
 
-Do not remove decisions, actions, risks, data, or factual content.
-Do not change meaning.
-Only adjust language, tone, and phrasing.`;
-
-const USER_PROMPT_TEMPLATE = `Review the meeting-minutes text below and rewrite it with full NHS governance-level professional tone, applying ALL rules:
-
-1. Remove inappropriate personal identifiers
-Replace any mention of family relations, anecdotes, or informal descriptors such as:
-- "Rich's mother-in-law"
-- "someone's wife", "my mate", "the lady from…"
-→ Replace with neutral role descriptions, e.g.:
-- "the previously identified SPLW candidate"
-- "a member of staff"
-- "a candidate for the role"
-
-2. Remove or replace metaphors, idioms, jokes or figurative language
-Identify and neutralise expressions like:
-- "wolf ready to pounce"
-- "catch 22"
-- "nightmare"
-- "clever and quick"
-- "touthy-feely issues"
-- "dance camp", "posh camp"
-→ Replace with formal equivalents:
-- "members expressed concern about…"
-- "noted structural constraints…"
-- "identified significant operational challenges…"
-
-3. Replace colloquial or quoted expressions with professional equivalents
-Remove direct quotes of casual or informal speech such as:
-- "more money, less hours"
-- "strictly sticking to templates"
-- anything sounding conversational
-→ Instead:
-- "the individual expressed a preference for reduced hours and higher remuneration"
-- "the approach was described as template-driven"
-
-4. Reduce blunt, critical or adversarial language
-Replace direct criticism with diplomatically phrased equivalents.
-Examples:
-- "PML is seeking money" → "Members discussed concerns about the alignment of PML services with PCN priorities."
-- "disconnect between ICB ideas and reality" → "Members noted practical challenges in implementing some ICB proposals."
-- "competency concerns" → "concerns were noted regarding progression through required training."
-- "disunity as a reason for general practice to fail" → "concerns were raised about the importance of cohesion across practices."
-
-5. Replace capability-judging statements with neutral descriptions
-Examples:
-- "does not address stress or anxiety" → "feedback indicated that broader patient support needs may not always be addressed."
-- "failing a prescribing course" → "the individual has not yet completed the prescribing qualification."
-
-6. Ensure ALL tone is governance-safe
-Use phrases such as:
-- "members discussed…"
-- "the group noted…"
-- "concerns were raised…"
-- "it was agreed that…"
-- "options were explored…"
-
-Avoid phrases such as:
-- "they felt"
-- "they were frustrated"
-- "they were annoyed"
-- "they argued"
-- "they said X was pointless"
-- "X is a problem"
-
-7. Preserve structure and factual content
-Do NOT remove:
-- agenda items
-- decisions
-- action items
-- risks
-- dates
-- names of organisations
-- financial figures
-- estates/legal details
-- workforce details
-Your role is tone correction only.
-
-8. Return the final polished document only
-No commentary, no explanation.
+const USER_PROMPT_TEMPLATE = `Rewrite the following meeting minutes into a fully governance-safe format, applying ALL rules:
 
 ---
 
-Minutes to polish:
+🔹 1. Remove adversarial or politically sensitive language
+
+Replace expressions such as:
+- "playing both sides"
+- "divorce from PML"
+- "financial gain"
+- "seeking relevance"
+- "encroachment by NHFT"
+- "control over general practice"
+- "negative experiences with their administration"
+with neutral, factual equivalents:
+- "maintain constructive engagement"
+- "transition away from the current arrangement"
+- "concerns were raised about alignment with PCN priorities"
+- "members noted potential implications"
+- "operational challenges were highlighted"
+
+---
+
+🔹 2. Remove informal expressions, metaphors, or dramatic wording
+
+Replace all metaphors such as:
+- "wolf ready to pounce"
+- "catch-22"
+- "fast and position-filled"
+- "frustration"
+with:
+- "members expressed concern…"
+- "noted structural constraints…"
+- "members emphasised the need for timely action"
+
+---
+
+🔹 3. Remove personal identifiers and replace with roles
+
+Replace:
+- "Rich's mother-in-law"
+- references to individuals' private circumstances
+with:
+- "the previous SPLW candidate"
+
+---
+
+🔹 4. Recast capability concerns into formal governance language
+
+Replace:
+- "failed a prescribing course"
+→ "has not yet completed the prescribing qualification"
+- "holistic approach was questioned"
+→ "feedback indicated opportunities to broaden the scope of practice"
+
+---
+
+🔹 5. Remove any informal quotes
+
+Eliminate:
+- "more money, less hours"
+- "dance camp / posh camp"
+- any casual repetition of verbal remarks
+Rephrase as formal descriptive statements.
+
+---
+
+🔹 6. Ensure the final tone is:
+- neutral
+- factual
+- diplomatic
+- suitable for the ICB
+- suitable for PML, NHFT, or any partner to read
+- suitable for FOI disclosure
+
+---
+
+🔹 7. Preserve all structure & facts
+
+Do NOT remove decisions, action items, dates, risks, services, financial figures, estates/legal details, or workforce context.
+
+---
+
+INPUT:
 
 {{minutes_text}}
 
 ---
 
-Return only the rewritten, tone-optimised meeting minutes.`;
+OUTPUT:
+
+Return only the fully rewritten, governance-optimised minutes.`;
 
 serve(async (req) => {
   // Handle CORS preflight requests
