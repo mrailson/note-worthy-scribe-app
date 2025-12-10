@@ -12,8 +12,7 @@ import {
   DateRange, 
   QOFRelevance,
   SitStandAverages,
-  getTargetBP,
-  getClinicalConsiderations
+  getTargetBP
 } from '@/utils/bpCalculations';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
@@ -122,7 +121,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
     if (!averages) return null;
 
     const targets = getTargetBP();
-    const considerations = niceCategory ? getClinicalConsiderations(niceCategory) : [];
 
     // Calculate pulse range if readings have pulse data
     const pulsesWithData = includedReadings.filter(r => r.pulse);
@@ -295,16 +293,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             children: [new TextRun({ text: niceCategory?.description || "", size: 20, color: "6B7280" })],
             spacing: { after: 150 },
           }),
-          ...(considerations.length > 0 ? [
-            new Paragraph({
-              children: [new TextRun({ text: "Clinical Considerations:", bold: true, size: 20, color: "1F2937" })],
-              spacing: { after: 100 },
-            }),
-            ...considerations.map(c => new Paragraph({
-              children: [new TextRun({ text: `• ${c}`, size: 20, color: "6B7280" })],
-              spacing: { after: 50 },
-            })),
-          ] : []),
 
           // 🎯 Target Blood Pressure
           new Paragraph({
@@ -567,7 +555,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
       }
 
       const targets = getTargetBP();
-      const considerations = niceCategory ? getClinicalConsiderations(niceCategory) : [];
 
       // Build HTML email content
       const htmlContent = `
@@ -607,8 +594,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             .disclaimer { background: #FEF3C7; border: 1px solid #FCD34D; border-radius: 8px; padding: 15px; margin: 20px 0; }
             .disclaimer-title { color: #B45309; font-weight: bold; }
             .footer { text-align: center; color: #9CA3AF; font-size: 12px; padding: 20px; border-top: 1px solid #E5E7EB; margin-top: 20px; }
-            .consideration-list { margin: 10px 0; padding-left: 20px; }
-            .consideration-list li { color: #6B7280; margin: 5px 0; }
           </style>
         </head>
         <body>
@@ -678,14 +663,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
                   ${niceCategory.isUrgent ? '<span class="category-badge category-red" style="margin-left: 5px;">Urgent Review</span>' : ''}
                 </div>
                 <p style="color: #6B7280;">${niceCategory.description}</p>
-                ${considerations.length > 0 ? `
-                  <div style="margin-top: 10px;">
-                    <strong>Clinical Considerations:</strong>
-                    <ul class="consideration-list">
-                      ${considerations.map(c => `<li>${c}</li>`).join('')}
-                    </ul>
-                  </div>
-                ` : ''}
               ` : '<p style="color: #6B7280;">Classification not available</p>'}
             </div>
 
