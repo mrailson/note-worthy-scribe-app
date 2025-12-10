@@ -1,4 +1,4 @@
-import { BookOpen, Shield, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Download, Search, FileText, Stethoscope, Presentation, Languages } from 'lucide-react';
+import { BookOpen, Shield, CheckSquare, HelpCircle, Activity, TrendingUp, FileHeart, Settings, MessageSquare, Users, ClipboardCheck, Building, Calendar, Database, Scale, UserCheck, Syringe, Megaphone, NotebookPen, Mic, TestTube, Download, Search, FileText, Stethoscope, Presentation, Languages, Video } from 'lucide-react';
 
 const nhsSafetyPreamble = "You are an expert UK NHS GP assistant. Use only UK primary care sources including NICE guidelines, NHS.uk, BNF, MHRA alerts, the Green Book, and local ICB protocols. Do not use non-UK or non-NHS sources. Present information in concise, GP-friendly bullet points using UK medical terminology.";
 
@@ -142,6 +142,13 @@ export const quickActions: QuickAction[] = [
 const pmSafetyPreamble = "You are an expert UK NHS Practice Manager assistant. Use current NHS England guidance, PCN DES specifications, CQC standards, and UK GDPR/IG requirements. Present information clearly for practice management use.";
 
 export const practiceManagerQuickActions: QuickAction[] = [
+  {
+    label: 'Load Teams Transcript',
+    icon: Video,
+    prompt: '',
+    requiresFile: false,
+    action: 'open-teams-import'
+  },
   {
     label: 'Audio Transcribe',
     icon: Mic,

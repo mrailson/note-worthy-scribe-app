@@ -10,6 +10,7 @@ import MeetingNotesInterface from '@/components/MeetingNotesInterface';
 import { PowerPointGenerator } from '@/components/PowerPointGenerator';
 import { QRCodeGeneratorModal } from '@/components/QRCodeGeneratorModal';
 import { AudioUploadModal } from '@/components/AudioUploadModal';
+import { TeamsTranscriptImportModal } from '@/components/meeting/TeamsTranscriptImportModal';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -43,6 +44,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const [isPowerPointOpen, setIsPowerPointOpen] = useState(false);
   const [isQRCodeGeneratorOpen, setIsQRCodeGeneratorOpen] = useState(false);
   const [isAudioUploadOpen, setIsAudioUploadOpen] = useState(false);
+  const [isTeamsImportOpen, setIsTeamsImportOpen] = useState(false);
   
   // Force cache refresh - removed ConsultationCheckerModal completely
   console.log('QuickActionsPanel rendered - cache refresh');
@@ -217,6 +219,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 navigate('/');
               } else if (action.action === 'open-audio-upload') {
                 setIsAudioUploadOpen(true);
+              } else if (action.action === 'open-teams-import') {
+                setIsTeamsImportOpen(true);
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt, action.label));
               }
@@ -286,6 +290,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                               navigate('/');
                             } else if (subItem.action === 'open-audio-upload') {
                               setIsAudioUploadOpen(true);
+                            } else if (subItem.action === 'open-teams-import') {
+                              setIsTeamsImportOpen(true);
                             } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt, subItem.label));
                           }
@@ -372,6 +378,12 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       <AudioUploadModal
         open={isAudioUploadOpen}
         onOpenChange={setIsAudioUploadOpen}
+      />
+      
+      {/* Teams Transcript Import Modal */}
+      <TeamsTranscriptImportModal
+        open={isTeamsImportOpen}
+        onOpenChange={setIsTeamsImportOpen}
       />
     </>
   );

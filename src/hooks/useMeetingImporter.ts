@@ -9,7 +9,7 @@ interface MeetingImportData {
   attendees: Array<{ name: string; title?: string; organization?: string }>;
   agenda?: string;
   format?: string;
-  source: 'text_import' | 'audio_import' | 'file_import';
+  source: 'text_import' | 'audio_import' | 'file_import' | 'teams_import';
   isDemo?: boolean;
   demoType?: string;
 }
