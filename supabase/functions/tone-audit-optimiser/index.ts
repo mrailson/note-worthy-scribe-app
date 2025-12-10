@@ -174,6 +174,9 @@ serve(async (req) => {
 
     console.log(`✅ Polished output length: ${polished_minutes.length} characters`);
     console.log(`⏱️ Total processing time: ${Date.now() - startTime}ms`);
+    console.log('📄 FULL OUTPUT START >>>');
+    console.log(polished_minutes);
+    console.log('<<< FULL OUTPUT END');
 
     return new Response(
       JSON.stringify({ polished_minutes }),
