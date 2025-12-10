@@ -7877,10 +7877,12 @@ export type Database = {
           created_at: string
           duration_minutes: number
           id: string
+          notes_generation_status: string
           status: string
           title: string
           updated_at: string
           user_id: string
+          word_count: number
         }[]
       }
       get_security_setting: { Args: { setting_name: string }; Returns: string }

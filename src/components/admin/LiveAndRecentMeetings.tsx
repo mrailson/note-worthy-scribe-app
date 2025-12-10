@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { RefreshCw, Radio, CheckCircle, Clock, User } from 'lucide-react';
+import { RefreshCw, Radio, CheckCircle, Clock, User, FileText, Mail } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { format } from 'date-fns';
 
@@ -15,6 +15,8 @@ interface MeetingInfo {
   user_email?: string;
   user_name?: string;
   duration_minutes?: number;
+  word_count?: number;
+  notes_generation_status?: string;
 }
 
 export function LiveAndRecentMeetings() {
@@ -70,6 +72,8 @@ export function LiveAndRecentMeetings() {
         created_at: m.created_at,
         updated_at: m.updated_at,
         duration_minutes: m.duration_minutes,
+        word_count: m.word_count,
+        notes_generation_status: m.notes_generation_status,
         user_email: userMap[m.user_id]?.email,
         user_name: userMap[m.user_id]?.name,
       });
@@ -197,12 +201,19 @@ export function LiveAndRecentMeetings() {
                   className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
                 >
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{meeting.title}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-medium text-sm">{meeting.title}</p>
+                      {meeting.word_count && (
+                        <span className="text-xs text-muted-foreground">
+                          ({meeting.word_count.toLocaleString()} words)
+                        </span>
+                      )}
+                    </div>
                     <div className="flex items-center gap-3 text-xs text-muted-foreground mt-1">
-                      {meeting.user_name && (
+                      {meeting.user_email && (
                         <span className="flex items-center gap-1">
                           <User className="h-3 w-3" />
-                          {meeting.user_name}
+                          {meeting.user_email}
                         </span>
                       )}
                       {meeting.duration_minutes && (
@@ -213,8 +224,18 @@ export function LiveAndRecentMeetings() {
                       )}
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    {formatTime(meeting.updated_at)}
+                  <div className="flex items-center gap-2">
+                    {/* Notes generated flag */}
+                    <Badge 
+                      variant={meeting.notes_generation_status === 'completed' ? 'default' : 'outline'}
+                      className={`text-xs ${meeting.notes_generation_status === 'completed' ? 'bg-green-600' : ''}`}
+                    >
+                      <FileText className="h-3 w-3 mr-1" />
+                      Notes
+                    </Badge>
+                    <div className="text-xs text-muted-foreground">
+                      {formatTime(meeting.updated_at)}
+                    </div>
                   </div>
                 </div>
               ))}
