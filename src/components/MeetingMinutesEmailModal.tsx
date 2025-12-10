@@ -43,15 +43,50 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
+  const [freshNotes, setFreshNotes] = useState<string>("");
 
-  // Initialize state when modal opens or defaults change
+  // Fetch fresh notes from database when modal opens to ensure we have the latest tone-audited version
+  React.useEffect(() => {
+    const fetchFreshNotes = async () => {
+      if (!isOpen || !meetingId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+        
+        if (error) {
+          console.error('Error fetching fresh notes:', error);
+          setFreshNotes(defaultBody);
+          return;
+        }
+        
+        if (data?.summary) {
+          console.log('📝 MeetingMinutesEmailModal: Using fresh notes from database');
+          setFreshNotes(data.summary);
+        } else {
+          setFreshNotes(defaultBody);
+        }
+      } catch (error) {
+        console.error('Error fetching fresh notes:', error);
+        setFreshNotes(defaultBody);
+      }
+    };
+
+    fetchFreshNotes();
+  }, [isOpen, meetingId, defaultBody]);
+
+  // Initialize state when modal opens or defaults change - use fresh notes if available
   React.useEffect(() => {
     if (isOpen) {
       setToEmail(defaultToEmail || "");
       setSubject(defaultSubject || `${meetingTitle}, ${meetingDate} - Minutes`);
-      setBody(defaultBody);
+      // Use fresh notes from database if available, otherwise fall back to prop
+      setBody(freshNotes || defaultBody);
     }
-  }, [isOpen, defaultToEmail, defaultSubject, defaultBody, meetingTitle, meetingDate]);
+  }, [isOpen, defaultToEmail, defaultSubject, freshNotes, defaultBody, meetingTitle, meetingDate]);
 
   const ccList = useMemo(() =>
     ccRaw
