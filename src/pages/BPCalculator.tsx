@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Heart } from 'lucide-react';
@@ -13,9 +13,7 @@ import { BPTrendAnalysis } from '@/components/bp-calculator/BPTrendAnalysis';
 import { BPExportOptions } from '@/components/bp-calculator/BPExportOptions';
 import { BPModeSelector, BPMode } from '@/components/bp-calculator/BPModeSelector';
 import { BPSitStandSummaryCard } from '@/components/bp-calculator/BPSitStandSummaryCard';
-import { BPHistorySection } from '@/components/bp-calculator/BPHistorySection';
 import { useBPCalculator, BPReading } from '@/hooks/useBPCalculator';
-import { useBPHistory } from '@/hooks/useBPHistory';
 
 const BPCalculator = () => {
   const { user } = useAuth();
@@ -23,7 +21,6 @@ const BPCalculator = () => {
   const [textInput, setTextInput] = useState('');
   const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
   const [bpMode, setBpMode] = useState<BPMode>('standard');
-  const lastSavedReadingsCount = useRef<number>(0);
   
   const {
     readings,
@@ -44,8 +41,6 @@ const BPCalculator = () => {
     getQOFRelevance,
     getSitStandAverages
   } = useBPCalculator();
-
-  const { sessions, isLoading: isLoadingHistory, saveSession, deleteSession } = useBPHistory();
 
   const isSitStandMode = bpMode === 'sit-stand';
 
@@ -71,7 +66,6 @@ const BPCalculator = () => {
     setTextInput('');
     setUploadedFiles([]);
     setReadings([]);
-    lastSavedReadingsCount.current = 0;
   };
 
   const averages = getAverages();
@@ -86,43 +80,6 @@ const BPCalculator = () => {
 
   const includedCount = readings.filter(r => r.included).length;
   const excludedCount = readings.filter(r => !r.included).length;
-
-  // Auto-save session when new readings are calculated (not loaded from history)
-  useEffect(() => {
-    // Only save if we have new readings that haven't been saved
-    if (readings.length > 0 && averages && readings.length !== lastSavedReadingsCount.current) {
-      const autoSave = async () => {
-        await saveSession({
-          mode: bpMode,
-          readings,
-          averages,
-          niceAverage,
-          niceCategory,
-          nhsCategory: category,
-          sitStandAverages: isSitStandMode ? sitStandAverages : null,
-          trends,
-          dataQuality,
-          dateRange,
-          qofRelevance,
-          sourceText: textInput,
-          sourceFilesCount: uploadedFiles.length
-        });
-        lastSavedReadingsCount.current = readings.length;
-      };
-      // Small delay to ensure all calculations are complete
-      const timer = setTimeout(autoSave, 500);
-      return () => clearTimeout(timer);
-    }
-  }, [readings.length]); // Only trigger when readings count changes
-
-  const handleLoadSession = (sessionReadings: BPReading[], mode: 'standard' | 'sit-stand') => {
-    setBpMode(mode);
-    setReadings(sessionReadings);
-    setTextInput('');
-    setUploadedFiles([]);
-    // Mark as already saved to prevent re-saving
-    lastSavedReadingsCount.current = sessionReadings.length;
-  };
 
   if (!user) {
     return (
@@ -268,19 +225,10 @@ const BPCalculator = () => {
               qofRelevance={qofRelevance}
               originalText={textInput}
               originalImages={uploadedFiles}
-              userEmail={user?.email}
               sitStandAverages={isSitStandMode ? sitStandAverages : undefined}
             />
           </div>
         )}
-
-        {/* History Section */}
-        <BPHistorySection
-          sessions={sessions}
-          isLoading={isLoadingHistory}
-          onDelete={deleteSession}
-          onLoadSession={handleLoadSession}
-        />
 
         {/* Credit Footer */}
         <p className="text-center text-xs text-muted-foreground pt-4 pb-2">

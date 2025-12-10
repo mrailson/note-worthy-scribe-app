@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Copy, Download, FileText, Mail, Loader2 } from 'lucide-react';
 import { BPReading } from '@/hooks/useBPCalculator';
 import { 
@@ -17,6 +19,15 @@ import {
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 
 interface BPExportOptionsProps {
   readings: BPReading[];
@@ -30,7 +41,6 @@ interface BPExportOptionsProps {
   qofRelevance: QOFRelevance;
   originalText?: string;
   originalImages?: File[];
-  userEmail?: string;
   sitStandAverages?: SitStandAverages;
 }
 
@@ -45,11 +55,12 @@ export const BPExportOptions = ({
   dateRange,
   qofRelevance,
   originalText, 
-  originalImages, 
-  userEmail,
+  originalImages,
   sitStandAverages
 }: BPExportOptionsProps) => {
   const [isSendingEmail, setIsSendingEmail] = useState(false);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailAddress, setEmailAddress] = useState('');
   const includedReadings = readings.filter(r => r.included);
   const excludedReadings = readings.filter(r => !r.included);
 
@@ -482,8 +493,8 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
     return btoa(binary);
   };
 
-  const sendEmailReport = async () => {
-    if (!averages || !userEmail) {
+  const sendEmailReport = async (targetEmail: string) => {
+    if (!averages || !targetEmail) {
       return;
     }
 
@@ -746,7 +757,7 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
       // Send email
       const { data, error } = await supabase.functions.invoke('send-email-resend', {
         body: {
-          to_email: userEmail,
+          to_email: targetEmail,
           subject: `BP Average Report - ${averages.systolic}/${averages.diastolic} mmHg - ${new Date().toLocaleDateString('en-GB')}`,
           html_content: htmlContent,
           attachments
@@ -754,11 +765,49 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
       });
 
       if (error) throw error;
+      
+      toast({
+        title: "Email sent",
+        description: `Report sent to ${targetEmail}`,
+      });
+      setShowEmailDialog(false);
+      setEmailAddress('');
     } catch (error) {
       console.error('Error sending email:', error);
+      toast({
+        title: "Failed to send email",
+        description: "Please try again",
+        variant: "destructive",
+      });
     } finally {
       setIsSendingEmail(false);
     }
+  };
+
+  const handleEmailButtonClick = () => {
+    setShowEmailDialog(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailAddress.trim()) {
+      toast({
+        title: "Email required",
+        description: "Please enter an email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    // Basic email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(emailAddress.trim())) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address",
+        variant: "destructive",
+      });
+      return;
+    }
+    await sendEmailReport(emailAddress.trim());
   };
 
   return (
@@ -780,7 +829,7 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             <FileText className="mr-2 h-4 w-4" />
             Download Report
           </Button>
-          <Button onClick={sendEmailReport} variant="outline" disabled={isSendingEmail || !userEmail}>
+          <Button onClick={handleEmailButtonClick} variant="outline" disabled={isSendingEmail}>
             {isSendingEmail ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : (
@@ -789,6 +838,49 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             Email Report
           </Button>
         </div>
+
+        {/* Email Dialog */}
+        <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+          <DialogContent className="sm:max-w-md">
+            <DialogHeader>
+              <DialogTitle>Send BP Report</DialogTitle>
+              <DialogDescription>
+                Enter the email address to send the report to
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email address</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="recipient@example.com"
+                  value={emailAddress}
+                  onChange={(e) => setEmailAddress(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && handleSendEmail()}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEmailDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSendEmail} disabled={isSendingEmail}>
+                {isSendingEmail ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Mail className="mr-2 h-4 w-4" />
+                    Send Report
+                  </>
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </CardContent>
     </Card>
   );
