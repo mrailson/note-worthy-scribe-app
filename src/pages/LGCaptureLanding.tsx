@@ -393,14 +393,22 @@ export default function LGCaptureLanding() {
         <ArrowRight className="ml-2 h-5 w-5" />
       </Button>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-3 gap-3">
         <Button
           variant="outline"
           onClick={() => navigate('/lg-capture/patients')}
           className="w-full"
         >
           <List className="mr-2 h-4 w-4" />
-          Recent LG Captures
+          Recent
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/lg-capture/bulk')}
+          className="w-full"
+        >
+          <Files className="mr-2 h-4 w-4" />
+          Bulk Capture
         </Button>
         <Button
           variant="outline"
@@ -431,7 +439,7 @@ export default function LGCaptureLanding() {
           className="w-full"
         >
           <Play className="mr-2 h-4 w-4" />
-          Demo Service
+          Demo
         </Button>
       </div>
 
