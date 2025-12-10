@@ -797,6 +797,7 @@ export const MobileNotesSheet: React.FC<MobileNotesSheetProps> = ({
         defaultBody={emailModalContent.body}
         meetingTitle={meeting?.title || 'Meeting'}
         meetingDate={meeting?.start_time ? new Date(meeting.start_time).toLocaleDateString('en-GB') : new Date().toLocaleDateString('en-GB')}
+        meetingId={meeting?.id}
       />
     </Sheet>
   );

@@ -831,6 +831,7 @@ New patient pathway improvements have reduced waiting times by 15%. Patient sati
           meetingTitle={meetingSettings?.title || "Meeting"}
           meetingDate={new Date().toLocaleDateString()}
           duration={duration}
+          meetingId={currentMeetingId || undefined}
         />
       </CardContent>
     </Card>
