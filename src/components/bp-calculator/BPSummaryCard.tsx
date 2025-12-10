@@ -105,20 +105,8 @@ export const BPSummaryCard = ({ averages, category, readingsCount }: BPSummaryCa
           )}
         </div>
 
-        {/* NHS Category and Readings Count */}
-        <div className="flex flex-wrap items-center justify-between mt-6 pt-4 border-t border-red-200 dark:border-red-800">
-          <div className="flex items-center gap-3">
-            {category && (
-              <Badge className={`text-sm px-3 py-1 ${getCategoryBadgeClass(category.color)}`}>
-                {category.label}
-              </Badge>
-            )}
-            {category && (
-              <span className="text-sm text-muted-foreground hidden sm:inline">
-                {category.description}
-              </span>
-            )}
-          </div>
+        {/* Readings Count */}
+        <div className="flex items-center justify-end mt-6 pt-4 border-t border-red-200 dark:border-red-800">
           <div className="text-sm text-muted-foreground">
             Based on <span className="font-medium text-foreground">{readingsCount}</span> readings
           </div>
