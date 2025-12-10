@@ -199,17 +199,18 @@ const PublicBPCalculator = () => {
           </div>
         )}
 
-        <p className="text-center text-xs text-muted-foreground pt-4 pb-2">
-          For any suggestions or feedback, please email{' '}
-          <a href="mailto:malcolm.railson@nhs.net" className="underline hover:text-foreground">
-            malcolm.railson@nhs.net
-          </a>
-        </p>
-
-        <p className="text-center text-xs text-red-600 dark:text-red-400 font-medium pb-4 px-4">
-          This is a test developmental service. There are known issues with AI hallucinations. 
-          The clinician should always double-check the data before use.
-        </p>
+        <div className="text-center pt-6 pb-4 px-4 space-y-1">
+          <p className="text-sm text-red-600 dark:text-red-400 font-medium">
+            This is a test developmental service. There are known issues with AI hallucinations. 
+            The clinician should always double-check the data before use.
+          </p>
+          <p className="text-sm text-muted-foreground">
+            For any suggestions or feedback, please email{' '}
+            <a href="mailto:malcolm.railson@nhs.net" className="underline hover:text-foreground">
+              malcolm.railson@nhs.net
+            </a>
+          </p>
+        </div>
       </div>
     </div>
   );
