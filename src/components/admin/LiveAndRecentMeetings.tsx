@@ -31,39 +31,15 @@ export function LiveAndRecentMeetings() {
       today.setHours(7, 0, 0, 0);
       const todayAt7am = today.toISOString();
 
-      // Fetch live recordings (status = 'recording')
+      // Fetch live recordings using admin RPC function
       const { data: live, error: liveError } = await supabase
-        .from('meetings')
-        .select(`
-          id,
-          title,
-          status,
-          created_at,
-          updated_at,
-          duration_minutes,
-          user_id
-        `)
-        .eq('status', 'recording')
-        .order('created_at', { ascending: false });
+        .rpc('get_all_live_recordings');
 
       if (liveError) throw liveError;
 
-      // Fetch completed meetings since 7am today
+      // Fetch completed meetings since 7am today using admin RPC function
       const { data: recent, error: recentError } = await supabase
-        .from('meetings')
-        .select(`
-          id,
-          title,
-          status,
-          created_at,
-          updated_at,
-          duration_minutes,
-          user_id
-        `)
-        .eq('status', 'completed')
-        .gte('updated_at', todayAt7am)
-        .order('updated_at', { ascending: false })
-        .limit(20);
+        .rpc('get_recent_completed_meetings', { since_time: todayAt7am });
 
       if (recentError) throw recentError;
 
