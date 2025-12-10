@@ -29,7 +29,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { StopRecordingConfirmDialog } from "@/components/StopRecordingConfirmDialog";
 import { useRecordingProtection } from "@/hooks/useRecordingProtection";
-import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder, Loader2 } from "lucide-react";
+import { Mic, MicOff, Play, Square, Clock, Users, Wifi, WifiOff, FileText, Settings, History, Search, Trash2, CheckSquare, SquareIcon, Monitor, Volume2, Waves, Video, Headphones, Eye, EyeOff, RotateCcw, MonitorSpeaker, RefreshCw, Sparkles, Pause, Calendar, Edit, Save, Merge, Upload, ClipboardList, Check, Folder, Loader2, MoreVertical, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { MeetingSettings } from "@/components/MeetingSettings";
 import { MeetingHistoryList } from "@/components/MeetingHistoryList";
 import { FullPageNotesModal } from "@/components/FullPageNotesModal";
@@ -290,6 +291,9 @@ export const MeetingRecorder = ({
   const [selectedMeetings, setSelectedMeetings] = useState<string[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
   const [deleteConfirmation, setDeleteConfirmation] = useState("");
+  const [isDeletingEmpty, setIsDeletingEmpty] = useState(false);
+  const [showDeleteAllDialog, setShowDeleteAllDialog] = useState(false);
+  const [showDeleteEmptyDialog, setShowDeleteEmptyDialog] = useState(false);
   
   // Meeting editing state
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
@@ -4532,6 +4536,55 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     }
   };
 
+  const handleClearEmptyMeetings = async () => {
+    if (!user?.id) return;
+    setIsDeletingEmpty(true);
+    try {
+      const ninetyMinutesAgo = new Date(Date.now() - 90 * 60 * 1000).toISOString();
+      const { data: deletedMeetings, error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('user_id', user.id)
+        .lt('created_at', ninetyMinutesAgo)
+        .or('word_count.is.null,word_count.eq.0')
+        .select('id');
+      if (error) throw error;
+      const count = deletedMeetings?.length || 0;
+      if (count > 0) showToast.success(`Cleared ${count} empty meeting${count > 1 ? 's' : ''}`);
+      else showToast.info('No empty meetings to clear');
+      loadMeetingHistory();
+    } catch (error: any) {
+      console.error("Error clearing empty meetings:", error.message);
+      showToast.error('Failed to clear empty meetings');
+    } finally {
+      setIsDeletingEmpty(false);
+    }
+  };
+
+  const handleDeleteEmptyMeetings = async () => {
+    if (!user?.id) return;
+    setIsDeletingEmpty(true);
+    setShowDeleteEmptyDialog(false);
+    try {
+      const { data: deletedMeetings, error } = await supabase
+        .from('meetings')
+        .delete()
+        .eq('user_id', user.id)
+        .lt('word_count', 100)
+        .select('id');
+      if (error) throw error;
+      const count = deletedMeetings?.length || 0;
+      if (count > 0) showToast.success(`Deleted ${count} meeting${count > 1 ? 's' : ''} with less than 100 words`);
+      else showToast.info('No meetings with less than 100 words found');
+      loadMeetingHistory();
+    } catch (error: any) {
+      console.error("Error deleting empty meetings:", error.message);
+      showToast.error('Failed to delete empty meetings');
+    } finally {
+      setIsDeletingEmpty(false);
+    }
+  };
+
   // Save meeting title function
   const handleSaveTitle = async (meetingId: string) => {
     if (!editingTitle.trim() || editingTitle.length > 100) {
@@ -5591,38 +5644,51 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                   )}
 
                   {meetings.length > 0 && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button 
-                          variant="destructive" 
-                          size="sm"
-                          className="touch-manipulation min-h-[44px] text-xs sm:text-sm"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete All
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm" disabled={isDeletingEmpty} className="touch-manipulation min-h-[44px] text-xs sm:text-sm">
+                          {isDeletingEmpty ? <RefreshCw className="h-4 w-4 mr-2 animate-spin" /> : <MoreVertical className="h-4 w-4 mr-2" />}
+                          Quick Actions
+                          <ChevronDown className="h-4 w-4 ml-2" />
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent className="mx-4 max-w-md">
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
-                          <AlertDialogDescription className="text-sm">
-                            This action will permanently delete all {meetings.length} meeting{meetings.length > 1 ? 's' : ''}, their transcripts, and summaries. This cannot be undone.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter className="flex-col sm:flex-row gap-2">
-                          <AlertDialogCancel className="touch-manipulation min-h-[44px]">
-                            Cancel
-                          </AlertDialogCancel>
-                          <AlertDialogAction 
-                            onClick={handleDeleteAll}
-                            className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]"
-                          >
-                            Delete All
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={handleClearEmptyMeetings} disabled={isDeletingEmpty}>
+                          <Trash2 className="h-4 w-4 mr-2" />Clear Empty (0 words, 90min+)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowDeleteEmptyDialog(true)} disabled={isDeletingEmpty}>
+                          <Trash2 className="h-4 w-4 mr-2" />Delete Empty (&lt;100 words)
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setShowDeleteAllDialog(true)} className="text-destructive focus:text-destructive">
+                          <Trash2 className="h-4 w-4 mr-2" />Delete All
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   )}
+                  <AlertDialog open={showDeleteEmptyDialog} onOpenChange={setShowDeleteEmptyDialog}>
+                    <AlertDialogContent className="mx-4 max-w-md">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete Empty Meetings</AlertDialogTitle>
+                        <AlertDialogDescription>This will permanently delete all meetings with less than 100 words.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                        <AlertDialogCancel className="touch-manipulation min-h-[44px]">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={handleDeleteEmptyMeetings} className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]">Delete Empty</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  <AlertDialog open={showDeleteAllDialog} onOpenChange={setShowDeleteAllDialog}>
+                    <AlertDialogContent className="mx-4 max-w-md">
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Delete All Meetings</AlertDialogTitle>
+                        <AlertDialogDescription className="text-sm">This will permanently delete all {meetings.length} meetings. This cannot be undone.</AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+                        <AlertDialogCancel className="touch-manipulation min-h-[44px]">Cancel</AlertDialogCancel>
+                        <AlertDialogAction onClick={() => { handleDeleteAll(); setShowDeleteAllDialog(false); }} className="bg-destructive hover:bg-destructive/90 touch-manipulation min-h-[44px]">Delete All</AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
                 </div>
               </div>
             )}
