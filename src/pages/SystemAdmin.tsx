@@ -1662,7 +1662,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
         </div>
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 h-auto">
+          <TabsList className="grid w-full grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 h-auto">
             <TabsTrigger value="overview" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">Overview</span>
@@ -1683,11 +1683,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <span className="hidden sm:inline">Settings</span>
               <span className="sm:hidden">Settings</span>
             </TabsTrigger>
-            <TabsTrigger value="database" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
-              <Database className="h-3 w-3 sm:h-4 sm:w-4" />
-              <span className="hidden sm:inline">Database</span>
-              <span className="sm:hidden">DB</span>
-            </TabsTrigger>
             <TabsTrigger value="monitoring" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
               <Activity className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">System Monitoring</span>
@@ -1697,6 +1692,11 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <FileText className="h-3 w-3 sm:h-4 sm:w-4" />
               <span className="hidden sm:inline">LG Capture</span>
               <span className="sm:hidden">LG</span>
+            </TabsTrigger>
+            <TabsTrigger value="meeting-service" className="flex flex-col sm:flex-row items-center gap-1 text-xs sm:text-sm p-2 sm:p-3">
+              <Database className="h-3 w-3 sm:h-4 sm:w-4" />
+              <span className="hidden sm:inline">Meeting Service</span>
+              <span className="sm:hidden">Meetings</span>
             </TabsTrigger>
           </TabsList>
 
@@ -1946,8 +1946,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
 
           </TabsContent>
 
-          {/* Database Tab */}
-          <TabsContent value="database" className="space-y-6">
+          {/* Meeting Service Tab */}
+          <TabsContent value="meeting-service" className="space-y-6">
             {/* Live and Recent Meetings */}
             <LiveAndRecentMeetings />
 
