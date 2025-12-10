@@ -61,23 +61,6 @@ export const BPNICESummaryCard = ({ niceAverage, category }: BPNICESummaryCardPr
 
         <p className="text-sm text-muted-foreground">{niceAverage.message}</p>
 
-        {/* Category */}
-        {niceAverage.isValid && category && (
-          <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
-            <div className="flex items-center gap-3 mb-2">
-              <Badge className={`text-sm px-3 py-1 ${getCategoryBadgeClass(category.color)}`}>
-                {category.label}
-              </Badge>
-              {category.isUrgent && (
-                <Badge variant="destructive" className="text-xs">
-                  Urgent Review
-                </Badge>
-              )}
-            </div>
-            <p className="text-sm text-muted-foreground">{category.description}</p>
-          </div>
-        )}
-
         {/* Target BP Section */}
         <div className="pt-3 border-t border-blue-200 dark:border-blue-800">
           <div className="flex items-center gap-2 mb-2">

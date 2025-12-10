@@ -204,34 +204,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
       ],
     });
 
-    // Category row table
-    const categoryTable = category ? new Table({
-      width: { size: 100, type: WidthType.PERCENTAGE },
-      rows: [
-        new TableRow({
-          children: [
-            new TableCell({
-              children: [
-                new Paragraph({
-                  children: [
-                    new TextRun({ text: category.label, bold: true, size: 22, color: category.color === 'green' ? "16A34A" : category.color === 'yellow' ? "CA8A04" : category.color === 'orange' ? "EA580C" : "DC2626" }),
-                    new TextRun({ text: `   ${category.description}`, size: 20, color: "6B7280" }),
-                  ],
-                }),
-                new Paragraph({
-                  children: [new TextRun({ text: `Based on ${includedReadings.length} readings`, size: 18, color: "9CA3AF" })],
-                  alignment: AlignmentType.RIGHT,
-                  spacing: { before: 80 },
-                }),
-              ],
-              borders: summaryBoxBorder,
-              shading: { fill: "F9FAFB" },
-            }),
-          ],
-        }),
-      ],
-    }) : null;
-
     const doc = new Document({
       sections: [{
         children: [
@@ -255,7 +227,11 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             spacing: { before: 200, after: 200 },
           }),
           summaryTable,
-          ...(categoryTable ? [new Paragraph({ children: [], spacing: { after: 100 } }), categoryTable] : []),
+          new Paragraph({
+            children: [new TextRun({ text: `Based on ${includedReadings.length} readings`, size: 18, color: "9CA3AF" })],
+            alignment: AlignmentType.RIGHT,
+            spacing: { before: 80, after: 200 },
+          }),
 
           // 🏠 NICE Home BP Average (NG136)
           new Paragraph({
@@ -274,25 +250,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
             spacing: { after: 200 },
           }),
 
-          // 🩺 Interpretation (NICE NG136)
-          new Paragraph({
-            children: [new TextRun({ text: "🩺 Interpretation (NICE NG136)", bold: true, size: 28, color: "2563EB" })],
-            heading: HeadingLevel.HEADING_2,
-            spacing: { before: 400, after: 200 },
-          }),
-          new Paragraph({
-            children: niceCategory
-              ? [
-                  new TextRun({ text: niceCategory.label, bold: true, size: 24, color: niceCategory.color === 'green' ? "16A34A" : niceCategory.color === 'red' ? "DC2626" : "EA580C" }),
-                  new TextRun({ text: niceCategory.isUrgent ? " (Urgent Review)" : "", bold: true, size: 22, color: "DC2626" }),
-                ]
-              : [new TextRun({ text: "Classification not available", size: 22, color: "6B7280" })],
-            spacing: { after: 100 },
-          }),
-          new Paragraph({
-            children: [new TextRun({ text: niceCategory?.description || "", size: 20, color: "6B7280" })],
-            spacing: { after: 150 },
-          }),
 
           // 🎯 Target Blood Pressure
           new Paragraph({
@@ -631,13 +588,7 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
                   </div>
                   ` : ''}
                 </div>
-                ${category ? `
-                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid #BAE6FD;">
-                  <span class="category-badge category-${category.color}">${category.label}</span>
-                  <span style="color: #6B7280; margin-left: 10px;">${category.description}</span>
-                  <div style="text-align: right; color: #9CA3AF; font-size: 12px;">Based on ${includedReadings.length} readings</div>
-                </div>
-                ` : ''}
+                <div style="text-align: right; color: #9CA3AF; font-size: 12px;">Based on ${includedReadings.length} readings</div>
               </div>
             </div>
 
@@ -652,18 +603,6 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
                 `}
                 <div style="color: #6B7280; font-style: italic; margin-top: 5px;">${niceAverage.message}</div>
               </div>
-            </div>
-
-            <!-- Interpretation -->
-            <div class="section">
-              <div class="section-title">🩺 Interpretation (NICE NG136)</div>
-              ${niceCategory ? `
-                <div>
-                  <span class="category-badge category-${niceCategory.color}">${niceCategory.label}</span>
-                  ${niceCategory.isUrgent ? '<span class="category-badge category-red" style="margin-left: 5px;">Urgent Review</span>' : ''}
-                </div>
-                <p style="color: #6B7280;">${niceCategory.description}</p>
-              ` : '<p style="color: #6B7280;">Classification not available</p>'}
             </div>
 
             <!-- Target BP -->
