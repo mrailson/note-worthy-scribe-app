@@ -274,74 +274,68 @@ async function processChunk(transcript, meetingTitle, meetingDate, meetingTime, 
   console.log('🎯 Processing chunk with Gemini Flash - V2 Amanda-compliant');
   console.log(`📊 Transcript length: ${transcript.length} characters`);
   
-  const meetingNotesPrompt = `You are a professional meeting secretary generating detailed, polished minutes from the transcript below.
+  const meetingNotesPrompt = `You are a professional NHS meeting secretary creating detailed, factual minutes in British English.
 
-Follow these STRICT RULES:
+Before producing the final minutes, analyse each transcript segment carefully.
 
-✅ Language and Format
-- British English spelling, NHS style, and 24-hour time.
-- British date format with ordinals (e.g. 22nd October 2025).
-- Use "Location not specified" if no venue mentioned.
-- Attendees section: always "TBC".
+PRE-FILTER RULES:
+- Discard informal, humorous, or anecdotal remarks (e.g., jokes, metaphors, or personal asides such as "wolf ready to pounce").
+- Replace any personal identifiers with the correct professional role or neutral descriptor (e.g., use "SPLW candidate" instead of "Rich's mother-in-law").
+- When merging multiple segments, maintain a consistent, formal, and neutral tone suitable for circulation in Board or ICB documentation.
+- Never reproduce off-topic or emotive language, or anything that could appear unprofessional in circulated minutes.
+
+Then follow the full structure and rules below.
+
+STRICT RULES:
+- Use British English spellings and 24-hour time.
+- Use British date format with ordinals (e.g., 22nd October 2025).
+- Only include information actually present in the transcript.
 - Never use placeholders or square brackets.
-- Omit any section with no data.
+- If a section has no information, omit it entirely.
+- Always write "TBC" for attendees (attendees handled separately).
+- Write "Location not specified" if no venue is mentioned.
 
-✅ Content Filtering and Tone Management
-- Exclude informal banter, personal anecdotes, humour, off-topic remarks, or non-work-related comments.
-- Preserve only substantive discussions, decisions, and actions relevant to NHS/PCN governance.
-- When sensitive or critical issues are discussed (e.g. "PCN autonomy vs federation"), maintain factual accuracy but use measured, neutral phrasing — no subjective or emotive language.
-- Ensure every paragraph could safely appear in a circulated Board pack.
-
-✅ Output Structure
+OUTPUT STRUCTURE:
 
 # MEETING DETAILS
-
 - Meeting Title: ${meetingTitle || 'General Meeting'}
 - Date: ${meetingDate || 'Date not recorded'}
 - Time: ${meetingTime || 'Time not recorded'}
-- Location: [explicitly stated or "Location not specified"]
+- Location: [explicit or "Location not specified"]
 - Attendees: TBC
 
 # EXECUTIVE SUMMARY
-
-2–3 concise paragraphs summarising the purpose, key discussions, and main decisions. Use neutral, professional tone.
+Write 2–3 concise paragraphs covering purpose, key decisions, and next steps. Keep tone factual and balanced.
 
 # DISCUSSION SUMMARY
-
 For each major topic:
-- Background: brief context
-- Key Points: bullet list of factual discussion items
-- Outcome: concise summary of conclusion or next step
+- Background: short context
+- Key Points: bullet points with factual discussion points
+- Outcome: summarise conclusions reached
 
 # DECISIONS & RESOLUTIONS
-
-Numbered list of specific, factual decisions.
+Numbered list of decisions (omit section if none).
 
 # ACTION ITEMS
 | Action | Responsible Party | Deadline | Priority |
 |--------|------------------|----------|----------|
-...
+| ... | ... | ... | ... |
 
 Rules:
-- Only include explicit responsibilities from transcript.
-- "TBC" if not stated.
+- Only include names/roles explicitly mentioned.
+- Use "TBC" where not stated.
 
 # FOLLOW-UP REQUIREMENTS
-
-Bulleted list of follow-ups mentioned.
+Bullet points of follow-up items.
 
 # OPEN ITEMS & RISKS
-
-Bulleted list of unresolved or risk items.
+Bullet points for unresolved matters.
 
 # NEXT MEETING
+Include only if explicitly mentioned.
 
-Include only if mentioned explicitly.
-
-Post-Processing Instruction:
-After producing the draft minutes, perform a final "professional-tone audit":
-- Remove any phrase that could appear judgemental, sarcastic, or overly critical.
-- Soften phrasing around governance tension points using objective wording (e.g. "members raised concerns" instead of "members complained").
+FINAL CHECK:
+Before output, review tone and remove any phrases that could appear judgemental or critical. Use diplomatic, governance-appropriate wording (e.g., "members discussed differing perspectives" instead of "members criticised").
 
 DO NOT include a "Meeting Transcript for Reference" section.
 
