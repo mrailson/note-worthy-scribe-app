@@ -298,6 +298,8 @@ export const MeetingRecorder = ({
   const [deleteAllConfirmChecked, setDeleteAllConfirmChecked] = useState(false);
   const [deleteAllHoldProgress, setDeleteAllHoldProgress] = useState(0);
   const deleteAllHoldRef = useRef<NodeJS.Timeout | null>(null);
+  const [voiceDetected, setVoiceDetected] = useState(false);
+  const voiceDetectedTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Meeting editing state
   const [editingMeetingId, setEditingMeetingId] = useState<string | null>(null);
@@ -883,6 +885,17 @@ export const MeetingRecorder = ({
         analyser.getByteFrequencyData(dataArray);
         const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
         console.log(`🎵 Audio level: ${average.toFixed(2)}`);
+        
+        // Voice detection for UI indicator
+        if (average > 10) {
+          setVoiceDetected(true);
+          if (voiceDetectedTimeoutRef.current) {
+            clearTimeout(voiceDetectedTimeoutRef.current);
+          }
+          voiceDetectedTimeoutRef.current = setTimeout(() => {
+            setVoiceDetected(false);
+          }, 500);
+        }
         
         if (average < 5) { // Very low threshold
           silentCounters++;
@@ -5285,9 +5298,17 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                           }`}>
                             {doubleClickProtection ? 'Click again to stop...' : 'Recording...'}
                           </h4>
-                         <p className="text-xs text-muted-foreground">
-                           Your meeting audio is being captured
-                         </p>
+                         <div className="flex items-center justify-center gap-2">
+                           <p className="text-xs text-muted-foreground">
+                             Your meeting audio is being captured
+                           </p>
+                           {voiceDetected && (
+                             <div className="flex items-center gap-1 animate-fade-in">
+                               <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+                               <span className="text-xs text-green-600 dark:text-green-400 font-medium">Voice</span>
+                             </div>
+                           )}
+                         </div>
                          {stopUIStatus && (
                            <div className="mt-2 text-xs font-medium text-purple-600 dark:text-purple-400">
                              {stopUIStatus}
