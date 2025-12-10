@@ -1,0 +1,211 @@
+import { useState } from 'react';
+import { Heart } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { BPInputOptions } from '@/components/bp-calculator/BPInputOptions';
+import { BPReadingsTable } from '@/components/bp-calculator/BPReadingsTable';
+import { BPSummaryCard } from '@/components/bp-calculator/BPSummaryCard';
+import { BPNICESummaryCard } from '@/components/bp-calculator/BPNICESummaryCard';
+import { BPTrendAnalysis } from '@/components/bp-calculator/BPTrendAnalysis';
+import { BPExportOptions } from '@/components/bp-calculator/BPExportOptions';
+import { BPModeSelector, BPMode } from '@/components/bp-calculator/BPModeSelector';
+import { BPSitStandSummaryCard } from '@/components/bp-calculator/BPSitStandSummaryCard';
+import { PublicBPHeader } from '@/components/bp-calculator/PublicBPHeader';
+import { useBPCalculator } from '@/hooks/useBPCalculator';
+
+const PublicBPCalculator = () => {
+  const [textInput, setTextInput] = useState('');
+  const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
+  const [bpMode, setBpMode] = useState<BPMode>('standard');
+  
+  const {
+    readings,
+    setReadings,
+    isProcessing,
+    parseTextInput,
+    parseImageInput,
+    toggleReading,
+    updateReading,
+    deleteReading,
+    getAverages,
+    getNHSCategory,
+    getNICECategory,
+    getNICEHomeBPAverage,
+    getTrends,
+    getDataQualityScore,
+    getDateRange,
+    getQOFRelevance,
+    getSitStandAverages
+  } = useBPCalculator();
+
+  const isSitStandMode = bpMode === 'sit-stand';
+
+  const handleCalculate = async () => {
+    if (!textInput.trim() && uploadedFiles.length === 0) {
+      return;
+    }
+
+    try {
+      if (textInput.trim()) {
+        await parseTextInput(textInput, isSitStandMode);
+      }
+      for (const file of uploadedFiles) {
+        await parseImageInput(file, isSitStandMode);
+      }
+    } catch (error) {
+      console.error('Error parsing BP readings:', error);
+    }
+  };
+
+  const handleClear = () => {
+    setTextInput('');
+    setUploadedFiles([]);
+    setReadings([]);
+  };
+
+  const averages = getAverages();
+  const category = getNHSCategory();
+  const niceCategory = getNICECategory();
+  const niceAverage = getNICEHomeBPAverage();
+  const trends = getTrends();
+  const dataQuality = getDataQualityScore();
+  const dateRange = getDateRange();
+  const qofRelevance = getQOFRelevance();
+  const sitStandAverages = getSitStandAverages();
+
+  const includedCount = readings.filter(r => r.included).length;
+  const excludedCount = readings.filter(r => !r.included).length;
+
+  return (
+    <div className="min-h-screen bg-background">
+      <PublicBPHeader />
+
+      {/* Page Title */}
+      <div className="bg-card border-b border-border">
+        <div className="max-w-7xl mx-auto px-4 py-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg">
+              <Heart className="h-6 w-6 text-red-600 dark:text-red-400" />
+            </div>
+            <div>
+              <h1 className="text-xl font-semibold text-foreground">BP Average Service</h1>
+              <p className="text-sm text-muted-foreground">
+                Calculate average blood pressure from photos, scans, emails, letters, or handwritten logs
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 py-6 space-y-6">
+        {/* Mode Selector */}
+        <BPModeSelector 
+          mode={bpMode} 
+          onModeChange={setBpMode}
+          disabled={isProcessing || readings.length > 0}
+        />
+
+        {/* Input Section */}
+        <BPInputOptions 
+          textValue={textInput}
+          onTextChange={setTextInput}
+          files={uploadedFiles}
+          onFilesChange={setUploadedFiles}
+          disabled={isProcessing}
+        />
+
+        {/* Action Buttons */}
+        <div className="flex gap-4 justify-center">
+          <Button
+            onClick={handleCalculate}
+            disabled={isProcessing || (!textInput.trim() && uploadedFiles.length === 0)}
+            size="lg"
+            className="min-w-[200px]"
+          >
+            {isProcessing ? (
+              <>
+                <span className="animate-spin mr-2">⏳</span>
+                Processing...
+              </>
+            ) : (
+              <>
+                <Heart className="mr-2 h-5 w-5" />
+                Calculate Average
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={handleClear}
+            variant="outline"
+            size="lg"
+            disabled={isProcessing}
+          >
+            Clear All
+          </Button>
+        </div>
+
+        {/* Results Section */}
+        {readings.length > 0 && (
+          <div className="space-y-6">
+            {isSitStandMode && (
+              <BPSitStandSummaryCard sitStandAverages={sitStandAverages} />
+            )}
+
+            {averages && (
+              <BPSummaryCard 
+                averages={averages}
+                category={category}
+                readingsCount={includedCount}
+              />
+            )}
+
+            <BPNICESummaryCard 
+              niceAverage={niceAverage}
+              category={niceCategory}
+            />
+
+            <BPTrendAnalysis 
+              trends={trends}
+              dataQuality={dataQuality}
+              dateRange={dateRange}
+              qofRelevance={qofRelevance}
+              totalReadings={readings.length}
+              includedCount={includedCount}
+              excludedCount={excludedCount}
+            />
+
+            <BPReadingsTable 
+              readings={readings}
+              onToggle={toggleReading}
+              onUpdate={updateReading}
+              onDelete={deleteReading}
+              showPositionColumn={isSitStandMode}
+            />
+
+            <BPExportOptions 
+              readings={readings}
+              averages={averages}
+              category={category}
+              niceAverage={niceAverage}
+              niceCategory={niceCategory}
+              trends={trends}
+              dataQuality={dataQuality}
+              dateRange={dateRange}
+              qofRelevance={qofRelevance}
+              originalText={textInput}
+              originalImages={uploadedFiles}
+              sitStandAverages={isSitStandMode ? sitStandAverages : undefined}
+            />
+          </div>
+        )}
+
+        {/* Credit Footer */}
+        <p className="text-center text-xs text-muted-foreground pt-4 pb-2">
+          Concept by Alex Whitehead — The Parks Medical Practice
+        </p>
+      </div>
+    </div>
+  );
+};
+
+export default PublicBPCalculator;
