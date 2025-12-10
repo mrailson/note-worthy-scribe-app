@@ -5630,7 +5630,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                           <Trash2 className="h-4 w-4 mr-2" />Delete Empty (&lt;100 words)
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setShowDeleteAllDialog(true)} className="text-destructive focus:text-destructive">
-                          <Trash2 className="h-4 w-4 mr-2" />Delete All
+                          <Trash2 className="h-4 w-4 mr-2" />Delete All My Meetings
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -5658,7 +5658,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                       <AlertDialogHeader>
                         <AlertDialogTitle className="text-destructive flex items-center gap-2">
                           <Trash2 className="h-5 w-5" />
-                          Delete All Meetings
+                          Delete All My Meetings
                         </AlertDialogTitle>
                         <AlertDialogDescription className="text-sm space-y-3">
                           <p>This will <strong>permanently delete all {meetings.length} meeting{meetings.length > 1 ? 's' : ''}</strong>, including their transcripts, notes, and summaries.</p>
@@ -5746,7 +5746,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                             style={{ width: `${deleteAllHoldProgress}%` }}
                           />
                           <span className="relative z-10">
-                            {deleteAllHoldProgress > 0 ? `Hold... ${Math.round(deleteAllHoldProgress)}%` : 'Hold to Delete All'}
+                            {deleteAllHoldProgress > 0 ? `Hold... ${Math.round(deleteAllHoldProgress)}%` : 'Hold to Delete All My Meetings'}
                           </span>
                         </Button>
                       </AlertDialogFooter>
