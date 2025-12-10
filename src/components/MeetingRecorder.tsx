@@ -5298,17 +5298,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                           }`}>
                             {doubleClickProtection ? 'Click again to stop...' : 'Recording...'}
                           </h4>
-                          <div className="flex items-center justify-center gap-2">
-                            <p className="text-xs text-muted-foreground">
-                              Your meeting audio is being captured
-                            </p>
-                            {(voiceDetected || audioActivity) && (
-                              <div className="flex items-center gap-1 animate-fade-in">
-                                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-                                <span className="text-xs text-green-600 dark:text-green-400 font-medium">Voice</span>
-                              </div>
-                            )}
-                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            Your meeting audio is being captured
+                          </p>
                          {stopUIStatus && (
                            <div className="mt-2 text-xs font-medium text-purple-600 dark:text-purple-400">
                              {stopUIStatus}
