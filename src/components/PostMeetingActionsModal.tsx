@@ -297,14 +297,14 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         let audioAttachment = null;
         try {
           const { data: audioData } = await supabase
-            .from('audio_overview_sessions')
-            .select('audio_url, title')
-            .eq('id', meetingId)
+            .from('meeting_overviews')
+            .select('audio_overview_url')
+            .eq('meeting_id', meetingId)
             .maybeSingle();
           
-          if (audioData?.audio_url) {
+          if (audioData?.audio_overview_url) {
             console.log('🔊 Found audio overview, fetching for attachment...');
-            const audioResponse = await fetch(audioData.audio_url);
+            const audioResponse = await fetch(audioData.audio_overview_url);
             if (audioResponse.ok) {
               const audioBlob = await audioResponse.blob();
               const audioReader = new FileReader();
