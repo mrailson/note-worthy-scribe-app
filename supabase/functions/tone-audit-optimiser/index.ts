@@ -166,7 +166,10 @@ serve(async (req) => {
     }
 
     const data = await response.json();
-    const polished_minutes = data.choices[0].message.content;
+    console.log('📋 Response structure:', JSON.stringify(data, null, 2).slice(0, 500));
+    
+    // GPT-5 uses output_text, fallback to message.content for older models
+    const polished_minutes = data.output_text || data.choices?.[0]?.message?.content || '';
 
     console.log(`✅ Polished output length: ${polished_minutes.length} characters`);
     console.log(`⏱️ Total processing time: ${Date.now() - startTime}ms`);
