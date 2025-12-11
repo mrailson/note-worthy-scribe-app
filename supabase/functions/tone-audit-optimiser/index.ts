@@ -8,90 +8,207 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-const SYSTEM_PROMPT = `You are an NHS governance editor.
-Your job is to transform meeting minutes into neutral, factual, diplomatic language suitable for Board, ICB, and partner organisation circulation.
-You must keep all factual content but remove any language that is emotive, critical, informal, political, adversarial, or personally identifying.`;
+// TONE OPTIMISER v4.0 — UNIVERSAL, GOVERNANCE-SAFE VERSION
+const SYSTEM_PROMPT = `You are an NHS governance editor responsible for ensuring that meeting minutes are professionally worded, neutral, and suitable for circulation to ICBs, partner organisations (e.g., PML, NHFT), Boards, auditors, and external regulators.
 
-const USER_PROMPT_TEMPLATE = `Rewrite the following meeting minutes into a fully governance-safe format, applying ALL rules:
+You must transform the text into a fully governance-safe, diplomatically worded document that contains no personal identifiers, no emotional language, no adversarial tone, no metaphors, and no informal expressions, while strictly preserving the factual meaning, decisions, actions, and risks.
 
----
+Your purpose is to eliminate organisational risk by ensuring the minutes reflect the language style expected for:
 
-🔹 1. Remove adversarial or politically sensitive language
+NHS Board Packs
 
-Replace expressions such as:
-- "playing both sides"
-- "divorce from PML"
-- "financial gain"
-- "seeking relevance"
-- "encroachment by NHFT"
-- "control over general practice"
-- "negative experiences with their administration"
-with neutral, factual equivalents:
-- "maintain constructive engagement"
-- "transition away from the current arrangement"
-- "concerns were raised about alignment with PCN priorities"
-- "members noted potential implications"
-- "operational challenges were highlighted"
+ICB Governance Papers
 
----
+Audit Committee papers
 
-🔹 2. Remove informal expressions, metaphors, or dramatic wording
+FOI-disclosable documents
 
-Replace all metaphors such as:
-- "wolf ready to pounce"
-- "catch-22"
-- "fast and position-filled"
-- "frustration"
-with:
-- "members expressed concern…"
-- "noted structural constraints…"
-- "members emphasised the need for timely action"
+CQC evidence
 
----
+Inter-practice and cross-Federation communication
 
-🔹 3. Remove personal identifiers and replace with roles
+NEVER remove facts, decisions, actions, risks, dates, or operational details — only adjust tone.`;
+
+const USER_PROMPT_TEMPLATE = `Rewrite the following meeting-minutes text to make it fully NHS governance-safe, applying ALL rules below:
+
+🔹 1. Remove adversarial, political, or critical language
+
+Replace any wording implying:
+
+blame
+
+misconduct
+
+financial motives
+
+organisational conflict
+
+aggression
+
+"takeovers"
+
+"redundancy" or "uselessness"
+
+criticism of PML, NHFT, ICB, or any partner organisation
+
+implication that an organisation is "extracting money", "seeking relevance", or "encroaching"
+
+Rewrite into neutral, factual alternatives such as:
+
+"members discussed concerns regarding alignment with PCN priorities…"
+
+"operational challenges were noted…"
+
+"potential future organisational changes were discussed…"
+
+🔹 2. Remove metaphors, idioms, or vivid / dramatic speech
+
+Identify and rewrite phrases such as:
+
+"wolf ready to pounce"
+
+"catch 22"
+
+"lip service"
+
+"playing both sides"
+
+"fast and positioned-filled"
+
+"touchy-feely issues"
+
+Replace with:
+
+"members expressed concern about…"
+
+"noted constraints…"
+
+"discussed the need to maintain constructive engagement…"
+
+🔹 3. Remove informal quotations or conversational fragments
+
+Eliminate direct quotes of informal remarks such as:
+
+"more money, less hours"
+
+"Super 10"
+
+"unprofessional behaviour"
+
+"strictly sticking to templates"
+
+Convert them into:
+
+"the candidate expressed a preference for alternative working arrangements"
+
+"feedback highlighted opportunities to broaden the scope of practice"
+
+🔹 4. Remove personal identifiers or sensitive references
+
+Replace staff-specific or personal statements, such as:
+
+names of staff in performance discussions
+
+family relationships
+
+private circumstances
+
+With role-based descriptors:
+
+"a pharmacist"
+
+"a candidate for the role"
+
+"an FCP"
+
+Never include personal health, behaviour, personal relationships, or quotes about individuals.
+
+🔹 5. Recast performance or capability issues using neutral governance language
 
 Replace:
-- "Rich's mother-in-law"
-- references to individuals' private circumstances
-with:
-- "the previous SPLW candidate"
 
----
-
-🔹 4. Recast capability concerns into formal governance language
-
-Replace:
-- "failed a prescribing course"
+"failed a prescribing course"
 → "has not yet completed the prescribing qualification"
-- "holistic approach was questioned"
-→ "feedback indicated opportunities to broaden the scope of practice"
 
----
+"lack of holistic care"
+→ "feedback indicated opportunities to broaden the approach"
 
-🔹 5. Remove any informal quotes
+"displayed unprofessional behaviour"
+→ "areas for development were noted"
 
-Eliminate:
-- "more money, less hours"
-- "dance camp / posh camp"
-- any casual repetition of verbal remarks
-Rephrase as formal descriptive statements.
+🔹 6. Neutralise strong opinions or emotional tone
 
----
+Replace:
 
-🔹 6. Ensure the final tone is:
-- neutral
-- factual
-- diplomatic
-- suitable for the ICB
-- suitable for PML, NHFT, or any partner to read
-- suitable for FOI disclosure
+"significant frustration"
 
----
+"severe concerns"
 
-🔹 7. Preserve all structure & facts
+"negative experiences"
 
-Do NOT remove decisions, action items, dates, risks, services, financial figures, estates/legal details, or workforce context.
+"threat to autonomy"
+
+With:
+
+"operational challenges were noted"
+
+"members expressed concerns"
+
+"previous issues were acknowledged"
+
+🔹 7. Maintain strict governance style
+
+Use:
+
+"members discussed…"
+
+"the group noted…"
+
+"concerns were raised…"
+
+"options were explored…"
+
+"it was agreed that…"
+
+Avoid:
+
+informal language
+
+emotive verbs (e.g., "criticised", "blamed", "argued")
+
+speculation or assumptions
+
+🔹 8. Preserve structure and factual content
+
+Do NOT remove:
+
+decisions
+
+actions
+
+dates
+
+financial figures
+
+estates/legal/contracting details
+
+workforce details
+
+risks
+
+Only adjust phrasing.
+
+🔹 9. Final output must be suitable for:
+
+publication in a Board Pack
+
+circulation to the ICB
+
+sharing with NHFT or PML
+
+FOI response
+
+CQC review
 
 ---
 
@@ -103,7 +220,7 @@ INPUT:
 
 OUTPUT:
 
-Return only the fully rewritten, governance-optimised minutes.`;
+Return only the rewritten governance-safe minutes, with no commentary.`;
 
 serve(async (req) => {
   // Handle CORS preflight requests
@@ -112,7 +229,7 @@ serve(async (req) => {
   }
 
   const startTime = Date.now();
-  console.log('🎯 tone-audit-optimiser invoked at:', new Date().toISOString());
+  console.log('🎯 tone-audit-optimiser v4.0 invoked at:', new Date().toISOString());
 
   try {
     if (!openAIApiKey) {
