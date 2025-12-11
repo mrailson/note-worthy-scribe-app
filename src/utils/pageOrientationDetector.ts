@@ -22,7 +22,7 @@ export async function isPageUpsideDown(dataUrl: string): Promise<boolean> {
         }
 
         // Scale down for faster analysis
-        const maxSize = 300;
+        const maxSize = 400;
         const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
         canvas.width = Math.floor(img.width * scale);
         canvas.height = Math.floor(img.height * scale);
@@ -34,35 +34,35 @@ export async function isPageUpsideDown(dataUrl: string): Promise<boolean> {
         const width = canvas.width;
         const height = canvas.height;
 
-        // Sample top 20% and bottom 20% of the page
-        const sampleHeight = Math.floor(height * 0.2);
+        // Sample top 15% and bottom 15% of the page (avoid very edges)
+        const sampleHeight = Math.floor(height * 0.15);
+        const edgeMargin = Math.floor(height * 0.03);
         
         let topDarkPixels = 0;
         let bottomDarkPixels = 0;
         let topTotal = 0;
         let bottomTotal = 0;
 
-        // Analyse top region (excluding very top edge which might have noise)
-        const topStart = Math.floor(height * 0.02);
-        for (let y = topStart; y < topStart + sampleHeight; y++) {
+        // Analyse top region
+        for (let y = edgeMargin; y < edgeMargin + sampleHeight; y++) {
           for (let x = 0; x < width; x++) {
             const idx = (y * width + x) * 4;
             const luminance = 0.299 * pixels[idx] + 0.587 * pixels[idx + 1] + 0.114 * pixels[idx + 2];
             topTotal++;
-            if (luminance < 180) { // Count dark pixels (text/content)
+            if (luminance < 200) { // Count non-white pixels (text/content)
               topDarkPixels++;
             }
           }
         }
 
-        // Analyse bottom region (excluding very bottom edge)
-        const bottomStart = height - sampleHeight - Math.floor(height * 0.02);
+        // Analyse bottom region
+        const bottomStart = height - edgeMargin - sampleHeight;
         for (let y = bottomStart; y < bottomStart + sampleHeight; y++) {
           for (let x = 0; x < width; x++) {
             const idx = (y * width + x) * 4;
             const luminance = 0.299 * pixels[idx] + 0.587 * pixels[idx + 1] + 0.114 * pixels[idx + 2];
             bottomTotal++;
-            if (luminance < 180) {
+            if (luminance < 200) {
               bottomDarkPixels++;
             }
           }
@@ -73,10 +73,13 @@ export async function isPageUpsideDown(dataUrl: string): Promise<boolean> {
 
         canvas.remove();
 
-        // If bottom has significantly more content than top, page is likely upside-down
-        // Document pages typically have headers/titles at top with more whitespace at bottom
-        // Threshold: bottom density > 1.5x top density suggests upside-down
-        const isUpsideDown = bottomDensity > topDensity * 1.5 && bottomDensity > 0.05;
+        // Document pages typically have headers/titles at top
+        // If bottom has more content than top, page is likely upside-down
+        // Use a lower threshold (1.2x) and require meaningful content difference
+        const densityDiff = bottomDensity - topDensity;
+        const isUpsideDown = bottomDensity > topDensity * 1.2 && densityDiff > 0.02;
+        
+        console.log(`Page orientation check - Top: ${(topDensity * 100).toFixed(1)}%, Bottom: ${(bottomDensity * 100).toFixed(1)}%, Diff: ${(densityDiff * 100).toFixed(1)}%, Upside-down: ${isUpsideDown}`);
         
         resolve(isUpsideDown);
       } catch {
