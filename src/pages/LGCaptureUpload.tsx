@@ -69,6 +69,10 @@ export default function LGCaptureUpload() {
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   
   const maxPages = 1000;
+  
+  // Blank detection threshold adjusters for testing
+  const [whiteThreshold, setWhiteThreshold] = useState(85);
+  const [stdDevThreshold, setStdDevThreshold] = useState(25);
 
   const blankCount = images.filter(img => img.isBlank).length;
   const nonBlankImages = images.filter(img => !img.isBlank);
@@ -141,7 +145,7 @@ export default function LGCaptureUpload() {
           let isBlank = false;
           let blankConfidence = 0;
           try {
-            const result = await analyseBlankness(dataUrl);
+            const result = await analyseBlankness(dataUrl, whiteThreshold, stdDevThreshold);
             isBlank = result.isBlank;
             blankConfidence = result.confidence;
           } catch {
@@ -223,7 +227,7 @@ export default function LGCaptureUpload() {
     let blankConfidence = 0;
     
     try {
-      const result = await analyseBlankness(capturedImage.dataUrl);
+      const result = await analyseBlankness(capturedImage.dataUrl, whiteThreshold, stdDevThreshold);
       isBlank = result.isBlank;
       blankConfidence = result.confidence;
     } catch {
@@ -617,6 +621,57 @@ export default function LGCaptureUpload() {
           {/* Image Grid */}
           {images.length > 0 && (
             <div className="space-y-3">
+              {/* Threshold Adjusters */}
+              <div className="p-3 bg-muted/50 rounded-lg border space-y-3">
+                <div className="text-sm font-medium">Blank Detection Settings (for testing)</div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 items-end">
+                  <div>
+                    <label className="text-xs text-muted-foreground">White % Threshold</label>
+                    <input
+                      type="number"
+                      value={whiteThreshold}
+                      onChange={(e) => setWhiteThreshold(Number(e.target.value))}
+                      className="w-full mt-1 px-2 py-1 text-sm border rounded"
+                      min={50}
+                      max={99}
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs text-muted-foreground">Std Dev Threshold</label>
+                    <input
+                      type="number"
+                      value={stdDevThreshold}
+                      onChange={(e) => setStdDevThreshold(Number(e.target.value))}
+                      className="w-full mt-1 px-2 py-1 text-sm border rounded"
+                      min={5}
+                      max={50}
+                    />
+                  </div>
+                  <Button
+                    size="sm"
+                    variant="secondary"
+                    onClick={async () => {
+                      const updatedImages = await Promise.all(
+                        images.map(async (img) => {
+                          try {
+                            const result = await analyseBlankness(img.dataUrl, whiteThreshold, stdDevThreshold);
+                            return { ...img, isBlank: result.isBlank, blankConfidence: result.confidence };
+                          } catch {
+                            return img;
+                          }
+                        })
+                      );
+                      setImages(updatedImages);
+                    }}
+                  >
+                    Re-analyse All
+                  </Button>
+                  <div className="text-xs text-muted-foreground">
+                    Lower white% = more aggressive. Higher stdDev = more tolerant of edge marks.
+                  </div>
+                </div>
+              </div>
+              
               <div className="flex items-center justify-between flex-wrap gap-2">
                 <div className="flex items-center gap-3">
                   <p className="text-sm text-muted-foreground">
