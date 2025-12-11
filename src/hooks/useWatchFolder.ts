@@ -4,6 +4,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { extractPdfPages } from '@/utils/pdfPageExtractor';
 import { generateULID } from '@/utils/ulid';
+import { generateLGFilename } from '@/utils/lgFilenameGenerator';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 
@@ -436,9 +437,14 @@ export function useWatchFolder(
                 return;
               }
               
-              // Generate output filename
-              const baseName = originalFileName.replace('.pdf', '').replace('.PDF', '');
-              const outputFileName = `${baseName}_AI_Complete.pdf`;
+              // Generate proper Lloyd George filename from patient data
+              const outputFileName = generateLGFilename({
+                patientName: patient.ai_extracted_name || patient.patient_name,
+                nhsNumber: patient.ai_extracted_nhs || patient.nhs_number,
+                dob: patient.ai_extracted_dob || patient.dob,
+                partNumber: 1,
+                totalParts: patient.pdf_split_count || 1
+              });
               
               console.log('[Watch Folder] Saving to output folder:', outputFileName);
               
