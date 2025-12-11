@@ -464,7 +464,46 @@ CRITICAL FORMATTING RULES:
 - Do not use ## (level 2 headers) for main sections
 - Respect the authoritative location provided - never contradict it
 
-Keep the executive summary concise and focused - maximum 3-4 sentences that quickly convey the meeting's purpose and key outcomes.`;
+Keep the executive summary concise and focused - maximum 3-4 sentences that quickly convey the meeting's purpose and key outcomes.
+
+═══════════════════════════════════════════════════════════════════════════════
+TONE OPTIMISER v4.0 — NHS GOVERNANCE-SAFE REQUIREMENTS (APPLY DURING GENERATION)
+═══════════════════════════════════════════════════════════════════════════════
+
+You MUST transform the transcript into a fully governance-safe, diplomatically worded document that contains no personal identifiers, no emotional language, no adversarial tone, no metaphors, and no informal expressions, while strictly preserving the factual meaning, decisions, actions, and risks.
+
+🔹 1. Remove adversarial, political, or critical language
+Replace any wording implying: blame, misconduct, financial motives, organisational conflict, aggression, "takeovers", "redundancy" or "uselessness", criticism of PML, NHFT, ICB, or any partner organisation.
+Rewrite into neutral alternatives: "members discussed concerns regarding...", "operational challenges were noted...", "potential future organisational changes were discussed..."
+
+🔹 2. Remove metaphors, idioms, or vivid/dramatic speech
+Replace phrases like "wolf ready to pounce", "catch 22", "lip service", "playing both sides" with "members expressed concern about...", "noted constraints...", "discussed the need to maintain constructive engagement..."
+
+🔹 3. Remove informal quotations or conversational fragments
+Convert "more money, less hours", "Super 10", "unprofessional behaviour" into "the candidate expressed a preference for alternative working arrangements", "feedback highlighted opportunities to broaden the scope of practice"
+
+🔹 4. Remove personal identifiers or sensitive references
+Replace staff names in performance discussions, family relationships, private circumstances with role-based descriptors: "a pharmacist", "a candidate for the role", "an FCP". Never include personal health, behaviour, relationships, or quotes about individuals.
+
+🔹 5. Recast performance/capability issues using neutral governance language
+"failed a prescribing course" → "has not yet completed the prescribing qualification"
+"lack of holistic care" → "feedback indicated opportunities to broaden the approach"
+"displayed unprofessional behaviour" → "areas for development were noted"
+
+🔹 6. Neutralise strong opinions or emotional tone
+Replace "significant frustration", "severe concerns", "negative experiences", "threat to autonomy" with "operational challenges were noted", "members expressed concerns", "previous issues were acknowledged"
+
+🔹 7. Maintain strict governance style
+Use: "members discussed...", "the group noted...", "concerns were raised...", "options were explored...", "it was agreed that..."
+Avoid: informal language, emotive verbs (criticised, blamed, argued), speculation or assumptions
+
+🔹 8. Preserve structure and factual content
+Do NOT remove: decisions, actions, dates, financial figures, estates/legal/contracting details, workforce details, risks. Only adjust phrasing.
+
+🔹 9. Final output must be suitable for:
+NHS Board Packs, ICB circulation, sharing with NHFT or PML, FOI response, CQC review
+
+═══════════════════════════════════════════════════════════════════════════════`;
 
     // Format date in British format with day of week
     const meetingDate = new Date(meeting.created_at);
@@ -663,27 +702,9 @@ ${cleanedTranscript}`;
       console.warn('⚠️ Post-process of ACTION ITEMS failed:', ppErr);
     }
 
-    // Run professional tone audit v4.0 before saving (GPT-5 polish)
-    try {
-      console.log('🎯 Running professional tone audit v4.0 (GPT-5)...');
-      const auditStartTime = Date.now();
-      
-      const { data: auditResult, error: auditError } = await supabase.functions.invoke(
-        'tone-audit-optimiser',
-        {
-          body: { minutes_text: generatedNotes }
-        }
-      );
-
-      if (auditError) {
-        console.warn('⚠️ Tone audit failed, using original notes:', auditError.message);
-      } else if (auditResult?.polished_minutes) {
-        generatedNotes = auditResult.polished_minutes;
-        console.log(`✅ Tone audit v4.0 completed in ${Date.now() - auditStartTime}ms, notes polished for NHS Board circulation`);
-      }
-    } catch (auditError) {
-      console.warn('⚠️ Tone audit error, using original notes:', auditError instanceof Error ? auditError.message : auditError);
-    }
+    // v4.0 Governance rules now embedded directly in Gemini prompt above
+    // This eliminates 75+ second GPT-5 delay and preserves markdown formatting
+    console.log('✅ Governance tone v4.0 applied via Gemini prompt (no GPT-5 post-processing needed)');
 
     // Extract overview from the generated notes (first section after "EXECUTIVE SUMMARY")
     // Match both markdown heading and bold format
