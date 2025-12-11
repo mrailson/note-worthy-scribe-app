@@ -634,16 +634,33 @@ export const MeetingHistoryList = ({
   const handleViewNotes = async (meeting: Meeting) => {
     console.log('🔍 HandleViewNotes called for:', meeting.title, 'isMobile:', isMobile);
     
-    // Use the meeting_summary that's already loaded in the meeting object
-    const notes = meeting.meeting_summary || '';
-    setMeetingNotes(notes);
+    // Always fetch fresh notes from database to get the latest tone-audited version
+    try {
+      const { data: summaryData, error } = await supabase
+        .from('meeting_summaries')
+        .select('summary')
+        .eq('meeting_id', meeting.id)
+        .maybeSingle();
+      
+      if (error) {
+        console.error('Error fetching fresh notes:', error);
+      }
+      
+      // Use fresh notes from DB, fallback to cached meeting_summary
+      const notes = summaryData?.summary || meeting.meeting_summary || '';
+      console.log('📝 Using fresh notes from database for:', meeting.title);
+      setMeetingNotes(notes);
+    } catch (err) {
+      console.error('Error fetching notes:', err);
+      setMeetingNotes(meeting.meeting_summary || '');
+    }
+    
     setSelectedMeetingForNotes(meeting);
     
     if (isMobile) {
       setMobileNotesOpen(true);
     } else {
       setDesktopNotesOpen(true);
-      // Use only the local modal to avoid duplicate modals
     }
   };
 
