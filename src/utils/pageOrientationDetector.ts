@@ -74,12 +74,12 @@ export async function isPageUpsideDown(dataUrl: string): Promise<boolean> {
         canvas.remove();
 
         // Document pages typically have headers/titles at top
-        // If bottom has more content than top, page is likely upside-down
-        // Use a lower threshold (1.2x) and require meaningful content difference
+        // If bottom has significantly more content than top, page is likely upside-down
+        // Use threshold: bottom must be at least 1.15x top density OR have 1.5% more absolute density
         const densityDiff = bottomDensity - topDensity;
-        const isUpsideDown = bottomDensity > topDensity * 1.2 && densityDiff > 0.02;
+        const isUpsideDown = (bottomDensity > topDensity * 1.15 && densityDiff > 0.015) || densityDiff > 0.03;
         
-        console.log(`Page orientation check - Top: ${(topDensity * 100).toFixed(1)}%, Bottom: ${(bottomDensity * 100).toFixed(1)}%, Diff: ${(densityDiff * 100).toFixed(1)}%, Upside-down: ${isUpsideDown}`);
+        console.log(`[Orientation] Top: ${(topDensity * 100).toFixed(1)}%, Bottom: ${(bottomDensity * 100).toFixed(1)}%, Diff: ${(densityDiff * 100).toFixed(1)}%, Upside-down: ${isUpsideDown}`);
         
         resolve(isUpsideDown);
       } catch {
