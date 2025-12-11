@@ -83,6 +83,10 @@ export interface LGPatient {
   identity_verification_status: string | null;
   identity_verification_issues: unknown;
   nhs_number_validated: boolean | null;
+  // OCR analysis tracking for large documents
+  ocr_total_chars: number | null;
+  ocr_analysed_chars: number | null;
+  ocr_analysed_percentage: number | null;
 }
 
 // Helper functions to safely extract typed data from JSONB fields

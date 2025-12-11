@@ -683,7 +683,32 @@ serve(async (req) => {
       throw new Error('OCR text is empty or too short');
     }
     
-    console.log(`OCR text ready. Length: ${fullOcrText.length} characters`);
+    // Character limits for AI analysis - supports up to ~500 pages
+    const PATIENT_EXTRACTION_LIMIT = 60000;  // ~150 pages for patient details
+    const SUMMARY_LIMIT = 200000;            // ~500 pages for clinical summary
+    const SNOMED_LIMIT = 200000;             // ~500 pages for SNOMED extraction
+    
+    const totalOcrChars = fullOcrText.length;
+    const analysedChars = Math.min(totalOcrChars, SUMMARY_LIMIT);
+    const analysedPercentage = Math.round((analysedChars / totalOcrChars) * 100);
+    
+    console.log(`OCR text ready. Length: ${totalOcrChars} characters`);
+    console.log(`Analysis limits: Patient=${PATIENT_EXTRACTION_LIMIT}, Summary=${SUMMARY_LIMIT}, SNOMED=${SNOMED_LIMIT}`);
+    console.log(`Will analyse ${analysedChars} of ${totalOcrChars} chars (${analysedPercentage}%)`);
+    
+    if (analysedPercentage < 100) {
+      console.log(`⚠️ TRUNCATION WARNING: Document exceeds AI analysis limit. Only first ${analysedPercentage}% will be AI-analysed.`);
+    }
+    
+    // Update patient record with OCR analysis stats
+    await supabase
+      .from('lg_patients')
+      .update({
+        ocr_total_chars: totalOcrChars,
+        ocr_analysed_chars: analysedChars,
+        ocr_analysed_percentage: analysedPercentage,
+      })
+      .eq('id', patientId);
 
     // Extract patient details
     console.log('Extracting patient details from OCR...');
@@ -692,7 +717,7 @@ serve(async (req) => {
     if (openaiKey && fullOcrText.length > 50) {
       try {
         extractedPatient = await callOpenAI(openaiKey, PATIENT_EXTRACTION_PROMPT, 
-          `Extract patient details from this OCR text of Lloyd George records:\n\n${fullOcrText.substring(0, 30000)}`);
+          `Extract patient details from this OCR text of Lloyd George records:\n\n${fullOcrText.substring(0, PATIENT_EXTRACTION_LIMIT)}`);
         console.log('Patient details extracted (raw):', extractedPatient);
         
         // ANTI-HALLUCINATION VALIDATION
@@ -978,7 +1003,7 @@ VERIFICATION FLAGS:
 21. Set medications_verified to true if medication list appears complete and current.
 
 OCR Text:
-${fullOcrText.substring(0, 50000)}`;
+${fullOcrText.substring(0, SUMMARY_LIMIT)}`;
 
       try {
         summaryJson = await callOpenAI(openaiKey, SUMMARISER_SYSTEM_PROMPT, summaryPrompt);
@@ -1015,7 +1040,7 @@ CRITICAL: Do NOT assume or infer any clinical information not explicitly present
 Extract ONLY what is VERBATIM in the OCR - if a diagnosis, surgery, or immunisation is not written, do not include it.
 
 OCR Text (note the page markers like "--- Page page_001.jpg ---"):
-${fullOcrText.substring(0, 50000)}`;
+${fullOcrText.substring(0, SNOMED_LIMIT)}`;
 
       try {
         // Single-step: AI extracts concepts AND provides SNOMED codes directly
