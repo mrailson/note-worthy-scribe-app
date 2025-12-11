@@ -491,6 +491,17 @@ export function useWatchFolder(
                 return;
               }
               
+              // Log available patient data for debugging
+              console.log('[Watch Folder] Patient data for filename:', {
+                ai_extracted_name: patient.ai_extracted_name,
+                ai_extracted_nhs: patient.ai_extracted_nhs,
+                ai_extracted_dob: patient.ai_extracted_dob,
+                patient_name: patient.patient_name,
+                nhs_number: patient.nhs_number,
+                dob: patient.dob,
+                pdf_split_count: patient.pdf_split_count
+              });
+              
               // Generate proper Lloyd George filename from patient data
               const outputFileName = generateLGFilename({
                 patientName: patient.ai_extracted_name || patient.patient_name,
@@ -500,7 +511,7 @@ export function useWatchFolder(
                 totalParts: patient.pdf_split_count || 1
               });
               
-              console.log('[Watch Folder] Saving to output folder:', outputFileName);
+              console.log('[Watch Folder] Generated filename:', outputFileName);
               
               // Save to output folder
               const saved = await saveToOutputFolder(data, outputFileName);
