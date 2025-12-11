@@ -42,8 +42,15 @@ export default function WatchFolderSettings({
     stopWatching,
     setPollingInterval,
     clearProcessedFiles,
-    restartService
+    restartService,
+    needsReselect
   } = useWatchFolder(practiceOds, uploaderName, batchId);
+
+  // Display name: actual folder or saved name that needs re-selection
+  const displayWatchFolder = folderName || (needsReselect.watchFolder ? needsReselect.savedWatchName : null);
+  const displayOutputFolder = outputFolderName || (needsReselect.outputFolder ? needsReselect.savedOutputName : null);
+  const watchNeedsReselect = !folderName && needsReselect.watchFolder;
+  const outputNeedsReselect = !outputFolderName && needsReselect.outputFolder;
 
   // Check if in iframe
   const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
@@ -118,12 +125,26 @@ export default function WatchFolderSettings({
                 Watch Folder (source PDFs)
               </Label>
               <div className="flex items-center gap-2">
-                <div className="flex-1 px-3 py-2 rounded-md bg-muted text-sm">
-                  {folderName || 'No folder selected'}
+                <div className={cn(
+                  "flex-1 px-3 py-2 rounded-md text-sm",
+                  watchNeedsReselect ? "bg-amber-100 text-amber-700" : "bg-muted"
+                )}>
+                  {displayWatchFolder ? (
+                    <span className="flex items-center gap-2">
+                      {displayWatchFolder}
+                      {watchNeedsReselect && (
+                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-600 border-amber-200">
+                          Re-select required
+                        </Badge>
+                      )}
+                    </span>
+                  ) : (
+                    'No folder selected'
+                  )}
                 </div>
                 <Button variant="outline" onClick={selectFolder} disabled={isWatching}>
                   <FolderSearch className="h-4 w-4 mr-2" />
-                  {folderName ? 'Change' : 'Select'}
+                  {watchNeedsReselect ? 'Re-select' : displayWatchFolder ? 'Change' : 'Select'}
                 </Button>
               </div>
               {folderName && (
@@ -140,12 +161,26 @@ export default function WatchFolderSettings({
                 Output Folder (AI Completed PDFs)
               </Label>
               <div className="flex items-center gap-2">
-                <div className="flex-1 px-3 py-2 rounded-md bg-muted text-sm">
-                  {outputFolderName || 'No folder selected (optional)'}
+                <div className={cn(
+                  "flex-1 px-3 py-2 rounded-md text-sm",
+                  outputNeedsReselect ? "bg-amber-100 text-amber-700" : "bg-muted"
+                )}>
+                  {displayOutputFolder ? (
+                    <span className="flex items-center gap-2">
+                      {displayOutputFolder}
+                      {outputNeedsReselect && (
+                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-600 border-amber-200">
+                          Re-select required
+                        </Badge>
+                      )}
+                    </span>
+                  ) : (
+                    'No folder selected (optional)'
+                  )}
                 </div>
                 <Button variant="outline" onClick={selectOutputFolder}>
                   <FolderSearch className="h-4 w-4 mr-2" />
-                  {outputFolderName ? 'Change' : 'Select'}
+                  {outputNeedsReselect ? 'Re-select' : displayOutputFolder ? 'Change' : 'Select'}
                 </Button>
               </div>
               {outputFolderName && (
@@ -155,7 +190,7 @@ export default function WatchFolderSettings({
               )}
             </div>
 
-            {/* Controls */}
+            {/* Controls - only show if folder is actually selected (not just remembered) */}
             {folderName && (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -187,6 +222,14 @@ export default function WatchFolderSettings({
                     </SelectContent>
                   </Select>
                 </div>
+              </div>
+            )}
+            
+            {/* Re-selection notice */}
+            {(watchNeedsReselect || outputNeedsReselect) && (
+              <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-md text-amber-700 text-xs">
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                <span>Browser folders need re-selection after page refresh (security restriction).</span>
               </div>
             )}
 
