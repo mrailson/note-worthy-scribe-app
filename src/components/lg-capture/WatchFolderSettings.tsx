@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   FolderSearch, FolderOpen, Check, X, Loader2, 
-  ChevronDown, AlertTriangle, Trash2, Clock, FolderInput, FolderOutput, ArrowRight, RotateCcw
+  ChevronDown, AlertTriangle, Trash2, Clock, FolderInput, ArrowRight, RotateCcw
 } from 'lucide-react';
 import { useWatchFolder, ActivityLogEntry } from '@/hooks/useWatchFolder';
 import { cn } from '@/lib/utils';
@@ -35,9 +35,7 @@ export default function WatchFolderSettings({
     pollingInterval,
     processedFiles,
     recentActivity,
-    outputFolderName,
     selectFolder,
-    selectOutputFolder,
     startWatching,
     stopWatching,
     setPollingInterval,
@@ -48,9 +46,7 @@ export default function WatchFolderSettings({
 
   // Display name: actual folder or saved name that needs re-selection
   const displayWatchFolder = folderName || (needsReselect.watchFolder ? needsReselect.savedWatchName : null);
-  const displayOutputFolder = outputFolderName || (needsReselect.outputFolder ? needsReselect.savedOutputName : null);
   const watchNeedsReselect = !folderName && needsReselect.watchFolder;
-  const outputNeedsReselect = !outputFolderName && needsReselect.outputFolder;
 
   // Check if in iframe
   const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
@@ -148,45 +144,10 @@ export default function WatchFolderSettings({
                 </Button>
               </div>
               {folderName && (
-                <p className="text-xs text-muted-foreground">
-                  After import, files are moved to "{folderName}/Imported to AI for processing"
-                </p>
-              )}
-            </div>
-
-            {/* Output Folder Selection */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium flex items-center gap-2">
-                <FolderOutput className="h-4 w-4" />
-                Output Folder (AI Completed PDFs)
-              </Label>
-              <div className="flex items-center gap-2">
-                <div className={cn(
-                  "flex-1 px-3 py-2 rounded-md text-sm",
-                  outputNeedsReselect ? "bg-amber-100 text-amber-700" : "bg-muted"
-                )}>
-                  {displayOutputFolder ? (
-                    <span className="flex items-center gap-2">
-                      {displayOutputFolder}
-                      {outputNeedsReselect && (
-                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-600 border-amber-200">
-                          Re-select required
-                        </Badge>
-                      )}
-                    </span>
-                  ) : (
-                    'No folder selected (optional)'
-                  )}
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• Source PDFs are moved to "{folderName}/Imported to AI for processing"</p>
+                  <p>• Completed AI PDFs are saved to "{folderName}/Done"</p>
                 </div>
-                <Button variant="outline" onClick={selectOutputFolder}>
-                  <FolderSearch className="h-4 w-4 mr-2" />
-                  {outputNeedsReselect ? 'Re-select' : displayOutputFolder ? 'Change' : 'Select'}
-                </Button>
-              </div>
-              {outputFolderName && (
-                <p className="text-xs text-muted-foreground">
-                  Completed AI PDFs will be automatically saved here
-                </p>
               )}
             </div>
 
@@ -226,10 +187,10 @@ export default function WatchFolderSettings({
             )}
             
             {/* Re-selection notice */}
-            {(watchNeedsReselect || outputNeedsReselect) && (
+            {watchNeedsReselect && (
               <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-md text-amber-700 text-xs">
                 <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                <span>Browser folders need re-selection after page refresh (security restriction).</span>
+                <span>Browser folder needs re-selection after page refresh (security restriction).</span>
               </div>
             )}
 
@@ -286,7 +247,7 @@ export default function WatchFolderSettings({
             {/* Help Text */}
             <p className="text-xs text-muted-foreground">
               When enabled, this folder is checked every {pollingInterval} seconds for new PDF files. 
-              New files are automatically queued for processing and moved to the "Imported to AI for processing" subfolder.
+              New files are automatically queued for processing. Subfolders are created automatically.
             </p>
           </CardContent>
         </CollapsibleContent>
