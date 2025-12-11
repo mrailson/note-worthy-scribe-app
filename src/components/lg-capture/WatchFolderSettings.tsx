@@ -8,7 +8,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { 
   FolderSearch, FolderOpen, Check, X, Loader2, 
-  ChevronDown, AlertTriangle, Trash2, Clock, FolderInput, FolderOutput, ArrowRight
+  ChevronDown, AlertTriangle, Trash2, Clock, FolderInput, FolderOutput, ArrowRight, RotateCcw
 } from 'lucide-react';
 import { useWatchFolder, ActivityLogEntry } from '@/hooks/useWatchFolder';
 import { cn } from '@/lib/utils';
@@ -41,7 +41,8 @@ export default function WatchFolderSettings({
     startWatching,
     stopWatching,
     setPollingInterval,
-    clearProcessedFiles
+    clearProcessedFiles,
+    restartService
   } = useWatchFolder(practiceOds, uploaderName, batchId);
 
   // Check if in iframe
@@ -214,18 +215,30 @@ export default function WatchFolderSettings({
               </div>
             )}
 
-            {/* Clear History */}
-            {processedFiles.length > 0 && (
+            {/* Clear History & Restart */}
+            <div className="flex items-center gap-2">
+              {processedFiles.length > 0 && (
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={clearProcessedFiles}
+                  className="text-muted-foreground"
+                >
+                  <Trash2 className="h-3 w-3 mr-1" />
+                  Clear history
+                </Button>
+              )}
+              
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={clearProcessedFiles}
+                onClick={restartService}
                 className="text-muted-foreground"
               >
-                <Trash2 className="h-3 w-3 mr-1" />
-                Clear processed files history
+                <RotateCcw className="h-3 w-3 mr-1" />
+                Restart service
               </Button>
-            )}
+            </div>
 
             {/* Help Text */}
             <p className="text-xs text-muted-foreground">
