@@ -14,6 +14,7 @@ import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { generateULID } from '@/utils/ulid';
 import { extractPdfPages, PdfExtractionProgress, ExtractedPage } from '@/utils/pdfPageExtractor';
 import { analyseBlankness } from '@/utils/blankPageDetector';
+import { autoCorrectOrientation } from '@/utils/pageOrientationDetector';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { useDropzone } from 'react-dropzone';
 import { LGCameraModal } from '@/components/lg-capture/LGCameraModal';
@@ -130,9 +131,14 @@ export default function LGCaptureUpload() {
           
           for (const page of pages) {
             if (newImages.length >= remainingSlots) break;
+            // Auto-correct upside-down pages
+            const { dataUrl: correctedUrl, wasRotated } = await autoCorrectOrientation(page.dataUrl);
+            if (wasRotated) {
+              console.log(`Page ${newImages.length + 1} was upside-down - rotated`);
+            }
             newImages.push({
               id: generateULID(),
-              dataUrl: page.dataUrl,
+              dataUrl: correctedUrl,
               timestamp: Date.now(),
               isBlank: page.isBlank,
               blankConfidence: page.blankConfidence,
@@ -140,7 +146,14 @@ export default function LGCaptureUpload() {
           }
           setExtractionProgress(null);
         } else if (file.type.startsWith('image/')) {
-          const dataUrl = await readFileAsDataUrl(file);
+          let dataUrl = await readFileAsDataUrl(file);
+          
+          // Auto-correct upside-down pages
+          const { dataUrl: correctedUrl, wasRotated } = await autoCorrectOrientation(dataUrl);
+          if (wasRotated) {
+            console.log(`Image ${file.name} was upside-down - rotated`);
+            dataUrl = correctedUrl;
+          }
           
           let isBlank = false;
           let blankConfidence = 0;
