@@ -10,7 +10,6 @@ export interface ExtractedPage {
   width: number;
   height: number;
   isBlank?: boolean;
-  isMostlyBlank?: boolean;
   blankConfidence?: number;
 }
 
@@ -75,7 +74,6 @@ export async function extractPdfPages(
       width: viewport.width,
       height: viewport.height,
       isBlank: false,
-      isMostlyBlank: false,
       blankConfidence: 0,
     });
 
@@ -101,12 +99,10 @@ export async function extractPdfPages(
       try {
         const result: BlankAnalysisResult = await analyseBlankness(extractedPages[i].dataUrl);
         extractedPages[i].isBlank = result.isBlank;
-        extractedPages[i].isMostlyBlank = result.isMostlyBlank;
         extractedPages[i].blankConfidence = result.confidence;
       } catch {
         // If analysis fails, assume not blank
         extractedPages[i].isBlank = false;
-        extractedPages[i].isMostlyBlank = false;
         extractedPages[i].blankConfidence = 0;
       }
 

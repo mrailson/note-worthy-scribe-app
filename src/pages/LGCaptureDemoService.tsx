@@ -106,7 +106,6 @@ export default function LGCaptureDemoService() {
         dataUrl: page.dataUrl,
         timestamp: Date.now() + index,
         isBlank: page.isBlank,
-        isMostlyBlank: page.isMostlyBlank,
         blankConfidence: page.blankConfidence,
       }));
       

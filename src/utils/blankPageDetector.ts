@@ -5,7 +5,6 @@
 
 export interface BlankAnalysisResult {
   isBlank: boolean;
-  isMostlyBlank: boolean;
   whitePercentage: number;
   stdDev: number;
   confidence: number;
@@ -20,8 +19,8 @@ export interface BlankAnalysisResult {
  */
 export async function analyseBlankness(
   dataUrl: string,
-  whiteThreshold: number = 99,
-  stdDevThreshold: number = 8
+  whiteThreshold: number = 85,
+  stdDevThreshold: number = 25
 ): Promise<BlankAnalysisResult> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -79,32 +78,25 @@ export async function analyseBlankness(
         const avgSquaredDiff = squaredDiffs.reduce((a, b) => a + b, 0) / squaredDiffs.length;
         const stdDev = Math.sqrt(avgSquaredDiff);
 
-        // Determine if blank - very conservative to avoid false positives
-        // Blank only if: >99% white pixels AND very uniform/low std dev
-        const isBlank = whitePercentage > whiteThreshold && stdDev < stdDevThreshold;
-        
-        // Mostly blank: much looser thresholds for old scans with marks/artifacts/yellowing
-        // Old Lloyd George scans have noise, marks, yellowed paper that reduces white%
-        const isMostlyBlank = !isBlank && (
-          (whitePercentage > 75 && stdDev < 30) ||  // High white with moderate uniformity
-          (whitePercentage > 65 && stdDev < 20) ||  // Medium white with good uniformity
-          (whitePercentage > 55 && stdDev < 12)     // Lower white but very uniform (yellowed blank)
-        );
+        // Determine if blank - detect aged/yellowed blank pages from old Lloyd George scans
+        // Blank if: >85% near-white pixels AND reasonably uniform (stdDev < 25)
+        // Also catch yellowed blanks with lower white% but very uniform appearance
+        const isBlank = (whitePercentage > whiteThreshold && stdDev < stdDevThreshold) ||
+          (whitePercentage > 70 && stdDev < 18) ||  // Yellowed but uniform
+          (whitePercentage > 60 && stdDev < 12);    // Very yellowed but very uniform
 
         // Calculate confidence (how sure we are it's blank)
         let confidence = 0;
         if (isBlank) {
-          if (whitePercentage > 98) {
+          if (whitePercentage > 95) {
             confidence = 0.99;
-          } else if (whitePercentage > 95) {
+          } else if (whitePercentage > 85) {
             confidence = 0.95;
-          } else if (whitePercentage > 90 && stdDev < 10) {
-            confidence = 0.90;
+          } else if (whitePercentage > 70) {
+            confidence = 0.85;
           } else {
-            confidence = 0.80;
+            confidence = 0.75;
           }
-        } else if (isMostlyBlank) {
-          confidence = 0.6 + (whitePercentage - 85) * 0.02; // 0.6-0.9 range
         }
 
         // Clean up
@@ -112,7 +104,6 @@ export async function analyseBlankness(
 
         resolve({
           isBlank,
-          isMostlyBlank,
           whitePercentage: Math.round(whitePercentage * 10) / 10,
           stdDev: Math.round(stdDev * 10) / 10,
           confidence,
@@ -150,7 +141,6 @@ export async function batchAnalyseBlankness(
       // If analysis fails, assume not blank
       results.push({
         isBlank: false,
-        isMostlyBlank: false,
         whitePercentage: 0,
         stdDev: 100,
         confidence: 0,
