@@ -73,7 +73,7 @@ export default function LGCaptureUpload() {
   
   // Blank detection threshold adjusters for testing
   const [whiteThreshold, setWhiteThreshold] = useState(85);
-  const [stdDevThreshold, setStdDevThreshold] = useState(25);
+  const [stdDevThreshold, setStdDevThreshold] = useState(16);
 
   const blankCount = images.filter(img => img.isBlank).length;
   const nonBlankImages = images.filter(img => !img.isBlank);
