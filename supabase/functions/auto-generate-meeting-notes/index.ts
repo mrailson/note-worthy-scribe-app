@@ -663,27 +663,8 @@ ${cleanedTranscript}`;
       console.warn('⚠️ Post-process of ACTION ITEMS failed:', ppErr);
     }
 
-    // Run professional tone audit before saving (GPT-5 polish)
-    try {
-      console.log('🎯 Running professional tone audit (GPT-5)...');
-      const auditStartTime = Date.now();
-      
-      const { data: auditResult, error: auditError } = await supabase.functions.invoke(
-        'tone-audit-optimiser',
-        {
-          body: { minutes_text: generatedNotes }
-        }
-      );
-
-      if (auditError) {
-        console.warn('⚠️ Tone audit failed, using original notes:', auditError.message);
-      } else if (auditResult?.polished_minutes) {
-        generatedNotes = auditResult.polished_minutes;
-        console.log(`✅ Tone audit completed in ${Date.now() - auditStartTime}ms, notes polished for NHS Board circulation`);
-      }
-    } catch (auditError) {
-      console.warn('⚠️ Tone audit error, using original notes:', auditError instanceof Error ? auditError.message : auditError);
-    }
+    // Note: GPT-5 tone audit removed - Gemini prompt already includes governance rules
+    // and the audit was stripping markdown formatting whilst adding 75+ seconds delay
 
     // Extract overview from the generated notes (first section after "EXECUTIVE SUMMARY")
     // Match both markdown heading and bold format
