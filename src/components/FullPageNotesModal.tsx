@@ -101,7 +101,7 @@ import { exportConsultationToWord } from '@/utils/consultationWordExport';
 import { WordIcon } from '@/components/icons/WordIcon';
 
 // Maximum length for Standard minutes rendering - skip expensive formatting for very long notes
-const MAX_MINUTES_RENDER_LENGTH = 12000;
+const MAX_MINUTES_RENDER_LENGTH = 50000;
 
 interface Meeting {
   id: string;
