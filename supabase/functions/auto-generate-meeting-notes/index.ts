@@ -603,7 +603,7 @@ ${cleanedTranscript}`;
             { role: 'system', content: systemPrompt },
             { role: 'user', content: userPrompt }
           ],
-          max_completion_tokens: 2000,
+          max_completion_tokens: 8000,
         }),
         signal: controller.signal,
       });
