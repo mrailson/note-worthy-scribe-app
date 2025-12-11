@@ -57,15 +57,25 @@ export function useWatchFolder(
 
   const savedSettings = getSavedSettings();
 
+  // Note: FileSystemDirectoryHandle cannot be persisted across page refreshes
+  // We store names for display but handles must be re-selected after refresh
   const [state, setState] = useState<WatchFolderState>({
     isSupported,
     isWatching: false,
-    folderName: savedSettings.folderName || null,
+    folderName: null, // Don't show saved name without valid handle
     pollingInterval: savedSettings.pollingInterval || 30,
     processedFiles: [],
     recentActivity: [],
     importedFolderName: null,
-    outputFolderName: savedSettings.outputFolderName || null
+    outputFolderName: null // Don't show saved name without valid handle
+  });
+
+  // Track if folders need re-selection (were saved but handles lost on refresh)
+  const [needsReselect, setNeedsReselect] = useState({
+    watchFolder: !!savedSettings.folderName,
+    outputFolder: !!savedSettings.outputFolderName,
+    savedWatchName: savedSettings.folderName as string | null,
+    savedOutputName: savedSettings.outputFolderName as string | null
   });
 
   const directoryHandleRef = useRef<FileSystemDirectoryHandle | null>(null);
@@ -297,6 +307,9 @@ export function useWatchFolder(
         isWatching: false 
       }));
       saveSettings({ folderName: handle.name });
+      
+      // Clear needsReselect for watch folder
+      setNeedsReselect(prev => ({ ...prev, watchFolder: false, savedWatchName: null }));
 
       toast.success(`Folder selected: ${handle.name}`);
     } catch (err) {
@@ -332,6 +345,9 @@ export function useWatchFolder(
         outputFolderName: handle.name
       }));
       saveSettings({ outputFolderName: handle.name });
+      
+      // Clear needsReselect for output folder
+      setNeedsReselect(prev => ({ ...prev, outputFolder: false, savedOutputName: null }));
 
       toast.success(`Output folder selected: ${handle.name}`);
     } catch (err) {
@@ -559,6 +575,7 @@ export function useWatchFolder(
     setPollingInterval,
     clearProcessedFiles,
     restartService,
-    hasOutputFolder: !!outputFolderHandleRef.current
+    hasOutputFolder: !!outputFolderHandleRef.current,
+    needsReselect // Expose whether folders need re-selection after refresh
   };
 }
