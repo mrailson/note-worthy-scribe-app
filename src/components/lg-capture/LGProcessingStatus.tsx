@@ -257,6 +257,14 @@ export function LGProcessingStatus({ patient, onStatusChange }: LGProcessingStat
               <p>Patient: {currentPatient.patient_name || currentPatient.ai_extracted_name || 'Extracting...'}</p>
               <p>NHS: {currentPatient.nhs_number || currentPatient.ai_extracted_nhs || 'Extracting...'}</p>
               <p>Pages: {currentPatient.images_count}</p>
+              {currentPatient.ocr_total_chars && currentPatient.ocr_total_chars > 0 && (
+                <p>OCR Text: {(currentPatient.ocr_total_chars / 1000).toFixed(0)}k characters</p>
+              )}
+              {currentPatient.ocr_analysed_percentage != null && currentPatient.ocr_analysed_percentage < 100 && (
+                <p className="text-amber-600 font-medium">
+                  ⚠️ Large document: AI analysed {currentPatient.ocr_analysed_percentage}% of text
+                </p>
+              )}
               {isBatched && pdfStatus?.text !== 'PDF ready' && (
                 <p className="text-amber-600">Large record - using background processing</p>
               )}

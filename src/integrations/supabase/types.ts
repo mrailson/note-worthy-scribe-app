@@ -3486,11 +3486,14 @@ export type Database = {
           last_audit_by: string | null
           nhs_number: string | null
           nhs_number_validated: boolean | null
+          ocr_analysed_chars: number | null
+          ocr_analysed_percentage: number | null
           ocr_batches_completed: number | null
           ocr_batches_total: number | null
           ocr_completed_at: string | null
           ocr_started_at: string | null
           ocr_text_url: string | null
+          ocr_total_chars: number | null
           original_size_mb: number | null
           patient_name: string | null
           pdf_completed_at: string | null
@@ -3557,11 +3560,14 @@ export type Database = {
           last_audit_by?: string | null
           nhs_number?: string | null
           nhs_number_validated?: boolean | null
+          ocr_analysed_chars?: number | null
+          ocr_analysed_percentage?: number | null
           ocr_batches_completed?: number | null
           ocr_batches_total?: number | null
           ocr_completed_at?: string | null
           ocr_started_at?: string | null
           ocr_text_url?: string | null
+          ocr_total_chars?: number | null
           original_size_mb?: number | null
           patient_name?: string | null
           pdf_completed_at?: string | null
@@ -3628,11 +3634,14 @@ export type Database = {
           last_audit_by?: string | null
           nhs_number?: string | null
           nhs_number_validated?: boolean | null
+          ocr_analysed_chars?: number | null
+          ocr_analysed_percentage?: number | null
           ocr_batches_completed?: number | null
           ocr_batches_total?: number | null
           ocr_completed_at?: string | null
           ocr_started_at?: string | null
           ocr_text_url?: string | null
+          ocr_total_chars?: number | null
           original_size_mb?: number | null
           patient_name?: string | null
           pdf_completed_at?: string | null
