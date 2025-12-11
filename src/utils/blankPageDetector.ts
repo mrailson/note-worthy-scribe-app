@@ -20,7 +20,7 @@ export interface BlankAnalysisResult {
 export async function analyseBlankness(
   dataUrl: string,
   whiteThreshold: number = 85,
-  stdDevThreshold: number = 25
+  stdDevThreshold: number = 16
 ): Promise<BlankAnalysisResult> {
   return new Promise((resolve, reject) => {
     const img = new Image();
