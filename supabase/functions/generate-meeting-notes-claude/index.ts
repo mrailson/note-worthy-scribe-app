@@ -5,44 +5,9 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 // Updated to use Lovable AI with Gemini Flash (2M token context)
 const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
-// Helper function to run GPT-5 professional tone audit
-async function runToneAudit(notes: string): Promise<string> {
-  try {
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
-    
-    console.log('🎯 Running GPT-5 professional tone audit...');
-    console.log('📊 Input notes length:', notes.length);
-    console.log('📝 Input preview (first 200 chars):', notes.substring(0, 200));
-    
-    const { data: auditResult, error: auditError } = await supabase.functions.invoke(
-      'tone-audit-optimiser',
-      { body: { minutes_text: notes } }
-    );
-
-    if (auditError) {
-      console.warn('⚠️ Tone audit failed, using original notes:', auditError.message);
-      return notes;
-    }
-    
-    console.log('📋 Audit result keys:', Object.keys(auditResult || {}));
-    console.log('📊 Polished minutes length:', auditResult?.polished_minutes?.length || 0);
-    
-    if (auditResult?.polished_minutes) {
-      console.log('✅ GPT-5 tone audit completed successfully');
-      console.log('📝 Output preview (first 200 chars):', auditResult.polished_minutes.substring(0, 200));
-      return auditResult.polished_minutes;
-    }
-    
-    console.warn('⚠️ Tone audit returned no polished_minutes, using original notes');
-    console.log('📋 Full audit result:', JSON.stringify(auditResult).substring(0, 500));
-    return notes;
-  } catch (auditError) {
-    console.warn('⚠️ Tone audit error, using original notes:', auditError);
-    return notes;
-  }
-}
+// Note: GPT-5 tone audit removed - Gemini prompt already includes governance rules
+// and performProfessionalToneAudit() handles pattern replacements locally without
+// destroying markdown formatting or adding 75+ seconds of processing time
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -510,9 +475,6 @@ serve(async (req) => {
       generatedNotes = sanitiseActionOwners(generatedNotes, transcript);
       console.log(`🧹 Sanitization took: ${Date.now() - sanitizeStartTime}ms`);
       
-      // Run GPT-5 professional tone audit (8 comprehensive rules)
-      generatedNotes = await runToneAudit(generatedNotes);
-      
       console.log('✅ Custom prompt generated successfully');
       console.log('📝 Generated preview:', generatedNotes.substring(0, 300));
       console.log(`⏱️ Total custom prompt processing: ${Date.now() - functionStartTime}ms`);
@@ -562,9 +524,6 @@ serve(async (req) => {
       meetingMinutes = await processChunk(transcript, meetingTitle, meetingDate, meetingTime, styleChoice);
       meetingMinutes = sanitiseActionOwners(meetingMinutes, transcript);
     }
-
-    // Run GPT-5 professional tone audit (8 comprehensive rules)
-    meetingMinutes = await runToneAudit(meetingMinutes);
 
     const totalTime = Date.now() - functionStartTime;
     console.log('✅ Lovable AI meeting minutes generated successfully');
