@@ -42,15 +42,30 @@ export function useWatchFolder(
   const apiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
   const isSupported = apiSupported && !isInIframe;
   
+  // Load saved settings from localStorage
+  const getSavedSettings = () => {
+    try {
+      const saved = localStorage.getItem('lg_watch_settings');
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch {
+      // Ignore parse errors
+    }
+    return {};
+  };
+
+  const savedSettings = getSavedSettings();
+
   const [state, setState] = useState<WatchFolderState>({
     isSupported,
     isWatching: false,
-    folderName: null,
-    pollingInterval: 30,
+    folderName: savedSettings.folderName || null,
+    pollingInterval: savedSettings.pollingInterval || 30,
     processedFiles: [],
     recentActivity: [],
     importedFolderName: null,
-    outputFolderName: null
+    outputFolderName: savedSettings.outputFolderName || null
   });
 
   const directoryHandleRef = useRef<FileSystemDirectoryHandle | null>(null);
@@ -62,6 +77,17 @@ export function useWatchFolder(
   
   // Track if we're in iframe for error messaging
   const inIframe = isInIframe;
+
+  // Save settings to localStorage
+  const saveSettings = useCallback((updates: Partial<{ folderName: string | null; outputFolderName: string | null; pollingInterval: number }>) => {
+    try {
+      const current = getSavedSettings();
+      const newSettings = { ...current, ...updates };
+      localStorage.setItem('lg_watch_settings', JSON.stringify(newSettings));
+    } catch {
+      // Ignore save errors
+    }
+  }, []);
 
   // Load processed files from localStorage
   useEffect(() => {
@@ -270,6 +296,7 @@ export function useWatchFolder(
         folderName: handle.name,
         isWatching: false 
       }));
+      saveSettings({ folderName: handle.name });
 
       toast.success(`Folder selected: ${handle.name}`);
     } catch (err) {
@@ -285,7 +312,7 @@ export function useWatchFolder(
       console.error('Error selecting folder:', err);
       toast.error('Failed to select folder');
     }
-  }, [state.isSupported, inIframe]);
+  }, [state.isSupported, inIframe, saveSettings]);
 
   const selectOutputFolder = useCallback(async () => {
     if (!state.isSupported) {
@@ -304,6 +331,7 @@ export function useWatchFolder(
         ...prev, 
         outputFolderName: handle.name
       }));
+      saveSettings({ outputFolderName: handle.name });
 
       toast.success(`Output folder selected: ${handle.name}`);
     } catch (err) {
@@ -311,7 +339,7 @@ export function useWatchFolder(
       console.error('Error selecting output folder:', err);
       toast.error('Failed to select output folder');
     }
-  }, [state.isSupported]);
+  }, [state.isSupported, saveSettings]);
 
   // Save completed PDF to output folder
   const saveToOutputFolder = useCallback(async (pdfBlob: Blob, fileName: string) => {
@@ -365,13 +393,39 @@ export function useWatchFolder(
 
   const setPollingInterval = useCallback((seconds: number) => {
     setState(prev => ({ ...prev, pollingInterval: seconds }));
+    saveSettings({ pollingInterval: seconds });
     
     // Restart polling with new interval if currently watching
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = setInterval(pollFolder, seconds * 1000);
     }
-  }, [pollFolder]);
+  }, [pollFolder, saveSettings]);
+
+  // Restart service - stops and clears state, allows re-selecting folders
+  const restartService = useCallback(() => {
+    // Stop watching
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+      pollingIntervalRef.current = null;
+    }
+    
+    // Clear folder handles
+    directoryHandleRef.current = null;
+    outputFolderHandleRef.current = null;
+    importedFolderHandleRef.current = null;
+    
+    // Reset state but keep settings in localStorage
+    setState(prev => ({
+      ...prev,
+      isWatching: false,
+      folderName: null,
+      outputFolderName: null,
+      recentActivity: []
+    }));
+    
+    toast.success('Watch folder service restarted. Please re-select folders.');
+  }, []);
 
   const clearProcessedFiles = useCallback(() => {
     processedFilesRef.current.clear();
@@ -493,6 +547,7 @@ export function useWatchFolder(
     stopWatching,
     setPollingInterval,
     clearProcessedFiles,
+    restartService,
     hasOutputFolder: !!outputFolderHandleRef.current
   };
 }
