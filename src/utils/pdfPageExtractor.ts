@@ -1,5 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { analyseBlankness, BlankAnalysisResult } from './blankPageDetector';
+import { autoCorrectOrientation } from './pageOrientationDetector';
 
 // Configure worker using cdnjs (more reliable for dynamic imports)
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -11,13 +12,14 @@ export interface ExtractedPage {
   height: number;
   isBlank?: boolean;
   blankConfidence?: number;
+  wasRotated?: boolean;
 }
 
 export interface PdfExtractionProgress {
   currentPage: number;
   totalPages: number;
   percentage: number;
-  phase?: 'extracting' | 'analysing';
+  phase?: 'extracting' | 'analysing' | 'correcting';
 }
 
 /**
@@ -75,15 +77,16 @@ export async function extractPdfPages(
       height: viewport.height,
       isBlank: false,
       blankConfidence: 0,
+      wasRotated: false,
     });
 
-    // Report progress
+    // Report progress - split between 3 phases
     if (onProgress) {
       onProgress({
         currentPage: pageNum,
         totalPages,
         percentage: detectBlanks 
-          ? Math.round((pageNum / totalPages) * 50) // 0-50% for extraction
+          ? Math.round((pageNum / totalPages) * 33) // 0-33% for extraction
           : Math.round((pageNum / totalPages) * 100),
         phase: 'extracting',
       });
@@ -111,10 +114,44 @@ export async function extractPdfPages(
         onProgress({
           currentPage: i + 1,
           totalPages: extractedPages.length,
-          percentage: 50 + Math.round(((i + 1) / extractedPages.length) * 50), // 50-100% for analysis
+          percentage: 33 + Math.round(((i + 1) / extractedPages.length) * 33), // 33-66% for analysis
           phase: 'analysing',
         });
       }
+    }
+  }
+
+  // Phase 3: Auto-correct upside-down pages (portrait pages only)
+  for (let i = 0; i < extractedPages.length; i++) {
+    const page = extractedPages[i];
+    
+    // Only correct portrait pages (height > width * 0.9)
+    // Sideways/landscape pages are left as-is per user request
+    const isPortrait = page.height > page.width * 0.9;
+    
+    if (isPortrait) {
+      try {
+        const { dataUrl: correctedUrl, wasRotated } = await autoCorrectOrientation(page.dataUrl);
+        if (wasRotated) {
+          extractedPages[i].dataUrl = correctedUrl;
+          extractedPages[i].wasRotated = true;
+          console.log(`Page ${page.pageNumber} was upside-down and has been rotated`);
+        }
+      } catch {
+        // If orientation check fails, leave page as-is
+      }
+    }
+
+    // Report progress for orientation correction phase
+    if (onProgress) {
+      onProgress({
+        currentPage: i + 1,
+        totalPages: extractedPages.length,
+        percentage: detectBlanks 
+          ? 66 + Math.round(((i + 1) / extractedPages.length) * 34) // 66-100% for correction
+          : 50 + Math.round(((i + 1) / extractedPages.length) * 50), // 50-100% if no blank detection
+        phase: 'correcting',
+      });
     }
   }
 
