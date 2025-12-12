@@ -168,6 +168,7 @@ export default function LGCaptureBulk() {
             uploader_name: uploaderName,
             job_status: 'draft',
             images_count: pageCount,
+            source_page_count: pageCount, // Track original PDF page count before any processing
             sex: 'unknown',
             batch_id: batchId
           });
