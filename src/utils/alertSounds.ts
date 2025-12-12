@@ -5,7 +5,7 @@
 
 let beepCount = 0;
 
-export function playWarningBeep(repeatCount = 3) {
+export function playWarningBeep(repeatCount = 9) {
   beepCount = 0;
   playBeep(repeatCount);
 }
