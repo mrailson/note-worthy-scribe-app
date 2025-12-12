@@ -6,12 +6,14 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play, BarChart3, Files } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play, BarChart3, Files, Zap, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsIPhone } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { LGAIModel } from '@/contexts/LGUploadQueueContext';
 
 interface Practice {
   id: string;
@@ -27,6 +29,7 @@ export default function LGCaptureLanding() {
   const [practiceName, setPracticeName] = useState('');
   const [uploaderName, setUploaderName] = useState('');
   const [serviceLevel, setServiceLevel] = useState<'rename_only' | 'index_summary' | 'full_service'>('full_service');
+  const [aiModel, setAiModel] = useState<LGAIModel>('gpt-4o-mini');
   const [showSettings, setShowSettings] = useState(false);
   const [practices, setPractices] = useState<Practice[]>([]);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
@@ -68,11 +71,12 @@ export default function LGCaptureLanding() {
         .maybeSingle();
       
       if (settingsData?.setting_value) {
-        const defaults = settingsData.setting_value as { practiceOds?: string; uploaderName?: string; practiceName?: string; serviceLevel?: 'rename_only' | 'index_summary' | 'full_service' };
+        const defaults = settingsData.setting_value as { practiceOds?: string; uploaderName?: string; practiceName?: string; serviceLevel?: 'rename_only' | 'index_summary' | 'full_service'; aiModel?: LGAIModel };
         if (defaults.practiceOds) loadedOds = defaults.practiceOds;
         if (defaults.uploaderName) loadedName = defaults.uploaderName;
         if (defaults.practiceName) loadedPracticeName = defaults.practiceName;
         if (defaults.serviceLevel) setServiceLevel(defaults.serviceLevel);
+        if (defaults.aiModel) setAiModel(defaults.aiModel);
       }
 
       // 2. If name not set, get from user profile
@@ -119,7 +123,7 @@ export default function LGCaptureLanding() {
   }, [user?.id]);
 
   // Save to database helper - called on practice select AND save button
-  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service') => {
+  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service', model: LGAIModel) => {
     if (!user?.id) return false;
     
     const { error } = await supabase
@@ -131,7 +135,8 @@ export default function LGCaptureLanding() {
           practiceOds: ods.trim(),
           practiceName: pName.trim(),
           uploaderName: name.trim(),
-          serviceLevel: svcLevel
+          serviceLevel: svcLevel,
+          aiModel: model
         },
         updated_at: new Date().toISOString()
       }, { 
@@ -147,6 +152,7 @@ export default function LGCaptureLanding() {
     localStorage.setItem('lg_practice_ods', ods.trim());
     localStorage.setItem('lg_practice_name', pName.trim());
     localStorage.setItem('lg_uploader_name', name.trim());
+    localStorage.setItem('lg-ai-model-preference', model);
     
     return true;
   };
@@ -159,7 +165,7 @@ export default function LGCaptureLanding() {
     setSearchTerm('');
 
     // Auto-save to database immediately
-    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel);
+    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel, aiModel);
   };
 
   const filteredPractices = practices.filter(practice => {
@@ -195,7 +201,7 @@ export default function LGCaptureLanding() {
     }
 
     setIsSaving(true);
-    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel);
+    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel, aiModel);
     setIsSaving(false);
 
     if (saved) {
@@ -581,6 +587,40 @@ export default function LGCaptureLanding() {
                 </label>
               </div>
             </div>
+            
+            {/* AI Model Selector */}
+            <div className="space-y-3">
+              <Label>AI Model</Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-4">
+                  <div className="flex items-center gap-2 text-sm">
+                    <Zap className={cn("h-4 w-4", aiModel === 'gpt-4o-mini' ? "text-primary" : "text-muted-foreground")} />
+                    <span className={cn(aiModel === 'gpt-4o-mini' ? "font-medium" : "text-muted-foreground")}>
+                      GPT-4o Mini
+                    </span>
+                  </div>
+                  <Slider
+                    value={[aiModel === 'gpt-4o-mini' ? 0 : 1]}
+                    onValueChange={(value) => setAiModel(value[0] === 0 ? 'gpt-4o-mini' : 'gpt-5')}
+                    max={1}
+                    step={1}
+                    className="w-20"
+                  />
+                  <div className="flex items-center gap-2 text-sm">
+                    <span className={cn(aiModel === 'gpt-5' ? "font-medium" : "text-muted-foreground")}>
+                      GPT-5
+                    </span>
+                    <Sparkles className={cn("h-4 w-4", aiModel === 'gpt-5' ? "text-primary" : "text-muted-foreground")} />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {aiModel === 'gpt-4o-mini' 
+                    ? "Faster & cheaper (default)" 
+                    : "More powerful extraction"}
+                </p>
+              </div>
+            </div>
+
             <Button 
               onClick={saveSettings} 
               className={cn("w-full", isIPhone && "h-12 text-base")} 

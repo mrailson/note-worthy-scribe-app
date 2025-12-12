@@ -20,13 +20,13 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { patientId, batchNumber } = await req.json();
+    const { patientId, batchNumber, aiModel = 'gpt-4o-mini' } = await req.json();
     
     if (!patientId || batchNumber === undefined) {
       throw new Error('Missing patientId or batchNumber');
     }
 
-    console.log(`OCR Batch ${batchNumber} for patient: ${patientId}`);
+    console.log(`OCR Batch ${batchNumber} for patient: ${patientId}, AI model: ${aiModel}`);
 
     // Record OCR start time on first batch
     if (batchNumber === 0) {
@@ -195,7 +195,7 @@ serve(async (req) => {
       // Trigger summary processing
       console.log('Triggering summary processing...');
       const { data: summaryData, error: summaryError } = await supabase.functions.invoke('lg-process-summary', {
-        body: { patientId },
+        body: { patientId, aiModel },
       });
 
       if (summaryError) {
@@ -214,7 +214,7 @@ serve(async (req) => {
       // Trigger next batch
       console.log(`Triggering next batch: ${completedBatches}`);
       await supabase.functions.invoke('lg-ocr-batch', {
-        body: { patientId, batchNumber: completedBatches },
+        body: { patientId, batchNumber: completedBatches, aiModel },
       });
     }
 

@@ -618,13 +618,13 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { patientId, serviceLevel = 'full_service' } = await req.json();
+    const { patientId, serviceLevel = 'full_service', aiModel = 'gpt-4o-mini' } = await req.json();
     
     if (!patientId) {
       throw new Error('Missing patientId');
     }
 
-    console.log(`Processing patient: ${patientId}, service level: ${serviceLevel}`);
+    console.log(`Processing patient: ${patientId}, service level: ${serviceLevel}, AI model: ${aiModel}`);
 
     // Get patient record
     const { data: patient, error: patientError } = await supabase
@@ -637,10 +637,10 @@ serve(async (req) => {
       throw new Error(`Patient not found: ${patientError?.message}`);
     }
 
-    // Store service level on patient record
+    // Store service level and AI model on patient record
     await supabase
       .from('lg_patients')
-      .update({ service_level: serviceLevel })
+      .update({ service_level: serviceLevel, ai_model: aiModel })
       .eq('id', patientId);
 
     const basePath = `${patient.practice_ods}/${patientId}`;
@@ -664,7 +664,7 @@ serve(async (req) => {
       
       // Directly invoke summary processing
       await supabase.functions.invoke('lg-process-summary', {
-        body: { patientId },
+        body: { patientId, aiModel },
       });
 
       return new Response(
@@ -854,9 +854,9 @@ serve(async (req) => {
     if (imageCount > BATCH_THRESHOLD) {
       console.log(`Large record (${imageCount} pages) - using batched OCR processing`);
       
-      // Trigger first OCR batch (fire-and-forget chain) - pass service level
+      // Trigger first OCR batch (fire-and-forget chain) - pass service level and AI model
       await supabase.functions.invoke('lg-ocr-batch', {
-        body: { patientId, batchNumber: 0, serviceLevel },
+        body: { patientId, batchNumber: 0, serviceLevel, aiModel },
       });
 
       // Return immediately - batched processing continues in background

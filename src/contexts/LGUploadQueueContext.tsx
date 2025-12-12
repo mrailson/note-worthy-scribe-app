@@ -5,6 +5,7 @@ import { CapturedImage } from '@/hooks/useLGCapture';
 import { compressLgImageFromDataUrl } from '@/utils/lgImageCompressor';
 
 export type ServiceLevel = 'rename_only' | 'index_summary' | 'full_service';
+export type LGAIModel = 'gpt-4o-mini' | 'gpt-5';
 
 interface QueuedPatient {
   patientId: string;
@@ -16,6 +17,7 @@ interface QueuedPatient {
   fileName?: string;
   fileSize?: number;
   serviceLevel: ServiceLevel;
+  aiModel: LGAIModel;
   queuedAt: Date;
 }
 
@@ -23,6 +25,7 @@ interface QueuePatientOptions {
   fileName?: string;
   fileSize?: number;
   serviceLevel?: ServiceLevel;
+  aiModel?: LGAIModel;
 }
 
 interface LGUploadQueueContextType {
@@ -59,6 +62,7 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
       fileName: options?.fileName,
       fileSize: options?.fileSize,
       serviceLevel: options?.serviceLevel || 'full_service',
+      aiModel: options?.aiModel || 'gpt-4o-mini',
       queuedAt: new Date()
     }]);
   }, []);
@@ -152,9 +156,9 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
           : q
       ));
 
-      // Trigger processing (fire and forget) - pass service level
+      // Trigger processing (fire and forget) - pass service level and AI model
       supabase.functions.invoke('lg-process-patient', {
-        body: { patientId, serviceLevel: patient.serviceLevel }
+        body: { patientId, serviceLevel: patient.serviceLevel, aiModel: patient.aiModel }
       }).catch(err => {
         console.error('Processing trigger error:', err);
       });

@@ -642,13 +642,13 @@ serve(async (req) => {
   const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
   try {
-    const { patientId } = await req.json();
+    const { patientId, aiModel = 'gpt-4o-mini' } = await req.json();
     
     if (!patientId) {
       throw new Error('Missing patientId');
     }
 
-    console.log(`Summary processing for patient: ${patientId}`);
+    console.log(`Summary processing for patient: ${patientId}, AI model: ${aiModel}`);
 
     // Get patient record
     const { data: patient, error: patientError } = await supabase
@@ -756,7 +756,7 @@ serve(async (req) => {
     if (openaiKey && fullOcrText.length > 50) {
       try {
         extractedPatient = await callOpenAI(openaiKey, PATIENT_EXTRACTION_PROMPT, 
-          `Extract patient details from this OCR text of Lloyd George records:\n\n${fullOcrText.substring(0, PATIENT_EXTRACTION_LIMIT)}`);
+          `Extract patient details from this OCR text of Lloyd George records:\n\n${fullOcrText.substring(0, PATIENT_EXTRACTION_LIMIT)}`, 2, aiModel);
         console.log('Patient details extracted (raw):', extractedPatient);
         
         // ANTI-HALLUCINATION VALIDATION
@@ -1075,7 +1075,7 @@ OCR Text:
 ${fullOcrText.substring(0, SUMMARY_LIMIT)}`;
 
       try {
-        summaryJson = await callOpenAI(openaiKey, SUMMARISER_SYSTEM_PROMPT, summaryPrompt);
+        summaryJson = await callOpenAI(openaiKey, SUMMARISER_SYSTEM_PROMPT, summaryPrompt, 2, aiModel);
         console.log('Summary generated successfully');
         
         // Post-process: correct medication dates to use MOST RECENT date from OCR
@@ -1113,7 +1113,7 @@ ${fullOcrText.substring(0, SNOMED_LIMIT)}`;
 
       try {
         // Single-step: AI extracts concepts AND provides SNOMED codes directly
-        const aiSnomedOutput = await callOpenAI(openaiKey, SNOMED_MAPPING_PROMPT, snomedPrompt);
+        const aiSnomedOutput = await callOpenAI(openaiKey, SNOMED_MAPPING_PROMPT, snomedPrompt, 2, aiModel);
         console.log('AI SNOMED extraction complete');
         
         // Convert flat items array to domain-based structure for backward compatibility
@@ -1227,24 +1227,45 @@ ${fullOcrText.substring(0, SNOMED_LIMIT)}`;
   }
 });
 
-async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: string, retries = 2): Promise<any> {
+async function callOpenAI(apiKey: string, systemPrompt: string, userPrompt: string, retries = 2, aiModel = 'gpt-4o-mini'): Promise<any> {
+  // Map user-friendly model names to API model identifiers
+  const modelMapping: Record<string, string> = {
+    'gpt-4o-mini': 'gpt-4o-mini',
+    'gpt-5': 'gpt-5-2025-08-07',
+  };
+  
+  const apiModel = modelMapping[aiModel] || 'gpt-4o-mini';
+  const isGpt5 = aiModel === 'gpt-5';
+  
+  console.log(`callOpenAI using model: ${apiModel} (user selected: ${aiModel})`);
+  
   for (let attempt = 0; attempt <= retries; attempt++) {
     try {
+      // Build request body - GPT-5 has different parameters
+      const requestBody: Record<string, any> = {
+        model: apiModel,
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userPrompt },
+        ],
+        response_format: { type: 'json_object' },
+      };
+      
+      // GPT-5 uses max_completion_tokens, doesn't support temperature
+      // GPT-4o-mini uses max_tokens and supports temperature
+      if (isGpt5) {
+        requestBody.max_completion_tokens = 16384;
+      } else {
+        requestBody.temperature = 0.3;
+      }
+      
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: 'gpt-4o-mini',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userPrompt },
-          ],
-          response_format: { type: 'json_object' },
-          temperature: 0.3,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
