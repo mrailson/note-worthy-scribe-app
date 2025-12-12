@@ -106,6 +106,28 @@ function formatDateUK(dateStr: string): string {
   return dateStr; // Return original if can't parse
 }
 
+// Detect scanner separator cards by OCR text patterns
+function isSeparatorCard(pageText: string): boolean {
+  const text = pageText.toLowerCase().trim();
+  
+  // Check for common separator card patterns
+  const separatorPatterns = [
+    /patch\s*(i{1,3}|[0-9]+)/i,           // "PATCH I", "PATCH II", "PATCH 1"
+    /\(file\s*[a-z]\)/i,                   // "(FILE A)", "(FILE B)"
+    /file\s*[a-z]\b/i,                     // "FILE A", "FILE B"
+    /separator\s*(card|sheet|page)/i,      // "separator card"
+    /batch\s*separator/i,                  // "batch separator"
+    /document\s*separator/i,               // "document separator"
+  ];
+  
+  // Check if text matches separator patterns AND is very short (< 100 chars)
+  // Separator cards typically have minimal OCR content
+  const hasShortContent = text.length < 100;
+  const matchesSeparatorPattern = separatorPatterns.some(p => p.test(text));
+  
+  return hasShortContent && matchesSeparatorPattern;
+}
+
 // Parse patient name into last name and first name
 function parsePatientName(patientName: string | null | undefined): { lastName: string; firstName: string } {
   if (!patientName) return { lastName: 'Unknown', firstName: 'Patient' };
@@ -283,7 +305,19 @@ serve(async (req) => {
     }
 
     // Generate page summaries from OCR (pass DOB to exclude patient birth date from date extraction)
-    const pageSummaries = generatePageSummaries(ocrText, imagePaths.length, dob);
+    let pageSummaries = generatePageSummaries(ocrText, imagePaths.length, dob);
+
+    // Filter out separator cards
+    const separatorCount = pageSummaries.filter(s => s === 'SEPARATOR_CARD').length;
+    if (separatorCount > 0) {
+      console.log(`Filtering out ${separatorCount} separator card(s)`);
+      const filteredData = imagePaths
+        .map((path, i) => ({ path, summary: pageSummaries[i] }))
+        .filter(item => item.summary !== 'SEPARATOR_CARD');
+      imagePaths = filteredData.map(d => d.path);
+      pageSummaries = filteredData.map(d => d.summary);
+      console.log(`Remaining pages after filtering: ${imagePaths.length}`);
+    }
 
     // Create the PDF
     const pdfDoc = await PDFDocument.create();
@@ -1112,7 +1146,11 @@ function generatePageSummaries(ocrText: string, pageCount: number, patientDob?: 
   for (let i = 0; i < pageCount; i++) {
     const pageText = pageMarkers[i + 1] || ''; // +1 because first split is before first marker
     
-    if (pageText.trim().length < 20) {
+    // Check for separator cards first
+    if (isSeparatorCard(pageText)) {
+      summaries.push('SEPARATOR_CARD');
+      console.log(`Page ${i + 1} detected as separator card`);
+    } else if (pageText.trim().length < 20) {
       summaries.push('Mostly blank page');
     } else {
       // Extract clinically meaningful summary and date (excluding patient DOB)
