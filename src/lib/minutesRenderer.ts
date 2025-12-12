@@ -143,12 +143,9 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
     // Italic text (only if not already processed)
     .replace(/\*([^\*\n]+?)\*/g, '<em class="italic text-[#425563]">$1</em>')
     
-    // Enhanced subsection formatting - create distinct visual blocks with left border accent
+    // Enhanced subsection formatting with improved spacing, prominent headings, and indentation
     .replace(/<strong class="font-semibold text-\[#212B32\]">([^<]+?):<\/strong>\s*((?:(?!<strong class="font-semibold text-\[#212B32\]">).)+?)(?=<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>|$)/gs, 
-      `<div class="mb-6 mt-5 pl-4 border-l-3 border-[#005EB8]" style="border-left-width: 3px;">
-        <h5 class="font-bold text-[#005EB8] mb-2" style="font-size: ${baseFontSize * 1.1}px; letter-spacing: 0.01em;">$1</h5>
-        <p class="leading-relaxed text-[#212B32] ml-0" style="font-size: ${baseFontSize}px; line-height: 1.7;">$2</p>
-      </div>`)
+      `<p class="mb-6 mt-2 ml-6 leading-relaxed text-[#212B32]" style="font-size: ${baseFontSize}px"><strong class="font-bold text-[#005EB8]" style="font-size: ${baseFontSize * 1.15}px">$1:</strong> $2</p>`)
     
     // Enhanced intelligent paragraph breaking - detect natural topic transitions
     // Split after sentences when followed by key transition phrases or topic changes
