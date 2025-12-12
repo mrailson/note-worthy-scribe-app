@@ -181,6 +181,40 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
       try {
         console.log('📧 Auto-sending meeting notes email...');
         
+        // FETCH FRESH NOTES FROM DATABASE to avoid stale React state
+        console.log('📧 Fetching fresh notes from database...');
+        const { data: freshSummary } = await supabase
+          .from('meeting_summaries')
+          .select('summary')
+          .eq('meeting_id', meetingId)
+          .maybeSingle();
+        
+        const freshNotes = freshSummary?.summary || '';
+        
+        if (!freshNotes.trim()) {
+          console.warn('⚠️ No notes available for auto-email, skipping send');
+          emailSentRef.current = false;
+          setEmailSent(false);
+          return;
+        }
+        
+        console.log('✅ Fresh notes fetched:', freshNotes.length, 'chars');
+        
+        // Fetch fresh meeting metadata
+        const { data: freshMeeting } = await supabase
+          .from('meetings')
+          .select('title, start_time, duration_minutes, participants')
+          .eq('id', meetingId)
+          .maybeSingle();
+        
+        const freshMeetingData = {
+          title: freshMeeting?.title || meetingTitle,
+          startTime: freshMeeting?.start_time,
+          duration: freshMeeting?.duration_minutes,
+          participants: freshMeeting?.participants || [],
+          content: freshNotes
+        };
+        
         // Get user's full name from profile
         const { data: profileData } = await supabase
           .from('profiles')
@@ -191,8 +225,8 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
         const senderName = profileData?.full_name || user.email?.split('@')[0] || 'Notewell AI';
         
         // Format the meeting date for subject
-        const meetingDate = meetingData.startTime 
-          ? new Date(meetingData.startTime).toLocaleDateString('en-GB', { 
+        const meetingDate = freshMeetingData.startTime 
+          ? new Date(freshMeetingData.startTime).toLocaleDateString('en-GB', { 
               day: 'numeric', 
               month: 'long', 
               year: 'numeric' 
@@ -203,13 +237,13 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
               year: 'numeric' 
             });
         
-        const subject = `Meeting Minutes - ${meetingData.title || meetingTitle} - ${meetingDate}`;
+        const subject = `Meeting Minutes - ${freshMeetingData.title} - ${meetingDate}`;
         
         // Convert notes content to styled HTML
         const htmlContent = convertNotesToStyledHTML(
-          meetingData.content || meetingNotes,
+          freshMeetingData.content,
           senderName,
-          meetingData.title || meetingTitle
+          freshMeetingData.title
         );
         
         // Generate Word document attachment
@@ -219,8 +253,8 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           const { parseContentToDocxElements, stripTranscriptSection } = await import('@/utils/generateMeetingNotesDocx');
           const { buildNHSStyles, buildNumbering, NHS_COLORS, FONTS } = await import('@/utils/wordTheme');
           
-          const cleanedContent = stripTranscriptSection(meetingData.content || meetingNotes);
-          const cleanTitle = (meetingData.title || meetingTitle).replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
+          const cleanedContent = stripTranscriptSection(freshMeetingData.content);
+          const cleanTitle = freshMeetingData.title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
           
           const children: any[] = [];
           
@@ -279,7 +313,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
           reader.readAsDataURL(blob);
           const base64Content = await base64Promise;
           
-          const safeFilename = (meetingData.title || meetingTitle)
+          const safeFilename = freshMeetingData.title
             .replace(/[^a-zA-Z0-9\s]/g, '')
             .replace(/\s+/g, '_')
             .substring(0, 50);
@@ -317,7 +351,7 @@ export const PostMeetingActionsModal: React.FC<PostMeetingActionsModalProps> = (
               audioReader.readAsDataURL(audioBlob);
               const audioBase64 = await audioBase64Promise;
               
-              const safeAudioFilename = (meetingData.title || meetingTitle)
+              const safeAudioFilename = freshMeetingData.title
                 .replace(/[^a-zA-Z0-9\s]/g, '')
                 .replace(/\s+/g, '_')
                 .substring(0, 50);
