@@ -541,40 +541,58 @@ For each previous name found, add an object to previous_names array:
   "evidence": "Where found, e.g. 'LG card dated 1970' or 'marriage certificate'"
 }
 
-IDENTITY VERIFICATION (CRITICAL SAFETY CHECK)
+IDENTITY VERIFICATION (CRITICAL SAFETY CHECK - MANDATORY)
 
-Scan ALL pages and verify that ALL documents belong to the SAME patient:
-- Check that NHS numbers are consistent across all pages
-- Check that DOBs are consistent across all pages
-- Check that names (accounting for previous names) are consistent
+STEP 1: SCAN EVERY PAGE AND EXTRACT ALL UNIQUE PATIENT IDENTIFIERS
+Look at EVERY page marked with "--- Page ---" separator and extract:
+- All NHS numbers found (may be different on different pages)
+- All DOBs found (may be different on different pages)  
+- All patient names found (may be different on different pages)
+
+STEP 2: REPORT ALL UNIQUE IDENTIFIERS FOUND
+Add these fields to your response:
+"all_nhs_numbers_found": ["NHS1", "NHS2", ...] - list ALL unique NHS numbers from all pages
+"all_dobs_found": ["DOB1", "DOB2", ...] - list ALL unique DOBs from all pages
+"all_names_found": ["Name1", "Name2", ...] - list ALL unique patient names from all pages
+
+STEP 3: DETECT CONFLICTS
+Compare the unique identifiers:
+- If more than 1 unique NHS number found → POTENTIAL CONFLICT
+- If more than 1 unique DOB found → POTENTIAL CONFLICT
+- If more than 1 unique name found → check if likely same patient with name change
 
 MARRIED/MAIDEN NAME EXCEPTION RULE:
-If you detect different names BUT the NHS number matches OR the DOB matches:
-- This is likely the SAME patient with a name change (married/maiden name)
+If you detect different names BUT:
+- The NHS number is the SAME across all pages, OR
+- The DOB is the SAME across all pages
+Then this is likely the SAME patient with a name change (married/maiden name).
 - Add to identity_issues with type "name_mismatch" and include:
   "is_likely_same_patient": true
   "reason": "NHS number matches" or "DOB matches"
 - Set overall identity status to "warning" NOT "conflict"
 
-Only classify as CRITICAL CONFLICT if:
-- NHS numbers are DIFFERENT across pages AND
-- DOBs are DIFFERENT across pages
-This indicates genuinely mixed patient records requiring URGENT attention.
+CRITICAL CONFLICT DETECTION:
+If you find:
+- Different NHS numbers on different pages, AND
+- Different DOBs on different pages
+This indicates genuinely MIXED patient records requiring URGENT attention.
+Set identity_verification_status to "conflict".
 
-If you find ANY inconsistencies, add to identity_issues array:
+For ANY inconsistencies, add to identity_issues array:
 {
   "type": "nhs_mismatch" | "dob_mismatch" | "name_mismatch" | "third_party_document",
-  "description": "Clear description of the issue",
-  "page_reference": "Which page(s) have the issue",
+  "description": "Clear description of the issue including which identifiers differ",
+  "page_reference": "Which page(s) have the conflicting information",
+  "conflicting_values": ["value1", "value2"] - the different values found,
   "is_likely_same_patient": true | false,
-  "reason": "Why you believe this (e.g., 'NHS number matches so likely married/maiden name')"
+  "reason": "Explanation"
 }
 
 Also add a top-level field:
 "identity_verification_status": "verified" | "warning" | "conflict"
-- "verified": All pages appear to belong to the same patient
+- "verified": All pages have consistent NHS number and DOB (same patient)
 - "warning": Name mismatch but NHS or DOB matches (likely married/maiden name)
-- "conflict": Both NHS AND DOB are different (CRITICAL - likely mixed patients)
+- "conflict": Different NHS AND different DOB found (CRITICAL - MIXED PATIENTS)
 
 NHS NUMBER VALIDATION
 
@@ -880,14 +898,40 @@ serve(async (req) => {
         
         // Determine identity verification status
         const identityIssues = extractedPatient.identity_issues || [];
-        let identityVerificationStatus = 'verified';
-        if (identityIssues.length > 0) {
+        
+        // Get arrays of all unique identifiers found (from enhanced prompt)
+        const allNhsNumbersFound = extractedPatient.all_nhs_numbers_found || [];
+        const allDobsFound = extractedPatient.all_dobs_found || [];
+        const allNamesFound = extractedPatient.all_names_found || [];
+        
+        console.log('All NHS numbers found:', allNhsNumbersFound);
+        console.log('All DOBs found:', allDobsFound);
+        console.log('All names found:', allNamesFound);
+        
+        // Use AI-reported status if available, otherwise determine from data
+        let identityVerificationStatus = extractedPatient.identity_verification_status || 'verified';
+        
+        // Override: if we have multiple unique NHS numbers AND multiple unique DOBs, it's a conflict
+        if (allNhsNumbersFound.length > 1 && allDobsFound.length > 1) {
+          identityVerificationStatus = 'conflict';
+          console.log('CRITICAL: Multiple NHS numbers AND DOBs detected - likely mixed patient records');
+        } else if (allNhsNumbersFound.length > 1 || allDobsFound.length > 1) {
+          // Only one type differs - check if it's really a conflict or just OCR noise
+          if (identityVerificationStatus !== 'conflict') {
+            identityVerificationStatus = 'warning';
+          }
+          console.log('Warning: Multiple NHS numbers OR DOBs detected - reviewing...');
+        } else if (identityIssues.length > 0) {
           const hasCritical = identityIssues.some((i: any) => 
             i.type === 'nhs_mismatch' || i.type === 'third_party_document'
           );
-          identityVerificationStatus = hasCritical ? 'conflict' : 'warning';
+          if (hasCritical && identityVerificationStatus !== 'conflict') {
+            identityVerificationStatus = 'warning';
+          }
         } else if (!nhsNumberValidated && extractedPatient.nhs_number) {
-          identityVerificationStatus = 'warning';
+          if (identityVerificationStatus === 'verified') {
+            identityVerificationStatus = 'warning';
+          }
         } else if (!extractedPatient.nhs_number && !extractedPatient.date_of_birth) {
           identityVerificationStatus = 'pending';
         }
@@ -903,11 +947,15 @@ serve(async (req) => {
           ai_extracted_sex: (extractedPatient.sex || 'unknown').toLowerCase(),
           ai_extraction_confidence: extractedPatient.confidence || 0,
           requires_verification: (extractedPatient.confidence || 0) < 0.8 || !nhsNumberValidated || identityIssues.length > 0,
-          // New fields
+          // Identity verification fields
           previous_names: extractedPatient.previous_names || [],
           identity_verification_status: identityVerificationStatus,
           identity_verification_issues: identityIssues,
           nhs_number_validated: nhsNumberValidated,
+          // New fields for all unique identifiers found
+          all_nhs_numbers_found: allNhsNumbersFound,
+          all_dobs_found: allDobsFound,
+          all_names_found: allNamesFound,
         };
         
         // Also populate the main fields if they're null AND validated
