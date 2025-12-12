@@ -87,29 +87,21 @@ export async function detectPatchPage(dataUrl: string): Promise<PatchPageResult>
         const avgLuminance = luminanceSum / totalPixels;
         const darkRatio = darkPixels / totalPixels;
         
-        // Patch pages typically have:
-        // - High luminance (mostly white/grey background)
-        // - Very low dark pixel ratio (minimal text, usually just "PATCH I" or similar)
-        // - Usually under 5% dark content for just a label
+        // CONSERVATIVE: Visual-only detection disabled due to false positives
+        // on legitimate clinical pages. Visual detection was catching pages with
+        // typed letters, forms, etc. that happen to be mostly white.
+        // 
+        // Now rely ONLY on OCR text pattern matching for patch detection.
+        // This ensures we only remove pages that explicitly contain "PATCH I", 
+        // "FILE A", "SEPARATOR" etc. text - never legitimate clinical content.
+        //
+        // Dark ratio < 1% is extremely empty (nearly blank with maybe a tiny barcode)
+        // Even then, we don't auto-flag as patch page without text confirmation.
         
-        const isHighLuminance = avgLuminance > 200; // Very bright page
-        const isMinimalContent = darkRatio < 0.05;  // Less than 5% dark pixels
+        console.log(`[PatchDetector] Visual analysis: avgLuminance=${avgLuminance.toFixed(1)}, darkRatio=${(darkRatio * 100).toFixed(2)}%`);
         
-        // If page looks like a mostly-blank page with minimal text, 
-        // it's likely a patch page
-        if (isHighLuminance && isMinimalContent) {
-          // High confidence patch page detection based on visual analysis
-          const confidence = 0.85 + (0.10 * (1 - darkRatio / 0.05)); // 85-95% based on emptiness
-          
-          resolve({
-            isPatchPage: true,
-            confidence: Math.min(confidence, 0.95),
-            matchedPattern: 'Visual: Minimal content on bright background',
-          });
-          return;
-        }
-        
-        // Not detected as patch page
+        // Not detected as patch page via visual analysis alone
+        // OCR text matching must be used for reliable detection
         resolve({ isPatchPage: false, confidence: 0 });
         
       } catch (error) {
