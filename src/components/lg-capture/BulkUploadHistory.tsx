@@ -28,6 +28,7 @@ interface BatchPatient {
   dob: string | null;
   ai_extracted_dob: string | null;
   images_count: number | null;
+  source_page_count: number | null;
   job_status: string | null;
   processing_error?: string | null;
   error_message?: string | null;
@@ -748,7 +749,18 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                                     )}
                                   </div>
                                 </td>
-                                <td className="p-2 text-center">{patient.images_count || '—'}</td>
+                                <td className="p-2 text-center">
+                                  {patient.source_page_count && patient.images_count && patient.source_page_count !== patient.images_count ? (
+                                    <span className={patient.source_page_count > patient.images_count ? 'text-amber-600 font-medium' : ''}>
+                                      {patient.source_page_count} → {patient.images_count}
+                                      {patient.source_page_count > patient.images_count && (
+                                        <span className="text-xs ml-1">(-{patient.source_page_count - patient.images_count})</span>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    patient.images_count || '—'
+                                  )}
+                                </td>
                                 <td className="p-2 text-center">
                                   {patientIsStuck ? (
                                     <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-red-200">
@@ -923,7 +935,18 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                                   </div>
                                 </td>
                                 <td className="p-3">{formatDateUK(patient.dob)}</td>
-                                <td className="p-3 text-center">{patient.images_count || 0}</td>
+                                <td className="p-3 text-center">
+                                  {patient.source_page_count && patient.images_count && patient.source_page_count !== patient.images_count ? (
+                                    <span className={patient.source_page_count > patient.images_count ? 'text-amber-600 font-medium' : ''}>
+                                      {patient.source_page_count} → {patient.images_count}
+                                      {patient.source_page_count > patient.images_count && (
+                                        <span className="text-xs ml-1">(-{patient.source_page_count - patient.images_count})</span>
+                                      )}
+                                    </span>
+                                  ) : (
+                                    patient.images_count || 0
+                                  )}
+                                </td>
                                 <td className="p-3 text-center">{summaryItems > 0 ? `${summaryItems} items` : '—'}</td>
                                 <td className="p-3 text-center">{medsCount > 0 ? medsCount : '—'}</td>
                                 <td className="p-3 text-center">
