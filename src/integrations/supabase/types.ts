@@ -3462,6 +3462,9 @@ export type Database = {
           ai_extracted_nhs: string | null
           ai_extracted_sex: string | null
           ai_extraction_confidence: number | null
+          all_dobs_found: string[] | null
+          all_names_found: string[] | null
+          all_nhs_numbers_found: string[] | null
           archived_at: string | null
           audit_report_url: string | null
           batch_id: string | null
@@ -3536,6 +3539,9 @@ export type Database = {
           ai_extracted_nhs?: string | null
           ai_extracted_sex?: string | null
           ai_extraction_confidence?: number | null
+          all_dobs_found?: string[] | null
+          all_names_found?: string[] | null
+          all_nhs_numbers_found?: string[] | null
           archived_at?: string | null
           audit_report_url?: string | null
           batch_id?: string | null
@@ -3610,6 +3616,9 @@ export type Database = {
           ai_extracted_nhs?: string | null
           ai_extracted_sex?: string | null
           ai_extraction_confidence?: number | null
+          all_dobs_found?: string[] | null
+          all_names_found?: string[] | null
+          all_nhs_numbers_found?: string[] | null
           archived_at?: string | null
           audit_report_url?: string | null
           batch_id?: string | null

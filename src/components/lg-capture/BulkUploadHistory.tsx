@@ -47,6 +47,10 @@ interface BatchPatient {
   summary_json?: any;
   identity_verification_status: string | null;
   identity_verification_issues: any;
+  // New fields for all unique identifiers found
+  all_nhs_numbers_found?: string[];
+  all_dobs_found?: string[];
+  all_names_found?: string[];
 }
 
 interface BatchGroup {
@@ -81,34 +85,54 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
   // Check for identity conflicts and trigger alerts
   const checkForIdentityConflicts = (patients: BatchPatient[]) => {
     patients.forEach(patient => {
-      // Only check patients that have conflict status and haven't been alerted yet
-      if (patient.identity_verification_status === 'conflict' && 
-          !alertedPatientIds.current.has(patient.id)) {
-        
-        // Parse issues if needed
-        const issues: IdentityIssue[] = Array.isArray(patient.identity_verification_issues) 
-          ? patient.identity_verification_issues 
-          : [];
-        
-        const hasNhsMismatch = issues.some(i => i.type === 'nhs_mismatch');
-        const hasDobMismatch = issues.some(i => i.type === 'dob_mismatch');
-        
-        // Critical conflict: Both NHS and DOB are different = definitely mixed records
-        if (hasNhsMismatch && hasDobMismatch) {
-          playWarningBeep(3);
-          toast.error('⚠️ MIXED PATIENT RECORDS DETECTED', {
-            description: `File "${patient.ai_extracted_name || 'Unknown'}" may contain documents from multiple patients. Review immediately.`,
-            duration: 15000,
-          });
-        } else {
-          // Warning: only some fields mismatch - may be name change
+      // Only check completed patients that haven't been alerted yet
+      if (patient.job_status !== 'complete' || alertedPatientIds.current.has(patient.id)) {
+        return;
+      }
+      
+      // Check for multiple unique identifiers (primary detection method)
+      const multipleNhs = (patient.all_nhs_numbers_found?.length || 0) > 1;
+      const multipleDobs = (patient.all_dobs_found?.length || 0) > 1;
+      const multipleNames = (patient.all_names_found?.length || 0) > 1;
+      
+      // Parse issues if needed
+      const issues: IdentityIssue[] = Array.isArray(patient.identity_verification_issues) 
+        ? patient.identity_verification_issues 
+        : [];
+      
+      // Critical conflict: Multiple NHS AND multiple DOBs = definitely mixed records
+      if (multipleNhs && multipleDobs) {
+        playWarningBeep(3);
+        toast.error('⚠️ MIXED PATIENT RECORDS DETECTED', {
+          description: `File "${patient.ai_extracted_name || 'Unknown'}" contains documents from ${patient.all_nhs_numbers_found?.length} different patients. Review immediately!`,
+          duration: 15000,
+        });
+        alertedPatientIds.current.add(patient.id);
+      } else if (patient.identity_verification_status === 'conflict') {
+        // AI detected conflict
+        playWarningBeep(3);
+        toast.error('⚠️ PATIENT IDENTITY CONFLICT', {
+          description: `File "${patient.ai_extracted_name || 'Unknown'}" may contain mixed patient records. Review immediately.`,
+          duration: 15000,
+        });
+        alertedPatientIds.current.add(patient.id);
+      } else if (multipleNhs || multipleDobs) {
+        // Warning: only one type differs
+        toast.warning('Patient Identity Warning', {
+          description: `File "${patient.ai_extracted_name || 'Unknown'}" has ${multipleNhs ? 'multiple NHS numbers' : 'multiple DOBs'} detected. Please verify.`,
+          duration: 10000,
+        });
+        alertedPatientIds.current.add(patient.id);
+      } else if (multipleNames && issues.length > 0) {
+        // Multiple names with some identity issues - may be name change
+        const allSamePatient = issues.every(i => i.is_likely_same_patient);
+        if (!allSamePatient) {
           toast.warning('Patient Identity Warning', {
-            description: `File "${patient.ai_extracted_name || 'Unknown'}" has identity inconsistencies. May be married/maiden name if NHS or DOB match.`,
+            description: `File "${patient.ai_extracted_name || 'Unknown'}" has identity inconsistencies. May be married/maiden name.`,
             duration: 10000,
           });
+          alertedPatientIds.current.add(patient.id);
         }
-        
-        alertedPatientIds.current.add(patient.id);
       }
     });
   };
@@ -636,51 +660,62 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                             const canRetry = patient.job_status === 'failed' || patientIsStuck;
                             const canCancel = patientIsStuck;
                             
-                            // Identity conflict detection
+                            // Identity conflict detection - now using array fields
+                            const multipleNhs = (patient.all_nhs_numbers_found?.length || 0) > 1;
+                            const multipleDobs = (patient.all_dobs_found?.length || 0) > 1;
+                            const multipleNames = (patient.all_names_found?.length || 0) > 1;
                             const hasIdentityConflict = patient.identity_verification_status === 'conflict';
                             const hasIdentityWarning = patient.identity_verification_status === 'warning';
-                            const identityIssues: IdentityIssue[] = Array.isArray(patient.identity_verification_issues) 
-                              ? patient.identity_verification_issues 
-                              : [];
-                            const hasNhsMismatch = identityIssues.some(i => i.type === 'nhs_mismatch');
-                            const hasDobMismatch = identityIssues.some(i => i.type === 'dob_mismatch');
-                            const isCriticalConflict = hasNhsMismatch && hasDobMismatch;
-                            const mayBeMarriedName = hasIdentityConflict && !isCriticalConflict;
+                            
+                            // Critical conflict: both NHS and DOB are multiple = definitely mixed
+                            const isCriticalConflict = multipleNhs && multipleDobs;
+                            // Warning level: only one type differs
+                            const isWarningConflict = (multipleNhs || multipleDobs) && !isCriticalConflict;
                             
                             return (
-                              <tr key={patient.id} className={`hover:bg-muted/30 ${patientIsStuck ? 'bg-red-50' : ''} ${hasIdentityConflict ? 'bg-red-50' : ''}`}>
+                              <tr key={patient.id} className={`hover:bg-muted/30 ${patientIsStuck ? 'bg-red-50' : ''} ${isCriticalConflict || hasIdentityConflict ? 'bg-red-50' : ''}`}>
                                 <td className="p-2 text-muted-foreground">{idx + 1}</td>
                                 <td className="p-2">
                                   <div>
                                     <span>{patientName}</span>
                                     
-                                    {/* Identity conflict alert - CRITICAL (both NHS and DOB different) */}
-                                    {hasIdentityConflict && isCriticalConflict && (
+                                    {/* Identity conflict alert - CRITICAL (multiple NHS AND multiple DOB) */}
+                                    {(isCriticalConflict || (hasIdentityConflict && !hasIdentityWarning)) && (
                                       <div className="mt-1 p-2 bg-red-100 border border-red-300 rounded text-xs">
                                         <div className="flex items-center gap-1 text-red-700 font-semibold">
                                           <UserX className="h-4 w-4" />
                                           PATIENT IDENTITY CONFLICT - MIXED RECORDS
                                         </div>
                                         <p className="text-red-600 mt-1">
-                                          This file may contain records from MULTIPLE patients. 
-                                          Both NHS number and DOB differ across pages. Review immediately.
+                                          This file contains records from MULTIPLE patients.
                                         </p>
+                                        {multipleNhs && (
+                                          <p className="text-red-600">
+                                            NHS numbers found: {patient.all_nhs_numbers_found?.map(n => n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')).join(', ')}
+                                          </p>
+                                        )}
+                                        {multipleDobs && (
+                                          <p className="text-red-600">
+                                            DOBs found: {patient.all_dobs_found?.join(', ')}
+                                          </p>
+                                        )}
                                       </div>
                                     )}
                                     
-                                    {/* Identity conflict alert - possible married/maiden name */}
-                                    {(hasIdentityConflict && mayBeMarriedName) || hasIdentityWarning ? (
+                                    {/* Identity warning - only one type differs or possible name change */}
+                                    {(isWarningConflict || hasIdentityWarning) && !isCriticalConflict && !hasIdentityConflict && (
                                       <div className="mt-1 p-2 bg-amber-100 border border-amber-300 rounded text-xs">
                                         <div className="flex items-center gap-1 text-amber-700 font-semibold">
                                           <AlertTriangle className="h-4 w-4" />
-                                          Identity Warning - Possible Name Change
+                                          Identity Warning - Please Verify
                                         </div>
                                         <p className="text-amber-600 mt-1">
-                                          Names differ across pages but NHS number or DOB match. 
-                                          This may be the same patient with a married/maiden name.
+                                          {multipleNhs && `Multiple NHS numbers found: ${patient.all_nhs_numbers_found?.map(n => n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')).join(', ')}`}
+                                          {multipleDobs && `Multiple DOBs found: ${patient.all_dobs_found?.join(', ')}`}
+                                          {multipleNames && !multipleNhs && !multipleDobs && 'Names differ across pages but NHS/DOB match - likely same patient with name change.'}
                                         </p>
                                       </div>
-                                    ) : null}
+                                    ) }
                                     
                                     {patientIsStuck && (
                                       <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
