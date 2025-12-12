@@ -1548,7 +1548,7 @@ function addClinicalSummaryPage(
   }
 }
 
-// Add medications page
+// Add Additional Information page (only if there's content)
 function addMedicationsPage(
   pdfDoc: PDFDocument,
   font: any,
@@ -1559,8 +1559,23 @@ function addMedicationsPage(
     dob: string;
     summaryJson: any;
   }
-) {
+): boolean {
   const { patientName, nhsNumber, dob, summaryJson } = opts;
+  
+  // Check if there's any content to display
+  const socialHistory = summaryJson?.social_history;
+  const hasSocialHistory = socialHistory && 
+    (socialHistory.smoking_status !== 'unknown' || 
+     socialHistory.alcohol !== 'unknown' || 
+     socialHistory.occupation);
+  const riskFactors = summaryJson?.risk_factors || [];
+  const familyHistory = summaryJson?.family_history || [];
+  
+  // Skip this page entirely if no content
+  if (!hasSocialHistory && riskFactors.length === 0 && familyHistory.length === 0) {
+    console.log('Skipping Additional Information page - no content');
+    return false;
+  }
   
   const pageWidth = 595;
   let page = pdfDoc.addPage([pageWidth, 842]);
@@ -1587,36 +1602,33 @@ function addMedicationsPage(
     y -= lineHeight;
   };
 
-  // Header - Medications now on Page 1, this page is Additional Information only
+  // Header
   drawLine('ADDITIONAL INFORMATION', 16, true);
   y -= 8;
   drawLine(`Patient: ${patientName} | NHS: ${nhsNumber} | DOB: ${dob}`, 10);
   y -= 20;
 
   // Social History
-  if (summaryJson?.social_history) {
-    const sh = summaryJson.social_history;
-    if (sh.smoking_status !== 'unknown' || sh.alcohol !== 'unknown') {
-      drawLine('SOCIAL HISTORY', 12, true);
-      y -= 5;
-      if (sh.smoking_status && sh.smoking_status !== 'unknown') {
-        const smokingText = sh.smoking_status === 'ex'
-          ? `Ex-smoker${sh.stopped_year ? ` (stopped ${sh.stopped_year})` : ''}`
-          : sh.smoking_status;
-        drawLine(`Smoking: ${smokingText}`, 10, false, 15);
-      }
-      if (sh.alcohol && sh.alcohol !== 'unknown') {
-        drawLine(`Alcohol: ${sh.alcohol}`, 10, false, 15);
-      }
-      if (sh.occupation) {
-        drawLine(`Occupation: ${sh.occupation}`, 10, false, 15);
-      }
-      y -= 15;
+  if (hasSocialHistory) {
+    const sh = socialHistory;
+    drawLine('SOCIAL HISTORY', 12, true);
+    y -= 5;
+    if (sh.smoking_status && sh.smoking_status !== 'unknown') {
+      const smokingText = sh.smoking_status === 'ex'
+        ? `Ex-smoker${sh.stopped_year ? ` (stopped ${sh.stopped_year})` : ''}`
+        : sh.smoking_status;
+      drawLine(`Smoking: ${smokingText}`, 10, false, 15);
     }
+    if (sh.alcohol && sh.alcohol !== 'unknown') {
+      drawLine(`Alcohol: ${sh.alcohol}`, 10, false, 15);
+    }
+    if (sh.occupation) {
+      drawLine(`Occupation: ${sh.occupation}`, 10, false, 15);
+    }
+    y -= 15;
   }
 
   // Risk factors
-  const riskFactors = summaryJson?.risk_factors || [];
   if (riskFactors.length > 0) {
     drawLine('RISK FACTORS', 12, true);
     y -= 5;
@@ -1627,7 +1639,6 @@ function addMedicationsPage(
   }
 
   // Family history
-  const familyHistory = summaryJson?.family_history || [];
   if (familyHistory.length > 0) {
     drawLine('FAMILY HISTORY', 12, true);
     y -= 5;
@@ -1638,6 +1649,7 @@ function addMedicationsPage(
 
   // Page number
   page.drawText('Page 2', { x: 545, y: 30, size: 9, font });
+  return true;
 }
 
 // Add index page with hyperlinks
