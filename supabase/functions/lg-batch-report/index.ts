@@ -28,6 +28,11 @@ interface BatchPatient {
   summary_completed_at: string | null;
   pdf_created_at: string | null;
   pdf_completed_at: string | null;
+  // Identity verification fields
+  identity_verification_status: string | null;
+  all_nhs_numbers_found: string[] | null;
+  all_dobs_found: string[] | null;
+  all_names_found: string[] | null;
 }
 
 serve(async (req) => {
@@ -217,11 +222,22 @@ function generateBatchEmailHtml(
   });
   const timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
 
+  // Check for identity conflicts
+  const conflictPatients = patients.filter(p => 
+    p.identity_verification_status === 'conflict' ||
+    ((p.all_nhs_numbers_found?.length || 0) > 1 && (p.all_dobs_found?.length || 0) > 1)
+  );
+  const hasIdentityConflicts = conflictPatients.length > 0;
+
   // Generate file rows
   const fileRows = patients.map(p => {
     const patientName = p.ai_extracted_name || p.patient_name || "—";
     const dob = p.dob ? new Date(p.dob).toLocaleDateString("en-GB") : "—";
     const pagesScanned = p.images_count || 0;
+    
+    // Check for identity conflict on this patient
+    const hasConflict = p.identity_verification_status === 'conflict' ||
+      ((p.all_nhs_numbers_found?.length || 0) > 1 && (p.all_dobs_found?.length || 0) > 1);
     
     // Count summary items
     let summaryItems = 0;
@@ -239,14 +255,34 @@ function generateBatchEmailHtml(
       summaryItems = diagnosesCount + allergiesCount + immunisationsCount + (s.procedures?.length || 0);
     }
 
-    const statusColor = p.job_status === "succeeded" ? "#10b981" : 
+    const statusColor = hasConflict ? "#dc2626" : 
+                       p.job_status === "succeeded" ? "#10b981" : 
                        p.job_status === "failed" ? "#ef4444" : "#f59e0b";
-    const statusText = p.job_status === "succeeded" ? "✓" : 
+    const statusText = hasConflict ? "⚠️ CONFLICT" :
+                      p.job_status === "succeeded" ? "✓" : 
                       p.job_status === "failed" ? "✗" : "⋯";
 
+    // Row background - red for conflicts
+    const rowStyle = hasConflict 
+      ? 'background: #fef2f2;' 
+      : '';
+
     return `
-      <tr>
-        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">${patientName}</td>
+      <tr style="${rowStyle}">
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">
+          ${patientName}
+          ${hasConflict ? `
+            <div style="margin-top: 4px; padding: 4px 8px; background: #fee2e2; border: 1px solid #fecaca; border-radius: 4px; font-size: 11px; color: #dc2626;">
+              <strong>⚠️ MIXED PATIENT RECORDS</strong><br/>
+              ${p.all_nhs_numbers_found && p.all_nhs_numbers_found.length > 1 
+                ? `NHS: ${p.all_nhs_numbers_found.map(n => n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')).join(', ')}<br/>` 
+                : ''}
+              ${p.all_dobs_found && p.all_dobs_found.length > 1 
+                ? `DOBs: ${p.all_dobs_found.join(', ')}` 
+                : ''}
+            </div>
+          ` : ''}
+        </td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">${dob}</td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: center;">${pagesScanned}</td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: center;">${summaryItems > 0 ? `${summaryItems} items` : "—"}</td>
@@ -332,6 +368,20 @@ function generateBatchEmailHtml(
     `;
   }).join("");
 
+  // Generate identity conflict warning section
+  const conflictWarningHtml = hasIdentityConflicts ? `
+    <div style="background: #dc2626; color: white; padding: 16px 24px; border-radius: 8px 8px 0 0;">
+      <h2 style="margin: 0 0 8px 0; font-size: 18px; font-weight: 700;">⚠️ CRITICAL: MIXED PATIENT RECORDS DETECTED</h2>
+      <p style="margin: 0; font-size: 14px; opacity: 0.95;">
+        ${conflictPatients.length} file(s) in this batch contain documents from MULTIPLE different patients. 
+        These records must be reviewed and separated before import to clinical systems.
+      </p>
+      <div style="margin-top: 12px; padding: 8px 12px; background: rgba(255,255,255,0.15); border-radius: 4px; font-size: 13px;">
+        <strong>Affected files:</strong> ${conflictPatients.map(p => p.ai_extracted_name || p.patient_name || 'Unknown').join(', ')}
+      </div>
+    </div>
+  ` : '';
+
   return `
 <!DOCTYPE html>
 <html>
@@ -342,8 +392,10 @@ function generateBatchEmailHtml(
 <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; background: #f3f4f6;">
   <div style="max-width: 700px; margin: 0 auto; padding: 20px;">
     
+    ${conflictWarningHtml}
+
     <!-- Header -->
-    <div style="background: linear-gradient(135deg, #005eb8 0%, #003d7a 100%); color: white; padding: 24px; border-radius: 8px 8px 0 0;">
+    <div style="background: linear-gradient(135deg, #005eb8 0%, #003d7a 100%); color: white; padding: 24px; ${hasIdentityConflicts ? '' : 'border-radius: 8px 8px 0 0;'}">
       <h1 style="margin: 0 0 8px 0; font-size: 22px; font-weight: 600;">LG Capture Batch Report</h1>
       <p style="margin: 0; opacity: 0.9; font-size: 14px;">${stats.practiceName} • ${dateStr} at ${timeStr}</p>
     </div>

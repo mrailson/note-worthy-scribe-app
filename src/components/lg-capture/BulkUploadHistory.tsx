@@ -86,7 +86,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
   const checkForIdentityConflicts = (patients: BatchPatient[]) => {
     patients.forEach(patient => {
       // Only check completed patients that haven't been alerted yet
-      if (patient.job_status !== 'complete' || alertedPatientIds.current.has(patient.id)) {
+      if (patient.job_status !== 'succeeded' || alertedPatientIds.current.has(patient.id)) {
         return;
       }
       
@@ -551,10 +551,27 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
               : 0;
             
             return (
-              <Card key={batch.batchId} className="border-amber-200 bg-amber-50/30">
+              <Card key={batch.batchId} className="border-amber-200 bg-amber-50/30 overflow-hidden">
+                {/* Batch-level identity conflict banner - PENDING batches */}
+                {batch.patients.some(p => 
+                  p.identity_verification_status === 'conflict' || 
+                  ((p.all_nhs_numbers_found?.length || 0) > 1 && (p.all_dobs_found?.length || 0) > 1)
+                ) && (
+                  <div className="bg-red-600 text-white px-4 py-3 flex items-center gap-2">
+                    <UserX className="h-5 w-5 flex-shrink-0" />
+                    <span className="font-semibold">⚠️ MIXED PATIENT RECORDS DETECTED</span>
+                    <span className="text-sm opacity-90">
+                      — {batch.patients.filter(p => 
+                        p.identity_verification_status === 'conflict' || 
+                        ((p.all_nhs_numbers_found?.length || 0) > 1 && (p.all_dobs_found?.length || 0) > 1)
+                      ).length} file(s) contain records from multiple patients. Review immediately!
+                    </span>
+                  </div>
+                )}
+
                 {/* Header - Amber gradient for in-progress */}
                 <div 
-                  className="p-4 text-white rounded-t-lg"
+                  className="p-4 text-white"
                   style={{ background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)' }}
                 >
                   <div className="flex items-center justify-between">
@@ -796,6 +813,23 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
           
           {completedBatches.map(batch => (
             <Card key={batch.batchId} className="overflow-hidden">
+              {/* Batch-level identity conflict banner - COMPLETED batches */}
+              {batch.patients.some(p => 
+                p.identity_verification_status === 'conflict' || 
+                ((p.all_nhs_numbers_found?.length || 0) > 1 && (p.all_dobs_found?.length || 0) > 1)
+              ) && (
+                <div className="bg-red-600 text-white px-4 py-3 flex items-center gap-2">
+                  <UserX className="h-5 w-5 flex-shrink-0" />
+                  <span className="font-semibold">⚠️ MIXED PATIENT RECORDS DETECTED</span>
+                  <span className="text-sm opacity-90">
+                    — {batch.patients.filter(p => 
+                      p.identity_verification_status === 'conflict' || 
+                      ((p.all_nhs_numbers_found?.length || 0) > 1 && (p.all_dobs_found?.length || 0) > 1)
+                    ).length} file(s) contain records from multiple patients. Review immediately!
+                  </span>
+                </div>
+              )}
+
               {/* Header - NHS Blue gradient */}
               <div 
                 className="p-4 text-white"

@@ -19,7 +19,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw, RotateCcw, X, ListOrdered, History } from 'lucide-react';
+import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw, RotateCcw, X, ListOrdered, History, UserX, AlertTriangle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import pdfIcon from '@/assets/pdf-icon.png';
@@ -422,104 +422,134 @@ export default function LGCapturePatients() {
             };
             
             return (
-              <Card
-                key={patient.id}
-                className="cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate(`/lg-capture/results/${patient.id}`)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between">
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium">
-                          {patient.patient_name || patient.ai_extracted_name || 'Extracting...'}
-                        </p>
-                        {/* Reprocess icon for records missing patient details */}
-                        {patient.job_status === 'succeeded' && !patient.patient_name && !patient.ai_extracted_name && (
-                          <button
-                            onClick={(e) => handleReprocessSummary(patient.id, e)}
-                            disabled={reprocessingId === patient.id}
-                            className="p-1 rounded hover:bg-amber-100 transition-colors text-amber-600"
-                            title="Reprocess to extract patient details"
-                          >
-                            <RotateCcw className={`h-4 w-4 ${reprocessingId === patient.id ? 'animate-spin' : ''}`} />
-                          </button>
-                        )}
+              (() => {
+                const patientAny = patient as any;
+                const multipleNhs = (patientAny.all_nhs_numbers_found?.length || 0) > 1;
+                const multipleDobs = (patientAny.all_dobs_found?.length || 0) > 1;
+                const hasConflict = patientAny.identity_verification_status === 'conflict' || (multipleNhs && multipleDobs);
+                
+                return (
+                  <Card
+                    key={patient.id}
+                    className={`cursor-pointer hover:bg-muted/50 transition-colors ${hasConflict ? 'border-red-500 border-2' : ''}`}
+                    onClick={() => navigate(`/lg-capture/results/${patient.id}`)}
+                  >
+                    {/* RED banner for identity conflict */}
+                    {hasConflict && (
+                      <div className="bg-red-600 text-white px-4 py-2 flex items-center gap-2 text-sm">
+                        <UserX className="h-4 w-4 flex-shrink-0" />
+                        <span className="font-semibold">⚠️ MIXED PATIENT RECORDS</span>
+                        <span className="opacity-90">
+                          — Contains records from multiple patients
+                        </span>
                       </div>
-                      <p className="text-sm text-muted-foreground font-mono">
-                        NHS: {formatNhsNumber(patient.nhs_number || patient.ai_extracted_nhs)}
-                      </p>
-                      <p className="text-sm text-muted-foreground">
-                        DOB: {formatDob(patient.dob || patient.ai_extracted_dob)}
-                      </p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1">
-                      <div className="flex items-center gap-2">
-                        {getStatusBadge(patient)}
-                        {/* Delete stale draft icon */}
-                        {isStaleDraft(patient) && (
-                          <button
-                            onClick={(e) => handleDeleteStaleDraft(patient.id, e)}
-                            className="p-1 rounded hover:bg-destructive/10 transition-colors text-destructive"
-                            title="Delete stale draft"
-                          >
-                            <X className="h-4 w-4" />
-                          </button>
-                        )}
-                        {/* PDF Icon - after badge */}
-                        {hasPdf && patient.job_status === 'succeeded' && (
-                          pdfPartUrls && pdfPartUrls.length > 0 ? (
-                            pdfPartUrls.map((url: string, index: number) => (
+                    )}
+                    <CardContent className="p-4">
+                      {/* Identity conflict details */}
+                      {hasConflict && (
+                        <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
+                          {multipleNhs && (
+                            <p>NHS numbers: {patientAny.all_nhs_numbers_found?.map((n: string) => n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')).join(', ')}</p>
+                          )}
+                          {multipleDobs && (
+                            <p>DOBs: {patientAny.all_dobs_found?.join(', ')}</p>
+                          )}
+                        </div>
+                      )}
+                      <div className="flex items-start justify-between">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <p className="font-medium">
+                              {patient.patient_name || patient.ai_extracted_name || 'Extracting...'}
+                            </p>
+                            {/* Reprocess icon for records missing patient details */}
+                            {patient.job_status === 'succeeded' && !patient.patient_name && !patient.ai_extracted_name && (
                               <button
-                                key={index}
-                                onClick={(e) => handleDownloadPdf(url, e)}
-                                className="p-0.5 rounded hover:bg-muted transition-colors group relative"
-                                title={`Download PDF Part ${index + 1}`}
+                                onClick={(e) => handleReprocessSummary(patient.id, e)}
+                                disabled={reprocessingId === patient.id}
+                                className="p-1 rounded hover:bg-amber-100 transition-colors text-amber-600"
+                                title="Reprocess to extract patient details"
                               >
-                                <img src={pdfIcon} alt="PDF" className="h-5 w-5 group-hover:opacity-80" />
-                                <span className="absolute -bottom-0.5 -right-0.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full w-3 h-3 flex items-center justify-center">
-                                  {index + 1}
-                                </span>
+                                <RotateCcw className={`h-4 w-4 ${reprocessingId === patient.id ? 'animate-spin' : ''}`} />
                               </button>
-                            ))
-                          ) : pdfUrl ? (
-                            <button
-                              onClick={(e) => handleDownloadPdf(pdfUrl, e)}
-                              className="p-0.5 rounded hover:bg-muted transition-colors"
-                              title="Download PDF"
-                            >
-                              <img src={pdfIcon} alt="PDF" className="h-5 w-5 hover:opacity-80" />
-                            </button>
-                          ) : null
-                        )}
-                        {/* Validate & Upload Icon */}
-                        {patient.job_status === 'succeeded' && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setSelectedPatientForValidation(patient);
-                              setValidationModalOpen(true);
-                            }}
-                            className="p-1 rounded hover:bg-primary/10 transition-colors text-primary"
-                            title="Validate & Upload to Clinical System"
-                          >
-                            <ShieldCheck className="h-4 w-4" />
-                          </button>
-                        )}
+                            )}
+                          </div>
+                          <p className="text-sm text-muted-foreground font-mono">
+                            NHS: {formatNhsNumber(patient.nhs_number || patient.ai_extracted_nhs)}
+                          </p>
+                          <p className="text-sm text-muted-foreground">
+                            DOB: {formatDob(patient.dob || patient.ai_extracted_dob)}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <div className="flex items-center gap-2">
+                            {getStatusBadge(patient)}
+                            {/* Delete stale draft icon */}
+                            {isStaleDraft(patient) && (
+                              <button
+                                onClick={(e) => handleDeleteStaleDraft(patient.id, e)}
+                                className="p-1 rounded hover:bg-destructive/10 transition-colors text-destructive"
+                                title="Delete stale draft"
+                              >
+                                <X className="h-4 w-4" />
+                              </button>
+                            )}
+                            {/* PDF Icon - after badge */}
+                            {hasPdf && patient.job_status === 'succeeded' && (
+                              pdfPartUrls && pdfPartUrls.length > 0 ? (
+                                pdfPartUrls.map((url: string, index: number) => (
+                                  <button
+                                    key={index}
+                                    onClick={(e) => handleDownloadPdf(url, e)}
+                                    className="p-0.5 rounded hover:bg-muted transition-colors group relative"
+                                    title={`Download PDF Part ${index + 1}`}
+                                  >
+                                    <img src={pdfIcon} alt="PDF" className="h-5 w-5 group-hover:opacity-80" />
+                                    <span className="absolute -bottom-0.5 -right-0.5 bg-primary text-primary-foreground text-[8px] font-bold rounded-full w-3 h-3 flex items-center justify-center">
+                                      {index + 1}
+                                    </span>
+                                  </button>
+                                ))
+                              ) : pdfUrl ? (
+                                <button
+                                  onClick={(e) => handleDownloadPdf(pdfUrl, e)}
+                                  className="p-0.5 rounded hover:bg-muted transition-colors"
+                                  title="Download PDF"
+                                >
+                                  <img src={pdfIcon} alt="PDF" className="h-5 w-5 hover:opacity-80" />
+                                </button>
+                              ) : null
+                            )}
+                            {/* Validate & Upload Icon */}
+                            {patient.job_status === 'succeeded' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedPatientForValidation(patient);
+                                  setValidationModalOpen(true);
+                                }}
+                                className="p-1 rounded hover:bg-primary/10 transition-colors text-primary"
+                                title="Validate & Upload to Clinical System"
+                              >
+                                <ShieldCheck className="h-4 w-4" />
+                              </button>
+                            )}
+                          </div>
+                          <span className="text-xs text-muted-foreground text-right">
+                            {patient.practice_ods}{practiceNames[patient.practice_ods] ? ` - ${practiceNames[patient.practice_ods]}` : ''}
+                            {patient.uploader_name && (
+                              <span className="block opacity-70">Scanned by {patient.uploader_name}</span>
+                            )}
+                          </span>
+                          <span className="text-xs text-muted-foreground opacity-70">
+                            {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages
+                          </span>
+                        </div>
                       </div>
-                      <span className="text-xs text-muted-foreground text-right">
-                        {patient.practice_ods}{practiceNames[patient.practice_ods] ? ` - ${practiceNames[patient.practice_ods]}` : ''}
-                        {patient.uploader_name && (
-                          <span className="block opacity-70">Scanned by {patient.uploader_name}</span>
-                        )}
-                      </span>
-                      <span className="text-xs text-muted-foreground opacity-70">
-                        {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                );
+              })()
             );
           })}
         </div>
