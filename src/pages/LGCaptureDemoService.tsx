@@ -194,7 +194,7 @@ export default function LGCaptureDemoService() {
 
         // Convert to CapturedImage format (filter out blank pages)
         const capturedImages: CapturedImage[] = extractedPages
-          .filter(p => !p.isBlank)
+          // NO FILTERING - all pages preserved as scans are pre-cleansed
           .map((page, pageIndex) => ({
             id: `${patientId}-page-${pageIndex + 1}`,
             dataUrl: page.dataUrl,

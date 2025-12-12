@@ -172,7 +172,7 @@ export default function LGCaptureBulk() {
 
         // Convert ExtractedPage[] to CapturedImage[] for queue
         const capturedImages: CapturedImage[] = pages
-          .filter(p => !p.isBlank) // Filter out blank pages
+          // NO FILTERING - all pages preserved as scans are pre-cleansed
           .map((page, index) => ({
             id: `${patientId}-page-${index + 1}`,
             dataUrl: page.dataUrl,

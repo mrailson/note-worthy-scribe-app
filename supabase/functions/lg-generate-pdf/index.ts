@@ -307,17 +307,8 @@ serve(async (req) => {
     // Generate page summaries from OCR (pass DOB to exclude patient birth date from date extraction)
     let pageSummaries = generatePageSummaries(ocrText, imagePaths.length, dob);
 
-    // Filter out separator cards
-    const separatorCount = pageSummaries.filter(s => s === 'SEPARATOR_CARD').length;
-    if (separatorCount > 0) {
-      console.log(`Filtering out ${separatorCount} separator card(s)`);
-      const filteredData = imagePaths
-        .map((path, i) => ({ path, summary: pageSummaries[i] }))
-        .filter(item => item.summary !== 'SEPARATOR_CARD');
-      imagePaths = filteredData.map(d => d.path);
-      pageSummaries = filteredData.map(d => d.summary);
-      console.log(`Remaining pages after filtering: ${imagePaths.length}`);
-    }
+    // NO FILTERING - all pages preserved as scans are pre-cleansed
+    // Separator cards and blank pages are no longer automatically removed
 
     // Create the PDF
     const pdfDoc = await PDFDocument.create();
