@@ -83,6 +83,8 @@ export interface LGPatient {
   identity_verification_status: string | null;
   identity_verification_issues: unknown;
   nhs_number_validated: boolean | null;
+  // Conflict pages for mixed patient detection
+  conflict_pages: unknown;
   // OCR analysis tracking for large documents
   ocr_total_chars: number | null;
   ocr_analysed_chars: number | null;

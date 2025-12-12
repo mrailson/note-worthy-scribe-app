@@ -523,11 +523,21 @@ Look at EVERY page marked with "--- Page ---" separator and extract:
 - All DOBs found (may be different on different pages)  
 - All patient names found (may be different on different pages)
 
-STEP 2: REPORT ALL UNIQUE IDENTIFIERS FOUND
+STEP 2: REPORT ALL UNIQUE IDENTIFIERS FOUND WITH PAGE NUMBERS
 Add these fields to your response:
 "all_nhs_numbers_found": ["NHS1", "NHS2", ...] - list ALL unique NHS numbers from all pages
 "all_dobs_found": ["DOB1", "DOB2", ...] - list ALL unique DOBs from all pages
 "all_names_found": ["Name1", "Name2", ...] - list ALL unique patient names from all pages
+
+STEP 2B: IDENTIFY CONFLICT PAGES (CRITICAL)
+When you find DIFFERENT identities on different pages, you MUST report which pages have which identity.
+Add this field:
+"conflict_pages": [
+  {"page": <page_number>, "nhs": "<nhs_on_this_page>", "dob": "<dob_on_this_page>", "name": "<name_on_this_page>"}
+]
+Include an entry for EVERY page that has a DIFFERENT identity from the primary/most common patient.
+For example if pages 1-10 are for "John Smith NHS 1234567890 DOB 01/01/1950" but page 11 is for "Jane Doe NHS 9876543210 DOB 15/03/1980", then:
+"conflict_pages": [{"page": 11, "nhs": "9876543210", "dob": "15/03/1980", "name": "Jane Doe"}]
 
 STEP 3: DETECT CONFLICTS
 Compare the unique identifiers:
@@ -565,6 +575,7 @@ OUTPUT FORMAT (return valid json)
   "all_nhs_numbers_found": [],
   "all_dobs_found": [],
   "all_names_found": [],
+  "conflict_pages": [],
   "identity_verification_status": "verified"
 }
 
@@ -1031,6 +1042,9 @@ serve(async (req) => {
         console.log('Identity verification status:', identityVerificationStatus);
         
         // Update patient record with extracted details including identity verification
+        const conflictPages = extractedPatient.conflict_pages || [];
+        console.log('IDENTITY CHECK - Conflict pages:', conflictPages);
+        
         const updateData: any = {
           ai_extracted_name: extractedPatient.patient_name || null,
           ai_extracted_nhs: extractedPatient.nhs_number?.replace(/\s/g, '') || null,
@@ -1043,6 +1057,7 @@ serve(async (req) => {
           all_nhs_numbers_found: allNhsNumbersFound,
           all_dobs_found: allDobsFound,
           all_names_found: allNamesFound,
+          conflict_pages: conflictPages,
         };
         
         console.log('Updating patient with extracted data:', JSON.stringify(updateData));
