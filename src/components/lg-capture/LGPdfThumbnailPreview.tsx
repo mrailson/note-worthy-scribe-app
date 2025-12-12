@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, ChevronUp, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
+import { Loader2, ChevronUp, ZoomIn, ZoomOut, RotateCcw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -11,9 +11,17 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = new URL(
   import.meta.url
 ).toString();
 
+interface ConflictPage {
+  page: number;
+  nhs?: string;
+  dob?: string;
+  name?: string;
+}
+
 interface LGPdfThumbnailPreviewProps {
   pdfUrl: string;
   totalPages?: number;
+  conflictPages?: ConflictPage[];
 }
 
 interface Thumbnail {
@@ -21,7 +29,7 @@ interface Thumbnail {
   dataUrl: string;
 }
 
-export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnailPreviewProps) {
+export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0, conflictPages = [] }: LGPdfThumbnailPreviewProps) {
   const [thumbnails, setThumbnails] = useState<Thumbnail[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingProgress, setLoadingProgress] = useState(0);
@@ -144,6 +152,17 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
   const visibleThumbnails = expanded ? thumbnails : thumbnails.slice(0, INITIAL_PAGES);
   const hiddenCount = thumbnails.length - INITIAL_PAGES;
   const hasMore = thumbnails.length > INITIAL_PAGES;
+  
+  // Create a set of conflict page numbers for quick lookup
+  // Note: PDF page numbers are 1-indexed, but we add 3 to account for front matter pages
+  const conflictPageNumbers = new Set(conflictPages.map(cp => cp.page + 3));
+  
+  // Helper to check if a thumbnail page is a conflict
+  const isConflictPage = (pageNum: number) => conflictPageNumbers.has(pageNum);
+  
+  // Get conflict info for a page
+  const getConflictInfo = (pageNum: number): ConflictPage | undefined => 
+    conflictPages.find(cp => cp.page + 3 === pageNum);
 
   if (error) {
     return (
@@ -165,29 +184,52 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
         )}
       </div>
 
+      {/* Conflict warning banner */}
+      {conflictPages.length > 0 && (
+        <div className="bg-red-100 border border-red-300 rounded-md p-2 mb-3 flex items-center gap-2">
+          <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" />
+          <span className="text-xs text-red-700">
+            <strong>Mixed patient detected!</strong> Page{conflictPages.length > 1 ? 's' : ''} {conflictPages.map(cp => cp.page).join(', ')} contain{conflictPages.length === 1 ? 's' : ''} a different patient. Highlighted in red below.
+          </span>
+        </div>
+      )}
+
       {/* Thumbnail Grid */}
       <div className="flex flex-wrap gap-2">
-        {visibleThumbnails.map((thumb) => (
-          <button
-            key={thumb.pageNum}
-            onClick={() => setSelectedPage(thumb)}
-            className="relative group focus:outline-none focus:ring-2 focus:ring-primary rounded-md overflow-hidden"
-          >
-            <div className="w-20 h-28 bg-muted rounded-md overflow-hidden border border-border hover:border-primary transition-colors">
-              <img
-                src={thumb.dataUrl}
-                alt={`Page ${thumb.pageNum}`}
-                className="w-full h-full object-cover"
-              />
-            </div>
-            <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs py-0.5 text-center">
-              {thumb.pageNum}
-            </div>
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-              <ZoomIn className="h-5 w-5 text-white drop-shadow-lg" />
-            </div>
-          </button>
-        ))}
+        {visibleThumbnails.map((thumb) => {
+          const conflict = isConflictPage(thumb.pageNum);
+          const conflictInfo = conflict ? getConflictInfo(thumb.pageNum) : undefined;
+          
+          return (
+            <button
+              key={thumb.pageNum}
+              onClick={() => setSelectedPage(thumb)}
+              className="relative group focus:outline-none focus:ring-2 focus:ring-primary rounded-md overflow-hidden"
+              title={conflict ? `⚠️ Different patient: ${conflictInfo?.name || 'Unknown'} (NHS: ${conflictInfo?.nhs || 'N/A'})` : `Page ${thumb.pageNum}`}
+            >
+              <div className={`w-20 h-28 bg-muted rounded-md overflow-hidden border-2 transition-colors ${
+                conflict 
+                  ? 'border-red-500 ring-2 ring-red-300' 
+                  : 'border-border hover:border-primary'
+              }`}>
+                <img
+                  src={thumb.dataUrl}
+                  alt={`Page ${thumb.pageNum}`}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+              <div className={`absolute bottom-0 left-0 right-0 text-white text-xs py-0.5 text-center ${
+                conflict ? 'bg-red-600' : 'bg-black/60'
+              }`}>
+                {conflict && <AlertTriangle className="h-3 w-3 inline mr-1" />}
+                {thumb.pageNum}
+              </div>
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
+                <ZoomIn className="h-5 w-5 text-white drop-shadow-lg" />
+              </div>
+            </button>
+          );
+        })}
 
         {/* Loading skeleton for remaining */}
         {loading && thumbnails.length < (expanded ? (totalPages || 10) : INITIAL_PAGES) && (
@@ -242,26 +284,37 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
               {/* Thumbnail strip on left - vertical scrollable */}
               <div className="flex-shrink-0 w-24 border-r bg-muted/50 p-2 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
                 <div className="flex flex-col gap-2">
-                  {thumbnails.map((thumb) => (
-                    <button
-                      key={thumb.pageNum}
-                      onClick={() => { setSelectedPage(thumb); setZoomLevel(1); }}
-                      className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-all ${
-                        thumb.pageNum === selectedPage.pageNum
-                          ? 'border-primary ring-2 ring-primary/30'
-                          : 'border-border hover:border-primary/50'
-                      }`}
-                    >
-                      <img
-                        src={thumb.dataUrl}
-                        alt={`Page ${thumb.pageNum}`}
-                        className="w-full h-auto object-contain"
-                      />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center py-0.5">
-                        {thumb.pageNum}
-                      </div>
-                    </button>
-                  ))}
+                  {thumbnails.map((thumb) => {
+                    const conflict = isConflictPage(thumb.pageNum);
+                    const conflictInfo = conflict ? getConflictInfo(thumb.pageNum) : undefined;
+                    
+                    return (
+                      <button
+                        key={thumb.pageNum}
+                        onClick={() => { setSelectedPage(thumb); setZoomLevel(1); }}
+                        title={conflict ? `⚠️ Different patient: ${conflictInfo?.name || 'Unknown'}` : `Page ${thumb.pageNum}`}
+                        className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-all ${
+                          conflict
+                            ? 'border-red-500 ring-2 ring-red-300'
+                            : thumb.pageNum === selectedPage.pageNum
+                              ? 'border-primary ring-2 ring-primary/30'
+                              : 'border-border hover:border-primary/50'
+                        }`}
+                      >
+                        <img
+                          src={thumb.dataUrl}
+                          alt={`Page ${thumb.pageNum}`}
+                          className="w-full h-auto object-contain"
+                        />
+                        <div className={`absolute bottom-0 left-0 right-0 text-white text-[10px] text-center py-0.5 ${
+                          conflict ? 'bg-red-600' : 'bg-black/70'
+                        }`}>
+                          {conflict && <AlertTriangle className="h-2 w-2 inline mr-0.5" />}
+                          {thumb.pageNum}
+                        </div>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 

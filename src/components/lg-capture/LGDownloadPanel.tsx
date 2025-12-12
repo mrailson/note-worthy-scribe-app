@@ -358,7 +358,8 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
         {showPreview && patient.pdf_url && !patient.pdf_split && (
           <LGPdfThumbnailPreview 
             pdfUrl={patient.pdf_url} 
-            totalPages={patient.images_count || 0} 
+            totalPages={patient.images_count || 0}
+            conflictPages={(patient as any).conflict_pages || []}
           />
         )}
         

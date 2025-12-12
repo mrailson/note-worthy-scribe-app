@@ -3474,6 +3474,7 @@ export type Database = {
           compression_applied_at: string | null
           compression_attempts: number | null
           compression_tier: string | null
+          conflict_pages: Json | null
           created_at: string | null
           dob: string | null
           downloaded_at: string | null
@@ -3551,6 +3552,7 @@ export type Database = {
           compression_applied_at?: string | null
           compression_attempts?: number | null
           compression_tier?: string | null
+          conflict_pages?: Json | null
           created_at?: string | null
           dob?: string | null
           downloaded_at?: string | null
@@ -3628,6 +3630,7 @@ export type Database = {
           compression_applied_at?: string | null
           compression_attempts?: number | null
           compression_tier?: string | null
+          conflict_pages?: Json | null
           created_at?: string | null
           dob?: string | null
           downloaded_at?: string | null
