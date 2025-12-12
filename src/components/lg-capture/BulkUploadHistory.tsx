@@ -967,16 +967,16 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                                 <h4 className="font-medium text-[#005eb8] mb-2">{patientName}</h4>
                                 
                                 {s.summary_line && (
-                                  <p className="text-sm mb-2"><strong>Summary:</strong> {s.summary_line}</p>
+                                  <p className="text-sm mb-2"><strong>Summary:</strong> {
+                                    // Clean summary_line: remove "Patient X with a history of" prefix
+                                    s.summary_line
+                                      .replace(/^Patient\s+[^,]+\s+with\s+a\s+history\s+of\s+/i, '')
+                                      .replace(/^[A-Z][a-z]+\s+[A-Z][a-z]+\s+with\s+a\s+history\s+of\s+/i, '')
+                                      .trim()
+                                  }</p>
                                 )}
                                 
-                                {s.social_history?.smoking_status && s.social_history.smoking_status !== 'unknown' && (
-                                  <p className="text-xs text-muted-foreground">
-                                    🚬 Smoking: {s.social_history.smoking_status}
-                                    {s.social_history.stopped_year && ` (stopped ${s.social_history.stopped_year})`}
-                                    {s.social_history.pack_years && `, ${s.social_history.pack_years} pack-years`}
-                                  </p>
-                                )}
+                                {/* Smoking status removed per user request */}
                                 
                                 {diagnosesCount > 0 && (
                                   <p className="text-xs text-muted-foreground">Diagnoses: {diagnosesCount}</p>
