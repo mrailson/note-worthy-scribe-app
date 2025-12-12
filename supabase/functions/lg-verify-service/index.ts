@@ -161,6 +161,7 @@ Verify each extracted item has supporting evidence in the OCR text. Flag any hal
 
 async function verifyWithModel(
   modelName: string,
+  displayName: string,
   apiKey: string,
   summaryJson: any,
   snomedJson: any,
@@ -238,7 +239,7 @@ Verify each extracted item has supporting evidence in the OCR text. Flag any hal
     const parsed = JSON.parse(jsonMatch[0]);
     
     return {
-      model: modelName,
+      model: displayName,
       front_sheet_score: parsed.front_sheet_score || 0,
       snomed_score: parsed.snomed_score || 0,
       completeness_score: parsed.completeness_score || 0,
@@ -250,7 +251,7 @@ Verify each extracted item has supporting evidence in the OCR text. Flag any hal
   } catch (error) {
     console.error(`Error with ${modelName}:`, error);
     return {
-      model: modelName,
+      model: displayName,
       front_sheet_score: 0,
       snomed_score: 0,
       completeness_score: 0,
@@ -360,7 +361,7 @@ serve(async (req) => {
     // Use OpenAI GPT-5
     if (openaiKey) {
       verificationPromises.push(
-        verifyWithModel('gpt-5-2025-08-07', openaiKey, summaryJson, snomedJson, ocrText, 'https://api.openai.com/v1/chat/completions')
+        verifyWithModel('gpt-5-2025-08-07', 'gpt-5', openaiKey, summaryJson, snomedJson, ocrText, 'https://api.openai.com/v1/chat/completions')
       );
       modelsUsed.push('gpt-5');
     }
@@ -376,13 +377,13 @@ serve(async (req) => {
     // Use Lovable AI (Gemini)
     if (lovableKey) {
       verificationPromises.push(
-        verifyWithModel('google/gemini-2.5-flash', lovableKey, summaryJson, snomedJson, ocrText, 'https://ai.gateway.lovable.dev/v1/chat/completions')
+        verifyWithModel('google/gemini-2.5-flash', 'gemini-2.5-flash', lovableKey, summaryJson, snomedJson, ocrText, 'https://ai.gateway.lovable.dev/v1/chat/completions')
       );
       modelsUsed.push('gemini-2.5-flash');
 
       // Also use Gemini Pro for additional verification
       verificationPromises.push(
-        verifyWithModel('google/gemini-2.5-pro', lovableKey, summaryJson, snomedJson, ocrText, 'https://ai.gateway.lovable.dev/v1/chat/completions')
+        verifyWithModel('google/gemini-2.5-pro', 'gemini-2.5-pro', lovableKey, summaryJson, snomedJson, ocrText, 'https://ai.gateway.lovable.dev/v1/chat/completions')
       );
       modelsUsed.push('gemini-2.5-pro');
     }
