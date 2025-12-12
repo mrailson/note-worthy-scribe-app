@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, ChevronUp, ZoomIn } from 'lucide-react';
+import { Loader2, ChevronUp, ZoomIn, ZoomOut, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import * as pdfjsLib from 'pdfjs-dist';
@@ -28,6 +28,7 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
   const [expanded, setExpanded] = useState(false);
   const [selectedPage, setSelectedPage] = useState<Thumbnail | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [zoomLevel, setZoomLevel] = useState(1);
 
   const INITIAL_PAGES = 5;
   const THUMBNAIL_SCALE = 1.5; // Higher scale for better quality when viewing enlarged
@@ -233,25 +234,18 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
         </Button>
       )}
 
-      {/* Enlarged view dialog - nearly fullscreen */}
-      <Dialog open={!!selectedPage} onOpenChange={() => setSelectedPage(null)}>
-        <DialogContent className="!max-w-xl !w-[50vw] !h-[95vh] !max-h-[95vh] p-0 flex flex-col">
+      {/* Enlarged view dialog - thumbnails on left, zoom controls */}
+      <Dialog open={!!selectedPage} onOpenChange={() => { setSelectedPage(null); setZoomLevel(1); }}>
+        <DialogContent className="!max-w-[90vw] !w-[90vw] !h-[95vh] !max-h-[95vh] p-0 flex flex-row">
           {selectedPage && (
             <>
-              {/* Thumbnail strip at top - scrollable when > 6 pages */}
-              <div className="flex-shrink-0 border-b bg-muted/50 p-2 overflow-hidden">
-                <div 
-                  className={`flex gap-2 pb-1 ${
-                    thumbnails.length > 6 
-                      ? 'overflow-x-scroll' 
-                      : 'justify-center'
-                  }`}
-                  style={{ scrollbarWidth: 'thin' }}
-                >
+              {/* Thumbnail strip on left - vertical scrollable */}
+              <div className="flex-shrink-0 w-24 border-r bg-muted/50 p-2 overflow-y-auto" style={{ scrollbarWidth: 'thin' }}>
+                <div className="flex flex-col gap-2">
                   {thumbnails.map((thumb) => (
                     <button
                       key={thumb.pageNum}
-                      onClick={() => setSelectedPage(thumb)}
+                      onClick={() => { setSelectedPage(thumb); setZoomLevel(1); }}
                       className={`relative flex-shrink-0 rounded overflow-hidden border-2 transition-all ${
                         thumb.pageNum === selectedPage.pageNum
                           ? 'border-primary ring-2 ring-primary/30'
@@ -261,9 +255,9 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
                       <img
                         src={thumb.dataUrl}
                         alt={`Page ${thumb.pageNum}`}
-                        className="w-12 h-16 object-cover"
+                        className="w-full h-auto object-contain"
                       />
-                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center">
+                      <div className="absolute bottom-0 left-0 right-0 bg-black/70 text-white text-[10px] text-center py-0.5">
                         {thumb.pageNum}
                       </div>
                     </button>
@@ -271,39 +265,81 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
                 </div>
               </div>
 
-              {/* Main image area */}
-              <div className="flex-1 flex flex-col items-center justify-center p-4 overflow-hidden bg-muted/20 min-h-0">
-                <div className="text-sm text-muted-foreground mb-2 flex-shrink-0">
-                  Page {selectedPage.pageNum} of {thumbnails.length}
+              {/* Main image area with zoom */}
+              <div className="flex-1 flex flex-col min-w-0 min-h-0">
+                {/* Toolbar */}
+                <div className="flex-shrink-0 border-b bg-muted/30 px-4 py-2 flex items-center justify-between">
+                  <div className="text-sm text-muted-foreground">
+                    Page {selectedPage.pageNum} of {thumbnails.length}
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setZoomLevel(z => Math.max(0.25, z - 0.25))}
+                      disabled={zoomLevel <= 0.25}
+                    >
+                      <ZoomOut className="h-4 w-4" />
+                    </Button>
+                    <span className="text-sm text-muted-foreground w-16 text-center">
+                      {Math.round(zoomLevel * 100)}%
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setZoomLevel(z => Math.min(3, z + 0.25))}
+                      disabled={zoomLevel >= 3}
+                    >
+                      <ZoomIn className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setZoomLevel(1)}
+                      disabled={zoomLevel === 1}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={selectedPage.pageNum === 1}
+                      onClick={() => {
+                        const prev = thumbnails.find(t => t.pageNum === selectedPage.pageNum - 1);
+                        if (prev) { setSelectedPage(prev); setZoomLevel(1); }
+                      }}
+                    >
+                      Previous
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      disabled={selectedPage.pageNum === thumbnails.length}
+                      onClick={() => {
+                        const next = thumbnails.find(t => t.pageNum === selectedPage.pageNum + 1);
+                        if (next) { setSelectedPage(next); setZoomLevel(1); }
+                      }}
+                    >
+                      Next
+                    </Button>
+                  </div>
                 </div>
-                <div className="flex-1 flex items-center justify-center w-full min-h-0">
+
+                {/* Scrollable image container */}
+                <div className="flex-1 overflow-auto bg-muted/20 flex items-center justify-center p-4 min-h-0">
                   <img
                     src={selectedPage.dataUrl}
                     alt={`Page ${selectedPage.pageNum}`}
-                    className="h-full w-auto object-contain rounded-md border shadow-lg"
+                    className="rounded-md border shadow-lg transition-transform"
+                    style={{ 
+                      transform: `scale(${zoomLevel})`,
+                      transformOrigin: 'center center',
+                      maxWidth: zoomLevel <= 1 ? '100%' : 'none',
+                      maxHeight: zoomLevel <= 1 ? '100%' : 'none'
+                    }}
                   />
-                </div>
-                <div className="flex gap-2 mt-4 flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    disabled={selectedPage.pageNum === 1}
-                    onClick={() => {
-                      const prev = thumbnails.find(t => t.pageNum === selectedPage.pageNum - 1);
-                      if (prev) setSelectedPage(prev);
-                    }}
-                  >
-                    Previous
-                  </Button>
-                  <Button
-                    variant="outline"
-                    disabled={selectedPage.pageNum === thumbnails.length}
-                    onClick={() => {
-                      const next = thumbnails.find(t => t.pageNum === selectedPage.pageNum + 1);
-                      if (next) setSelectedPage(next);
-                    }}
-                  >
-                    Next
-                  </Button>
                 </div>
               </div>
             </>
