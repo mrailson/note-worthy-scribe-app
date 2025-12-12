@@ -44,7 +44,8 @@ export const useLGUploadQueue = () => {
 
 export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [queue, setQueue] = useState<QueuedPatient[]>([]);
-  const processingRef = useRef(false);
+  const processingCountRef = useRef(0);
+  const MAX_CONCURRENT = 3; // Process up to 3 files simultaneously
   const isProcessing = queue.some(q => q.status === 'uploading' || q.status === 'processing');
   const activeUploads = queue.filter(q => q.status === 'queued' || q.status === 'uploading').length;
 
@@ -62,18 +63,11 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
     }]);
   }, []);
 
-  const processQueue = useCallback(async () => {
-    if (processingRef.current) return;
-    
-    const nextInQueue = queue.find(q => q.status === 'queued');
-    if (!nextInQueue) return;
-
-    processingRef.current = true;
-
+  const processOnePatient = useCallback(async (patient: QueuedPatient) => {
     try {
       // Update status to uploading with start timestamp
       setQueue(prev => prev.map(q => 
-        q.patientId === nextInQueue.patientId 
+        q.patientId === patient.patientId 
           ? { ...q, status: 'uploading' as const } 
           : q
       ));
@@ -86,10 +80,10 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
           upload_progress: 0,
           upload_started_at: new Date().toISOString()
         })
-        .eq('id', nextInQueue.patientId);
+        .eq('id', patient.patientId);
 
       // Upload images one by one with CLIENT-SIDE COMPRESSION
-      const { images, patientId, practiceOds } = nextInQueue;
+      const { images, patientId, practiceOds } = patient;
       
       console.log(`Starting upload with client-side compression for ${images.length} images`);
       
@@ -160,7 +154,7 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
 
       // Trigger processing (fire and forget) - pass service level
       supabase.functions.invoke('lg-process-patient', {
-        body: { patientId, serviceLevel: nextInQueue.serviceLevel }
+        body: { patientId, serviceLevel: patient.serviceLevel }
       }).catch(err => {
         console.error('Processing trigger error:', err);
       });
@@ -175,7 +169,7 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
       const errorMessage = err instanceof Error ? err.message : 'Upload failed';
       
       setQueue(prev => prev.map(q => 
-        q.patientId === nextInQueue.patientId 
+        q.patientId === patient.patientId 
           ? { ...q, status: 'failed' as const, error: errorMessage } 
           : q
       ));
@@ -183,17 +177,35 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
       await supabase
         .from('lg_patients')
         .update({ job_status: 'failed' })
-        .eq('id', nextInQueue.patientId);
+        .eq('id', patient.patientId);
 
       toast.error(`Upload failed: ${errorMessage}`);
     } finally {
-      processingRef.current = false;
+      processingCountRef.current--;
     }
-  }, [queue]);
+  }, []);
+
+  const processQueue = useCallback(async () => {
+    // Find all queued items and process up to MAX_CONCURRENT
+    const queuedItems = queue.filter(q => q.status === 'queued');
+    const slotsAvailable = MAX_CONCURRENT - processingCountRef.current;
+    
+    if (slotsAvailable <= 0 || queuedItems.length === 0) return;
+
+    // Take as many items as we have slots for
+    const itemsToProcess = queuedItems.slice(0, slotsAvailable);
+    
+    for (const item of itemsToProcess) {
+      processingCountRef.current++;
+      // Process each in parallel (don't await)
+      processOnePatient(item);
+    }
+  }, [queue, processOnePatient]);
 
   // Process queue when items are added
   useEffect(() => {
-    if (queue.some(q => q.status === 'queued') && !processingRef.current) {
+    const queuedCount = queue.filter(q => q.status === 'queued').length;
+    if (queuedCount > 0 && processingCountRef.current < MAX_CONCURRENT) {
       processQueue();
     }
   }, [queue, processQueue]);
