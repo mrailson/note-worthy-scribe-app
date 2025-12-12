@@ -396,22 +396,6 @@ export default function LGCaptureLanding() {
       <div className="grid grid-cols-3 gap-3">
         <Button
           variant="outline"
-          onClick={() => navigate('/lg-capture/patients')}
-          className="w-full"
-        >
-          <List className="mr-2 h-4 w-4" />
-          Recent
-        </Button>
-        <Button
-          variant="outline"
-          onClick={() => navigate('/lg-capture/bulk')}
-          className="w-full"
-        >
-          <Files className="mr-2 h-4 w-4" />
-          Bulk Capture
-        </Button>
-        <Button
-          variant="outline"
           onClick={async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -440,6 +424,22 @@ export default function LGCaptureLanding() {
         >
           <Play className="mr-2 h-4 w-4" />
           Demo
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/lg-capture/bulk')}
+          className="w-full"
+        >
+          <Files className="mr-2 h-4 w-4" />
+          Bulk Capture
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => navigate('/lg-capture/patients')}
+          className="w-full"
+        >
+          <List className="mr-2 h-4 w-4" />
+          History
         </Button>
       </div>
 
