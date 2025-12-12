@@ -335,12 +335,64 @@ serve(async (req) => {
                       console.log('✅ Extracted text from:', doc.file_name, '(', text.length, 'chars)');
                     }
                   }
-                  // For Word docs and PDFs, include file name and description as context
-                  // (full text extraction would require additional processing)
-                  else {
-                    const label = doc.description || doc.file_name;
-                    documentContext += `\n--- UPLOADED DOCUMENT: ${label} ---\n[Document uploaded: ${doc.file_name}]\n`;
-                    console.log('📎 Referenced document:', doc.file_name);
+                  // For Word docs and PDFs, call extract-document-text edge function
+                  else if (doc.file_type?.includes('pdf') || doc.file_type?.includes('word') || doc.file_type?.includes('document')) {
+                    try {
+                      console.log('📄 Extracting text from PDF/Word document:', doc.file_name);
+                      
+                      // Convert blob to base64 data URL
+                      const arrayBuffer = await fileData.arrayBuffer();
+                      const uint8Array = new Uint8Array(arrayBuffer);
+                      let binary = '';
+                      for (let i = 0; i < uint8Array.length; i++) {
+                        binary += String.fromCharCode(uint8Array[i]);
+                      }
+                      const base64 = btoa(binary);
+                      const mimeType = doc.file_type || 'application/octet-stream';
+                      const dataUrl = `data:${mimeType};base64,${base64}`;
+                      
+                      // Determine file type for extraction
+                      const fileType = doc.file_type?.includes('pdf') ? 'pdf' : 'powerpoint';
+                      
+                      // Call extract-document-text edge function
+                      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+                      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+                      
+                      const extractResponse = await fetch(`${supabaseUrl}/functions/v1/extract-document-text`, {
+                        method: 'POST',
+                        headers: {
+                          'Authorization': `Bearer ${supabaseServiceKey}`,
+                          'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                          fileType: fileType,
+                          dataUrl: dataUrl,
+                          fileName: doc.file_name
+                        })
+                      });
+                      
+                      if (extractResponse.ok) {
+                        const extractResult = await extractResponse.json();
+                        if (extractResult.extractedText && extractResult.extractedText.trim()) {
+                          const label = doc.description || doc.file_name;
+                          documentContext += `\n--- UPLOADED DOCUMENT: ${label} ---\n${extractResult.extractedText.trim()}\n`;
+                          console.log('✅ Extracted text from document:', doc.file_name, extractResult.extractedText.length, 'chars');
+                        } else {
+                          console.warn('⚠️ No text extracted from document:', doc.file_name);
+                          const label = doc.description || doc.file_name;
+                          documentContext += `\n--- UPLOADED DOCUMENT: ${label} ---\n[Document uploaded but text extraction failed]\n`;
+                        }
+                      } else {
+                        const errorText = await extractResponse.text();
+                        console.warn('⚠️ Extract-document-text failed for:', doc.file_name, extractResponse.status, errorText);
+                        const label = doc.description || doc.file_name;
+                        documentContext += `\n--- UPLOADED DOCUMENT: ${label} ---\n[Document uploaded: ${doc.file_name}]\n`;
+                      }
+                    } catch (extractError) {
+                      console.warn('⚠️ Error extracting text from document:', doc.file_name, extractError);
+                      const label = doc.description || doc.file_name;
+                      documentContext += `\n--- UPLOADED DOCUMENT: ${label} ---\n[Document uploaded: ${doc.file_name}]\n`;
+                    }
                   }
                 }
               } catch (docError) {
