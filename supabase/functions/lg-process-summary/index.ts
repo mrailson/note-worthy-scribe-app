@@ -952,7 +952,7 @@ Return valid JSON matching this schema exactly. This is a FORMAT EXAMPLE ONLY - 
   "diagnoses": [],
   "surgeries": [],
   "allergies": [],
-  "immunisations": [],
+  "immunisations": [{"vaccine": "Vaccine Name e.g. Influenza", "date": "DD/MM/YYYY"}],
   "immunisation_summary": "",
   "family_history": [],
   "social_history": {"smoking_status":"unknown", "stopped_year":"", "pack_years":"", "alcohol":"unknown", "occupation":""},

@@ -1425,9 +1425,11 @@ function addClinicalSummaryPage(
   for (const section of sections) {
     // Try snomedJson first, then fall back to summaryJson for immunisations
     let items = snomedJson?.[section.key] || [];
+    let fromSummary = false;
     if (items.length === 0 && section.key === 'immunisations') {
       // Fallback: check summaryJson for immunisations (may be stored there instead)
       items = summaryJson?.immunisations || [];
+      fromSummary = true;
       console.log(`Using summaryJson for immunisations: ${items.length} items`);
     }
     // Deduplicate diagnoses only - immunisations should show ALL instances
@@ -1439,15 +1441,23 @@ function addClinicalSummaryPage(
       drawLine(section.title, 12, true);
       addSpace(0.3);
       for (const item of items) {
-        const code = item.code || 'UNKNOWN';
-        const term = item.term || 'Unknown term';
+        // Handle different data structures: snomedJson uses term/code, summaryJson uses vaccine/name
+        const term = item.term || item.vaccine || item.name || item.type || 'Unknown vaccine';
+        const code = item.code || item.snomed_code || '';
+        
         // Format date: show NK if not known
         let dateStr = '';
         if (section.showDate) {
           const itemDate = item.date || item.year;
           dateStr = itemDate ? ` (${itemDate})` : ' (NK)';
         }
-        drawLine(`${term} [SNOMED: ${code}]${dateStr}`, 10, false, 15);
+        
+        // For immunisations from summaryJson without SNOMED codes, show just the vaccine and date
+        if (fromSummary && section.key === 'immunisations' && !code) {
+          drawLine(`${term}${dateStr}`, 10, false, 15);
+        } else {
+          drawLine(`${term} [SNOMED: ${code || 'MANUAL_REVIEW'}]${dateStr}`, 10, false, 15);
+        }
       }
       addSpace(0.5);
     }
