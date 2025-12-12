@@ -1,21 +1,32 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, FileText, Check, X, Clock, Calendar, Files, ChevronDown, ChevronUp, Download, AlertCircle, Timer, RotateCcw, Trash2, AlertTriangle } from 'lucide-react';
+import { Loader2, FileText, Check, X, Clock, Calendar, Files, ChevronDown, ChevronUp, Download, AlertCircle, Timer, RotateCcw, Trash2, AlertTriangle, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, formatDistanceToNow, differenceInMinutes } from 'date-fns';
 import { toast } from 'sonner';
+import { playWarningBeep } from '@/utils/alertSounds';
+
+interface IdentityIssue {
+  type: 'nhs_mismatch' | 'dob_mismatch' | 'name_mismatch' | 'third_party_document' | string;
+  description: string;
+  page_reference?: string;
+  is_likely_same_patient?: boolean;
+  reason?: string;
+}
 
 interface BatchPatient {
   id: string;
   patient_name: string | null;
   ai_extracted_name: string | null;
   nhs_number: string | null;
+  ai_extracted_nhs: string | null;
   dob: string | null;
+  ai_extracted_dob: string | null;
   images_count: number | null;
   job_status: string | null;
   processing_error?: string | null;
@@ -34,6 +45,8 @@ interface BatchPatient {
   batch_id: string | null;
   practice_ods: string | null;
   summary_json?: any;
+  identity_verification_status: string | null;
+  identity_verification_issues: any;
 }
 
 interface BatchGroup {
@@ -63,6 +76,42 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
   const [pendingBatches, setPendingBatches] = useState<BatchGroup[]>([]);
   const [completedBatches, setCompletedBatches] = useState<BatchGroup[]>([]);
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+  const alertedPatientIds = useRef<Set<string>>(new Set());
+
+  // Check for identity conflicts and trigger alerts
+  const checkForIdentityConflicts = (patients: BatchPatient[]) => {
+    patients.forEach(patient => {
+      // Only check patients that have conflict status and haven't been alerted yet
+      if (patient.identity_verification_status === 'conflict' && 
+          !alertedPatientIds.current.has(patient.id)) {
+        
+        // Parse issues if needed
+        const issues: IdentityIssue[] = Array.isArray(patient.identity_verification_issues) 
+          ? patient.identity_verification_issues 
+          : [];
+        
+        const hasNhsMismatch = issues.some(i => i.type === 'nhs_mismatch');
+        const hasDobMismatch = issues.some(i => i.type === 'dob_mismatch');
+        
+        // Critical conflict: Both NHS and DOB are different = definitely mixed records
+        if (hasNhsMismatch && hasDobMismatch) {
+          playWarningBeep(3);
+          toast.error('⚠️ MIXED PATIENT RECORDS DETECTED', {
+            description: `File "${patient.ai_extracted_name || 'Unknown'}" may contain documents from multiple patients. Review immediately.`,
+            duration: 15000,
+          });
+        } else {
+          // Warning: only some fields mismatch - may be name change
+          toast.warning('Patient Identity Warning', {
+            description: `File "${patient.ai_extracted_name || 'Unknown'}" has identity inconsistencies. May be married/maiden name if NHS or DOB match.`,
+            duration: 10000,
+          });
+        }
+        
+        alertedPatientIds.current.add(patient.id);
+      }
+    });
+  };
 
   useEffect(() => {
     if (user?.id) {
@@ -119,9 +168,9 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
         return;
       }
 
-      // Fetch summary JSON for completed patients only (for performance)
+      // Fetch summary JSON for completed patients and check identity conflicts
       const patientsWithSummaries: BatchPatient[] = await Promise.all(
-        patients.map(async (patient) => {
+        patients.map(async (patient): Promise<BatchPatient> => {
           let summaryData = null;
           
           // Only fetch summary for completed patients
@@ -138,9 +187,28 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
             }
           }
           
-          return { ...patient, summary_json: summaryData };
+          // Parse identity_verification_issues from JSON if needed
+          let issues: IdentityIssue[] | null = null;
+          if (patient.identity_verification_issues) {
+            if (typeof patient.identity_verification_issues === 'string') {
+              try {
+                issues = JSON.parse(patient.identity_verification_issues);
+              } catch {}
+            } else if (Array.isArray(patient.identity_verification_issues)) {
+              issues = patient.identity_verification_issues as unknown as IdentityIssue[];
+            }
+          }
+          
+          return { 
+            ...patient, 
+            summary_json: summaryData,
+            identity_verification_issues: issues
+          } as BatchPatient;
         })
       );
+      
+      // Check for identity conflicts and trigger alerts
+      checkForIdentityConflicts(patientsWithSummaries);
 
       // Group by batch_id
       const batchMap = new Map<string, BatchPatient[]>();
@@ -568,12 +636,52 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                             const canRetry = patient.job_status === 'failed' || patientIsStuck;
                             const canCancel = patientIsStuck;
                             
+                            // Identity conflict detection
+                            const hasIdentityConflict = patient.identity_verification_status === 'conflict';
+                            const hasIdentityWarning = patient.identity_verification_status === 'warning';
+                            const identityIssues: IdentityIssue[] = Array.isArray(patient.identity_verification_issues) 
+                              ? patient.identity_verification_issues 
+                              : [];
+                            const hasNhsMismatch = identityIssues.some(i => i.type === 'nhs_mismatch');
+                            const hasDobMismatch = identityIssues.some(i => i.type === 'dob_mismatch');
+                            const isCriticalConflict = hasNhsMismatch && hasDobMismatch;
+                            const mayBeMarriedName = hasIdentityConflict && !isCriticalConflict;
+                            
                             return (
-                              <tr key={patient.id} className={`hover:bg-muted/30 ${patientIsStuck ? 'bg-red-50' : ''}`}>
+                              <tr key={patient.id} className={`hover:bg-muted/30 ${patientIsStuck ? 'bg-red-50' : ''} ${hasIdentityConflict ? 'bg-red-50' : ''}`}>
                                 <td className="p-2 text-muted-foreground">{idx + 1}</td>
                                 <td className="p-2">
                                   <div>
                                     <span>{patientName}</span>
+                                    
+                                    {/* Identity conflict alert - CRITICAL (both NHS and DOB different) */}
+                                    {hasIdentityConflict && isCriticalConflict && (
+                                      <div className="mt-1 p-2 bg-red-100 border border-red-300 rounded text-xs">
+                                        <div className="flex items-center gap-1 text-red-700 font-semibold">
+                                          <UserX className="h-4 w-4" />
+                                          PATIENT IDENTITY CONFLICT - MIXED RECORDS
+                                        </div>
+                                        <p className="text-red-600 mt-1">
+                                          This file may contain records from MULTIPLE patients. 
+                                          Both NHS number and DOB differ across pages. Review immediately.
+                                        </p>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Identity conflict alert - possible married/maiden name */}
+                                    {(hasIdentityConflict && mayBeMarriedName) || hasIdentityWarning ? (
+                                      <div className="mt-1 p-2 bg-amber-100 border border-amber-300 rounded text-xs">
+                                        <div className="flex items-center gap-1 text-amber-700 font-semibold">
+                                          <AlertTriangle className="h-4 w-4" />
+                                          Identity Warning - Possible Name Change
+                                        </div>
+                                        <p className="text-amber-600 mt-1">
+                                          Names differ across pages but NHS number or DOB match. 
+                                          This may be the same patient with a married/maiden name.
+                                        </p>
+                                      </div>
+                                    ) : null}
+                                    
                                     {patientIsStuck && (
                                       <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
                                         <AlertTriangle className="h-3 w-3" />
