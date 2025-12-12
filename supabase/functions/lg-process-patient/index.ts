@@ -1038,6 +1038,7 @@ serve(async (req) => {
       .eq('id', patientId);
     
     let summaryJson: any = null;
+    let snomedJson: any = null;
     
     // Use extracted patient name or placeholder
     const patientName = extractedPatient?.patient_name || patient.patient_name || 'Unknown Patient';
@@ -1125,27 +1126,9 @@ CLINICAL SUMMARY LANGUAGE (MANDATORY):
 OCR Text:
 ${fullOcrText.substring(0, SUMMARY_LIMIT)}`;
 
-      try {
-        summaryJson = await callOpenAI(openaiKey, SUMMARISER_SYSTEM_PROMPT, summaryPrompt);
-        console.log('Summary generated successfully');
-        
-        // Post-process: correct medication dates to use MOST RECENT date from OCR
-        summaryJson = correctMostRecentMedicationDates(summaryJson, fullOcrText, dob !== 'Unknown' ? dob : undefined);
-        console.log('Medication dates corrected to most recent');
-      } catch (aiErr) {
-        console.error('Summary generation failed:', aiErr);
-        summaryJson = createEmptySummary();
-      }
-    } else {
-      summaryJson = createEmptySummary();
-    }
-
-    // Step 5: Generate SNOMED codes using AI-driven direct code generation (SKIP for index_summary)
-    console.log('Extracting SNOMED-coded clinical items...');
-    let snomedJson: any = null;
-
-    if (serviceLevel === 'full_service' && openaiKey && fullOcrText.length > 100) {
-      const snomedPrompt = `Extract SNOMED-coded clinical items ONLY from the OCR text below.
+      // Build SNOMED prompt here so we can run both AI calls in parallel
+      const shouldRunSnomed = serviceLevel === 'full_service' && fullOcrText.length > 100;
+      const snomedPrompt = shouldRunSnomed ? `Extract SNOMED-coded clinical items ONLY from the OCR text below.
 
 CRITICAL PRE-PROCESSING STEP (DO THIS FIRST):
 Before extracting any diagnoses, you MUST scan the ENTIRE OCR text and create a mental list of ALL dates where each condition appears.
@@ -1160,25 +1143,53 @@ CRITICAL: Do NOT assume or infer any clinical information not explicitly present
 Extract ONLY what is VERBATIM in the OCR - if a diagnosis, surgery, or immunisation is not written, do not include it.
 
 OCR Text (note the page markers like "--- Page page_001.jpg ---"):
-${fullOcrText.substring(0, SNOMED_LIMIT)}`;
+${fullOcrText.substring(0, SNOMED_LIMIT)}` : null;
 
-      try {
-        // Single-step: AI extracts concepts AND provides SNOMED codes directly
-        const aiSnomedOutput = await callOpenAI(openaiKey, SNOMED_MAPPING_PROMPT, snomedPrompt);
-        console.log('AI SNOMED extraction complete:', JSON.stringify(aiSnomedOutput, null, 2));
+      // Run Summary and SNOMED extraction in PARALLEL for ~40-50% speed improvement
+      console.log('Running Summary and SNOMED extraction in parallel...');
+      const parallelStartTime = Date.now();
+      
+      const [summaryResult, snomedResult] = await Promise.allSettled([
+        // Summary generation
+        callOpenAI(openaiKey, SUMMARISER_SYSTEM_PROMPT, summaryPrompt),
+        // SNOMED extraction (only if full_service and enough OCR text)
+        shouldRunSnomed && snomedPrompt ? callOpenAI(openaiKey, SNOMED_MAPPING_PROMPT, snomedPrompt) : Promise.resolve(null)
+      ]);
+      
+      const parallelDuration = Date.now() - parallelStartTime;
+      console.log(`Parallel AI calls completed in ${parallelDuration}ms`);
+
+      // Process summary result
+      if (summaryResult.status === 'fulfilled' && summaryResult.value) {
+        summaryJson = summaryResult.value;
+        console.log('Summary generated successfully');
         
+        // Post-process: correct medication dates to use MOST RECENT date from OCR
+        summaryJson = correctMostRecentMedicationDates(summaryJson, fullOcrText, dob !== 'Unknown' ? dob : undefined);
+        console.log('Medication dates corrected to most recent');
+      } else {
+        console.error('Summary generation failed:', summaryResult.status === 'rejected' ? summaryResult.reason : 'No result');
+        summaryJson = createEmptySummary();
+      }
+
+      // Process SNOMED result from parallel call
+      if (snomedResult.status === 'fulfilled' && snomedResult.value) {
+        console.log('AI SNOMED extraction complete');
         // Convert flat items array to domain-based structure for backward compatibility
         // Pass patient DOB to EXCLUDE from diagnosis date search (prevents DOB being used as diagnosis date)
-        snomedJson = convertItemsToSnomedDomains(aiSnomedOutput, fullOcrText, dob !== 'Unknown' ? dob : undefined);
+        snomedJson = convertItemsToSnomedDomains(snomedResult.value, fullOcrText, dob !== 'Unknown' ? dob : undefined);
         console.log('SNOMED codes converted to domain structure');
-      } catch (aiErr) {
-        console.error('SNOMED extraction failed:', aiErr);
+      } else if (shouldRunSnomed) {
+        console.error('SNOMED extraction failed:', snomedResult.status === 'rejected' ? snomedResult.reason : 'No result');
+        snomedJson = createEmptySnomed();
+      } else if (serviceLevel === 'index_summary') {
+        console.log('Skipping SNOMED extraction for index_summary service level');
+        snomedJson = createEmptySnomed();
+      } else {
         snomedJson = createEmptySnomed();
       }
-    } else if (serviceLevel === 'index_summary') {
-      console.log('Skipping SNOMED extraction for index_summary service level');
-      snomedJson = createEmptySnomed();
     } else {
+      summaryJson = createEmptySummary();
       snomedJson = createEmptySnomed();
     }
 
