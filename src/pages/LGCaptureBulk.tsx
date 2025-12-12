@@ -15,6 +15,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { extractPdfPages, ExtractedPage } from '@/utils/pdfPageExtractor';
+import { removePatchPage } from '@/utils/patchPageDetector';
 import { generateULID } from '@/utils/ulid';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
@@ -125,7 +126,7 @@ export default function LGCaptureBulk() {
         ));
 
         // Extract pages from PDF
-        const pages = await extractPdfPages(
+        let pages = await extractPdfPages(
           qFile.file,
           150,
           (progress) => {
@@ -137,6 +138,17 @@ export default function LGCaptureBulk() {
           },
           true // detect blanks
         );
+
+        // Remove patch page if detected (max 1 page, first page only, >90% confidence)
+        const originalCount = pages.length;
+        pages = removePatchPage(pages, (removedPage, reason) => {
+          console.log(`[Bulk Capture] Removed patch page from ${qFile.fileName}: ${reason}`);
+          toast.info(`Removed scanner patch page from ${qFile.fileName}`);
+        });
+        
+        if (pages.length < originalCount) {
+          console.log(`[Bulk Capture] ${qFile.fileName}: Reduced from ${originalCount} to ${pages.length} pages (patch page removed)`);
+        }
 
         const pageCount = pages.length;
         

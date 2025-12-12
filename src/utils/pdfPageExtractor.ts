@@ -1,6 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { analyseBlankness, BlankAnalysisResult } from './blankPageDetector';
 import { autoCorrectOrientation } from './pageOrientationDetector';
+import { detectPatchPage } from './patchPageDetector';
 
 // Configure worker using cdnjs (more reliable for dynamic imports)
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -13,6 +14,8 @@ export interface ExtractedPage {
   isBlank?: boolean;
   blankConfidence?: number;
   wasRotated?: boolean;
+  isPatchPage?: boolean;
+  patchConfidence?: number;
 }
 
 export interface PdfExtractionProgress {
@@ -94,6 +97,26 @@ export async function extractPdfPages(
 
     // Clean up
     canvas.remove();
+  }
+
+  // Phase 1.5: Detect patch page on FIRST PAGE ONLY (safety constraint)
+  // Only check if we have at least 2 pages (never reduce to empty)
+  if (extractedPages.length >= 2) {
+    try {
+      const firstPage = extractedPages[0];
+      const patchResult = await detectPatchPage(firstPage.dataUrl);
+      extractedPages[0].isPatchPage = patchResult.isPatchPage;
+      extractedPages[0].patchConfidence = patchResult.confidence;
+      
+      if (patchResult.isPatchPage) {
+        console.log(`[PDF Extractor] First page detected as patch page with ${(patchResult.confidence * 100).toFixed(0)}% confidence`);
+      }
+    } catch (err) {
+      console.error('[PDF Extractor] Patch detection failed:', err);
+      // If detection fails, don't mark as patch page
+      extractedPages[0].isPatchPage = false;
+      extractedPages[0].patchConfidence = 0;
+    }
   }
 
   // Phase 2: Analyse for blank pages (if enabled)
