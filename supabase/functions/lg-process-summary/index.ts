@@ -548,12 +548,33 @@ Scan ALL pages and verify that ALL documents belong to the SAME patient:
 - Check that DOBs are consistent across all pages
 - Check that names (accounting for previous names) are consistent
 
+MARRIED/MAIDEN NAME EXCEPTION RULE:
+If you detect different names BUT the NHS number matches OR the DOB matches:
+- This is likely the SAME patient with a name change (married/maiden name)
+- Add to identity_issues with type "name_mismatch" and include:
+  "is_likely_same_patient": true
+  "reason": "NHS number matches" or "DOB matches"
+- Set overall identity status to "warning" NOT "conflict"
+
+Only classify as CRITICAL CONFLICT if:
+- NHS numbers are DIFFERENT across pages AND
+- DOBs are DIFFERENT across pages
+This indicates genuinely mixed patient records requiring URGENT attention.
+
 If you find ANY inconsistencies, add to identity_issues array:
 {
   "type": "nhs_mismatch" | "dob_mismatch" | "name_mismatch" | "third_party_document",
   "description": "Clear description of the issue",
-  "page_reference": "Which page(s) have the issue"
+  "page_reference": "Which page(s) have the issue",
+  "is_likely_same_patient": true | false,
+  "reason": "Why you believe this (e.g., 'NHS number matches so likely married/maiden name')"
 }
+
+Also add a top-level field:
+"identity_verification_status": "verified" | "warning" | "conflict"
+- "verified": All pages appear to belong to the same patient
+- "warning": Name mismatch but NHS or DOB matches (likely married/maiden name)
+- "conflict": Both NHS AND DOB are different (CRITICAL - likely mixed patients)
 
 NHS NUMBER VALIDATION
 
