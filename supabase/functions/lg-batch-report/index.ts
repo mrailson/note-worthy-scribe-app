@@ -304,20 +304,15 @@ function generateBatchEmailHtml(
     const sections = [];
     
     if (s.summary_line) {
-      sections.push(`<p style="margin: 8px 0; font-size: 13px;"><strong>Summary:</strong> ${s.summary_line}</p>`);
+      // Clean summary_line: remove "Patient X with a history of" prefix
+      const cleanedSummary = s.summary_line
+        .replace(/^Patient\s+[^,]+\s+with\s+a\s+history\s+of\s+/i, '')
+        .replace(/^[A-Z][a-z]+\s+[A-Z][a-z]+\s+with\s+a\s+history\s+of\s+/i, '')
+        .trim();
+      sections.push(`<p style="margin: 8px 0; font-size: 13px;"><strong>Summary:</strong> ${cleanedSummary}</p>`);
     }
     
-    // Smoking status from social_history
-    if (s.social_history?.smoking_status && s.social_history.smoking_status !== "unknown") {
-      let smokingText = s.social_history.smoking_status;
-      if (s.social_history.stopped_year) {
-        smokingText += ` (stopped ${s.social_history.stopped_year})`;
-      }
-      if (s.social_history.pack_years) {
-        smokingText += `, ${s.social_history.pack_years} pack-years`;
-      }
-      sections.push(`<p style="margin: 4px 0; font-size: 12px; color: #6b7280;">🚬 Smoking: ${smokingText}</p>`);
-    }
+    // Smoking status removed per user request
     
     // Diagnoses count
     const diagnosesCount = (s.significant_past_history?.length || 0) + (s.diagnoses?.length || 0);
