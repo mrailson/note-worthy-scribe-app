@@ -432,7 +432,7 @@ export default function LGCaptureUpload() {
         ));
 
         const capturedImages: CapturedImage[] = pages
-          .filter(p => !p.isBlank)
+          // NO FILTERING - all pages preserved as scans are pre-cleansed
           .map((page, index) => ({
             id: `${patientId}-page-${index + 1}`,
             dataUrl: page.dataUrl,
