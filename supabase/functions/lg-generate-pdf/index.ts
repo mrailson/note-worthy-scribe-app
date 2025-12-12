@@ -1386,30 +1386,12 @@ function addClinicalSummaryPage(
   }
   addSpace(1);
 
-  // Clinical Summary
-  if (summaryJson?.summary_line) {
-    drawLine('CLINICAL SUMMARY', 12, true);
-    addSpace(0.3);
-    const words = summaryJson.summary_line.split(' ');
-    let line = '';
-    for (const word of words) {
-      if ((line + ' ' + word).length > 75) {
-        drawLine(line.trim(), 10, false, 10);
-        line = word;
-      } else {
-        line += ' ' + word;
-      }
-    }
-    if (line.trim()) drawLine(line.trim(), 10, false, 10);
-    addSpace(1);
-  }
-
-  // SNOMED sections
+  // SNOMED sections (Clinical Summary free-text removed per clinician feedback)
   const sections = [
     { key: 'diagnoses', title: 'DIAGNOSES', showDate: true },
     { key: 'surgeries', title: 'MAJOR SURGERIES', showDate: true },
     { key: 'allergies', title: 'ALLERGIES', showDate: false },
-    { key: 'immunisations', title: 'IMMUNISATIONS', showDate: true },
+    { key: 'immunisations', title: 'CODED IMMUNISATION HISTORY', showDate: true },
   ];
 
   // Helper to deduplicate by SNOMED code, keeping earliest date
@@ -1434,8 +1416,9 @@ function addClinicalSummaryPage(
 
   for (const section of sections) {
     let items = snomedJson?.[section.key] || [];
-    // Deduplicate diagnoses and immunisations by SNOMED code
-    if (section.key === 'diagnoses' || section.key === 'immunisations') {
+    // Deduplicate diagnoses only - immunisations should show ALL instances
+    // (patients receive same vaccine multiple times, e.g., annual flu jabs)
+    if (section.key === 'diagnoses') {
       items = deduplicateByCode(items);
     }
     if (items.length > 0) {
@@ -1454,6 +1437,25 @@ function addClinicalSummaryPage(
       }
       addSpace(0.5);
     }
+  }
+
+  // MEDICATION HISTORY - moved to Page 1 per clinician feedback
+  const allMedications = summaryJson?.medications || [];
+  const validMedications = allMedications.filter((med: any) => {
+    const drug = med.drug?.trim()?.toLowerCase();
+    return drug && drug !== 'unknown' && drug !== '(unknown)';
+  });
+  
+  if (validMedications.length > 0) {
+    drawLine('MEDICATION HISTORY', 12, true);
+    addSpace(0.3);
+    for (const med of validMedications) {
+      const dateDisplay = med.most_recent_date || med.date || med.year;
+      const dateText = dateDisplay ? `Most Recently: ${dateDisplay}` : 'Not Known from LG';
+      const text = `${med.drug} | ${med.dose || 'Dose not recorded'} | ${dateText}`;
+      drawLine(text, 10, false, 15);
+    }
+    addSpace(0.5);
   }
 }
 
@@ -1496,32 +1498,11 @@ function addMedicationsPage(
     y -= lineHeight;
   };
 
-  // Header
-  drawLine('MEDICATION HISTORY & ADDITIONAL INFORMATION', 16, true);
+  // Header - Medications now on Page 1, this page is Additional Information only
+  drawLine('ADDITIONAL INFORMATION', 16, true);
   y -= 8;
   drawLine(`Patient: ${patientName} | NHS: ${nhsNumber} | DOB: ${dob}`, 10);
   y -= 20;
-
-  // Medications - filter out entries with only "Unknown" drug names
-  drawLine('MEDICATION HISTORY', 12, true);
-  y -= 5;
-  const allMedications = summaryJson?.medications || [];
-  const validMedications = allMedications.filter((med: any) => {
-    const drug = med.drug?.trim()?.toLowerCase();
-    return drug && drug !== 'unknown' && drug !== '(unknown)';
-  });
-  
-  if (validMedications.length > 0) {
-    for (const med of validMedications) {
-      const dateDisplay = med.most_recent_date || med.date || med.year;
-      const dateText = dateDisplay ? `Most Recently: ${dateDisplay}` : 'Not Known from LG';
-      const text = `${med.drug} | ${med.dose || 'Dose not recorded'} | ${dateText}`;
-      drawLine(text, 10, false, 15);
-    }
-  } else {
-    drawLine('No Medications listed in LG', 10, false, 15);
-  }
-  y -= 15;
 
   // Social History
   if (summaryJson?.social_history) {
