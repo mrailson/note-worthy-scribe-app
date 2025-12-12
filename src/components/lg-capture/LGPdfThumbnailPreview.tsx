@@ -36,18 +36,66 @@ export function LGPdfThumbnailPreview({ pdfUrl, totalPages = 0 }: LGPdfThumbnail
     extractThumbnails();
   }, [pdfUrl]);
 
+  // Helper to find actual PDF path in storage (handles renamed files)
+  const findActualPdfPath = async (storedUrl: string): Promise<string | null> => {
+    try {
+      const directPath = storedUrl.replace('lg/', '');
+      
+      // Try direct path first
+      const { error: directError } = await supabase.storage
+        .from('lg')
+        .createSignedUrl(directPath, 60);
+      
+      if (!directError) {
+        return directPath;
+      }
+      
+      // Path not found - try listing the final folder
+      // Extract practice_ods and patient_id from path
+      const pathParts = directPath.split('/');
+      if (pathParts.length >= 2) {
+        const basePath = `${pathParts[0]}/${pathParts[1]}/final`;
+        const { data: files, error: listError } = await supabase.storage
+          .from('lg')
+          .list(basePath, { limit: 20 });
+        
+        if (!listError && files) {
+          const pdfFiles = files.filter(f => f.name.endsWith('.pdf') && !f.name.includes('compressed'));
+          const targetFile = pdfFiles.find(f => f.name.startsWith('Lloyd_George')) || pdfFiles[0];
+          
+          if (targetFile) {
+            return `${basePath}/${targetFile.name}`;
+          }
+        }
+      }
+      
+      return null;
+    } catch (err) {
+      console.error('Error finding PDF path:', err);
+      return null;
+    }
+  };
+
   const extractThumbnails = async () => {
+    // Prevent re-running if already loaded for this URL
+    if (thumbnails.length > 0) return;
+    
     setLoading(true);
     setError(null);
     setThumbnails([]);
     setLoadingProgress(0);
 
     try {
-      // Get signed URL
-      const path = pdfUrl.replace('lg/', '');
+      // Use smart path resolution like LGDownloadPanel
+      const actualPath = await findActualPdfPath(pdfUrl);
+      if (!actualPath) {
+        throw new Error('Could not find PDF file');
+      }
+
+      // Get signed URL with longer expiry
       const { data: signedUrlData, error: signedUrlError } = await supabase.storage
         .from('lg')
-        .createSignedUrl(path, 3600);
+        .createSignedUrl(actualPath, 3600);
 
       if (signedUrlError) throw signedUrlError;
       if (!signedUrlData?.signedUrl) throw new Error('No signed URL received');
