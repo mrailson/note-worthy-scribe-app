@@ -57,6 +57,108 @@ function getRagRating(score: number): 'green' | 'amber' | 'red' {
   return 'red';
 }
 
+async function verifyWithClaude(
+  apiKey: string,
+  summaryJson: any,
+  snomedJson: any,
+  ocrText: string
+): Promise<LLMAssessment> {
+  const systemPrompt = `You are an expert clinical data quality auditor for NHS Lloyd George records digitisation.
+
+Your task is to verify the quality and accuracy of AI-extracted clinical data by comparing it against the original OCR text.
+
+Score each category 0-100:
+1. FRONT SHEET QUALITY: Is the clinical summary accurate? Are diagnoses, allergies, medications correct?
+2. SNOMED CODE ACCURACY: Are the SNOMED codes correct and supported by evidence in the OCR text?
+3. COMPLETENESS: Were important clinical findings missed that appear in the OCR?
+4. SAFETY: Are there any dangerous errors, hallucinations, or incorrect codes that could harm patient care?
+
+Be strict and thorough. If something is not clearly evidenced in the OCR text, mark it as an issue.
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "front_sheet_score": <0-100>,
+  "snomed_score": <0-100>,
+  "completeness_score": <0-100>,
+  "safety_score": <0-100>,
+  "overall_score": <0-100>,
+  "issues": ["list of specific issues found"],
+  "assessment": "brief overall assessment"
+}`;
+
+  const userPrompt = `Verify this LG Capture extraction:
+
+=== CLINICAL SUMMARY (to verify) ===
+${JSON.stringify(summaryJson, null, 2)}
+
+=== SNOMED CODES (to verify) ===
+${JSON.stringify(snomedJson, null, 2)}
+
+=== ORIGINAL OCR TEXT (ground truth) ===
+${ocrText.substring(0, 30000)}
+
+Verify each extracted item has supporting evidence in the OCR text. Flag any hallucinations, incorrect codes, or missing important findings.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: [
+          { role: 'user', content: userPrompt }
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Claude API error:', errorText);
+      throw new Error(`Claude API error: ${response.status}`);
+    }
+
+    const data = await response.json();
+    const content = data.content?.[0]?.text || '';
+    
+    // Parse JSON from response
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) {
+      throw new Error('Failed to parse JSON response from Claude');
+    }
+    
+    const parsed = JSON.parse(jsonMatch[0]);
+    
+    return {
+      model: 'claude-sonnet-4',
+      front_sheet_score: parsed.front_sheet_score || 0,
+      snomed_score: parsed.snomed_score || 0,
+      completeness_score: parsed.completeness_score || 0,
+      safety_score: parsed.safety_score || 0,
+      overall_score: parsed.overall_score || 0,
+      issues: parsed.issues || [],
+      assessment: parsed.assessment || '',
+    };
+  } catch (error) {
+    console.error('Error with Claude:', error);
+    return {
+      model: 'claude-sonnet-4',
+      front_sheet_score: 0,
+      snomed_score: 0,
+      completeness_score: 0,
+      safety_score: 0,
+      overall_score: 0,
+      issues: [`Failed to verify with Claude: ${error.message}`],
+      assessment: 'Verification failed',
+    };
+  }
+}
+
 async function verifyWithModel(
   modelName: string,
   apiKey: string,
@@ -179,8 +281,9 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const openaiKey = Deno.env.get('OPENAI_API_KEY');
     const lovableKey = Deno.env.get('LOVABLE_API_KEY');
+    const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
 
-    if (!openaiKey && !lovableKey) {
+    if (!openaiKey && !lovableKey && !anthropicKey) {
       return new Response(
         JSON.stringify({ error: 'No API keys configured for verification' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -260,6 +363,14 @@ serve(async (req) => {
         verifyWithModel('gpt-5-2025-08-07', openaiKey, summaryJson, snomedJson, ocrText, 'https://api.openai.com/v1/chat/completions')
       );
       modelsUsed.push('gpt-5');
+    }
+
+    // Use Claude (Anthropic)
+    if (anthropicKey) {
+      verificationPromises.push(
+        verifyWithClaude(anthropicKey, summaryJson, snomedJson, ocrText)
+      );
+      modelsUsed.push('claude-sonnet-4');
     }
 
     // Use Lovable AI (Gemini)
