@@ -25,10 +25,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get meeting title
+    // Get meeting title and start time
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
-      .select('title')
+      .select('title, start_time')
       .eq('id', meetingId)
       .single();
 
@@ -36,6 +36,11 @@ serve(async (req) => {
       console.error('Error loading meeting:', meetingError);
       throw new Error('Unable to load meeting');
     }
+
+    // Format meeting date for the audio script opening
+    const meetingDate = meeting.start_time ? new Date(meeting.start_time) : new Date();
+    const dayOfWeek = meetingDate.toLocaleDateString('en-GB', { weekday: 'long' });
+    const formattedDate = meetingDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' });
 
     // Get aggregated transcript from chunks (prefer cleaned_text)
     const { data: chunks, error: chunksError } = await supabase
@@ -88,7 +93,7 @@ serve(async (req) => {
 
 Guidelines:
 - Write in a clear, professional conversational tone
-- Start naturally: "This meeting covered..." or "The main focus was..."
+- ALWAYS start with: "At this meeting on ${dayOfWeek} the ${formattedDate}..." then continue with the main topics
 - Use plain narrative prose without any formatting characters
 - NO special characters (* = # - bullets etc.) - they don't read well when spoken
 - NO stage directions, sound effects, or script notations
