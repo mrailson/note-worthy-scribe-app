@@ -1,7 +1,7 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { analyseBlankness, BlankAnalysisResult } from './blankPageDetector';
 import { autoCorrectOrientation } from './pageOrientationDetector';
-import { detectPatchPage } from './patchPageDetector';
+import { detectPatchPageFromText } from './patchPageDetector';
 
 // Configure worker using cdnjs (more reliable for dynamic imports)
 pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.mjs`;
@@ -99,17 +99,27 @@ export async function extractPdfPages(
     canvas.remove();
   }
 
-  // Phase 1.5: Detect patch page on FIRST PAGE ONLY (safety constraint)
+  // Phase 1.5: Detect patch page on FIRST PAGE ONLY using OCR text (safety constraint)
   // Only check if we have at least 2 pages (never reduce to empty)
   if (extractedPages.length >= 2) {
     try {
-      const firstPage = extractedPages[0];
-      const patchResult = await detectPatchPage(firstPage.dataUrl);
+      // Extract text from first page using pdf.js
+      const firstPdfPage = await pdf.getPage(1);
+      const textContent = await firstPdfPage.getTextContent();
+      const firstPageText = textContent.items
+        .map((item: any) => item.str)
+        .join(' ')
+        .trim();
+      
+      console.log(`[PDF Extractor] First page text for patch detection: "${firstPageText.substring(0, 100)}..."`);
+      
+      // Use TEXT-BASED detection only (not visual) to avoid false positives
+      const patchResult = detectPatchPageFromText(firstPageText);
       extractedPages[0].isPatchPage = patchResult.isPatchPage;
       extractedPages[0].patchConfidence = patchResult.confidence;
       
       if (patchResult.isPatchPage) {
-        console.log(`[PDF Extractor] First page detected as patch page with ${(patchResult.confidence * 100).toFixed(0)}% confidence`);
+        console.log(`[PDF Extractor] First page detected as patch page with ${(patchResult.confidence * 100).toFixed(0)}% confidence. Pattern: ${patchResult.matchedPattern}`);
       }
     } catch (err) {
       console.error('[PDF Extractor] Patch detection failed:', err);
