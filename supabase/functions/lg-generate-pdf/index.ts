@@ -207,7 +207,10 @@ serve(async (req) => {
         .download(`${basePath}/final/summary.json`);
       if (summaryData) {
         summaryJson = JSON.parse(await summaryData.text());
-        console.log('Loaded summary JSON');
+        console.log('Loaded summary JSON:', JSON.stringify({
+          immunisations: summaryJson?.immunisations?.length || 0,
+          medications: summaryJson?.medications?.length || 0,
+        }));
       }
     } catch (e) {
       console.log('No summary JSON found');
@@ -219,7 +222,12 @@ serve(async (req) => {
         .download(`${basePath}/final/snomed.json`);
       if (snomedData) {
         snomedJson = JSON.parse(await snomedData.text());
-        console.log('Loaded SNOMED JSON');
+        console.log('Loaded SNOMED JSON:', JSON.stringify({
+          diagnoses: snomedJson?.diagnoses?.length || 0,
+          surgeries: snomedJson?.surgeries?.length || 0,
+          allergies: snomedJson?.allergies?.length || 0,
+          immunisations: snomedJson?.immunisations?.length || 0,
+        }));
       }
     } catch (e) {
       console.log('No SNOMED JSON found');
@@ -1415,7 +1423,13 @@ function addClinicalSummaryPage(
   };
 
   for (const section of sections) {
+    // Try snomedJson first, then fall back to summaryJson for immunisations
     let items = snomedJson?.[section.key] || [];
+    if (items.length === 0 && section.key === 'immunisations') {
+      // Fallback: check summaryJson for immunisations (may be stored there instead)
+      items = summaryJson?.immunisations || [];
+      console.log(`Using summaryJson for immunisations: ${items.length} items`);
+    }
     // Deduplicate diagnoses only - immunisations should show ALL instances
     // (patients receive same vaccine multiple times, e.g., annual flu jabs)
     if (section.key === 'diagnoses') {
