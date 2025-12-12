@@ -11,6 +11,11 @@ import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible';
 import { 
   Shield, 
   ShieldCheck, 
@@ -22,7 +27,9 @@ import {
   XCircle,
   Brain,
   FileText,
-  Code2
+  Code2,
+  ChevronDown,
+  ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -105,6 +112,9 @@ export function LGVerifyServiceModal({ patient, onVerificationComplete }: LGVeri
   const [verifying, setVerifying] = useState(false);
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [progress, setProgress] = useState(0);
+  const [frontSheetOpen, setFrontSheetOpen] = useState(false);
+  const [snomedOpen, setSnomedOpen] = useState(false);
+  const [consensusOpen, setConsensusOpen] = useState(false);
 
   // Check for existing verification results
   const existingResult = (patient as any).verification_results as VerificationResult | null;
@@ -144,6 +154,16 @@ export function LGVerifyServiceModal({ patient, onVerificationComplete }: LGVeri
   };
 
   const displayResult = result || existingResult;
+
+  const getModelDisplayName = (model: string) => {
+    const names: Record<string, string> = {
+      'gpt-5': 'GPT-5',
+      'claude-sonnet-4': 'Claude Sonnet 4',
+      'gemini-2.5-flash': 'Gemini Flash',
+      'gemini-2.5-pro': 'Gemini Pro',
+    };
+    return names[model] || model;
+  };
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -209,7 +229,7 @@ export function LGVerifyServiceModal({ patient, onVerificationComplete }: LGVeri
               <div>
                 <h3 className="font-semibold">Verifying with multiple AI models...</h3>
                 <p className="text-sm text-muted-foreground mt-1">
-                  GPT-5, Gemini Flash, and Gemini Pro are analysing the extraction
+                  GPT-5, Claude, Gemini Flash, and Gemini Pro are analysing the extraction
                 </p>
               </div>
               <Progress value={progress} className="w-full" />
@@ -218,100 +238,128 @@ export function LGVerifyServiceModal({ patient, onVerificationComplete }: LGVeri
           )}
 
           {displayResult && !verifying && (
-            <div className="space-y-6 py-4">
-              {/* Overall Score */}
-              <div className="text-center p-6 bg-muted/30 rounded-lg">
-                <RAGBadge rating={displayResult.overall_rag_rating} size="lg" />
-                <div className="mt-3">
-                  <span className="text-4xl font-bold">{displayResult.overall_score}%</span>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Verified by {displayResult.models_used.length} AI models
-                  </p>
-                </div>
-              </div>
-
-              {/* Models Used */}
-              <div>
-                <h4 className="font-medium text-sm mb-2">Models Used</h4>
-                <div className="flex flex-wrap gap-2">
-                  {displayResult.models_used.map((model) => (
-                    <Badge key={model} variant="secondary" className="flex items-center gap-1">
-                      <Brain className="h-3 w-3" />
-                      {model}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-
-              <Separator />
-
-              {/* Front Sheet Assessment */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <FileText className="h-4 w-4" />
-                    Front Sheet Quality
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    <RAGBadge rating={displayResult.front_sheet_assessment.rag_rating} size="sm" />
-                    <span className="font-semibold">{displayResult.front_sheet_assessment.score}%</span>
+            <div className="space-y-4 py-4">
+              {/* Hero Section - Verified Badge */}
+              <div className="text-center p-6 bg-gradient-to-b from-green-50 to-muted/30 rounded-lg border border-green-200">
+                <div className="flex justify-center mb-3">
+                  <div className="p-3 bg-green-100 rounded-full">
+                    <CheckCircle2 className="h-10 w-10 text-green-600" />
                   </div>
                 </div>
-                {displayResult.front_sheet_assessment.issues.length > 0 && (
-                  <div className="space-y-1">
-                    {displayResult.front_sheet_assessment.issues.map((issue, i) => (
-                      <div key={i} className="text-sm flex items-start gap-2 text-amber-700 bg-amber-50 p-2 rounded">
-                        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                        {issue}
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <p className="text-sm font-medium text-green-700 uppercase tracking-wide mb-1">Verified</p>
+                <div className="flex items-center justify-center gap-2 mb-2">
+                  <span className="text-5xl font-bold text-green-700">{displayResult.overall_score}%</span>
+                  <RAGBadge rating={displayResult.overall_rag_rating} size="md" />
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Verified by {displayResult.models_used.length} AI models
+                </p>
               </div>
 
-              <Separator />
-
-              {/* SNOMED Assessment */}
-              <div>
-                <div className="flex items-center justify-between mb-3">
-                  <h4 className="font-medium flex items-center gap-2">
-                    <Code2 className="h-4 w-4" />
-                    SNOMED Code Accuracy
-                  </h4>
-                  <div className="flex items-center gap-2">
-                    <RAGBadge rating={displayResult.snomed_assessment.rag_rating} size="sm" />
-                    <span className="font-semibold">{displayResult.snomed_assessment.score}%</span>
-                  </div>
-                </div>
-                {displayResult.snomed_assessment.issues_per_code.length > 0 && (
-                  <div className="space-y-2 max-h-[200px] overflow-y-auto">
-                    {displayResult.snomed_assessment.issues_per_code.slice(0, 10).map((code, i) => (
-                      <div key={i} className="text-sm flex items-center justify-between p-2 bg-muted/30 rounded">
+              {/* Models Used with Green Ticks */}
+              <div className="p-4 bg-muted/30 rounded-lg">
+                <h4 className="font-medium text-sm mb-3 text-center">Models Used</h4>
+                <div className="grid grid-cols-2 gap-2">
+                  {displayResult.models_used.map((model) => {
+                    const assessment = displayResult.front_sheet_assessment.llm_consensus.find(
+                      a => a.model === model
+                    );
+                    return (
+                      <div key={model} className="flex items-center justify-between p-2 bg-background rounded border">
                         <div className="flex items-center gap-2">
-                          <RAGBadge rating={code.rag_rating} size="sm" />
-                          <span>{code.term}</span>
+                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <span className="text-sm font-medium">{getModelDisplayName(model)}</span>
                         </div>
-                        <code className="text-xs bg-muted px-2 py-1 rounded">{code.code}</code>
+                        {assessment && (
+                          <span className="text-sm font-semibold text-green-700">{assessment.overall_score}%</span>
+                        )}
                       </div>
-                    ))}
-                    {displayResult.snomed_assessment.issues_per_code.length > 10 && (
-                      <p className="text-xs text-muted-foreground text-center">
-                        + {displayResult.snomed_assessment.issues_per_code.length - 10} more codes
-                      </p>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Collapsible Front Sheet Assessment */}
+              <Collapsible open={frontSheetOpen} onOpenChange={setFrontSheetOpen}>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      {frontSheetOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      <FileText className="h-4 w-4" />
+                      <span className="font-medium">Front Sheet Quality</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RAGBadge rating={displayResult.front_sheet_assessment.rag_rating} size="sm" />
+                      <span className="font-semibold">{displayResult.front_sheet_assessment.score}%</span>
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 pl-6 pr-2">
+                    {displayResult.front_sheet_assessment.issues.length > 0 ? (
+                      <div className="space-y-1">
+                        {displayResult.front_sheet_assessment.issues.map((issue, i) => (
+                          <div key={i} className="text-sm flex items-start gap-2 text-amber-700 bg-amber-50 p-2 rounded">
+                            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                            {issue}
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground p-2">No issues found</p>
                     )}
                   </div>
-                )}
-              </div>
+                </CollapsibleContent>
+              </Collapsible>
 
-              <Separator />
+              {/* Collapsible SNOMED Assessment */}
+              <Collapsible open={snomedOpen} onOpenChange={setSnomedOpen}>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      {snomedOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      <Code2 className="h-4 w-4" />
+                      <span className="font-medium">SNOMED Code Accuracy</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <RAGBadge rating={displayResult.snomed_assessment.rag_rating} size="sm" />
+                      <span className="font-semibold">{displayResult.snomed_assessment.score}%</span>
+                    </div>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 pl-6 pr-2">
+                    {displayResult.snomed_assessment.issues_per_code.length > 0 ? (
+                      <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                        {displayResult.snomed_assessment.issues_per_code.slice(0, 10).map((code, i) => (
+                          <div key={i} className="text-sm flex items-center justify-between p-2 bg-background rounded border">
+                            <div className="flex items-center gap-2">
+                              <RAGBadge rating={code.rag_rating} size="sm" />
+                              <span>{code.term}</span>
+                            </div>
+                            <code className="text-xs bg-muted px-2 py-1 rounded">{code.code}</code>
+                          </div>
+                        ))}
+                        {displayResult.snomed_assessment.issues_per_code.length > 10 && (
+                          <p className="text-xs text-muted-foreground text-center">
+                            + {displayResult.snomed_assessment.issues_per_code.length - 10} more codes
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-muted-foreground p-2">No SNOMED code issues</p>
+                    )}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
 
               {/* Recommendations */}
               {displayResult.recommendations.length > 0 && (
-                <div>
-                  <h4 className="font-medium mb-2">Recommendations</h4>
-                  <div className="space-y-2">
+                <div className="p-3 bg-primary/5 rounded-lg">
+                  <h4 className="font-medium mb-2 text-sm">Recommendations</h4>
+                  <div className="space-y-1">
                     {displayResult.recommendations.map((rec, i) => (
-                      <div key={i} className="text-sm flex items-start gap-2 p-2 bg-primary/5 rounded">
+                      <div key={i} className="text-sm flex items-start gap-2">
                         <CheckCircle2 className="h-4 w-4 text-primary shrink-0 mt-0.5" />
                         {rec}
                       </div>
@@ -320,41 +368,55 @@ export function LGVerifyServiceModal({ patient, onVerificationComplete }: LGVeri
                 </div>
               )}
 
-              {/* LLM Consensus */}
-              <div>
-                <h4 className="font-medium mb-2">LLM Consensus Details</h4>
-                <div className="space-y-2">
-                  {displayResult.front_sheet_assessment.llm_consensus.map((assessment, i) => (
-                    <div key={i} className="text-sm p-3 bg-muted/30 rounded-lg">
-                      <div className="flex items-center justify-between mb-2">
-                        <Badge variant="secondary">{assessment.model}</Badge>
-                        <span className="font-semibold">{assessment.overall_score}%</span>
-                      </div>
-                      <div className="grid grid-cols-4 gap-2 text-xs">
-                        <div>
-                          <span className="text-muted-foreground">Front Sheet:</span>
-                          <span className="ml-1 font-medium">{assessment.front_sheet_score}%</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">SNOMED:</span>
-                          <span className="ml-1 font-medium">{assessment.snomed_score}%</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Complete:</span>
-                          <span className="ml-1 font-medium">{assessment.completeness_score}%</span>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Safety:</span>
-                          <span className="ml-1 font-medium">{assessment.safety_score}%</span>
-                        </div>
-                      </div>
-                      {assessment.assessment && (
-                        <p className="text-xs text-muted-foreground mt-2">{assessment.assessment}</p>
-                      )}
+              {/* Collapsible LLM Consensus */}
+              <Collapsible open={consensusOpen} onOpenChange={setConsensusOpen}>
+                <CollapsibleTrigger asChild>
+                  <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-2">
+                      {consensusOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                      <Brain className="h-4 w-4" />
+                      <span className="font-medium">LLM Consensus Details</span>
                     </div>
-                  ))}
-                </div>
-              </div>
+                    <span className="text-xs text-muted-foreground">Click to expand</span>
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mt-2 space-y-2">
+                    {displayResult.front_sheet_assessment.llm_consensus.map((assessment, i) => (
+                      <div key={i} className="text-sm p-3 bg-background rounded-lg border">
+                        <div className="flex items-center justify-between mb-2">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                            <Badge variant="secondary">{getModelDisplayName(assessment.model)}</Badge>
+                          </div>
+                          <span className="font-semibold">{assessment.overall_score}%</span>
+                        </div>
+                        <div className="grid grid-cols-4 gap-2 text-xs">
+                          <div>
+                            <span className="text-muted-foreground">Front Sheet:</span>
+                            <span className="ml-1 font-medium">{assessment.front_sheet_score}%</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">SNOMED:</span>
+                            <span className="ml-1 font-medium">{assessment.snomed_score}%</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Complete:</span>
+                            <span className="ml-1 font-medium">{assessment.completeness_score}%</span>
+                          </div>
+                          <div>
+                            <span className="text-muted-foreground">Safety:</span>
+                            <span className="ml-1 font-medium">{assessment.safety_score}%</span>
+                          </div>
+                        </div>
+                        {assessment.assessment && (
+                          <p className="text-xs text-muted-foreground mt-2">{assessment.assessment}</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
 
               {/* Verified timestamp */}
               <p className="text-xs text-muted-foreground text-center">
