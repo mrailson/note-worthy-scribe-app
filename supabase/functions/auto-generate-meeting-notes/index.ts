@@ -293,6 +293,67 @@ serve(async (req) => {
       console.warn('⚠️ Error fetching meeting_attendees:', attendeesError);
     }
 
+    // Fetch uploaded meeting documents (agenda, supporting docs, etc.)
+    let documentContext = '';
+    try {
+      const { data: meetingDocuments, error: docsError } = await supabase
+        .from('meeting_documents')
+        .select('id, file_name, file_path, file_type, description')
+        .eq('meeting_id', meetingId)
+        .order('created_at', { ascending: true });
+
+      if (docsError) {
+        console.warn('⚠️ Error fetching meeting_documents:', docsError);
+      } else if (meetingDocuments && meetingDocuments.length > 0) {
+        console.log('📄 Found', meetingDocuments.length, 'uploaded documents');
+        
+        // Download and extract text from text-based documents
+        for (const doc of meetingDocuments) {
+          if (doc.file_path) {
+            const isTextBasedDoc = doc.file_type && (
+              doc.file_type.startsWith('text/') ||
+              doc.file_type === 'application/json' ||
+              doc.file_type.includes('word') ||
+              doc.file_type.includes('document') ||
+              doc.file_type === 'application/pdf' // PDFs contain extractable text
+            );
+
+            if (isTextBasedDoc) {
+              try {
+                console.log('📥 Downloading document:', doc.file_name);
+                const { data: fileData, error: downloadError } = await supabase.storage
+                  .from('meeting-documents')
+                  .download(doc.file_path);
+
+                if (!downloadError && fileData) {
+                  // For text files, extract content directly
+                  if (doc.file_type?.startsWith('text/') || doc.file_type === 'application/json') {
+                    const text = await fileData.text();
+                    if (text && text.trim()) {
+                      const label = doc.description || doc.file_name;
+                      documentContext += `\n--- UPLOADED DOCUMENT: ${label} ---\n${text.trim()}\n`;
+                      console.log('✅ Extracted text from:', doc.file_name, '(', text.length, 'chars)');
+                    }
+                  }
+                  // For Word docs and PDFs, include file name and description as context
+                  // (full text extraction would require additional processing)
+                  else {
+                    const label = doc.description || doc.file_name;
+                    documentContext += `\n--- UPLOADED DOCUMENT: ${label} ---\n[Document uploaded: ${doc.file_name}]\n`;
+                    console.log('📎 Referenced document:', doc.file_name);
+                  }
+                }
+              } catch (docError) {
+                console.warn('⚠️ Failed to download document:', doc.file_name, docError);
+              }
+            }
+          }
+        }
+      }
+    } catch (docsError) {
+      console.warn('⚠️ Error processing meeting documents:', docsError);
+    }
+
     // Extract names and organizations from the join result
     interface AttendeeInfo {
       name: string;
@@ -538,8 +599,7 @@ NHS Board Packs, ICB circulation, sharing with NHFT or PML, FOI response, CQC re
 ${meeting.agenda ? `- Agenda: ${meeting.agenda}\n` : ''}${attendeeWithOrg.length ? `- Attendees: ${attendeeWithOrg.join(', ')}\n` : ''}${locationContext}${meeting.meeting_format ? `- Format: ${meeting.meeting_format === 'teams' ? 'MS Teams' : meeting.meeting_format === 'hybrid' ? 'Hybrid' : 'Face to Face'}\n` : ''}${meeting.meeting_context ? `- Additional Context: ${JSON.stringify(meeting.meeting_context)}\n` : ''}
 **CRITICAL INSTRUCTION: The location and format above are AUTHORITATIVE. Do not infer, state, or imply any different location even if the transcript mentions other places. Transcript location mentions are for context only.**
 **IMPORTANT: Use the exact attendee names provided above. Do not modify spellings.**
-
-`;
+${documentContext ? `\n**UPLOADED SUPPORTING DOCUMENTS:**${documentContext}\n` : ''}`;
 
     // Generate descriptive meeting title FIRST using the transcript so we can use it in the notes
     let generatedTitle = meeting.title;
