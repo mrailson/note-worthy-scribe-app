@@ -3534,6 +3534,11 @@ export type Database = {
           validated_by: string | null
           validation_result: Json | null
           validation_screenshot_url: string | null
+          verification_rag: string | null
+          verification_results: Json | null
+          verification_score: number | null
+          verification_status: string | null
+          verified_at: string | null
         }
         Insert: {
           ai_extracted_dob?: string | null
@@ -3613,6 +3618,11 @@ export type Database = {
           validated_by?: string | null
           validation_result?: Json | null
           validation_screenshot_url?: string | null
+          verification_rag?: string | null
+          verification_results?: Json | null
+          verification_score?: number | null
+          verification_status?: string | null
+          verified_at?: string | null
         }
         Update: {
           ai_extracted_dob?: string | null
@@ -3692,6 +3702,11 @@ export type Database = {
           validated_by?: string | null
           validation_result?: Json | null
           validation_screenshot_url?: string | null
+          verification_rag?: string | null
+          verification_results?: Json | null
+          verification_score?: number | null
+          verification_status?: string | null
+          verified_at?: string | null
         }
         Relationships: []
       }

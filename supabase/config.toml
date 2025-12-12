@@ -323,3 +323,6 @@ verify_jwt = false
 
 [functions.tone-audit-optimiser]
 verify_jwt = true
+
+[functions.lg-verify-service]
+verify_jwt = true
