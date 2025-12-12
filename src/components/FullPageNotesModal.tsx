@@ -183,6 +183,9 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
   const [isGeneratingStyle2, setIsGeneratingStyle2] = useState(false);
   const [isGeneratingStyle3, setIsGeneratingStyle3] = useState(false);
   const [isGeneratingStyle4, setIsGeneratingStyle4] = useState(false);
+  
+  // Ref to prevent multiple simultaneous regeneration calls
+  const isRegeneratingStyle3Ref = useRef(false);
   const [noteStylesLoaded, setNoteStylesLoaded] = useState(false);
   
   // Standard Minutes format variations
@@ -343,6 +346,11 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       return;
     }
 
+    // Skip expensive rendering while regeneration is in progress
+    if (isGeneratingStyle3) {
+      return;
+    }
+
     // Don't render minutes until note styles are loaded to prevent using stale data
     if (!noteStylesLoaded) {
       setMinutesHtml("");
@@ -424,7 +432,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }, 300); // Small delay to let modal settle
 
     return () => clearTimeout(deferTimeout);
-  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded, isLongMeeting]);
+  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded, isLongMeeting, isGeneratingStyle3]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
@@ -2172,13 +2180,19 @@ ${transcriptToUse}`;
   };
 
   const generateNotesStyle3 = async () => {
-    console.log('📋 Starting Minutes - Standard regeneration...');
+    // Prevent multiple simultaneous calls using ref (faster than state)
+    if (isRegeneratingStyle3Ref.current) {
+      console.log('⚠️ Regeneration already in progress, ignoring click');
+      return;
+    }
     
-    // Reset state immediately to prevent sticking
+    console.log('📋 Starting Minutes - Standard regeneration...');
+    isRegeneratingStyle3Ref.current = true;
     setIsGeneratingStyle3(true);
     
     if (!meeting?.id) {
       console.error('❌ Missing meeting ID for Standard regeneration');
+      isRegeneratingStyle3Ref.current = false;
       setIsGeneratingStyle3(false);
       toast.error('Missing meeting data');
       return;
@@ -2334,6 +2348,7 @@ ${transcriptToUse}`;
       toast.error(errorMessage);
     } finally {
       console.log('🏁 Standard generation finished');
+      isRegeneratingStyle3Ref.current = false;
       setIsGeneratingStyle3(false);
     }
   };
