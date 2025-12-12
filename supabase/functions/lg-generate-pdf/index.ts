@@ -1402,6 +1402,66 @@ function addClinicalSummaryPage(
     { key: 'immunisations', title: 'CODED IMMUNISATION HISTORY', showDate: true },
   ];
 
+  // NHS-validated immunisation SNOMED code lookup
+  const getImmunisationSnomedCode = (vaccineName: string): { code: string; term: string } | null => {
+    const name = (vaccineName || '').toLowerCase();
+    
+    // Influenza
+    if (name.includes('influenza') || name.includes('flu') || name.includes('fluarix')) {
+      return { code: '6142004', term: 'Influenza vaccination (procedure)' };
+    }
+    // COVID-19
+    if (name.includes('covid') || name.includes('pfizer') || name.includes('mrna') || name.includes('moderna') || name.includes('astrazeneca')) {
+      return { code: '1324681000000101', term: 'Administration of SARS-CoV-2 mRNA vaccine (procedure)' };
+    }
+    // Pneumococcal
+    if (name.includes('pneumo') || name.includes('ppv23') || name.includes('pneumococcal')) {
+      return { code: '393537006', term: 'Administration of pneumococcal polysaccharide vaccine (procedure)' };
+    }
+    // Shingles
+    if (name.includes('shingles') || name.includes('zostavax') || name.includes('shingrix')) {
+      return { code: '871751000000109', term: 'Zostavax vaccination (procedure)' };
+    }
+    // Smallpox
+    if (name.includes('smallpox')) {
+      return { code: '393083001', term: 'Smallpox vaccination (procedure)' };
+    }
+    // Tetanus
+    if (name.includes('tetanus')) {
+      return { code: '127787002', term: 'Tetanus vaccination (procedure)' };
+    }
+    // Diphtheria
+    if (name.includes('diphtheria')) {
+      return { code: '76668005', term: 'Diphtheria vaccination (procedure)' };
+    }
+    // Pertussis / Whooping cough
+    if (name.includes('pertussis') || name.includes('whooping')) {
+      return { code: '39343008', term: 'Pertussis vaccination (procedure)' };
+    }
+    // Polio
+    if (name.includes('polio')) {
+      return { code: '41088001', term: 'Poliomyelitis vaccination (procedure)' };
+    }
+    // MMR
+    if (name.includes('mmr') || (name.includes('measles') && name.includes('mumps'))) {
+      return { code: '170433008', term: 'MMR vaccination (procedure)' };
+    }
+    // BCG
+    if (name.includes('bcg') || name.includes('tuberculosis')) {
+      return { code: '82314000', term: 'BCG vaccination (procedure)' };
+    }
+    // Hepatitis B
+    if (name.includes('hepatitis b') || name.includes('hep b')) {
+      return { code: '16584000', term: 'Hepatitis B vaccination (procedure)' };
+    }
+    // HPV
+    if (name.includes('hpv') || name.includes('papilloma')) {
+      return { code: '761841000', term: 'HPV vaccination (procedure)' };
+    }
+    
+    return null; // Unknown vaccine - no lookup available
+  };
+
   // Helper to deduplicate by SNOMED code, keeping earliest date
   const deduplicateByCode = (items: any[]): any[] => {
     const codeMap = new Map<string, any>();
@@ -1443,7 +1503,16 @@ function addClinicalSummaryPage(
       for (const item of items) {
         // Handle different data structures: snomedJson uses term/code, summaryJson uses vaccine/name
         const term = item.term || item.vaccine || item.name || item.type || 'Unknown vaccine';
-        const code = item.code || item.snomed_code || '';
+        let code = item.code || item.snomed_code || '';
+        
+        // If no SNOMED code and this is an immunisation, try to look up from vaccine name
+        if (!code && section.key === 'immunisations') {
+          const lookup = getImmunisationSnomedCode(term);
+          if (lookup) {
+            code = lookup.code;
+            console.log(`Immunisation SNOMED lookup: "${term}" → ${code}`);
+          }
+        }
         
         // Format date: show NK if not known
         let dateStr = '';
@@ -1452,12 +1521,8 @@ function addClinicalSummaryPage(
           dateStr = itemDate ? ` (${itemDate})` : ' (NK)';
         }
         
-        // For immunisations from summaryJson without SNOMED codes, show just the vaccine and date
-        if (fromSummary && section.key === 'immunisations' && !code) {
-          drawLine(`${term}${dateStr}`, 10, false, 15);
-        } else {
-          drawLine(`${term} [SNOMED: ${code || 'MANUAL_REVIEW'}]${dateStr}`, 10, false, 15);
-        }
+        // Display with SNOMED code - show MANUAL_REVIEW if no code found
+        drawLine(`${term} [SNOMED: ${code || 'MANUAL_REVIEW'}]${dateStr}`, 10, false, 15);
       }
       addSpace(0.5);
     }
