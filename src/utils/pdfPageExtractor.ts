@@ -27,18 +27,20 @@ export interface PdfExtractionProgress {
 }
 
 /**
- * Extract all pages from a PDF file as JPEG images
+ * Extract all pages from a PDF file as images
  * @param file PDF file to extract pages from
  * @param dpi Target DPI for rendering (default 150 for balance of quality/size)
  * @param onProgress Callback for extraction progress
  * @param detectBlanks Whether to run blank page detection (default true)
+ * @param preserveQuality Whether to extract at high quality (300 DPI, PNG) for pre-optimised scans
  * @returns Array of extracted page images as data URLs
  */
 export async function extractPdfPages(
   file: File,
   dpi: number = 150,
   onProgress?: (progress: PdfExtractionProgress) => void,
-  detectBlanks: boolean = true
+  detectBlanks: boolean = true,
+  preserveQuality: boolean = false
 ): Promise<ExtractedPage[]> {
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -47,7 +49,9 @@ export async function extractPdfPages(
   const extractedPages: ExtractedPage[] = [];
 
   // Scale factor: PDF default is 72 DPI
-  const scale = dpi / 72;
+  // Use 300 DPI for preserve quality mode to maintain original scan resolution
+  const effectiveDpi = preserveQuality ? 300 : dpi;
+  const scale = effectiveDpi / 72;
 
   // Phase 1: Extract pages
   for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
@@ -71,8 +75,11 @@ export async function extractPdfPages(
       canvas: canvas,
     }).promise;
 
-    // Convert to JPEG data URL
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    // Convert to image data URL
+    // Use lossless PNG for preserve quality mode, otherwise JPEG at 85%
+    const dataUrl = preserveQuality 
+      ? canvas.toDataURL('image/png')
+      : canvas.toDataURL('image/jpeg', 0.85);
 
     extractedPages.push({
       pageNumber: pageNum,

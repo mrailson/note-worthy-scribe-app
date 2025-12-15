@@ -92,12 +92,17 @@ export default function LGCaptureBulk() {
           uploaderName?: string;
           compressionLevel?: number;
           mixedPatientDetection?: boolean;
+          preserveQuality?: boolean;
         };
         if (defaults.practiceOds) setPracticeOds(defaults.practiceOds);
         if (defaults.uploaderName) setUploaderName(defaults.uploaderName);
         // Store compressionLevel in localStorage for use when queuing
         if (defaults.compressionLevel) {
           localStorage.setItem('lg_compression_level', String(defaults.compressionLevel));
+        }
+        // Store preserveQuality in localStorage for use when queuing
+        if (defaults.preserveQuality !== undefined) {
+          localStorage.setItem('lg_preserve_quality', String(defaults.preserveQuality));
         }
         // Load mixed patient detection setting
         if (defaults.mixedPatientDetection !== undefined) {
@@ -399,7 +404,11 @@ export default function LGCaptureBulk() {
           f.id === qFile.id ? { ...f, status: 'extracting' as const, progress: 10 } : f
         ));
 
+        // Check if preserve quality mode is enabled
+        const preserveQuality = localStorage.getItem('lg_preserve_quality') === 'true';
+
         // Extract pages from PDF - NO page removal, PDFs are pre-cleansed
+        // Use preserveQuality flag to extract at 300 DPI with PNG for pre-optimised scans
         const pages = await extractPdfPages(
           qFile.file,
           150,
@@ -410,7 +419,8 @@ export default function LGCaptureBulk() {
                 : f
             ));
           },
-          false // skip blank detection - PDFs are pre-cleansed
+          false, // skip blank detection - PDFs are pre-cleansed
+          preserveQuality // pass preserve quality flag
         );
 
         const pageCount = pages.length;
@@ -458,10 +468,12 @@ export default function LGCaptureBulk() {
 
         // Queue for upload with file metadata and compression level
         const compressionLevel = parseInt(localStorage.getItem('lg_compression_level') || '4', 10);
+        const preserveQualityFlag = localStorage.getItem('lg_preserve_quality') === 'true';
         queuePatient(patientId, practiceOds, capturedImages, {
           fileName: qFile.fileName,
           fileSize: qFile.fileSize,
-          compressionLevel: compressionLevel as 1 | 2 | 3 | 4 | 5 | 6 | 7
+          compressionLevel: compressionLevel as 1 | 2 | 3 | 4 | 5 | 6 | 7,
+          preserveQuality: preserveQualityFlag
         });
 
         setFiles(prev => prev.map(f => 
