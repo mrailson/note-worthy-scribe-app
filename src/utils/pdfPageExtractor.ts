@@ -77,11 +77,18 @@ export async function extractPdfPages(
       canvas: canvas,
     }).promise;
 
-    // Convert to image data URL
-    // Use lossless PNG for preserve quality mode, otherwise JPEG at 85%
-    const dataUrl = preserveQuality 
-      ? canvas.toDataURL('image/png')
-      : canvas.toDataURL('image/jpeg', 0.85);
+    // Convert to image reference
+    // Preserve quality mode: use PNG blob URL to avoid massive base64 data URLs (can exceed browser limits)
+    // Normal mode: JPEG data URL for speed/size
+    let dataUrl: string;
+    if (preserveQuality) {
+      const pngBlob: Blob = await new Promise((resolve, reject) => {
+        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Failed to create PNG blob'))), 'image/png');
+      });
+      dataUrl = URL.createObjectURL(pngBlob);
+    } else {
+      dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    }
 
     extractedPages.push({
       pageNumber: pageNum,
