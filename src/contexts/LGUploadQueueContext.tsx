@@ -19,6 +19,7 @@ interface QueuedPatient {
   serviceLevel: ServiceLevel;
   aiModel: LGAIModel;
   compressionLevel: CompressionLevel;
+  preserveQuality: boolean;
   queuedAt: Date;
 }
 
@@ -28,6 +29,7 @@ interface QueuePatientOptions {
   serviceLevel?: ServiceLevel;
   aiModel?: LGAIModel;
   compressionLevel?: CompressionLevel;
+  preserveQuality?: boolean;
 }
 
 interface LGUploadQueueContextType {
@@ -73,6 +75,7 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
       serviceLevel: options?.serviceLevel || 'full_service',
       aiModel: options?.aiModel || 'gpt-4o-mini',
       compressionLevel: options?.compressionLevel || DEFAULT_COMPRESSION_LEVEL,
+      preserveQuality: options?.preserveQuality || false,
       queuedAt: new Date()
     }]);
   }, []);
@@ -96,33 +99,53 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
         })
         .eq('id', patient.patientId);
 
-      // Upload images one by one with CLIENT-SIDE COMPRESSION
+      // Upload images - skip compression if preserveQuality is enabled
       const { images, patientId, practiceOds } = patient;
       
-      console.log(`Starting upload with client-side compression for ${images.length} images`);
+      if (patient.preserveQuality) {
+        console.log(`Starting upload with PRESERVED QUALITY for ${images.length} images (no compression)`);
+      } else {
+        console.log(`Starting upload with client-side compression for ${images.length} images`);
+      }
       
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
         
-        // COMPRESS IMAGE CLIENT-SIDE before upload using configured compression level
         let blob: Blob;
-        try {
-          blob = await compressLgImageFromDataUrl(img.dataUrl, patient.compressionLevel);
-          console.log(`Page ${i + 1}: Compressed (level ${patient.compressionLevel}) to ${(blob.size / 1024).toFixed(1)} KB`);
-        } catch (compressErr) {
-          console.error(`Failed to compress page ${i + 1}, using original:`, compressErr);
-          // Fallback to original if compression fails
-          const base64Data = img.dataUrl.split(',')[1];
-          const byteCharacters = atob(base64Data);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let j = 0; j < byteCharacters.length; j++) {
-            byteNumbers[j] = byteCharacters.charCodeAt(j);
+        let fileExtension = 'jpg';
+        
+        if (patient.preserveQuality) {
+          // PRESERVE QUALITY MODE: Upload original extracted image directly (PNG from PDF extraction)
+          try {
+            const response = await fetch(img.dataUrl);
+            blob = await response.blob();
+            // Detect if PNG from data URL
+            fileExtension = img.dataUrl.startsWith('data:image/png') ? 'png' : 'jpg';
+            console.log(`Page ${i + 1}: Preserved quality - ${(blob.size / 1024).toFixed(1)} KB (${fileExtension.toUpperCase()})`);
+          } catch (fetchErr) {
+            console.error(`Failed to extract page ${i + 1}:`, fetchErr);
+            throw new Error(`Failed to process page ${i + 1}`);
           }
-          const byteArray = new Uint8Array(byteNumbers);
-          blob = new Blob([byteArray], { type: 'image/jpeg' });
+        } else {
+          // COMPRESSION MODE: Compress image client-side using configured compression level
+          try {
+            blob = await compressLgImageFromDataUrl(img.dataUrl, patient.compressionLevel);
+            console.log(`Page ${i + 1}: Compressed (level ${patient.compressionLevel}) to ${(blob.size / 1024).toFixed(1)} KB`);
+          } catch (compressErr) {
+            console.error(`Failed to compress page ${i + 1}, using original:`, compressErr);
+            // Fallback to original if compression fails
+            const base64Data = img.dataUrl.split(',')[1];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let j = 0; j < byteCharacters.length; j++) {
+              byteNumbers[j] = byteCharacters.charCodeAt(j);
+            }
+            const byteArray = new Uint8Array(byteNumbers);
+            blob = new Blob([byteArray], { type: 'image/jpeg' });
+          }
         }
 
-        const fileName = `${practiceOds}/${patientId}/raw/page_${String(i + 1).padStart(3, '0')}.jpg`;
+        const fileName = `${practiceOds}/${patientId}/raw/page_${String(i + 1).padStart(3, '0')}.${fileExtension}`;
         
         const { error: uploadError } = await supabase.storage
           .from('lg')

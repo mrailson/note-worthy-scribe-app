@@ -34,6 +34,7 @@ export default function LGCaptureLanding() {
   const [aiModel, setAiModel] = useState<LGAIModel>('gpt-4o-mini');
   const [compressionLevel, setCompressionLevel] = useState<CompressionLevel>(DEFAULT_COMPRESSION_LEVEL);
   const [mixedPatientDetection, setMixedPatientDetection] = useState(true);
+  const [preserveQuality, setPreserveQuality] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [practices, setPractices] = useState<Practice[]>([]);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
@@ -83,6 +84,7 @@ export default function LGCaptureLanding() {
           aiModel?: LGAIModel;
           compressionLevel?: CompressionLevel;
           mixedPatientDetection?: boolean;
+          preserveQuality?: boolean;
         };
         if (defaults.practiceOds) loadedOds = defaults.practiceOds;
         if (defaults.uploaderName) loadedName = defaults.uploaderName;
@@ -91,6 +93,7 @@ export default function LGCaptureLanding() {
         if (defaults.aiModel) setAiModel(defaults.aiModel);
         if (defaults.compressionLevel) setCompressionLevel(defaults.compressionLevel);
         if (defaults.mixedPatientDetection !== undefined) setMixedPatientDetection(defaults.mixedPatientDetection);
+        if (defaults.preserveQuality !== undefined) setPreserveQuality(defaults.preserveQuality);
       }
 
       // 2. If name not set, get from user profile
@@ -137,7 +140,7 @@ export default function LGCaptureLanding() {
   }, [user?.id]);
 
   // Save to database helper - called on practice select AND save button
-  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service', model: LGAIModel, compLevel: CompressionLevel, mixedDetect: boolean) => {
+  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service', model: LGAIModel, compLevel: CompressionLevel, mixedDetect: boolean, preserveQual: boolean) => {
     if (!user?.id) return false;
     
     const { error } = await supabase
@@ -152,7 +155,8 @@ export default function LGCaptureLanding() {
           serviceLevel: svcLevel,
           aiModel: model,
           compressionLevel: compLevel,
-          mixedPatientDetection: mixedDetect
+          mixedPatientDetection: mixedDetect,
+          preserveQuality: preserveQual
         },
         updated_at: new Date().toISOString()
       }, { 
@@ -170,6 +174,7 @@ export default function LGCaptureLanding() {
     localStorage.setItem('lg_uploader_name', name.trim());
     localStorage.setItem('lg-ai-model-preference', model);
     localStorage.setItem('lg_mixed_patient_detection', String(mixedDetect));
+    localStorage.setItem('lg_preserve_quality', String(preserveQual));
     
     return true;
   };
@@ -182,7 +187,7 @@ export default function LGCaptureLanding() {
     setSearchTerm('');
 
     // Auto-save to database immediately
-    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel, aiModel, compressionLevel, mixedPatientDetection);
+    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel, aiModel, compressionLevel, mixedPatientDetection, preserveQuality);
   };
 
   const filteredPractices = practices.filter(practice => {
@@ -216,7 +221,7 @@ export default function LGCaptureLanding() {
     }
 
     setIsSaving(true);
-    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel, aiModel, compressionLevel, mixedPatientDetection);
+    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel, aiModel, compressionLevel, mixedPatientDetection, preserveQuality);
     setIsSaving(false);
 
     if (saved) {
@@ -632,35 +637,54 @@ export default function LGCaptureLanding() {
               </div>
             </div>
 
-            {/* File Compression Slider */}
-            <div className="space-y-3">
-              <Label>File Compression</Label>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-4 text-sm">
-                  <span className="text-muted-foreground whitespace-nowrap">Smallest Files</span>
-                  <Slider
-                    value={[compressionLevel]}
-                    onValueChange={(value) => setCompressionLevel(value[0] as CompressionLevel)}
-                    min={1}
-                    max={7}
-                    step={1}
-                    className="flex-1"
-                  />
-                  <span className="text-muted-foreground whitespace-nowrap">Best Quality</span>
+            {/* Preserve Original Quality Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center gap-3">
+                <FileText className={cn("h-5 w-5", preserveQuality ? "text-primary" : "text-muted-foreground")} />
+                <div>
+                  <p className="font-medium text-sm">Preserve Original Quality</p>
+                  <p className="text-xs text-muted-foreground">
+                    For pre-optimised scans (MFD/scanner output). Skips compression.
+                  </p>
                 </div>
-                <div className="text-center">
-                  <span className="font-medium text-sm">
-                    Level {compressionLevel}: {getCompressionSettings(compressionLevel).label}
-                  </span>
-                  <span className="text-muted-foreground text-sm ml-2">
-                    ({getCompressionSettings(compressionLevel).estimatedSize})
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground text-center">
-                  All images converted to black & white. Adjust for storage vs readability.
-                </p>
               </div>
+              <Switch
+                checked={preserveQuality}
+                onCheckedChange={setPreserveQuality}
+              />
             </div>
+
+            {/* File Compression Slider - only show when not preserving quality */}
+            {!preserveQuality && (
+              <div className="space-y-3">
+                <Label>File Compression</Label>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-4 text-sm">
+                    <span className="text-muted-foreground whitespace-nowrap">Smallest Files</span>
+                    <Slider
+                      value={[compressionLevel]}
+                      onValueChange={(value) => setCompressionLevel(value[0] as CompressionLevel)}
+                      min={1}
+                      max={7}
+                      step={1}
+                      className="flex-1"
+                    />
+                    <span className="text-muted-foreground whitespace-nowrap">Best Quality</span>
+                  </div>
+                  <div className="text-center">
+                    <span className="font-medium text-sm">
+                      Level {compressionLevel}: {getCompressionSettings(compressionLevel).label}
+                    </span>
+                    <span className="text-muted-foreground text-sm ml-2">
+                      ({getCompressionSettings(compressionLevel).estimatedSize})
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground text-center">
+                    All images converted to black & white. Adjust for storage vs readability.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Mixed Patient Detection Toggle */}
             <div className="flex items-center justify-between p-3 rounded-lg border">
