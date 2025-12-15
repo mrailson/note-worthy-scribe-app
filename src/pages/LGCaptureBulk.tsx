@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Home, Upload, FileText, Check, X, Loader2, 
-  FolderOpen, AlertCircle, ArrowRight, Files, RefreshCw, ListOrdered 
+  FolderOpen, AlertCircle, ArrowRight, Files, History, RefreshCw, ListOrdered 
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
@@ -20,6 +20,7 @@ import { generateULID } from '@/utils/ulid';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import WatchFolderSettings from '@/components/lg-capture/WatchFolderSettings';
+import BulkUploadHistory from '@/components/lg-capture/BulkUploadHistory';
 import { LGProcessingQueue } from '@/components/lg-capture/LGProcessingQueue';
 
 interface QueuedFile {
@@ -46,6 +47,8 @@ export default function LGCaptureBulk() {
   const [batchId, setBatchId] = useState(() => crypto.randomUUID());
   const [recentlyQueuedCount, setRecentlyQueuedCount] = useState(0);
   const [activeTab, setActiveTab] = useState('upload');
+  const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
+  const [processingFilesCount, setProcessingFilesCount] = useState(0);
 
   const startNewBatch = () => {
     setFiles([]);
@@ -266,7 +269,7 @@ export default function LGCaptureBulk() {
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="upload" className="flex items-center gap-2">
             <Upload className="h-4 w-4" />
             Upload
@@ -277,6 +280,15 @@ export default function LGCaptureBulk() {
             {(activeUploads > 0 || queue.length > 0) && (
               <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
                 {activeUploads + queue.length}
+              </Badge>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            History
+            {processingFilesCount > 0 && (
+              <Badge variant="outline" className="ml-1 h-5 px-1.5 text-xs bg-amber-100 text-amber-700 border-amber-300">
+                {processingFilesCount}
               </Badge>
             )}
           </TabsTrigger>
@@ -488,6 +500,20 @@ export default function LGCaptureBulk() {
             View files currently being uploaded and processed
           </p>
           <LGProcessingQueue />
+        </TabsContent>
+
+        <TabsContent value="history" className="mt-6">
+          <div className="flex justify-end mb-4">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setHistoryRefreshTrigger(prev => prev + 1)}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
+          <BulkUploadHistory refreshTrigger={historyRefreshTrigger} onProcessingCountChange={setProcessingFilesCount} />
         </TabsContent>
       </Tabs>
     </div>
