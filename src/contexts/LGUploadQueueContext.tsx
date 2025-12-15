@@ -35,6 +35,8 @@ interface QueuePatientOptions {
 interface LGUploadQueueContextType {
   queue: QueuedPatient[];
   queuePatient: (patientId: string, practiceOds: string, images: CapturedImage[], options?: QueuePatientOptions) => void;
+  removeFromQueue: (patientId: string) => void;
+  clearFailed: () => void;
   activeUploads: number;
   isProcessing: boolean;
 }
@@ -48,81 +50,131 @@ export const useLGUploadQueue = () => {
     console.warn('useLGUploadQueue called outside LGUploadQueueProvider - returning fallback');
     return {
       queue: [],
-      queuePatient: () => { console.error('Cannot queue patient - provider missing'); },
+      queuePatient: () => {
+        console.error('Cannot queue patient - provider missing');
+      },
+      removeFromQueue: () => {},
+      clearFailed: () => {},
       activeUploads: 0,
-      isProcessing: false
+      isProcessing: false,
     } as LGUploadQueueContextType;
   }
   return context;
 };
 
+function fileExtensionFromMime(mime: string | undefined): 'png' | 'jpg' {
+  if (!mime) return 'png';
+  if (mime.includes('png')) return 'png';
+  return 'jpg';
+}
+
+function cleanupPreserveQualityUrls(patient: QueuedPatient) {
+  if (!patient.preserveQuality) return;
+  for (const img of patient.images) {
+    if (img.dataUrl?.startsWith('blob:')) {
+      try {
+        URL.revokeObjectURL(img.dataUrl);
+      } catch {
+        // ignore
+      }
+    }
+  }
+}
+
 export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [queue, setQueue] = useState<QueuedPatient[]>([]);
   const processingCountRef = useRef(0);
   const MAX_CONCURRENT = 3; // Process up to 3 files simultaneously
-  const isProcessing = queue.some(q => q.status === 'uploading' || q.status === 'processing');
-  const activeUploads = queue.filter(q => q.status === 'queued' || q.status === 'uploading').length;
+  const isProcessing = queue.some((q) => q.status === 'uploading' || q.status === 'processing');
+  const activeUploads = queue.filter((q) => q.status === 'queued' || q.status === 'uploading').length;
 
-  const queuePatient = useCallback((patientId: string, practiceOds: string, images: CapturedImage[], options?: QueuePatientOptions) => {
-    setQueue(prev => [...prev, {
-      patientId,
-      practiceOds,
-      images,
-      status: 'queued',
-      uploadProgress: 0,
-      fileName: options?.fileName,
-      fileSize: options?.fileSize,
-      serviceLevel: options?.serviceLevel || 'full_service',
-      aiModel: options?.aiModel || 'gpt-4o-mini',
-      compressionLevel: options?.compressionLevel || DEFAULT_COMPRESSION_LEVEL,
-      preserveQuality: options?.preserveQuality || false,
-      queuedAt: new Date()
-    }]);
+  const queuePatient = useCallback(
+    (patientId: string, practiceOds: string, images: CapturedImage[], options?: QueuePatientOptions) => {
+      setQueue((prev) => [
+        ...prev,
+        {
+          patientId,
+          practiceOds,
+          images,
+          status: 'queued',
+          uploadProgress: 0,
+          fileName: options?.fileName,
+          fileSize: options?.fileSize,
+          serviceLevel: options?.serviceLevel || 'full_service',
+          aiModel: options?.aiModel || 'gpt-4o-mini',
+          compressionLevel: options?.compressionLevel || DEFAULT_COMPRESSION_LEVEL,
+          preserveQuality: options?.preserveQuality || false,
+          queuedAt: new Date(),
+        },
+      ]);
+    },
+    []
+  );
+
+  const removeFromQueue = useCallback(
+    (patientId: string) => {
+      setQueue((prev) => {
+        const item = prev.find((q) => q.patientId === patientId);
+        if (item) cleanupPreserveQualityUrls(item);
+        return prev.filter((q) => q.patientId !== patientId);
+      });
+    },
+    []
+  );
+
+  const clearFailed = useCallback(() => {
+    setQueue((prev) => {
+      prev.filter((q) => q.status === 'failed').forEach(cleanupPreserveQualityUrls);
+      return prev.filter((q) => q.status !== 'failed');
+    });
   }, []);
 
   const processOnePatient = useCallback(async (patient: QueuedPatient) => {
     try {
       // Update status to uploading with start timestamp
-      setQueue(prev => prev.map(q => 
-        q.patientId === patient.patientId 
-          ? { ...q, status: 'uploading' as const } 
-          : q
-      ));
+      setQueue((prev) =>
+        prev.map((q) => (q.patientId === patient.patientId ? { ...q, status: 'uploading' as const } : q))
+      );
 
       // Update DB status with upload start time
       await supabase
         .from('lg_patients')
-        .update({ 
-          job_status: 'uploading', 
+        .update({
+          job_status: 'uploading',
           upload_progress: 0,
-          upload_started_at: new Date().toISOString()
+          upload_started_at: new Date().toISOString(),
         })
         .eq('id', patient.patientId);
 
       // Upload images - skip compression if preserveQuality is enabled
       const { images, patientId, practiceOds } = patient;
-      
+
       if (patient.preserveQuality) {
         console.log(`Starting upload with PRESERVED QUALITY for ${images.length} images (no compression)`);
       } else {
         console.log(`Starting upload with client-side compression for ${images.length} images`);
       }
-      
+
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
-        
+
         let blob: Blob;
-        let fileExtension = 'jpg';
-        
+        let fileExtension: 'png' | 'jpg' = 'jpg';
+
         if (patient.preserveQuality) {
-          // PRESERVE QUALITY MODE: Upload original extracted image directly (PNG from PDF extraction)
+          // PRESERVE QUALITY MODE: upload original extracted image blob if available
           try {
-            // img.dataUrl may be a blob: URL (preserveQuality) or data: URL (normal)
-            const response = await fetch(img.dataUrl);
-            blob = await response.blob();
-            // Preserve-quality extraction always generates PNG
-            fileExtension = 'png';
-            console.log(`Page ${i + 1}: Preserved quality - ${(blob.size / 1024).toFixed(1)} KB (PNG)`);
+            if (img.blob) {
+              blob = img.blob;
+            } else {
+              const response = await fetch(img.dataUrl);
+              blob = await response.blob();
+            }
+
+            fileExtension = fileExtensionFromMime(blob.type);
+            console.log(
+              `Page ${i + 1}: Preserved quality - ${(blob.size / 1024).toFixed(1)} KB (${fileExtension.toUpperCase()})`
+            );
           } catch (fetchErr) {
             console.error(`Failed to read page ${i + 1} image data:`, fetchErr);
             const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
@@ -135,23 +187,33 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
             console.log(`Page ${i + 1}: Compressed (level ${patient.compressionLevel}) to ${(blob.size / 1024).toFixed(1)} KB`);
           } catch (compressErr) {
             console.error(`Failed to compress page ${i + 1}, using original:`, compressErr);
-            // Fallback to original if compression fails
-            const base64Data = img.dataUrl.split(',')[1];
-            const byteCharacters = atob(base64Data);
-            const byteNumbers = new Array(byteCharacters.length);
-            for (let j = 0; j < byteCharacters.length; j++) {
-              byteNumbers[j] = byteCharacters.charCodeAt(j);
+
+            // Fallback to original:
+            // - data: URL → manual base64 decode
+            // - blob: URL → fetch
+            if (img.dataUrl.startsWith('blob:')) {
+              const response = await fetch(img.dataUrl);
+              blob = await response.blob();
+            } else {
+              const base64Data = img.dataUrl.split(',')[1];
+              const byteCharacters = atob(base64Data);
+              const byteNumbers = new Array(byteCharacters.length);
+              for (let j = 0; j < byteCharacters.length; j++) {
+                byteNumbers[j] = byteCharacters.charCodeAt(j);
+              }
+              const byteArray = new Uint8Array(byteNumbers);
+              blob = new Blob([byteArray], { type: 'image/jpeg' });
             }
-            const byteArray = new Uint8Array(byteNumbers);
-            blob = new Blob([byteArray], { type: 'image/jpeg' });
+            fileExtension = fileExtensionFromMime(blob.type);
           }
         }
 
         const fileName = `${practiceOds}/${patientId}/raw/page_${String(i + 1).padStart(3, '0')}.${fileExtension}`;
-        
-        const { error: uploadError } = await supabase.storage
-          .from('lg')
-          .upload(fileName, blob, { upsert: true });
+
+        const { error: uploadError } = await supabase.storage.from('lg').upload(fileName, blob, {
+          upsert: true,
+          contentType: blob.type || (fileExtension === 'png' ? 'image/png' : 'image/jpeg'),
+        });
 
         if (uploadError) {
           throw new Error(`Failed to upload page ${i + 1}: ${uploadError.message}`);
@@ -164,63 +226,50 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
 
         // Update progress
         const progress = Math.round(((i + 1) / images.length) * 100);
-        setQueue(prev => prev.map(q => 
-          q.patientId === patientId 
-            ? { ...q, uploadProgress: progress } 
-            : q
-        ));
+        setQueue((prev) => prev.map((q) => (q.patientId === patientId ? { ...q, uploadProgress: progress } : q)));
 
         // Update DB progress
-        await supabase
-          .from('lg_patients')
-          .update({ upload_progress: progress })
-          .eq('id', patientId);
+        await supabase.from('lg_patients').update({ upload_progress: progress }).eq('id', patientId);
       }
 
       // Update images_count and status to queued (ready for processing) with upload complete time
       await supabase
         .from('lg_patients')
-        .update({ 
-          images_count: images.length, 
+        .update({
+          images_count: images.length,
           job_status: 'queued',
           upload_progress: 100,
-          upload_completed_at: new Date().toISOString()
+          upload_completed_at: new Date().toISOString(),
         })
         .eq('id', patientId);
 
       // Update local status
-      setQueue(prev => prev.map(q => 
-        q.patientId === patientId 
-          ? { ...q, status: 'processing' as const, uploadProgress: 100 } 
-          : q
-      ));
+      setQueue((prev) =>
+        prev.map((q) => (q.patientId === patientId ? { ...q, status: 'processing' as const, uploadProgress: 100 } : q))
+      );
 
       // Trigger processing (fire and forget) - pass service level and AI model
-      supabase.functions.invoke('lg-process-patient', {
-        body: { patientId, serviceLevel: patient.serviceLevel, aiModel: patient.aiModel }
-      }).catch(err => {
-        console.error('Processing trigger error:', err);
-      });
+      supabase.functions
+        .invoke('lg-process-patient', {
+          body: { patientId, serviceLevel: patient.serviceLevel, aiModel: patient.aiModel },
+        })
+        .catch((err) => {
+          console.error('Processing trigger error:', err);
+        });
 
       // Mark as complete after a delay (processing happens in background)
       setTimeout(() => {
-        setQueue(prev => prev.filter(q => q.patientId !== patientId));
+        setQueue((prev) => prev.filter((q) => q.patientId !== patientId));
       }, 3000);
-
     } catch (err) {
       console.error('Queue processing error:', err);
       const errorMessage = err instanceof Error ? err.message : 'Upload failed';
-      
-      setQueue(prev => prev.map(q => 
-        q.patientId === patient.patientId 
-          ? { ...q, status: 'failed' as const, error: errorMessage } 
-          : q
-      ));
 
-      await supabase
-        .from('lg_patients')
-        .update({ job_status: 'failed' })
-        .eq('id', patient.patientId);
+      setQueue((prev) =>
+        prev.map((q) => (q.patientId === patient.patientId ? { ...q, status: 'failed' as const, error: errorMessage } : q))
+      );
+
+      await supabase.from('lg_patients').update({ job_status: 'failed', error_message: errorMessage }).eq('id', patient.patientId);
 
       console.error(`Upload failed: ${errorMessage}`);
     } finally {
@@ -228,26 +277,29 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, []);
 
-  const processQueue = useCallback(async () => {
-    // Find all queued items and process up to MAX_CONCURRENT
-    const queuedItems = queue.filter(q => q.status === 'queued');
-    const slotsAvailable = MAX_CONCURRENT - processingCountRef.current;
-    
-    if (slotsAvailable <= 0 || queuedItems.length === 0) return;
+  const processQueue = useCallback(
+    async () => {
+      // Find all queued items and process up to MAX_CONCURRENT
+      const queuedItems = queue.filter((q) => q.status === 'queued');
+      const slotsAvailable = MAX_CONCURRENT - processingCountRef.current;
 
-    // Take as many items as we have slots for
-    const itemsToProcess = queuedItems.slice(0, slotsAvailable);
-    
-    for (const item of itemsToProcess) {
-      processingCountRef.current++;
-      // Process each in parallel (don't await)
-      processOnePatient(item);
-    }
-  }, [queue, processOnePatient]);
+      if (slotsAvailable <= 0 || queuedItems.length === 0) return;
+
+      // Take as many items as we have slots for
+      const itemsToProcess = queuedItems.slice(0, slotsAvailable);
+
+      for (const item of itemsToProcess) {
+        processingCountRef.current++;
+        // Process each in parallel (don't await)
+        processOnePatient(item);
+      }
+    },
+    [queue, processOnePatient]
+  );
 
   // Process queue when items are added
   useEffect(() => {
-    const queuedCount = queue.filter(q => q.status === 'queued').length;
+    const queuedCount = queue.filter((q) => q.status === 'queued').length;
     if (queuedCount > 0 && processingCountRef.current < MAX_CONCURRENT) {
       processQueue();
     }
@@ -268,8 +320,9 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
   }, [activeUploads]);
 
   return (
-    <LGUploadQueueContext.Provider value={{ queue, queuePatient, activeUploads, isProcessing }}>
+    <LGUploadQueueContext.Provider value={{ queue, queuePatient, removeFromQueue, clearFailed, activeUploads, isProcessing }}>
       {children}
     </LGUploadQueueContext.Provider>
   );
 };
+
