@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -19,11 +20,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw, RotateCcw, X, ListOrdered, History, UserX, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw, RotateCcw, X, ListOrdered, History, UserX, AlertTriangle, ChevronDown, ChevronRight, Files } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'sonner';
 import pdfIcon from '@/assets/pdf-icon.png';
 import { LGValidationModal } from '@/components/lg-capture/LGValidationModal';
+import BulkUploadHistory from '@/components/lg-capture/BulkUploadHistory';
 
 function formatNhsNumber(nhs: string | null | undefined): string {
   if (!nhs) return '—';
@@ -57,6 +59,9 @@ export default function LGCapturePatients() {
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [selectedPatientForValidation, setSelectedPatientForValidation] = useState<LGPatient | null>(null);
   const [reprocessingId, setReprocessingId] = useState<string | null>(null);
+  const [batchHistoryOpen, setBatchHistoryOpen] = useState(true);
+  const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
+  const [processingFilesCount, setProcessingFilesCount] = useState(0);
 
   // Fetch practice names lookup
   useEffect(() => {
@@ -326,9 +331,44 @@ export default function LGCapturePatients() {
         </TabsList>
 
         <TabsContent value="history" className="space-y-4 mt-4">
-          <p className="text-muted-foreground text-sm">
-            Search by patient name or NHS number
-          </p>
+          {/* Bulk Upload Batches Section - Collapsible */}
+          <Collapsible open={batchHistoryOpen} onOpenChange={setBatchHistoryOpen}>
+            <div className="flex items-center justify-between">
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" className="flex items-center gap-2 p-0 h-auto hover:bg-transparent">
+                  {batchHistoryOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
+                  <Files className="h-4 w-4" />
+                  <span className="font-medium">Bulk Upload Batches</span>
+                  {processingFilesCount > 0 && (
+                    <Badge variant="outline" className="ml-1 h-5 px-1.5 text-xs bg-amber-100 text-amber-700 border-amber-300">
+                      {processingFilesCount} processing
+                    </Badge>
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setHistoryRefreshTrigger(prev => prev + 1)}
+              >
+                <RefreshCw className="h-4 w-4" />
+              </Button>
+            </div>
+            <CollapsibleContent className="mt-3">
+              <BulkUploadHistory 
+                refreshTrigger={historyRefreshTrigger} 
+                onProcessingCountChange={setProcessingFilesCount} 
+              />
+            </CollapsibleContent>
+          </Collapsible>
+
+          {/* Divider */}
+          <div className="border-t pt-4">
+            <p className="text-sm font-medium mb-2">Individual Captures</p>
+            <p className="text-muted-foreground text-sm mb-4">
+              Search by patient name or NHS number
+            </p>
+          </div>
           
           {/* Search */}
           <div className="flex gap-2">
