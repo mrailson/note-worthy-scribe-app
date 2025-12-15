@@ -325,10 +325,12 @@ export function useWatchFolder(
       });
 
       // Convert to CapturedImage format - NO filtering, PDFs are pre-cleansed
+      // Include blob for efficient upload (avoids re-encoding from dataUrl)
       const capturedImages: CapturedImage[] = pages.map((page, index) => ({
         id: `${patientId}-page-${index + 1}`,
         dataUrl: page.dataUrl,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        blob: page.blob
       }));
 
       // Queue for upload with user's compression settings
