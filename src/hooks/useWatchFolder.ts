@@ -609,6 +609,17 @@ export function useWatchFolder(
                 // Remove from tracking map
                 patientOutputMapRef.current.delete(patient.id);
                 
+                // Update pipeline file to show in Done tab
+                const pipelineFile = pipelineFiles.find(f => f.patientId === patient.id);
+                if (pipelineFile) {
+                  updatePipelineFile(pipelineFile.id, { 
+                    savedToDone: true, 
+                    savedAt: new Date(),
+                    lgFilename: outputFileName,
+                    patientName: patient.ai_extracted_name || patient.patient_name
+                  });
+                }
+                
                 logActivity(outputFileName, 'saved to Done');
               }
               
@@ -624,7 +635,7 @@ export function useWatchFolder(
       console.log('[Watch Folder] Unsubscribing from patient completions');
       supabase.removeChannel(channel);
     };
-  }, [user?.id, state.folderName, saveToDoneFolder, logActivity]);
+  }, [user?.id, state.folderName, saveToDoneFolder, logActivity, pipelineFiles, updatePipelineFile]);
 
   // Cleanup on unmount
   useEffect(() => {
