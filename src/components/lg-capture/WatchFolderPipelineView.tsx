@@ -294,9 +294,18 @@ export default function WatchFolderPipelineView({
                           <CheckCircle2 className="h-4 w-4 text-green-500" />
                           <span className="text-sm font-medium">{file.patientName || file.originalFilename}</span>
                         </div>
-                        {file.savedAt && (
-                          <span className="text-xs text-muted-foreground">{formatTime(file.savedAt)}</span>
-                        )}
+                        <div className="flex items-center gap-2">
+                          {(file.pageCount || file.fileSize) && (
+                            <span className="text-xs text-muted-foreground">
+                              {file.pageCount && `${file.pageCount} pg`}
+                              {file.pageCount && file.fileSize && ' • '}
+                              {file.fileSize && `${(file.fileSize / 1024).toFixed(0)} KB`}
+                            </span>
+                          )}
+                          {file.savedAt && (
+                            <span className="text-xs text-muted-foreground">{formatTime(file.savedAt)}</span>
+                          )}
+                        </div>
                       </div>
                       {file.lgFilename && (
                         <p className="text-xs text-green-600 font-mono mt-1 pl-6 truncate">
