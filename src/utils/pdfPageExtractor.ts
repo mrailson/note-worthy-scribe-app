@@ -115,12 +115,12 @@ async function tryExtractEmbeddedImage(page: any): Promise<{ blob: Blob; width: 
     
     ctx.putImageData(imageDataObj, 0, 0);
     
-    // Convert to JPEG blob at high quality (minimal re-encoding loss)
+    // Convert to JPEG blob - balanced quality for readable scanned documents
     const blob = await new Promise<Blob>((resolve, reject) => {
       canvas.toBlob(
         (b) => (b ? resolve(b) : reject(new Error('Failed to create blob'))),
         'image/jpeg',
-        0.92 // High quality since we're just converting format, not downscaling
+        0.72 // Balanced: ~50% smaller than 0.92 while staying readable
       );
     });
     
@@ -207,12 +207,12 @@ export async function extractPdfPages(
       pageHeight = renderViewport.height;
 
       if (preserveQuality) {
-        // Even in fallback, use reasonable quality
+        // Fallback render with balanced quality
         blob = await new Promise<Blob>((resolve, reject) => {
           canvas.toBlob(
             (b) => (b ? resolve(b) : reject(new Error('Failed to create JPEG blob'))),
             'image/jpeg',
-            0.85
+            0.72
           );
         });
         dataUrl = URL.createObjectURL(blob);
@@ -324,7 +324,7 @@ export async function extractPdfPages(
             const { dataUrl: correctedUrl, wasRotated, blob } = await autoCorrectOrientationToBlobUrl(
               page.dataUrl,
               'image/jpeg',
-              0.88
+              0.72
             );
 
           if (wasRotated && blob) {
