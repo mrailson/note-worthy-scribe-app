@@ -66,6 +66,7 @@ export default function LGCaptureBulk() {
   const [validationModalOpen, setValidationModalOpen] = useState(false);
   const [selectedPatientForValidation, setSelectedPatientForValidation] = useState<LGPatient | null>(null);
   const [reprocessingId, setReprocessingId] = useState<string | null>(null);
+  const [showMixedPatientWarnings, setShowMixedPatientWarnings] = useState(true);
 
   const startNewBatch = () => {
     setFiles([]);
@@ -90,12 +91,17 @@ export default function LGCaptureBulk() {
           practiceOds?: string; 
           uploaderName?: string;
           compressionLevel?: number;
+          mixedPatientDetection?: boolean;
         };
         if (defaults.practiceOds) setPracticeOds(defaults.practiceOds);
         if (defaults.uploaderName) setUploaderName(defaults.uploaderName);
         // Store compressionLevel in localStorage for use when queuing
         if (defaults.compressionLevel) {
           localStorage.setItem('lg_compression_level', String(defaults.compressionLevel));
+        }
+        // Load mixed patient detection setting
+        if (defaults.mixedPatientDetection !== undefined) {
+          setShowMixedPatientWarnings(defaults.mixedPatientDetection);
         }
       }
       
@@ -788,7 +794,8 @@ export default function LGCaptureBulk() {
             <CollapsibleContent className="mt-3">
               <BulkUploadHistory 
                 refreshTrigger={historyRefreshTrigger} 
-                onProcessingCountChange={setProcessingFilesCount} 
+                onProcessingCountChange={setProcessingFilesCount}
+                showMixedPatientWarnings={showMixedPatientWarnings}
               />
             </CollapsibleContent>
           </Collapsible>

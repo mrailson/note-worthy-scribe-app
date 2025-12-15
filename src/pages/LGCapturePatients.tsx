@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLGCapture, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
+import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -49,6 +50,7 @@ export default function LGCapturePatients() {
   const navigate = useNavigate();
   const { listPatients, isLoading } = useLGCapture();
   const { activeUploads, queue } = useLGUploadQueue();
+  const { user } = useAuth();
   
   const [patients, setPatients] = useState<LGPatient[]>([]);
   const [search, setSearch] = useState('');
@@ -62,6 +64,29 @@ export default function LGCapturePatients() {
   const [batchHistoryOpen, setBatchHistoryOpen] = useState(true);
   const [historyRefreshTrigger, setHistoryRefreshTrigger] = useState(0);
   const [processingFilesCount, setProcessingFilesCount] = useState(0);
+  const [showMixedPatientWarnings, setShowMixedPatientWarnings] = useState(true);
+
+  // Load mixed patient detection setting
+  useEffect(() => {
+    const loadSettings = async () => {
+      if (!user?.id) return;
+      
+      const { data } = await supabase
+        .from('user_settings')
+        .select('setting_value')
+        .eq('user_id', user.id)
+        .eq('setting_key', 'lg_capture_defaults')
+        .maybeSingle();
+      
+      if (data?.setting_value) {
+        const defaults = data.setting_value as { mixedPatientDetection?: boolean };
+        if (defaults.mixedPatientDetection !== undefined) {
+          setShowMixedPatientWarnings(defaults.mixedPatientDetection);
+        }
+      }
+    };
+    loadSettings();
+  }, [user?.id]);
 
   // Fetch practice names lookup
   useEffect(() => {
@@ -463,14 +488,16 @@ export default function LGCapturePatients() {
                 const multipleDobs = (patientAny.all_dobs_found?.length || 0) > 1;
                 const hasConflict = patientAny.identity_verification_status === 'conflict' || (multipleNhs && multipleDobs);
                 
+                const showConflict = showMixedPatientWarnings && hasConflict;
+                
                 return (
                   <Card
                     key={patient.id}
-                    className={`cursor-pointer hover:bg-muted/50 transition-colors ${hasConflict ? 'border-red-500 border-2' : ''}`}
+                    className={`cursor-pointer hover:bg-muted/50 transition-colors ${showConflict ? 'border-red-500 border-2' : ''}`}
                     onClick={() => navigate(`/lg-capture/results/${patient.id}`)}
                   >
                     {/* RED banner for identity conflict */}
-                    {hasConflict && (
+                    {showConflict && (
                       <div className="bg-red-600 text-white px-4 py-2 flex items-center gap-2 text-sm">
                         <UserX className="h-4 w-4 flex-shrink-0" />
                         <span className="font-semibold">⚠️ MIXED PATIENT RECORDS</span>
@@ -481,7 +508,7 @@ export default function LGCapturePatients() {
                     )}
                     <CardContent className="p-4">
                       {/* Identity conflict details */}
-                      {hasConflict && (
+                      {showConflict && (
                         <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700">
                           {multipleNhs && (
                             <p>NHS numbers: {patientAny.all_nhs_numbers_found?.map((n: string) => n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')).join(', ')}</p>
