@@ -2,7 +2,12 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import { supabase } from '@/integrations/supabase/client';
 // Toast messages removed from LG Capture service
 import { CapturedImage } from '@/hooks/useLGCapture';
-import { compressLgImageFromDataUrl, CompressionLevel, DEFAULT_COMPRESSION_LEVEL } from '@/utils/lgImageCompressor';
+import {
+  compressLgImageFromDataUrl,
+  compressLgImageFile,
+  CompressionLevel,
+  DEFAULT_COMPRESSION_LEVEL,
+} from '@/utils/lgImageCompressor';
 
 export type ServiceLevel = 'rename_only' | 'index_summary' | 'full_service';
 export type LGAIModel = 'gpt-4o-mini' | 'gpt-5';
@@ -146,68 +151,74 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
         })
         .eq('id', patient.patientId);
 
-      // Upload images - skip compression if preserveQuality is enabled
+      // Upload images
+      // - preserveQuality=true means: prefer the original extracted blobs as the INPUT (best fidelity)
+      // - BUT still compress before upload using the selected compressionLevel (keeps file sizes sane)
       const { images, patientId, practiceOds } = patient;
 
-      if (patient.preserveQuality) {
-        console.log(`Starting upload with PRESERVED QUALITY for ${images.length} images (no compression)`);
-      } else {
-        console.log(`Starting upload with client-side compression for ${images.length} images`);
-      }
+      console.log(
+        `Starting upload for ${images.length} images (preserveQuality=${patient.preserveQuality}, compressionLevel=${patient.compressionLevel})`
+      );
 
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
 
-        let blob: Blob;
-        let fileExtension: 'png' | 'jpg' = 'jpg';
+        let sourceBlob: Blob | null = null;
 
         if (patient.preserveQuality) {
-          // PRESERVE QUALITY MODE: upload original extracted image blob if available
+          // Prefer the original extracted blob (e.g. from PDF direct extraction / rotation correction)
           try {
             if (img.blob) {
-              blob = img.blob;
+              sourceBlob = img.blob;
             } else {
               const response = await fetch(img.dataUrl);
-              blob = await response.blob();
+              sourceBlob = await response.blob();
             }
-
-            fileExtension = fileExtensionFromMime(blob.type);
-            console.log(
-              `Page ${i + 1}: Preserved quality - ${(blob.size / 1024).toFixed(1)} KB (${fileExtension.toUpperCase()})`
-            );
           } catch (fetchErr) {
             console.error(`Failed to read page ${i + 1} image data:`, fetchErr);
             const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
             throw new Error(`Failed to process page ${i + 1}: ${msg}`);
           }
-        } else {
-          // COMPRESSION MODE: Compress image client-side using configured compression level
-          try {
-            blob = await compressLgImageFromDataUrl(img.dataUrl, patient.compressionLevel);
-            console.log(`Page ${i + 1}: Compressed (level ${patient.compressionLevel}) to ${(blob.size / 1024).toFixed(1)} KB`);
-          } catch (compressErr) {
-            console.error(`Failed to compress page ${i + 1}, using original:`, compressErr);
+        }
 
-            // Fallback to original:
-            // - data: URL → manual base64 decode
-            // - blob: URL → fetch
-            if (img.dataUrl.startsWith('blob:')) {
-              const response = await fetch(img.dataUrl);
-              blob = await response.blob();
-            } else {
-              const base64Data = img.dataUrl.split(',')[1];
-              const byteCharacters = atob(base64Data);
-              const byteNumbers = new Array(byteCharacters.length);
-              for (let j = 0; j < byteCharacters.length; j++) {
-                byteNumbers[j] = byteCharacters.charCodeAt(j);
-              }
-              const byteArray = new Uint8Array(byteNumbers);
-              blob = new Blob([byteArray], { type: 'image/jpeg' });
+        // Always compress before upload (keeps PDFs close to original sizes)
+        let blob: Blob;
+        try {
+          if (sourceBlob) {
+            const sourceExt = fileExtensionFromMime(sourceBlob.type);
+            const sourceFile = new File([sourceBlob], `page_${i + 1}.${sourceExt}`, {
+              type: sourceBlob.type || 'image/jpeg',
+            });
+            blob = await compressLgImageFile(sourceFile, patient.compressionLevel);
+          } else {
+            blob = await compressLgImageFromDataUrl(img.dataUrl, patient.compressionLevel);
+          }
+          console.log(
+            `Page ${i + 1}: Compressed (level ${patient.compressionLevel}) to ${(blob.size / 1024).toFixed(1)} KB`
+          );
+        } catch (compressErr) {
+          console.error(`Failed to compress page ${i + 1}, using original:`, compressErr);
+
+          // Last-resort fallback: upload original bytes
+          if (sourceBlob) {
+            blob = sourceBlob;
+          } else if (img.dataUrl.startsWith('blob:')) {
+            const response = await fetch(img.dataUrl);
+            blob = await response.blob();
+          } else {
+            const base64Data = img.dataUrl.split(',')[1];
+            const byteCharacters = atob(base64Data);
+            const byteNumbers = new Array(byteCharacters.length);
+            for (let j = 0; j < byteCharacters.length; j++) {
+              byteNumbers[j] = byteCharacters.charCodeAt(j);
             }
-            fileExtension = fileExtensionFromMime(blob.type);
+            const byteArray = new Uint8Array(byteNumbers);
+            blob = new Blob([byteArray], { type: 'image/jpeg' });
           }
         }
 
+        // We mostly upload JPEGs (compressor always outputs JPEG)
+        const fileExtension: 'png' | 'jpg' = fileExtensionFromMime(blob.type);
         const fileName = `${practiceOds}/${patientId}/raw/page_${String(i + 1).padStart(3, '0')}.${fileExtension}`;
 
         const { error: uploadError } = await supabase.storage.from('lg').upload(fileName, blob, {
