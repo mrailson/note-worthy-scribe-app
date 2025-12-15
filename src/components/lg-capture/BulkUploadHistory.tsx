@@ -32,7 +32,7 @@ interface BatchPatient {
   processing_error?: string | null;
   error_message?: string | null;
   pdf_url: string | null;
-  pdf_size_mb?: number | null;
+  pdf_final_size_mb?: number | null;
   created_at: string;
   upload_started_at: string | null;
   upload_completed_at: string | null;
@@ -920,7 +920,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                                   )}
                                 </td>
                                 <td className="p-3 text-center">
-                                  {patient.pdf_size_mb ? `${patient.pdf_size_mb.toFixed(2)}MB` : '—'}
+                                  {patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)}MB` : '—'}
                                 </td>
                                 <td className="p-3 text-center">{summaryItems > 0 ? `${summaryItems} items` : '—'}</td>
                                 <td className="p-3 text-center">{medsCount > 0 ? medsCount : '—'}</td>

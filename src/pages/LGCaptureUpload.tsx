@@ -419,8 +419,10 @@ export default function LGCaptureUpload() {
             uploader_name: uploaderName,
             job_status: 'draft',
             images_count: pageCount,
+            source_page_count: pageCount,
             sex: 'unknown',
-            batch_id: batchId
+            batch_id: batchId,
+            source_filename: qFile.fileName
           });
 
         if (insertError) {
@@ -441,7 +443,10 @@ export default function LGCaptureUpload() {
             timestamp: Date.now()
           }));
 
-        queuePatient(patientId, practiceOds, capturedImages);
+        queuePatient(patientId, practiceOds, capturedImages, {
+          fileName: qFile.fileName,
+          fileSize: qFile.fileSize,
+        });
 
         setFiles(prev => prev.map(f => 
           f.id === qFile.id 
