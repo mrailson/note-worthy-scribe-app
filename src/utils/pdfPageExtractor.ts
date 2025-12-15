@@ -39,7 +39,7 @@ export interface PdfExtractionProgress {
  * @param dpi Target DPI for rendering (default 150 for balance of quality/size)
  * @param onProgress Callback for extraction progress
  * @param detectBlanks Whether to run blank page detection (default true)
- * @param preserveQuality Whether to extract at high quality (PNG) for pre-optimised scans
+ * @param preserveQuality Whether to keep original visual fidelity (high-quality JPEG blob URL)
  * @returns Array of extracted page images
  */
 export async function extractPdfPages(
@@ -56,8 +56,8 @@ export async function extractPdfPages(
   const extractedPages: ExtractedPage[] = [];
 
   // Scale factor: PDF default is 72 DPI
-  // Preserve quality mode renders at higher DPI (but stays blob-based to avoid huge base64 strings)
-  const effectiveDpi = preserveQuality ? 300 : dpi;
+  // Preserve quality mode keeps a blob-based pipeline (avoids huge base64 strings), but does NOT up-scale DPI.
+  const effectiveDpi = dpi;
   const scale = effectiveDpi / 72;
 
   // Phase 1: Extract pages
@@ -85,7 +85,7 @@ export async function extractPdfPages(
       .promise;
 
     // Convert to image reference
-    // Preserve quality mode: use PNG blob URL to avoid massive base64 data URLs
+    // Preserve quality mode: use a high-quality JPEG Blob URL to avoid massive base64 data URLs
     // Normal mode: JPEG data URL for speed/size
     let dataUrl: string;
     let blob: Blob | undefined;
@@ -93,8 +93,9 @@ export async function extractPdfPages(
     if (preserveQuality) {
       blob = await new Promise<Blob>((resolve, reject) => {
         canvas.toBlob(
-          (b) => (b ? resolve(b) : reject(new Error('Failed to create PNG blob'))),
-          'image/png'
+          (b) => (b ? resolve(b) : reject(new Error('Failed to create JPEG blob'))),
+          'image/jpeg',
+          0.92
         );
       });
       dataUrl = URL.createObjectURL(blob);
@@ -204,7 +205,8 @@ export async function extractPdfPages(
           // Preserve-quality: keep blob-based pipeline (avoid converting to huge base64)
           const { dataUrl: correctedUrl, wasRotated, blob } = await autoCorrectOrientationToBlobUrl(
             page.dataUrl,
-            'image/png'
+            'image/jpeg',
+            0.92
           );
 
           if (wasRotated && blob) {

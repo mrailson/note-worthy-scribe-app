@@ -408,7 +408,7 @@ export default function LGCaptureBulk() {
         const preserveQuality = localStorage.getItem('lg_preserve_quality') === 'true';
 
         // Extract pages from PDF - NO page removal, PDFs are pre-cleansed
-        // Use preserveQuality flag to extract at 300 DPI with PNG for pre-optimised scans
+        // Preserve quality mode keeps original visual fidelity but avoids over-scaling (prevents PDF generation timeouts)
         const pages = await extractPdfPages(
           qFile.file,
           150,
