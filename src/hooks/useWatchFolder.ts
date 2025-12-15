@@ -156,6 +156,52 @@ export function useWatchFolder(
     setPipelineFiles([]);
   }, []);
 
+  // When users refresh, files already saved into the local "Done" folder won't be in memory.
+  // Load existing PDFs from the Done subfolder so the Done tab reflects what's actually on disk.
+  const loadExistingDoneFiles = useCallback(async () => {
+    const doneHandle = doneFolderHandleRef.current as any;
+    if (!doneHandle) return;
+
+    try {
+      const found: WatchFolderFile[] = [];
+
+      for await (const [name, handle] of doneHandle.entries()) {
+        if (handle?.kind !== 'file') continue;
+        if (!name?.toLowerCase?.().endsWith('.pdf')) continue;
+
+        const file = await (handle as FileSystemFileHandle).getFile();
+        const when = new Date(file.lastModified || Date.now());
+
+        found.push({
+          id: crypto.randomUUID(),
+          originalFilename: name,
+          detectedAt: when,
+          stage: 'complete',
+          movedToImported: false,
+          savedToDone: true,
+          lgFilename: name,
+          savedAt: when,
+          pageCount: undefined,
+          patientName: undefined,
+        });
+      }
+
+      if (found.length === 0) return;
+
+      setPipelineFiles((prev) => {
+        const existing = new Set(
+          prev.map((p) => (p.lgFilename || p.originalFilename).toLowerCase())
+        );
+        const additions = found.filter((f) => !existing.has(f.lgFilename!.toLowerCase()));
+        return additions.length ? [...additions, ...prev] : prev;
+      });
+
+      console.log(`[Watch Folder] Loaded ${found.length} existing file(s) from Done folder`);
+    } catch (err) {
+      console.error('[Watch Folder] Failed to load existing Done files:', err);
+    }
+  }, []);
+
   // Move file to "Imported to AI for processing" subfolder
   const moveToImportedFolder = useCallback(async (fileName: string, fileHandle: FileSystemFileHandle) => {
     if (!directoryHandleRef.current) {
@@ -369,6 +415,9 @@ export function useWatchFolder(
         importedFolderHandleRef.current = await (handle as any).getDirectoryHandle('Imported to AI for processing', { create: true });
         doneFolderHandleRef.current = await (handle as any).getDirectoryHandle('Done', { create: true });
         console.log('[Watch Folder] Created/verified subfolders');
+
+        // Populate Done tab with any PDFs already in the Done subfolder (e.g. after refresh)
+        await loadExistingDoneFiles();
       } catch (subfolderErr) {
         console.error('[Watch Folder] Failed to create subfolders:', subfolderErr);
         toast.error('Failed to create subfolders');
@@ -399,7 +448,7 @@ export function useWatchFolder(
       console.error('Error selecting folder:', err);
       toast.error('Failed to select folder');
     }
-  }, [state.isSupported, inIframe, saveFolderName]);
+  }, [state.isSupported, inIframe, saveFolderName, loadExistingDoneFiles]);
 
   // Save completed PDF to Done subfolder
   const saveToDoneFolder = useCallback(async (pdfBlob: Blob, fileName: string) => {
@@ -476,6 +525,9 @@ export function useWatchFolder(
         try {
           importedFolderHandleRef.current = await (handle as any).getDirectoryHandle('Imported to AI for processing', { create: true });
           doneFolderHandleRef.current = await (handle as any).getDirectoryHandle('Done', { create: true });
+
+          // Populate Done tab with any PDFs already in the Done subfolder (e.g. after refresh)
+          await loadExistingDoneFiles();
         } catch (subfolderErr) {
           console.error('[Watch Folder] Failed to create subfolders:', subfolderErr);
           toast.error('Failed to create subfolders');
@@ -506,7 +558,7 @@ export function useWatchFolder(
       console.error('Error enabling watch folder:', err);
       toast.error('Failed to enable watch folder');
     }
-  }, [state.isSupported, inIframe, pollFolder, practiceOds, uploaderName, saveFolderName]);
+  }, [state.isSupported, inIframe, pollFolder, practiceOds, uploaderName, saveFolderName, loadExistingDoneFiles]);
 
   // Disable watch folder
   const disableWatchFolder = useCallback(() => {
