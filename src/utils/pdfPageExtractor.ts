@@ -1,6 +1,6 @@
 import * as pdfjsLib from 'pdfjs-dist';
 import { analyseBlankness, BlankAnalysisResult } from './blankPageDetector';
-import { autoCorrectOrientation } from './pageOrientationDetector';
+import { autoCorrectOrientation, autoCorrectOrientationToBlobUrl } from './pageOrientationDetector';
 import { detectPatchPageFromText } from './patchPageDetector';
 
 // Configure PDF.js worker - use the bundled worker (no external CDN)
@@ -19,6 +19,11 @@ export interface ExtractedPage {
   wasRotated?: boolean;
   isPatchPage?: boolean;
   patchConfidence?: number;
+  /**
+   * Optional original image blob (used for preserve-quality workflows).
+   * If present, uploads should prefer this over fetch(dataUrl).
+   */
+  blob?: Blob;
 }
 
 export interface PdfExtractionProgress {
@@ -34,8 +39,8 @@ export interface PdfExtractionProgress {
  * @param dpi Target DPI for rendering (default 150 for balance of quality/size)
  * @param onProgress Callback for extraction progress
  * @param detectBlanks Whether to run blank page detection (default true)
- * @param preserveQuality Whether to extract at high quality (300 DPI, PNG) for pre-optimised scans
- * @returns Array of extracted page images as data URLs
+ * @param preserveQuality Whether to extract at high quality (PNG) for pre-optimised scans
+ * @returns Array of extracted page images
  */
 export async function extractPdfPages(
   file: File,
@@ -51,7 +56,7 @@ export async function extractPdfPages(
   const extractedPages: ExtractedPage[] = [];
 
   // Scale factor: PDF default is 72 DPI
-  // Use 300 DPI for preserve quality mode to maintain original scan resolution
+  // Preserve quality mode renders at higher DPI (but stays blob-based to avoid huge base64 strings)
   const effectiveDpi = preserveQuality ? 300 : dpi;
   const scale = effectiveDpi / 72;
 
@@ -71,21 +76,28 @@ export async function extractPdfPages(
     canvas.height = viewport.height;
 
     // Render page to canvas
-    await page.render({
-      canvasContext: ctx,
-      viewport: viewport,
-      canvas: canvas,
-    }).promise;
+    await page
+      .render({
+        canvasContext: ctx,
+        viewport,
+        canvas,
+      })
+      .promise;
 
     // Convert to image reference
-    // Preserve quality mode: use PNG blob URL to avoid massive base64 data URLs (can exceed browser limits)
+    // Preserve quality mode: use PNG blob URL to avoid massive base64 data URLs
     // Normal mode: JPEG data URL for speed/size
     let dataUrl: string;
+    let blob: Blob | undefined;
+
     if (preserveQuality) {
-      const pngBlob: Blob = await new Promise((resolve, reject) => {
-        canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('Failed to create PNG blob'))), 'image/png');
+      blob = await new Promise<Blob>((resolve, reject) => {
+        canvas.toBlob(
+          (b) => (b ? resolve(b) : reject(new Error('Failed to create PNG blob'))),
+          'image/png'
+        );
       });
-      dataUrl = URL.createObjectURL(pngBlob);
+      dataUrl = URL.createObjectURL(blob);
     } else {
       dataUrl = canvas.toDataURL('image/jpeg', 0.85);
     }
@@ -98,6 +110,7 @@ export async function extractPdfPages(
       isBlank: false,
       blankConfidence: 0,
       wasRotated: false,
+      blob,
     });
 
     // Report progress - split between 3 phases
@@ -105,7 +118,7 @@ export async function extractPdfPages(
       onProgress({
         currentPage: pageNum,
         totalPages,
-        percentage: detectBlanks 
+        percentage: detectBlanks
           ? Math.round((pageNum / totalPages) * 33) // 0-33% for extraction
           : Math.round((pageNum / totalPages) * 100),
         phase: 'extracting',
@@ -127,16 +140,22 @@ export async function extractPdfPages(
         .map((item: any) => item.str)
         .join(' ')
         .trim();
-      
-      console.log(`[PDF Extractor] First page text for patch detection: "${firstPageText.substring(0, 100)}..."`);
-      
+
+      console.log(
+        `[PDF Extractor] First page text for patch detection: "${firstPageText.substring(0, 100)}..."`
+      );
+
       // Use TEXT-BASED detection only (not visual) to avoid false positives
       const patchResult = detectPatchPageFromText(firstPageText);
       extractedPages[0].isPatchPage = patchResult.isPatchPage;
       extractedPages[0].patchConfidence = patchResult.confidence;
-      
+
       if (patchResult.isPatchPage) {
-        console.log(`[PDF Extractor] First page detected as patch page with ${(patchResult.confidence * 100).toFixed(0)}% confidence. Pattern: ${patchResult.matchedPattern}`);
+        console.log(
+          `[PDF Extractor] First page detected as patch page with ${(patchResult.confidence * 100).toFixed(
+            0
+          )}% confidence. Pattern: ${patchResult.matchedPattern}`
+        );
       }
     } catch (err) {
       console.error('[PDF Extractor] Patch detection failed:', err);
@@ -174,18 +193,37 @@ export async function extractPdfPages(
   // Phase 3: Auto-correct upside-down pages (portrait pages only)
   for (let i = 0; i < extractedPages.length; i++) {
     const page = extractedPages[i];
-    
+
     // Only correct portrait pages (height > width * 0.9)
     // Sideways/landscape pages are left as-is per user request
     const isPortrait = page.height > page.width * 0.9;
-    
+
     if (isPortrait) {
       try {
-        const { dataUrl: correctedUrl, wasRotated } = await autoCorrectOrientation(page.dataUrl);
-        if (wasRotated) {
-          extractedPages[i].dataUrl = correctedUrl;
-          extractedPages[i].wasRotated = true;
-          console.log(`Page ${page.pageNumber} was upside-down and has been rotated`);
+        if (preserveQuality) {
+          // Preserve-quality: keep blob-based pipeline (avoid converting to huge base64)
+          const { dataUrl: correctedUrl, wasRotated, blob } = await autoCorrectOrientationToBlobUrl(
+            page.dataUrl,
+            'image/png'
+          );
+
+          if (wasRotated && blob) {
+            if (page.dataUrl.startsWith('blob:')) {
+              URL.revokeObjectURL(page.dataUrl);
+            }
+
+            extractedPages[i].dataUrl = correctedUrl;
+            extractedPages[i].blob = blob;
+            extractedPages[i].wasRotated = true;
+            console.log(`Page ${page.pageNumber} was upside-down and has been rotated`);
+          }
+        } else {
+          const { dataUrl: correctedUrl, wasRotated } = await autoCorrectOrientation(page.dataUrl);
+          if (wasRotated) {
+            extractedPages[i].dataUrl = correctedUrl;
+            extractedPages[i].wasRotated = true;
+            console.log(`Page ${page.pageNumber} was upside-down and has been rotated`);
+          }
         }
       } catch {
         // If orientation check fails, leave page as-is
@@ -197,7 +235,7 @@ export async function extractPdfPages(
       onProgress({
         currentPage: i + 1,
         totalPages: extractedPages.length,
-        percentage: detectBlanks 
+        percentage: detectBlanks
           ? 66 + Math.round(((i + 1) / extractedPages.length) * 34) // 66-100% for correction
           : 50 + Math.round(((i + 1) / extractedPages.length) * 50), // 50-100% if no blank detection
         phase: 'correcting',
@@ -216,3 +254,4 @@ export async function getPdfPageCount(file: File): Promise<number> {
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   return pdf.numPages;
 }
+

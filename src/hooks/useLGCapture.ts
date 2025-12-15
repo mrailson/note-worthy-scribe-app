@@ -107,6 +107,10 @@ export interface CapturedImage {
   dataUrl: string;
   timestamp: number;
   hash?: string;
+  /**
+   * Optional original image blob (used for preserve-quality PDF extraction to avoid huge base64 strings).
+   */
+  blob?: Blob;
 }
 
 // Simplified input - only requires practice and uploader

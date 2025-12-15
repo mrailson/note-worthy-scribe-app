@@ -6,7 +6,7 @@
 /**
  * Analyse an image to detect if it's upside-down
  * Compares "ink density" (dark pixels) in top vs bottom regions
- * @param dataUrl The image data URL to analyse
+ * @param dataUrl The image data URL (or blob: URL) to analyse
  * @returns Promise resolving to true if page appears upside-down
  */
 export async function isPageUpsideDown(dataUrl: string): Promise<boolean> {
@@ -37,7 +37,7 @@ export async function isPageUpsideDown(dataUrl: string): Promise<boolean> {
         // Sample top 15% and bottom 15% of the page (avoid very edges)
         const sampleHeight = Math.floor(height * 0.15);
         const edgeMargin = Math.floor(height * 0.03);
-        
+
         let topDarkPixels = 0;
         let bottomDarkPixels = 0;
         let topTotal = 0;
@@ -49,7 +49,7 @@ export async function isPageUpsideDown(dataUrl: string): Promise<boolean> {
             const idx = (y * width + x) * 4;
             const luminance = 0.299 * pixels[idx] + 0.587 * pixels[idx + 1] + 0.114 * pixels[idx + 2];
             topTotal++;
-            if (luminance < 200) { // Count non-white pixels (text/content)
+            if (luminance < 200) {
               topDarkPixels++;
             }
           }
@@ -75,12 +75,13 @@ export async function isPageUpsideDown(dataUrl: string): Promise<boolean> {
 
         // Document pages typically have headers/titles at top
         // If bottom has significantly more content than top, page is likely upside-down
-        // Use threshold: bottom must be at least 1.15x top density OR have 1.5% more absolute density
         const densityDiff = bottomDensity - topDensity;
         const isUpsideDown = (bottomDensity > topDensity * 1.15 && densityDiff > 0.015) || densityDiff > 0.03;
-        
-        console.log(`[Orientation] Top: ${(topDensity * 100).toFixed(1)}%, Bottom: ${(bottomDensity * 100).toFixed(1)}%, Diff: ${(densityDiff * 100).toFixed(1)}%, Upside-down: ${isUpsideDown}`);
-        
+
+        console.log(
+          `[Orientation] Top: ${(topDensity * 100).toFixed(1)}%, Bottom: ${(bottomDensity * 100).toFixed(1)}%, Diff: ${(densityDiff * 100).toFixed(1)}%, Upside-down: ${isUpsideDown}`
+        );
+
         resolve(isUpsideDown);
       } catch {
         resolve(false);
@@ -93,9 +94,7 @@ export async function isPageUpsideDown(dataUrl: string): Promise<boolean> {
 }
 
 /**
- * Rotate an image data URL by 180 degrees
- * @param dataUrl The image data URL to rotate
- * @returns Promise resolving to rotated image data URL
+ * Rotate an image by 180 degrees and return a DATA URL (JPEG)
  */
 export async function rotateImage180(dataUrl: string): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -131,6 +130,54 @@ export async function rotateImage180(dataUrl: string): Promise<string> {
 }
 
 /**
+ * Rotate an image by 180 degrees and return a Blob (useful to avoid huge base64 strings).
+ */
+export async function rotateImage180ToBlob(
+  dataUrl: string,
+  mime: 'image/png' | 'image/jpeg' = 'image/png',
+  quality: number = 0.92
+): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Failed to get canvas context'));
+          return;
+        }
+
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        ctx.translate(canvas.width / 2, canvas.height / 2);
+        ctx.rotate(Math.PI);
+        ctx.drawImage(img, -img.width / 2, -img.height / 2);
+
+        canvas.toBlob(
+          (b) => {
+            canvas.remove();
+            if (!b) {
+              reject(new Error('Failed to create rotated image blob'));
+              return;
+            }
+            resolve(b);
+          },
+          mime,
+          mime === 'image/jpeg' ? quality : undefined
+        );
+      } catch (error) {
+        reject(error);
+      }
+    };
+
+    img.onerror = () => reject(new Error('Failed to load image for rotation'));
+    img.src = dataUrl;
+  });
+}
+
+/**
  * Check and auto-correct upside-down pages
  * @param dataUrl The image data URL
  * @returns Promise resolving to corrected data URL (rotated if needed)
@@ -147,3 +194,26 @@ export async function autoCorrectOrientation(dataUrl: string): Promise<{ dataUrl
     return { dataUrl, wasRotated: false };
   }
 }
+
+/**
+ * Preserve-quality variant: rotate into a Blob URL (avoids massive base64 strings).
+ *
+ * NOTE: Caller is responsible for calling URL.revokeObjectURL() when finished.
+ */
+export async function autoCorrectOrientationToBlobUrl(
+  dataUrl: string,
+  mime: 'image/png' | 'image/jpeg' = 'image/png',
+  quality: number = 0.92
+): Promise<{ dataUrl: string; wasRotated: boolean; blob?: Blob }> {
+  try {
+    const upsideDown = await isPageUpsideDown(dataUrl);
+    if (!upsideDown) return { dataUrl, wasRotated: false };
+
+    const blob = await rotateImage180ToBlob(dataUrl, mime, quality);
+    const blobUrl = URL.createObjectURL(blob);
+    return { dataUrl: blobUrl, wasRotated: true, blob };
+  } catch {
+    return { dataUrl, wasRotated: false };
+  }
+}
+
