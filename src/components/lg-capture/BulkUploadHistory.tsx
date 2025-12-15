@@ -873,6 +873,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                             <th className="p-3 font-semibold text-xs uppercase text-muted-foreground">Patient Name</th>
                             <th className="p-3 font-semibold text-xs uppercase text-muted-foreground">DOB</th>
                             <th className="p-3 font-semibold text-xs uppercase text-muted-foreground text-center">Pages</th>
+                            <th className="p-3 font-semibold text-xs uppercase text-muted-foreground text-center">Size</th>
                             <th className="p-3 font-semibold text-xs uppercase text-muted-foreground text-center">Summary</th>
                             <th className="p-3 font-semibold text-xs uppercase text-muted-foreground text-center">Meds</th>
                             <th className="p-3 font-semibold text-xs uppercase text-muted-foreground text-center">Status</th>
@@ -917,6 +918,9 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                                   ) : (
                                     patient.images_count || 0
                                   )}
+                                </td>
+                                <td className="p-3 text-center">
+                                  {patient.pdf_size_mb ? `${patient.pdf_size_mb.toFixed(2)}MB` : '—'}
                                 </td>
                                 <td className="p-3 text-center">{summaryItems > 0 ? `${summaryItems} items` : '—'}</td>
                                 <td className="p-3 text-center">{medsCount > 0 ? medsCount : '—'}</td>
