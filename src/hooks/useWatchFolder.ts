@@ -34,6 +34,7 @@ export interface WatchFolderFile {
   patientId?: string;
   patientName?: string;
   pageCount?: number;
+  fileSize?: number;
   aiCompletedAt?: Date;
   movedToImported: boolean;
   movedAt?: Date;
@@ -172,6 +173,17 @@ export function useWatchFolder(
         const file = await (handle as FileSystemFileHandle).getFile();
         const when = new Date(file.lastModified || Date.now());
 
+        // Parse patient name and page count from LG filename pattern:
+        // Lloyd_George_Record_XX_of_YY_Surname_Forename_NHS_DD_MMM_YYYY.pdf
+        let parsedPatientName: string | undefined;
+        let parsedPageCount: number | undefined;
+        
+        const lgMatch = name.match(/Lloyd_George_Record_(\d+)_of_(\d+)_([^_]+)_([^_]+)_(\d+)_/);
+        if (lgMatch) {
+          parsedPageCount = parseInt(lgMatch[2], 10);
+          parsedPatientName = `${lgMatch[4]} ${lgMatch[3]}`; // Forename Surname
+        }
+
         found.push({
           id: crypto.randomUUID(),
           originalFilename: name,
@@ -181,8 +193,9 @@ export function useWatchFolder(
           savedToDone: true,
           lgFilename: name,
           savedAt: when,
-          pageCount: undefined,
-          patientName: undefined,
+          pageCount: parsedPageCount,
+          fileSize: file.size,
+          patientName: parsedPatientName,
         });
       }
 
