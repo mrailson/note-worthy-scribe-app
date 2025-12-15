@@ -6,7 +6,7 @@ import { LGCameraCapture } from '@/components/lg-capture/LGCameraCapture';
 
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 
 export default function LGCaptureCamera() {
   const { id } = useParams<{ id: string }>();
@@ -24,7 +24,6 @@ export default function LGCaptureCamera() {
       if (data) {
         setPatient(data);
       } else {
-        toast.error('Session not found');
         navigate('/lg-capture');
       }
     };
@@ -33,7 +32,6 @@ export default function LGCaptureCamera() {
 
   const handleDoneNextPatient = () => {
     if (!patient || images.length === 0) {
-      toast.error('Please capture at least one page');
       return;
     }
 

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Mail, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 
 interface LGEmailButtonProps {
   patient: LGPatient;
@@ -136,7 +136,7 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
 
   const handleSend = async () => {
     if (!userEmail) {
-      toast.error('No email address found. Please log in.');
+      console.error('No email address found');
       return;
     }
 
@@ -235,7 +235,6 @@ export function LGEmailButton({ patient }: LGEmailButtonProps) {
     } catch (err) {
       console.error('Failed to send email:', err);
       console.error('Error details:', err instanceof Error ? err.stack : err);
-      toast.error('Failed to send email. Please try again.');
     } finally {
       setSending(false);
     }

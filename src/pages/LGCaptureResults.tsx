@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowLeft, Loader2, Plus, RefreshCw, User, AlertTriangle, CheckCircle2, Trash2, ShieldCheck, ShieldAlert, ShieldX, Users } from 'lucide-react';
 import pdfIcon from '@/assets/pdf-icon.png';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import { supabase } from '@/integrations/supabase/client';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -89,7 +89,6 @@ export default function LGCaptureResults() {
         } catch (e) { /* ignore */ }
       }
     } else {
-      toast.error('Patient not found');
       navigate('/lg-capture');
     }
     setLoading(false);
@@ -185,14 +184,13 @@ export default function LGCaptureResults() {
         .createSignedUrl(path, 60);
       
       if (error || !data?.signedUrl) {
-        toast.error('Failed to generate download link');
+        console.error('Failed to generate download link');
         return;
       }
       
       window.open(data.signedUrl, '_blank');
     } catch (err) {
       console.error('PDF download error:', err);
-      toast.error('Failed to download PDF');
     }
   };
 

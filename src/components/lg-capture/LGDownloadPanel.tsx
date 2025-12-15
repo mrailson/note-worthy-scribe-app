@@ -5,7 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Download, FileText, FileJson, FileSpreadsheet, ExternalLink, ChevronDown, FileWarning, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { LGPatient } from '@/hooks/useLGCapture';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import { useIsIPhone } from '@/hooks/use-mobile';
 import { LGPdfThumbnailPreview } from './LGPdfThumbnailPreview';
 import { generateLGFilename, generateLGBaseFilename } from '@/utils/lgFilenameGenerator';
@@ -70,7 +70,7 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
 
   const openFileForViewing = async (url: string | null, filename: string) => {
     if (!url) {
-      toast.error('File not available');
+      console.error('File not available');
       return;
     }
 
@@ -107,7 +107,6 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
       }
     } catch (err) {
       console.error('Open file error:', err);
-      toast.error('Failed to open file');
     } finally {
       setDownloading(null);
     }
@@ -115,7 +114,7 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
 
   const downloadFile = async (url: string | null, filename: string) => {
     if (!url) {
-      toast.error('File not available');
+      console.error('File not available');
       return;
     }
 
@@ -153,7 +152,6 @@ export function LGDownloadPanel({ patient }: LGDownloadPanelProps) {
       }, 100);
     } catch (err) {
       console.error('Download error:', err);
-      toast.error('Failed to download file');
     } finally {
       setDownloading(null);
     }

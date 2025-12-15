@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { ArrowLeft, Search, Plus, FileText, Loader2, CheckCircle2, XCircle, Clock, Upload, Trash2, ShieldCheck, RefreshCw, RotateCcw, X, ListOrdered, History, UserX, AlertTriangle, ChevronDown, ChevronRight, Files } from 'lucide-react';
 import { format } from 'date-fns';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import pdfIcon from '@/assets/pdf-icon.png';
 import { LGValidationModal } from '@/components/lg-capture/LGValidationModal';
 import BulkUploadHistory from '@/components/lg-capture/BulkUploadHistory';
@@ -138,7 +138,6 @@ export default function LGCapturePatients() {
 
   const handleDeleteAll = async () => {
     if (deleteConfirmText.toLowerCase() !== 'yes i am sure') {
-      toast.error('Please type "yes i am sure" to confirm deletion');
       return;
     }
     
@@ -156,7 +155,6 @@ export default function LGCapturePatients() {
       setDeleteConfirmText('');
     } catch (error) {
       console.error('Delete all error:', error);
-      toast.error('Failed to delete all captures');
     } finally {
       setIsDeleting(false);
     }
@@ -259,7 +257,6 @@ export default function LGCapturePatients() {
       if (error) throw error;
     } catch (err) {
       console.error('Reprocess error:', err);
-      toast.error('Failed to reprocess');
     } finally {
       setReprocessingId(null);
     }
@@ -276,7 +273,6 @@ export default function LGCapturePatients() {
       setPatients(prev => prev.filter(p => p.id !== patientId));
     } catch (err) {
       console.error('Delete draft error:', err);
-      toast.error('Failed to delete draft');
     }
   };
 
@@ -457,7 +453,6 @@ export default function LGCapturePatients() {
                 URL.revokeObjectURL(blobUrl);
               } catch (err) {
                 console.error('PDF download error:', err);
-                toast.error('Failed to download PDF');
               }
             };
             

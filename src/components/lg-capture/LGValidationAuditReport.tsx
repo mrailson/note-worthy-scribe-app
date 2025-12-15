@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, BorderStyle, AlignmentType } from 'docx';
@@ -221,7 +221,6 @@ export function LGValidationAuditReport({ patient, uploaderName = 'Unknown', pra
       saveAs(blob, filename);
     } catch (err) {
       console.error('Error generating audit report:', err);
-      toast.error('Failed to generate audit report');
     } finally {
       setGenerating(false);
     }
@@ -229,7 +228,6 @@ export function LGValidationAuditReport({ patient, uploaderName = 'Unknown', pra
 
   const emailAuditReport = async () => {
     if (!userEmail) {
-      toast.error('No email address found in your profile');
       return;
     }
 
@@ -278,7 +276,6 @@ export function LGValidationAuditReport({ patient, uploaderName = 'Unknown', pra
       if (error) throw error;
     } catch (err) {
       console.error('Error emailing audit report:', err);
-      toast.error('Failed to send audit report');
     } finally {
       setEmailing(false);
     }

@@ -7,7 +7,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { ArrowLeft, Camera, Loader2, Upload, Play } from 'lucide-react';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 
 export default function LGCaptureStart() {
   const navigate = useNavigate();
@@ -58,7 +58,6 @@ export default function LGCaptureStart() {
         setSettingsReady(true);
       } else {
         // No settings - redirect to landing to configure
-        toast.error('Please configure settings first');
         navigate('/lg-capture');
       }
     };
@@ -74,8 +73,6 @@ export default function LGCaptureStart() {
 
     if (patientId) {
       navigate(`/lg-capture/capture/${patientId}`, { replace: true });
-    } else {
-      toast.error('Failed to create session');
     }
   };
 

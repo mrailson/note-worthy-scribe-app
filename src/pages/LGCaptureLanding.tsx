@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsIPhone } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import { LGAIModel } from '@/contexts/LGUploadQueueContext';
 
 interface Practice {
@@ -191,12 +191,10 @@ export default function LGCaptureLanding() {
 
   const saveSettings = async () => {
     if (!user?.id) {
-      toast.error('Please log in to save settings');
       return;
     }
 
     if (!practiceOds.trim() || !uploaderName.trim()) {
-      toast.error('Please fill in all fields');
       return;
     }
 
@@ -206,8 +204,6 @@ export default function LGCaptureLanding() {
 
     if (saved) {
       setShowSettings(false);
-    } else {
-      toast.error('Failed to save settings');
     }
   };
 
@@ -405,7 +401,6 @@ export default function LGCaptureLanding() {
           onClick={async () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-              toast.error('Please log in first');
               return;
             }
             const { generateULID } = await import('@/utils/ulid');
@@ -421,7 +416,6 @@ export default function LGCaptureLanding() {
                 sex: 'unknown',
               });
             if (error) {
-              toast.error('Failed to create demo session');
               return;
             }
             navigate(`/lg-capture/demo/${patientId}`);
