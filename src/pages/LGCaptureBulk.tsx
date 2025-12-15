@@ -21,7 +21,7 @@ import { useLGCapture, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { extractPdfPages, ExtractedPage } from '@/utils/pdfPageExtractor';
 import { generateULID } from '@/utils/ulid';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import { format } from 'date-fns';
 import { CapturedImage } from '@/hooks/useLGCapture';
 import WatchFolderSettings from '@/components/lg-capture/WatchFolderSettings';
@@ -186,7 +186,6 @@ export default function LGCaptureBulk() {
       if (error) throw error;
     } catch (err) {
       console.error('Reprocess error:', err);
-      toast.error('Failed to reprocess');
     } finally {
       setReprocessingId(null);
     }
@@ -328,7 +327,6 @@ export default function LGCaptureBulk() {
       URL.revokeObjectURL(blobUrl);
     } catch (err) {
       console.error('PDF download error:', err);
-      toast.error('Failed to download PDF');
     }
   };
 
@@ -336,7 +334,7 @@ export default function LGCaptureBulk() {
     const pdfFiles = acceptedFiles.filter(f => f.type === 'application/pdf');
     
     if (pdfFiles.length !== acceptedFiles.length) {
-      toast.warning('Some files were skipped - only PDF files are accepted');
+      console.log('Some files were skipped - only PDF files are accepted');
     }
     
     const newFiles: QueuedFile[] = pdfFiles.map(file => ({
@@ -361,7 +359,6 @@ export default function LGCaptureBulk() {
 
   const processFiles = async () => {
     if (!user?.id || !practiceOds || !uploaderName) {
-      toast.error('Please configure practice settings first');
       navigate('/lg-capture');
       return;
     }
@@ -462,7 +459,6 @@ export default function LGCaptureBulk() {
       setRecentlyQueuedCount(queuedNow);
       setFiles([]); // Clear files immediately
       setBatchId(crypto.randomUUID()); // New batch ID for next uploads
-      toast.success(`${queuedNow} file${queuedNow !== 1 ? 's' : ''} queued for processing`);
     }
 
     setIsProcessing(false);

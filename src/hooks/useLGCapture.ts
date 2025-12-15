@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { generateULID } from '@/utils/ulid';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import { compressLgImageFromDataUrl } from '@/utils/lgImageCompressor';
 // Helper function to convert data URL to Blob (more reliable than fetch)
 function dataUrlToBlob(dataUrl: string): Blob {
@@ -154,7 +154,6 @@ export function useLGCapture() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to create session';
       setError(message);
-      toast.error(message);
       return null;
     } finally {
       setIsLoading(false);
@@ -255,7 +254,6 @@ export function useLGCapture() {
 
         if (uploadError) {
           console.error(`Upload error for image ${i + 1}:`, uploadError);
-          toast.error(`Upload failed: ${uploadError.message}`);
           throw uploadError;
         }
 
@@ -289,7 +287,6 @@ export function useLGCapture() {
       console.error('Upload error:', err);
       const message = err instanceof Error ? err.message : 'Failed to upload images';
       setError(message);
-      toast.error(`Upload failed: ${message}`);
       
       // Update status to failed
       await supabase
@@ -349,7 +346,6 @@ export function useLGCapture() {
       console.error('triggerProcessing error:', err);
       const message = err instanceof Error ? err.message : 'Failed to start processing';
       setError(message);
-      toast.error(`Processing failed: ${message}`);
       return false;
     } finally {
       setIsLoading(false);
@@ -434,7 +430,6 @@ export function useLGCapture() {
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Failed to delete record';
       setError(message);
-      toast.error(message);
       return false;
     } finally {
       setIsLoading(false);
@@ -468,7 +463,6 @@ export function useLGCapture() {
       console.error('retrySummary error:', err);
       const message = err instanceof Error ? err.message : 'Failed to retry summary';
       setError(message);
-      toast.error(`Retry failed: ${message}`);
       return false;
     } finally {
       setIsLoading(false);
@@ -534,7 +528,6 @@ export function useLGCapture() {
       console.error('restartOCR error:', err);
       const message = err instanceof Error ? err.message : 'Failed to restart OCR';
       setError(message);
-      toast.error(`Restart failed: ${message}`);
       return false;
     } finally {
       setIsLoading(false);
@@ -573,13 +566,11 @@ export function useLGCapture() {
 
       console.log('PDF generation triggered successfully');
       await logAuditEvent(patientId, 'pdf_retry', user.email || 'unknown', user.id, {});
-      toast.success('PDF generation started');
       return true;
     } catch (err) {
       console.error('retryPdfGeneration error:', err);
       const message = err instanceof Error ? err.message : 'Failed to retry PDF generation';
       setError(message);
-      toast.error(`PDF generation failed: ${message}`);
       return false;
     } finally {
       setIsLoading(false);

@@ -2,7 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Camera, X, RotateCcw, SwitchCamera, AlertTriangle, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import { generateULID } from '@/utils/ulid';
 import { CapturedImage } from '@/hooks/useLGCapture';
 
@@ -110,7 +110,6 @@ export function LGCameraModal({
     } catch (err) {
       console.error('Camera error:', err);
       setIsCameraLoading(false);
-      toast.error('Failed to access camera');
       onOpenChange(false);
     }
   }, [enumerateCameras, onOpenChange]);
@@ -219,7 +218,6 @@ export function LGCameraModal({
     };
 
     if (capturedCount + sessionCaptureCount >= maxPages) {
-      toast.error(`Maximum ${maxPages} pages allowed`);
       return;
     }
 

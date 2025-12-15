@@ -13,7 +13,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { ArrowLeft, Loader2, FileImage, Trash2, GripVertical, Users, Check, FileText, Settings, ChevronDown } from 'lucide-react';
 
 type ServiceLevel = 'rename_only' | 'index_summary' | 'full_service';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import { extractPdfPages } from '@/utils/pdfPageExtractor';
 import { generateULID } from '@/utils/ulid';
 import { supabase } from '@/integrations/supabase/client';
@@ -84,7 +84,6 @@ export default function LGCaptureDemoService() {
       if (data) {
         setPatient(data);
       } else {
-        toast.error('Session not found');
         navigate('/lg-capture');
       }
     };
@@ -110,10 +109,8 @@ export default function LGCaptureDemoService() {
       }));
       
       setImages(loadedImages);
-      toast.success(`Loaded ${loadedImages.length} pages from ${size} demo`);
     } catch (error) {
       console.error('Error loading demo PDF:', error);
-      toast.error('Failed to load demo PDF');
     } finally {
       setIsLoading(false);
       setLoadingLabel('');

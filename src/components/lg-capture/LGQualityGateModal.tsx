@@ -22,7 +22,7 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 
 interface SnomedItem {
   id: string;
@@ -125,7 +125,6 @@ export function LGQualityGateModal({
       setProgress(100);
     } catch (err) {
       console.error('Quality gate error:', err);
-      toast.error('Failed to run quality gate: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
       setIsRunning(false);
     }
@@ -201,7 +200,6 @@ export function LGQualityGateModal({
       onClose();
     } catch (err) {
       console.error('Failed to apply corrections:', err);
-      toast.error('Failed to apply corrections');
     } finally {
       setApplyingCorrections(false);
     }

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import { CapturedImage } from '@/hooks/useLGCapture';
 import { compressLgImageFromDataUrl } from '@/utils/lgImageCompressor';
 
@@ -183,7 +183,7 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
         .update({ job_status: 'failed' })
         .eq('id', patient.patientId);
 
-      toast.error(`Upload failed: ${errorMessage}`);
+      console.error(`Upload failed: ${errorMessage}`);
     } finally {
       processingCountRef.current--;
     }

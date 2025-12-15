@@ -8,8 +8,7 @@ import { Progress } from '@/components/ui/progress';
 import { Loader2, FileText, Check, X, Clock, Calendar, Files, ChevronDown, ChevronUp, Download, AlertCircle, Timer, RotateCcw, Trash2, AlertTriangle, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, formatDistanceToNow, differenceInMinutes } from 'date-fns';
-import { toast } from 'sonner';
-// Warning beep sound removed - was too distracting
+// Toast messages removed from LG Capture service
 
 interface IdentityIssue {
   type: 'nhs_mismatch' | 'dob_mismatch' | 'name_mismatch' | 'third_party_document' | string;
@@ -101,36 +100,16 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
         ? patient.identity_verification_issues 
         : [];
       
-      // Critical conflict: Multiple NHS AND multiple DOBs = definitely mixed records
+      // Identity alerts removed - rely on visual indicators in UI only
       if (multipleNhs && multipleDobs) {
-        // Sound removed - was too distracting
-        toast.error('⚠️ MIXED PATIENT RECORDS DETECTED', {
-          description: `File "${patient.ai_extracted_name || 'Unknown'}" contains documents from ${patient.all_nhs_numbers_found?.length} different patients. Review immediately!`,
-          duration: 15000,
-        });
         alertedPatientIds.current.add(patient.id);
       } else if (patient.identity_verification_status === 'conflict') {
-        // AI detected conflict - sound removed
-        toast.error('⚠️ PATIENT IDENTITY CONFLICT', {
-          description: `File "${patient.ai_extracted_name || 'Unknown'}" may contain mixed patient records. Review immediately.`,
-          duration: 15000,
-        });
         alertedPatientIds.current.add(patient.id);
       } else if (multipleNhs || multipleDobs) {
-        // Warning: only one type differs
-        toast.warning('Patient Identity Warning', {
-          description: `File "${patient.ai_extracted_name || 'Unknown'}" has ${multipleNhs ? 'multiple NHS numbers' : 'multiple DOBs'} detected. Please verify.`,
-          duration: 10000,
-        });
         alertedPatientIds.current.add(patient.id);
       } else if (multipleNames && issues.length > 0) {
-        // Multiple names with some identity issues - may be name change
         const allSamePatient = issues.every(i => i.is_likely_same_patient);
         if (!allSamePatient) {
-          toast.warning('Patient Identity Warning', {
-            description: `File "${patient.ai_extracted_name || 'Unknown'}" has identity inconsistencies. May be married/maiden name.`,
-            duration: 10000,
-          });
           alertedPatientIds.current.add(patient.id);
         }
       }
@@ -354,11 +333,9 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
         .eq('id', patientId);
 
       if (error) throw error;
-      toast.success('Record cancelled');
       loadBatchHistory(false);
     } catch (err) {
       console.error('Error cancelling record:', err);
-      toast.error('Failed to cancel record');
     }
   };
 
@@ -386,11 +363,9 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
         console.warn('Edge function invocation failed, record still queued for background processing:', invokeError);
       }
 
-      toast.success('Record queued for retry');
       loadBatchHistory(false);
     } catch (err) {
       console.error('Error retrying record:', err);
-      toast.error('Failed to retry record');
     }
   };
 
@@ -400,7 +375,6 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
       const stuckIds = stuckPatients.filter(p => isStuck(p)).map(p => p.id);
       
       if (stuckIds.length === 0) {
-        toast.info('No stuck records to cancel');
         return;
       }
 
@@ -413,11 +387,9 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
         .in('id', stuckIds);
 
       if (error) throw error;
-      toast.success(`Cancelled ${stuckIds.length} stuck record(s)`);
       loadBatchHistory(false);
     } catch (err) {
       console.error('Error cancelling stuck records:', err);
-      toast.error('Failed to cancel stuck records');
     }
   };
 

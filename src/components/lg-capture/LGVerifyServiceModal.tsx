@@ -32,7 +32,7 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+// Toast messages removed from LG Capture service
 import { LGPatient } from '@/hooks/useLGCapture';
 
 interface LGVerifyServiceModalProps {
@@ -144,10 +144,8 @@ export function LGVerifyServiceModal({ patient, onVerificationComplete }: LGVeri
 
       setResult(data);
       onVerificationComplete?.(data);
-      toast.success(`Verification complete: ${data.overall_rag_rating.toUpperCase()} (${data.overall_score}%)`);
     } catch (err) {
       console.error('Verification error:', err);
-      toast.error('Failed to run verification');
     } finally {
       setVerifying(false);
     }
