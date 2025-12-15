@@ -65,8 +65,8 @@ export async function compressLgImageFile(file: File): Promise<File> {
  * Core compression logic - works with any HTMLImageElement
  */
 async function compressImageElement(img: HTMLImageElement): Promise<Blob> {
-  const MAX_WIDTH = 600;  // Target width for Lloyd George pages - optimised for file size
-  const JPEG_QUALITY = 0.40;  // 40% quality - aggressive compression for text documents (~15-35KB per page)
+  const MAX_WIDTH = 800;  // Balanced width for Lloyd George pages - readable text with good compression
+  const JPEG_QUALITY = 0.50;  // 50% quality - balanced between readability and file size
   
   // Calculate scaled dimensions (maintain aspect ratio)
   const scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
