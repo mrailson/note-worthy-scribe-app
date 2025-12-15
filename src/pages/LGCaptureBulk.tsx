@@ -351,6 +351,18 @@ export default function LGCaptureBulk() {
     setFiles(prev => [...prev, ...newFiles]);
   }, [batchId]);
 
+  // Auto-process files when they are dropped (if settings are configured)
+  useEffect(() => {
+    const pendingFiles = files.filter(f => f.status === 'pending');
+    if (pendingFiles.length > 0 && !isProcessing && user?.id && practiceOds && uploaderName) {
+      // Small delay to allow UI to update and batch multiple rapid drops
+      const timer = setTimeout(() => {
+        processFiles();
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [files, isProcessing, user?.id, practiceOds, uploaderName]);
+
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: { 'application/pdf': ['.pdf'] },
