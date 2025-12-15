@@ -1,19 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { 
-  FolderSearch, FolderOpen, Check, X, Loader2, 
-  ChevronDown, AlertTriangle, Trash2, Clock, FolderInput, ArrowRight, RotateCcw
-} from 'lucide-react';
-import { useWatchFolder, ActivityLogEntry } from '@/hooks/useWatchFolder';
+import { Badge } from '@/components/ui/badge';
+import { FolderOpen, AlertTriangle } from 'lucide-react';
+import { useWatchFolder } from '@/hooks/useWatchFolder';
 import { cn } from '@/lib/utils';
-import { useState } from 'react';
-import { format } from 'date-fns';
 
 interface WatchFolderSettingsProps {
   practiceOds: string;
@@ -26,232 +15,94 @@ export default function WatchFolderSettings({
   uploaderName, 
   batchId 
 }: WatchFolderSettingsProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  
   const {
     isSupported,
     isWatching,
     folderName,
-    pollingInterval,
-    processedFiles,
-    recentActivity,
-    selectFolder,
-    startWatching,
-    stopWatching,
-    setPollingInterval,
-    clearProcessedFiles,
-    restartService,
+    enableWatchFolder,
+    disableWatchFolder,
     needsReselect
   } = useWatchFolder(practiceOds, uploaderName, batchId);
 
   // Display name: actual folder or saved name that needs re-selection
-  const displayWatchFolder = folderName || (needsReselect.watchFolder ? needsReselect.savedWatchName : null);
-  const watchNeedsReselect = !folderName && needsReselect.watchFolder;
+  const displayFolderName = folderName || needsReselect.savedWatchName;
+  const showReselectWarning = !folderName && needsReselect.watchFolder;
 
   // Check if in iframe
   const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
 
   if (!isSupported) {
     return (
-      <Card className="border-amber-200 bg-amber-50/50">
-        <CardContent className="pt-4">
-          <div className="flex items-center gap-3 text-amber-700">
-            <AlertTriangle className="h-5 w-5 flex-shrink-0" />
-            <div className="text-sm">
-              {isInIframe ? (
-                <>
-                  <p className="font-medium">Watch Folder requires a new browser tab</p>
-                  <p className="text-amber-600">This feature cannot work in the preview iframe. Open the app in a new tab using the external link icon.</p>
-                </>
-              ) : (
-                <>
-                  <p className="font-medium">Watch Folder requires Chrome or Edge</p>
-                  <p className="text-amber-600">This feature uses the File System Access API which is not supported in your browser.</p>
-                </>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex items-center gap-3 p-3 rounded-lg border border-amber-200 bg-amber-50/50 text-amber-700">
+        <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+        <span className="text-sm">
+          {isInIframe 
+            ? 'Watch Folder requires a new browser tab' 
+            : 'Watch Folder requires Chrome or Edge'}
+        </span>
+      </div>
     );
   }
 
-  const getStatusIcon = (status: ActivityLogEntry['status']) => {
-    switch (status) {
-      case 'detected':
-        return <FolderSearch className="h-3 w-3 text-blue-500" />;
-      case 'processing':
-        return <Loader2 className="h-3 w-3 text-amber-500 animate-spin" />;
-      case 'queued':
-        return <Check className="h-3 w-3 text-green-500" />;
-      case 'failed':
-        return <X className="h-3 w-3 text-red-500" />;
-      case 'moved':
-        return <ArrowRight className="h-3 w-3 text-purple-500" />;
+  const handleToggle = async (checked: boolean) => {
+    if (checked) {
+      await enableWatchFolder();
+    } else {
+      disableWatchFolder();
     }
   };
 
   return (
-    <Collapsible open={isOpen} onOpenChange={setIsOpen}>
-      <Card>
-        <CollapsibleTrigger asChild>
-          <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
-            <CardTitle className="text-base flex items-center justify-between">
-              <span className="flex items-center gap-2">
-                <FolderOpen className="h-4 w-4" />
-                Watch Folder
-                {isWatching && (
-                  <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-200">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse" />
-                    Active
-                  </Badge>
-                )}
-              </span>
-              <ChevronDown className={cn("h-4 w-4 transition-transform", isOpen && "rotate-180")} />
-            </CardTitle>
-          </CardHeader>
-        </CollapsibleTrigger>
+    <div className="space-y-2">
+      {/* Main toggle row */}
+      <div className="flex items-center justify-between p-3 rounded-lg border bg-card">
+        <div className="flex items-center gap-3">
+          <Switch
+            id="watch-folder-toggle"
+            checked={isWatching}
+            onCheckedChange={handleToggle}
+          />
+          <label 
+            htmlFor="watch-folder-toggle" 
+            className="text-sm font-medium cursor-pointer flex items-center gap-2"
+          >
+            <FolderOpen className="h-4 w-4" />
+            Watch Folder
+          </label>
+        </div>
         
-        <CollapsibleContent>
-          <CardContent className="space-y-4">
-            {/* Watch Folder Selection */}
-            <div className="space-y-2">
-              <Label className="text-sm font-medium flex items-center gap-2">
-                <FolderInput className="h-4 w-4" />
-                Watch Folder (source PDFs)
-              </Label>
-              <div className="flex items-center gap-2">
-                <div className={cn(
-                  "flex-1 px-3 py-2 rounded-md text-sm",
-                  watchNeedsReselect ? "bg-amber-100 text-amber-700" : "bg-muted"
-                )}>
-                  {displayWatchFolder ? (
-                    <span className="flex items-center gap-2">
-                      {displayWatchFolder}
-                      {watchNeedsReselect && (
-                        <Badge variant="outline" className="text-xs bg-amber-50 text-amber-600 border-amber-200">
-                          Re-select required
-                        </Badge>
-                      )}
-                    </span>
-                  ) : (
-                    'No folder selected'
-                  )}
-                </div>
-                <Button variant="outline" onClick={selectFolder} disabled={isWatching}>
-                  <FolderSearch className="h-4 w-4 mr-2" />
-                  {watchNeedsReselect ? 'Re-select' : displayWatchFolder ? 'Change' : 'Select'}
-                </Button>
-              </div>
-              {folderName && (
-                <div className="text-xs text-muted-foreground space-y-1">
-                  <p>• Source PDFs are moved to "{folderName}/Imported to AI for processing"</p>
-                  <p>• Completed AI PDFs are saved to "{folderName}/Done"</p>
-                </div>
-              )}
-            </div>
+        <div className="flex items-center gap-2">
+          {displayFolderName && (
+            <span className={cn(
+              "text-sm px-2 py-0.5 rounded",
+              showReselectWarning ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground"
+            )}>
+              {displayFolderName}
+            </span>
+          )}
+          {isWatching && (
+            <Badge variant="outline" className="bg-green-500/10 text-green-600 border-green-200">
+              <span className="w-2 h-2 bg-green-500 rounded-full mr-1.5 animate-pulse" />
+              Active
+            </Badge>
+          )}
+        </div>
+      </div>
 
-            {/* Controls - only show if folder is actually selected (not just remembered) */}
-            {folderName && (
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Switch
-                    id="watch-enabled"
-                    checked={isWatching}
-                    onCheckedChange={(checked) => checked ? startWatching() : stopWatching()}
-                  />
-                  <Label htmlFor="watch-enabled" className="text-sm">
-                    Auto-import new PDFs
-                  </Label>
-                </div>
+      {/* Re-selection warning */}
+      {showReselectWarning && (
+        <div className="flex items-center gap-2 px-3 py-2 bg-amber-50 rounded-md text-amber-700 text-xs">
+          <AlertTriangle className="h-3 w-3 flex-shrink-0" />
+          <span>Re-select required after page refresh</span>
+        </div>
+      )}
 
-                <div className="flex items-center gap-2">
-                  <Clock className="h-4 w-4 text-muted-foreground" />
-                  <Select
-                    value={String(pollingInterval)}
-                    onValueChange={(v) => setPollingInterval(Number(v))}
-                    disabled={isWatching}
-                  >
-                    <SelectTrigger className="w-24 h-8">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="10">10 sec</SelectItem>
-                      <SelectItem value="30">30 sec</SelectItem>
-                      <SelectItem value="60">1 min</SelectItem>
-                      <SelectItem value="120">2 min</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
-            )}
-            
-            {/* Re-selection notice */}
-            {watchNeedsReselect && (
-              <div className="flex items-center gap-2 p-2 bg-amber-50 rounded-md text-amber-700 text-xs">
-                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                <span>Browser folder needs re-selection after page refresh (security restriction).</span>
-              </div>
-            )}
-
-            {/* Activity Log */}
-            {recentActivity.length > 0 && (
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <Label className="text-sm font-medium">Recent Activity</Label>
-                  <span className="text-xs text-muted-foreground">
-                    {processedFiles.length} files processed
-                  </span>
-                </div>
-                <ScrollArea className="h-32 rounded-md border">
-                  <div className="p-2 space-y-1">
-                    {recentActivity.map(entry => (
-                      <div key={entry.id} className="flex items-center gap-2 text-xs py-1">
-                        {getStatusIcon(entry.status)}
-                        <span className="truncate flex-1">{entry.fileName}</span>
-                        <span className="text-muted-foreground">
-                          {format(entry.timestamp, 'HH:mm:ss')}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </ScrollArea>
-              </div>
-            )}
-
-            {/* Clear History & Restart */}
-            <div className="flex items-center gap-2">
-              {processedFiles.length > 0 && (
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={clearProcessedFiles}
-                  className="text-muted-foreground"
-                >
-                  <Trash2 className="h-3 w-3 mr-1" />
-                  Clear history
-                </Button>
-              )}
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                onClick={restartService}
-                className="text-muted-foreground"
-              >
-                <RotateCcw className="h-3 w-3 mr-1" />
-                Restart service
-              </Button>
-            </div>
-
-            {/* Help Text */}
-            <p className="text-xs text-muted-foreground">
-              When enabled, this folder is checked every {pollingInterval} seconds for new PDF files. 
-              New files are automatically queued for processing. Subfolders are created automatically.
-            </p>
-          </CardContent>
-        </CollapsibleContent>
-      </Card>
-    </Collapsible>
+      {/* Help text */}
+      <div className="text-xs text-muted-foreground px-1 space-y-0.5">
+        <p>Checks folder every 30 seconds for new PDFs</p>
+        <p>• Source PDFs moved to "Imported to AI for processing"</p>
+        <p>• Completed PDFs saved to "Done"</p>
+      </div>
+    </div>
   );
 }

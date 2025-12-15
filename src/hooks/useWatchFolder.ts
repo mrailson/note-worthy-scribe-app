@@ -12,9 +12,7 @@ interface WatchFolderState {
   isSupported: boolean;
   isWatching: boolean;
   folderName: string | null;
-  pollingInterval: number;
   processedFiles: string[];
-  recentActivity: ActivityLogEntry[];
 }
 
 export interface ActivityLogEntry {
@@ -24,6 +22,9 @@ export interface ActivityLogEntry {
   status: 'detected' | 'processing' | 'queued' | 'failed' | 'moved';
   error?: string;
 }
+
+// Fixed polling interval - 30 seconds
+const POLLING_INTERVAL_SECONDS = 30;
 
 // Check if running in iframe (showDirectoryPicker doesn't work in cross-origin iframes)
 const isInIframe = typeof window !== 'undefined' && window.self !== window.top;
@@ -40,20 +41,20 @@ export function useWatchFolder(
   const apiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
   const isSupported = apiSupported && !isInIframe;
   
-  // Load saved settings from localStorage
-  const getSavedSettings = () => {
+  // Load saved folder name from localStorage
+  const getSavedFolderName = () => {
     try {
       const saved = localStorage.getItem('lg_watch_settings');
       if (saved) {
-        return JSON.parse(saved);
+        return JSON.parse(saved).folderName || null;
       }
     } catch {
       // Ignore parse errors
     }
-    return {};
+    return null;
   };
 
-  const savedSettings = getSavedSettings();
+  const savedFolderName = getSavedFolderName();
 
   // Note: FileSystemDirectoryHandle cannot be persisted across page refreshes
   // We store names for display but handles must be re-selected after refresh
@@ -61,15 +62,13 @@ export function useWatchFolder(
     isSupported,
     isWatching: false,
     folderName: null, // Don't show saved name without valid handle
-    pollingInterval: savedSettings.pollingInterval || 30,
-    processedFiles: [],
-    recentActivity: []
+    processedFiles: []
   });
 
   // Track if watch folder needs re-selection (was saved but handle lost on refresh)
   const [needsReselect, setNeedsReselect] = useState({
-    watchFolder: !!savedSettings.folderName,
-    savedWatchName: savedSettings.folderName as string | null
+    watchFolder: !!savedFolderName,
+    savedWatchName: savedFolderName as string | null
   });
 
   const directoryHandleRef = useRef<FileSystemDirectoryHandle | null>(null);
@@ -82,12 +81,10 @@ export function useWatchFolder(
   // Track if we're in iframe for error messaging
   const inIframe = isInIframe;
 
-  // Save settings to localStorage
-  const saveSettings = useCallback((updates: Partial<{ folderName: string | null; pollingInterval: number }>) => {
+  // Save folder name to localStorage
+  const saveFolderName = useCallback((folderName: string | null) => {
     try {
-      const current = getSavedSettings();
-      const newSettings = { ...current, ...updates };
-      localStorage.setItem('lg_watch_settings', JSON.stringify(newSettings));
+      localStorage.setItem('lg_watch_settings', JSON.stringify({ folderName }));
     } catch {
       // Ignore save errors
     }
@@ -114,16 +111,9 @@ export function useWatchFolder(
     setState(prev => ({ ...prev, processedFiles: files }));
   }, []);
 
-  const addActivity = useCallback((entry: Omit<ActivityLogEntry, 'id' | 'timestamp'>) => {
-    const newEntry: ActivityLogEntry = {
-      ...entry,
-      id: crypto.randomUUID(),
-      timestamp: new Date()
-    };
-    setState(prev => ({
-      ...prev,
-      recentActivity: [newEntry, ...prev.recentActivity].slice(0, 50)
-    }));
+  // Activity logging (simplified, just console log for debugging)
+  const logActivity = useCallback((fileName: string, status: string) => {
+    console.log(`[Watch Folder] ${fileName}: ${status}`);
   }, []);
 
   // Move file to "Imported to AI for processing" subfolder
@@ -169,24 +159,24 @@ export function useWatchFolder(
         console.warn('[Watch Folder] Could not remove original file:', removeErr);
       }
       
-      addActivity({ fileName, status: 'moved' });
+      logActivity(fileName, 'moved');
       console.log(`[Watch Folder] Successfully moved ${fileName} to 'Imported to AI for processing' folder`);
     } catch (err) {
       console.error('[Watch Folder] Error moving file to imported folder:', err);
       // Don't fail the whole process if move fails
     }
-  }, [addActivity]);
+  }, [logActivity]);
 
   const processFile = useCallback(async (file: File, fileHandle?: FileSystemFileHandle) => {
     if (!user?.id || !practiceOds || !uploaderName) {
-      addActivity({ fileName: file.name, status: 'failed', error: 'Settings not configured' });
+      logActivity(file.name, 'failed: Settings not configured');
       return;
     }
 
-    addActivity({ fileName: file.name, status: 'detected' });
+    logActivity(file.name, 'detected');
 
     try {
-      addActivity({ fileName: file.name, status: 'processing' });
+      logActivity(file.name, 'processing');
 
       // Extract pages from PDF - NO page removal, PDFs are pre-cleansed
       const pages = await extractPdfPages(file, 150, undefined, false);
@@ -228,7 +218,7 @@ export function useWatchFolder(
       processedFilesRef.current.add(file.name);
       saveProcessedFiles();
 
-      addActivity({ fileName: file.name, status: 'queued' });
+      logActivity(file.name, 'queued');
       toast.success(`Auto-imported: ${file.name}`);
 
       // Move to imported folder if we have write access and file handle
@@ -238,13 +228,9 @@ export function useWatchFolder(
 
     } catch (err) {
       console.error('Error processing watched file:', file.name, err);
-      addActivity({ 
-        fileName: file.name, 
-        status: 'failed', 
-        error: err instanceof Error ? err.message : 'Unknown error' 
-      });
+      logActivity(file.name, `failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-  }, [user?.id, practiceOds, uploaderName, batchId, queuePatient, addActivity, saveProcessedFiles, moveToImportedFolder]);
+  }, [user?.id, practiceOds, uploaderName, batchId, queuePatient, logActivity, saveProcessedFiles, moveToImportedFolder]);
 
   const pollFolder = useCallback(async () => {
     if (!directoryHandleRef.current) return;
@@ -310,7 +296,7 @@ export function useWatchFolder(
         folderName: handle.name,
         isWatching: false 
       }));
-      saveSettings({ folderName: handle.name });
+      saveFolderName(handle.name);
       
       // Clear needsReselect for watch folder
       setNeedsReselect(prev => ({ ...prev, watchFolder: false, savedWatchName: null }));
@@ -329,7 +315,7 @@ export function useWatchFolder(
       console.error('Error selecting folder:', err);
       toast.error('Failed to select folder');
     }
-  }, [state.isSupported, inIframe, saveSettings]);
+  }, [state.isSupported, inIframe, saveFolderName]);
 
   // Save completed PDF to Done subfolder
   const saveToDoneFolder = useCallback(async (pdfBlob: Blob, fileName: string) => {
@@ -363,15 +349,15 @@ export function useWatchFolder(
       return;
     }
 
-    // Start polling
-    pollingIntervalRef.current = setInterval(pollFolder, state.pollingInterval * 1000);
+    // Start polling with fixed 30 second interval
+    pollingIntervalRef.current = setInterval(pollFolder, POLLING_INTERVAL_SECONDS * 1000);
     
     // Do an immediate poll
     pollFolder();
 
     setState(prev => ({ ...prev, isWatching: true }));
-    toast.success('Watch folder enabled - new PDFs will be auto-imported');
-  }, [pollFolder, state.pollingInterval, practiceOds, uploaderName]);
+    toast.success('Watch folder enabled - checking every 30 seconds');
+  }, [pollFolder, practiceOds, uploaderName]);
 
   const stopWatching = useCallback(() => {
     if (pollingIntervalRef.current) {
@@ -381,46 +367,77 @@ export function useWatchFolder(
     setState(prev => ({ ...prev, isWatching: false }));
   }, []);
 
-  const setPollingInterval = useCallback((seconds: number) => {
-    setState(prev => ({ ...prev, pollingInterval: seconds }));
-    saveSettings({ pollingInterval: seconds });
-    
-    // Restart polling with new interval if currently watching
-    if (pollingIntervalRef.current) {
-      clearInterval(pollingIntervalRef.current);
-      pollingIntervalRef.current = setInterval(pollFolder, seconds * 1000);
+  // Enable watch folder - combined folder select + start watching
+  const enableWatchFolder = useCallback(async () => {
+    if (!state.isSupported) {
+      if (inIframe) {
+        toast.error('Watch Folder requires opening the app in a new tab');
+      } else {
+        toast.error('Watch Folder requires Chrome or Edge browser');
+      }
+      return;
     }
-  }, [pollFolder, saveSettings]);
 
-  // Restart service - stops and clears state, allows re-selecting folders
-  const restartService = useCallback(() => {
-    // Stop watching
+    try {
+      // If no folder handle, open picker
+      if (!directoryHandleRef.current) {
+        // @ts-ignore - TypeScript doesn't know about showDirectoryPicker
+        const handle = await window.showDirectoryPicker({
+          mode: 'readwrite'
+        });
+
+        directoryHandleRef.current = handle;
+        
+        // Auto-create subfolders
+        try {
+          importedFolderHandleRef.current = await (handle as any).getDirectoryHandle('Imported to AI for processing', { create: true });
+          doneFolderHandleRef.current = await (handle as any).getDirectoryHandle('Done', { create: true });
+        } catch (subfolderErr) {
+          console.error('[Watch Folder] Failed to create subfolders:', subfolderErr);
+          toast.error('Failed to create subfolders');
+          return;
+        }
+        
+        setState(prev => ({ ...prev, folderName: handle.name }));
+        saveFolderName(handle.name);
+        setNeedsReselect({ watchFolder: false, savedWatchName: null });
+      }
+
+      // Start watching
+      if (!practiceOds || !uploaderName) {
+        toast.error('Please configure practice settings first');
+        return;
+      }
+
+      pollingIntervalRef.current = setInterval(pollFolder, POLLING_INTERVAL_SECONDS * 1000);
+      pollFolder();
+      setState(prev => ({ ...prev, isWatching: true }));
+      toast.success('Watch folder enabled - checking every 30 seconds');
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'AbortError') return;
+      if (err instanceof DOMException && err.name === 'SecurityError') {
+        toast.error('Watch Folder requires opening the app in a new tab');
+        return;
+      }
+      console.error('Error enabling watch folder:', err);
+      toast.error('Failed to enable watch folder');
+    }
+  }, [state.isSupported, inIframe, pollFolder, practiceOds, uploaderName, saveFolderName]);
+
+  // Disable watch folder
+  const disableWatchFolder = useCallback(() => {
     if (pollingIntervalRef.current) {
       clearInterval(pollingIntervalRef.current);
       pollingIntervalRef.current = null;
     }
-    
-    // Clear folder handles
-    directoryHandleRef.current = null;
-    doneFolderHandleRef.current = null;
-    importedFolderHandleRef.current = null;
-    
-    // Reset state but keep settings in localStorage
-    setState(prev => ({
-      ...prev,
-      isWatching: false,
-      folderName: null,
-      recentActivity: []
-    }));
-    
-    toast.success('Watch folder service restarted. Please re-select folder.');
+    setState(prev => ({ ...prev, isWatching: false }));
+    toast.success('Watch folder disabled');
   }, []);
 
   const clearProcessedFiles = useCallback(() => {
     processedFilesRef.current.clear();
     localStorage.removeItem('lg_watch_processed_files');
     setState(prev => ({ ...prev, processedFiles: [] }));
-    toast.success('Processed files list cleared');
   }, []);
 
   // Subscribe to patient completions and auto-download PDFs to Done folder
@@ -508,10 +525,7 @@ export function useWatchFolder(
                 // Remove from tracking map
                 patientOutputMapRef.current.delete(patient.id);
                 
-                addActivity({ 
-                  fileName: outputFileName, 
-                  status: 'moved' // Show as saved/moved
-                });
+                logActivity(outputFileName, 'saved to Done');
               }
               
             } catch (err) {
@@ -526,7 +540,7 @@ export function useWatchFolder(
       console.log('[Watch Folder] Unsubscribing from patient completions');
       supabase.removeChannel(channel);
     };
-  }, [user?.id, state.folderName, saveToDoneFolder, addActivity]);
+  }, [user?.id, state.folderName, saveToDoneFolder, logActivity]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -543,10 +557,10 @@ export function useWatchFolder(
     saveToDoneFolder,
     startWatching,
     stopWatching,
-    setPollingInterval,
+    enableWatchFolder,
+    disableWatchFolder,
     clearProcessedFiles,
-    restartService,
     hasDoneFolder: !!doneFolderHandleRef.current,
-    needsReselect // Expose whether folder needs re-selection after refresh
+    needsReselect
   };
 }
