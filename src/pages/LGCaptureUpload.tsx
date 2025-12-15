@@ -330,7 +330,7 @@ export default function LGCaptureUpload() {
       return;
     }
 
-    const imagesToSubmit = nonBlankImages;
+    const imagesToSubmit = images; // ALL pages - PDFs are pre-cleansed, no automatic removal
     
     if (imagesToSubmit.length === 0) {
       toast.error('No pages to submit (all pages marked as blank)');
