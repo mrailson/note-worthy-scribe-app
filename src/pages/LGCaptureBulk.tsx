@@ -86,9 +86,17 @@ export default function LGCaptureBulk() {
         .maybeSingle();
       
       if (data?.setting_value) {
-        const defaults = data.setting_value as { practiceOds?: string; uploaderName?: string };
+        const defaults = data.setting_value as { 
+          practiceOds?: string; 
+          uploaderName?: string;
+          compressionLevel?: number;
+        };
         if (defaults.practiceOds) setPracticeOds(defaults.practiceOds);
         if (defaults.uploaderName) setUploaderName(defaults.uploaderName);
+        // Store compressionLevel in localStorage for use when queuing
+        if (defaults.compressionLevel) {
+          localStorage.setItem('lg_compression_level', String(defaults.compressionLevel));
+        }
       }
       
       // Fallback to localStorage
@@ -442,10 +450,12 @@ export default function LGCaptureBulk() {
             timestamp: Date.now()
           }));
 
-        // Queue for upload with file metadata
+        // Queue for upload with file metadata and compression level
+        const compressionLevel = parseInt(localStorage.getItem('lg_compression_level') || '4', 10);
         queuePatient(patientId, practiceOds, capturedImages, {
           fileName: qFile.fileName,
-          fileSize: qFile.fileSize
+          fileSize: qFile.fileSize,
+          compressionLevel: compressionLevel as 1 | 2 | 3 | 4 | 5 | 6 | 7
         });
 
         setFiles(prev => prev.map(f => 
