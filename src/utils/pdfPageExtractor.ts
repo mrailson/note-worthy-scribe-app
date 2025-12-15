@@ -56,8 +56,8 @@ export async function extractPdfPages(
   const extractedPages: ExtractedPage[] = [];
 
   // Scale factor: PDF default is 72 DPI
-  // Preserve quality mode keeps a blob-based pipeline (avoids huge base64 strings), but does NOT up-scale DPI.
-  const effectiveDpi = dpi;
+  // Preserve quality mode increases render DPI for legibility, but keeps within safe limits.
+  const effectiveDpi = preserveQuality ? Math.min(220, Math.max(dpi, 200)) : dpi;
   const scale = effectiveDpi / 72;
 
   // Phase 1: Extract pages
@@ -95,7 +95,7 @@ export async function extractPdfPages(
         canvas.toBlob(
           (b) => (b ? resolve(b) : reject(new Error('Failed to create JPEG blob'))),
           'image/jpeg',
-          0.75
+          0.88
         );
       });
       dataUrl = URL.createObjectURL(blob);
@@ -201,13 +201,13 @@ export async function extractPdfPages(
 
     if (isPortrait) {
       try {
-        if (preserveQuality) {
-          // Preserve-quality: keep blob-based pipeline (avoid converting to huge base64)
-          const { dataUrl: correctedUrl, wasRotated, blob } = await autoCorrectOrientationToBlobUrl(
-            page.dataUrl,
-            'image/jpeg',
-            0.75
-          );
+          if (preserveQuality) {
+            // Preserve-quality: keep blob-based pipeline (avoid converting to huge base64)
+            const { dataUrl: correctedUrl, wasRotated, blob } = await autoCorrectOrientationToBlobUrl(
+              page.dataUrl,
+              'image/jpeg',
+              0.88
+            );
 
           if (wasRotated && blob) {
             if (page.dataUrl.startsWith('blob:')) {
