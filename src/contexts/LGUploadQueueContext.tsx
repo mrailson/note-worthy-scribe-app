@@ -181,21 +181,27 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
           }
         }
 
-        // Always compress before upload (keeps PDFs close to original sizes)
+        // Compress before upload - skip if already small enough (saves time)
+        const SKIP_THRESHOLD_KB = 60;
         let blob: Blob;
         try {
-          if (sourceBlob) {
+          const sourceSizeKB = sourceBlob ? sourceBlob.size / 1024 : 0;
+          
+          // Skip compression if source is already small
+          if (sourceBlob && sourceSizeKB < SKIP_THRESHOLD_KB) {
+            blob = sourceBlob;
+            console.log(`Page ${i + 1}: Already small (${sourceSizeKB.toFixed(1)} KB), skipping compression`);
+          } else if (sourceBlob) {
             const sourceExt = fileExtensionFromMime(sourceBlob.type);
             const sourceFile = new File([sourceBlob], `page_${i + 1}.${sourceExt}`, {
               type: sourceBlob.type || 'image/jpeg',
             });
             blob = await compressLgImageFile(sourceFile, patient.compressionLevel);
+            console.log(`Page ${i + 1}: Compressed to ${(blob.size / 1024).toFixed(1)} KB`);
           } else {
             blob = await compressLgImageFromDataUrl(img.dataUrl, patient.compressionLevel);
+            console.log(`Page ${i + 1}: Compressed to ${(blob.size / 1024).toFixed(1)} KB`);
           }
-          console.log(
-            `Page ${i + 1}: Compressed (level ${patient.compressionLevel}) to ${(blob.size / 1024).toFixed(1)} KB`
-          );
         } catch (compressErr) {
           console.error(`Failed to compress page ${i + 1}, using original:`, compressErr);
 

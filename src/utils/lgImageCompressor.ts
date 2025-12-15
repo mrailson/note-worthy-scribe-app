@@ -31,8 +31,11 @@ export const COMPRESSION_LEVELS: Record<CompressionLevel, CompressionSettings> =
   7: { maxWidth: 800, quality: 0.50, label: 'Maximum', description: 'Best grayscale quality', estimatedSize: '~50-80 KB/page' },
 };
 
-// Default tuned for readability (scanned clinical documents must remain legible)
-export const DEFAULT_COMPRESSION_LEVEL: CompressionLevel = 6;
+// Default tuned for balance (smaller files, still readable for clinical documents)
+export const DEFAULT_COMPRESSION_LEVEL: CompressionLevel = 4;
+
+// Skip compression if file is already under this threshold (KB)
+export const SKIP_COMPRESSION_THRESHOLD_KB = 60;
 
 export function getCompressionSettings(level: number): CompressionSettings {
   const safeLevel = Math.max(1, Math.min(7, Math.round(level))) as CompressionLevel;
