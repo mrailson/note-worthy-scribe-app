@@ -405,8 +405,8 @@ export default function LGCaptureBulk() {
           f.id === qFile.id ? { ...f, status: 'extracting' as const, progress: 10 } : f
         ));
 
-        // Check if preserve quality mode is enabled
-        const preserveQuality = localStorage.getItem('lg_preserve_quality') === 'true';
+        // Check if preserve quality mode is enabled (default to true for best file sizes)
+        const preserveQuality = localStorage.getItem('lg_preserve_quality') !== 'false';
 
         // Extract pages from PDF - NO page removal, PDFs are pre-cleansed
         // Preserve quality mode keeps original visual fidelity but avoids over-scaling (prevents PDF generation timeouts)
@@ -470,7 +470,7 @@ export default function LGCaptureBulk() {
 
         // Queue for upload with file metadata and compression level
         const compressionLevel = parseInt(localStorage.getItem('lg_compression_level') || String(DEFAULT_COMPRESSION_LEVEL), 10);
-        const preserveQualityFlag = localStorage.getItem('lg_preserve_quality') === 'true';
+        const preserveQualityFlag = localStorage.getItem('lg_preserve_quality') !== 'false'; // Default to true
         queuePatient(patientId, practiceOds, capturedImages, {
           fileName: qFile.fileName,
           fileSize: qFile.fileSize,

@@ -333,7 +333,7 @@ export function useWatchFolder(
 
       // Queue for upload with user's compression settings
       const compressionLevel = parseInt(localStorage.getItem('lg_compression_level') || String(DEFAULT_COMPRESSION_LEVEL), 10) as CompressionLevel;
-      const preserveQuality = localStorage.getItem('lg_preserve_quality') === 'true';
+      const preserveQuality = localStorage.getItem('lg_preserve_quality') !== 'false'; // Default to true
       queuePatient(patientId, practiceOds, capturedImages, {
         compressionLevel,
         preserveQuality
