@@ -20,6 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLGCapture, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { extractPdfPages, ExtractedPage } from '@/utils/pdfPageExtractor';
+import { DEFAULT_COMPRESSION_LEVEL } from '@/utils/lgImageCompressor';
 import { generateULID } from '@/utils/ulid';
 // Toast messages removed from LG Capture service
 import { format } from 'date-fns';
@@ -468,7 +469,7 @@ export default function LGCaptureBulk() {
           }));
 
         // Queue for upload with file metadata and compression level
-        const compressionLevel = parseInt(localStorage.getItem('lg_compression_level') || '4', 10);
+        const compressionLevel = parseInt(localStorage.getItem('lg_compression_level') || String(DEFAULT_COMPRESSION_LEVEL), 10);
         const preserveQualityFlag = localStorage.getItem('lg_preserve_quality') === 'true';
         queuePatient(patientId, practiceOds, capturedImages, {
           fileName: qFile.fileName,
