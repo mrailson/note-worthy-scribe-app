@@ -26,9 +26,9 @@ export const COMPRESSION_LEVELS: Record<CompressionLevel, CompressionSettings> =
   2: { maxWidth: 550, quality: 0.35, label: 'Very Low', description: 'Very compressed', estimatedSize: '~10-15 KB/page' },
   3: { maxWidth: 600, quality: 0.40, label: 'Low', description: 'Small files', estimatedSize: '~12-18 KB/page' },
   4: { maxWidth: 700, quality: 0.45, label: 'Balanced', description: 'Default (smaller files)', estimatedSize: '~15-22 KB/page' },
-  5: { maxWidth: 800, quality: 0.55, label: 'Good', description: 'Better readability', estimatedSize: '~20-35 KB/page' },
-  6: { maxWidth: 900, quality: 0.65, label: 'High', description: 'High readability', estimatedSize: '~35-55 KB/page' },
-  7: { maxWidth: 1200, quality: 0.80, label: 'Maximum', description: 'Best readability', estimatedSize: '~60-100 KB/page' },
+  5: { maxWidth: 600, quality: 0.35, label: 'Good', description: 'Grayscale readable', estimatedSize: '~25-40 KB/page' },
+  6: { maxWidth: 650, quality: 0.40, label: 'High', description: 'Grayscale high readability', estimatedSize: '~35-55 KB/page' },
+  7: { maxWidth: 800, quality: 0.50, label: 'Maximum', description: 'Best grayscale quality', estimatedSize: '~50-80 KB/page' },
 };
 
 // Default tuned for readability (scanned clinical documents must remain legible)
