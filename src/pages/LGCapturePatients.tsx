@@ -378,7 +378,8 @@ export default function LGCapturePatients() {
             <CollapsibleContent className="mt-3">
               <BulkUploadHistory 
                 refreshTrigger={historyRefreshTrigger} 
-                onProcessingCountChange={setProcessingFilesCount} 
+                onProcessingCountChange={setProcessingFilesCount}
+                showMixedPatientWarnings={showMixedPatientWarnings}
               />
             </CollapsibleContent>
           </Collapsible>
