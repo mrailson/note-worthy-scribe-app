@@ -1,11 +1,11 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Progress } from '@/components/ui/progress';
-import { Loader2, FileText, Check, X, Clock, Calendar, Files, ChevronDown, ChevronUp, Download, AlertCircle, Timer, RotateCcw, Trash2, AlertTriangle, UserX } from 'lucide-react';
+import { Loader2, FileText, Check, X, Clock, Calendar, Files, ChevronDown, ChevronUp, ChevronRight, Download, AlertCircle, Timer, RotateCcw, Trash2, AlertTriangle, UserX } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { format, formatDistanceToNow, differenceInMinutes } from 'date-fns';
 // Toast messages removed from LG Capture service
@@ -81,6 +81,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
   const [pendingBatches, setPendingBatches] = useState<BatchGroup[]>([]);
   const [completedBatches, setCompletedBatches] = useState<BatchGroup[]>([]);
   const [expandedBatches, setExpandedBatches] = useState<Set<string>>(new Set());
+  const [expandedPatients, setExpandedPatients] = useState<Set<string>>(new Set());
   const alertedPatientIds = useRef<Set<string>>(new Set());
 
   // Check for identity conflicts and trigger alerts
@@ -406,6 +407,18 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
     });
   };
 
+  const togglePatient = (patientId: string) => {
+    setExpandedPatients(prev => {
+      const next = new Set(prev);
+      if (next.has(patientId)) {
+        next.delete(patientId);
+      } else {
+        next.add(patientId);
+      }
+      return next;
+    });
+  };
+
   const handleDownloadPdf = async (patient: BatchPatient) => {
     try {
       const basePath = `${patient.practice_ods}/${patient.id}/final`;
@@ -662,116 +675,144 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                             // Warning level: only one type differs
                             const isWarningConflict = (multipleNhs || multipleDobs) && !isCriticalConflict;
                             
+                            const isExpanded = expandedPatients.has(patient.id);
+                            
                             return (
-                              <tr key={patient.id} className={`hover:bg-muted/30 ${patientIsStuck ? 'bg-red-50' : ''} ${showMixedPatientWarnings && (isCriticalConflict || hasIdentityConflict) ? 'bg-red-50' : ''}`}>
-                                <td className="p-2 text-muted-foreground">{idx + 1}</td>
-                                <td className="p-2">
-                                  <div>
+                              <React.Fragment key={patient.id}>
+                                <tr 
+                                  className={`hover:bg-muted/30 cursor-pointer ${patientIsStuck ? 'bg-red-50' : ''} ${showMixedPatientWarnings && (isCriticalConflict || hasIdentityConflict) ? 'bg-red-50' : ''}`}
+                                  onClick={() => togglePatient(patient.id)}
+                                >
+                                  <td className="p-2 text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                      {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                      {idx + 1}
+                                    </div>
+                                  </td>
+                                  <td className="p-2">
                                     <span>{patientName}</span>
-                                    
-                                    {/* Identity conflict alert - CRITICAL (multiple NHS AND multiple DOB) */}
-                                    {showMixedPatientWarnings && (isCriticalConflict || (hasIdentityConflict && !hasIdentityWarning)) && (
-                                      <div className="mt-1 p-2 bg-red-100 border border-red-300 rounded text-xs">
-                                        <div className="flex items-center gap-1 text-red-700 font-semibold">
-                                          <UserX className="h-4 w-4" />
-                                          PATIENT IDENTITY CONFLICT - MIXED RECORDS
-                                        </div>
-                                        <p className="text-red-600 mt-1">
-                                          This file contains records from MULTIPLE patients.
-                                        </p>
-                                        {multipleNhs && (
-                                          <p className="text-red-600">
-                                            NHS numbers found: {patient.all_nhs_numbers_found?.map(n => n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')).join(', ')}
-                                          </p>
-                                        )}
-                                        {multipleDobs && (
-                                          <p className="text-red-600">
-                                            DOBs found: {patient.all_dobs_found?.join(', ')}
-                                          </p>
-                                        )}
-                                      </div>
+                                    {showMixedPatientWarnings && (isCriticalConflict || hasIdentityConflict) && (
+                                      <span className="ml-2 text-red-600 text-xs">⚠️ Mixed</span>
                                     )}
-                                    
-                                    {/* Identity warning - only one type differs or possible name change */}
-                                    {showMixedPatientWarnings && (isWarningConflict || hasIdentityWarning) && !isCriticalConflict && !hasIdentityConflict && (
-                                      <div className="mt-1 p-2 bg-amber-100 border border-amber-300 rounded text-xs">
-                                        <div className="flex items-center gap-1 text-amber-700 font-semibold">
-                                          <AlertTriangle className="h-4 w-4" />
-                                          Identity Warning - Please Verify
-                                        </div>
-                                        <p className="text-amber-600 mt-1">
-                                          {multipleNhs && `Multiple NHS numbers found: ${patient.all_nhs_numbers_found?.map(n => n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')).join(', ')}`}
-                                          {multipleDobs && `Multiple DOBs found: ${patient.all_dobs_found?.join(', ')}`}
-                                          {multipleNames && !multipleNhs && !multipleDobs && 'Names differ across pages but NHS/DOB match - likely same patient with name change.'}
-                                        </p>
-                                      </div>
-                                    ) }
-                                    
                                     {patientIsStuck && (
-                                      <p className="text-xs text-red-600 mt-0.5 flex items-center gap-1">
-                                        <AlertTriangle className="h-3 w-3" />
-                                        Stuck - processing for over 10 minutes
-                                      </p>
+                                      <span className="ml-2 text-red-600 text-xs">⏳ Stuck</span>
                                     )}
                                     {hasError && (
-                                      <p className="text-xs text-destructive mt-0.5 flex items-center gap-1">
-                                        <AlertCircle className="h-3 w-3" />
-                                        {patient.error_message || patient.processing_error}
-                                      </p>
+                                      <span className="ml-2 text-destructive text-xs">❌ Error</span>
                                     )}
-                                  </div>
-                                </td>
-                                <td className="p-2 text-center">
-                                  {patient.source_page_count && patient.images_count && patient.source_page_count !== patient.images_count ? (
-                                    <span className={patient.source_page_count > patient.images_count ? 'text-amber-600 font-medium' : ''}>
-                                      {patient.source_page_count} → {patient.images_count}
-                                      {patient.source_page_count > patient.images_count && (
-                                        <span className="text-xs ml-1">(-{patient.source_page_count - patient.images_count})</span>
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    {patient.source_page_count && patient.images_count && patient.source_page_count !== patient.images_count ? (
+                                      <span className={patient.source_page_count > patient.images_count ? 'text-amber-600 font-medium' : ''}>
+                                        {patient.source_page_count} → {patient.images_count}
+                                      </span>
+                                    ) : (
+                                      patient.images_count || '—'
+                                    )}
+                                  </td>
+                                  <td className="p-2 text-center">
+                                    {patientIsStuck ? (
+                                      <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-red-200">
+                                        <AlertTriangle className="h-3 w-3 mr-1" />Stuck
+                                      </Badge>
+                                    ) : (
+                                      getPatientStatusBadge(patient.job_status)
+                                    )}
+                                  </td>
+                                  <td className="p-2 text-center" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex items-center justify-center gap-1">
+                                      {canRetry && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                                          onClick={() => handleRetryRecord(patient)}
+                                          title="Retry processing"
+                                        >
+                                          <RotateCcw className="h-3 w-3" />
+                                        </Button>
                                       )}
-                                    </span>
-                                  ) : (
-                                    patient.images_count || '—'
-                                  )}
-                                </td>
-                                <td className="p-2 text-center">
-                                  {patientIsStuck ? (
-                                    <Badge variant="destructive" className="bg-red-500/10 text-red-600 border-red-200">
-                                      <AlertTriangle className="h-3 w-3 mr-1" />Stuck
-                                    </Badge>
-                                  ) : (
-                                    getPatientStatusBadge(patient.job_status)
-                                  )}
-                                </td>
-                                <td className="p-2 text-center">
-                                  <div className="flex items-center justify-center gap-1">
-                                    {canRetry && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 px-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                                        onClick={() => handleRetryRecord(patient)}
-                                        title="Retry processing"
-                                      >
-                                        <RotateCcw className="h-3 w-3" />
-                                      </Button>
-                                    )}
-                                    {canCancel && (
-                                      <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
-                                        onClick={() => handleCancelRecord(patient.id)}
-                                        title="Cancel and mark as failed"
-                                      >
-                                        <X className="h-3 w-3" />
-                                      </Button>
-                                    )}
-                                    {!canRetry && !canCancel && (
-                                      <span className="text-muted-foreground text-xs">—</span>
-                                    )}
-                                  </div>
-                                </td>
-                              </tr>
+                                      {canCancel && (
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          className="h-7 px-2 text-red-600 hover:text-red-700 hover:bg-red-50"
+                                          onClick={() => handleCancelRecord(patient.id)}
+                                          title="Cancel and mark as failed"
+                                        >
+                                          <X className="h-3 w-3" />
+                                        </Button>
+                                      )}
+                                      {!canRetry && !canCancel && (
+                                        <span className="text-muted-foreground text-xs">—</span>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                                {/* Expanded details row */}
+                                {isExpanded && (
+                                  <tr className="bg-muted/20">
+                                    <td colSpan={5} className="p-3">
+                                      <div className="space-y-2 text-sm">
+                                        {/* Identity conflict alert */}
+                                        {showMixedPatientWarnings && (isCriticalConflict || (hasIdentityConflict && !hasIdentityWarning)) && (
+                                          <div className="p-2 bg-red-100 border border-red-300 rounded text-xs">
+                                            <div className="flex items-center gap-1 text-red-700 font-semibold">
+                                              <UserX className="h-4 w-4" />
+                                              PATIENT IDENTITY CONFLICT - MIXED RECORDS
+                                            </div>
+                                            <p className="text-red-600 mt-1">
+                                              This file contains records from MULTIPLE patients.
+                                            </p>
+                                            {multipleNhs && (
+                                              <p className="text-red-600">
+                                                NHS numbers found: {patient.all_nhs_numbers_found?.map(n => n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')).join(', ')}
+                                              </p>
+                                            )}
+                                            {multipleDobs && (
+                                              <p className="text-red-600">
+                                                DOBs found: {patient.all_dobs_found?.join(', ')}
+                                              </p>
+                                            )}
+                                          </div>
+                                        )}
+                                        
+                                        {/* Identity warning */}
+                                        {showMixedPatientWarnings && (isWarningConflict || hasIdentityWarning) && !isCriticalConflict && !hasIdentityConflict && (
+                                          <div className="p-2 bg-amber-100 border border-amber-300 rounded text-xs">
+                                            <div className="flex items-center gap-1 text-amber-700 font-semibold">
+                                              <AlertTriangle className="h-4 w-4" />
+                                              Identity Warning - Please Verify
+                                            </div>
+                                            <p className="text-amber-600 mt-1">
+                                              {multipleNhs && `Multiple NHS numbers found: ${patient.all_nhs_numbers_found?.map(n => n.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3')).join(', ')}`}
+                                              {multipleDobs && `Multiple DOBs found: ${patient.all_dobs_found?.join(', ')}`}
+                                              {multipleNames && !multipleNhs && !multipleDobs && 'Names differ across pages but NHS/DOB match - likely same patient with name change.'}
+                                            </p>
+                                          </div>
+                                        )}
+                                        
+                                        {patientIsStuck && (
+                                          <p className="text-xs text-red-600 flex items-center gap-1">
+                                            <AlertTriangle className="h-3 w-3" />
+                                            Stuck - processing for over 10 minutes
+                                          </p>
+                                        )}
+                                        {hasError && (
+                                          <p className="text-xs text-destructive flex items-center gap-1">
+                                            <AlertCircle className="h-3 w-3" />
+                                            {patient.error_message || patient.processing_error}
+                                          </p>
+                                        )}
+                                        
+                                        <div className="text-muted-foreground text-xs">
+                                          Created: {format(new Date(patient.created_at), 'dd/MM/yyyy HH:mm')}
+                                        </div>
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
                             );
                           })}
                         </tbody>
@@ -871,6 +912,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                       <table className="w-full text-sm">
                         <thead>
                           <tr className="bg-muted/50 text-left">
+                            <th className="p-3 font-semibold text-xs uppercase text-muted-foreground w-8"></th>
                             <th className="p-3 font-semibold text-xs uppercase text-muted-foreground">Patient Name</th>
                             <th className="p-3 font-semibold text-xs uppercase text-muted-foreground">DOB</th>
                             <th className="p-3 font-semibold text-xs uppercase text-muted-foreground text-center">Pages</th>
@@ -891,52 +933,88 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                               : 0;
                             const medsCount = patient.summary_json?.medications?.length || 0;
 
+                            const isExpanded = expandedPatients.has(patient.id);
+                            const multipleNhs = (patient.all_nhs_numbers_found?.length || 0) > 1;
+                            const multipleDobs = (patient.all_dobs_found?.length || 0) > 1;
+                            const isCriticalConflict = multipleNhs && multipleDobs;
+                            const hasIdentityConflict = patient.identity_verification_status === 'conflict';
+
                             return (
-                              <tr key={patient.id} className="hover:bg-muted/30">
-                                <td className="p-3">
-                                  <div className="flex items-center gap-2">
-                                    <span>{patientName}</span>
-                                    {patient.pdf_url && patient.job_status === 'succeeded' && (
-                                      <button
-                                        onClick={() => handleDownloadPdf(patient)}
-                                        className="text-[#005eb8] hover:text-[#003d7a] transition-colors"
-                                        title="Download PDF"
-                                      >
-                                        <Download className="h-4 w-4" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </td>
-                                <td className="p-3">{formatDateUK(patient.dob)}</td>
-                                <td className="p-3 text-center">
-                                  {patient.source_page_count && patient.images_count && patient.source_page_count !== patient.images_count ? (
-                                    <span className={patient.source_page_count > patient.images_count ? 'text-amber-600 font-medium' : ''}>
-                                      {patient.source_page_count} → {patient.images_count}
-                                      {patient.source_page_count > patient.images_count && (
-                                        <span className="text-xs ml-1">(-{patient.source_page_count - patient.images_count})</span>
+                              <React.Fragment key={patient.id}>
+                                <tr 
+                                  className={`hover:bg-muted/30 cursor-pointer ${showMixedPatientWarnings && (isCriticalConflict || hasIdentityConflict) ? 'bg-red-50' : ''}`}
+                                  onClick={() => togglePatient(patient.id)}
+                                >
+                                  <td className="p-3">
+                                    {isExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                                  </td>
+                                  <td className="p-3">
+                                    <div className="flex items-center gap-2">
+                                      <span>{patientName}</span>
+                                      {showMixedPatientWarnings && (isCriticalConflict || hasIdentityConflict) && (
+                                        <span className="text-red-600 text-xs">⚠️</span>
                                       )}
-                                    </span>
-                                  ) : (
-                                    patient.images_count || 0
-                                  )}
-                                </td>
-                                <td className="p-3 text-center">
-                                  {patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)}MB` : '—'}
-                                </td>
-                                <td className="p-3 text-center">{summaryItems > 0 ? `${summaryItems} items` : '—'}</td>
-                                <td className="p-3 text-center">{medsCount > 0 ? medsCount : '—'}</td>
-                                <td className="p-3 text-center">
-                                  {patient.job_status === 'succeeded' ? (
-                                    <Badge className="bg-green-500/10 text-green-600 border-green-200">
-                                      <Check className="h-3 w-3 mr-1" />
-                                    </Badge>
-                                  ) : (
-                                    <Badge variant="destructive">
-                                      <X className="h-3 w-3 mr-1" />
-                                    </Badge>
-                                  )}
-                                </td>
-                              </tr>
+                                      {patient.pdf_url && patient.job_status === 'succeeded' && (
+                                        <button
+                                          onClick={(e) => { e.stopPropagation(); handleDownloadPdf(patient); }}
+                                          className="text-[#005eb8] hover:text-[#003d7a] transition-colors"
+                                          title="Download PDF"
+                                        >
+                                          <Download className="h-4 w-4" />
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                  <td className="p-3">{formatDateUK(patient.dob)}</td>
+                                  <td className="p-3 text-center">
+                                    {patient.source_page_count && patient.images_count && patient.source_page_count !== patient.images_count ? (
+                                      <span className={patient.source_page_count > patient.images_count ? 'text-amber-600 font-medium' : ''}>
+                                        {patient.source_page_count} → {patient.images_count}
+                                      </span>
+                                    ) : (
+                                      patient.images_count || 0
+                                    )}
+                                  </td>
+                                  <td className="p-3 text-center">
+                                    {patient.pdf_final_size_mb ? `${patient.pdf_final_size_mb.toFixed(2)}MB` : '—'}
+                                  </td>
+                                  <td className="p-3 text-center">{summaryItems > 0 ? `${summaryItems} items` : '—'}</td>
+                                  <td className="p-3 text-center">{medsCount > 0 ? medsCount : '—'}</td>
+                                  <td className="p-3 text-center">
+                                    {patient.job_status === 'succeeded' ? (
+                                      <Badge className="bg-green-500/10 text-green-600 border-green-200">
+                                        <Check className="h-3 w-3 mr-1" />
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="destructive">
+                                        <X className="h-3 w-3 mr-1" />
+                                      </Badge>
+                                    )}
+                                  </td>
+                                </tr>
+                                {/* Expanded details */}
+                                {isExpanded && patient.summary_json && (
+                                  <tr className="bg-muted/20">
+                                    <td colSpan={8} className="p-3">
+                                      <div className="space-y-2 text-sm">
+                                        {showMixedPatientWarnings && (isCriticalConflict || hasIdentityConflict) && (
+                                          <div className="p-2 bg-red-100 border border-red-300 rounded text-xs">
+                                            <span className="text-red-700 font-semibold">⚠️ Mixed patient records detected</span>
+                                            {multipleNhs && <p className="text-red-600">NHS: {patient.all_nhs_numbers_found?.join(', ')}</p>}
+                                            {multipleDobs && <p className="text-red-600">DOBs: {patient.all_dobs_found?.join(', ')}</p>}
+                                          </div>
+                                        )}
+                                        {patient.summary_json.summary_line && (
+                                          <p className="text-muted-foreground">{patient.summary_json.summary_line}</p>
+                                        )}
+                                        {patient.summary_json.medications?.length > 0 && (
+                                          <p><span className="font-medium">Medications:</span> {patient.summary_json.medications.map((m: any) => m.drug).join(', ')}</p>
+                                        )}
+                                      </div>
+                                    </td>
+                                  </tr>
+                                )}
+                              </React.Fragment>
                             );
                           })}
                         </tbody>
