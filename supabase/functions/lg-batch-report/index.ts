@@ -16,7 +16,7 @@ interface BatchPatient {
   job_status: string;
   processing_error: string | null;
   pdf_url: string | null;
-  pdf_size_mb: number | null;
+  pdf_final_size_mb: number | null;
   summary_json: any | null;
   snomed_json: any | null;
   created_at: string;
@@ -285,6 +285,7 @@ function generateBatchEmailHtml(
         </td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px;">${dob}</td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: center;">${pagesScanned}</td>
+        <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: center;">${p.pdf_final_size_mb ? `${p.pdf_final_size_mb.toFixed(2)}MB` : "—"}</td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: center;">${summaryItems > 0 ? `${summaryItems} items` : "—"}</td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: center;">${medsCount > 0 ? medsCount : "—"}</td>
         <td style="padding: 12px; border-bottom: 1px solid #e5e7eb; font-size: 13px; text-align: center;">
@@ -428,6 +429,7 @@ function generateBatchEmailHtml(
             <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 2px solid #e5e7eb;">Patient Name</th>
             <th style="padding: 12px; text-align: left; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 2px solid #e5e7eb;">DOB</th>
             <th style="padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 2px solid #e5e7eb;">Pages</th>
+            <th style="padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 2px solid #e5e7eb;">Size</th>
             <th style="padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 2px solid #e5e7eb;">Summary</th>
             <th style="padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 2px solid #e5e7eb;">Meds</th>
             <th style="padding: 12px; text-align: center; font-size: 12px; font-weight: 600; color: #6b7280; text-transform: uppercase; border-bottom: 2px solid #e5e7eb;">Status</th>
