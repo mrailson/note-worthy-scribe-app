@@ -298,18 +298,35 @@ export function useWatchFolder(
   }, [user?.id, practiceOds, uploaderName, batchId, queuePatient, logActivity, saveProcessedFiles, moveToImportedFolder, addPipelineFile, updatePipelineFile]);
 
   const pollFolder = useCallback(async () => {
-    if (!directoryHandleRef.current) return;
+    if (!directoryHandleRef.current) {
+      console.log('[Watch Folder] No directory handle, skipping poll');
+      return;
+    }
+
+    console.log('[Watch Folder] Polling folder for new PDFs...');
+    console.log('[Watch Folder] Already processed files:', Array.from(processedFilesRef.current));
 
     try {
       // Iterate through files in the directory using async iterator
       const dirHandle = directoryHandleRef.current as any;
+      let foundFiles = 0;
+      let newFiles = 0;
       
       // Use async iterator pattern for directory entries
       for await (const [name, handle] of dirHandle.entries()) {
         if (handle.kind === 'file' && name.toLowerCase().endsWith('.pdf')) {
+          foundFiles++;
+          console.log(`[Watch Folder] Found PDF: ${name}`);
+          
           // Skip already processed files
-          if (processedFilesRef.current.has(name)) continue;
+          if (processedFilesRef.current.has(name)) {
+            console.log(`[Watch Folder] Skipping already processed: ${name}`);
+            continue;
+          }
 
+          newFiles++;
+          console.log(`[Watch Folder] Processing new file: ${name}`);
+          
           // Get the file
           const file = await (handle as FileSystemFileHandle).getFile();
           
@@ -317,8 +334,10 @@ export function useWatchFolder(
           await processFile(file, handle as FileSystemFileHandle);
         }
       }
+      
+      console.log(`[Watch Folder] Poll complete: ${foundFiles} PDFs found, ${newFiles} new files processed`);
     } catch (err) {
-      console.error('Error polling folder:', err);
+      console.error('[Watch Folder] Error polling folder:', err);
       // Handle permission errors - folder may have been moved/deleted
       if (err instanceof DOMException && err.name === 'NotAllowedError') {
         stopWatching();
