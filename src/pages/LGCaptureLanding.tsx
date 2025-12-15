@@ -5,9 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
-import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play, BarChart3, Files, Zap, Sparkles } from 'lucide-react';
+import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play, BarChart3, Files, Zap, Sparkles, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsIPhone } from '@/hooks/use-mobile';
@@ -32,6 +33,7 @@ export default function LGCaptureLanding() {
   const [serviceLevel, setServiceLevel] = useState<'rename_only' | 'index_summary' | 'full_service'>('full_service');
   const [aiModel, setAiModel] = useState<LGAIModel>('gpt-4o-mini');
   const [compressionLevel, setCompressionLevel] = useState<CompressionLevel>(DEFAULT_COMPRESSION_LEVEL);
+  const [mixedPatientDetection, setMixedPatientDetection] = useState(true);
   const [showSettings, setShowSettings] = useState(false);
   const [practices, setPractices] = useState<Practice[]>([]);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
@@ -80,6 +82,7 @@ export default function LGCaptureLanding() {
           serviceLevel?: 'rename_only' | 'index_summary' | 'full_service'; 
           aiModel?: LGAIModel;
           compressionLevel?: CompressionLevel;
+          mixedPatientDetection?: boolean;
         };
         if (defaults.practiceOds) loadedOds = defaults.practiceOds;
         if (defaults.uploaderName) loadedName = defaults.uploaderName;
@@ -87,6 +90,7 @@ export default function LGCaptureLanding() {
         if (defaults.serviceLevel) setServiceLevel(defaults.serviceLevel);
         if (defaults.aiModel) setAiModel(defaults.aiModel);
         if (defaults.compressionLevel) setCompressionLevel(defaults.compressionLevel);
+        if (defaults.mixedPatientDetection !== undefined) setMixedPatientDetection(defaults.mixedPatientDetection);
       }
 
       // 2. If name not set, get from user profile
@@ -133,7 +137,7 @@ export default function LGCaptureLanding() {
   }, [user?.id]);
 
   // Save to database helper - called on practice select AND save button
-  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service', model: LGAIModel, compLevel: CompressionLevel) => {
+  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service', model: LGAIModel, compLevel: CompressionLevel, mixedDetect: boolean) => {
     if (!user?.id) return false;
     
     const { error } = await supabase
@@ -147,7 +151,8 @@ export default function LGCaptureLanding() {
           uploaderName: name.trim(),
           serviceLevel: svcLevel,
           aiModel: model,
-          compressionLevel: compLevel
+          compressionLevel: compLevel,
+          mixedPatientDetection: mixedDetect
         },
         updated_at: new Date().toISOString()
       }, { 
@@ -164,6 +169,7 @@ export default function LGCaptureLanding() {
     localStorage.setItem('lg_practice_name', pName.trim());
     localStorage.setItem('lg_uploader_name', name.trim());
     localStorage.setItem('lg-ai-model-preference', model);
+    localStorage.setItem('lg_mixed_patient_detection', String(mixedDetect));
     
     return true;
   };
@@ -176,7 +182,7 @@ export default function LGCaptureLanding() {
     setSearchTerm('');
 
     // Auto-save to database immediately
-    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel, aiModel, compressionLevel);
+    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel, aiModel, compressionLevel, mixedPatientDetection);
   };
 
   const filteredPractices = practices.filter(practice => {
@@ -210,7 +216,7 @@ export default function LGCaptureLanding() {
     }
 
     setIsSaving(true);
-    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel, aiModel, compressionLevel);
+    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel, aiModel, compressionLevel, mixedPatientDetection);
     setIsSaving(false);
 
     if (saved) {
@@ -654,6 +660,23 @@ export default function LGCaptureLanding() {
                   All images converted to black & white. Adjust for storage vs readability.
                 </p>
               </div>
+            </div>
+
+            {/* Mixed Patient Detection Toggle */}
+            <div className="flex items-center justify-between p-3 rounded-lg border">
+              <div className="flex items-center gap-3">
+                <ShieldAlert className={cn("h-5 w-5", mixedPatientDetection ? "text-primary" : "text-muted-foreground")} />
+                <div>
+                  <p className="font-medium text-sm">Mixed Patient Detection</p>
+                  <p className="text-xs text-muted-foreground">
+                    Alert when multiple NHS numbers/DOBs found in same file
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={mixedPatientDetection}
+                onCheckedChange={setMixedPatientDetection}
+              />
             </div>
 
             <Button 

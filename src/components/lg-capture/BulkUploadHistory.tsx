@@ -72,9 +72,10 @@ interface BatchGroup {
 interface BulkUploadHistoryProps {
   refreshTrigger?: number;
   onProcessingCountChange?: (count: number) => void;
+  showMixedPatientWarnings?: boolean;
 }
 
-export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCountChange }: BulkUploadHistoryProps) {
+export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCountChange, showMixedPatientWarnings = true }: BulkUploadHistoryProps) {
   const { user } = useAuth();
   const [loading, setLoading] = useState(true);
   const [pendingBatches, setPendingBatches] = useState<BatchGroup[]>([]);
@@ -525,7 +526,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
             return (
               <Card key={batch.batchId} className="border-amber-200 bg-amber-50/30 overflow-hidden">
                 {/* Batch-level identity conflict banner - PENDING batches */}
-                {batch.patients.some(p => 
+                {showMixedPatientWarnings && batch.patients.some(p => 
                   p.identity_verification_status === 'conflict' || 
                   ((p.all_nhs_numbers_found?.length || 0) > 1 && (p.all_dobs_found?.length || 0) > 1)
                 ) && (
@@ -662,14 +663,14 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                             const isWarningConflict = (multipleNhs || multipleDobs) && !isCriticalConflict;
                             
                             return (
-                              <tr key={patient.id} className={`hover:bg-muted/30 ${patientIsStuck ? 'bg-red-50' : ''} ${isCriticalConflict || hasIdentityConflict ? 'bg-red-50' : ''}`}>
+                              <tr key={patient.id} className={`hover:bg-muted/30 ${patientIsStuck ? 'bg-red-50' : ''} ${showMixedPatientWarnings && (isCriticalConflict || hasIdentityConflict) ? 'bg-red-50' : ''}`}>
                                 <td className="p-2 text-muted-foreground">{idx + 1}</td>
                                 <td className="p-2">
                                   <div>
                                     <span>{patientName}</span>
                                     
                                     {/* Identity conflict alert - CRITICAL (multiple NHS AND multiple DOB) */}
-                                    {(isCriticalConflict || (hasIdentityConflict && !hasIdentityWarning)) && (
+                                    {showMixedPatientWarnings && (isCriticalConflict || (hasIdentityConflict && !hasIdentityWarning)) && (
                                       <div className="mt-1 p-2 bg-red-100 border border-red-300 rounded text-xs">
                                         <div className="flex items-center gap-1 text-red-700 font-semibold">
                                           <UserX className="h-4 w-4" />
@@ -692,7 +693,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
                                     )}
                                     
                                     {/* Identity warning - only one type differs or possible name change */}
-                                    {(isWarningConflict || hasIdentityWarning) && !isCriticalConflict && !hasIdentityConflict && (
+                                    {showMixedPatientWarnings && (isWarningConflict || hasIdentityWarning) && !isCriticalConflict && !hasIdentityConflict && (
                                       <div className="mt-1 p-2 bg-amber-100 border border-amber-300 rounded text-xs">
                                         <div className="flex items-center gap-1 text-amber-700 font-semibold">
                                           <AlertTriangle className="h-4 w-4" />
@@ -797,7 +798,7 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
           {completedBatches.map(batch => (
             <Card key={batch.batchId} className="overflow-hidden">
               {/* Batch-level identity conflict banner - COMPLETED batches */}
-              {batch.patients.some(p => 
+              {showMixedPatientWarnings && batch.patients.some(p => 
                 p.identity_verification_status === 'conflict' || 
                 ((p.all_nhs_numbers_found?.length || 0) > 1 && (p.all_dobs_found?.length || 0) > 1)
               ) && (
