@@ -3,9 +3,9 @@ import { analyseBlankness, BlankAnalysisResult } from './blankPageDetector';
 import { autoCorrectOrientation } from './pageOrientationDetector';
 import { detectPatchPageFromText } from './patchPageDetector';
 
-// Configure worker - use unpkg as fallback which is more reliable
+// Configure worker - use cdnjs as primary (more reliable than unpkg)
 const workerVersion = pdfjsLib.version;
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${workerVersion}/build/pdf.worker.min.mjs`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${workerVersion}/pdf.worker.min.mjs`;
 
 export interface ExtractedPage {
   pageNumber: number;
