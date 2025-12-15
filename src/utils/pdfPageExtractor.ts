@@ -34,12 +34,113 @@ export interface PdfExtractionProgress {
 }
 
 /**
+ * Attempt to extract the original embedded image from a PDF page.
+ * Returns null if extraction fails or page has multiple/no images.
+ */
+async function tryExtractEmbeddedImage(page: any): Promise<{ blob: Blob; width: number; height: number } | null> {
+  try {
+    const operatorList = await page.getOperatorList();
+    const ops = operatorList.fnArray;
+    const args = operatorList.argsArray;
+    
+    // Find paintImageXObject operations (OPS.paintImageXObject = 85)
+    const imageOps: number[] = [];
+    for (let i = 0; i < ops.length; i++) {
+      if (ops[i] === 85) { // paintImageXObject
+        imageOps.push(i);
+      }
+    }
+    
+    // Only extract if there's exactly one image (typical for scanned pages)
+    if (imageOps.length !== 1) {
+      console.log(`[DirectExtract] Page has ${imageOps.length} images, falling back to render`);
+      return null;
+    }
+    
+    const imageIndex = imageOps[0];
+    const imageName = args[imageIndex][0];
+    
+    // Get the image object from the page's object dictionary
+    const objs = page.objs;
+    const imageData = objs.get(imageName);
+    
+    if (!imageData || !imageData.data) {
+      console.log('[DirectExtract] Could not get image data object');
+      return null;
+    }
+    
+    const { width, height, data, kind } = imageData;
+    
+    // kind: 1 = GRAYSCALE, 2 = RGB, 3 = RGBA
+    // For JPEG images embedded in PDF, we need to reconstruct
+    if (!width || !height || !data) {
+      console.log('[DirectExtract] Missing image dimensions or data');
+      return null;
+    }
+    
+    // Create canvas to convert raw pixel data to JPEG
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+    
+    // Create ImageData from the raw pixels
+    const imageDataObj = ctx.createImageData(width, height);
+    const pixels = imageDataObj.data;
+    
+    if (kind === 1) {
+      // Grayscale - expand to RGBA
+      for (let i = 0, j = 0; i < data.length; i++, j += 4) {
+        pixels[j] = data[i];     // R
+        pixels[j + 1] = data[i]; // G
+        pixels[j + 2] = data[i]; // B
+        pixels[j + 3] = 255;     // A
+      }
+    } else if (kind === 2) {
+      // RGB - add alpha
+      for (let i = 0, j = 0; i < data.length; i += 3, j += 4) {
+        pixels[j] = data[i];       // R
+        pixels[j + 1] = data[i + 1]; // G
+        pixels[j + 2] = data[i + 2]; // B
+        pixels[j + 3] = 255;         // A
+      }
+    } else if (kind === 3) {
+      // RGBA - copy directly
+      pixels.set(data);
+    } else {
+      console.log(`[DirectExtract] Unknown image kind: ${kind}`);
+      return null;
+    }
+    
+    ctx.putImageData(imageDataObj, 0, 0);
+    
+    // Convert to JPEG blob at high quality (minimal re-encoding loss)
+    const blob = await new Promise<Blob>((resolve, reject) => {
+      canvas.toBlob(
+        (b) => (b ? resolve(b) : reject(new Error('Failed to create blob'))),
+        'image/jpeg',
+        0.92 // High quality since we're just converting format, not downscaling
+      );
+    });
+    
+    canvas.remove();
+    
+    console.log(`[DirectExtract] Successfully extracted ${width}x${height} image (${(blob.size / 1024).toFixed(1)}KB)`);
+    return { blob, width, height };
+  } catch (err) {
+    console.log('[DirectExtract] Extraction failed:', err);
+    return null;
+  }
+}
+
+/**
  * Extract all pages from a PDF file as images
  * @param file PDF file to extract pages from
  * @param dpi Target DPI for rendering (default 150 for balance of quality/size)
  * @param onProgress Callback for extraction progress
  * @param detectBlanks Whether to run blank page detection (default true)
- * @param preserveQuality Whether to keep original visual fidelity (high-quality JPEG blob URL)
+ * @param preserveQuality Whether to keep original visual fidelity (direct extraction or high-quality render)
  * @returns Array of extracted page images
  */
 export async function extractPdfPages(
@@ -52,62 +153,82 @@ export async function extractPdfPages(
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   const totalPages = pdf.numPages;
-  console.log(`PDF loaded: ${file.name} - ${totalPages} pages detected`);
+  console.log(`PDF loaded: ${file.name} - ${totalPages} pages, preserveQuality=${preserveQuality}`);
   const extractedPages: ExtractedPage[] = [];
 
   // Scale factor: PDF default is 72 DPI
-  // Preserve quality mode increases render DPI for legibility, but keeps within safe limits.
-  const effectiveDpi = preserveQuality ? Math.min(220, Math.max(dpi, 200)) : dpi;
-  const scale = effectiveDpi / 72;
+  // Only used as fallback if direct extraction fails
+  const fallbackDpi = preserveQuality ? 150 : dpi; // Lower DPI for fallback since quality mode prefers direct extraction
+  const scale = fallbackDpi / 72;
 
   // Phase 1: Extract pages
   for (let pageNum = 1; pageNum <= totalPages; pageNum++) {
     const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale });
-
-    // Create canvas for rendering
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) {
-      throw new Error('Failed to get canvas context');
-    }
-
-    canvas.width = viewport.width;
-    canvas.height = viewport.height;
-
-    // Render page to canvas
-    await page
-      .render({
-        canvasContext: ctx,
-        viewport,
-        canvas,
-      })
-      .promise;
-
-    // Convert to image reference
-    // Preserve quality mode: use a high-quality JPEG Blob URL to avoid massive base64 data URLs
-    // Normal mode: JPEG data URL for speed/size
+    const viewport = page.getViewport({ scale: 1 }); // Get natural viewport for dimensions
+    
     let dataUrl: string;
     let blob: Blob | undefined;
+    let pageWidth: number;
+    let pageHeight: number;
+    let usedDirectExtraction = false;
 
+    // In preserveQuality mode, try direct image extraction first
     if (preserveQuality) {
-      blob = await new Promise<Blob>((resolve, reject) => {
-        canvas.toBlob(
-          (b) => (b ? resolve(b) : reject(new Error('Failed to create JPEG blob'))),
-          'image/jpeg',
-          0.88
-        );
-      });
-      dataUrl = URL.createObjectURL(blob);
-    } else {
-      dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      const extracted = await tryExtractEmbeddedImage(page);
+      if (extracted) {
+        blob = extracted.blob;
+        dataUrl = URL.createObjectURL(blob);
+        pageWidth = extracted.width;
+        pageHeight = extracted.height;
+        usedDirectExtraction = true;
+        console.log(`[Page ${pageNum}] Direct extraction: ${pageWidth}x${pageHeight}, ${(blob.size / 1024).toFixed(1)}KB`);
+      }
+    }
+
+    // Fallback: render to canvas (for non-image pages or when direct extraction fails)
+    if (!usedDirectExtraction) {
+      const renderViewport = page.getViewport({ scale });
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        throw new Error('Failed to get canvas context');
+      }
+
+      canvas.width = renderViewport.width;
+      canvas.height = renderViewport.height;
+
+      await page.render({
+        canvasContext: ctx,
+        viewport: renderViewport,
+        canvas,
+      }).promise;
+
+      pageWidth = renderViewport.width;
+      pageHeight = renderViewport.height;
+
+      if (preserveQuality) {
+        // Even in fallback, use reasonable quality
+        blob = await new Promise<Blob>((resolve, reject) => {
+          canvas.toBlob(
+            (b) => (b ? resolve(b) : reject(new Error('Failed to create JPEG blob'))),
+            'image/jpeg',
+            0.85
+          );
+        });
+        dataUrl = URL.createObjectURL(blob);
+        console.log(`[Page ${pageNum}] Fallback render: ${pageWidth}x${pageHeight}, ${(blob.size / 1024).toFixed(1)}KB`);
+      } else {
+        dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+      }
+
+      canvas.remove();
     }
 
     extractedPages.push({
       pageNumber: pageNum,
       dataUrl,
-      width: viewport.width,
-      height: viewport.height,
+      width: pageWidth,
+      height: pageHeight,
       isBlank: false,
       blankConfidence: 0,
       wasRotated: false,
@@ -125,9 +246,6 @@ export async function extractPdfPages(
         phase: 'extracting',
       });
     }
-
-    // Clean up
-    canvas.remove();
   }
 
   // Phase 1.5: Detect patch page on FIRST PAGE ONLY using OCR text (safety constraint)
