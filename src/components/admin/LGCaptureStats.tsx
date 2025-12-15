@@ -55,7 +55,7 @@ interface DeletedRecord {
   deleted_at: string;
 }
 
-const COST_PER_PAGE = 0.05; // 5 pence per page
+const COST_PER_PAGE = 0.003; // 0.3 pence per page
 const TEST_NHS_NUMBER = '9434765919';
 
 const formatCurrency = (amount: number): string => {
@@ -354,17 +354,17 @@ Generated: ${now.toLocaleDateString('en-GB', { day: '2-digit', month: 'long', ye
 CURRENT MONTH (${monthName})
 ----------------------------
 Pages Scanned: ${practice.thisMonth.toLocaleString()}
-Cost @ 5p/page: ${formatCurrency(practice.thisMonth * COST_PER_PAGE)}
+Cost @ 0.3p/page: ${formatCurrency(practice.thisMonth * COST_PER_PAGE)}
 
 PREVIOUS MONTH (${prevMonthName})
 ----------------------------
 Pages Scanned: ${practice.previousMonth.toLocaleString()}
-Cost @ 5p/page: ${formatCurrency(practice.previousMonth * COST_PER_PAGE)}
+Cost @ 0.3p/page: ${formatCurrency(practice.previousMonth * COST_PER_PAGE)}
 
 ALL TIME TOTAL
 ----------------------------
 Pages Scanned: ${practice.allTime.toLocaleString()}
-Cost @ 5p/page: ${formatCurrency(practice.allTime * COST_PER_PAGE)}
+Cost @ 0.3p/page: ${formatCurrency(practice.allTime * COST_PER_PAGE)}
 
 ----------------------------
 Payment Terms: Net 30 days
@@ -454,7 +454,7 @@ Payment Terms: Net 30 days
                 Pages Scanned by Practice
               </CardTitle>
               <CardDescription>
-                Excludes blank pages. Cost: 5p per page.
+                Excludes blank pages. Cost: 0.3p per page.
               </CardDescription>
             </div>
             <Button 
