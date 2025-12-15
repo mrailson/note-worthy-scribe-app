@@ -9,7 +9,7 @@ import { Loader2, FileText, Check, X, Clock, Calendar, Files, ChevronDown, Chevr
 import { Button } from '@/components/ui/button';
 import { format, formatDistanceToNow, differenceInMinutes } from 'date-fns';
 import { toast } from 'sonner';
-import { playWarningBeep } from '@/utils/alertSounds';
+// Warning beep sound removed - was too distracting
 
 interface IdentityIssue {
   type: 'nhs_mismatch' | 'dob_mismatch' | 'name_mismatch' | 'third_party_document' | string;
@@ -103,15 +103,14 @@ export default function BulkUploadHistory({ refreshTrigger = 0, onProcessingCoun
       
       // Critical conflict: Multiple NHS AND multiple DOBs = definitely mixed records
       if (multipleNhs && multipleDobs) {
-        playWarningBeep(3);
+        // Sound removed - was too distracting
         toast.error('⚠️ MIXED PATIENT RECORDS DETECTED', {
           description: `File "${patient.ai_extracted_name || 'Unknown'}" contains documents from ${patient.all_nhs_numbers_found?.length} different patients. Review immediately!`,
           duration: 15000,
         });
         alertedPatientIds.current.add(patient.id);
       } else if (patient.identity_verification_status === 'conflict') {
-        // AI detected conflict
-        playWarningBeep(3);
+        // AI detected conflict - sound removed
         toast.error('⚠️ PATIENT IDENTITY CONFLICT', {
           description: `File "${patient.ai_extracted_name || 'Unknown'}" may contain mixed patient records. Review immediately.`,
           duration: 15000,
