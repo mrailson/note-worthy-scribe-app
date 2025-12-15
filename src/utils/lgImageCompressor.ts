@@ -2,8 +2,8 @@
  * LG Capture Client-Side Image Compression
  * 
  * Compresses images BEFORE upload to Supabase Storage.
- * Target: 600px wide, grayscale JPEG at 40% quality.
- * Expected output: ~15-35 KB per text-only Lloyd George page.
+ * Target: 700px wide, grayscale JPEG at 45% quality.
+ * Expected output: ~20-25 KB per text-only Lloyd George page.
  * 
  * Works on iPhone Safari, desktop Chrome/Firefox/Edge.
  */
@@ -65,8 +65,8 @@ export async function compressLgImageFile(file: File): Promise<File> {
  * Core compression logic - works with any HTMLImageElement
  */
 async function compressImageElement(img: HTMLImageElement): Promise<Blob> {
-  const MAX_WIDTH = 800;  // Balanced width for Lloyd George pages - readable text with good compression
-  const JPEG_QUALITY = 0.50;  // 50% quality - balanced between readability and file size
+  const MAX_WIDTH = 700;  // Balanced width for Lloyd George pages - readable text with good compression
+  const JPEG_QUALITY = 0.45;  // 45% quality - balanced between readability and file size
   
   // Calculate scaled dimensions (maintain aspect ratio)
   const scale = img.width > MAX_WIDTH ? MAX_WIDTH / img.width : 1;
