@@ -120,7 +120,7 @@ async function tryExtractEmbeddedImage(page: any): Promise<{ blob: Blob; width: 
       canvas.toBlob(
         (b) => (b ? resolve(b) : reject(new Error('Failed to create blob'))),
         'image/jpeg',
-        0.72 // Balanced: ~50% smaller than 0.92 while staying readable
+        0.50 // Aggressive compression for smaller files
       );
     });
     
@@ -212,7 +212,7 @@ export async function extractPdfPages(
           canvas.toBlob(
             (b) => (b ? resolve(b) : reject(new Error('Failed to create JPEG blob'))),
             'image/jpeg',
-            0.72
+            0.50
           );
         });
         dataUrl = URL.createObjectURL(blob);
@@ -324,7 +324,7 @@ export async function extractPdfPages(
             const { dataUrl: correctedUrl, wasRotated, blob } = await autoCorrectOrientationToBlobUrl(
               page.dataUrl,
               'image/jpeg',
-              0.72
+              0.50
             );
 
           if (wasRotated && blob) {
