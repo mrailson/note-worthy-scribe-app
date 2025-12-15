@@ -7,6 +7,7 @@ import { generateULID } from '@/utils/ulid';
 import { generateLGFilename } from '@/utils/lgFilenameGenerator';
 import { toast } from 'sonner';
 import { CapturedImage } from '@/hooks/useLGCapture';
+import { DEFAULT_COMPRESSION_LEVEL, CompressionLevel } from '@/utils/lgImageCompressor';
 
 interface WatchFolderState {
   isSupported: boolean;
@@ -291,7 +292,8 @@ export function useWatchFolder(
       logActivity(file.name, 'processing');
 
       // Extract pages from PDF - NO page removal, PDFs are pre-cleansed
-      const pages = await extractPdfPages(file, 150, undefined, false);
+      // Use preserveQuality=true to extract original embedded images (much smaller file size)
+      const pages = await extractPdfPages(file, 150, undefined, false, true);
 
       // Create patient record
       const patientId = generateULID();
@@ -329,8 +331,13 @@ export function useWatchFolder(
         timestamp: Date.now()
       }));
 
-      // Queue for upload
-      queuePatient(patientId, practiceOds, capturedImages);
+      // Queue for upload with user's compression settings
+      const compressionLevel = parseInt(localStorage.getItem('lg_compression_level') || String(DEFAULT_COMPRESSION_LEVEL), 10) as CompressionLevel;
+      const preserveQuality = localStorage.getItem('lg_preserve_quality') === 'true';
+      queuePatient(patientId, practiceOds, capturedImages, {
+        compressionLevel,
+        preserveQuality
+      });
 
       // Mark as processed
       processedFilesRef.current.add(file.name);
