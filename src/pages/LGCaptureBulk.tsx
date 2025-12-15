@@ -419,7 +419,8 @@ export default function LGCaptureBulk() {
             images_count: pageCount,
             source_page_count: pageCount, // Track original PDF page count before any processing
             sex: 'unknown',
-            batch_id: batchId
+            batch_id: batchId,
+            source_filename: qFile.fileName // Store original filename for backup reference
           });
 
         if (insertError) {
