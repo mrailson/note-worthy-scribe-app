@@ -3,7 +3,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { extractPdfPages } from '@/utils/pdfPageExtractor';
-import { removePatchPage } from '@/utils/patchPageDetector';
 import { generateULID } from '@/utils/ulid';
 import { generateLGFilename } from '@/utils/lgFilenameGenerator';
 import { toast } from 'sonner';
@@ -189,18 +188,8 @@ export function useWatchFolder(
     try {
       addActivity({ fileName: file.name, status: 'processing' });
 
-      // Extract pages from PDF
-      let pages = await extractPdfPages(file, 150, undefined, true);
-
-      // Remove patch page if detected (max 1 page, first page only, >90% confidence)
-      const originalCount = pages.length;
-      pages = removePatchPage(pages, (removedPage, reason) => {
-        console.log(`[Watch Folder] Removed patch page from ${file.name}: ${reason}`);
-      });
-      
-      if (pages.length < originalCount) {
-        console.log(`[Watch Folder] ${file.name}: Reduced from ${originalCount} to ${pages.length} pages (patch page removed)`);
-      }
+      // Extract pages from PDF - NO page removal, PDFs are pre-cleansed
+      const pages = await extractPdfPages(file, 150, undefined, false);
 
       // Create patient record
       const patientId = generateULID();
@@ -225,14 +214,12 @@ export function useWatchFolder(
         throw new Error(`Failed to create patient record: ${insertError.message}`);
       }
 
-      // Convert to CapturedImage format
-      const capturedImages: CapturedImage[] = pages
-        .filter(p => !p.isBlank)
-        .map((page, index) => ({
-          id: `${patientId}-page-${index + 1}`,
-          dataUrl: page.dataUrl,
-          timestamp: Date.now()
-        }));
+      // Convert to CapturedImage format - NO filtering, PDFs are pre-cleansed
+      const capturedImages: CapturedImage[] = pages.map((page, index) => ({
+        id: `${patientId}-page-${index + 1}`,
+        dataUrl: page.dataUrl,
+        timestamp: Date.now()
+      }));
 
       // Queue for upload
       queuePatient(patientId, practiceOds, capturedImages);
