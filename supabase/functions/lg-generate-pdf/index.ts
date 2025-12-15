@@ -106,6 +106,26 @@ function formatDateUK(dateStr: string): string {
   return dateStr; // Return original if can't parse
 }
 
+// Format datetime to UK standard (DD/MM/YYYY at HH:mm)
+function formatDateTimeUK(dateStr: string): string {
+  if (!dateStr) return '';
+  
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    
+    return `${day}/${month}/${year} at ${hours}:${minutes}`;
+  } catch {
+    return dateStr;
+  }
+}
+
 // Detect scanner separator cards by OCR text patterns
 function isSeparatorCard(pageText: string): boolean {
   const text = pageText.toLowerCase().trim();
@@ -345,11 +365,21 @@ serve(async (req) => {
       // ===== PAGE 3: INDEX OF SCANNED PAGES =====
       console.log('Adding index page...');
       frontMatterPages = pdfDoc.getPageCount();
+      
+      // Format upload date for display
+      const uploadDateFormatted = patient.upload_completed_at 
+        ? formatDateTimeUK(patient.upload_completed_at)
+        : patient.created_at 
+          ? formatDateTimeUK(patient.created_at)
+          : undefined;
+      
       const indexResult = addIndexPage(pdfDoc, font, boldFont, {
         patientName,
         nhsNumber,
         pageSummaries,
         scanStartPage: frontMatterPages + 1,
+        sourceFilename: patient.source_filename || undefined,
+        uploadDate: uploadDateFormatted,
       });
       indexPageIndices = indexResult.indexPageIndices;
       linkYPositions = indexResult.linkYPositions;
@@ -413,11 +443,21 @@ serve(async (req) => {
       
       // Add index page
       frontMatterPages = pdfDoc.getPageCount();
+      
+      // Format upload date for display
+      const uploadDateFormattedIndex = patient.upload_completed_at 
+        ? formatDateTimeUK(patient.upload_completed_at)
+        : patient.created_at 
+          ? formatDateTimeUK(patient.created_at)
+          : undefined;
+      
       const indexResult = addIndexPage(pdfDoc, font, boldFont, {
         patientName,
         nhsNumber,
         pageSummaries,
         scanStartPage: frontMatterPages + 1,
+        sourceFilename: patient.source_filename || undefined,
+        uploadDate: uploadDateFormattedIndex,
       });
       indexPageIndices = indexResult.indexPageIndices;
       linkYPositions = indexResult.linkYPositions;
@@ -1667,9 +1707,11 @@ function addIndexPage(
     pageSummaries: string[];
     scanStartPage: number;
     partInfo?: string;
+    sourceFilename?: string;
+    uploadDate?: string;
   }
 ): { indexPageIndices: number[]; linkYPositions: { pageIndex: number; y: number; scannedIndex: number }[] } {
-  const { patientName, nhsNumber, pageSummaries, scanStartPage, partInfo } = opts;
+  const { patientName, nhsNumber, pageSummaries, scanStartPage, partInfo, sourceFilename, uploadDate } = opts;
   
   const indexPageIndices: number[] = [];
   const linkYPositions: { pageIndex: number; y: number; scannedIndex: number }[] = [];
@@ -1700,7 +1742,18 @@ function addIndexPage(
   }
   y -= 10;
   drawLine(`Patient: ${patientName}   NHS: ${nhsNumber}`, 10);
-  y -= 20;
+  
+  // Add original source file reference for backup identification
+  if (sourceFilename || uploadDate) {
+    y -= 5;
+    const sourceRef = [
+      sourceFilename ? `Original file: ${sourceFilename}` : null,
+      uploadDate ? `Uploaded: ${uploadDate}` : null
+    ].filter(Boolean).join('  |  ');
+    drawLine(sourceRef, 9);
+  }
+  
+  y -= 15;
 
   drawLine('Page No.    Description', 11, true);
   drawLine('--------    -----------', 10);
