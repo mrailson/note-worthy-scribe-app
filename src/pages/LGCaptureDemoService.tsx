@@ -119,7 +119,7 @@ export default function LGCaptureDemoService() {
 
   const loadMultiPatientDemo = async (size: 'small' | 'mid' | 'large') => {
     if (!user?.id || !patient) {
-      toast.error('Please ensure you are logged in');
+      console.error('Please ensure you are logged in');
       return;
     }
 
@@ -241,13 +241,13 @@ export default function LGCaptureDemoService() {
     setLoadingLabel('');
     
     if (successCount > 0) {
-      toast.success(`${successCount} patient${successCount !== 1 ? 's' : ''} queued for processing`);
+      console.log(`${successCount} patient${successCount !== 1 ? 's' : ''} queued for processing`);
     }
   };
 
   const handleDoneNextPatient = () => {
     if (!patient || images.length === 0) {
-      toast.error('Please load demo images first');
+      console.error('Please load demo images first');
       return;
     }
 
