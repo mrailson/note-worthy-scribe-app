@@ -95,7 +95,7 @@ export async function extractPdfPages(
         canvas.toBlob(
           (b) => (b ? resolve(b) : reject(new Error('Failed to create JPEG blob'))),
           'image/jpeg',
-          0.92
+          0.75
         );
       });
       dataUrl = URL.createObjectURL(blob);
@@ -206,7 +206,7 @@ export async function extractPdfPages(
           const { dataUrl: correctedUrl, wasRotated, blob } = await autoCorrectOrientationToBlobUrl(
             page.dataUrl,
             'image/jpeg',
-            0.92
+            0.75
           );
 
           if (wasRotated && blob) {
