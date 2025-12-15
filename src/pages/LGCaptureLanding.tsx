@@ -14,6 +14,7 @@ import { useIsIPhone } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 // Toast messages removed from LG Capture service
 import { LGAIModel } from '@/contexts/LGUploadQueueContext';
+import { CompressionLevel, COMPRESSION_LEVELS, DEFAULT_COMPRESSION_LEVEL, getCompressionSettings } from '@/utils/lgImageCompressor';
 
 interface Practice {
   id: string;
@@ -30,6 +31,7 @@ export default function LGCaptureLanding() {
   const [uploaderName, setUploaderName] = useState('');
   const [serviceLevel, setServiceLevel] = useState<'rename_only' | 'index_summary' | 'full_service'>('full_service');
   const [aiModel, setAiModel] = useState<LGAIModel>('gpt-4o-mini');
+  const [compressionLevel, setCompressionLevel] = useState<CompressionLevel>(DEFAULT_COMPRESSION_LEVEL);
   const [showSettings, setShowSettings] = useState(false);
   const [practices, setPractices] = useState<Practice[]>([]);
   const [practiceSearchOpen, setPracticeSearchOpen] = useState(false);
@@ -71,12 +73,20 @@ export default function LGCaptureLanding() {
         .maybeSingle();
       
       if (settingsData?.setting_value) {
-        const defaults = settingsData.setting_value as { practiceOds?: string; uploaderName?: string; practiceName?: string; serviceLevel?: 'rename_only' | 'index_summary' | 'full_service'; aiModel?: LGAIModel };
+        const defaults = settingsData.setting_value as { 
+          practiceOds?: string; 
+          uploaderName?: string; 
+          practiceName?: string; 
+          serviceLevel?: 'rename_only' | 'index_summary' | 'full_service'; 
+          aiModel?: LGAIModel;
+          compressionLevel?: CompressionLevel;
+        };
         if (defaults.practiceOds) loadedOds = defaults.practiceOds;
         if (defaults.uploaderName) loadedName = defaults.uploaderName;
         if (defaults.practiceName) loadedPracticeName = defaults.practiceName;
         if (defaults.serviceLevel) setServiceLevel(defaults.serviceLevel);
         if (defaults.aiModel) setAiModel(defaults.aiModel);
+        if (defaults.compressionLevel) setCompressionLevel(defaults.compressionLevel);
       }
 
       // 2. If name not set, get from user profile
@@ -123,7 +133,7 @@ export default function LGCaptureLanding() {
   }, [user?.id]);
 
   // Save to database helper - called on practice select AND save button
-  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service', model: LGAIModel) => {
+  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service', model: LGAIModel, compLevel: CompressionLevel) => {
     if (!user?.id) return false;
     
     const { error } = await supabase
@@ -136,7 +146,8 @@ export default function LGCaptureLanding() {
           practiceName: pName.trim(),
           uploaderName: name.trim(),
           serviceLevel: svcLevel,
-          aiModel: model
+          aiModel: model,
+          compressionLevel: compLevel
         },
         updated_at: new Date().toISOString()
       }, { 
@@ -165,7 +176,7 @@ export default function LGCaptureLanding() {
     setSearchTerm('');
 
     // Auto-save to database immediately
-    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel, aiModel);
+    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel, aiModel, compressionLevel);
   };
 
   const filteredPractices = practices.filter(practice => {
@@ -199,7 +210,7 @@ export default function LGCaptureLanding() {
     }
 
     setIsSaving(true);
-    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel, aiModel);
+    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel, aiModel, compressionLevel);
     setIsSaving(false);
 
     if (saved) {
@@ -615,8 +626,38 @@ export default function LGCaptureLanding() {
               </div>
             </div>
 
+            {/* File Compression Slider */}
+            <div className="space-y-3">
+              <Label>File Compression</Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between gap-4 text-sm">
+                  <span className="text-muted-foreground whitespace-nowrap">Smallest Files</span>
+                  <Slider
+                    value={[compressionLevel]}
+                    onValueChange={(value) => setCompressionLevel(value[0] as CompressionLevel)}
+                    min={1}
+                    max={7}
+                    step={1}
+                    className="flex-1"
+                  />
+                  <span className="text-muted-foreground whitespace-nowrap">Best Quality</span>
+                </div>
+                <div className="text-center">
+                  <span className="font-medium text-sm">
+                    Level {compressionLevel}: {getCompressionSettings(compressionLevel).label}
+                  </span>
+                  <span className="text-muted-foreground text-sm ml-2">
+                    ({getCompressionSettings(compressionLevel).estimatedSize})
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground text-center">
+                  All images converted to black & white. Adjust for storage vs readability.
+                </p>
+              </div>
+            </div>
+
             <Button 
-              onClick={saveSettings} 
+              onClick={saveSettings}
               className={cn("w-full", isIPhone && "h-12 text-base")} 
               disabled={!canStart || isSaving}
             >

@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import { supabase } from '@/integrations/supabase/client';
 // Toast messages removed from LG Capture service
 import { CapturedImage } from '@/hooks/useLGCapture';
-import { compressLgImageFromDataUrl } from '@/utils/lgImageCompressor';
+import { compressLgImageFromDataUrl, CompressionLevel, DEFAULT_COMPRESSION_LEVEL } from '@/utils/lgImageCompressor';
 
 export type ServiceLevel = 'rename_only' | 'index_summary' | 'full_service';
 export type LGAIModel = 'gpt-4o-mini' | 'gpt-5';
@@ -18,6 +18,7 @@ interface QueuedPatient {
   fileSize?: number;
   serviceLevel: ServiceLevel;
   aiModel: LGAIModel;
+  compressionLevel: CompressionLevel;
   queuedAt: Date;
 }
 
@@ -26,6 +27,7 @@ interface QueuePatientOptions {
   fileSize?: number;
   serviceLevel?: ServiceLevel;
   aiModel?: LGAIModel;
+  compressionLevel?: CompressionLevel;
 }
 
 interface LGUploadQueueContextType {
@@ -63,6 +65,7 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
       fileSize: options?.fileSize,
       serviceLevel: options?.serviceLevel || 'full_service',
       aiModel: options?.aiModel || 'gpt-4o-mini',
+      compressionLevel: options?.compressionLevel || DEFAULT_COMPRESSION_LEVEL,
       queuedAt: new Date()
     }]);
   }, []);
@@ -94,12 +97,11 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
       for (let i = 0; i < images.length; i++) {
         const img = images[i];
         
-        // COMPRESS IMAGE CLIENT-SIDE before upload
-        // Target: 600px wide, grayscale, 40% JPEG quality
+        // COMPRESS IMAGE CLIENT-SIDE before upload using configured compression level
         let blob: Blob;
         try {
-          blob = await compressLgImageFromDataUrl(img.dataUrl);
-          console.log(`Page ${i + 1}: Compressed to ${(blob.size / 1024).toFixed(1)} KB`);
+          blob = await compressLgImageFromDataUrl(img.dataUrl, patient.compressionLevel);
+          console.log(`Page ${i + 1}: Compressed (level ${patient.compressionLevel}) to ${(blob.size / 1024).toFixed(1)} KB`);
         } catch (compressErr) {
           console.error(`Failed to compress page ${i + 1}, using original:`, compressErr);
           // Fallback to original if compression fails
