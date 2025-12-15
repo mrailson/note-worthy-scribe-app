@@ -577,7 +577,7 @@ export default function LGCapturePatients() {
                             )}
                           </span>
                           <span className="text-xs text-muted-foreground opacity-70">
-                            {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages
+                            {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages{(patient as any).pdf_final_size_mb ? ` • ${(patient as any).pdf_final_size_mb.toFixed(2)}MB` : ''}
                           </span>
                         </div>
                       </div>
