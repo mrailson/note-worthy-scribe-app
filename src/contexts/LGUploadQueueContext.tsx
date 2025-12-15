@@ -42,7 +42,14 @@ const LGUploadQueueContext = createContext<LGUploadQueueContextType | null>(null
 export const useLGUploadQueue = () => {
   const context = useContext(LGUploadQueueContext);
   if (!context) {
-    throw new Error('useLGUploadQueue must be used within LGUploadQueueProvider');
+    // Return a safe fallback for read-only usage when provider is missing (HMR edge case)
+    console.warn('useLGUploadQueue called outside LGUploadQueueProvider - returning fallback');
+    return {
+      queue: [],
+      queuePatient: () => { console.error('Cannot queue patient - provider missing'); },
+      activeUploads: 0,
+      isProcessing: false
+    } as LGUploadQueueContextType;
   }
   return context;
 };
