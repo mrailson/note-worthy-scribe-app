@@ -117,14 +117,16 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
         if (patient.preserveQuality) {
           // PRESERVE QUALITY MODE: Upload original extracted image directly (PNG from PDF extraction)
           try {
+            // img.dataUrl may be a blob: URL (preserveQuality) or data: URL (normal)
             const response = await fetch(img.dataUrl);
             blob = await response.blob();
-            // Detect if PNG from data URL
-            fileExtension = img.dataUrl.startsWith('data:image/png') ? 'png' : 'jpg';
-            console.log(`Page ${i + 1}: Preserved quality - ${(blob.size / 1024).toFixed(1)} KB (${fileExtension.toUpperCase()})`);
+            // Preserve-quality extraction always generates PNG
+            fileExtension = 'png';
+            console.log(`Page ${i + 1}: Preserved quality - ${(blob.size / 1024).toFixed(1)} KB (PNG)`);
           } catch (fetchErr) {
-            console.error(`Failed to extract page ${i + 1}:`, fetchErr);
-            throw new Error(`Failed to process page ${i + 1}`);
+            console.error(`Failed to read page ${i + 1} image data:`, fetchErr);
+            const msg = fetchErr instanceof Error ? fetchErr.message : String(fetchErr);
+            throw new Error(`Failed to process page ${i + 1}: ${msg}`);
           }
         } else {
           // COMPRESSION MODE: Compress image client-side using configured compression level
@@ -153,6 +155,11 @@ export const LGUploadQueueProvider: React.FC<{ children: React.ReactNode }> = ({
 
         if (uploadError) {
           throw new Error(`Failed to upload page ${i + 1}: ${uploadError.message}`);
+        }
+
+        // Free memory for blob URLs (preserveQuality mode)
+        if (patient.preserveQuality && img.dataUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(img.dataUrl);
         }
 
         // Update progress
