@@ -1742,18 +1742,7 @@ function addIndexPage(
   }
   y -= 10;
   drawLine(`Patient: ${patientName}   NHS: ${nhsNumber}`, 10);
-  
-  // Add original source file reference for backup identification
-  if (sourceFilename || uploadDate) {
-    y -= 5;
-    const sourceRef = [
-      sourceFilename ? `Original file: ${sourceFilename}` : null,
-      uploadDate ? `Uploaded: ${uploadDate}` : null
-    ].filter(Boolean).join('  |  ');
-    drawLine(sourceRef, 9);
-  }
-  
-  y -= 15;
+  y -= 20;
 
   drawLine('Page No.    Description', 11, true);
   drawLine('--------    -----------', 10);
@@ -1789,6 +1778,16 @@ function addIndexPage(
 
   y -= 20;
   drawLine('Click any entry above to jump to that page. Each page has a link back to this index.', 9);
+  
+  // Add original source file reference for backup identification - below the click instruction
+  if (sourceFilename || uploadDate) {
+    y -= 15;
+    const sourceRef = [
+      sourceFilename ? `Original file: ${sourceFilename}` : null,
+      uploadDate ? `Uploaded: ${uploadDate}` : null
+    ].filter(Boolean).join('  |  ');
+    drawLine(sourceRef, 9);
+  }
 
   // Page number
   page.drawText('Page 3', { x: 545, y: 30, size: 9, font });
