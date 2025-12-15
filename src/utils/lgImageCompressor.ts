@@ -19,18 +19,20 @@ export interface CompressionSettings {
   estimatedSize: string;
 }
 
-// All levels use true black & white (threshold at 128)
+// Levels 1-4 use true black & white (threshold at 128) for very small files.
+// Levels 5-7 keep grayscale to preserve faint handwriting/low-contrast scans.
 export const COMPRESSION_LEVELS: Record<CompressionLevel, CompressionSettings> = {
   1: { maxWidth: 500, quality: 0.30, label: 'Minimum', description: 'Smallest files', estimatedSize: '~8-12 KB/page' },
   2: { maxWidth: 550, quality: 0.35, label: 'Very Low', description: 'Very compressed', estimatedSize: '~10-15 KB/page' },
   3: { maxWidth: 600, quality: 0.40, label: 'Low', description: 'Small files', estimatedSize: '~12-18 KB/page' },
-  4: { maxWidth: 700, quality: 0.45, label: 'Balanced', description: 'Default', estimatedSize: '~15-22 KB/page' },
-  5: { maxWidth: 800, quality: 0.55, label: 'Good', description: 'Better quality', estimatedSize: '~20-35 KB/page' },
-  6: { maxWidth: 900, quality: 0.65, label: 'High', description: 'High quality', estimatedSize: '~35-55 KB/page' },
-  7: { maxWidth: 1200, quality: 0.80, label: 'Maximum', description: 'Best quality', estimatedSize: '~60-100 KB/page' },
+  4: { maxWidth: 700, quality: 0.45, label: 'Balanced', description: 'Default (smaller files)', estimatedSize: '~15-22 KB/page' },
+  5: { maxWidth: 800, quality: 0.55, label: 'Good', description: 'Better readability', estimatedSize: '~20-35 KB/page' },
+  6: { maxWidth: 900, quality: 0.65, label: 'High', description: 'High readability', estimatedSize: '~35-55 KB/page' },
+  7: { maxWidth: 1200, quality: 0.80, label: 'Maximum', description: 'Best readability', estimatedSize: '~60-100 KB/page' },
 };
 
-export const DEFAULT_COMPRESSION_LEVEL: CompressionLevel = 4;
+// Default tuned for readability (scanned clinical documents must remain legible)
+export const DEFAULT_COMPRESSION_LEVEL: CompressionLevel = 6;
 
 export function getCompressionSettings(level: number): CompressionSettings {
   const safeLevel = Math.max(1, Math.min(7, Math.round(level))) as CompressionLevel;
@@ -94,12 +96,15 @@ export async function compressLgImageFile(file: File, level: CompressionLevel = 
 
 /**
  * Core compression logic - works with any HTMLImageElement
- * Converts to TRUE BLACK & WHITE (not grayscale) using threshold
+ *
+ * Levels 1-4: binarise to true black/white (smallest files)
+ * Levels 5-7: keep grayscale (better readability for faint text)
  */
 async function compressImageElement(img: HTMLImageElement, level: CompressionLevel = DEFAULT_COMPRESSION_LEVEL): Promise<Blob> {
   const settings = getCompressionSettings(level);
   const { maxWidth, quality } = settings;
-  const THRESHOLD = 128; // Black/white threshold
+  const THRESHOLD = 128; // Used only for levels 1-4
+  const keepGrayscale = level >= 5;
   
   // Calculate scaled dimensions (maintain aspect ratio)
   const scale = img.width > maxWidth ? maxWidth / img.width : 1;
@@ -131,24 +136,29 @@ async function compressImageElement(img: HTMLImageElement, level: CompressionLev
   // Draw the scaled image
   ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
   
-  // Convert to TRUE BLACK & WHITE using threshold (not grayscale)
+  // Post-process pixels for legibility
+  // - Lower levels: true black/white reduces size but can lose faint handwriting
+  // - Higher levels: grayscale preserves low-contrast detail
   const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
   const data = imageData.data;
-  
+
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
+
     // Calculate luminance
     const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
-    // Apply threshold: pure black (0) or pure white (255)
-    const bw = luminance >= THRESHOLD ? 255 : 0;
-    data[i] = bw;     // R
-    data[i + 1] = bw; // G
-    data[i + 2] = bw; // B
+
+    const v = keepGrayscale
+      ? Math.max(0, Math.min(255, Math.round(luminance)))
+      : (luminance >= THRESHOLD ? 255 : 0);
+
+    data[i] = v;     // R
+    data[i + 1] = v; // G
+    data[i + 2] = v; // B
     // Alpha (data[i + 3]) remains unchanged
   }
-  
   ctx.putImageData(imageData, 0, 0);
   
   // Convert to JPEG blob
