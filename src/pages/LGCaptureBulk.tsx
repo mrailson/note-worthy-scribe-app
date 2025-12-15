@@ -24,7 +24,7 @@ import { generateULID } from '@/utils/ulid';
 // Toast messages removed from LG Capture service
 import { format } from 'date-fns';
 import { CapturedImage } from '@/hooks/useLGCapture';
-import WatchFolderSettings from '@/components/lg-capture/WatchFolderSettings';
+import WatchFolderPipelineView from '@/components/lg-capture/WatchFolderPipelineView';
 import BulkUploadHistory from '@/components/lg-capture/BulkUploadHistory';
 import { LGProcessingQueue } from '@/components/lg-capture/LGProcessingQueue';
 import { LGValidationModal } from '@/components/lg-capture/LGValidationModal';
@@ -607,9 +607,8 @@ export default function LGCaptureBulk() {
             </Card>
           )}
 
-          {/* Watch Folder Settings */}
-          {/* Watch Folder Settings */}
-          <WatchFolderSettings 
+          {/* Watch Folder Pipeline View */}
+          <WatchFolderPipelineView 
             practiceOds={practiceOds}
             uploaderName={uploaderName}
             batchId={batchId}

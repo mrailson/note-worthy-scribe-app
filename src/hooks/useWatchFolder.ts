@@ -23,6 +23,26 @@ export interface ActivityLogEntry {
   error?: string;
 }
 
+// Pipeline file tracking for tabbed view
+export interface WatchFolderFile {
+  id: string;
+  originalFilename: string;
+  detectedAt: Date;
+  stage: 'detected' | 'queuing' | 'queued' | 'uploading' | 'uploaded' | 'processing' | 'ocr' | 'summarising' | 'snomed' | 'complete' | 'failed';
+  uploadProgress?: number;
+  uploadedAt?: Date;
+  patientId?: string;
+  patientName?: string;
+  pageCount?: number;
+  aiCompletedAt?: Date;
+  movedToImported: boolean;
+  movedAt?: Date;
+  savedToDone: boolean;
+  lgFilename?: string;
+  savedAt?: Date;
+  error?: string;
+}
+
 // Fixed polling interval - 30 seconds
 const POLLING_INTERVAL_SECONDS = 30;
 
@@ -40,6 +60,9 @@ export function useWatchFolder(
   // showDirectoryPicker requires Chrome/Edge AND cannot work in iframes
   const apiSupported = typeof window !== 'undefined' && 'showDirectoryPicker' in window;
   const isSupported = apiSupported && !isInIframe;
+  
+  // Pipeline files for tabbed view
+  const [pipelineFiles, setPipelineFiles] = useState<WatchFolderFile[]>([]);
   
   // Load saved folder name from localStorage
   const getSavedFolderName = () => {
@@ -116,6 +139,23 @@ export function useWatchFolder(
     console.log(`[Watch Folder] ${fileName}: ${status}`);
   }, []);
 
+  // Update pipeline file stage
+  const updatePipelineFile = useCallback((fileId: string, updates: Partial<WatchFolderFile>) => {
+    setPipelineFiles(prev => prev.map(f => 
+      f.id === fileId ? { ...f, ...updates } : f
+    ));
+  }, []);
+
+  // Add new file to pipeline
+  const addPipelineFile = useCallback((file: WatchFolderFile) => {
+    setPipelineFiles(prev => [file, ...prev]);
+  }, []);
+
+  // Clear all pipeline files
+  const clearPipelineFiles = useCallback(() => {
+    setPipelineFiles([]);
+  }, []);
+
   // Move file to "Imported to AI for processing" subfolder
   const moveToImportedFolder = useCallback(async (fileName: string, fileHandle: FileSystemFileHandle) => {
     if (!directoryHandleRef.current) {
@@ -173,9 +213,22 @@ export function useWatchFolder(
       return;
     }
 
+    // Add to pipeline tracking
+    const pipelineFileId = crypto.randomUUID();
+    const pipelineFile: WatchFolderFile = {
+      id: pipelineFileId,
+      originalFilename: file.name,
+      detectedAt: new Date(),
+      stage: 'detected',
+      movedToImported: false,
+      savedToDone: false
+    };
+    addPipelineFile(pipelineFile);
+
     logActivity(file.name, 'detected');
 
     try {
+      updatePipelineFile(pipelineFileId, { stage: 'queuing' });
       logActivity(file.name, 'processing');
 
       // Extract pages from PDF - NO page removal, PDFs are pre-cleansed
@@ -204,6 +257,12 @@ export function useWatchFolder(
         throw new Error(`Failed to create patient record: ${insertError.message}`);
       }
 
+      updatePipelineFile(pipelineFileId, { 
+        stage: 'uploading', 
+        patientId, 
+        pageCount: pages.length 
+      });
+
       // Convert to CapturedImage format - NO filtering, PDFs are pre-cleansed
       const capturedImages: CapturedImage[] = pages.map((page, index) => ({
         id: `${patientId}-page-${index + 1}`,
@@ -218,19 +277,25 @@ export function useWatchFolder(
       processedFilesRef.current.add(file.name);
       saveProcessedFiles();
 
+      updatePipelineFile(pipelineFileId, { stage: 'queued' });
       logActivity(file.name, 'queued');
       toast.success(`Auto-imported: ${file.name}`);
 
       // Move to imported folder if we have write access and file handle
       if (fileHandle) {
         await moveToImportedFolder(file.name, fileHandle);
+        updatePipelineFile(pipelineFileId, { movedToImported: true, movedAt: new Date() });
       }
 
     } catch (err) {
       console.error('Error processing watched file:', file.name, err);
+      updatePipelineFile(pipelineFileId, { 
+        stage: 'failed', 
+        error: err instanceof Error ? err.message : 'Unknown error' 
+      });
       logActivity(file.name, `failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
     }
-  }, [user?.id, practiceOds, uploaderName, batchId, queuePatient, logActivity, saveProcessedFiles, moveToImportedFolder]);
+  }, [user?.id, practiceOds, uploaderName, batchId, queuePatient, logActivity, saveProcessedFiles, moveToImportedFolder, addPipelineFile, updatePipelineFile]);
 
   const pollFolder = useCallback(async () => {
     if (!directoryHandleRef.current) return;
@@ -551,6 +616,75 @@ export function useWatchFolder(
     };
   }, []);
 
+  // Subscribe to patient status updates for pipeline tracking
+  useEffect(() => {
+    if (!user?.id || pipelineFiles.length === 0) return;
+    
+    const channel = supabase
+      .channel('watch-folder-pipeline-updates')
+      .on(
+        'postgres_changes',
+        {
+          event: 'UPDATE',
+          schema: 'public',
+          table: 'lg_patients',
+          filter: `user_id=eq.${user.id}`
+        },
+        async (payload) => {
+          const patient = payload.new as any;
+          
+          // Find matching pipeline file by patientId
+          const pipelineFile = pipelineFiles.find(f => f.patientId === patient.id);
+          if (!pipelineFile) return;
+          
+          // Update stage based on job_status
+          let newStage: WatchFolderFile['stage'] = pipelineFile.stage;
+          let patientName = pipelineFile.patientName;
+          let lgFilename = pipelineFile.lgFilename;
+          
+          switch (patient.job_status) {
+            case 'uploading':
+              newStage = 'uploading';
+              break;
+            case 'queued':
+              newStage = 'queued';
+              break;
+            case 'processing':
+              newStage = 'processing';
+              break;
+            case 'succeeded':
+              newStage = 'complete';
+              patientName = patient.ai_extracted_name || patient.patient_name;
+              if (patient.pdf_url) {
+                lgFilename = generateLGFilename({
+                  patientName: patient.ai_extracted_name || patient.patient_name,
+                  nhsNumber: patient.ai_extracted_nhs || patient.nhs_number,
+                  dob: patient.ai_extracted_dob || patient.dob,
+                  partNumber: 1,
+                  totalParts: patient.pdf_split_count || 1
+                });
+              }
+              break;
+            case 'failed':
+              newStage = 'failed';
+              break;
+          }
+          
+          updatePipelineFile(pipelineFile.id, { 
+            stage: newStage,
+            patientName,
+            lgFilename,
+            ...(newStage === 'complete' ? { aiCompletedAt: new Date() } : {})
+          });
+        }
+      )
+      .subscribe();
+    
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, pipelineFiles, updatePipelineFile]);
+
   return {
     ...state,
     selectFolder,
@@ -561,6 +695,8 @@ export function useWatchFolder(
     disableWatchFolder,
     clearProcessedFiles,
     hasDoneFolder: !!doneFolderHandleRef.current,
-    needsReselect
+    needsReselect,
+    pipelineFiles,
+    clearPipelineFiles
   };
 }
