@@ -529,15 +529,6 @@ export default function LGCapturePatients() {
                               <p className="text-sm text-muted-foreground">
                                 DOB: {formatDob(patient.dob || patient.ai_extracted_dob)}
                               </p>
-                              <p className="text-sm text-muted-foreground">
-                                {patient.practice_ods}{practiceNames[patient.practice_ods] ? ` - ${practiceNames[patient.practice_ods]}` : ''}
-                              </p>
-                              {patient.uploader_name && (
-                                <p className="text-muted-foreground text-xs">Scanned by {patient.uploader_name}</p>
-                              )}
-                              <p className="text-muted-foreground text-xs">
-                                {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages{(patient as any).pdf_final_size_mb ? ` • ${(patient as any).pdf_final_size_mb.toFixed(2)}MB` : ''}
-                              </p>
                               {/* Identity conflict details */}
                               {showConflict && (
                                 <div className="p-2 bg-red-50 border border-red-200 rounded text-xs text-red-700 mt-2">
@@ -550,9 +541,18 @@ export default function LGCapturePatients() {
                                 </div>
                               )}
                             </div>
-                            <div className="flex flex-col items-end gap-2">
+                            <div className="flex flex-col items-end gap-1 text-right">
                               {getStatusBadge(patient)}
-                              <div className="flex items-center gap-1">
+                              <p className="text-sm text-muted-foreground">
+                                {patient.practice_ods}{practiceNames[patient.practice_ods] ? ` - ${practiceNames[patient.practice_ods]}` : ''}
+                              </p>
+                              {patient.uploader_name && (
+                                <p className="text-muted-foreground text-xs">Scanned by {patient.uploader_name}</p>
+                              )}
+                              <p className="text-muted-foreground text-xs">
+                                {format(new Date(patient.created_at), 'dd-MM-yyyy HH:mm')} • {patient.images_count} pages{(patient as any).pdf_final_size_mb ? ` • ${(patient as any).pdf_final_size_mb.toFixed(2)}MB` : ''}
+                              </p>
+                              <div className="flex items-center gap-1 mt-1">
                                 {/* Reprocess icon */}
                                 {patient.job_status === 'succeeded' && !patient.patient_name && !patient.ai_extracted_name && (
                                   <button
