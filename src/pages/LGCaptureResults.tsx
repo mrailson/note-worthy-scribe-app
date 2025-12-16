@@ -298,6 +298,14 @@ export default function LGCaptureResults() {
             </div>
           ) : (
             <div className="grid gap-2 text-sm" style={{ gridTemplateColumns: 'auto 1fr' }}>
+              {/* Source File - at top */}
+              {patient.source_filename && (
+                <>
+                  <span className="text-muted-foreground">Source File:</span>
+                  <span className="font-medium text-xs">{patient.source_filename}</span>
+                </>
+              )}
+              
               <span className="text-muted-foreground">Patient:</span>
               <span className="font-medium">
                 {patient.ai_extracted_name || patient.patient_name || (
@@ -363,8 +371,19 @@ export default function LGCaptureResults() {
                 </>
               )}
               
-              <span className="text-muted-foreground">ID:</span>
-              <span className="font-mono text-xs">{patient.id}</span>
+              {/* AI Processed File Name - at bottom when complete */}
+              {patient.job_status === 'succeeded' && (patient as any).pdf_url && (
+                <>
+                  <span className="text-muted-foreground">LG PDF:</span>
+                  <span className="font-medium text-xs text-green-600">
+                    {(() => {
+                      const pdfPath = (patient as any).pdf_url as string;
+                      const filename = pdfPath.split('/').pop() || pdfPath;
+                      return filename;
+                    })()}
+                  </span>
+                </>
+              )}
             </div>
           )}
           
