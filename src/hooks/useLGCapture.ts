@@ -89,6 +89,8 @@ export interface LGPatient {
   ocr_total_chars: number | null;
   ocr_analysed_chars: number | null;
   ocr_analysed_percentage: number | null;
+  // Source filename tracking
+  source_filename: string | null;
 }
 
 // Helper functions to safely extract typed data from JSONB fields
