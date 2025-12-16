@@ -20,7 +20,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useLGCapture, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { extractPdfPages, ExtractedPage } from '@/utils/pdfPageExtractor';
-import { DEFAULT_COMPRESSION_LEVEL } from '@/utils/lgImageCompressor';
+import { DEFAULT_COMPRESSION_LEVEL, CompressionLevel } from '@/utils/lgImageCompressor';
 import { generateULID } from '@/utils/ulid';
 // Toast messages removed from LG Capture service
 import { format } from 'date-fns';
@@ -474,7 +474,7 @@ export default function LGCaptureBulk() {
         queuePatient(patientId, practiceOds, capturedImages, {
           fileName: qFile.fileName,
           fileSize: qFile.fileSize,
-          compressionLevel: compressionLevel as 1 | 2 | 3 | 4 | 5 | 6 | 7,
+          compressionLevel: compressionLevel as CompressionLevel,
           preserveQuality: preserveQualityFlag
         });
 
