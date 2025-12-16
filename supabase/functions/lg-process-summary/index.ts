@@ -908,6 +908,26 @@ serve(async (req) => {
         console.log('All DOBs found:', allDobsFound);
         console.log('All names found:', allNamesFound);
         
+        // Helper function to check if NHS number differences are likely OCR noise
+        const isLikelyOcrNoise = (numbers: string[]): boolean => {
+          if (numbers.length < 2) return false;
+          // Check if all numbers differ by only 1-2 digits (OCR errors like 5→6, 8→9)
+          for (let i = 0; i < numbers.length; i++) {
+            for (let j = i + 1; j < numbers.length; j++) {
+              const a = numbers[i].replace(/\s/g, '');
+              const b = numbers[j].replace(/\s/g, '');
+              if (a.length !== b.length) continue;
+              let diffCount = 0;
+              for (let k = 0; k < a.length; k++) {
+                if (a[k] !== b[k]) diffCount++;
+              }
+              // If more than 2 digits differ, it's likely a different NHS number
+              if (diffCount > 2) return false;
+            }
+          }
+          return true;
+        };
+        
         // Use AI-reported status if available, otherwise determine from data
         let identityVerificationStatus = extractedPatient.identity_verification_status || 'verified';
         
@@ -915,8 +935,21 @@ serve(async (req) => {
         if (allNhsNumbersFound.length > 1 && allDobsFound.length > 1) {
           identityVerificationStatus = 'conflict';
           console.log('CRITICAL: Multiple NHS numbers AND DOBs detected - likely mixed patient records');
+        } else if (allNhsNumbersFound.length > 1 && allDobsFound.length === 1) {
+          // Multiple NHS numbers but SAME DOB - likely OCR error, not mixed patients
+          const ocrNoise = isLikelyOcrNoise(allNhsNumbersFound);
+          if (ocrNoise) {
+            // OCR noise detected - downgrade to warning even if AI said conflict
+            identityVerificationStatus = 'warning';
+            console.log('Multiple NHS numbers with same DOB and similar digits - likely OCR noise, setting to warning');
+          } else if (identityVerificationStatus === 'conflict') {
+            // Keep AI's conflict assessment if numbers differ significantly
+            console.log('Multiple NHS numbers with same DOB but different values - keeping conflict');
+          } else {
+            identityVerificationStatus = 'warning';
+          }
         } else if (allNhsNumbersFound.length > 1 || allDobsFound.length > 1) {
-          // Only one type differs - check if it's really a conflict or just OCR noise
+          // Only one type differs - warning level
           if (identityVerificationStatus !== 'conflict') {
             identityVerificationStatus = 'warning';
           }
