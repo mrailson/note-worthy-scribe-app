@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLGCapture, LGPatient, getPreviousNames, getIdentityIssues } from '@/hooks/useLGCapture';
+import { generateLGFilename } from '@/utils/lgFilenameGenerator';
 import { LGProcessingStatus } from '@/components/lg-capture/LGProcessingStatus';
 import { LGDownloadPanel } from '@/components/lg-capture/LGDownloadPanel';
 import { LGSummaryPreview } from '@/components/lg-capture/LGSummaryPreview';
@@ -375,12 +376,14 @@ export default function LGCaptureResults() {
               {patient.job_status === 'succeeded' && (patient as any).pdf_url && (
                 <>
                   <span className="text-muted-foreground">LG PDF:</span>
-                  <span className="font-medium text-xs text-green-600">
-                    {(() => {
-                      const pdfPath = (patient as any).pdf_url as string;
-                      const filename = pdfPath.split('/').pop() || pdfPath;
-                      return filename;
-                    })()}
+                  <span className="font-medium text-xs text-green-600 break-all">
+                    {generateLGFilename({
+                      patientName: patient.ai_extracted_name || patient.patient_name,
+                      nhsNumber: patient.ai_extracted_nhs || patient.nhs_number,
+                      dob: patient.ai_extracted_dob || patient.dob,
+                      partNumber: 1,
+                      totalParts: (patient as any).pdf_parts || 1
+                    })}
                   </span>
                 </>
               )}
