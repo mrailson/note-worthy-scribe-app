@@ -660,12 +660,12 @@ export default function LGCaptureLanding() {
                 <Label>File Compression</Label>
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-4 text-sm">
-                    <span className="text-muted-foreground whitespace-nowrap">Smallest Files</span>
+                    <span className="text-muted-foreground whitespace-nowrap">Smallest</span>
                     <Slider
                       value={[compressionLevel]}
                       onValueChange={(value) => setCompressionLevel(value[0] as CompressionLevel)}
                       min={1}
-                      max={7}
+                      max={10}
                       step={1}
                       className="flex-1"
                     />
@@ -680,7 +680,7 @@ export default function LGCaptureLanding() {
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground text-center">
-                    All images converted to black & white. Adjust for storage vs readability.
+                    {compressionLevel >= 10 ? 'Original quality preserved (colour)' : compressionLevel >= 8 ? 'High quality grayscale for readability' : 'Grayscale conversion. Adjust for storage vs readability.'}
                   </p>
                 </div>
               </div>

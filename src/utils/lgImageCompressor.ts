@@ -8,8 +8,8 @@
  * Works on iPhone Safari, desktop Chrome/Firefox/Edge.
  */
 
-// Compression level configuration (1 = smallest, 7 = best quality)
-export type CompressionLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+// Compression level configuration (1 = smallest, 10 = best quality/original)
+export type CompressionLevel = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
 
 export interface CompressionSettings {
   maxWidth: number;
@@ -17,10 +17,12 @@ export interface CompressionSettings {
   label: string;
   description: string;
   estimatedSize: string;
+  preserveOriginalSize?: boolean; // For level 10
 }
 
 // Levels 1-4 use true black & white (threshold at 128) for very small files.
 // Levels 5-7 keep grayscale to preserve faint handwriting/low-contrast scans.
+// Levels 8-10 are high quality for clinical readability (larger files).
 export const COMPRESSION_LEVELS: Record<CompressionLevel, CompressionSettings> = {
   1: { maxWidth: 500, quality: 0.30, label: 'Minimum', description: 'Smallest files', estimatedSize: '~8-12 KB/page' },
   2: { maxWidth: 550, quality: 0.35, label: 'Very Low', description: 'Very compressed', estimatedSize: '~10-15 KB/page' },
@@ -28,7 +30,10 @@ export const COMPRESSION_LEVELS: Record<CompressionLevel, CompressionSettings> =
   4: { maxWidth: 700, quality: 0.45, label: 'Balanced', description: 'Default (smaller files)', estimatedSize: '~15-22 KB/page' },
   5: { maxWidth: 600, quality: 0.35, label: 'Good', description: 'Grayscale readable', estimatedSize: '~25-40 KB/page' },
   6: { maxWidth: 650, quality: 0.40, label: 'High', description: 'Grayscale high readability', estimatedSize: '~35-55 KB/page' },
-  7: { maxWidth: 800, quality: 0.50, label: 'Maximum', description: 'Best grayscale quality', estimatedSize: '~50-80 KB/page' },
+  7: { maxWidth: 800, quality: 0.50, label: 'Very High', description: 'High quality grayscale', estimatedSize: '~50-80 KB/page' },
+  8: { maxWidth: 1200, quality: 0.75, label: 'Readable', description: 'Clinical readable quality', estimatedSize: '~80-150 KB/page' },
+  9: { maxWidth: 1600, quality: 0.85, label: 'Demo Quality', description: 'High quality for demos', estimatedSize: '~150-300 KB/page' },
+  10: { maxWidth: 9999, quality: 0.92, label: 'Original', description: 'Best quality (no resize)', estimatedSize: '~300-800 KB/page', preserveOriginalSize: true },
 };
 
 // Default tuned for balance (smaller files, still readable for clinical documents)
@@ -38,7 +43,7 @@ export const DEFAULT_COMPRESSION_LEVEL: CompressionLevel = 4;
 export const SKIP_COMPRESSION_THRESHOLD_KB = 60;
 
 export function getCompressionSettings(level: number): CompressionSettings {
-  const safeLevel = Math.max(1, Math.min(7, Math.round(level))) as CompressionLevel;
+  const safeLevel = Math.max(1, Math.min(10, Math.round(level))) as CompressionLevel;
   return COMPRESSION_LEVELS[safeLevel];
 }
 
@@ -105,12 +110,14 @@ export async function compressLgImageFile(file: File, level: CompressionLevel = 
  */
 async function compressImageElement(img: HTMLImageElement, level: CompressionLevel = DEFAULT_COMPRESSION_LEVEL): Promise<Blob> {
   const settings = getCompressionSettings(level);
-  const { maxWidth, quality } = settings;
+  const { maxWidth, quality, preserveOriginalSize } = settings;
   const THRESHOLD = 128; // Used only for levels 1-4
   const keepGrayscale = level >= 5;
+  const skipGrayscale = level >= 10; // Level 10 preserves original colors
   
   // Calculate scaled dimensions (maintain aspect ratio)
-  const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+  // For preserveOriginalSize, don't scale down
+  const scale = preserveOriginalSize || img.width <= maxWidth ? 1 : maxWidth / img.width;
   const targetWidth = Math.round(img.width * scale);
   const targetHeight = Math.round(img.height * scale);
   
@@ -140,29 +147,32 @@ async function compressImageElement(img: HTMLImageElement, level: CompressionLev
   ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
   
   // Post-process pixels for legibility
+  // - Level 10: preserve original colors (no processing)
   // - Lower levels: true black/white reduces size but can lose faint handwriting
-  // - Higher levels: grayscale preserves low-contrast detail
-  const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
-  const data = imageData.data;
+  // - Higher levels (5-9): grayscale preserves low-contrast detail
+  if (!skipGrayscale) {
+    const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
+    const data = imageData.data;
 
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i];
-    const g = data[i + 1];
-    const b = data[i + 2];
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
 
-    // Calculate luminance
-    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+      // Calculate luminance
+      const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
 
-    const v = keepGrayscale
-      ? Math.max(0, Math.min(255, Math.round(luminance)))
-      : (luminance >= THRESHOLD ? 255 : 0);
+      const v = keepGrayscale
+        ? Math.max(0, Math.min(255, Math.round(luminance)))
+        : (luminance >= THRESHOLD ? 255 : 0);
 
-    data[i] = v;     // R
-    data[i + 1] = v; // G
-    data[i + 2] = v; // B
-    // Alpha (data[i + 3]) remains unchanged
+      data[i] = v;     // R
+      data[i + 1] = v; // G
+      data[i + 2] = v; // B
+      // Alpha (data[i + 3]) remains unchanged
+    }
+    ctx.putImageData(imageData, 0, 0);
   }
-  ctx.putImageData(imageData, 0, 0);
   
   // Convert to JPEG blob
   return new Promise((resolve) => {
