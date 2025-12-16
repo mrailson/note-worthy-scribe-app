@@ -303,7 +303,17 @@ export default function LGCaptureResults() {
               {patient.source_filename && (
                 <>
                   <span className="text-muted-foreground">Source File:</span>
-                  <span className="font-medium text-xs">{patient.source_filename}</span>
+                  <span className="font-medium text-xs">
+                    {patient.source_filename}
+                    <span className="text-muted-foreground ml-2">
+                      {new Date(patient.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                      {' '}
+                      {new Date(patient.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      {(patient as any).original_size_mb && (
+                        <> · {((patient as any).original_size_mb as number).toFixed(2)} MB</>
+                      )}
+                    </span>
+                  </span>
                 </>
               )}
               
