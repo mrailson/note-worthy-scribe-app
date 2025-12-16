@@ -8,13 +8,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Switch } from '@/components/ui/switch';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Slider } from '@/components/ui/slider';
-import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play, BarChart3, Files, Zap, Sparkles, ShieldAlert } from 'lucide-react';
+import { FileText, Camera, Brain, Download, List, ArrowRight, Settings, Home, ChevronsUpDown, Check, Search, Loader2, Play, BarChart3, Files, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { useIsIPhone } from '@/hooks/use-mobile';
 import { cn } from '@/lib/utils';
 // Toast messages removed from LG Capture service
-import { LGAIModel } from '@/contexts/LGUploadQueueContext';
 import { CompressionLevel, COMPRESSION_LEVELS, DEFAULT_COMPRESSION_LEVEL, getCompressionSettings } from '@/utils/lgImageCompressor';
 
 interface Practice {
@@ -31,7 +30,6 @@ export default function LGCaptureLanding() {
   const [practiceName, setPracticeName] = useState('');
   const [uploaderName, setUploaderName] = useState('');
   const [serviceLevel, setServiceLevel] = useState<'rename_only' | 'index_summary' | 'full_service'>('full_service');
-  const [aiModel, setAiModel] = useState<LGAIModel>('gpt-4o-mini');
   const [compressionLevel, setCompressionLevel] = useState<CompressionLevel>(DEFAULT_COMPRESSION_LEVEL);
   const [mixedPatientDetection, setMixedPatientDetection] = useState(true);
   const [preserveQuality, setPreserveQuality] = useState(false);
@@ -81,7 +79,6 @@ export default function LGCaptureLanding() {
           uploaderName?: string; 
           practiceName?: string; 
           serviceLevel?: 'rename_only' | 'index_summary' | 'full_service'; 
-          aiModel?: LGAIModel;
           compressionLevel?: CompressionLevel;
           mixedPatientDetection?: boolean;
           preserveQuality?: boolean;
@@ -90,7 +87,6 @@ export default function LGCaptureLanding() {
         if (defaults.uploaderName) loadedName = defaults.uploaderName;
         if (defaults.practiceName) loadedPracticeName = defaults.practiceName;
         if (defaults.serviceLevel) setServiceLevel(defaults.serviceLevel);
-        if (defaults.aiModel) setAiModel(defaults.aiModel);
         if (defaults.compressionLevel) setCompressionLevel(defaults.compressionLevel);
         if (defaults.mixedPatientDetection !== undefined) setMixedPatientDetection(defaults.mixedPatientDetection);
         if (defaults.preserveQuality !== undefined) setPreserveQuality(defaults.preserveQuality);
@@ -140,7 +136,7 @@ export default function LGCaptureLanding() {
   }, [user?.id]);
 
   // Save to database helper - called on practice select AND save button
-  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service', model: LGAIModel, compLevel: CompressionLevel, mixedDetect: boolean, preserveQual: boolean) => {
+  const saveToDatabase = async (ods: string, name: string, pName: string, svcLevel: 'rename_only' | 'index_summary' | 'full_service', compLevel: CompressionLevel, mixedDetect: boolean, preserveQual: boolean) => {
     if (!user?.id) return false;
     
     const { error } = await supabase
@@ -153,7 +149,7 @@ export default function LGCaptureLanding() {
           practiceName: pName.trim(),
           uploaderName: name.trim(),
           serviceLevel: svcLevel,
-          aiModel: model,
+          aiModel: 'gpt-4o-mini',
           compressionLevel: compLevel,
           mixedPatientDetection: mixedDetect,
           preserveQuality: preserveQual
@@ -172,7 +168,7 @@ export default function LGCaptureLanding() {
     localStorage.setItem('lg_practice_ods', ods.trim());
     localStorage.setItem('lg_practice_name', pName.trim());
     localStorage.setItem('lg_uploader_name', name.trim());
-    localStorage.setItem('lg-ai-model-preference', model);
+    localStorage.setItem('lg-ai-model-preference', 'gpt-4o-mini');
     localStorage.setItem('lg_mixed_patient_detection', String(mixedDetect));
     localStorage.setItem('lg_preserve_quality', String(preserveQual));
     
@@ -187,7 +183,7 @@ export default function LGCaptureLanding() {
     setSearchTerm('');
 
     // Auto-save to database immediately
-    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel, aiModel, compressionLevel, mixedPatientDetection, preserveQuality);
+    const saved = await saveToDatabase(practice.practice_code, uploaderName, practice.name, serviceLevel, compressionLevel, mixedPatientDetection, preserveQuality);
   };
 
   const filteredPractices = practices.filter(practice => {
@@ -221,7 +217,7 @@ export default function LGCaptureLanding() {
     }
 
     setIsSaving(true);
-    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel, aiModel, compressionLevel, mixedPatientDetection, preserveQuality);
+    const saved = await saveToDatabase(practiceOds, uploaderName, practiceName, serviceLevel, compressionLevel, mixedPatientDetection, preserveQuality);
     setIsSaving(false);
 
     if (saved) {
@@ -604,39 +600,6 @@ export default function LGCaptureLanding() {
               </div>
             </div>
             
-            {/* AI Model Selector */}
-            <div className="space-y-3">
-              <Label>AI Model</Label>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between gap-4">
-                  <div className="flex items-center gap-2 text-sm">
-                    <Zap className={cn("h-4 w-4", aiModel === 'gpt-4o-mini' ? "text-primary" : "text-muted-foreground")} />
-                    <span className={cn(aiModel === 'gpt-4o-mini' ? "font-medium" : "text-muted-foreground")}>
-                      GPT-4o Mini
-                    </span>
-                  </div>
-                  <Slider
-                    value={[aiModel === 'gpt-4o-mini' ? 0 : 1]}
-                    onValueChange={(value) => setAiModel(value[0] === 0 ? 'gpt-4o-mini' : 'gpt-5')}
-                    max={1}
-                    step={1}
-                    className="w-20"
-                  />
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className={cn(aiModel === 'gpt-5' ? "font-medium" : "text-muted-foreground")}>
-                      GPT-5
-                    </span>
-                    <Sparkles className={cn("h-4 w-4", aiModel === 'gpt-5' ? "text-primary" : "text-muted-foreground")} />
-                  </div>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {aiModel === 'gpt-4o-mini' 
-                    ? "Faster & cheaper (default)" 
-                    : "More powerful extraction"}
-                </p>
-              </div>
-            </div>
-
             {/* Preserve Original Quality Toggle */}
             <div className="flex items-center justify-between p-3 rounded-lg border">
               <div className="flex items-center gap-3">
