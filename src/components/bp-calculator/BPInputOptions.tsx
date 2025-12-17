@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -25,6 +25,16 @@ export const BPInputOptions = ({
 }: BPInputOptionsProps) => {
   const [selectedMethod, setSelectedMethod] = useState<InputMethod | null>(null);
   const [cameraOpen, setCameraOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFiles = e.target.files;
+    if (selectedFiles && selectedFiles.length > 0) {
+      onFilesChange([...files, ...Array.from(selectedFiles)]);
+    }
+    // Reset input so same file can be selected again
+    e.target.value = '';
+  }, [files, onFilesChange]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop: (acceptedFiles) => {
@@ -136,8 +146,25 @@ export const BPInputOptions = ({
               disabled={disabled}
             >
               <Camera className="h-4 w-4 mr-1" />
-              Add More Photos
+              Add Photos
             </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={disabled}
+            >
+              <Upload className="h-4 w-4 mr-1" />
+              Add Files
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/*,.pdf,.txt,.doc,.docx,.xls,.xlsx"
+              onChange={handleFileInputChange}
+              className="hidden"
+            />
           </div>
           <p className="text-xs text-muted-foreground mt-2">
             AI vision will extract BP readings from {files.length > 1 ? 'all images' : 'this image'}
