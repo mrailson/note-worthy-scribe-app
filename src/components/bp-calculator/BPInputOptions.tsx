@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
@@ -53,17 +53,14 @@ export const BPInputOptions = ({
     }
   };
 
-  const handleCameraCapture = (capturedFiles: File[]) => {
+  const handleCameraCapture = useCallback((capturedFiles: File[]) => {
     console.log('[BPInputOptions] handleCameraCapture called with', capturedFiles.length, 'files');
-    console.log('[BPInputOptions] Current files before:', files.length);
     if (capturedFiles.length > 0) {
-      const newFiles = [...files, ...capturedFiles];
-      console.log('[BPInputOptions] Setting new files:', newFiles.length);
-      onFilesChange(newFiles);
+      onFilesChange([...files, ...capturedFiles]);
     }
     setCameraOpen(false);
     setSelectedMethod(null);
-  };
+  }, [files, onFilesChange]);
 
   const handleClear = () => {
     onTextChange('');
