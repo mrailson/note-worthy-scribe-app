@@ -510,16 +510,18 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
       const docArrayBuffer = await docBlob.arrayBuffer();
       const docBase64 = arrayBufferToBase64(docArrayBuffer);
 
-      // Convert images to base64 if present (use first image for attachment)
-      let imageBase64 = '';
-      let imageName = '';
-      let imageType = 'image/png';
+      // Convert all files to base64 for attachments
+      const fileAttachments: { filename: string; content: string; type: string }[] = [];
       if (originalImages && originalImages.length > 0) {
-        const firstImage = originalImages[0];
-        const imageArrayBuffer = await firstImage.arrayBuffer();
-        imageBase64 = arrayBufferToBase64(imageArrayBuffer);
-        imageName = firstImage.name;
-        imageType = firstImage.type;
+        for (const file of originalImages) {
+          const fileArrayBuffer = await file.arrayBuffer();
+          const fileBase64 = arrayBufferToBase64(fileArrayBuffer);
+          fileAttachments.push({
+            filename: file.name,
+            content: fileBase64,
+            type: file.type || 'application/octet-stream'
+          });
+        }
       }
 
       const targets = getTargetBP();
@@ -737,22 +739,15 @@ ${includedReadings.map((r, i) => `${i + 1}. ${r.systolic}/${r.diastolic}${r.puls
         </html>
       `;
 
-      // Build attachments array
+      // Build attachments array - Word doc + all original files
       const attachments = [
         {
           filename: `bp-report-${new Date().toISOString().split('T')[0]}.docx`,
           content: docBase64,
           type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'
-        }
+        },
+        ...fileAttachments
       ];
-
-      if (imageBase64 && imageName) {
-        attachments.push({
-          filename: imageName,
-          content: imageBase64,
-          type: imageType
-        });
-      }
 
       // Send email - BCC admin for bp@nhs.net reports
       const bccEmail = targetEmail.toLowerCase().includes('bp@nhs.net') 
