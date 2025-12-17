@@ -130,14 +130,22 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
   useEffect(() => {
     if (open) {
       setCapturedImages([]);
-      startCamera();
+      // Small delay to ensure previous camera stream is fully released when reopening
+      const timer = setTimeout(() => {
+        startCamera();
+      }, 100);
+      return () => clearTimeout(timer);
     } else {
       stopCamera();
     }
     return () => {
-      stopCamera();
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
     };
-  }, [open, startCamera, stopCamera]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const toggleCamera = useCallback(async () => {
     if (availableCameras.length < 2) return;
@@ -255,13 +263,15 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
     }
   }, [capturedImages, onCapture, onOpenChange, stopCamera]);
 
-  const handleClose = () => {
-    stopCamera();
-    onOpenChange(false);
+  const handleOpenChange = (isOpen: boolean) => {
+    if (!isOpen) {
+      stopCamera();
+      onOpenChange(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={handleClose}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-lg p-0 gap-0 overflow-hidden">
         <div className="relative aspect-[3/4] bg-black">
           <video
@@ -298,7 +308,7 @@ export function BPCameraModal({ open, onOpenChange, onCapture }: BPCameraModalPr
           
           {/* Close button */}
           <Button
-            onClick={handleClose}
+            onClick={() => handleOpenChange(false)}
             variant="outline"
             size="icon"
             className="absolute top-2 left-2 bg-black/50 border-white/30 text-white hover:bg-black/70 z-10"
