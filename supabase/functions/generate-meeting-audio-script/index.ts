@@ -27,10 +27,10 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Get meeting title
+    // Get meeting title and start time for neutral opening
     const { data: meeting, error: meetingError } = await supabase
       .from('meetings')
-      .select('title')
+      .select('title, start_time')
       .eq('id', meetingId)
       .single();
 
@@ -38,6 +38,18 @@ serve(async (req) => {
       console.error('Error loading meeting:', meetingError);
       throw new Error('Unable to load meeting');
     }
+
+    // Format meeting date for the audio script opening
+    const meetingDate = meeting.start_time ? new Date(meeting.start_time) : new Date();
+    const dayOfWeek = meetingDate.toLocaleDateString('en-GB', { weekday: 'long' });
+    const day = meetingDate.getDate();
+    const ordinalSuffix = (d: number) => {
+      if (d > 3 && d < 21) return 'th';
+      switch (d % 10) { case 1: return 'st'; case 2: return 'nd'; case 3: return 'rd'; default: return 'th'; }
+    };
+    const month = meetingDate.toLocaleDateString('en-GB', { month: 'long' });
+    const year = meetingDate.getFullYear();
+    const formattedDate = `${day}${ordinalSuffix(day)} ${month} ${year}`;
 
     // Get aggregated transcript from chunks (prefer cleaned_text)
     const { data: chunks, error: chunksError } = await supabase
@@ -125,7 +137,8 @@ serve(async (req) => {
 
 Guidelines:
 - Write in a clear, professional conversational tone
-- Start naturally without formulaic openings
+- NEVER start with greetings like "Good morning", "Hello", "Welcome", "Hi there", "Greetings" etc.
+- ALWAYS start with: "At this meeting on ${dayOfWeek} the ${formattedDate}..." then continue naturally with the content
 - Use plain narrative prose without any formatting characters
 - NO special characters (* = # - bullets etc.) - they don't read well when spoken
 - NO stage directions, sound effects, or script notations
