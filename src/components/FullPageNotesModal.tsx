@@ -3,6 +3,7 @@ import { NoteEnhancementDialog } from "@/components/meeting/NoteEnhancementDialo
 import { sanitiseActionOwners } from "@/utils/sanitiseActionOwners";
 import { MeetingMinutesEmailModal } from "@/components/MeetingMinutesEmailModal";
 import { EmailMeetingMinutesModal } from "@/components/EmailMeetingMinutesModal";
+import { useMinutesFormatter } from "@/hooks/useMinutesFormatter";
 
 import { StyleGalleryContainer } from "@/components/meeting/StyleGallery/StyleGalleryContainer";
 import { EnhancedSoapNotesDisplay } from "@/components/meeting/EnhancedSoapNotesDisplay";
@@ -332,6 +333,20 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
 
   // User can override the long meeting check to see fancy view
   const isLongMeeting = isLongMeetingRaw && !forceFancyView;
+
+  // Web Worker-based formatting for long meetings
+  const {
+    formattedHtml: workerFormattedHtml,
+    isFormatting: isWorkerFormatting,
+    plainTextPreview,
+    error: workerError,
+    formatNow: triggerWorkerFormat
+  } = useMinutesFormatter({
+    meetingId: meeting?.id,
+    content: notesStyle3 || '',
+    baseFontSize: fontSizeStyle1,
+    enabled: forceFancyView && isLongMeetingRaw // Only format when user clicks "Switch to formatted view"
+  });
 
   // Log for debugging
   useEffect(() => {
@@ -3544,9 +3559,98 @@ ${transcriptToUse}`;
 
                                           <ScrollArea className="flex-1 rounded border bg-white p-4">
                                             <pre className="whitespace-pre-wrap text-sm font-nhs text-slate-900 leading-relaxed">
-                                              {notesStyle3 || "No standard notes are available for this meeting."}
+                                              {plainTextPreview || notesStyle3 || "No standard notes are available for this meeting."}
                                             </pre>
                                           </ScrollArea>
+                                        </div>
+                                      ) : forceFancyView && isLongMeetingRaw ? (
+                                        /* Long meeting with user override: Use worker-based formatting */
+                                        <div className="flex flex-col h-full space-y-2">
+                                          {isWorkerFormatting ? (
+                                            /* Show loading state while worker processes */
+                                            <>
+                                              <div className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded px-3 py-2 flex items-center gap-2">
+                                                <RefreshCw className="h-3 w-3 animate-spin" />
+                                                <span>Formatting in progress... This may take a few seconds for long meetings.</span>
+                                                <button 
+                                                  onClick={() => setForceFancyView(false)}
+                                                  className="ml-auto underline hover:text-blue-900 font-medium"
+                                                >
+                                                  Cancel
+                                                </button>
+                                              </div>
+                                              <ScrollArea className="flex-1 rounded border bg-white p-4">
+                                                <pre className="whitespace-pre-wrap text-sm font-nhs text-slate-900 leading-relaxed">
+                                                  {plainTextPreview || notesStyle3 || "No standard notes are available for this meeting."}
+                                                </pre>
+                                              </ScrollArea>
+                                            </>
+                                          ) : workerError ? (
+                                            /* Show error state */
+                                            <>
+                                              <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded px-3 py-2">
+                                                {workerError}{' '}
+                                                <button 
+                                                  onClick={triggerWorkerFormat}
+                                                  className="underline hover:text-red-900 font-medium"
+                                                >
+                                                  Try again
+                                                </button>
+                                                {' '}or{' '}
+                                                <button 
+                                                  onClick={() => setForceFancyView(false)}
+                                                  className="underline hover:text-red-900 font-medium"
+                                                >
+                                                  use plain text
+                                                </button>
+                                              </div>
+                                              <ScrollArea className="flex-1 rounded border bg-white p-4">
+                                                <pre className="whitespace-pre-wrap text-sm font-nhs text-slate-900 leading-relaxed">
+                                                  {plainTextPreview || notesStyle3 || "No standard notes are available for this meeting."}
+                                                </pre>
+                                              </ScrollArea>
+                                            </>
+                                          ) : workerFormattedHtml ? (
+                                            /* Show formatted content */
+                                            <>
+                                              <div className="text-xs text-green-700 bg-green-50 border border-green-200 rounded px-3 py-2">
+                                                ✓ Formatted view loaded.{' '}
+                                                <button 
+                                                  onClick={() => setForceFancyView(false)}
+                                                  className="underline hover:text-green-900 font-medium"
+                                                >
+                                                  Switch back to plain text
+                                                </button>
+                                              </div>
+                                              <div 
+                                                className="max-w-none transition-opacity duration-300"
+                                                style={{ 
+                                                  fontSize: `${fontSizeStyle1}px`, 
+                                                  lineHeight: `${fontSizeStyle1 * 1.6}px`,
+                                                  ['--base-font-size' as string]: `${fontSizeStyle1}px`
+                                                }}
+                                              >
+                                                <style>
+                                                  {`
+                                                    .max-w-none .minutes-content, .max-w-none .minutes-content * { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
+                                                    .max-w-none h1 { font-size: ${fontSizeStyle1 * 1.8}px !important; }
+                                                    .max-w-none h2 { font-size: ${fontSizeStyle1 * 1.5}px !important; }
+                                                    .max-w-none h3 { font-size: ${fontSizeStyle1 * 1.3}px !important; }
+                                                    .max-w-none h4 { font-size: ${fontSizeStyle1 * 1.1}px !important; }
+                                                    .max-w-none p, .max-w-none li, .max-w-none td, .max-w-none th { font-size: ${fontSizeStyle1}px !important; line-height: ${fontSizeStyle1 * 1.6}px !important; }
+                                                  `}
+                                                </style>
+                                                <div dangerouslySetInnerHTML={{ __html: workerFormattedHtml }} />
+                                              </div>
+                                            </>
+                                          ) : (
+                                            /* Fallback while waiting for worker */
+                                            <ScrollArea className="flex-1 rounded border bg-white p-4">
+                                              <pre className="whitespace-pre-wrap text-sm font-nhs text-slate-900 leading-relaxed">
+                                                {plainTextPreview || notesStyle3 || "No standard notes are available for this meeting."}
+                                              </pre>
+                                            </ScrollArea>
+                                          )}
                                         </div>
                                       ) : (
                                         /* Short meeting: Use existing formatted view */
