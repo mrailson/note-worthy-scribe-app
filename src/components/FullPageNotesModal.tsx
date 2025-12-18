@@ -380,8 +380,10 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }
 
     // Primary rule: Skip expensive rendering for long meetings (60+ minutes)
-    if (isLongMeeting) {
-      console.log("⏱ Long meeting detected – skipping Standard minutes formatter, using basic rendering only");
+    // Use isLongMeetingRaw (not isLongMeeting) so this always skips for 60+ min meetings,
+    // even when forceFancyView is true - the Web Worker handles formatted view instead
+    if (isLongMeetingRaw) {
+      console.log("⏱ Long meeting detected – skipping synchronous formatter (Web Worker handles formatted view)");
       setMinutesHtml("");
       setIsRenderingMinutes(false);
       return;
@@ -447,7 +449,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     }, 300); // Small delay to let modal settle
 
     return () => clearTimeout(deferTimeout);
-  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded, isLongMeeting, isGeneratingStyle3]);
+  }, [activeNotesStyleTab, notesStyle3, meeting?.id, fontSizeStyle1, noteStylesLoaded, isLongMeetingRaw, isGeneratingStyle3]);
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [totalMatches, setTotalMatches] = useState(0);
   const [highlightedTranscript, setHighlightedTranscript] = useState("");
