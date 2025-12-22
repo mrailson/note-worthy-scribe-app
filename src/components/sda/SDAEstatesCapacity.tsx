@@ -347,27 +347,53 @@ export const SDAEstatesCapacity = () => {
       >
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-slate-500">Weekly on-site session availability by practice</p>
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode("sessions")}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                viewMode === "sessions" 
-                  ? "bg-white text-slate-900 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Sessions
-            </button>
-            <button
-              onClick={() => setViewMode("appointments")}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                viewMode === "appointments" 
-                  ? "bg-white text-slate-900 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Appointments
-            </button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+              <button
+                onClick={() => setSeason("nonWinter")}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${
+                  season === "nonWinter" 
+                    ? "bg-white text-slate-900 shadow-sm" 
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Sun className="w-3 h-3" />
+                Non-Winter
+              </button>
+              <button
+                onClick={() => setSeason("winter")}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors flex items-center gap-1 ${
+                  season === "winter" 
+                    ? "bg-white text-slate-900 shadow-sm" 
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                <Snowflake className="w-3 h-3" />
+                Winter
+              </button>
+            </div>
+            <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+              <button
+                onClick={() => setViewMode("sessions")}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  viewMode === "sessions" 
+                    ? "bg-white text-slate-900 shadow-sm" 
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Sessions
+              </button>
+              <button
+                onClick={() => setViewMode("appointments")}
+                className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                  viewMode === "appointments" 
+                    ? "bg-white text-slate-900 shadow-sm" 
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Appointments
+              </button>
+            </div>
           </div>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
