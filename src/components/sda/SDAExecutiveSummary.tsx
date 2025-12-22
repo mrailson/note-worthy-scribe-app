@@ -13,9 +13,8 @@ const populationData = [
 ];
 
 const appointmentData = [
-  { name: "Remote", percentage: 50, color: "#005EB8" },
-  { name: "Hub", percentage: 30, color: "#41B6E6" },
-  { name: "Spoke", percentage: 20, color: "#768692" },
+  { name: "Face to Face", hub: 30, spoke: 20, total: 50 },
+  { name: "Remote", remote: 50, total: 50 },
 ];
 
 export const SDAExecutiveSummary = () => {
@@ -146,27 +145,37 @@ export const SDAExecutiveSummary = () => {
             <p className="text-sm text-slate-500">Mandatory Split</p>
           </CardHeader>
           <CardContent>
-            <div className="h-[200px]">
+            <div className="h-[150px]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={appointmentData} layout="vertical">
                   <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                  <YAxis type="category" dataKey="name" width={80} />
-                  <Tooltip formatter={(value: number) => [`${value}%`, 'Allocation']} />
-                  <Bar dataKey="percentage" radius={[0, 8, 8, 0]}>
-                    {appointmentData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Bar>
+                  <YAxis type="category" dataKey="name" width={100} />
+                  <Tooltip />
+                  <Bar dataKey="hub" stackId="a" fill="#41B6E6" name="Hub" radius={[0, 0, 0, 0]} />
+                  <Bar dataKey="spoke" stackId="a" fill="#768692" name="Spoke" radius={[0, 8, 8, 0]} />
+                  <Bar dataKey="remote" stackId="b" fill="#005EB8" name="Remote" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
-            <div className="flex justify-center gap-8 mt-4">
-              {appointmentData.map((item) => (
-                <div key={item.name} className="text-center">
-                  <p className="text-2xl font-bold" style={{ color: item.color }}>{item.percentage}%</p>
-                  <p className="text-sm text-slate-600">{item.name.toUpperCase()}</p>
+            <div className="flex justify-center gap-6 mt-4">
+              <div className="text-center">
+                <p className="text-2xl font-bold text-[#005EB8]">50%</p>
+                <p className="text-sm text-slate-600">REMOTE</p>
+              </div>
+              <div className="text-center border-l border-slate-200 pl-6">
+                <p className="text-2xl font-bold text-slate-700">50%</p>
+                <p className="text-sm text-slate-600">FACE TO FACE</p>
+                <div className="flex gap-3 mt-1 text-xs">
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded" style={{ backgroundColor: "#41B6E6" }}></span>
+                    Hub 30%
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <span className="w-3 h-3 rounded" style={{ backgroundColor: "#768692" }}></span>
+                    Spoke 20%
+                  </span>
                 </div>
-              ))}
+              </div>
             </div>
           </CardContent>
         </Card>
