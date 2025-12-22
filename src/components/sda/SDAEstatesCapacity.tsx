@@ -1,8 +1,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays } from "lucide-react";
-import { useState } from "react";
+import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { useState, useMemo } from "react";
+
+type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
+type SortDirection = "asc" | "desc";
 
 // Room availability data by session
 const sessionData = [
@@ -69,10 +72,88 @@ const getCellColor = (value: number) => {
 export const SDAEstatesCapacity = () => {
   const [season, setSeason] = useState<"winter" | "nonWinter">("winter");
   const [viewMode, setViewMode] = useState<"sessions" | "appointments">("sessions");
+  const [practiceSortField, setPracticeSortField] = useState<PracticeSortField>("listSize");
+  const [practiceSortDirection, setPracticeSortDirection] = useState<SortDirection>("desc");
+  
   const currentCapacity = season === "winter" ? capacityData.winter : capacityData.nonWinter;
   const totalWeeklySessions = sessionData.reduce((sum, row) => sum + row.total, 0);
   const multiplier = viewMode === "appointments" ? 12 : 1;
   const unitLabel = viewMode === "appointments" ? "appointments" : "sessions";
+
+  const togglePracticeSort = (field: PracticeSortField) => {
+    if (practiceSortField === field) {
+      setPracticeSortDirection(practiceSortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setPracticeSortField(field);
+      setPracticeSortDirection("desc");
+    }
+  };
+
+  const getSortIcon = (field: PracticeSortField) => {
+    if (practiceSortField !== field) return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />;
+    return practiceSortDirection === "asc" 
+      ? <ArrowUp className="w-3 h-3 ml-1" /> 
+      : <ArrowDown className="w-3 h-3 ml-1" />;
+  };
+
+  const sortedPracticeSummary = useMemo(() => {
+    const withCalculatedValues = practiceSummary.map(practice => {
+      const percentage = (practice.listSize / totalListSize) * 100;
+      const practiceSessionsNeeded = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize);
+      const displayValue = viewMode === "appointments" ? practiceSessionsNeeded * 12 : practiceSessionsNeeded;
+      return {
+        ...practice,
+        percentage,
+        sessionsWeek: displayValue,
+        f2f: displayValue / 2,
+        remote: displayValue / 2
+      };
+    });
+
+    return [...withCalculatedValues].sort((a, b) => {
+      let aVal: number | string;
+      let bVal: number | string;
+
+      switch (practiceSortField) {
+        case "practice":
+          aVal = a.practice.toLowerCase();
+          bVal = b.practice.toLowerCase();
+          break;
+        case "listSize":
+          aVal = a.listSize;
+          bVal = b.listSize;
+          break;
+        case "percentage":
+          aVal = a.percentage;
+          bVal = b.percentage;
+          break;
+        case "sessionsWeek":
+          aVal = a.sessionsWeek;
+          bVal = b.sessionsWeek;
+          break;
+        case "f2f":
+          aVal = a.f2f;
+          bVal = b.f2f;
+          break;
+        case "remote":
+          aVal = a.remote;
+          bVal = b.remote;
+          break;
+        default:
+          return 0;
+      }
+
+      if (typeof aVal === "string" && typeof bVal === "string") {
+        return practiceSortDirection === "asc" 
+          ? aVal.localeCompare(bVal) 
+          : bVal.localeCompare(aVal);
+      }
+      
+      return practiceSortDirection === "asc" 
+        ? (aVal as number) - (bVal as number) 
+        : (bVal as number) - (aVal as number);
+    });
+  }, [practiceSortField, practiceSortDirection, currentCapacity.sessionsPerWeek, viewMode]);
 
   return (
     <div className="space-y-6">
@@ -357,40 +438,78 @@ export const SDAEstatesCapacity = () => {
               <Table>
                 <TableHeader>
                   <TableRow className="bg-slate-50">
-                    <TableHead>Practice</TableHead>
-                    <TableHead className="text-right">List Size</TableHead>
-                    <TableHead className="text-right">% of Total</TableHead>
-                    <TableHead className="text-right">
-                      {viewMode === "appointments" ? "Appts" : "Sessions"}/Week
+                    <TableHead 
+                      className="cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => togglePracticeSort("practice")}
+                    >
+                      <div className="flex items-center">
+                        Practice
+                        {getSortIcon("practice")}
+                      </div>
                     </TableHead>
-                    <TableHead className="text-right">F2F (50%)</TableHead>
-                    <TableHead className="text-right">Remote (50%)</TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => togglePracticeSort("listSize")}
+                    >
+                      <div className="flex items-center justify-end">
+                        List Size
+                        {getSortIcon("listSize")}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => togglePracticeSort("percentage")}
+                    >
+                      <div className="flex items-center justify-end">
+                        % of Total
+                        {getSortIcon("percentage")}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => togglePracticeSort("sessionsWeek")}
+                    >
+                      <div className="flex items-center justify-end">
+                        {viewMode === "appointments" ? "Appts" : "Sessions"}/Week
+                        {getSortIcon("sessionsWeek")}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => togglePracticeSort("f2f")}
+                    >
+                      <div className="flex items-center justify-end">
+                        F2F (50%)
+                        {getSortIcon("f2f")}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="text-right cursor-pointer hover:bg-slate-100 transition-colors"
+                      onClick={() => togglePracticeSort("remote")}
+                    >
+                      <div className="flex items-center justify-end">
+                        Remote (50%)
+                        {getSortIcon("remote")}
+                      </div>
+                    </TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {practiceSummary.map((practice, index) => {
-                    const percentage = (practice.listSize / totalListSize) * 100;
-                    const practiceSessionsNeeded = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize);
-                    const displayValue = viewMode === "appointments" ? practiceSessionsNeeded * 12 : practiceSessionsNeeded;
-                    const f2fValue = displayValue / 2;
-                    const remoteValue = displayValue / 2;
-                    
-                    return (
-                      <TableRow key={index}>
-                        <TableCell className="font-medium">
-                          {practice.practice}
-                          {practice.subPractices && (
-                            <span className="text-xs text-slate-400 ml-1">({practice.subPractices.length} sites)</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{practice.listSize.toLocaleString()}</TableCell>
-                        <TableCell className="text-right">{percentage.toFixed(1)}%</TableCell>
-                        <TableCell className="text-right font-semibold">{Math.round(displayValue).toLocaleString()}</TableCell>
-                        <TableCell className="text-right text-green-700">{Math.round(f2fValue).toLocaleString()}</TableCell>
-                        <TableCell className="text-right text-blue-700">{Math.round(remoteValue).toLocaleString()}</TableCell>
-                      </TableRow>
-                    );
-                  })}
+                  {sortedPracticeSummary.map((practice, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium">
+                        {practice.practice}
+                        {practice.subPractices && (
+                          <span className="text-xs text-slate-400 ml-1">({practice.subPractices.length} sites)</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">{practice.listSize.toLocaleString()}</TableCell>
+                      <TableCell className="text-right">{practice.percentage.toFixed(1)}%</TableCell>
+                      <TableCell className="text-right font-semibold">{Math.round(practice.sessionsWeek).toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-green-700">{Math.round(practice.f2f).toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-blue-700">{Math.round(practice.remote).toLocaleString()}</TableCell>
+                    </TableRow>
+                  ))}
                   <TableRow className="bg-slate-100 font-bold">
                     <TableCell>Total</TableCell>
                     <TableCell className="text-right">{totalListSize.toLocaleString()}</TableCell>
