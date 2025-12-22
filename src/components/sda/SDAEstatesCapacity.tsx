@@ -7,6 +7,7 @@ import { CollapsibleCard } from "@/components/ui/collapsible-card";
 
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
 type SortDirection = "asc" | "desc";
+type BadgeDisplayMode = "total" | "winter" | "nonWinter" | "onsite" | "remote";
 
 // Room availability data by session
 const sessionData = [
@@ -75,11 +76,43 @@ export const SDAEstatesCapacity = () => {
   const [viewMode, setViewMode] = useState<"sessions" | "appointments">("sessions");
   const [practiceSortField, setPracticeSortField] = useState<PracticeSortField>("listSize");
   const [practiceSortDirection, setPracticeSortDirection] = useState<SortDirection>("desc");
+  const [badgeDisplayMode, setBadgeDisplayMode] = useState<BadgeDisplayMode>("total");
   
   const currentCapacity = season === "winter" ? capacityData.winter : capacityData.nonWinter;
   const totalWeeklySessions = sessionData.reduce((sum, row) => sum + row.total, 0);
   const multiplier = viewMode === "appointments" ? 12 : 1;
   const unitLabel = viewMode === "appointments" ? "appointments" : "sessions";
+
+  // Badge display calculations
+  const getBadgeDisplay = () => {
+    const baseTotal = totalWeeklySessions;
+    const winterSessions = Math.round(baseTotal * 1.2); // 20% more in winter
+    const nonWinterSessions = baseTotal;
+    const onsiteSessions = baseTotal; // All matrix sessions are on-site
+    const remoteSessions = Math.round(baseTotal * 0.5); // 50% remote capacity
+    
+    switch (badgeDisplayMode) {
+      case "winter":
+        return { value: winterSessions * multiplier, label: `Winter ${unitLabel}/Week` };
+      case "nonWinter":
+        return { value: nonWinterSessions * multiplier, label: `Non-Winter ${unitLabel}/Week` };
+      case "onsite":
+        return { value: onsiteSessions * multiplier, label: `On-Site ${unitLabel}/Week` };
+      case "remote":
+        return { value: remoteSessions * multiplier, label: `Remote ${unitLabel}/Week` };
+      default:
+        return { value: baseTotal * multiplier, label: `Total ${unitLabel}/Week` };
+    }
+  };
+
+  const badgeDisplay = getBadgeDisplay();
+  
+  const cycleBadgeMode = () => {
+    const modes: BadgeDisplayMode[] = ["total", "winter", "nonWinter", "onsite", "remote"];
+    const currentIndex = modes.indexOf(badgeDisplayMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setBadgeDisplayMode(modes[nextIndex]);
+  };
 
   const togglePracticeSort = (field: PracticeSortField) => {
     if (practiceSortField === field) {
@@ -286,6 +319,17 @@ export const SDAEstatesCapacity = () => {
       <CollapsibleCard
         title="Room Availability Matrix"
         icon={<Calendar className="w-5 h-5" />}
+        badge={
+          <button
+            onClick={cycleBadgeMode}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              {badgeDisplay.value} {badgeDisplay.label}
+            </Badge>
+          </button>
+        }
       >
         <div className="flex items-center justify-between mb-4">
           <p className="text-sm text-slate-500">Available clinical rooms by day and session</p>
