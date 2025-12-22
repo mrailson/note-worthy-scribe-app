@@ -1,6 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle2, Monitor, Laptop, Settings } from "lucide-react";
+import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
+import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
 
 export const SDADigitalIntegration = () => {
   return (
@@ -26,17 +28,21 @@ export const SDADigitalIntegration = () => {
             {/* Exhibit 1 */}
             <div className="border border-slate-200 rounded-lg p-4">
               <h3 className="font-semibold text-slate-900 mb-3">Exhibit 1: System Configuration (NRES Mapping)</h3>
-              <div className="aspect-video bg-slate-100 rounded-lg flex items-center justify-center">
-                <span className="text-slate-400">[System Configuration Screenshot]</span>
-              </div>
+              <img 
+                src={gpConnectSystmoneConfig} 
+                alt="SystmOne GP Remote Booking - NRES SDA configuration showing available rotas at Brackley Medical Centre"
+                className="w-full rounded-lg border border-slate-200 shadow-sm"
+              />
             </div>
 
             {/* Exhibit 2 */}
             <div className="border border-slate-200 rounded-lg p-4">
               <h3 className="font-semibold text-slate-900 mb-3">Exhibit 2: Confirmed Cross-Provider Booking</h3>
-              <div className="aspect-video bg-slate-100 rounded-lg flex items-center justify-center">
-                <span className="text-slate-400">[Cross-Provider Booking Screenshot]</span>
-              </div>
+              <img 
+                src={gpConnectEmisBooking} 
+                alt="EMIS Web GP Connect Appointments - Cross-provider booking at Brackley Medical Centre showing NRES SDA appointments"
+                className="w-full rounded-lg border border-slate-200 shadow-sm"
+              />
             </div>
           </div>
         </CardContent>
