@@ -516,12 +516,11 @@ export const SDADigitalIntegration = () => {
                     { id: 2, question: "Where will the operational dashboard be hosted? SystmOne? Separate BI tool? Access for all practices?", status: "To Confirm" },
                     { id: 3, question: "How will GP Connect booking failures be escalated? Technical support pathway for the 2 EMIS practices?", status: "To Confirm" },
                     { id: 4, question: "Who validates and maintains the Risk Stratification Flags? Practice-level or centralised responsibility?", status: "To Confirm" },
-                    { id: 5, question: "What coding standards are required? Slot types (NRES SDA F2F/Virtual) and rota types (NRES SDA GP/ANP) - are clinical systems configured?", status: "To Confirm" },
-                    { id: 6, question: "Monthly data submission process - who submits to ICB and in what format? Template required?", status: "To Confirm" },
-                    { id: 7, question: "How will prescribing data be attributed to NAS appointments? Link to Prescribing Achievement Framework tracking?", status: "To Confirm" },
-                    { id: 8, question: "Data sharing agreements between practices - are these complete for reporting purposes?", status: "Confirmed" },
-                    { id: 9, question: "Quarterly evaluation report - who conducts the evaluation? Internal or external?", status: "To Confirm" },
-                    { id: 10, question: "Sample dashboard views in document - are these to be implemented in a BI tool, or indicative only?", status: "To Confirm" },
+                    { id: 5, question: "Monthly data submission process - who submits to ICB and in what format? Template required?", status: "To Confirm" },
+                    { id: 6, question: "How will prescribing data be attributed to NAS appointments? Link to Prescribing Achievement Framework tracking?", status: "To Confirm" },
+                    { id: 7, question: "Data sharing agreements between practices - are these complete for reporting purposes?", status: "Confirmed" },
+                    { id: 8, question: "Quarterly evaluation report - who conducts the evaluation? Internal or external?", status: "To Confirm" },
+                    { id: 9, question: "Sample dashboard views in document - are these to be implemented in a BI tool, or indicative only?", status: "To Confirm" },
                   ].map((item) => (
                     <TableRow key={item.id}>
                       <TableCell className="font-medium">{item.id}</TableCell>
