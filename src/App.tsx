@@ -62,6 +62,7 @@ import ExecutiveOverview from "./pages/ExecutiveOverview";
 import LoadDemoTeamData from "./pages/LoadDemoTeamData";
 import DemoVideosPage from "./pages/DemoVideosPage";
 import NRESDashboard from "./pages/NRESDashboard";
+import SDADashboard from "./pages/SDADashboard";
 import ProactiveComplexCareDashboard from "./pages/ProactiveComplexCareDashboard";
 import CommsStrategyDashboard from "./pages/CommsStrategyDashboard";
 import SecurityReport from "./pages/SecurityReport";
@@ -118,6 +119,7 @@ const App = () => {
               <Route path="/demos" element={<DemoVideosPage />} />
               <Route path="/ai-showcase" element={<AIShowcasePage />} />
               <Route path="/nres" element={<NRESDashboard />} />
+              <Route path="/NRESDashboard" element={<SDADashboard />} />
               <Route path="/nres-presentation" element={<NRESPresentationPage />} />
               <Route path="/nres/complex-care" element={<ProactiveComplexCareDashboard />} />
               <Route path="/nres/comms-strategy" element={<CommsStrategyDashboard />} />
