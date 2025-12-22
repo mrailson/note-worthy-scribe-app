@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, PoundSterling, FileCheck, User } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/NRES_Logo.png";
+import DocMedLogo from "@/assets/docmed-logo.png";
 
 const populationData = [
   { name: "Towcester Medical", value: 22850, color: "#005EB8" },
@@ -77,11 +78,16 @@ export const SDAExecutiveSummary = () => {
         </Card>
 
         <div className="flex flex-col gap-4">
-          <div className="flex justify-center">
+          <div className="flex justify-center items-center gap-4">
             <img 
               src={NRESLogo} 
               alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
-              className="h-20 w-auto object-contain"
+              className="h-28 w-auto object-contain"
+            />
+            <img 
+              src={DocMedLogo} 
+              alt="DocMed Northamptonshire - PML" 
+              className="h-16 w-auto object-contain"
             />
           </div>
           <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
