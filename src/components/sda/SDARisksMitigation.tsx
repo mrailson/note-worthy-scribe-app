@@ -117,6 +117,10 @@ export const SDARisksMitigation = () => {
                 <li>Who has authority to sign on behalf of each partnership?</li>
               </ul>
             </div>
+            <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <h4 className="font-semibold text-blue-900 text-sm mb-1">LMC Recommendation</h4>
+              <p className="text-sm text-blue-700 italic">Awaiting LMC guidance - to be added.</p>
+            </div>
             <div className="flex flex-wrap gap-2">
               <Badge variant="outline" className="bg-slate-100">GMS Variation</Badge>
               <Badge variant="outline" className="bg-slate-100">NHSE Legal</Badge>
