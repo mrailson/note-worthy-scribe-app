@@ -168,18 +168,18 @@ export const SDAEstatesCapacity = () => {
   };
 
   const getSessionsDisplay = () => {
-    const baseTotal = totalWeeklySessions;
-    const winterSessions = Math.round(baseTotal * 1.2);
-    const nonWinterSessions = baseTotal;
-    const onsiteSessions = baseTotal;
-    const remoteSessions = Math.round(baseTotal * 0.5);
-    const totalSessions = onsiteSessions + remoteSessions;
+    const onsiteSessions = Math.round(currentCapacity.f2fRequired);
+    const remoteSessions = Math.round(currentCapacity.remoteRequired);
+    const totalSessions = Math.round(currentCapacity.sessionsPerWeek);
+    const winterOnsite = Math.round(capacityData.winter.f2fRequired);
+    const winterRemote = Math.round(capacityData.winter.remoteRequired);
+    const winterTotal = Math.round(capacityData.winter.sessionsPerWeek);
     
     switch (sessionsDisplayMode) {
-      case "winter": return { value: winterSessions, label: "Winter Sessions/Week" };
-      case "nonWinter": return { value: `${onsiteSessions} + ${remoteSessions}`, label: "On-Site + Remote/Week", sublabel: `(${totalSessions} Total)` };
-      case "onsite": return { value: onsiteSessions, label: "On-Site/Week" };
-      case "remote": return { value: remoteSessions, label: "Remote/Week" };
+      case "winter": return { value: `${winterOnsite} + ${winterRemote}`, label: "On-Site + Remote/Week", sublabel: `(${winterTotal} Total - Winter)` };
+      case "nonWinter": return { value: `${onsiteSessions} + ${remoteSessions}`, label: "On-Site + Remote/Week", sublabel: `(${totalSessions} Total - Non-Winter)` };
+      case "onsite": return { value: Math.round(currentCapacity.f2fRequired), label: "On-Site/Week" };
+      case "remote": return { value: Math.round(currentCapacity.remoteRequired), label: "Remote/Week" };
       default: return { value: totalSessions, label: "Total Sessions/Week" };
     }
   };
