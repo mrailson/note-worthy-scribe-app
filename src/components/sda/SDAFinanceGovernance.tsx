@@ -72,7 +72,7 @@ export const SDAFinanceGovernance = () => {
               <CardTitle className="text-lg font-semibold text-slate-800">Confidential Redundancy Fund</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-[#005EB8] mb-1">£312,000</p>
+              <p className="text-4xl font-bold text-[#005EB8] mb-1">£305,219</p>
               <p className="text-slate-600 text-sm mb-3">Phase 1 Risk Mitigation Fund</p>
               <p className="text-sm text-slate-600">
                 <strong className="text-slate-800">Strictly Confidential to Phase 1 Sites.</strong> The ICB has agreed this exceptional provision to mitigate potential redundancy exposure for pioneering neighbourhoods.
