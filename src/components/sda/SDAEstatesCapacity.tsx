@@ -18,22 +18,25 @@ const sessionData = [
   { session: "Friday PM", theParks: 3, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 0, towcester: 4, total: 12 },
 ];
 
-// Practice summary data
+// Practice summary data with list sizes
 const practiceSummary = [
   { 
     practice: "The Parks", 
     subPractices: ["Roade", "Blisworth", "Grange Park", "Hanslope"],
     totalSessions: 29,
+    listSize: 15680,
     role: "HUB",
     system: "SystmOne"
   },
-  { practice: "Brackley Medical Centre", totalSessions: 20, role: "HUB", system: "SystmOne", note: "Non-GMS rent required" },
-  { practice: "Towcester Medical Centre", totalSessions: 17, role: "HUB", system: "EMIS" },
-  { practice: "Springfield Surgery", totalSessions: 10, role: "SPOKE", system: "EMIS" },
-  { practice: "Brook Health Centre", totalSessions: 10, role: "SPOKE", system: "SystmOne", note: "Non-GMS rent required" },
-  { practice: "Bugbrooke Medical Practice", totalSessions: 10, role: "SPOKE", system: "SystmOne" },
-  { practice: "Denton Village", totalSessions: 3, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM" },
+  { practice: "Towcester Medical Centre", totalSessions: 17, listSize: 22850, role: "HUB", system: "EMIS" },
+  { practice: "Brackley Medical Centre", totalSessions: 20, listSize: 18420, role: "HUB", system: "SystmOne", note: "Non-GMS rent required" },
+  { practice: "Springfield Surgery", totalSessions: 10, listSize: 12340, role: "SPOKE", system: "EMIS" },
+  { practice: "Brook Health Centre", totalSessions: 10, listSize: 8450, role: "SPOKE", system: "SystmOne", note: "Non-GMS rent required" },
+  { practice: "Bugbrooke Medical Practice", totalSessions: 10, listSize: 6890, role: "SPOKE", system: "SystmOne" },
+  { practice: "Denton Village", totalSessions: 3, listSize: 4308, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM" },
 ];
+
+const totalListSize = practiceSummary.reduce((sum, p) => sum + p.listSize, 0);
 
 // Capacity planning data
 const capacityData = {
@@ -342,6 +345,77 @@ export const SDAEstatesCapacity = () => {
                 }
               </p>
               <p className="text-sm text-blue-600">{unitLabel} per week (50% split)</p>
+            </div>
+          </div>
+
+          {/* Practice Breakdown by List Size */}
+          <div className="mt-6">
+            <h4 className="font-semibold text-slate-900 mb-3">
+              {viewMode === "appointments" ? "Appointments" : "Sessions"} Required by Practice (Based on List Size)
+            </h4>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead>Practice</TableHead>
+                    <TableHead className="text-right">List Size</TableHead>
+                    <TableHead className="text-right">% of Total</TableHead>
+                    <TableHead className="text-right">
+                      {viewMode === "appointments" ? "Appts" : "Sessions"}/Week
+                    </TableHead>
+                    <TableHead className="text-right">F2F (50%)</TableHead>
+                    <TableHead className="text-right">Remote (50%)</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {practiceSummary.map((practice, index) => {
+                    const percentage = (practice.listSize / totalListSize) * 100;
+                    const practiceSessionsNeeded = currentCapacity.sessionsPerWeek * (practice.listSize / totalListSize);
+                    const displayValue = viewMode === "appointments" ? practiceSessionsNeeded * 12 : practiceSessionsNeeded;
+                    const f2fValue = displayValue / 2;
+                    const remoteValue = displayValue / 2;
+                    
+                    return (
+                      <TableRow key={index}>
+                        <TableCell className="font-medium">
+                          {practice.practice}
+                          {practice.subPractices && (
+                            <span className="text-xs text-slate-400 ml-1">({practice.subPractices.length} sites)</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">{practice.listSize.toLocaleString()}</TableCell>
+                        <TableCell className="text-right">{percentage.toFixed(1)}%</TableCell>
+                        <TableCell className="text-right font-semibold">{Math.round(displayValue).toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-green-700">{Math.round(f2fValue).toLocaleString()}</TableCell>
+                        <TableCell className="text-right text-blue-700">{Math.round(remoteValue).toLocaleString()}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                  <TableRow className="bg-slate-100 font-bold">
+                    <TableCell>Total</TableCell>
+                    <TableCell className="text-right">{totalListSize.toLocaleString()}</TableCell>
+                    <TableCell className="text-right">100%</TableCell>
+                    <TableCell className="text-right">
+                      {viewMode === "appointments" 
+                        ? Math.round(currentCapacity.sessionsPerWeek * 12).toLocaleString()
+                        : currentCapacity.sessionsPerWeek
+                      }
+                    </TableCell>
+                    <TableCell className="text-right text-green-700">
+                      {viewMode === "appointments" 
+                        ? Math.round(currentCapacity.f2fRequired * 12).toLocaleString()
+                        : currentCapacity.f2fRequired
+                      }
+                    </TableCell>
+                    <TableCell className="text-right text-blue-700">
+                      {viewMode === "appointments" 
+                        ? Math.round(currentCapacity.remoteRequired * 12).toLocaleString()
+                        : currentCapacity.remoteRequired
+                      }
+                    </TableCell>
+                  </TableRow>
+                </TableBody>
+              </Table>
             </div>
           </div>
 
