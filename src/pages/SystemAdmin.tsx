@@ -188,6 +188,23 @@ const SystemAdmin = () => {
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
+  const [userServiceActivations, setUserServiceActivations] = useState<{
+    nres: boolean;
+    ai4pm: boolean;
+    ai4gp: boolean;
+    meeting_recorder: boolean;
+    complaints: boolean;
+    cqc: boolean;
+    lg_capture: boolean;
+  }>({
+    nres: false,
+    ai4pm: false,
+    ai4gp: false,
+    meeting_recorder: false,
+    complaints: false,
+    cqc: false,
+    lg_capture: false
+  });
   const [userFormData, setUserFormData] = useState({
     email: '',
     full_name: '',
@@ -980,6 +997,15 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
   // User management functions
   const handleAddUser = () => {
     setEditingUser(null);
+    setUserServiceActivations({
+      nres: false,
+      ai4pm: false,
+      ai4gp: false,
+      meeting_recorder: false,
+      complaints: false,
+      cqc: false,
+      lg_capture: false
+    });
     setUserFormData({
       email: '',
       full_name: '',
@@ -1006,7 +1032,7 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     setShowUserModal(true);
   };
 
-  const handleEditUser = (user: any) => {
+  const handleEditUser = async (user: any) => {
     console.log('=== EDITING USER START ===');
     console.log('Full user object:', user);
     console.log('User module access data:', {
@@ -1022,6 +1048,27 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     });
     
     setEditingUser(user);
+    
+    // Fetch service activations for this user
+    const { data: activations, error: activationsError } = await supabase
+      .from('user_service_activations')
+      .select('service')
+      .eq('user_id', user.user_id);
+    
+    if (activationsError) {
+      console.error('Error fetching service activations:', activationsError);
+    }
+    
+    const activatedServices = activations?.map(a => a.service) || [];
+    setUserServiceActivations({
+      nres: activatedServices.includes('nres'),
+      ai4pm: activatedServices.includes('ai4pm'),
+      ai4gp: activatedServices.includes('ai4gp'),
+      meeting_recorder: activatedServices.includes('meeting_recorder'),
+      complaints: activatedServices.includes('complaints'),
+      cqc: activatedServices.includes('cqc'),
+      lg_capture: activatedServices.includes('lg_capture')
+    });
     
     // Get the user's role - check if they have a system_admin role first
     let userRole: 'user' | 'practice_manager' | 'pcn_manager' | 'system_admin' = 'user';
@@ -1067,6 +1114,46 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     setShowUserModal(true);
     
     console.log('=== EDITING USER END ===');
+  };
+
+  // Toggle service activation for a user
+  const toggleServiceActivation = async (serviceKey: 'nres' | 'ai4pm' | 'ai4gp' | 'meeting_recorder' | 'complaints' | 'cqc' | 'lg_capture', enabled: boolean) => {
+    if (!editingUser) return;
+    
+    try {
+      if (enabled) {
+        // Insert activation record
+        const { error } = await supabase
+          .from('user_service_activations')
+          .insert({
+            user_id: editingUser.user_id,
+            service: serviceKey,
+            activated_by: user?.id,
+            activated_at: new Date().toISOString()
+          });
+        
+        if (error) throw error;
+        toast.success(`${serviceKey.toUpperCase()} activated for user`);
+      } else {
+        // Remove activation record
+        const { error } = await supabase
+          .from('user_service_activations')
+          .delete()
+          .eq('user_id', editingUser.user_id)
+          .eq('service', serviceKey);
+        
+        if (error) throw error;
+        toast.success(`${serviceKey.toUpperCase()} deactivated for user`);
+      }
+      
+      setUserServiceActivations(prev => ({
+        ...prev,
+        [serviceKey]: enabled
+      }));
+    } catch (error) {
+      console.error('Error toggling service activation:', error);
+      toast.error('Failed to update service activation');
+    }
   };
 
   const handleDeleteUser = async (userId: string) => {
@@ -4381,6 +4468,102 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     </div>
                   </div>
                 </div>
+
+                {/* Service Activations Section - Only show when editing an existing user */}
+                {editingUser && (
+                  <div className="mt-6 pt-4 border-t">
+                    <Label className="text-base font-medium">Service Activations</Label>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Activate premium services for this user. These control access to specialised features.
+                    </p>
+                    
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="nres_activation">NRES (SDA Programme)</Label>
+                          <p className="text-xs text-muted-foreground">Access to NRES service development and analytics tools</p>
+                        </div>
+                        <Switch
+                          id="nres_activation"
+                          checked={userServiceActivations.nres}
+                          onCheckedChange={(checked) => toggleServiceActivation('nres', checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="ai4pm_activation">AI4PM</Label>
+                          <p className="text-xs text-muted-foreground">AI-powered practice management tools</p>
+                        </div>
+                        <Switch
+                          id="ai4pm_activation"
+                          checked={userServiceActivations.ai4pm}
+                          onCheckedChange={(checked) => toggleServiceActivation('ai4pm', checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="ai4gp_activation">AI4GP</Label>
+                          <p className="text-xs text-muted-foreground">AI-powered clinical decision support</p>
+                        </div>
+                        <Switch
+                          id="ai4gp_activation"
+                          checked={userServiceActivations.ai4gp}
+                          onCheckedChange={(checked) => toggleServiceActivation('ai4gp', checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="meeting_recorder_activation">Meeting Recorder</Label>
+                          <p className="text-xs text-muted-foreground">Advanced meeting recording and transcription</p>
+                        </div>
+                        <Switch
+                          id="meeting_recorder_activation"
+                          checked={userServiceActivations.meeting_recorder}
+                          onCheckedChange={(checked) => toggleServiceActivation('meeting_recorder', checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="complaints_activation">Complaints System</Label>
+                          <p className="text-xs text-muted-foreground">Full complaints management suite</p>
+                        </div>
+                        <Switch
+                          id="complaints_activation"
+                          checked={userServiceActivations.complaints}
+                          onCheckedChange={(checked) => toggleServiceActivation('complaints', checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="cqc_activation">CQC Compliance</Label>
+                          <p className="text-xs text-muted-foreground">CQC compliance tracking and reporting</p>
+                        </div>
+                        <Switch
+                          id="cqc_activation"
+                          checked={userServiceActivations.cqc}
+                          onCheckedChange={(checked) => toggleServiceActivation('cqc', checked)}
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <Label htmlFor="lg_capture_activation">LG Capture Service</Label>
+                          <p className="text-xs text-muted-foreground">Lloyd George record digitisation service</p>
+                        </div>
+                        <Switch
+                          id="lg_capture_activation"
+                          checked={userServiceActivations.lg_capture}
+                          onCheckedChange={(checked) => toggleServiceActivation('lg_capture', checked)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
