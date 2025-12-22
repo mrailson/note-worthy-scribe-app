@@ -1,13 +1,116 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, Shield, Scale, Users, PoundSterling, UserCheck, Building2, Laptop, Handshake, FileText, ClipboardCheck, ShieldCheck } from "lucide-react";
+import { AlertTriangle, Shield, Scale, Users, PoundSterling, UserCheck, Building2, Laptop, Handshake, FileText, ClipboardCheck, ShieldCheck, FileCheck, Calendar, Target, Pill, DoorOpen, RefreshCw, ShieldAlert, Database, Banknote, HelpCircle, CheckCircle2, AlertCircle } from "lucide-react";
 
 const decisions = [
   { id: 1, title: "Brook Hub/Spoke Status", desc: "Final decision on designation for April go-live." },
   { id: 2, title: "ToR Ratification", desc: "Approval of final Governance framework." },
   { id: 3, title: "Innovation Pilots", desc: "Agreement on specific Part B clinics (Frailty/COPD)." },
   { id: 4, title: "Recruitment Panels", desc: "Establishing the JD and Interview groups for January." },
+];
+
+const lesAwarenessPoints = [
+  {
+    id: 1,
+    title: "Term & Termination",
+    icon: Calendar,
+    keyPoints: "Minimum 24-month pilot (1 Apr 2026 – 31 Mar 2028); 6 months' notice required to exit.",
+    icbClarification: "ICB confirmed earliest notice is 1 Oct 2027, effective exit 31 Mar 2028.",
+    status: "confirmed",
+    outstandingQuestion: "Can practices serve notice within the pilot period, or only the ICB?"
+  },
+  {
+    id: 2,
+    title: "Funding Flow via SNO (PML)",
+    icon: PoundSterling,
+    keyPoints: "All payments go to PML at £26.33/patient/month; practices do not retain funds directly.",
+    icbClarification: "Payments made monthly in arrears based on list size, like any other Enhanced Service payment.",
+    status: "confirmed",
+    outstandingQuestion: "Practices must agree funding distribution with PML. SNO-to-Practice MOU recommended but not yet drafted."
+  },
+  {
+    id: 3,
+    title: "Part A / Part B Conditionality",
+    icon: Target,
+    keyPoints: "Access to Part A 'held funds' is conditional on delivering Part B proactive care commitments.",
+    icbClarification: "ICB confirmed: operational challenges understood, but KPI achievement required for Board to approve ongoing funding.",
+    status: "confirmed",
+    outstandingQuestion: "What happens if delivery constraints arise from workforce/estates issues rather than practice intent?"
+  },
+  {
+    id: 4,
+    title: "KPIs & Performance Thresholds",
+    icon: ClipboardCheck,
+    keyPoints: "KPIs being developed with neighbourhoods; will define baseline proactive care levels expected across all practices.",
+    icbClarification: "Failure = improvement plans → reallocation of appointments → potential termination/clawback.",
+    status: "pending",
+    outstandingQuestion: "Specific KPI definitions, coding requirements, and measurement frequency still TBC."
+  },
+  {
+    id: 5,
+    title: "Prescribing Budget Oversight",
+    icon: Pill,
+    keyPoints: "NAS prescribing sits within primary care prescribing budget; must follow formulary guidance.",
+    icbClarification: "Linked to Prescribing Achievement Framework. ICB prescribing team to issue further guidance.",
+    status: "pending",
+    outstandingQuestion: "How will prescribing variances be treated – is there financial risk to practices?"
+  },
+  {
+    id: 6,
+    title: "Practice Exit / Neighbourhood Viability",
+    icon: DoorOpen,
+    keyPoints: "If one practice exits, viability of remaining neighbourhood is at ICB's discretion.",
+    icbClarification: "ICB may terminate contract if minimum standards cannot be met after a practice leaves or merges.",
+    status: "confirmed",
+    outstandingQuestion: "What constitutes 'good faith' protection for remaining practices if one exits?"
+  },
+  {
+    id: 7,
+    title: "SNO Change Process",
+    icon: RefreshCw,
+    keyPoints: "Any change to SNO requires prior written consent from the ICB.",
+    icbClarification: "Transition requires governance review, updated MOU, operational handover plan. New SNO must meet specification criteria.",
+    status: "confirmed",
+    outstandingQuestion: "What is the process if practices collectively wish to change the SNO arrangement?"
+  },
+  {
+    id: 8,
+    title: "Insurance Requirements",
+    icon: ShieldAlert,
+    keyPoints: "Must hold: Employer's Liability (£5m), Public Liability (£10m), Professional Negligence (£5m), Clinical Negligence (£10m).",
+    icbClarification: "Each practice must self-certify or provide evidence of coverage.",
+    status: "pending",
+    outstandingQuestion: "Amanda Taylor checking current coverage. All practices need to confirm adequacy."
+  },
+  {
+    id: 9,
+    title: "Data Submission & Reporting",
+    icon: Database,
+    keyPoints: "Monthly data submissions mandatory; named reporting lead required per practice.",
+    icbClarification: "Failure to submit = performance review → interrogation → remodelling → termination/clawback.",
+    status: "confirmed",
+    outstandingQuestion: "What specific data items are required? What is the exact reporting template?"
+  },
+  {
+    id: 10,
+    title: "Stranded Costs Protection",
+    icon: Banknote,
+    keyPoints: "ICB will reimburse up to £305,219 for redundancy costs if pilot ends 31 Mar 2028.",
+    icbClarification: "Costs must be itemised; redeployment efforts required; 60-day payment terms after ICB agreement.",
+    status: "confirmed",
+    outstandingQuestion: "Does this cover all potential stranded costs or just redundancy? What evidence is required?"
+  }
+];
+
+const outstandingQuestions = [
+  "SNO MOU between PML and practices – template/draft still to be shared",
+  "Clarity on who can serve notice and when (practices vs ICB during pilot period)",
+  "Detail on how Part B threshold measurements will work in practice",
+  "Specific KPI definitions and clinical coding requirements",
+  "What constitutes 'good faith' protection for remaining practices if one exits?",
+  "How will prescribing variances be treated – financial risk to practices?",
+  "Insurance confirmation from all practices needed"
 ];
 
 const projectRisks = [
@@ -119,6 +222,94 @@ const getRatingBadgeStyles = (rating: string) => {
 export const SDARisksMitigation = () => {
   return (
     <div className="space-y-6">
+      {/* LES Contract: Top 10 Practice Awareness Points */}
+      <Card className="bg-white border-0 shadow-sm border-t-4 border-t-[#005EB8]">
+        <CardHeader>
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-[#005EB8] flex items-center justify-center">
+                <FileCheck className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-lg font-semibold text-slate-900">LES Contract: Top 10 Practice Awareness Points</CardTitle>
+                <p className="text-sm text-slate-500">Key issues from the GMS Contract Variation – with ICB clarifications received 18 Dec 2025</p>
+              </div>
+            </div>
+            <Badge variant="outline" className="bg-blue-50 text-[#005EB8] border-[#005EB8]">
+              Meeting: Brackley 23 Dec 2025
+            </Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {lesAwarenessPoints.map((point) => {
+              const IconComponent = point.icon;
+              return (
+                <div 
+                  key={point.id}
+                  className="relative bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200"
+                >
+                  <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-[#005EB8] flex items-center justify-center text-white font-bold text-sm shadow-md">
+                    {point.id}
+                  </div>
+                  <div className="flex items-start gap-3 mt-1">
+                    <IconComponent className="w-5 h-5 text-[#005EB8] flex-shrink-0 mt-0.5" />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <h4 className="font-semibold text-slate-900">{point.title}</h4>
+                        {point.status === "confirmed" ? (
+                          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            ICB Confirmed
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                            <AlertCircle className="w-3 h-3 mr-1" />
+                            Pending
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-slate-700 mt-1">{point.keyPoints}</p>
+                      <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-100">
+                        <p className="text-xs text-blue-800">
+                          <strong>ICB Response:</strong> {point.icbClarification}
+                        </p>
+                      </div>
+                      {point.outstandingQuestion && (
+                        <div className="mt-2 p-2 bg-amber-50 rounded border border-amber-100">
+                          <p className="text-xs text-amber-800 flex items-start gap-1">
+                            <HelpCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                            <span><strong>Outstanding:</strong> {point.outstandingQuestion}</span>
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Outstanding Questions Summary */}
+          <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+            <div className="flex items-center gap-2 mb-3">
+              <HelpCircle className="w-5 h-5 text-amber-600" />
+              <h4 className="font-semibold text-amber-900">Outstanding Questions for Brackley Meeting (23 Dec)</h4>
+            </div>
+            <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+              {outstandingQuestions.map((question, index) => (
+                <li key={index} className="text-sm text-amber-800 flex items-start gap-2">
+                  <span className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 font-semibold text-xs flex-shrink-0">
+                    {index + 1}
+                  </span>
+                  {question}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </CardContent>
+      </Card>
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Legal: GMS Agreement Change */}
         <Card className="bg-white border-0 shadow-sm border-l-4 border-l-red-500">
