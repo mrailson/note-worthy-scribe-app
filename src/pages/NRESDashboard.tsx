@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { Header } from "@/components/Header";
 import { DashboardHeader } from "@/components/nres/DashboardHeader";
 import { MetricCard } from "@/components/nres/MetricCard";
@@ -8,9 +8,10 @@ import { PerformanceChart } from "@/components/nres/PerformanceChart";
 import { EscalationsLog } from "@/components/nres/EscalationsLog";
 import { PatientDetailModal } from "@/components/nres/PatientDetailModal";
 import { WorkflowModal } from "@/components/nres/WorkflowModal";
+import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
 import { HubConsultation } from "@/types/nresTypes";
-import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation } from "lucide-react";
+import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -86,72 +87,98 @@ const NRESDashboard = () => {
           onManualRefresh={handleRefresh}
         />
 
-        {/* Metric Cards Row */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <MetricCard
-            title="Outstanding Results"
-            value={filteredMetrics.outstanding}
-            subtitle="Awaiting review"
-            tooltip="Total number of hub consultation results currently awaiting GP review. Includes all pending, overdue, and critical results."
-            variant="default"
-            icon={<FileText className="h-8 w-8" />}
-            onClick={() => setWorkflowModalOpen(true)}
-          />
-          
-          <MetricCard
-            title="Overdue Reviews"
-            value={filteredMetrics.overdue}
-            subtitle="Require urgent action"
-            tooltip="Results overdue for review (>48 hours). These require immediate attention and have triggered automated escalation protocols."
-            variant={filteredMetrics.overdue > 0 ? "danger" : "success"}
-            icon={<AlertTriangle className="h-8 w-8" />}
-            pulse={filteredMetrics.overdue > 0}
-            onClick={() => {}}
-          />
+        {/* Metric Cards Row - Collapsible */}
+        <CollapsibleCard 
+          title="Key Metrics" 
+          icon={<LayoutGrid className="h-5 w-5" />}
+          defaultOpen={true}
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <MetricCard
+              title="Outstanding Results"
+              value={filteredMetrics.outstanding}
+              subtitle="Awaiting review"
+              tooltip="Total number of hub consultation results currently awaiting GP review. Includes all pending, overdue, and critical results."
+              variant="default"
+              icon={<FileText className="h-8 w-8" />}
+              onClick={() => setWorkflowModalOpen(true)}
+            />
+            
+            <MetricCard
+              title="Overdue Reviews"
+              value={filteredMetrics.overdue}
+              subtitle="Require urgent action"
+              tooltip="Results overdue for review (>48 hours). These require immediate attention and have triggered automated escalation protocols."
+              variant={filteredMetrics.overdue > 0 ? "danger" : "success"}
+              icon={<AlertTriangle className="h-8 w-8" />}
+              pulse={filteredMetrics.overdue > 0}
+              onClick={() => {}}
+            />
 
-          <MetricCard
-            title="On-Time Performance"
-            value={`${filteredMetrics.onTimePercentage}%`}
-            subtitle="Target: 95%"
-            tooltip="Percentage of results reviewed within 48 hours. ICB target is 95% compliance. Current performance is tracked in real-time."
-            variant={filteredMetrics.onTimePercentage >= 95 ? "success" : "warning"}
-            icon={<TrendingUp className="h-8 w-8" />}
-            trend={filteredMetrics.trend}
-            onClick={() => {}}
-          />
+            <MetricCard
+              title="On-Time Performance"
+              value={`${filteredMetrics.onTimePercentage}%`}
+              subtitle="Target: 95%"
+              tooltip="Percentage of results reviewed within 48 hours. ICB target is 95% compliance. Current performance is tracked in real-time."
+              variant={filteredMetrics.onTimePercentage >= 95 ? "success" : "warning"}
+              icon={<TrendingUp className="h-8 w-8" />}
+              trend={filteredMetrics.trend}
+              onClick={() => {}}
+            />
 
-          <MetricCard
-            title="Zero Lost Results"
-            value={filteredMetrics.zeroLostDays}
-            subtitle="consecutive days"
-            tooltip="Days since last lost result. Every hub consultation result is automatically tracked from receipt to review. Mathematical impossibility of lost results with this system."
-            variant="success"
-            icon={<CheckCircle2 className="h-8 w-8" />}
-            onClick={() => {}}
-          />
-        </div>
+            <MetricCard
+              title="Zero Lost Results"
+              value={filteredMetrics.zeroLostDays}
+              subtitle="consecutive days"
+              tooltip="Days since last lost result. Every hub consultation result is automatically tracked from receipt to review. Mathematical impossibility of lost results with this system."
+              variant="success"
+              icon={<CheckCircle2 className="h-8 w-8" />}
+              onClick={() => {}}
+            />
+          </div>
+        </CollapsibleCard>
 
-        {/* Priority Actions Panel - Full Width */}
-        <div className="w-full">
+        {/* Priority Actions Panel - Collapsible */}
+        <CollapsibleCard 
+          title="Priority Actions" 
+          icon={<ListChecks className="h-5 w-5" />}
+          defaultOpen={true}
+        >
           <PriorityActionsPanel
             consultations={filteredConsultations}
             onViewDetails={handleConsultationClick}
           />
-        </div>
+        </CollapsibleCard>
 
-        {/* Consultations Table - Full Width */}
-        <div className="w-full bg-white rounded-lg p-6 shadow-sm">
-          <h2 className="text-xl font-bold text-[#003087] mb-4">NRES Consultations (Patients seen by non home practice)</h2>
+        {/* Consultations Table - Collapsible */}
+        <CollapsibleCard 
+          title="NRES Consultations (Patients seen by non home practice)" 
+          icon={<Table2 className="h-5 w-5" />}
+          defaultOpen={true}
+        >
           <ConsultationsTable
             consultations={filteredConsultations}
             onRowClick={handleConsultationClick}
           />
-        </div>
+        </CollapsibleCard>
 
-        {/* Bottom Row - Charts */}
+        {/* Bottom Row - Charts - Collapsible */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <PerformanceChart data={mockPracticePerformance} />
-          <EscalationsLog events={mockEscalations} />
+          <CollapsibleCard 
+            title="Practice Performance" 
+            icon={<BarChart3 className="h-5 w-5" />}
+            defaultOpen={true}
+          >
+            <PerformanceChart data={mockPracticePerformance} />
+          </CollapsibleCard>
+          
+          <CollapsibleCard 
+            title="Escalations Log" 
+            icon={<Bell className="h-5 w-5" />}
+            defaultOpen={true}
+          >
+            <EscalationsLog events={mockEscalations} />
+          </CollapsibleCard>
         </div>
 
         {/* Footer Info */}
