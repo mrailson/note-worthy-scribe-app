@@ -27,22 +27,22 @@ const sessionData = [
   { session: "Friday PM", theParks: 3, springfield: 1, brackley: 2, brook: 1, bugbrooke: 1, denton: 0, towcester: 4, total: 12 },
 ];
 
-// Practice summary data with list sizes
+// Practice summary data with list sizes (matching Executive Summary population data)
 const practiceSummary = [
   { 
-    practice: "The Parks", 
+    practice: "The Parks Medical", 
     subPractices: ["Roade", "Blisworth", "Grange Park", "Hanslope"],
     totalSessions: 29,
-    listSize: 15680,
+    listSize: 22689,
     role: "HUB",
     system: "SystmOne"
   },
-  { practice: "Towcester Medical Centre", totalSessions: 17, listSize: 22850, role: "SPOKE", system: "EMIS" },
-  { practice: "Brackley Medical Centre", totalSessions: 20, listSize: 18420, role: "HUB", system: "SystmOne", note: "Non-GMS rent required" },
-  { practice: "Springfield Surgery", totalSessions: 10, listSize: 12340, role: "SPOKE", system: "EMIS" },
-  { practice: "Brook Health Centre", totalSessions: 10, listSize: 8450, role: "TBC", system: "SystmOne", note: "Non-GMS rent required, likely Spoke" },
-  { practice: "Bugbrooke Medical Practice", totalSessions: 10, listSize: 6890, role: "SPOKE", system: "SystmOne" },
-  { practice: "Denton Village", totalSessions: 3, listSize: 4308, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM" },
+  { practice: "Brackley Medical Centre", totalSessions: 20, listSize: 16128, role: "HUB", system: "SystmOne", note: "Non-GMS rent required" },
+  { practice: "Springfield Surgery", totalSessions: 10, listSize: 12649, role: "SPOKE", system: "EMIS" },
+  { practice: "Towcester Medical Centre", totalSessions: 17, listSize: 11439, role: "SPOKE", system: "EMIS" },
+  { practice: "Bugbrooke Surgery", totalSessions: 10, listSize: 10773, role: "SPOKE", system: "SystmOne" },
+  { practice: "Brook Health Centre", totalSessions: 10, listSize: 8983, role: "TBC", system: "SystmOne", note: "Non-GMS rent required, likely Spoke" },
+  { practice: "Denton Village", totalSessions: 3, listSize: 6277, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM" },
 ];
 
 const totalListSize = practiceSummary.reduce((sum, p) => sum + p.listSize, 0);
