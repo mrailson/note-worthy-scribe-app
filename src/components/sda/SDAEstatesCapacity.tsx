@@ -197,55 +197,88 @@ export const SDAEstatesCapacity = () => {
         badge={
           <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
             <CheckCircle2 className="w-3 h-3 mr-1" />
-            {totalWeeklySessions} Total Sessions
+            {totalWeeklySessions} Total On-Site Sessions
           </Badge>
         }
       >
-        <p className="text-sm text-slate-500 mb-4">Weekly session availability by practice</p>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {practiceSummary.map((practice, index) => (
-            <div 
-              key={index} 
-              className={`rounded-xl p-4 border ${
-                practice.role === "HUB" 
-                  ? "bg-blue-50 border-blue-200" 
-                  : "bg-slate-50 border-slate-200"
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-slate-500">Weekly on-site session availability by practice</p>
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("sessions")}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "sessions" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              <div className="flex items-start justify-between mb-2">
-                <div>
-                  <h4 className="font-semibold text-slate-900">{practice.practice}</h4>
-                  {practice.subPractices && (
-                    <p className="text-xs text-slate-500 mt-0.5">
-                      {practice.subPractices.join(", ")}
-                    </p>
-                  )}
+              Sessions
+            </button>
+            <button
+              onClick={() => setViewMode("appointments")}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "appointments" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Appointments
+            </button>
+          </div>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          {practiceSummary.map((practice, index) => {
+            const displayValue = viewMode === "appointments" 
+              ? practice.totalSessions * 12 
+              : practice.totalSessions;
+            const displayUnit = viewMode === "appointments" 
+              ? "appts/week (on-site)" 
+              : "sessions/week (on-site)";
+            
+            return (
+              <div 
+                key={index} 
+                className={`rounded-xl p-4 border ${
+                  practice.role === "HUB" 
+                    ? "bg-blue-50 border-blue-200" 
+                    : "bg-slate-50 border-slate-200"
+                }`}
+              >
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h4 className="font-semibold text-slate-900">{practice.practice}</h4>
+                    {practice.subPractices && (
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {practice.subPractices.join(", ")}
+                      </p>
+                    )}
+                  </div>
+                  <Badge 
+                    variant="outline" 
+                    className={
+                      practice.role === "HUB" 
+                        ? "bg-[#005EB8] text-white border-[#005EB8]" 
+                        : "bg-slate-200 text-slate-700 border-slate-300"
+                    }
+                  >
+                    {practice.role}
+                  </Badge>
                 </div>
-                <Badge 
-                  variant="outline" 
-                  className={
-                    practice.role === "HUB" 
-                      ? "bg-[#005EB8] text-white border-[#005EB8]" 
-                      : "bg-slate-200 text-slate-700 border-slate-300"
-                  }
-                >
-                  {practice.role}
-                </Badge>
-              </div>
-              <div className="flex items-end justify-between">
-                <div>
-                  <p className="text-2xl font-bold text-slate-900">{practice.totalSessions}</p>
-                  <p className="text-xs text-slate-500">sessions/week</p>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-slate-900">{displayValue}</p>
+                    <p className="text-xs text-slate-500">{displayUnit}</p>
+                  </div>
+                  <Badge variant="outline" className="text-xs">
+                    {practice.system}
+                  </Badge>
                 </div>
-                <Badge variant="outline" className="text-xs">
-                  {practice.system}
-                </Badge>
+                {practice.note && (
+                  <p className="text-xs text-amber-600 mt-2 italic">{practice.note}</p>
+                )}
               </div>
-              {practice.note && (
-                <p className="text-xs text-amber-600 mt-2 italic">{practice.note}</p>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </CollapsibleCard>
 
