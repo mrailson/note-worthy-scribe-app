@@ -87,7 +87,7 @@ export const SDAExecutiveSummary = () => {
             <img 
               src={DocMedLogo} 
               alt="DocMed Northamptonshire - PML" 
-              className="h-16 w-auto object-contain"
+              className="h-20 w-auto object-contain"
             />
           </div>
           <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
