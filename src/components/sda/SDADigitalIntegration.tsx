@@ -108,22 +108,60 @@ export const SDADigitalIntegration = () => {
             System Access Matrix
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
-              { system: "EMIS Web", status: "Active", practices: 4 },
-              { system: "SystmOne", status: "Active", practices: 3 },
-              { system: "GP Connect", status: "Verified", practices: 7 },
-              { system: "VPN Access", status: "Configured", practices: 7 },
+              { system: "SystmOne (TPP)", status: "Active", practices: 5, color: "bg-blue-50" },
+              { system: "EMIS Web", status: "Active", practices: 2, color: "bg-cyan-50" },
+              { system: "GP Connect", status: "Verified", practices: 7, color: "bg-green-50" },
+              { system: "Ardem & Gem VPN", status: "Always On", practices: 7, color: "bg-purple-50" },
             ].map((item, index) => (
-              <div key={index} className="bg-slate-50 rounded-lg p-4 text-center">
-                <p className="text-sm text-slate-500">{item.system}</p>
+              <div key={index} className={`${item.color} rounded-lg p-4 text-center`}>
+                <p className="text-sm text-slate-500 font-medium">{item.system}</p>
                 <p className="text-2xl font-bold text-slate-900 mt-1">{item.practices}</p>
+                <p className="text-xs text-slate-500">practices</p>
                 <Badge variant="outline" className="mt-2 bg-green-50 text-green-700 border-green-200">
                   {item.status}
                 </Badge>
               </div>
             ))}
+          </div>
+
+          {/* Practice breakdown */}
+          <div className="border-t border-slate-200 pt-4">
+            <h4 className="font-semibold text-slate-900 mb-3">Practice System Breakdown</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-blue-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 rounded-full bg-[#005EB8]"></div>
+                  <h5 className="font-semibold text-slate-900">SystmOne (TPP) - 5 Practices</h5>
+                </div>
+                <ul className="text-sm text-slate-600 space-y-1 ml-5">
+                  <li>Brackley Medical Centre</li>
+                  <li>The Parks (Roade, Blisworth, Hanslope, Grange Park)</li>
+                  <li>Cogenhoe & Wollaston</li>
+                  <li>Denton Surgery</li>
+                  <li>Bugbrooke Surgery</li>
+                </ul>
+              </div>
+              <div className="bg-cyan-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-3 h-3 rounded-full bg-cyan-600"></div>
+                  <h5 className="font-semibold text-slate-900">EMIS Web - 2 Practices</h5>
+                </div>
+                <ul className="text-sm text-slate-600 space-y-1 ml-5">
+                  <li>Springfield Surgery</li>
+                  <li>Towcester Medical Centre</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Hardware note */}
+          <div className="bg-purple-50 rounded-lg p-4">
+            <p className="text-sm text-slate-700">
+              <strong>Hardware Access:</strong> All 7 practices accessible via standard Ardem & Gem Build Laptops with always-on VPN configuration.
+            </p>
           </div>
         </CardContent>
       </Card>
