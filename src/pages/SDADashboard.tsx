@@ -88,20 +88,20 @@ const SDADashboard = () => {
               <span className="sm:hidden">Workforce</span>
             </TabsTrigger>
             <TabsTrigger 
-              value="finance" 
-              className="flex items-center gap-2 data-[state=active]:bg-[#005EB8] data-[state=active]:text-white px-4 py-2.5 rounded-lg transition-all"
-            >
-              <PoundSterling className="w-4 h-4" />
-              <span className="hidden sm:inline">Finance & Governance</span>
-              <span className="sm:hidden">Finance</span>
-            </TabsTrigger>
-            <TabsTrigger 
               value="risks" 
               className="flex items-center gap-2 data-[state=active]:bg-[#005EB8] data-[state=active]:text-white px-4 py-2.5 rounded-lg transition-all"
             >
               <AlertTriangle className="w-4 h-4" />
               <span className="hidden sm:inline">Risks & Mitigation</span>
               <span className="sm:hidden">Risks</span>
+            </TabsTrigger>
+            <TabsTrigger 
+              value="finance" 
+              className="flex items-center gap-2 data-[state=active]:bg-[#005EB8] data-[state=active]:text-white px-4 py-2.5 rounded-lg transition-all"
+            >
+              <PoundSterling className="w-4 h-4" />
+              <span className="hidden sm:inline">Finance & Governance</span>
+              <span className="sm:hidden">Finance</span>
             </TabsTrigger>
             <TabsTrigger 
               value="evidence" 
@@ -126,11 +126,11 @@ const SDADashboard = () => {
             <TabsContent value="workforce" className="mt-0">
               <SDAWorkforceInnovation />
             </TabsContent>
-            <TabsContent value="finance" className="mt-0">
-              <SDAFinanceGovernance />
-            </TabsContent>
             <TabsContent value="risks" className="mt-0">
               <SDARisksMitigation />
+            </TabsContent>
+            <TabsContent value="finance" className="mt-0">
+              <SDAFinanceGovernance />
             </TabsContent>
             <TabsContent value="evidence" className="mt-0">
               <SDAEvidenceLibrary />
