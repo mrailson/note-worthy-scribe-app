@@ -199,6 +199,10 @@ export const SDADigitalIntegration = () => {
                   <span className="font-semibold text-purple-700">C.</span>
                   <span><strong>Hybrid Model:</strong> Practice triage for registered patients; centralised overflow triage for high-demand periods</span>
                 </li>
+                <li className="flex items-start gap-2">
+                  <span className="font-semibold text-purple-700">D.</span>
+                  <span><strong>Other:</strong> Alternative approach to be proposed by the Board</span>
+                </li>
               </ul>
             </div>
           </div>
@@ -221,6 +225,7 @@ export const SDADigitalIntegration = () => {
                     <li><span className="font-semibold text-purple-700">A.</span> Seeing clinician completes acute episode; registered practice handles ongoing care</li>
                     <li><span className="font-semibold text-purple-700">B.</span> All follow-up returns to registered practice with clear handover protocol</li>
                     <li><span className="font-semibold text-purple-700">C.</span> Time-limited follow-up (e.g., 72hrs) with seeing clinician, then handover</li>
+                    <li><span className="font-semibold text-purple-700">D.</span> Other: Alternative approach to be proposed by the Board</li>
                   </ul>
                 </div>
               </div>
@@ -235,6 +240,7 @@ export const SDADigitalIntegration = () => {
                     <li><span className="font-semibold text-purple-700">A.</span> Seeing clinician orders and actions results (requires cross-practice permissions)</li>
                     <li><span className="font-semibold text-purple-700">B.</span> Registered practice orders on behalf with shared task in clinical system</li>
                     <li><span className="font-semibold text-purple-700">C.</span> Seeing clinician orders; results route to registered practice for action</li>
+                    <li><span className="font-semibold text-purple-700">D.</span> Other: Alternative approach to be proposed by the Board</li>
                   </ul>
                 </div>
               </div>
@@ -249,6 +255,7 @@ export const SDADigitalIntegration = () => {
                     <li><span className="font-semibold text-purple-700">A.</span> Seeing clinician makes referral using patient's registered practice code</li>
                     <li><span className="font-semibold text-purple-700">B.</span> Referral tasked to registered practice to process</li>
                     <li><span className="font-semibold text-purple-700">C.</span> Centralised referral hub processes all SDA-generated referrals</li>
+                    <li><span className="font-semibold text-purple-700">D.</span> Other: Alternative approach to be proposed by the Board</li>
                   </ul>
                 </div>
               </div>
