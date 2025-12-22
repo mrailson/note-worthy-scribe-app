@@ -97,6 +97,26 @@ export const SDADigitalIntegration = () => {
                 <p className="text-sm text-slate-600">Pre-configured VPNs and local EMIS/TPP shortcuts for home sessions.</p>
               </div>
             </div>
+
+            {/* Hardware & Software Cost Estimate */}
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mt-4">
+              <h4 className="font-semibold text-amber-800 mb-2">Hardware & Software Costs (Project Budget Item)</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-amber-700">£1,200</p>
+                  <p className="text-sm text-amber-600">per laptop (Software & Hardware)</p>
+                </div>
+                <div className="text-center">
+                  <p className="text-2xl font-bold text-amber-700">8-10</p>
+                  <p className="text-sm text-amber-600">laptops required</p>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-amber-200 text-center">
+                <p className="text-sm text-amber-700">
+                  <strong>Estimated Total:</strong> £9,600 - £12,000
+                </p>
+              </div>
+            </div>
           </div>
         </CollapsibleCard>
       </div>
