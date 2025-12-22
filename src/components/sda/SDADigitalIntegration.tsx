@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList } from "lucide-react";
+import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
@@ -335,6 +335,220 @@ export const SDADigitalIntegration = () => {
               </div>
             </div>
           </div>
+        </div>
+      </CollapsibleCard>
+
+      {/* SDA Pilot Reporting Plan */}
+      <CollapsibleCard
+        title="SDA Pilot Reporting Plan (Draft)"
+        icon={<BarChart3 className="w-5 h-5" />}
+        badge={<Badge className="bg-amber-500">DRAFT - For Programme Board Approval</Badge>}
+      >
+        <div className="space-y-6">
+          {/* Document Status Header */}
+          <div className="bg-gradient-to-r from-blue-50 to-slate-50 rounded-lg p-4 border border-blue-200">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <FileText className="w-5 h-5 text-[#005EB8]" />
+                <div>
+                  <h4 className="font-semibold text-slate-900">NRES SDA Pilot Reporting Plan</h4>
+                  <p className="text-sm text-slate-600">Version 1.2 | December 2025</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-4 text-sm">
+                <div className="text-center">
+                  <p className="font-bold text-[#005EB8]">88,938</p>
+                  <p className="text-slate-500">Patients</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-[#005EB8]">7</p>
+                  <p className="text-slate-500">Practices</p>
+                </div>
+                <div className="text-center">
+                  <p className="font-bold text-[#005EB8]">£2.34M</p>
+                  <p className="text-slate-500">Contract</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* KPI Framework */}
+          <div>
+            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+              <TrendingUp className="w-4 h-4 text-[#005EB8]" />
+              KPI Framework Summary
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[
+                { category: "Access & Utilisation", metrics: ["Slot Utilisation ≥85%", "DNA Rate <5%", "Same-Day Access ≥70%", "Time to Appointment <4hrs"], color: "bg-blue-50 border-blue-200" },
+                { category: "Clinical System Connectivity", metrics: ["SystmOne Booking Rate (Monitor)", "GP Connect Success ≥98%", "Cross-System DNA Variance <2%"], color: "bg-cyan-50 border-cyan-200" },
+                { category: "Risk Stratification & Continuity", metrics: ["RED Flag Continuity ≥80%", "RED Flag SDA Diversion <10%", "Risk Flag Currency ≥95%"], color: "bg-red-50 border-red-200" },
+                { category: "Workforce & Capacity", metrics: ["GP/ANP Sessions Delivered ≥95%", "Skill Mix Ratio (Monitor)", "Unfilled Sessions <5%"], color: "bg-purple-50 border-purple-200" },
+                { category: "Quality & Outcomes", metrics: ["Patient Satisfaction ≥90%", "Consultation Outcome Rate ≥75%", "Safety Events = 0"], color: "bg-green-50 border-green-200" },
+                { category: "Financial", metrics: ["Cost per Appointment (Monitor)", "Budget Variance ±5%", "Activity vs Contract ≥95%"], color: "bg-amber-50 border-amber-200" },
+              ].map((kpi, index) => (
+                <div key={index} className={`${kpi.color} rounded-lg p-4 border`}>
+                  <h5 className="font-semibold text-slate-900 text-sm mb-2">{kpi.category}</h5>
+                  <ul className="text-xs text-slate-600 space-y-1">
+                    {kpi.metrics.map((metric, i) => (
+                      <li key={i} className="flex items-start gap-1">
+                        <span className="text-slate-400">•</span>
+                        {metric}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Reporting Schedule */}
+          <div>
+            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-[#005EB8]" />
+              Reporting Schedule
+            </h4>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-slate-50">
+                    <TableHead className="font-semibold">Report</TableHead>
+                    <TableHead className="font-semibold">Audience</TableHead>
+                    <TableHead className="font-semibold">Frequency</TableHead>
+                    <TableHead className="font-semibold">Owner</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    { report: "Operational Dashboard", audience: "Practice Managers, PCN Team", frequency: "Real-time / Daily", owner: "NRES Development Manager" },
+                    { report: "Weekly Activity Report", audience: "Programme Board, Practices", frequency: "Weekly (Monday)", owner: "NRES Development Manager" },
+                    { report: "Monthly Performance Report", audience: "ICB, Programme Board", frequency: "Monthly (by 10th)", owner: "Programme Board Chair" },
+                    { report: "Quarterly Evaluation Report", audience: "ICB Board, NHS England", frequency: "Quarterly", owner: "Programme Board" },
+                    { report: "Annual Review & Business Case", audience: "ICB, NHS England, Commissioners", frequency: "Annually", owner: "Programme Board" },
+                  ].map((row, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="font-medium text-sm">{row.report}</TableCell>
+                      <TableCell className="text-sm text-slate-600">{row.audience}</TableCell>
+                      <TableCell className="text-sm">{row.frequency}</TableCell>
+                      <TableCell className="text-sm text-slate-600">{row.owner}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          {/* Escalation Thresholds */}
+          <div>
+            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 text-amber-600" />
+              Escalation Thresholds
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-red-600">RED Triggers</Badge>
+                </div>
+                <ul className="text-sm text-slate-700 space-y-1">
+                  <li>• Slot utilisation &lt;70% for 2 consecutive weeks</li>
+                  <li>• DNA rate &gt;10% for 2 consecutive weeks</li>
+                  <li>• Any patient safety incident</li>
+                  <li>• GP Connect failure rate &gt;5%</li>
+                </ul>
+              </div>
+              <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-amber-500">AMBER Triggers</Badge>
+                </div>
+                <ul className="text-sm text-slate-700 space-y-1">
+                  <li>• Budget variance &gt;10%</li>
+                  <li>• Unfilled sessions &gt;10% for any week</li>
+                  <li>• Patient satisfaction &lt;85%</li>
+                  <li>• RED flag continuity &lt;70%</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Risk Stratification Routing */}
+          <div>
+            <h4 className="font-semibold text-slate-900 mb-3 flex items-center gap-2">
+              <Users className="w-4 h-4 text-[#005EB8]" />
+              Risk Stratification Routing
+            </h4>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="bg-red-50 border border-red-300 rounded-lg p-4 text-center">
+                <Badge className="bg-red-600 mb-2">RED Flag</Badge>
+                <p className="text-sm font-medium text-slate-900">Continuity of Care</p>
+                <p className="text-xs text-slate-600 mt-1">Named GP / Usual Clinician</p>
+              </div>
+              <div className="bg-amber-50 border border-amber-300 rounded-lg p-4 text-center">
+                <Badge className="bg-amber-500 mb-2">AMBER Flag</Badge>
+                <p className="text-sm font-medium text-slate-900">SDA with Review</p>
+                <p className="text-xs text-slate-600 mt-1">Care Coordinator Review</p>
+              </div>
+              <div className="bg-green-50 border border-green-300 rounded-lg p-4 text-center">
+                <Badge className="bg-green-600 mb-2">GREEN Flag</Badge>
+                <p className="text-sm font-medium text-slate-900">Standard SDA</p>
+                <p className="text-xs text-slate-600 mt-1">Any Available Clinician</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Programme Board Questions */}
+          <div className="bg-amber-50 border-2 border-amber-300 rounded-lg p-4">
+            <h4 className="font-semibold text-amber-800 mb-3 flex items-center gap-2">
+              <HelpCircle className="w-5 h-5" />
+              Programme Board Questions - Clarification Required
+            </h4>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-amber-100/50">
+                    <TableHead className="w-12 font-semibold">#</TableHead>
+                    <TableHead className="font-semibold">Question</TableHead>
+                    <TableHead className="w-28 font-semibold">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {[
+                    { id: 1, question: "Who will own and produce the weekly activity reports? NRES Development Manager specified - is this role confirmed and resourced?", status: "To Confirm" },
+                    { id: 2, question: "Where will the operational dashboard be hosted? SystmOne? Separate BI tool? Access for all practices?", status: "To Confirm" },
+                    { id: 3, question: "How will GP Connect booking failures be escalated? Technical support pathway for the 2 EMIS practices?", status: "To Confirm" },
+                    { id: 4, question: "Who validates and maintains the Risk Stratification Flags? Practice-level or centralised responsibility?", status: "To Confirm" },
+                    { id: 5, question: "What coding standards are required? Slot types (NRES SDA F2F/Virtual) and rota types (NRES SDA GP/ANP) - are clinical systems configured?", status: "To Confirm" },
+                    { id: 6, question: "Monthly data submission process - who submits to ICB and in what format? Template required?", status: "To Confirm" },
+                    { id: 7, question: "How will prescribing data be attributed to NAS appointments? Link to Prescribing Achievement Framework tracking?", status: "To Confirm" },
+                    { id: 8, question: "Data sharing agreements between practices - are these complete for reporting purposes?", status: "Confirmed" },
+                    { id: 9, question: "Quarterly evaluation report - who conducts the evaluation? Internal or external?", status: "To Confirm" },
+                    { id: 10, question: "Sample dashboard views in document - are these to be implemented in a BI tool, or indicative only?", status: "To Confirm" },
+                  ].map((item) => (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-medium">{item.id}</TableCell>
+                      <TableCell className="text-sm text-slate-700">{item.question}</TableCell>
+                      <TableCell>
+                        {item.status === "Confirmed" ? (
+                          <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Confirmed
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-amber-100 text-amber-800 hover:bg-amber-100">
+                            <HelpCircle className="w-3 h-3 mr-1" />
+                            To Confirm
+                          </Badge>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-500 italic">
+            Source: NRES_SDA_Pilot_Reporting_Plan.docx v1.2 | Last updated: December 2025
+          </p>
         </div>
       </CollapsibleCard>
 
