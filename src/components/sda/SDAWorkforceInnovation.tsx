@@ -1,7 +1,8 @@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Lightbulb, Truck, Heart, FileText, AlertCircle, Briefcase } from "lucide-react";
+import { Users, Lightbulb, Truck, Heart, FileText, AlertCircle, Briefcase, Download } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { Button } from "@/components/ui/button";
 
 // Proposed job adverts for Programme Board approval
 const proposedJobAdverts = [
@@ -14,6 +15,7 @@ const proposedJobAdverts = [
     closingDate: "9 January 2026",
     type: "GP",
     keyRequirements: ["CCT qualification", "On Northamptonshire Performers list", "Clinical experience in primary care"],
+    documentUrl: "/documents/NRES_GP_BMC_Job_Advert.docx",
   },
   {
     reference: "NRES-PARKS-GP-2526",
@@ -24,6 +26,7 @@ const proposedJobAdverts = [
     closingDate: "9 January 2026",
     type: "GP",
     keyRequirements: ["CCT qualification", "On Northamptonshire Performers list", "Clinical experience in primary care"],
+    documentUrl: "/documents/NRES_GP_Parks_Job_Advert.docx",
   },
   {
     reference: "NRES-BMC-ANP-2526",
@@ -34,6 +37,7 @@ const proposedJobAdverts = [
     closingDate: "9 January 2026",
     type: "ANP",
     keyRequirements: ["NMC registration (Adult Nursing)", "Independent Non-Medical Prescriber (V300)", "MSc in Advanced Clinical Practice"],
+    documentUrl: "/documents/NRES_ANP_BMC_Job_Advert.docx",
   },
   {
     reference: "NRES-PARKS-ANP-2526",
@@ -44,6 +48,7 @@ const proposedJobAdverts = [
     closingDate: "9 January 2026",
     type: "ANP",
     keyRequirements: ["NMC registration (Adult Nursing)", "Independent Non-Medical Prescriber (V300)", "MSc in Advanced Clinical Practice"],
+    documentUrl: "/documents/NRES_ANP_Parks_Job_Advert.docx",
   },
   {
     reference: "NRES-PARKS-Paeds_ANP-2526",
@@ -54,14 +59,15 @@ const proposedJobAdverts = [
     closingDate: "9 January 2026",
     type: "Paeds ANP",
     keyRequirements: ["NMC registration (Children's Nurse)", "MSc in Advanced Clinical Practice", "Independent Prescriber (V300)"],
+    documentUrl: "/documents/NRES_Paeds_ANP_Parks_Job_Advert.docx",
   },
 ];
 
 // Job description templates available
 const jobDescriptionTemplates = [
-  { name: "GP Job Description - Brackley Medical Centre", type: "GP", status: "Ready" },
-  { name: "GP Job Description - Neighbourhood Template", type: "GP", status: "Ready" },
-  { name: "ANP Job Description - Neighbourhood Template", type: "ANP", status: "Ready" },
+  { name: "GP Job Description - Brackley Medical Centre", type: "GP", status: "Ready", documentUrl: "/documents/NRES_GP_Job_Description_Brackley_Medical_Centre.docx" },
+  { name: "GP Job Description - Neighbourhood Template", type: "GP", status: "Ready", documentUrl: "/documents/GP_DESCRIPTION_for_Neighbourhood.docx" },
+  { name: "ANP Job Description - Neighbourhood Template", type: "ANP", status: "Ready", documentUrl: "/documents/ANP_JOB_DESCRIPTION_for_Neighbourhood.docx" },
 ];
 
 const getTypeColor = (type: string) => {
@@ -109,6 +115,7 @@ export const SDAWorkforceInnovation = () => {
                 <TableHead className="font-semibold">Salary/Band</TableHead>
                 <TableHead className="font-semibold">Closing Date</TableHead>
                 <TableHead className="font-semibold">Key Requirements</TableHead>
+                <TableHead className="font-semibold text-center">Download</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -136,6 +143,14 @@ export const SDAWorkforceInnovation = () => {
                         </li>
                       ))}
                     </ul>
+                  </TableCell>
+                  <TableCell className="text-center">
+                    <a href={advert.documentUrl} download>
+                      <Button size="sm" variant="outline" className="gap-1">
+                        <Download className="w-3 h-3" />
+                        <span className="text-xs">DOCX</span>
+                      </Button>
+                    </a>
                   </TableCell>
                 </TableRow>
               ))}
@@ -174,7 +189,13 @@ export const SDAWorkforceInnovation = () => {
                   {template.status}
                 </Badge>
               </div>
-              <p className="text-sm font-medium text-slate-900">{template.name}</p>
+              <p className="text-sm font-medium text-slate-900 mb-3">{template.name}</p>
+              <a href={template.documentUrl} download>
+                <Button size="sm" variant="outline" className="w-full gap-1">
+                  <Download className="w-3 h-3" />
+                  Download DOCX
+                </Button>
+              </a>
             </div>
           ))}
         </div>
