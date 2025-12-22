@@ -61,21 +61,21 @@ export const SDAFinanceGovernance = () => {
         {/* Finance Section */}
         <div className="space-y-4">
           {/* Confidential Fund */}
-          <Card className="bg-gradient-to-br from-slate-800 to-slate-900 border-0 shadow-lg text-white">
+          <Card className="bg-gradient-to-br from-blue-50 to-indigo-100 border border-blue-200 shadow-lg">
             <CardHeader className="pb-2">
               <div className="flex items-center gap-2">
-                <Badge variant="outline" className="bg-red-500/20 text-red-300 border-red-500/30">
+                <Badge variant="outline" className="bg-rose-100 text-rose-700 border-rose-300">
                   <Lock className="w-3 h-3 mr-1" />
                   PRIVATE
                 </Badge>
               </div>
-              <CardTitle className="text-lg font-semibold">Confidential Redundancy Fund</CardTitle>
+              <CardTitle className="text-lg font-semibold text-slate-800">Confidential Redundancy Fund</CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-4xl font-bold text-white mb-1">£312,000</p>
-              <p className="text-slate-300 text-sm mb-3">Phase 1 Risk Mitigation Fund</p>
-              <p className="text-sm text-slate-400">
-                <strong className="text-slate-200">Strictly Confidential to Phase 1 Sites.</strong> The ICB has agreed this exceptional provision to mitigate potential redundancy exposure for pioneering neighbourhoods.
+              <p className="text-4xl font-bold text-[#005EB8] mb-1">£312,000</p>
+              <p className="text-slate-600 text-sm mb-3">Phase 1 Risk Mitigation Fund</p>
+              <p className="text-sm text-slate-600">
+                <strong className="text-slate-800">Strictly Confidential to Phase 1 Sites.</strong> The ICB has agreed this exceptional provision to mitigate potential redundancy exposure for pioneering neighbourhoods.
               </p>
             </CardContent>
           </Card>
