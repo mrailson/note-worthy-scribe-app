@@ -76,22 +76,29 @@ export const SDAExecutiveSummary = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center gap-3">
-              <img 
-                src={NRESLogo} 
-                alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
-                className="h-16 w-auto object-contain"
-              />
-              <div className="text-center">
-                <p className="text-sm text-slate-500 font-medium">Governance Status</p>
-                <p className="text-2xl font-bold text-green-600 mt-1">SIGNED</p>
-                <p className="text-xs text-slate-600 mt-1">Data Sharing Agreement Complete</p>
+        <div className="flex flex-col gap-4">
+          <div className="flex justify-center">
+            <img 
+              src={NRESLogo} 
+              alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
+              className="h-20 w-auto object-contain"
+            />
+          </div>
+          <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div>
+                  <p className="text-sm text-slate-500 font-medium">Governance Status</p>
+                  <p className="text-3xl font-bold text-green-600 mt-1">SIGNED</p>
+                  <p className="text-sm text-slate-600 mt-1">Data Sharing Agreement Complete</p>
+                </div>
+                <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
+                  <FileCheck className="w-6 h-6 text-green-600" />
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       {/* Charts Row */}
