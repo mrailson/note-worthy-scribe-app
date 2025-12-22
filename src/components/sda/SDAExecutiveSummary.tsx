@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Users, Calendar, PoundSterling, FileCheck, User } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
+import NRESLogo from "@/assets/NRES_Logo.png";
 
 const populationData = [
   { name: "The Parks Medical", value: 22689, color: "#005EB8" },
@@ -77,14 +78,16 @@ export const SDAExecutiveSummary = () => {
 
         <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
+            <div className="flex flex-col items-center gap-3">
+              <img 
+                src={NRESLogo} 
+                alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
+                className="h-16 w-auto object-contain"
+              />
+              <div className="text-center">
                 <p className="text-sm text-slate-500 font-medium">Governance Status</p>
-                <p className="text-3xl font-bold text-green-600 mt-1">SIGNED</p>
-                <p className="text-sm text-slate-600 mt-1">Data Sharing Agreement Complete</p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
-                <FileCheck className="w-6 h-6 text-green-600" />
+                <p className="text-2xl font-bold text-green-600 mt-1">SIGNED</p>
+                <p className="text-xs text-slate-600 mt-1">Data Sharing Agreement Complete</p>
               </div>
             </div>
           </CardContent>
