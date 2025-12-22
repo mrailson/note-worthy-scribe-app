@@ -420,40 +420,47 @@ export const SDAEstatesCapacity = () => {
           })}
           
           {/* Remote Sessions Balance Box */}
-          <div className="rounded-xl p-4 border bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
-            <div className="flex items-start justify-between mb-2">
-              <div>
-                <h4 className="font-semibold text-indigo-900">Remote Sessions</h4>
-                <p className="text-xs text-indigo-600 mt-0.5">
-                  Balance of required capacity
+          {(() => {
+            const totalOnsiteSessions = practiceSummary.reduce((sum, p) => sum + p.totalSessions, 0);
+            const totalRequired = Math.round(currentCapacity.sessionsPerWeek);
+            const remoteBalance = Math.max(0, totalRequired - totalOnsiteSessions);
+            const remoteBalanceAppts = remoteBalance * 12;
+            
+            return (
+              <div className="rounded-xl p-4 border bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+                <div className="flex items-start justify-between mb-2">
+                  <div>
+                    <h4 className="font-semibold text-indigo-900">Remote Sessions</h4>
+                    <p className="text-xs text-indigo-600 mt-0.5">
+                      Balance after on-site capacity
+                    </p>
+                  </div>
+                  <Badge 
+                    variant="outline" 
+                    className="bg-indigo-100 text-indigo-700 border-indigo-300"
+                  >
+                    REMOTE
+                  </Badge>
+                </div>
+                <div className="flex items-end justify-between">
+                  <div>
+                    <p className="text-2xl font-bold text-indigo-900">
+                      {viewMode === "appointments" ? remoteBalanceAppts : remoteBalance}
+                    </p>
+                    <p className="text-xs text-indigo-600">
+                      {viewMode === "appointments" ? "appts/week (remote)" : "sessions/week (remote)"}
+                    </p>
+                  </div>
+                  <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-600 border-indigo-200">
+                    {season === "winter" ? "Winter" : "Non-Winter"}
+                  </Badge>
+                </div>
+                <p className="text-xs text-indigo-500 mt-2 italic">
+                  {totalRequired} required − {totalOnsiteSessions} on-site = {remoteBalance} remote
                 </p>
               </div>
-              <Badge 
-                variant="outline" 
-                className="bg-indigo-100 text-indigo-700 border-indigo-300"
-              >
-                REMOTE
-              </Badge>
-            </div>
-            <div className="flex items-end justify-between">
-              <div>
-                <p className="text-2xl font-bold text-indigo-900">
-                  {viewMode === "appointments" 
-                    ? Math.round(currentCapacity.remoteRequired * 12)
-                    : Math.round(currentCapacity.remoteRequired)}
-                </p>
-                <p className="text-xs text-indigo-600">
-                  {viewMode === "appointments" ? "appts/week (remote)" : "sessions/week (remote)"}
-                </p>
-              </div>
-              <Badge variant="outline" className="text-xs bg-indigo-50 text-indigo-600 border-indigo-200">
-                {season === "winter" ? "Winter" : "Non-Winter"}
-              </Badge>
-            </div>
-            <p className="text-xs text-indigo-500 mt-2 italic">
-              50% F2F / 50% Remote split
-            </p>
-          </div>
+            );
+          })()}
         </div>
       </CollapsibleCard>
 
