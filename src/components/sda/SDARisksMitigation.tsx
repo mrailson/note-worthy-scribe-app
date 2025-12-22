@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertTriangle, Shield, Scale, Users, PoundSterling, UserCheck, Building2, Laptop, Handshake, FileText } from "lucide-react";
+import { AlertTriangle, Shield, Scale, Users, PoundSterling, UserCheck, Building2, Laptop, Handshake, FileText, ClipboardCheck, ShieldCheck } from "lucide-react";
 
 const decisions = [
   { id: 1, title: "Brook Hub/Spoke Status", desc: "Final decision on designation for April go-live." },
@@ -70,6 +70,36 @@ const projectRisks = [
     concerns: "Practice partners or staff resistance to new working model. Patient concern about travelling to Hub locations.",
     mitigation: "Regular partner engagement sessions; clear governance and benefits communication; patient engagement events in January; transport support for vulnerable patients.",
     owner: "Programme Lead"
+  },
+  {
+    id: 7,
+    risk: "CQC Registration Delay",
+    category: "Regulatory",
+    rating: "HIGH",
+    icon: ClipboardCheck,
+    concerns: "CQC registration not approved before April 2026 go-live, preventing service launch. Registration process delays could impact entire programme timeline.",
+    mitigation: "Early CQC engagement initiated; application submitted with buffer time; regular progress tracking with CQC liaison; contingency plans for phased launch if delays occur.",
+    owner: "Programme Lead"
+  },
+  {
+    id: 8,
+    risk: "Recruitment Shortfall",
+    category: "Workforce",
+    rating: "HIGH",
+    icon: UserCheck,
+    concerns: "Unable to recruit sufficient clinical and administrative staff by go-live. Competition for limited workforce pool may delay operational readiness.",
+    mitigation: "Early recruitment campaign (Jan 2026); competitive salary packages; flexible working options; partnership with training practices; contingency for agency cover during initial phase.",
+    owner: "HR Lead"
+  },
+  {
+    id: 9,
+    risk: "Insurance & Indemnity Gaps",
+    category: "Legal/Insurance",
+    rating: "HIGH",
+    icon: ShieldCheck,
+    concerns: "Inadequate insurance cover or indemnity arrangements for new service model. Practices may have gaps in coverage for Hub-based working.",
+    mitigation: "Insurance review underway (Amanda Taylor checking); confirmation checklist for all practices; early engagement with MDOs; template indemnity arrangements being drafted.",
+    owner: "Amanda Taylor"
   }
 ];
 
