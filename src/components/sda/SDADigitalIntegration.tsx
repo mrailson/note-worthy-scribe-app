@@ -85,7 +85,7 @@ export const SDADigitalIntegration = () => {
               </div>
               <div>
                 <h4 className="font-semibold text-slate-900">Central Procurement</h4>
-                <p className="text-sm text-slate-600">Laptops for all remote SDA staff managed centrally by PML.</p>
+                <p className="text-sm text-slate-600">Laptops for all remote SDA staff managed centrally (Malcolm Railson?).</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
