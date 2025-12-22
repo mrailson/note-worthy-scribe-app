@@ -28,10 +28,10 @@ const practiceSummary = [
     role: "HUB",
     system: "SystmOne"
   },
-  { practice: "Towcester Medical Centre", totalSessions: 17, listSize: 22850, role: "HUB", system: "EMIS" },
+  { practice: "Towcester Medical Centre", totalSessions: 17, listSize: 22850, role: "SPOKE", system: "EMIS" },
   { practice: "Brackley Medical Centre", totalSessions: 20, listSize: 18420, role: "HUB", system: "SystmOne", note: "Non-GMS rent required" },
   { practice: "Springfield Surgery", totalSessions: 10, listSize: 12340, role: "SPOKE", system: "EMIS" },
-  { practice: "Brook Health Centre", totalSessions: 10, listSize: 8450, role: "SPOKE", system: "SystmOne", note: "Non-GMS rent required" },
+  { practice: "Brook Health Centre", totalSessions: 10, listSize: 8450, role: "TBC", system: "SystmOne", note: "Non-GMS rent required, likely Spoke" },
   { practice: "Bugbrooke Medical Practice", totalSessions: 10, listSize: 6890, role: "SPOKE", system: "SystmOne" },
   { practice: "Denton Village", totalSessions: 3, listSize: 4308, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM" },
 ];
