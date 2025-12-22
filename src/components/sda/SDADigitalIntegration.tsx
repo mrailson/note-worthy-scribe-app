@@ -139,7 +139,7 @@ export const SDADigitalIntegration = () => {
                 <ul className="text-sm text-slate-600 space-y-1 ml-5">
                   <li>Brackley Medical Centre</li>
                   <li>The Parks (Roade, Blisworth, Hanslope, Grange Park)</li>
-                  <li>Cogenhoe & Wollaston</li>
+                  <li>Brook Health Centre</li>
                   <li>Denton Surgery</li>
                   <li>Bugbrooke Surgery</li>
                 </ul>
