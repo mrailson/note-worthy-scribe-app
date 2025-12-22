@@ -369,6 +369,11 @@ export const SDAEstatesCapacity = () => {
         icon={<LayoutGrid className="w-5 h-5" />}
       >
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <p className="text-sm text-slate-500">
+            {viewMode === "appointments" 
+              ? "Showing appointments (1 session = 12 appointments)" 
+              : "Capacity requirements by season"}
+          </p>
           <div className="flex flex-wrap gap-2">
             {/* View Mode Toggle */}
             <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
@@ -423,11 +428,6 @@ export const SDAEstatesCapacity = () => {
             </div>
           </div>
         </div>
-        {viewMode === "appointments" && (
-          <p className="text-sm text-slate-500 mb-4">
-            Showing appointments (1 session = 12 appointments)
-          </p>
-        )}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           <div className="bg-slate-50 rounded-lg p-4 text-center">
             <p className="text-sm text-slate-500">Rate</p>
