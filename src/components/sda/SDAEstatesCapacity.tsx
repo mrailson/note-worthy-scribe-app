@@ -173,13 +173,14 @@ export const SDAEstatesCapacity = () => {
     const nonWinterSessions = baseTotal;
     const onsiteSessions = baseTotal;
     const remoteSessions = Math.round(baseTotal * 0.5);
+    const totalSessions = onsiteSessions + remoteSessions;
     
     switch (sessionsDisplayMode) {
       case "winter": return { value: winterSessions, label: "Winter Sessions/Week" };
-      case "nonWinter": return { value: nonWinterSessions, label: "Non-Winter/Week" };
+      case "nonWinter": return { value: `${onsiteSessions} + ${remoteSessions}`, label: "On-Site + Remote/Week", sublabel: `(${totalSessions} Total)` };
       case "onsite": return { value: onsiteSessions, label: "On-Site/Week" };
       case "remote": return { value: remoteSessions, label: "Remote/Week" };
-      default: return { value: baseTotal, label: "Sessions/Week" };
+      default: return { value: totalSessions, label: "Total Sessions/Week" };
     }
   };
 
@@ -301,6 +302,9 @@ export const SDAEstatesCapacity = () => {
             <Calendar className="w-6 h-6 text-green-600 mx-auto mb-2" />
             <p className="text-3xl font-bold text-slate-900">{sessionsDisplay.value}</p>
             <p className="text-sm text-slate-600">{sessionsDisplay.label}</p>
+            {sessionsDisplay.sublabel && (
+              <p className="text-xs text-green-700 font-medium mt-1">{sessionsDisplay.sublabel}</p>
+            )}
           </CardContent>
         </Card>
         <Card 
