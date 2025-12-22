@@ -4,13 +4,13 @@ import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, 
 import NRESLogo from "@/assets/NRES_Logo.png";
 
 const populationData = [
-  { name: "The Parks Medical", value: 22689, color: "#005EB8" },
-  { name: "Brackley Medical", value: 16128, color: "#41B6E6" },
-  { name: "Springfield", value: 12649, color: "#768692" },
-  { name: "Towcester Medical", value: 11439, color: "#003087" },
-  { name: "Bugbrooke Surgery", value: 10773, color: "#0072CE" },
-  { name: "Brook Health", value: 8983, color: "#AE2573" },
-  { name: "Denton Village", value: 6277, color: "#00A499" },
+  { name: "Towcester Medical", value: 22850, color: "#005EB8" },
+  { name: "Brackley Medical", value: 18420, color: "#41B6E6" },
+  { name: "The Parks Medical", value: 15680, color: "#768692" },
+  { name: "Springfield", value: 12340, color: "#003087" },
+  { name: "Brook Health", value: 8450, color: "#0072CE" },
+  { name: "Bugbrooke Medical Practice", value: 6890, color: "#AE2573" },
+  { name: "Denton Village", value: 4308, color: "#00A499" },
 ];
 
 const appointmentData = [
