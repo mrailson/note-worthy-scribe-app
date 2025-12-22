@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar } from "lucide-react";
+import { CheckCircle2, MapPin, Sun, Snowflake, Building2, Clock, Users, Calendar, LayoutGrid, CalendarDays } from "lucide-react";
 import { useState } from "react";
 
 // Room availability data by session
@@ -65,8 +65,11 @@ const getCellColor = (value: number) => {
 
 export const SDAEstatesCapacity = () => {
   const [season, setSeason] = useState<"winter" | "nonWinter">("winter");
+  const [viewMode, setViewMode] = useState<"sessions" | "appointments">("sessions");
   const currentCapacity = season === "winter" ? capacityData.winter : capacityData.nonWinter;
   const totalWeeklySessions = sessionData.reduce((sum, row) => sum + row.total, 0);
+  const multiplier = viewMode === "appointments" ? 12 : 1;
+  const unitLabel = viewMode === "appointments" ? "appointments" : "sessions";
 
   return (
     <div className="space-y-6">
@@ -224,33 +227,67 @@ export const SDAEstatesCapacity = () => {
       {/* Capacity Planning */}
       <Card className="bg-white border-0 shadow-sm">
         <CardHeader>
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <CardTitle className="text-lg font-semibold text-slate-900">Capacity Planning</CardTitle>
-            <div className="flex gap-1">
-              <button 
-                onClick={() => setSeason("nonWinter")}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  season === "nonWinter" 
-                    ? "bg-amber-500 text-white" 
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                <Sun className="w-4 h-4" />
-                Non-Winter
-              </button>
-              <button 
-                onClick={() => setSeason("winter")}
-                className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  season === "winter" 
-                    ? "bg-blue-500 text-white" 
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
-                }`}
-              >
-                <Snowflake className="w-4 h-4" />
-                Winter
-              </button>
+            <div className="flex flex-wrap gap-2">
+              {/* View Mode Toggle */}
+              <div className="flex gap-1 bg-slate-100 p-1 rounded-lg">
+                <button 
+                  onClick={() => setViewMode("sessions")}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === "sessions" 
+                      ? "bg-white text-slate-900 shadow-sm" 
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                  Sessions
+                </button>
+                <button 
+                  onClick={() => setViewMode("appointments")}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === "appointments" 
+                      ? "bg-white text-slate-900 shadow-sm" 
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  <CalendarDays className="w-4 h-4" />
+                  Appointments
+                </button>
+              </div>
+              
+              {/* Season Toggle */}
+              <div className="flex gap-1">
+                <button 
+                  onClick={() => setSeason("nonWinter")}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    season === "nonWinter" 
+                      ? "bg-amber-500 text-white" 
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <Sun className="w-4 h-4" />
+                  Non-Winter
+                </button>
+                <button 
+                  onClick={() => setSeason("winter")}
+                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                    season === "winter" 
+                      ? "bg-blue-500 text-white" 
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
+                >
+                  <Snowflake className="w-4 h-4" />
+                  Winter
+                </button>
+              </div>
             </div>
           </div>
+          {viewMode === "appointments" && (
+            <p className="text-sm text-slate-500 mt-2">
+              Showing appointments (1 session = 12 appointments)
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
@@ -265,8 +302,13 @@ export const SDAEstatesCapacity = () => {
               <p className="text-xs text-slate-400">required</p>
             </div>
             <div className="bg-slate-50 rounded-lg p-4 text-center">
-              <p className="text-sm text-slate-500">Sessions/Week</p>
-              <p className="text-xl font-bold text-slate-900">{currentCapacity.sessionsPerWeek}</p>
+              <p className="text-sm text-slate-500 capitalize">{unitLabel}/Week</p>
+              <p className="text-xl font-bold text-slate-900">
+                {viewMode === "appointments" 
+                  ? Math.round(currentCapacity.sessionsPerWeek * 12).toLocaleString()
+                  : currentCapacity.sessionsPerWeek
+                }
+              </p>
               <p className="text-xs text-slate-400">total needed</p>
             </div>
             <div className="bg-slate-50 rounded-lg p-4 text-center">
@@ -278,14 +320,28 @@ export const SDAEstatesCapacity = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-green-50 rounded-xl p-4 border border-green-200">
-              <h4 className="font-semibold text-green-800 mb-2">Face-to-Face Sessions Required</h4>
-              <p className="text-3xl font-bold text-green-700">{currentCapacity.f2fRequired}</p>
-              <p className="text-sm text-green-600">sessions per week (50% split)</p>
+              <h4 className="font-semibold text-green-800 mb-2">
+                Face-to-Face {viewMode === "appointments" ? "Appointments" : "Sessions"} Required
+              </h4>
+              <p className="text-3xl font-bold text-green-700">
+                {viewMode === "appointments" 
+                  ? Math.round(currentCapacity.f2fRequired * 12).toLocaleString()
+                  : currentCapacity.f2fRequired
+                }
+              </p>
+              <p className="text-sm text-green-600">{unitLabel} per week (50% split)</p>
             </div>
             <div className="bg-blue-50 rounded-xl p-4 border border-blue-200">
-              <h4 className="font-semibold text-blue-800 mb-2">Remote Sessions Required</h4>
-              <p className="text-3xl font-bold text-blue-700">{currentCapacity.remoteRequired}</p>
-              <p className="text-sm text-blue-600">sessions per week (50% split)</p>
+              <h4 className="font-semibold text-blue-800 mb-2">
+                Remote {viewMode === "appointments" ? "Appointments" : "Sessions"} Required
+              </h4>
+              <p className="text-3xl font-bold text-blue-700">
+                {viewMode === "appointments" 
+                  ? Math.round(currentCapacity.remoteRequired * 12).toLocaleString()
+                  : currentCapacity.remoteRequired
+                }
+              </p>
+              <p className="text-sm text-blue-600">{unitLabel} per week (50% split)</p>
             </div>
           </div>
 
