@@ -329,6 +329,98 @@ export const SDAEstatesCapacity = () => {
         </Card>
       </div>
 
+      {/* Session Availability Matrix */}
+      <CollapsibleCard
+        title="Room Availability Matrix"
+        icon={<Calendar className="w-5 h-5" />}
+        badge={
+          <button
+            onClick={cycleBadgeMode}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+          >
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              {badgeDisplay.value} {badgeDisplay.label}
+            </Badge>
+          </button>
+        }
+      >
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-slate-500">Available clinical rooms by day and session</p>
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("sessions")}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "sessions" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Sessions
+            </button>
+            <button
+              onClick={() => setViewMode("appointments")}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "appointments" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Appointments
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="font-semibold">Session</TableHead>
+                <TableHead className="text-center font-semibold">
+                  <div>The Parks</div>
+                  <div className="text-xs font-normal text-slate-400">4 sites</div>
+                </TableHead>
+                <TableHead className="text-center font-semibold">Springfield</TableHead>
+                <TableHead className="text-center font-semibold">Brackley</TableHead>
+                <TableHead className="text-center font-semibold">Brook</TableHead>
+                <TableHead className="text-center font-semibold">Bugbrooke</TableHead>
+                <TableHead className="text-center font-semibold">Denton</TableHead>
+                <TableHead className="text-center font-semibold">Towcester</TableHead>
+                <TableHead className="text-center font-semibold bg-slate-100">Total</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sessionData.map((row, index) => {
+                const mult = viewMode === "appointments" ? 12 : 1;
+                return (
+                  <TableRow key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                    <TableCell className="font-medium">{row.session}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.theParks)}`}>{row.theParks * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.springfield)}`}>{row.springfield * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.brackley)}`}>{row.brackley * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.brook)}`}>{row.brook * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.bugbrooke)}`}>{row.bugbrooke * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.denton)}`}>{row.denton * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.towcester)}`}>{row.towcester * mult}</TableCell>
+                    <TableCell className="text-center font-bold bg-slate-100">{row.total * mult}</TableCell>
+                  </TableRow>
+                );
+              })}
+              <TableRow className="bg-slate-100 font-bold">
+                <TableCell>Weekly Total</TableCell>
+                <TableCell className="text-center">{29 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{20 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{3 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{17 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center bg-[#005EB8] text-white">{totalWeeklySessions * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+              </TableRow>
+            </TableBody>
+          </Table>
+        </div>
+      </CollapsibleCard>
+
       {/* Practice Summary */}
       <CollapsibleCard
         title="Practice Estate Summary"
@@ -492,98 +584,6 @@ export const SDAEstatesCapacity = () => {
               </div>
             );
           })()}
-        </div>
-      </CollapsibleCard>
-
-      {/* Session Availability Matrix */}
-      <CollapsibleCard
-        title="Room Availability Matrix"
-        icon={<Calendar className="w-5 h-5" />}
-        badge={
-          <button
-            onClick={cycleBadgeMode}
-            className="cursor-pointer hover:opacity-80 transition-opacity"
-          >
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              <CheckCircle2 className="w-3 h-3 mr-1" />
-              {badgeDisplay.value} {badgeDisplay.label}
-            </Badge>
-          </button>
-        }
-      >
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-sm text-slate-500">Available clinical rooms by day and session</p>
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
-            <button
-              onClick={() => setViewMode("sessions")}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                viewMode === "sessions" 
-                  ? "bg-white text-slate-900 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Sessions
-            </button>
-            <button
-              onClick={() => setViewMode("appointments")}
-              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
-                viewMode === "appointments" 
-                  ? "bg-white text-slate-900 shadow-sm" 
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              Appointments
-            </button>
-          </div>
-        </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-slate-50">
-                <TableHead className="font-semibold">Session</TableHead>
-                <TableHead className="text-center font-semibold">
-                  <div>The Parks</div>
-                  <div className="text-xs font-normal text-slate-400">4 sites</div>
-                </TableHead>
-                <TableHead className="text-center font-semibold">Springfield</TableHead>
-                <TableHead className="text-center font-semibold">Brackley</TableHead>
-                <TableHead className="text-center font-semibold">Brook</TableHead>
-                <TableHead className="text-center font-semibold">Bugbrooke</TableHead>
-                <TableHead className="text-center font-semibold">Denton</TableHead>
-                <TableHead className="text-center font-semibold">Towcester</TableHead>
-                <TableHead className="text-center font-semibold bg-slate-100">Total</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {sessionData.map((row, index) => {
-                const mult = viewMode === "appointments" ? 12 : 1;
-                return (
-                  <TableRow key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                    <TableCell className="font-medium">{row.session}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.theParks)}`}>{row.theParks * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.springfield)}`}>{row.springfield * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.brackley)}`}>{row.brackley * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.brook)}`}>{row.brook * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.bugbrooke)}`}>{row.bugbrooke * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.denton)}`}>{row.denton * mult}</TableCell>
-                    <TableCell className={`text-center font-semibold ${getCellColor(row.towcester)}`}>{row.towcester * mult}</TableCell>
-                    <TableCell className="text-center font-bold bg-slate-100">{row.total * mult}</TableCell>
-                  </TableRow>
-                );
-              })}
-              <TableRow className="bg-slate-100 font-bold">
-                <TableCell>Weekly Total</TableCell>
-                <TableCell className="text-center">{29 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{20 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{3 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center">{17 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-                <TableCell className="text-center bg-[#005EB8] text-white">{totalWeeklySessions * (viewMode === "appointments" ? 12 : 1)}</TableCell>
-              </TableRow>
-            </TableBody>
-          </Table>
         </div>
       </CollapsibleCard>
 
