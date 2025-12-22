@@ -62,7 +62,7 @@ export const SDADigitalIntegration = () => {
                   <Badge className="bg-green-600">100% ACCESS GRANTED</Badge>
                 </div>
                 <p className="text-sm text-green-700">
-                  <strong>Confirmed:</strong> Alex Whitehead, Malcolm Railson, and Amanda Taylor have successfully verified functional clinical system access across all 7 practice clinical environments.
+                  <strong>Confirmed:</strong> Alex Whitehead, Malcolm Railson, and Amanda Taylor have successfully verified functional clinical system access across all 7 practice clinical environments. All Data Sharing Agreements (DSAs) have been completed and signed.
                 </p>
               </div>
             </div>
