@@ -1,7 +1,7 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp } from "lucide-react";
+import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList, BarChart3, FileText, AlertTriangle, Users, Calendar, TrendingUp, Download } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
@@ -355,19 +355,29 @@ export const SDADigitalIntegration = () => {
                   <p className="text-sm text-slate-600">Version 1.2 | December 2025</p>
                 </div>
               </div>
-              <div className="flex items-center gap-4 text-sm">
-                <div className="text-center">
-                  <p className="font-bold text-[#005EB8]">88,938</p>
-                  <p className="text-slate-500">Patients</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-[#005EB8]">7</p>
-                  <p className="text-slate-500">Practices</p>
-                </div>
-                <div className="text-center">
-                  <p className="font-bold text-[#005EB8]">£2.34M</p>
-                  <p className="text-slate-500">Contract</p>
-                </div>
+              <div className="flex items-center gap-4">
+                <a 
+                  href="/documents/NRES_SDA_Pilot_Reporting_Plan.docx" 
+                  download="NRES_SDA_Pilot_Reporting_Plan.docx"
+                  className="flex items-center gap-2 bg-[#005EB8] text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-[#004494] transition-colors"
+                >
+                  <Download className="w-4 h-4" />
+                  Download DOCX
+                </a>
+              </div>
+            </div>
+            <div className="flex items-center gap-4 text-sm mt-3 pt-3 border-t border-blue-200">
+              <div className="text-center">
+                <p className="font-bold text-[#005EB8]">88,938</p>
+                <p className="text-slate-500">Patients</p>
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-[#005EB8]">7</p>
+                <p className="text-slate-500">Practices</p>
+              </div>
+              <div className="text-center">
+                <p className="font-bold text-[#005EB8]">£2.34M</p>
+                <p className="text-slate-500">Contract</p>
               </div>
             </div>
           </div>
