@@ -78,7 +78,7 @@ export const SDAExecutiveSummary = () => {
               <div>
                 <p className="text-sm text-slate-500 font-medium">Contract Value</p>
                 <p className="text-3xl font-bold text-slate-900 mt-1">£2.34m</p>
-                <p className="text-sm text-slate-600 mt-1">Equates to £26.33 per head</p>
+                <p className="text-sm text-slate-600 mt-1">Equates to £26.33 per patient</p>
               </div>
               <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
                 <PoundSterling className="w-6 h-6 text-green-600" />
@@ -123,7 +123,7 @@ export const SDAExecutiveSummary = () => {
                     outerRadius={100}
                     paddingAngle={2}
                     dataKey="value"
-                    label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                    label={({ name, percent, value }) => `${name} ${(percent * 100).toFixed(1)}% (${value.toLocaleString()})`}
                     labelLine={false}
                   >
                     {populationData.map((entry, index) => (
