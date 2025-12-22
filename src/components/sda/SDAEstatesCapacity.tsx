@@ -8,6 +8,10 @@ import { CollapsibleCard } from "@/components/ui/collapsible-card";
 type PracticeSortField = "practice" | "listSize" | "percentage" | "sessionsWeek" | "f2f" | "remote";
 type SortDirection = "asc" | "desc";
 type BadgeDisplayMode = "total" | "winter" | "nonWinter" | "onsite" | "remote";
+type SitesDisplayMode = "total" | "hub" | "spoke" | "tbc";
+type SessionsDisplayMode = "total" | "winter" | "nonWinter" | "onsite" | "remote";
+type DurationDisplayMode = "perSession" | "perDay" | "perWeek";
+type ApptsDisplayMode = "perSession" | "perHour" | "perDay";
 
 // Room availability data by session
 const sessionData = [
@@ -78,6 +82,12 @@ export const SDAEstatesCapacity = () => {
   const [practiceSortDirection, setPracticeSortDirection] = useState<SortDirection>("desc");
   const [badgeDisplayMode, setBadgeDisplayMode] = useState<BadgeDisplayMode>("total");
   
+  // Top banner display modes
+  const [sitesDisplayMode, setSitesDisplayMode] = useState<SitesDisplayMode>("total");
+  const [sessionsDisplayMode, setSessionsDisplayMode] = useState<SessionsDisplayMode>("total");
+  const [durationDisplayMode, setDurationDisplayMode] = useState<DurationDisplayMode>("perSession");
+  const [apptsDisplayMode, setApptsDisplayMode] = useState<ApptsDisplayMode>("perSession");
+  
   const currentCapacity = season === "winter" ? capacityData.winter : capacityData.nonWinter;
   const totalWeeklySessions = sessionData.reduce((sum, row) => sum + row.total, 0);
   const multiplier = viewMode === "appointments" ? 12 : 1;
@@ -113,6 +123,86 @@ export const SDAEstatesCapacity = () => {
     const nextIndex = (currentIndex + 1) % modes.length;
     setBadgeDisplayMode(modes[nextIndex]);
   };
+
+  // Top banner cycling functions
+  const cycleSitesMode = () => {
+    const modes: SitesDisplayMode[] = ["total", "hub", "spoke", "tbc"];
+    const currentIndex = modes.indexOf(sitesDisplayMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setSitesDisplayMode(modes[nextIndex]);
+  };
+
+  const cycleSessionsMode = () => {
+    const modes: SessionsDisplayMode[] = ["total", "winter", "nonWinter", "onsite", "remote"];
+    const currentIndex = modes.indexOf(sessionsDisplayMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setSessionsDisplayMode(modes[nextIndex]);
+  };
+
+  const cycleDurationMode = () => {
+    const modes: DurationDisplayMode[] = ["perSession", "perDay", "perWeek"];
+    const currentIndex = modes.indexOf(durationDisplayMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setDurationDisplayMode(modes[nextIndex]);
+  };
+
+  const cycleApptsMode = () => {
+    const modes: ApptsDisplayMode[] = ["perSession", "perHour", "perDay"];
+    const currentIndex = modes.indexOf(apptsDisplayMode);
+    const nextIndex = (currentIndex + 1) % modes.length;
+    setApptsDisplayMode(modes[nextIndex]);
+  };
+
+  // Top banner display values
+  const getSitesDisplay = () => {
+    const hubCount = practiceSummary.filter(p => p.role === "HUB").length;
+    const spokeCount = practiceSummary.filter(p => p.role === "SPOKE").length;
+    const tbcCount = practiceSummary.filter(p => p.role === "TBC").length;
+    
+    switch (sitesDisplayMode) {
+      case "hub": return { value: hubCount, label: "Hub Sites" };
+      case "spoke": return { value: spokeCount, label: "Spoke Sites" };
+      case "tbc": return { value: tbcCount, label: "TBC Sites" };
+      default: return { value: 7, label: "Practice Sites" };
+    }
+  };
+
+  const getSessionsDisplay = () => {
+    const baseTotal = totalWeeklySessions;
+    const winterSessions = Math.round(baseTotal * 1.2);
+    const nonWinterSessions = baseTotal;
+    const onsiteSessions = baseTotal;
+    const remoteSessions = Math.round(baseTotal * 0.5);
+    
+    switch (sessionsDisplayMode) {
+      case "winter": return { value: winterSessions, label: "Winter Sessions/Week" };
+      case "nonWinter": return { value: nonWinterSessions, label: "Non-Winter/Week" };
+      case "onsite": return { value: onsiteSessions, label: "On-Site/Week" };
+      case "remote": return { value: remoteSessions, label: "Remote/Week" };
+      default: return { value: baseTotal, label: "Sessions/Week" };
+    }
+  };
+
+  const getDurationDisplay = () => {
+    switch (durationDisplayMode) {
+      case "perDay": return { value: "8h 20m", label: "Per Day (2 sessions)" };
+      case "perWeek": return { value: "41h 40m", label: "Per Week (10 sessions)" };
+      default: return { value: "4h 10m", label: "Per Session" };
+    }
+  };
+
+  const getApptsDisplay = () => {
+    switch (apptsDisplayMode) {
+      case "perHour": return { value: "2.9", label: "Appts/Hour" };
+      case "perDay": return { value: "24", label: "Appts/Day" };
+      default: return { value: "12", label: "Appts/Session" };
+    }
+  };
+
+  const sitesDisplay = getSitesDisplay();
+  const sessionsDisplay = getSessionsDisplay();
+  const durationDisplay = getDurationDisplay();
+  const apptsDisplay = getApptsDisplay();
 
   const togglePracticeSort = (field: PracticeSortField) => {
     if (practiceSortField === field) {
@@ -193,32 +283,44 @@ export const SDAEstatesCapacity = () => {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-0 shadow-sm">
+        <Card 
+          className="bg-gradient-to-br from-blue-50 to-blue-100 border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={cycleSitesMode}
+        >
           <CardContent className="p-4 text-center">
             <Building2 className="w-6 h-6 text-[#005EB8] mx-auto mb-2" />
-            <p className="text-3xl font-bold text-slate-900">7</p>
-            <p className="text-sm text-slate-600">Practice Sites</p>
+            <p className="text-3xl font-bold text-slate-900">{sitesDisplay.value}</p>
+            <p className="text-sm text-slate-600">{sitesDisplay.label}</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-green-50 to-green-100 border-0 shadow-sm">
+        <Card 
+          className="bg-gradient-to-br from-green-50 to-green-100 border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={cycleSessionsMode}
+        >
           <CardContent className="p-4 text-center">
             <Calendar className="w-6 h-6 text-green-600 mx-auto mb-2" />
-            <p className="text-3xl font-bold text-slate-900">{totalWeeklySessions}</p>
-            <p className="text-sm text-slate-600">Sessions/Week</p>
+            <p className="text-3xl font-bold text-slate-900">{sessionsDisplay.value}</p>
+            <p className="text-sm text-slate-600">{sessionsDisplay.label}</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-0 shadow-sm">
+        <Card 
+          className="bg-gradient-to-br from-purple-50 to-purple-100 border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={cycleDurationMode}
+        >
           <CardContent className="p-4 text-center">
             <Clock className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-            <p className="text-3xl font-bold text-slate-900">4h 10m</p>
-            <p className="text-sm text-slate-600">Per Session</p>
+            <p className="text-3xl font-bold text-slate-900">{durationDisplay.value}</p>
+            <p className="text-sm text-slate-600">{durationDisplay.label}</p>
           </CardContent>
         </Card>
-        <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-0 shadow-sm">
+        <Card 
+          className="bg-gradient-to-br from-amber-50 to-amber-100 border-0 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+          onClick={cycleApptsMode}
+        >
           <CardContent className="p-4 text-center">
             <Users className="w-6 h-6 text-amber-600 mx-auto mb-2" />
-            <p className="text-3xl font-bold text-slate-900">12</p>
-            <p className="text-sm text-slate-600">Appts/Session</p>
+            <p className="text-3xl font-bold text-slate-900">{apptsDisplay.value}</p>
+            <p className="text-sm text-slate-600">{apptsDisplay.label}</p>
           </CardContent>
         </Card>
       </div>
