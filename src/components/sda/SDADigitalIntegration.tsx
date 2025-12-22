@@ -12,11 +12,12 @@ const digitalTfActions = [
   { id: 4, description: "Work up the potential costs of additional ICE licenses, or complexities where an individual works across multiple surgeries", owner: "Clare Craven", dueDate: "", status: "In progress", dateCompleted: "" },
   { id: 5, description: "Add a member from the PCT to the T&F group", owner: "Ellie Wagg", dueDate: "", status: "In progress", dateCompleted: "" },
   { id: 7, description: "Work through the technical capability within ICE re routing for results", owner: "Clare Craven", dueDate: "", status: "In progress", dateCompleted: "" },
-  { id: 8, description: "Review the SLAs in place for ICE account creation and management", owner: "Clare Craven", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 8, description: "Review the SLAs in place for ICE account creation and management.", owner: "Clare Craven", dueDate: "", status: "In progress", dateCompleted: "" },
   { id: 9, description: "Set up a futures page to host shared documents", owner: "Kirstie Watson", dueDate: "", status: "", dateCompleted: "" },
   { id: 11, description: "Clarify if the True Hub model requires separate CQC registration and how it impacts reporting", owner: "Ellie Wagg", dueDate: "", status: "", dateCompleted: "" },
   { id: 12, description: "CM speaking to Oxford colleges to ensure that OUH can see Northamptonshire SC records", owner: "Claire Mansfield", dueDate: "", status: "", dateCompleted: "" },
   { id: 13, description: "Malcolm and Sue to share estimate of staffing numbers for ICE licenses (see ref 4)", owner: "Malcolm Railson/Sue Williams", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 14, description: "Malcolm and Sue to share SOP for test results (see ref 7)", owner: "", dueDate: "", status: "", dateCompleted: "" },
 ];
 
 export const SDADigitalIntegration = () => {
