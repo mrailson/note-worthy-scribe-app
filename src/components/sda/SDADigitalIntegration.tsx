@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Monitor, Laptop, Settings } from "lucide-react";
+import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock } from "lucide-react";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
 
@@ -162,6 +162,115 @@ export const SDADigitalIntegration = () => {
             <p className="text-sm text-slate-700">
               <strong>Hardware Access:</strong> All 7 practices clinical systems are accessible via standard Ardem & Gem Build Laptops with always-on VPN configuration.
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* IT & Telephony Q&A */}
+      <Card className="bg-white border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <Phone className="w-5 h-5 text-[#005EB8]" />
+            IT & Telephony - Key Questions
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {/* Question 1 - Triage Systems */}
+          <div className="border-l-4 border-[#005EB8] pl-4">
+            <div className="flex items-start gap-2 mb-2">
+              <HelpCircle className="w-5 h-5 text-[#005EB8] flex-shrink-0 mt-0.5" />
+              <h4 className="font-semibold text-slate-900">How will practice triage systems feed into the appointments?</h4>
+            </div>
+            <p className="text-sm text-slate-600 ml-7">
+              <span className="italic text-amber-600">Answer pending - to be confirmed with clinical leads</span>
+            </p>
+          </div>
+
+          {/* Question 2 - Cross-Practice Care */}
+          <div className="border-l-4 border-[#005EB8] pl-4">
+            <div className="flex items-start gap-2 mb-2">
+              <HelpCircle className="w-5 h-5 text-[#005EB8] flex-shrink-0 mt-0.5" />
+              <h4 className="font-semibold text-slate-900">If patients are seen at a different practice:</h4>
+            </div>
+            <div className="ml-7 space-y-3">
+              <div className="bg-slate-50 rounded-lg p-3">
+                <p className="text-sm font-medium text-slate-700">Who is responsible for follow-up?</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  <span className="italic text-amber-600">Answer pending - governance to be agreed</span>
+                </p>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-3">
+                <p className="text-sm font-medium text-slate-700">Who orders pathology?</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  <span className="italic text-amber-600">Answer pending - governance to be agreed</span>
+                </p>
+              </div>
+              <div className="bg-slate-50 rounded-lg p-3">
+                <p className="text-sm font-medium text-slate-700">Who handles referrals?</p>
+                <p className="text-sm text-slate-600 mt-1">
+                  <span className="italic text-amber-600">Answer pending - governance to be agreed</span>
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Question 3 - Telephony Hub */}
+          <div className="border-l-4 border-green-500 pl-4">
+            <div className="flex items-start gap-2 mb-2">
+              <Phone className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+              <h4 className="font-semibold text-slate-900">Telephony Hub Requirement</h4>
+            </div>
+            <div className="ml-7 space-y-4">
+              <div className="bg-green-50 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge className="bg-green-600">UPDATE - 23rd Dec 2024</Badge>
+                </div>
+                <div className="space-y-3 text-sm text-slate-700">
+                  <p>
+                    <strong>Current Status:</strong> 6 of 7 practices are on <strong>Surgery Connect</strong> phone system.
+                  </p>
+                  <p>
+                    <strong>Outstanding:</strong> Denton Village Surgery is on a different provider.
+                  </p>
+                  <p>
+                    <strong>Action Taken:</strong> Met with X-ON (Surgery Connect parent company) on 18th December 2024. Requested they fund the transfer of Denton Village Surgery to Surgery Connect (buy-out cost from existing provider).
+                  </p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <Clock className="w-4 h-4 text-amber-600" />
+                    <span className="text-amber-700 font-medium">Awaiting response from X-ON as at 23rd December 2024</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="bg-blue-50 rounded-lg p-4">
+                <h5 className="font-semibold text-slate-900 mb-2">X-ON Suite Capabilities (Potential Benefits)</h5>
+                <ul className="text-sm text-slate-600 space-y-1">
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    AI Scribe functionality
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    Enhanced reporting capabilities
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-amber-500" />
+                    AI Voice Agents (coming soon)
+                  </li>
+                  <li className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-green-600" />
+                    Other high-quality developments beneficial for Neighbourhood and SDA model
+                  </li>
+                </ul>
+                <p className="text-xs text-slate-500 mt-2 italic">Full applicability to our model TBC</p>
+              </div>
+
+              <div className="bg-amber-50 rounded-lg p-3 border border-amber-200">
+                <p className="text-sm text-amber-800">
+                  <strong>Lead Contacts:</strong> Alex and Malcolm to provide ongoing updates on IT/practical setup progress.
+                </p>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
