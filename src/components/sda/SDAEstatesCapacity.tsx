@@ -337,10 +337,10 @@ export const SDAEstatesCapacity = () => {
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
               <CheckCircle2 className="w-3 h-3 mr-1" />
-              {totalWeeklySessions} Total On-Site Sessions
+              {totalWeeklySessions * multiplier} Total On-Site {viewMode === "appointments" ? "Appts" : "Sessions"}
             </Badge>
             <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
-              {Math.max(0, Math.round(currentCapacity.sessionsPerWeek) - totalWeeklySessions)} Remote Sessions
+              {Math.max(0, Math.round(currentCapacity.sessionsPerWeek) - totalWeeklySessions) * multiplier} Remote {viewMode === "appointments" ? "Appts" : "Sessions"}
             </Badge>
           </div>
         }
