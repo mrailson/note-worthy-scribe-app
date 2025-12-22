@@ -42,7 +42,7 @@ const capacityData = {
     weeks: 39,
     apptsPerWeek: 1352,
     sessionsPerWeek: 112.7,
-    sessionLength: "3.74 hrs",
+    sessionLength: "4h 10m",
     f2fRequired: 56.35,
     remoteRequired: 56.35
   },
@@ -51,7 +51,7 @@ const capacityData = {
     weeks: 13,
     apptsPerWeek: 1619,
     sessionsPerWeek: 134.9,
-    sessionLength: "3.74 hrs",
+    sessionLength: "4h 10m",
     f2fRequired: 67.45,
     remoteRequired: 67.45
   }
@@ -89,8 +89,8 @@ export const SDAEstatesCapacity = () => {
         <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-0 shadow-sm">
           <CardContent className="p-4 text-center">
             <Clock className="w-6 h-6 text-purple-600 mx-auto mb-2" />
-            <p className="text-3xl font-bold text-slate-900">3.74</p>
-            <p className="text-sm text-slate-600">Hrs/Session</p>
+            <p className="text-3xl font-bold text-slate-900">4h 10m</p>
+            <p className="text-sm text-slate-600">Per Session</p>
           </CardContent>
         </Card>
         <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-0 shadow-sm">
