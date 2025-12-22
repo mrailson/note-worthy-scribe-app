@@ -334,10 +334,15 @@ export const SDAEstatesCapacity = () => {
         title="Practice Estate Summary"
         icon={<Building2 className="w-5 h-5" />}
         badge={
-          <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-            <CheckCircle2 className="w-3 h-3 mr-1" />
-            {totalWeeklySessions} Total On-Site Sessions
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              <CheckCircle2 className="w-3 h-3 mr-1" />
+              {totalWeeklySessions} Total On-Site Sessions
+            </Badge>
+            <Badge variant="outline" className="bg-indigo-50 text-indigo-700 border-indigo-200">
+              {Math.max(0, Math.round(currentCapacity.sessionsPerWeek) - totalWeeklySessions)} Remote Sessions
+            </Badge>
+          </div>
         }
       >
         <div className="flex items-center justify-between mb-4">
