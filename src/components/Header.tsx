@@ -11,7 +11,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart } from "lucide-react";
+import { Plus, LogOut, FileText, Home, Settings, ChevronDown, Shield, Stethoscope, Grid3X3, MessageSquareWarning, MessageSquare, Sparkles, Mail, Users, Clock, FolderOpen, Wrench, BookOpen, Menu, ChevronsDown, Stars, ImageIcon, User, Palette, Zap, Mic, Languages, Thermometer, ChevronRight, Building2, Presentation, Brain, GraduationCap, Heart, LayoutDashboard } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useServiceActivation } from "@/hooks/useServiceActivation";
 import { useServiceVisibility } from "@/hooks/useServiceVisibility";
@@ -261,6 +261,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 NRES
                               </DropdownMenuSubTrigger>
                               <DropdownMenuSubContent className="bg-background border border-border shadow-lg z-50">
+                                <DropdownMenuItem 
+                                  onClick={() => navigate('/NRESDashboard')}
+                                  className="cursor-pointer py-3"
+                                >
+                                  <LayoutDashboard className="h-4 w-4 mr-2" />
+                                  SDA Programme Board
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
                                 <DropdownMenuItem 
                                   onClick={() => navigate('/nres')}
                                   className="cursor-pointer py-3"
