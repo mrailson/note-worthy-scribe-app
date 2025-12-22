@@ -21,20 +21,9 @@ export const SDAExecutiveSummary = () => {
   return (
     <div className="space-y-6">
       {/* Header with SRO */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-slate-900">Executive Dashboard</h2>
-          <p className="text-slate-600">Northamptonshire Rural East & South Neighbourhood</p>
-        </div>
-        <div className="flex items-center gap-3 bg-white rounded-xl px-4 py-3 shadow-sm border border-slate-200">
-          <div className="w-10 h-10 rounded-full bg-[#005EB8] flex items-center justify-center text-white font-bold">
-            N
-          </div>
-          <div>
-            <p className="font-semibold text-slate-900">Dr Mark Gray</p>
-            <p className="text-sm text-slate-500">Senior Responsible Owner</p>
-          </div>
-        </div>
+      <div>
+        <h2 className="text-2xl font-bold text-slate-900">Executive Dashboard</h2>
+        <p className="text-slate-600">Northamptonshire Rural East & South Neighbourhood</p>
       </div>
 
       {/* Key Metrics Row */}
