@@ -288,9 +288,72 @@ export const SDAWorkforceInnovation = () => {
             </Badge>
           ))}
         </div>
-        <p className="text-sm text-slate-600">
+        <p className="text-sm text-slate-600 mb-4">
           Mapping complete for patient engagement, LTC support, and connecting residents to local community health champions.
         </p>
+
+        {/* Task & Finish Meeting 22 Dec 2025 */}
+        <div className="border-t border-slate-200 pt-4 mt-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+              Task & Finish Meeting: 22 Dec 2025
+            </Badge>
+          </div>
+          
+          <div className="bg-green-50 rounded-lg p-4 mb-4">
+            <h4 className="font-semibold text-green-900 mb-2">Meeting Summary</h4>
+            <p className="text-sm text-green-800">
+              Discussed integration of voluntary sector into South Rural innovation site and SDA project. Primary focus on collaboration to improve patient outcomes in long-term and complex care, whilst ensuring financial viability.
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+            <div className="bg-slate-50 rounded-lg p-4">
+              <h4 className="font-semibold text-slate-900 text-sm mb-2">Key Outcomes</h4>
+              <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
+                <li>VCSE representation on Programme Board agreed</li>
+                <li>Helen & Russ to act as conduit to wider sector</li>
+                <li>Innovation Fund available for practice pilots</li>
+                <li>Two-year pilot to demonstrate ROI to ICB</li>
+              </ul>
+            </div>
+            <div className="bg-slate-50 rounded-lg p-4">
+              <h4 className="font-semibold text-slate-900 text-sm mb-2">Target Cohorts (Feb 2026)</h4>
+              <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
+                <li>Frailty</li>
+                <li>Children&apos;s mental health in schools</li>
+                <li>Diabetes/Hypertension</li>
+                <li>Long-term complex conditions</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200 mb-4">
+            <h4 className="font-semibold text-blue-900 text-sm mb-2">Priority Actions</h4>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs">High</Badge>
+                <span className="text-slate-700">Helen & Russ: Confirm Board representation by 05/01</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs">High</Badge>
+                <span className="text-slate-700">Helen: Attend Programme Board 23 Dec at BMC</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">Med</Badge>
+                <span className="text-slate-700">Maureen: Send background presentations by 05/01</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs">High</Badge>
+                <span className="text-slate-700">TBC: Establish KPIs with ICB/Neighbourhoods (Feb)</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-slate-500">
+            Attendees: Mark Graham (PML), Amanda Taylor, Maureen Green (PML), Ellie, Russ, Helen
+          </p>
+        </div>
       </CollapsibleCard>
     </div>
   );
