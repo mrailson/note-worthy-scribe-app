@@ -2,6 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList } from "lucide-react";
+import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
 
@@ -32,68 +33,52 @@ export const SDADigitalIntegration = () => {
       </div>
 
       {/* Evidence Cards */}
-      <Card className="bg-white border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <Monitor className="w-5 h-5 text-[#005EB8]" />
-            GP Connect Technical Evidence
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Exhibit 1 */}
-            <div className="border border-slate-200 rounded-lg p-4">
-              <h3 className="font-semibold text-slate-900 mb-3">Exhibit 1: System Configuration (NRES Mapping)</h3>
-              <img 
-                src={gpConnectSystmoneConfig} 
-                alt="SystmOne GP Remote Booking - NRES SDA configuration showing available rotas at Brackley Medical Centre"
-                className="w-full rounded-lg border border-slate-200 shadow-sm"
-              />
-            </div>
-
-            {/* Exhibit 2 */}
-            <div className="border border-slate-200 rounded-lg p-4">
-              <h3 className="font-semibold text-slate-900 mb-3">Exhibit 2: Confirmed Cross-Provider Booking</h3>
-              <img 
-                src={gpConnectEmisBooking} 
-                alt="EMIS Web GP Connect Appointments - Cross-provider booking at Brackley Medical Centre showing NRES SDA appointments"
-                className="w-full rounded-lg border border-slate-200 shadow-sm"
-              />
-            </div>
+      <CollapsibleCard
+        title="GP Connect Technical Evidence"
+        icon={<Monitor className="w-5 h-5" />}
+      >
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Exhibit 1 */}
+          <div className="border border-slate-200 rounded-lg p-4">
+            <h3 className="font-semibold text-slate-900 mb-3">Exhibit 1: System Configuration (NRES Mapping)</h3>
+            <img 
+              src={gpConnectSystmoneConfig} 
+              alt="SystmOne GP Remote Booking - NRES SDA configuration showing available rotas at Brackley Medical Centre"
+              className="w-full rounded-lg border border-slate-200 shadow-sm"
+            />
           </div>
-        </CardContent>
-      </Card>
+
+          {/* Exhibit 2 */}
+          <div className="border border-slate-200 rounded-lg p-4">
+            <h3 className="font-semibold text-slate-900 mb-3">Exhibit 2: Confirmed Cross-Provider Booking</h3>
+            <img 
+              src={gpConnectEmisBooking} 
+              alt="EMIS Web GP Connect Appointments - Cross-provider booking at Brackley Medical Centre showing NRES SDA appointments"
+              className="w-full rounded-lg border border-slate-200 shadow-sm"
+            />
+          </div>
+        </div>
+      </CollapsibleCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Verification Status */}
-        <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-0 shadow-sm">
-          <CardContent className="p-6">
-            <div className="flex items-start gap-4">
-              <div className="w-16 h-16 rounded-full bg-green-500 flex items-center justify-center flex-shrink-0">
-                <CheckCircle2 className="w-8 h-8 text-white" />
-              </div>
-              <div>
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xl font-bold text-green-800">Verification Complete</h3>
-                  <Badge className="bg-green-600">100% ACCESS GRANTED</Badge>
-                </div>
-                <p className="text-sm text-green-700">
-                  <strong>Confirmed:</strong> Alex Whitehead, Malcolm Railson, and Amanda Taylor have successfully verified functional clinical system access across all 7 practice clinical environments. All Data Sharing Agreements (DSAs) have been completed and signed.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <CollapsibleCard
+          title="Verification Complete"
+          icon={<CheckCircle2 className="w-5 h-5" />}
+          className="bg-gradient-to-br from-green-50 to-emerald-50"
+          badge={<Badge className="bg-green-600">100% ACCESS GRANTED</Badge>}
+        >
+          <p className="text-sm text-green-700">
+            <strong>Confirmed:</strong> Alex Whitehead, Malcolm Railson, and Amanda Taylor have successfully verified functional clinical system access across all 7 practice clinical environments. All Data Sharing Agreements (DSAs) have been completed and signed.
+          </p>
+        </CollapsibleCard>
 
         {/* Remote Hardware Strategy */}
-        <Card className="bg-white border-0 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-              <Laptop className="w-5 h-5 text-[#005EB8]" />
-              Remote Hardware Strategy
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
+        <CollapsibleCard
+          title="Remote Hardware Strategy"
+          icon={<Laptop className="w-5 h-5" />}
+        >
+          <div className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-8 h-8 rounded-full bg-[#005EB8] flex items-center justify-center flex-shrink-0">
                 <span className="text-white font-bold text-sm">A</span>
@@ -112,19 +97,16 @@ export const SDADigitalIntegration = () => {
                 <p className="text-sm text-slate-600">Pre-configured VPNs and local EMIS/TPP shortcuts for home sessions.</p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CollapsibleCard>
       </div>
 
       {/* System Access Summary */}
-      <Card className="bg-white border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <Settings className="w-5 h-5 text-[#005EB8]" />
-            System Access Matrix
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <CollapsibleCard
+        title="System Access Matrix"
+        icon={<Settings className="w-5 h-5" />}
+      >
+        <div className="space-y-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             {[
               { system: "SystmOne (TPP)", status: "Active", practices: 5, color: "bg-blue-50" },
@@ -179,18 +161,15 @@ export const SDADigitalIntegration = () => {
               <strong>Hardware Access:</strong> All 7 practices clinical systems are accessible via standard Ardem & Gem Build Laptops with always-on VPN configuration.
             </p>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleCard>
 
       {/* IT & Telephony Q&A */}
-      <Card className="bg-white border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <Phone className="w-5 h-5 text-[#005EB8]" />
-            IT & Telephony - Key Questions
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-6">
+      <CollapsibleCard
+        title="IT & Telephony - Key Questions"
+        icon={<Phone className="w-5 h-5" />}
+      >
+        <div className="space-y-6">
           {/* Question 1 - Triage Systems */}
           <div className="border-l-4 border-[#005EB8] pl-4">
             <div className="flex items-start gap-2 mb-2">
@@ -336,57 +315,52 @@ export const SDADigitalIntegration = () => {
               </div>
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </CollapsibleCard>
 
       {/* Digital Task and Finish Action Log */}
-      <Card className="bg-white border-0 shadow-sm">
-        <CardHeader>
-          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <ClipboardList className="w-5 h-5 text-[#005EB8]" />
-            Digital Task & Finish Group - Action Log
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-slate-50">
-                  <TableHead className="w-20 font-semibold">Action ID</TableHead>
-                  <TableHead className="font-semibold">Description</TableHead>
-                  <TableHead className="w-36 font-semibold">Owner</TableHead>
-                  <TableHead className="w-28 font-semibold">Due Date</TableHead>
-                  <TableHead className="w-28 font-semibold">Status</TableHead>
-                  <TableHead className="w-32 font-semibold">Date Completed</TableHead>
+      <CollapsibleCard
+        title="Digital Task & Finish Group - Action Log"
+        icon={<ClipboardList className="w-5 h-5" />}
+      >
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-slate-50">
+                <TableHead className="w-20 font-semibold">Action ID</TableHead>
+                <TableHead className="font-semibold">Description</TableHead>
+                <TableHead className="w-36 font-semibold">Owner</TableHead>
+                <TableHead className="w-28 font-semibold">Due Date</TableHead>
+                <TableHead className="w-28 font-semibold">Status</TableHead>
+                <TableHead className="w-32 font-semibold">Date Completed</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {digitalTfActions.map((action) => (
+                <TableRow key={action.id} className="hover:bg-slate-50">
+                  <TableCell className="font-medium">{action.id}</TableCell>
+                  <TableCell className="text-sm text-slate-700">{action.description}</TableCell>
+                  <TableCell className="text-sm">{action.owner}</TableCell>
+                  <TableCell className="text-sm">{action.dueDate || "-"}</TableCell>
+                  <TableCell>
+                    {action.status === "In progress" ? (
+                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">In progress</Badge>
+                    ) : action.status ? (
+                      <Badge variant="outline">{action.status}</Badge>
+                    ) : (
+                      <span className="text-slate-400">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell className="text-sm">{action.dateCompleted || "-"}</TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {digitalTfActions.map((action) => (
-                  <TableRow key={action.id} className="hover:bg-slate-50">
-                    <TableCell className="font-medium">{action.id}</TableCell>
-                    <TableCell className="text-sm text-slate-700">{action.description}</TableCell>
-                    <TableCell className="text-sm">{action.owner}</TableCell>
-                    <TableCell className="text-sm">{action.dueDate || "-"}</TableCell>
-                    <TableCell>
-                      {action.status === "In progress" ? (
-                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">In progress</Badge>
-                      ) : action.status ? (
-                        <Badge variant="outline">{action.status}</Badge>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-sm">{action.dateCompleted || "-"}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-          <p className="text-xs text-slate-500 mt-4 italic">
-            Last updated: 22nd December 2024
-          </p>
-        </CardContent>
-      </Card>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+        <p className="text-xs text-slate-500 mt-4 italic">
+          Last updated: 22nd December 2024
+        </p>
+      </CollapsibleCard>
     </div>
   );
 };
