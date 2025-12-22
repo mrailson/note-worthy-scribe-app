@@ -287,7 +287,31 @@ export const SDAEstatesCapacity = () => {
         title="Room Availability Matrix"
         icon={<Calendar className="w-5 h-5" />}
       >
-        <p className="text-sm text-slate-500 mb-4">Available clinical rooms by day and session</p>
+        <div className="flex items-center justify-between mb-4">
+          <p className="text-sm text-slate-500">Available clinical rooms by day and session</p>
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+            <button
+              onClick={() => setViewMode("sessions")}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "sessions" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Sessions
+            </button>
+            <button
+              onClick={() => setViewMode("appointments")}
+              className={`px-3 py-1 text-xs font-medium rounded-md transition-colors ${
+                viewMode === "appointments" 
+                  ? "bg-white text-slate-900 shadow-sm" 
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Appointments
+            </button>
+          </div>
+        </div>
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -307,29 +331,32 @@ export const SDAEstatesCapacity = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sessionData.map((row, index) => (
-                <TableRow key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
-                  <TableCell className="font-medium">{row.session}</TableCell>
-                  <TableCell className={`text-center font-semibold ${getCellColor(row.theParks)}`}>{row.theParks}</TableCell>
-                  <TableCell className={`text-center font-semibold ${getCellColor(row.springfield)}`}>{row.springfield}</TableCell>
-                  <TableCell className={`text-center font-semibold ${getCellColor(row.brackley)}`}>{row.brackley}</TableCell>
-                  <TableCell className={`text-center font-semibold ${getCellColor(row.brook)}`}>{row.brook}</TableCell>
-                  <TableCell className={`text-center font-semibold ${getCellColor(row.bugbrooke)}`}>{row.bugbrooke}</TableCell>
-                  <TableCell className={`text-center font-semibold ${getCellColor(row.denton)}`}>{row.denton}</TableCell>
-                  <TableCell className={`text-center font-semibold ${getCellColor(row.towcester)}`}>{row.towcester}</TableCell>
-                  <TableCell className="text-center font-bold bg-slate-100">{row.total}</TableCell>
-                </TableRow>
-              ))}
+              {sessionData.map((row, index) => {
+                const mult = viewMode === "appointments" ? 12 : 1;
+                return (
+                  <TableRow key={index} className={index % 2 === 0 ? "bg-white" : "bg-slate-50/50"}>
+                    <TableCell className="font-medium">{row.session}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.theParks)}`}>{row.theParks * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.springfield)}`}>{row.springfield * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.brackley)}`}>{row.brackley * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.brook)}`}>{row.brook * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.bugbrooke)}`}>{row.bugbrooke * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.denton)}`}>{row.denton * mult}</TableCell>
+                    <TableCell className={`text-center font-semibold ${getCellColor(row.towcester)}`}>{row.towcester * mult}</TableCell>
+                    <TableCell className="text-center font-bold bg-slate-100">{row.total * mult}</TableCell>
+                  </TableRow>
+                );
+              })}
               <TableRow className="bg-slate-100 font-bold">
                 <TableCell>Weekly Total</TableCell>
-                <TableCell className="text-center">29</TableCell>
-                <TableCell className="text-center">10</TableCell>
-                <TableCell className="text-center">20</TableCell>
-                <TableCell className="text-center">10</TableCell>
-                <TableCell className="text-center">10</TableCell>
-                <TableCell className="text-center">3</TableCell>
-                <TableCell className="text-center">17</TableCell>
-                <TableCell className="text-center bg-[#005EB8] text-white">{totalWeeklySessions}</TableCell>
+                <TableCell className="text-center">{29 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{20 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{10 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{3 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center">{17 * (viewMode === "appointments" ? 12 : 1)}</TableCell>
+                <TableCell className="text-center bg-[#005EB8] text-white">{totalWeeklySessions * (viewMode === "appointments" ? 12 : 1)}</TableCell>
               </TableRow>
             </TableBody>
           </Table>
