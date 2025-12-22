@@ -160,7 +160,7 @@ export const SDADigitalIntegration = () => {
           {/* Hardware note */}
           <div className="bg-purple-50 rounded-lg p-4">
             <p className="text-sm text-slate-700">
-              <strong>Hardware Access:</strong> All 7 practices accessible via standard Ardem & Gem Build Laptops with always-on VPN configuration.
+              <strong>Hardware Access:</strong> All 7 practices clinical systems are accessible via standard Ardem & Gem Build Laptops with always-on VPN configuration.
             </p>
           </div>
         </CardContent>
