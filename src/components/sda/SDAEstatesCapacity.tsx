@@ -147,7 +147,7 @@ export const SDAEstatesCapacity = () => {
   };
 
   const cycleApptsMode = () => {
-    const modes: ApptsDisplayMode[] = ["perSession", "perHour", "perDay"];
+    const modes: ApptsDisplayMode[] = ["perSession", "perDay"];
     const currentIndex = modes.indexOf(apptsDisplayMode);
     const nextIndex = (currentIndex + 1) % modes.length;
     setApptsDisplayMode(modes[nextIndex]);
