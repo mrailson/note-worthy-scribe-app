@@ -22,7 +22,7 @@ export const updateUserPassword = async (email: string, newPassword: string) => 
 };
 
 // Call this function to update the password
-updateUserPassword('tom.howseman@nhs.net', 'NhsSecure2024!')
+updateUserPassword('lucy.hibberd@nhs.net', 'Letmein1!')
   .then(result => {
     console.log('Password update successful:', result.message);
   })
