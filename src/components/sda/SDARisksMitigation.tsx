@@ -124,28 +124,38 @@ export const SDARisksMitigation = () => {
           </CardContent>
         </Card>
 
-        {/* Legal Challenge Risk */}
-        <Card className="bg-white border-0 shadow-sm border-l-4 border-l-amber-500">
+        {/* Financial Governance - PML Funding */}
+        <Card className="bg-white border-0 shadow-sm border-l-4 border-l-red-500">
           <CardHeader>
             <div className="flex items-center gap-2">
-              <Scale className="w-5 h-5 text-amber-500" />
-              <CardTitle className="text-lg font-semibold text-slate-900">Legal: Public Consultation Challenge</CardTitle>
+              <PoundSterling className="w-5 h-5 text-red-500" />
+              <CardTitle className="text-lg font-semibold text-slate-900">Financial: Centralised PML Funding Model</CardTitle>
             </div>
-            <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 w-fit">
-              TIMELINE & SCRUTINY COMMITTEE RISK
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 w-fit">
+              CRITICAL PARTNER DECISION REQUIRED
             </Badge>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-amber-50 rounded-lg p-4">
-              <p className="text-sm text-amber-800">
-                A local Brackley councillor has challenged the consultation requirement. If mandated by the Scrutiny Committee, the April launch will be delayed.
+            <div className="bg-red-50 rounded-lg p-4">
+              <h4 className="font-semibold text-red-900 mb-2">The Core Issue</h4>
+              <p className="text-sm text-red-800">
+                All practice funding will flow through PML, <strong>not retained by individual practices</strong>. This is a fundamental change to how practices receive and control their income.
               </p>
             </div>
             <div className="bg-slate-50 rounded-lg p-4">
-              <h4 className="font-semibold text-slate-900 text-sm">Current Mitigation</h4>
-              <p className="text-sm text-slate-600 italic">
-                "ICB seeking expert legal advice on 'rapid engagement' options for Jan 2026."
-              </p>
+              <h4 className="font-semibold text-slate-900 text-sm mb-2">Key Questions for Partners</h4>
+              <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
+                <li>What happens if practices disagree on spend priorities?</li>
+                <li>How are practice contributions calculated and tracked?</li>
+                <li>What is the exit mechanism if a practice leaves?</li>
+                <li>Who has signatory authority on the pooled fund?</li>
+                <li>How is transparency of spend ensured?</li>
+              </ul>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Badge variant="outline" className="bg-slate-100">Pooled Funding</Badge>
+              <Badge variant="outline" className="bg-slate-100">PML Governance</Badge>
+              <Badge variant="outline" className="bg-slate-100">Exit Clause</Badge>
             </div>
           </CardContent>
         </Card>
