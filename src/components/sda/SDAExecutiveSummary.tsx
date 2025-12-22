@@ -161,18 +161,20 @@ export const SDAExecutiveSummary = () => {
               <div className="text-center">
                 <p className="text-2xl font-bold text-[#005EB8]">50%</p>
                 <p className="text-sm text-slate-600">REMOTE</p>
+                <p className="text-xs text-slate-500 mt-1">36,888 appts/year</p>
               </div>
               <div className="text-center border-l border-slate-200 pl-6">
                 <p className="text-2xl font-bold text-slate-700">50%</p>
                 <p className="text-sm text-slate-600">FACE TO FACE</p>
-                <div className="flex gap-3 mt-1 text-xs">
+                <p className="text-xs text-slate-500 mt-1">36,887 appts/year</p>
+                <div className="flex gap-3 mt-2 text-xs">
                   <span className="flex items-center gap-1">
                     <span className="w-3 h-3 rounded" style={{ backgroundColor: "#41B6E6" }}></span>
-                    Hub 30%
+                    Hub 30% (22,133)
                   </span>
                   <span className="flex items-center gap-1">
                     <span className="w-3 h-3 rounded" style={{ backgroundColor: "#768692" }}></span>
-                    Spoke 20%
+                    Spoke 20% (14,755)
                   </span>
                 </div>
               </div>
