@@ -111,9 +111,10 @@ export const SDARisksMitigation = () => {
             <div className="bg-slate-50 rounded-lg p-4">
               <h4 className="font-semibold text-slate-900 text-sm mb-2">Key Partner Decisions</h4>
               <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
-                <li>Are partners willing to vary their individual GMS contracts?</li>
+                <li>Do we need independent legal review before signing?</li>
+                <li>Do we contract as individual practices or collectively via PML?</li>
                 <li>What governance protections are needed before signing?</li>
-                <li>Who has authority to sign on behalf of the partnership?</li>
+                <li>Who has authority to sign on behalf of each partnership?</li>
               </ul>
             </div>
             <div className="flex flex-wrap gap-2">
