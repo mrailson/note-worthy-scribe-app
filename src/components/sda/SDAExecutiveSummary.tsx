@@ -6,10 +6,10 @@ const populationData = [
   { name: "Towcester Medical", value: 22850, color: "#005EB8" },
   { name: "Brackley Medical", value: 18420, color: "#41B6E6" },
   { name: "The Parks", value: 15680, color: "#768692" },
-  { name: "Cogenhoe", value: 12340, color: "#003087" },
-  { name: "Denton Surgery", value: 8450, color: "#0072CE" },
-  { name: "Brook Health", value: 6890, color: "#AE2573" },
-  { name: "Bugbrooke", value: 4308, color: "#00A499" },
+  { name: "Springfield Surgery", value: 12340, color: "#003087" },
+  { name: "Brook Health", value: 8450, color: "#0072CE" },
+  { name: "Bugbrooke", value: 6890, color: "#AE2573" },
+  { name: "Denton Village", value: 4308, color: "#00A499" },
 ];
 
 const appointmentData = [
