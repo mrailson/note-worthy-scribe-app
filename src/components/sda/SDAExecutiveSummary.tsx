@@ -111,29 +111,42 @@ export const SDAExecutiveSummary = () => {
             <p className="text-sm text-slate-500">Source: April 25 List Size</p>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={populationData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={2}
-                    dataKey="value"
-                    label={({ name, percent, value }) => `${name} ${(percent * 100).toFixed(1)}% (${value.toLocaleString()})`}
-                    labelLine={false}
-                  >
-                    {populationData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => [value.toLocaleString(), 'Patients']}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col lg:flex-row items-center gap-4">
+              <div className="h-[200px] w-[200px] flex-shrink-0">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={populationData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={80}
+                      paddingAngle={2}
+                      dataKey="value"
+                    >
+                      {populationData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value: number) => [value.toLocaleString(), 'Patients']}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="flex-1 grid grid-cols-1 gap-1.5 text-sm">
+                {populationData.map((entry, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <div 
+                      className="w-3 h-3 rounded-full flex-shrink-0" 
+                      style={{ backgroundColor: entry.color }}
+                    />
+                    <span className="text-slate-700">
+                      {entry.name} {((entry.value / 88938) * 100).toFixed(1)}% ({entry.value.toLocaleString()})
+                    </span>
+                  </div>
+                ))}
+              </div>
             </div>
           </CardContent>
         </Card>
