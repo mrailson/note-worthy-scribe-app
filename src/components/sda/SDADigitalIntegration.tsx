@@ -1,8 +1,22 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { CheckCircle2, Monitor, Laptop, Settings, Phone, HelpCircle, Clock, ClipboardList } from "lucide-react";
 import gpConnectEmisBooking from "@/assets/gp-connect-emis-booking.png";
 import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
+
+// Digital Task and Finish Action Log Data
+const digitalTfActions = [
+  { id: 2, description: "Scope the cost and level of work required for GP system write-back into NARP re patient PNG flags", owner: "Kirstie Watson", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 3, description: "Scope options around a manual vs automatic patient flagging mechanism", owner: "Kirstie Watson", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 4, description: "Work up the potential costs of additional ICE licenses, or complexities where an individual works across multiple surgeries", owner: "Clare Craven", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 5, description: "Add a member from the PCT to the T&F group", owner: "Ellie Wagg", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 7, description: "Work through the technical capability within ICE re routing for results", owner: "Clare Craven", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 8, description: "Review the SLAs in place for ICE account creation and management", owner: "Clare Craven", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 9, description: "Set up a futures page to host shared documents", owner: "Kirstie Watson", dueDate: "", status: "", dateCompleted: "" },
+  { id: 11, description: "Clarify if the True Hub model requires separate CQC registration and how it impacts reporting", owner: "Ellie Wagg", dueDate: "", status: "", dateCompleted: "" },
+  { id: 12, description: "CM speaking to Oxford colleges to ensure that OUH can see Northamptonshire SC records", owner: "Claire Mansfield", dueDate: "", status: "", dateCompleted: "" },
+];
 
 export const SDADigitalIntegration = () => {
   return (
@@ -320,6 +334,55 @@ export const SDADigitalIntegration = () => {
               </div>
             </div>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Digital Task and Finish Action Log */}
+      <Card className="bg-white border-0 shadow-sm">
+        <CardHeader>
+          <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-[#005EB8]" />
+            Digital Task & Finish Group - Action Log
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-slate-50">
+                  <TableHead className="w-20 font-semibold">Action ID</TableHead>
+                  <TableHead className="font-semibold">Description</TableHead>
+                  <TableHead className="w-36 font-semibold">Owner</TableHead>
+                  <TableHead className="w-28 font-semibold">Due Date</TableHead>
+                  <TableHead className="w-28 font-semibold">Status</TableHead>
+                  <TableHead className="w-32 font-semibold">Date Completed</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {digitalTfActions.map((action) => (
+                  <TableRow key={action.id} className="hover:bg-slate-50">
+                    <TableCell className="font-medium">{action.id}</TableCell>
+                    <TableCell className="text-sm text-slate-700">{action.description}</TableCell>
+                    <TableCell className="text-sm">{action.owner}</TableCell>
+                    <TableCell className="text-sm">{action.dueDate || "-"}</TableCell>
+                    <TableCell>
+                      {action.status === "In progress" ? (
+                        <Badge className="bg-green-100 text-green-800 hover:bg-green-100">In progress</Badge>
+                      ) : action.status ? (
+                        <Badge variant="outline">{action.status}</Badge>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">{action.dateCompleted || "-"}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+          <p className="text-xs text-slate-500 mt-4 italic">
+            Last updated: 22nd December 2024
+          </p>
         </CardContent>
       </Card>
     </div>
