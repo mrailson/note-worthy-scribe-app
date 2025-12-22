@@ -38,7 +38,7 @@ const projectRisks = [
     rating: "HIGH",
     icon: UserCheck,
     concerns: "Failure to recruit sufficient GPs/ANPs by April 2026 go-live. Competition from other neighbourhoods and private sector for limited workforce pool.",
-    mitigation: "Early advertisement (Jan 2026); competitive packages with portfolio career options; flexible working arrangements; partnership with local training practices.",
+    mitigation: "Brackley Medical Centre has identified a candidate (new GP) for the pilot. Early advertisement (Jan 2026); competitive packages with portfolio career options; flexible working arrangements; partnership with local training practices.",
     owner: "HR Lead"
   },
   {
