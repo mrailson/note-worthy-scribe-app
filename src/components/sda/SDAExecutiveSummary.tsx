@@ -116,19 +116,19 @@ export const SDAExecutiveSummary = () => {
             <p className="text-sm text-slate-500">Source: April 25 List Size</p>
           </CardHeader>
           <CardContent>
-            <div className="h-[300px]">
+            <div className="h-[320px]">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
+                <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
                   <Pie
                     data={populationData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
+                    innerRadius={50}
+                    outerRadius={85}
                     paddingAngle={2}
                     dataKey="value"
                     label={({ name, percent, value }) => `${name} ${(percent * 100).toFixed(1)}% (${value.toLocaleString()})`}
-                    labelLine={false}
+                    labelLine={true}
                   >
                     {populationData.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
