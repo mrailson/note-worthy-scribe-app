@@ -326,3 +326,6 @@ verify_jwt = true
 
 [functions.lg-verify-service]
 verify_jwt = true
+
+[functions.bulk-create-nres-users]
+verify_jwt = true

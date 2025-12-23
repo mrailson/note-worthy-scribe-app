@@ -60,6 +60,7 @@ import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
 import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings';
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
+import { BulkNRESUserCreation } from '@/components/admin/BulkNRESUserCreation';
 
 
 interface User {
@@ -2057,6 +2058,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </TabsList>
               
               <TabsContent value="users" className="space-y-6">
+                {/* Bulk NRES User Creation */}
+                <BulkNRESUserCreation />
                 <div className="flex justify-between items-center">
                   <div className="flex items-center space-x-2">
                     <Search className="h-4 w-4" />
