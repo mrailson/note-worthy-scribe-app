@@ -603,7 +603,7 @@ export const SDARisksMitigation = () => {
                         bg: 'bg-gradient-to-br from-blue-50 to-slate-100',
                         border: 'border-blue-200',
                         badge: 'bg-blue-100 text-blue-700 border-blue-300',
-                        badgeText: 'Ready for Board',
+                        badgeText: 'Approved by Board',
                         numberBg: 'bg-[#005EB8]'
                       }
                     };
