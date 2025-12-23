@@ -8,6 +8,7 @@ import { SDAWorkforceInnovation } from "@/components/sda/SDAWorkforceInnovation"
 import { SDAFinanceGovernance } from "@/components/sda/SDAFinanceGovernance";
 import { SDARisksMitigation } from "@/components/sda/SDARisksMitigation";
 import { SDAEvidenceLibrary } from "@/components/sda/SDAEvidenceLibrary";
+import { SDAFeedbackButton } from "@/components/sda/SDAFeedbackButton";
 import { 
   LayoutDashboard, 
   Building2, 
@@ -38,7 +39,7 @@ const SDADashboard = () => {
                 Neighbourhood SDA Programme
               </h1>
             </div>
-            <div className="flex flex-col items-start md:items-end gap-2">
+            <div className="flex flex-col items-start md:items-end gap-3">
               <div className="flex items-center gap-2 bg-green-500/20 border border-green-400/30 rounded-full px-4 py-1.5">
                 <CheckCircle2 className="w-4 h-4 text-green-300" />
                 <span className="text-sm font-medium text-green-100">System Access: 100% Verified</span>
@@ -46,6 +47,7 @@ const SDADashboard = () => {
               <p className="text-blue-200 text-sm">
                 Projected Go-Live: <span className="text-white font-semibold">1st April 2026</span>
               </p>
+              <SDAFeedbackButton currentSection={activeTab} />
             </div>
           </div>
         </div>
