@@ -286,7 +286,7 @@ export const SDADigitalIntegration = () => {
             <div className="ml-7 space-y-4">
               <div className="bg-green-50 rounded-lg p-4">
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge className="bg-green-600">UPDATE - 23rd Dec 2024</Badge>
+                  <Badge className="bg-green-600">UPDATE - 23rd Dec 2025</Badge>
                 </div>
                 <div className="space-y-3 text-sm text-slate-700">
                   <p>
