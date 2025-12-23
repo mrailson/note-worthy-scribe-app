@@ -296,11 +296,11 @@ export const SDADigitalIntegration = () => {
                     <strong>Outstanding:</strong> Denton Village Surgery is on a different provider.
                   </p>
                   <p>
-                    <strong>Action Taken:</strong> Met with X-ON (Surgery Connect parent company) on 18th December 2024. Requested they fund the transfer of Denton Village Surgery to Surgery Connect (buy-out cost from existing provider).
+                    <strong>Action Taken:</strong> Met with X-ON (Surgery Connect parent company) on 18th December 2025. Requested they fund the transfer of Denton Village Surgery to Surgery Connect (buy-out cost from existing provider).
                   </p>
                   <div className="flex items-center gap-2 mt-3">
                     <Clock className="w-4 h-4 text-amber-600" />
-                    <span className="text-amber-700 font-medium">Awaiting response from X-ON as at 23rd December 2024</span>
+                    <span className="text-amber-700 font-medium">Awaiting response from X-ON as at 23rd December 2025</span>
                   </div>
                 </div>
               </div>
