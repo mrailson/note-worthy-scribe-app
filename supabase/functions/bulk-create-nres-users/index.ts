@@ -27,7 +27,7 @@ const PRACTICE_IDS = {
   PARKS: "cbbb5976-f7a7-4a02-899d-71b18e357e05",
 };
 
-// 28 users from Excel - will skip existing accounts
+// 23 new users (excluding 5 existing: malcolm.railson, chloe.lamont1, anita.carter5, alexander.whitehead, amanda.taylor75)
 const NRES_USERS: UserToCreate[] = [
   // PML users
   { email: "m.green28@nhs.net", name: "Maureen Green", organization: "Principal Medical Limited (PML)", practice_id: PRACTICE_IDS.OAK_LANE },
@@ -38,17 +38,14 @@ const NRES_USERS: UserToCreate[] = [
   { email: "a.pratyush@nhs.net", name: "Anshal Pratyush", organization: "Principal Medical Limited (PML)", practice_id: PRACTICE_IDS.OAK_LANE },
   
   // NHS ICB users
-  { email: "malcolm.railson@nhs.net", name: "Malcolm Railson", organization: "NHS Northamptonshire ICB", practice_id: PRACTICE_IDS.OAK_LANE },
   { email: "michael.chapman13@nhs.net", name: "Michael Chapman", organization: "NHS Northamptonshire ICB", practice_id: PRACTICE_IDS.OAK_LANE },
   
   // Brackley Medical Centre
   { email: "sandra.easton2@nhs.net", name: "Sandra Easton", organization: "Brackley Medical Centre", practice_id: PRACTICE_IDS.BRACKLEY },
   { email: "tbeardsworth@nhs.net", name: "Tina Beardsworth", organization: "Brackley Medical Centre", practice_id: PRACTICE_IDS.BRACKLEY },
-  { email: "amanda.taylor75@nhs.net", name: "Amanda Taylor", organization: "Brackley Medical Centre", practice_id: PRACTICE_IDS.BRACKLEY },
   
   // Towcester Medical Centre
   { email: "simon.ellis7@nhs.net", name: "Simon Ellis", organization: "Towcester Medical Centre", practice_id: PRACTICE_IDS.TOWCESTER },
-  { email: "chloe.lamont1@nhs.net", name: "Chloe Lamont", organization: "Towcester Medical Centre", practice_id: PRACTICE_IDS.TOWCESTER },
   
   // Springfield Surgery
   { email: "dal.samra@nhs.net", name: "Dal Samra", organization: "Springfield Surgery", practice_id: PRACTICE_IDS.SPRINGFIELD },
@@ -56,7 +53,6 @@ const NRES_USERS: UserToCreate[] = [
   
   // The Brook Health Centre
   { email: "arif.supple@nhs.net", name: "Arif Supple", organization: "The Brook Health Centre", practice_id: PRACTICE_IDS.BROOK },
-  { email: "anita.carter5@nhs.net", name: "Anita Carter", organization: "The Brook Health Centre", practice_id: PRACTICE_IDS.BROOK },
   { email: "lesley.driscoll@nhs.net", name: "Lesley Driscoll", organization: "The Brook Health Centre", practice_id: PRACTICE_IDS.BROOK },
   
   // Bugbrooke Medical Practice
@@ -70,7 +66,6 @@ const NRES_USERS: UserToCreate[] = [
   
   // Danes Camp Medical Centre
   { email: "muhammad.chishti@nhs.net", name: "Muhammad Chishti", organization: "Danes Camp Medical Centre", practice_id: PRACTICE_IDS.DANES_CAMP },
-  { email: "alexander.whitehead@nhs.net", name: "Alexander Whitehead", organization: "Danes Camp Medical Centre", practice_id: PRACTICE_IDS.DANES_CAMP },
   
   // The Parks Medical Practice
   { email: "charlotte.barnell1@nhs.net", name: "Charlotte Barnell", organization: "The Parks Medical Practice", practice_id: PRACTICE_IDS.PARKS },
@@ -82,7 +77,7 @@ const NRES_USERS: UserToCreate[] = [
   { email: "russell.rolph@voluntaryimpact.org.uk", name: "Russell Rolph", organization: "Voluntary Impact", practice_id: PRACTICE_IDS.OAK_LANE },
 ];
 
-const DEFAULT_PASSWORD = "LetMeIn1";
+const DEFAULT_PASSWORD = "Letmein1!";
 
 const handler = async (req: Request): Promise<Response> => {
   if (req.method === "OPTIONS") {
@@ -105,30 +100,15 @@ const handler = async (req: Request): Promise<Response> => {
     const { assigned_by } = await req.json().catch(() => ({ assigned_by: null }));
     const assignedByUserId = assigned_by || "e3aea82f-451b-40fb-8681-2b579a92dc3a"; // Default admin
 
-    const results: { success: string[]; failed: { email: string; error: string }[]; skipped: string[] } = {
+    const results: { success: string[]; failed: { email: string; error: string }[] } = {
       success: [],
-      failed: [],
-      skipped: []
+      failed: []
     };
 
-    console.log(`Starting bulk creation of ${NRES_USERS.length} users`);
-
-    // Get existing users to check for duplicates
-    const { data: existingProfiles } = await supabaseAdmin
-      .from('profiles')
-      .select('email');
-    
-    const existingEmails = new Set((existingProfiles || []).map(p => p.email?.toLowerCase()));
+    console.log(`Starting bulk creation of ${NRES_USERS.length} users with password: ${DEFAULT_PASSWORD}`);
 
     for (const user of NRES_USERS) {
       try {
-        // Check if user already exists
-        if (existingEmails.has(user.email.toLowerCase())) {
-          console.log(`User ${user.email} already exists, skipping`);
-          results.skipped.push(user.email);
-          continue;
-        }
-
         console.log(`Creating user: ${user.email}`);
 
         // Create the user
@@ -203,7 +183,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    console.log(`Bulk creation complete. Success: ${results.success.length}, Skipped: ${results.skipped.length}, Failed: ${results.failed.length}`);
+    console.log(`Bulk creation complete. Success: ${results.success.length}, Failed: ${results.failed.length}`);
 
     return new Response(JSON.stringify({ 
       success: true, 
@@ -211,7 +191,6 @@ const handler = async (req: Request): Promise<Response> => {
       summary: {
         total: NRES_USERS.length,
         created: results.success.length,
-        skipped: results.skipped.length,
         failed: results.failed.length
       }
     }), {
