@@ -1,8 +1,9 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Download, Folder, FolderOpen, ChevronRight, Calendar, FileSpreadsheet, File } from "lucide-react";
+import { FileText, Download, Folder, FolderOpen, ChevronRight, Calendar, FileSpreadsheet, File, Heart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Badge } from "@/components/ui/badge";
 
 type DocumentType = "presentation" | "document" | "legal" | "finance" | "analysis" | "spreadsheet" | "agenda" | "minutes" | "draft-minutes";
 
@@ -69,6 +70,16 @@ const taskFinishMeetings: Meeting[] = [
   }
 ];
 
+// VCSE Infrastructure Partners Meetings with their documents
+const vcseMeetings: Meeting[] = [
+  {
+    id: 1,
+    date: "22 December 2025",
+    location: "Virtual Meeting",
+    documents: []
+  }
+];
+
 const getTypeColor = (type: DocumentType) => {
   switch (type) {
     case "presentation": return "bg-blue-100 text-blue-700";
@@ -103,6 +114,7 @@ const handleDownload = (filePath?: string) => {
 export const SDAEvidenceLibrary = () => {
   const [openProgrammeMeetings, setOpenProgrammeMeetings] = useState<number[]>([23]);
   const [openTaskFinishMeetings, setOpenTaskFinishMeetings] = useState<number[]>([]);
+  const [openVcseMeetings, setOpenVcseMeetings] = useState<number[]>([1]);
 
   const toggleProgrammeMeeting = (meetingId: number) => {
     setOpenProgrammeMeetings(prev => 
@@ -120,7 +132,15 @@ export const SDAEvidenceLibrary = () => {
     );
   };
 
-  const allMeetings = [...programmeBoardMeetings, ...taskFinishMeetings];
+  const toggleVcseMeeting = (meetingId: number) => {
+    setOpenVcseMeetings(prev => 
+      prev.includes(meetingId) 
+        ? prev.filter(id => id !== meetingId)
+        : [...prev, meetingId]
+    );
+  };
+
+  const allMeetings = [...programmeBoardMeetings, ...taskFinishMeetings, ...vcseMeetings];
   const totalMeetingDocs = allMeetings.reduce((sum, m) => sum + m.documents.length, 0);
 
   const renderMeetingList = (
@@ -228,6 +248,114 @@ export const SDAEvidenceLibrary = () => {
           Task & Finish Meetings
         </h3>
         {renderMeetingList(taskFinishMeetings, openTaskFinishMeetings, toggleTaskFinishMeeting, 'tf')}
+      </div>
+
+      {/* VCSE Infrastructure Partners Meetings Section */}
+      <div className="space-y-3">
+        <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+          <Heart className="w-5 h-5 text-pink-500" />
+          VCSE Infrastructure Partners Meetings
+        </h3>
+        <div className="flex flex-wrap gap-2 mb-2">
+          {[
+            "Aspire Northants",
+            "Black Communities Together",
+            "Social Action West Northants",
+            "Age Well Asset Groups"
+          ].map((partner, index) => (
+            <Badge key={index} variant="outline" className="bg-pink-50 text-pink-700 border-pink-200 px-3 py-1">
+              {partner}
+            </Badge>
+          ))}
+        </div>
+        <p className="text-sm text-slate-600 mb-4">
+          Mapping complete for patient engagement, LTC support, and connecting residents to local community health champions.
+        </p>
+        
+        {/* VCSE Meeting - 22 Dec 2025 */}
+        <Collapsible open={openVcseMeetings.includes(1)} onOpenChange={() => toggleVcseMeeting(1)}>
+          <Card className="bg-white border-0 shadow-sm overflow-hidden">
+            <CollapsibleTrigger asChild>
+              <button className="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left">
+                <div className="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center">
+                  {openVcseMeetings.includes(1) ? (
+                    <FolderOpen className="w-5 h-5 text-pink-600" />
+                  ) : (
+                    <Folder className="w-5 h-5 text-pink-600" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-900">22 December 2025 - Virtual Meeting</p>
+                  <p className="text-sm text-slate-500">Task & Finish Meeting</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    Completed
+                  </Badge>
+                  <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${openVcseMeetings.includes(1) ? 'rotate-90' : ''}`} />
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <div className="px-4 pb-4 pt-2 border-t border-slate-100 space-y-4">
+                <div className="bg-green-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-green-900 mb-2">Meeting Summary</h4>
+                  <p className="text-sm text-green-800">
+                    Discussed integration of voluntary sector into South Rural innovation site and SDA project. Primary focus on collaboration to improve patient outcomes in long-term and complex care, whilst ensuring financial viability.
+                  </p>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-slate-900 text-sm mb-2">Key Outcomes</h4>
+                    <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
+                      <li>VCSE representation on Programme Board agreed</li>
+                      <li>Helen & Russ to act as conduit to wider sector</li>
+                      <li>Innovation Fund available for practice pilots</li>
+                      <li>Two-year pilot to demonstrate ROI to ICB</li>
+                    </ul>
+                  </div>
+                  <div className="bg-slate-50 rounded-lg p-4">
+                    <h4 className="font-semibold text-slate-900 text-sm mb-2">Target Cohorts (Feb 2026)</h4>
+                    <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
+                      <li>Frailty</li>
+                      <li>Children&apos;s mental health in schools</li>
+                      <li>Diabetes/Hypertension</li>
+                      <li>Long-term complex conditions</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
+                  <h4 className="font-semibold text-blue-900 text-sm mb-2">Priority Actions</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                    <div className="flex items-start gap-2">
+                      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs">High</Badge>
+                      <span className="text-slate-700">Helen & Russ: Confirm Board representation by 05/01</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs">High</Badge>
+                      <span className="text-slate-700">Helen: Attend Programme Board 23 Dec at BMC</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Badge variant="outline" className="bg-amber-100 text-amber-700 border-amber-200 text-xs">Med</Badge>
+                      <span className="text-slate-700">Maureen: Send background presentations by 05/01</span>
+                    </div>
+                    <div className="flex items-start gap-2">
+                      <Badge variant="outline" className="bg-red-100 text-red-700 border-red-200 text-xs">High</Badge>
+                      <span className="text-slate-700">TBC: Establish KPIs with ICB/Neighbourhoods (Feb)</span>
+                    </div>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  Attendees: Mark Graham (PML), Amanda Taylor, Maureen Green (PML), Ellie, Russ, Helen
+                </p>
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
       </div>
 
       {/* Quick Stats */}
