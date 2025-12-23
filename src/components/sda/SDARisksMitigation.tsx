@@ -585,8 +585,8 @@ export const SDARisksMitigation = () => {
               </div>
             </AccordionTrigger>
             <AccordionContent>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <CardContent className="pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 pt-2">
                   {decisions.map((decision) => {
                     const statusStyles = {
                       'decision-required': {
