@@ -6,16 +6,18 @@ import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Users, Play, CheckCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { Users, Play, CheckCircle, XCircle, Loader2, AlertTriangle, SkipForward } from 'lucide-react';
 
 interface CreationResult {
   success: string[];
   failed: { email: string; error: string }[];
+  skipped: string[];
 }
 
 interface Summary {
   total: number;
   created: number;
+  skipped: number;
   failed: number;
 }
 
@@ -25,30 +27,36 @@ export const BulkNRESUserCreation = () => {
   const [summary, setSummary] = useState<Summary | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Correct user list from Excel file
   const USERS_TO_CREATE = [
-    { email: "james.sherrell@nhs.net", name: "James Sherrell", organization: "PML" },
-    { email: "dawn.sherrell@nhs.net", name: "Dawn Sherrell", organization: "PML" },
-    { email: "ian.rogers16@nhs.net", name: "Ian Rogers", organization: "PML" },
-    { email: "david.horne9@nhs.net", name: "David Horne", organization: "NHS ICB" },
-    { email: "bethany.sherwood1@nhs.net", name: "Bethany Sherwood", organization: "NHS ICB" },
-    { email: "gemma.sherrell@nhs.net", name: "Gemma Sherrell", organization: "NHS ICB" },
-    { email: "nicola.sherrell@nhs.net", name: "Nicola Sherrell", organization: "NHS ICB" },
-    { email: "sarah.sherrell@nhs.net", name: "Sarah Sherrell", organization: "SNVB" },
-    { email: "james.abbott28@nhs.net", name: "James Abbott", organization: "Voluntary Impact" },
-    { email: "caroline.cook56@nhs.net", name: "Caroline Cook", organization: "Brackley Medical Centre" },
-    { email: "helen.johnson158@nhs.net", name: "Helen Johnson", organization: "Towcester Medical Centre" },
-    { email: "lisa.smith241@nhs.net", name: "Lisa Smith", organization: "Springfield Surgery" },
-    { email: "susan.brown89@nhs.net", name: "Susan Brown", organization: "The Brook Health Centre" },
-    { email: "rachel.williams67@nhs.net", name: "Rachel Williams", organization: "Bugbrooke Medical Practice" },
-    { email: "emma.jones123@nhs.net", name: "Emma Jones", organization: "Denton Village Surgery" },
-    { email: "jane.taylor45@nhs.net", name: "Jane Taylor", organization: "Danes Camp Medical Centre" },
-    { email: "claire.davies78@nhs.net", name: "Claire Davies", organization: "The Parks Medical Practice" },
-    { email: "karen.wilson34@nhs.net", name: "Karen Wilson", organization: "Brackley Medical Centre" },
-    { email: "michelle.thompson56@nhs.net", name: "Michelle Thompson", organization: "Towcester Medical Centre" },
-    { email: "andrea.moore23@nhs.net", name: "Andrea Moore", organization: "Springfield Surgery" },
-    { email: "paula.jackson67@nhs.net", name: "Paula Jackson", organization: "The Brook Health Centre" },
-    { email: "julie.white89@nhs.net", name: "Julie White", organization: "Bugbrooke Medical Practice" },
-    { email: "tracy.harris12@nhs.net", name: "Tracy Harris", organization: "Denton Village Surgery" },
+    { email: "m.green28@nhs.net", name: "Maureen Green", organization: "PML" },
+    { email: "mark.gray1@nhs.net", name: "Mark Gray", organization: "PML" },
+    { email: "carolyn.abbisogni@nhs.net", name: "Carolyn Abbisoni", organization: "PML" },
+    { email: "claire.garbett3@nhs.net", name: "Claire Garbett", organization: "PML" },
+    { email: "chloe.thorpe15@nhs.net", name: "Chloe Thorpe", organization: "PML" },
+    { email: "a.pratyush@nhs.net", name: "Anshal Pratyush", organization: "PML" },
+    { email: "malcolm.railson@nhs.net", name: "Malcolm Railson", organization: "NHS ICB" },
+    { email: "michael.chapman13@nhs.net", name: "Michael Chapman", organization: "NHS ICB" },
+    { email: "sandra.easton2@nhs.net", name: "Sandra Easton", organization: "Brackley Medical Centre" },
+    { email: "tbeardsworth@nhs.net", name: "Tina Beardsworth", organization: "Brackley Medical Centre" },
+    { email: "amanda.taylor75@nhs.net", name: "Amanda Taylor", organization: "Brackley Medical Centre" },
+    { email: "simon.ellis7@nhs.net", name: "Simon Ellis", organization: "Towcester Medical Centre" },
+    { email: "chloe.lamont1@nhs.net", name: "Chloe Lamont", organization: "Towcester Medical Centre" },
+    { email: "dal.samra@nhs.net", name: "Dal Samra", organization: "Springfield Surgery" },
+    { email: "hayley.willingham1@nhs.net", name: "Hayley Willingham", organization: "Springfield Surgery" },
+    { email: "arif.supple@nhs.net", name: "Arif Supple", organization: "The Brook Health Centre" },
+    { email: "anita.carter5@nhs.net", name: "Anita Carter", organization: "The Brook Health Centre" },
+    { email: "lesley.driscoll@nhs.net", name: "Lesley Driscoll", organization: "The Brook Health Centre" },
+    { email: "rachel.parry2@nhs.net", name: "Rachel Parry", organization: "Bugbrooke Medical Practice" },
+    { email: "lorraine.spicer@nhs.net", name: "Lorraine Spicer", organization: "Bugbrooke Medical Practice" },
+    { email: "davidwade@nhs.net", name: "David Wade", organization: "Denton Village Surgery" },
+    { email: "nicola.draper3@nhs.net", name: "Nicola Draper", organization: "Denton Village Surgery" },
+    { email: "amy.amin1@nhs.net", name: "Amy Amin", organization: "Denton Village Surgery" },
+    { email: "muhammad.chishti@nhs.net", name: "Muhammad Chishti", organization: "Danes Camp Medical Centre" },
+    { email: "alexander.whitehead@nhs.net", name: "Alexander Whitehead", organization: "Danes Camp Medical Centre" },
+    { email: "charlotte.barnell1@nhs.net", name: "Charlotte Barnell", organization: "The Parks Medical Practice" },
+    { email: "helen.barrett@snvb.org.uk", name: "Helen Barrett", organization: "SNVB" },
+    { email: "russell.rolph@voluntaryimpact.org.uk", name: "Russell Rolph", organization: "Voluntary Impact" },
   ];
 
   const handleBulkCreate = async () => {
@@ -77,6 +85,10 @@ export const BulkNRESUserCreation = () => {
         toast.success(`Successfully created ${data.summary.created} users`);
       }
       
+      if (data.summary.skipped > 0) {
+        toast.info(`${data.summary.skipped} users already exist and were skipped`);
+      }
+      
       if (data.summary.failed > 0) {
         toast.warning(`${data.summary.failed} users failed to create`);
       }
@@ -98,7 +110,7 @@ export const BulkNRESUserCreation = () => {
           Bulk NRES User Creation
         </CardTitle>
         <CardDescription>
-          Create 23 NRES users with practice_manager role, Meeting Notes access, BP Average Service access, and NRES service activation. Password: LetMeIn1
+          Create 28 NRES users with practice_manager role, Meeting Notes access, BP Average Service access, and NRES service activation. Password: LetMeIn1
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -185,7 +197,7 @@ export const BulkNRESUserCreation = () => {
           <div className="space-y-4">
             <div className="bg-muted rounded-lg p-4">
               <h4 className="text-sm font-medium mb-2">Results Summary</h4>
-              <div className="grid grid-cols-3 gap-4 text-center">
+              <div className="grid grid-cols-4 gap-4 text-center">
                 <div>
                   <div className="text-2xl font-bold">{summary.total}</div>
                   <div className="text-xs text-muted-foreground">Total</div>
@@ -193,6 +205,10 @@ export const BulkNRESUserCreation = () => {
                 <div>
                   <div className="text-2xl font-bold text-green-600">{summary.created}</div>
                   <div className="text-xs text-muted-foreground">Created</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-yellow-600">{summary.skipped}</div>
+                  <div className="text-xs text-muted-foreground">Skipped</div>
                 </div>
                 <div>
                   <div className="text-2xl font-bold text-destructive">{summary.failed}</div>
@@ -216,6 +232,25 @@ export const BulkNRESUserCreation = () => {
                   <div className="space-y-1">
                     {results.success.map((email, index) => (
                       <div key={index} className="text-sm text-green-700">
+                        {email}
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </div>
+            )}
+
+            {/* Skipped list */}
+            {results && results.skipped.length > 0 && (
+              <div className="space-y-2">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <SkipForward className="h-4 w-4 text-yellow-600" />
+                  Skipped - Already Exist ({results.skipped.length})
+                </h4>
+                <ScrollArea className="h-32 border border-yellow-200 rounded-md p-3 bg-yellow-50/50">
+                  <div className="space-y-1">
+                    {results.skipped.map((email, index) => (
+                      <div key={index} className="text-sm text-yellow-700">
                         {email}
                       </div>
                     ))}
