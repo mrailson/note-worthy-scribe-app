@@ -4,12 +4,14 @@ import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 
-type DocumentType = "presentation" | "document" | "legal" | "finance" | "analysis" | "spreadsheet" | "agenda" | "minutes";
+type DocumentType = "presentation" | "document" | "legal" | "finance" | "analysis" | "spreadsheet" | "agenda" | "minutes" | "draft-minutes";
 
 interface Document {
   title: string;
   type: DocumentType;
   filePath?: string;
+  isDraft?: boolean;
+  draftNote?: string;
 }
 
 interface Meeting {
@@ -38,6 +40,13 @@ const meetings: Meeting[] = [
         filePath: "/evidence/meetings/meeting-23/Programme_Board_Minutes_09_Dec_2025.docx"
       },
       { 
+        title: "Draft Minutes (23 Dec 2025)", 
+        type: "draft-minutes",
+        filePath: "/evidence/meetings/meeting-23/23rd_Dec_PB_Meeting_Draft_Minutes_TBC_V1.docx",
+        isDraft: true,
+        draftNote: "Early Draft - Final version to follow"
+      },
+      { 
         title: "Terms of Reference", 
         type: "legal",
         filePath: "/evidence/meetings/meeting-23/Terms_of_Reference.docx"
@@ -61,6 +70,7 @@ const getTypeColor = (type: DocumentType) => {
     case "spreadsheet": return "bg-emerald-100 text-emerald-700";
     case "agenda": return "bg-cyan-100 text-cyan-700";
     case "minutes": return "bg-indigo-100 text-indigo-700";
+    case "draft-minutes": return "bg-amber-100 text-amber-700";
     default: return "bg-slate-100 text-slate-700";
   }
 };
@@ -69,7 +79,8 @@ const getFileIcon = (type: DocumentType) => {
   switch (type) {
     case "spreadsheet": return FileSpreadsheet;
     case "agenda": 
-    case "minutes": return Calendar;
+    case "minutes":
+    case "draft-minutes": return Calendar;
     default: return FileText;
   }
 };
@@ -150,10 +161,20 @@ export const SDAEvidenceLibrary = () => {
                                 <FileIcon className="w-4 h-4" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-slate-900 text-sm truncate group-hover:text-[#005EB8] transition-colors">
-                                  {doc.title}
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-slate-900 text-sm truncate group-hover:text-[#005EB8] transition-colors">
+                                    {doc.title}
+                                  </p>
+                                  {doc.isDraft && (
+                                    <span className="text-[10px] font-medium bg-amber-500 text-white px-1.5 py-0.5 rounded uppercase shrink-0">
+                                      Draft
+                                    </span>
+                                  )}
+                                </div>
+                                <p className="text-xs text-slate-500 capitalize">
+                                  {doc.type === 'draft-minutes' ? 'minutes' : doc.type}
+                                  {doc.draftNote && <span className="text-amber-600 ml-1">• {doc.draftNote}</span>}
                                 </p>
-                                <p className="text-xs text-slate-500 capitalize">{doc.type}</p>
                               </div>
                               <Download className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                             </div>
