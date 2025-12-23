@@ -30,57 +30,58 @@ const decisions: BoardDecision[] = [
     desc: "Designation for April go-live – Brook practice currently reviewing capacity.",
     status: "pending-review",
     options: ["Hub", "Spoke"],
-    note: "Brook practice reviewing – both options under consideration",
-    targetDate: "January 2025"
+    note: "To be confirmed by 15th January deadline for next Programme Board meeting",
+    targetDate: "15 January 2025"
   },
   { 
     id: 2, 
     title: "ToR Ratification", 
     desc: "Approval of final Governance framework.",
-    status: "ready"
+    status: "ready",
+    note: "✓ Ratified at Programme Board meeting on 23 December 2024"
   },
   { 
     id: 3, 
     title: "Innovation Pilots", 
     desc: "Agreement on specific Part B clinics (Frailty/COPD).",
-    status: "ready"
+    status: "pending-review",
+    note: "Ongoing as of 23 December 2024 – to be discussed at next Programme Board"
   },
   { 
     id: 4, 
     title: "Recruitment Model", 
     desc: "How staff are employed for the SDA programme.",
-    status: "decision-required",
-    options: ["PML Federation", "Neighbourhood practices (claiming back)"]
+    status: "ready",
+    note: "✓ Decision reached – Malcolm to create job adverts for Indeed and NHS Jobs and feedback to Board"
   },
   { 
     id: 5, 
     title: "Legal Review for LES", 
     desc: "Whether legal review is required for the LES enhancement to GMS contract.",
-    status: "decision-required",
-    options: ["Yes – Legal Review", "No – Proceed without"]
+    status: "ready",
+    note: "✓ Actioned – Joining with Wellingborough to Hensons Solicitors via LMC for review of GMS proposed changes. Feedback to Programme Board"
   },
   { 
     id: 6, 
     title: "Insurance Approach", 
     desc: "How practices obtain insurance for the programme.",
-    status: "decision-required",
-    options: ["Individual practices", "Combined (Neighbourhood)", "With PML"],
-    notPreferred: "With PML",
-    note: "With PML not preferred due to different entities"
+    status: "pending-review",
+    note: "Amanda Taylor to contact each practice to verify insurance amounts as requested in contract and identify any shortfalls"
   },
   { 
     id: 7, 
     title: "PPG Protocol", 
     desc: "Patient Participation Group protocol and nominee numbers per practice.",
-    status: "decision-required",
-    note: "Strong interest noted – need to agree nominations"
+    status: "ready",
+    note: "✓ Process agreed by Board – to be shared with Practice Managers and directly to PPGs for participation in next Board meetings"
   },
   { 
     id: 8, 
     title: "Recruitment Panels", 
     desc: "Establishing the JD and Interview groups.",
-    status: "ready",
-    targetDate: "January"
+    status: "pending-review",
+    note: "Malcolm to reach out to PML to arrange new recruitment panel. Update by 15th January for next Board meeting",
+    targetDate: "15 January 2025"
   },
 ];
 
