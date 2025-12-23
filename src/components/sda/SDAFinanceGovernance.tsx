@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { 
   Users, 
@@ -18,7 +19,9 @@ import {
   Crown,
   CheckCircle2,
   Clock,
-  MapPin
+  MapPin,
+  Download,
+  FileText
 } from "lucide-react";
 
 const seniorLeadership = [
@@ -74,9 +77,39 @@ const practiceInsuranceChecklist = [
 ];
 
 export const SDAFinanceGovernance = () => {
+  const handleDownloadTOR = () => {
+    const link = document.createElement('a');
+    link.href = '/documents/Final_Terms_of_Reference_for_the_Programme_Board_SDA_innovator.pdf';
+    link.download = 'Terms_of_Reference_SDA_Programme_Board.pdf';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="space-y-6">
-      {/* Programme Overview */}
+      {/* Download TOR Button */}
+      <Card className="bg-gradient-to-r from-[#005EB8] to-[#003087] border-0 shadow-lg">
+        <CardContent className="py-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-3 text-white">
+              <FileText className="h-8 w-8" />
+              <div>
+                <h3 className="font-semibold text-lg">Terms of Reference</h3>
+                <p className="text-sm text-blue-100">Official Programme Board governance document</p>
+              </div>
+            </div>
+            <Button 
+              onClick={handleDownloadTOR}
+              variant="secondary"
+              className="bg-white text-[#005EB8] hover:bg-blue-50"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download TOR (PDF)
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
       <Card className="bg-white border-0 shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
