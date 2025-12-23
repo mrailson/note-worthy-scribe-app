@@ -487,6 +487,19 @@ export const SDARisksMitigation = () => {
             </AccordionTrigger>
             <AccordionContent>
               <CardContent className="space-y-4 pt-0">
+                {/* Programme Board Meeting Update */}
+                <div className="mt-4 p-4 bg-green-50 rounded-lg border border-green-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <h4 className="font-semibold text-green-900">Programme Board Meeting Update (23 Dec 2025)</h4>
+                  </div>
+                  <p className="text-sm text-green-800 leading-relaxed">
+                    These matters were discussed at the Programme Board Meeting. The Practices are joining the 
+                    <strong> Wellingborough Neighbourhood</strong> and are obtaining <strong>legal advice</strong> as 
+                    part of the due diligence for this pilot project.
+                  </p>
+                </div>
+
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
                   {lesAwarenessPoints.map((point) => {
                     const IconComponent = point.icon;
@@ -534,19 +547,6 @@ export const SDARisksMitigation = () => {
                       </div>
                     );
                   })}
-                </div>
-
-                {/* Programme Board Meeting Update */}
-                <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <CheckCircle2 className="w-5 h-5 text-green-600" />
-                    <h4 className="font-semibold text-green-900">Programme Board Meeting Update (23 Dec 2025)</h4>
-                  </div>
-                  <p className="text-sm text-green-800 leading-relaxed">
-                    These matters were discussed at the Programme Board Meeting. The Practices are joining the 
-                    <strong> Wellingborough Neighbourhood</strong> and are obtaining <strong>legal advice</strong> as 
-                    part of the due diligence for this pilot project.
-                  </p>
                 </div>
               </CardContent>
             </AccordionContent>
