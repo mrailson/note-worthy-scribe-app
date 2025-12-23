@@ -92,15 +92,32 @@ export const SDAWorkforceInnovation = () => {
         icon={<Briefcase className="w-5 h-5" />}
         badge={<Badge className="bg-amber-500">{proposedJobAdverts.length} Adverts</Badge>}
       >
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4 mb-4">
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
           <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-semibold text-amber-800">Decisions Outstanding</p>
-              <ul className="text-sm text-amber-700 mt-1 space-y-1">
-                <li>• Employment route not yet decided: PML, Neighbourhood, Practice, or combination</li>
-                <li>• PML overhead costs outstanding for this decision</li>
-              </ul>
+              <p className="font-semibold text-green-800">PB 23/12/2025 Decision Made</p>
+              <p className="text-sm text-green-700 mt-1">
+                Decision made to recruit via practice or neighbourhood (TBC). Malcolm asked to create NHS Job Adverts and online as at 18:30 23rd December 2025.
+              </p>
+              <div className="flex flex-wrap gap-2 mt-3">
+                <a 
+                  href="https://www.jobs.nhs.uk/candidate/jobadvert/A2001-25-0007" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm bg-white px-3 py-1.5 rounded border border-green-300 text-green-700 hover:bg-green-100 transition-colors"
+                >
+                  GP Job Advert
+                </a>
+                <a 
+                  href="https://www.jobs.nhs.uk/candidate/jobadvert/A2001-25-0008" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm bg-white px-3 py-1.5 rounded border border-green-300 text-green-700 hover:bg-green-100 transition-colors"
+                >
+                  ANP Job Advert
+                </a>
+              </div>
             </div>
           </div>
         </div>
