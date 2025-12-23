@@ -14,31 +14,72 @@ interface UserToCreate {
   practice_id: string;
 }
 
-// 23 users to create (excluding 5 existing accounts)
+// Practice ID mappings
+const PRACTICE_IDS = {
+  OAK_LANE: "c800c954-3928-4a37-a5c4-c4ff3e680333", // Demo practice for PML, ICB, SNVB, Voluntary Impact
+  BRACKLEY: "ca27fdcb-2a61-4a22-9c6f-9a8b92a6fbbe",
+  TOWCESTER: "669ec9ca-6d24-43fc-9dc1-a34a8e20965e",
+  SPRINGFIELD: "09c7d726-5cc5-49a4-8f3d-a65c2993aac5",
+  BROOK: "ebb2bf2c-1d20-42d9-8572-ce07a4dae3de",
+  BUGBROOKE: "85cd140c-2980-40df-8e19-0ffc8a9346d5",
+  DENTON: "b2cbe569-30e3-4a66-838a-c2ad54b41ff2",
+  DANES_CAMP: "fd00dd07-c07d-4e6d-a087-d99a57bd3423",
+  PARKS: "cbbb5976-f7a7-4a02-899d-71b18e357e05",
+};
+
+// 28 users from Excel - will skip existing accounts
 const NRES_USERS: UserToCreate[] = [
-  { email: "james.sherrell@nhs.net", name: "James Sherrell", organization: "PML", practice_id: "c800c954-3928-4a37-a5c4-c4ff3e680333" },
-  { email: "dawn.sherrell@nhs.net", name: "Dawn Sherrell", organization: "PML", practice_id: "c800c954-3928-4a37-a5c4-c4ff3e680333" },
-  { email: "ian.rogers16@nhs.net", name: "Ian Rogers", organization: "PML", practice_id: "c800c954-3928-4a37-a5c4-c4ff3e680333" },
-  { email: "david.horne9@nhs.net", name: "David Horne", organization: "NHS ICB", practice_id: "c800c954-3928-4a37-a5c4-c4ff3e680333" },
-  { email: "bethany.sherwood1@nhs.net", name: "Bethany Sherwood", organization: "NHS ICB", practice_id: "c800c954-3928-4a37-a5c4-c4ff3e680333" },
-  { email: "gemma.sherrell@nhs.net", name: "Gemma Sherrell", organization: "NHS ICB", practice_id: "c800c954-3928-4a37-a5c4-c4ff3e680333" },
-  { email: "nicola.sherrell@nhs.net", name: "Nicola Sherrell", organization: "NHS ICB", practice_id: "c800c954-3928-4a37-a5c4-c4ff3e680333" },
-  { email: "sarah.sherrell@nhs.net", name: "Sarah Sherrell", organization: "SNVB", practice_id: "c800c954-3928-4a37-a5c4-c4ff3e680333" },
-  { email: "james.abbott28@nhs.net", name: "James Abbott", organization: "Voluntary Impact", practice_id: "c800c954-3928-4a37-a5c4-c4ff3e680333" },
-  { email: "caroline.cook56@nhs.net", name: "Caroline Cook", organization: "Brackley Medical Centre", practice_id: "ca27fdcb-2a61-4a22-9c6f-9a8b92a6fbbe" },
-  { email: "helen.johnson158@nhs.net", name: "Helen Johnson", organization: "Towcester Medical Centre", practice_id: "669ec9ca-6d24-43fc-9dc1-a34a8e20965e" },
-  { email: "lisa.smith241@nhs.net", name: "Lisa Smith", organization: "Springfield Surgery", practice_id: "09c7d726-5cc5-49a4-8f3d-a65c2993aac5" },
-  { email: "susan.brown89@nhs.net", name: "Susan Brown", organization: "The Brook Health Centre", practice_id: "ebb2bf2c-1d20-42d9-8572-ce07a4dae3de" },
-  { email: "rachel.williams67@nhs.net", name: "Rachel Williams", organization: "Bugbrooke Medical Practice", practice_id: "85cd140c-2980-40df-8e19-0ffc8a9346d5" },
-  { email: "emma.jones123@nhs.net", name: "Emma Jones", organization: "Denton Village Surgery", practice_id: "b2cbe569-30e3-4a66-838a-c2ad54b41ff2" },
-  { email: "jane.taylor45@nhs.net", name: "Jane Taylor", organization: "Danes Camp Medical Centre", practice_id: "fd00dd07-c07d-4e6d-a087-d99a57bd3423" },
-  { email: "claire.davies78@nhs.net", name: "Claire Davies", organization: "The Parks Medical Practice", practice_id: "cbbb5976-f7a7-4a02-899d-71b18e357e05" },
-  { email: "karen.wilson34@nhs.net", name: "Karen Wilson", organization: "Brackley Medical Centre", practice_id: "ca27fdcb-2a61-4a22-9c6f-9a8b92a6fbbe" },
-  { email: "michelle.thompson56@nhs.net", name: "Michelle Thompson", organization: "Towcester Medical Centre", practice_id: "669ec9ca-6d24-43fc-9dc1-a34a8e20965e" },
-  { email: "andrea.moore23@nhs.net", name: "Andrea Moore", organization: "Springfield Surgery", practice_id: "09c7d726-5cc5-49a4-8f3d-a65c2993aac5" },
-  { email: "paula.jackson67@nhs.net", name: "Paula Jackson", organization: "The Brook Health Centre", practice_id: "ebb2bf2c-1d20-42d9-8572-ce07a4dae3de" },
-  { email: "julie.white89@nhs.net", name: "Julie White", organization: "Bugbrooke Medical Practice", practice_id: "85cd140c-2980-40df-8e19-0ffc8a9346d5" },
-  { email: "tracy.harris12@nhs.net", name: "Tracy Harris", organization: "Denton Village Surgery", practice_id: "b2cbe569-30e3-4a66-838a-c2ad54b41ff2" },
+  // PML users
+  { email: "m.green28@nhs.net", name: "Maureen Green", organization: "Principal Medical Limited (PML)", practice_id: PRACTICE_IDS.OAK_LANE },
+  { email: "mark.gray1@nhs.net", name: "Mark Gray", organization: "Principal Medical Limited (PML)", practice_id: PRACTICE_IDS.OAK_LANE },
+  { email: "carolyn.abbisogni@nhs.net", name: "Carolyn Abbisoni", organization: "Principal Medical Limited (PML)", practice_id: PRACTICE_IDS.OAK_LANE },
+  { email: "claire.garbett3@nhs.net", name: "Claire Garbett", organization: "Principal Medical Limited (PML)", practice_id: PRACTICE_IDS.OAK_LANE },
+  { email: "chloe.thorpe15@nhs.net", name: "Chloe Thorpe", organization: "Principal Medical Limited (PML)", practice_id: PRACTICE_IDS.OAK_LANE },
+  { email: "a.pratyush@nhs.net", name: "Anshal Pratyush", organization: "Principal Medical Limited (PML)", practice_id: PRACTICE_IDS.OAK_LANE },
+  
+  // NHS ICB users
+  { email: "malcolm.railson@nhs.net", name: "Malcolm Railson", organization: "NHS Northamptonshire ICB", practice_id: PRACTICE_IDS.OAK_LANE },
+  { email: "michael.chapman13@nhs.net", name: "Michael Chapman", organization: "NHS Northamptonshire ICB", practice_id: PRACTICE_IDS.OAK_LANE },
+  
+  // Brackley Medical Centre
+  { email: "sandra.easton2@nhs.net", name: "Sandra Easton", organization: "Brackley Medical Centre", practice_id: PRACTICE_IDS.BRACKLEY },
+  { email: "tbeardsworth@nhs.net", name: "Tina Beardsworth", organization: "Brackley Medical Centre", practice_id: PRACTICE_IDS.BRACKLEY },
+  { email: "amanda.taylor75@nhs.net", name: "Amanda Taylor", organization: "Brackley Medical Centre", practice_id: PRACTICE_IDS.BRACKLEY },
+  
+  // Towcester Medical Centre
+  { email: "simon.ellis7@nhs.net", name: "Simon Ellis", organization: "Towcester Medical Centre", practice_id: PRACTICE_IDS.TOWCESTER },
+  { email: "chloe.lamont1@nhs.net", name: "Chloe Lamont", organization: "Towcester Medical Centre", practice_id: PRACTICE_IDS.TOWCESTER },
+  
+  // Springfield Surgery
+  { email: "dal.samra@nhs.net", name: "Dal Samra", organization: "Springfield Surgery", practice_id: PRACTICE_IDS.SPRINGFIELD },
+  { email: "hayley.willingham1@nhs.net", name: "Hayley Willingham", organization: "Springfield Surgery", practice_id: PRACTICE_IDS.SPRINGFIELD },
+  
+  // The Brook Health Centre
+  { email: "arif.supple@nhs.net", name: "Arif Supple", organization: "The Brook Health Centre", practice_id: PRACTICE_IDS.BROOK },
+  { email: "anita.carter5@nhs.net", name: "Anita Carter", organization: "The Brook Health Centre", practice_id: PRACTICE_IDS.BROOK },
+  { email: "lesley.driscoll@nhs.net", name: "Lesley Driscoll", organization: "The Brook Health Centre", practice_id: PRACTICE_IDS.BROOK },
+  
+  // Bugbrooke Medical Practice
+  { email: "rachel.parry2@nhs.net", name: "Rachel Parry", organization: "Bugbrooke Medical Practice", practice_id: PRACTICE_IDS.BUGBROOKE },
+  { email: "lorraine.spicer@nhs.net", name: "Lorraine Spicer", organization: "Bugbrooke Medical Practice", practice_id: PRACTICE_IDS.BUGBROOKE },
+  
+  // Denton Village Surgery
+  { email: "davidwade@nhs.net", name: "David Wade", organization: "Denton Village Surgery", practice_id: PRACTICE_IDS.DENTON },
+  { email: "nicola.draper3@nhs.net", name: "Nicola Draper", organization: "Denton Village Surgery", practice_id: PRACTICE_IDS.DENTON },
+  { email: "amy.amin1@nhs.net", name: "Amy Amin", organization: "Denton Village Surgery", practice_id: PRACTICE_IDS.DENTON },
+  
+  // Danes Camp Medical Centre
+  { email: "muhammad.chishti@nhs.net", name: "Muhammad Chishti", organization: "Danes Camp Medical Centre", practice_id: PRACTICE_IDS.DANES_CAMP },
+  { email: "alexander.whitehead@nhs.net", name: "Alexander Whitehead", organization: "Danes Camp Medical Centre", practice_id: PRACTICE_IDS.DANES_CAMP },
+  
+  // The Parks Medical Practice
+  { email: "charlotte.barnell1@nhs.net", name: "Charlotte Barnell", organization: "The Parks Medical Practice", practice_id: PRACTICE_IDS.PARKS },
+  
+  // SNVB
+  { email: "helen.barrett@snvb.org.uk", name: "Helen Barrett", organization: "SNVB", practice_id: PRACTICE_IDS.OAK_LANE },
+  
+  // Voluntary Impact
+  { email: "russell.rolph@voluntaryimpact.org.uk", name: "Russell Rolph", organization: "Voluntary Impact", practice_id: PRACTICE_IDS.OAK_LANE },
 ];
 
 const DEFAULT_PASSWORD = "LetMeIn1";
@@ -64,26 +105,31 @@ const handler = async (req: Request): Promise<Response> => {
     const { assigned_by } = await req.json().catch(() => ({ assigned_by: null }));
     const assignedByUserId = assigned_by || "e3aea82f-451b-40fb-8681-2b579a92dc3a"; // Default admin
 
-    const results: { success: string[]; failed: { email: string; error: string }[] } = {
+    const results: { success: string[]; failed: { email: string; error: string }[]; skipped: string[] } = {
       success: [],
-      failed: []
+      failed: [],
+      skipped: []
     };
 
     console.log(`Starting bulk creation of ${NRES_USERS.length} users`);
 
+    // Get existing users to check for duplicates
+    const { data: existingProfiles } = await supabaseAdmin
+      .from('profiles')
+      .select('email');
+    
+    const existingEmails = new Set((existingProfiles || []).map(p => p.email?.toLowerCase()));
+
     for (const user of NRES_USERS) {
       try {
-        console.log(`Creating user: ${user.email}`);
-
         // Check if user already exists
-        const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-        const existingUser = existingUsers?.users?.find(u => u.email === user.email);
-        
-        if (existingUser) {
+        if (existingEmails.has(user.email.toLowerCase())) {
           console.log(`User ${user.email} already exists, skipping`);
-          results.failed.push({ email: user.email, error: "User already exists" });
+          results.skipped.push(user.email);
           continue;
         }
+
+        console.log(`Creating user: ${user.email}`);
 
         // Create the user
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
@@ -157,7 +203,7 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    console.log(`Bulk creation complete. Success: ${results.success.length}, Failed: ${results.failed.length}`);
+    console.log(`Bulk creation complete. Success: ${results.success.length}, Skipped: ${results.skipped.length}, Failed: ${results.failed.length}`);
 
     return new Response(JSON.stringify({ 
       success: true, 
@@ -165,6 +211,7 @@ const handler = async (req: Request): Promise<Response> => {
       summary: {
         total: NRES_USERS.length,
         created: results.success.length,
+        skipped: results.skipped.length,
         failed: results.failed.length
       }
     }), {
