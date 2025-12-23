@@ -3,18 +3,85 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { AlertTriangle, Shield, Scale, Users, PoundSterling, UserCheck, Building2, Laptop, Handshake, FileText, ClipboardCheck, ShieldCheck, FileCheck, Calendar, Target, Pill, DoorOpen, RefreshCw, ShieldAlert, Database, Banknote, HelpCircle, CheckCircle2, AlertCircle, ChevronDown, TrendingDown, TrendingUp, Minus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { AlertTriangle, Shield, Scale, Users, PoundSterling, UserCheck, Building2, Laptop, Handshake, FileText, ClipboardCheck, ShieldCheck, FileCheck, Calendar, Target, Pill, DoorOpen, RefreshCw, ShieldAlert, Database, Banknote, HelpCircle, CheckCircle2, AlertCircle, ChevronDown, TrendingDown, TrendingUp, Minus, ArrowUpDown, ArrowUp, ArrowDown, Clock, Gavel, UserPlus, ShieldCheck as InsuranceIcon, UsersRound } from "lucide-react";
 import { RiskAssessmentGuidance } from "./risk-register/RiskAssessmentGuidance";
 import { RiskMatrixHeatmap } from "./risk-register/RiskMatrixHeatmap";
 import { projectRisks, getRatingFromScore, getRatingBadgeStyles, getRiskTypeBadgeStyles, getRiskTypeLabel, ProjectRisk } from "./risk-register/projectRisksData";
 
 type SortField = 'id' | 'risk' | 'riskType' | 'originalScore' | 'currentScore' | 'category' | 'owner';
 type SortDirection = 'asc' | 'desc';
-const decisions = [
-  { id: 1, title: "Brook Hub/Spoke Status", desc: "Final decision on designation for April go-live." },
-  { id: 2, title: "ToR Ratification", desc: "Approval of final Governance framework." },
-  { id: 3, title: "Innovation Pilots", desc: "Agreement on specific Part B clinics (Frailty/COPD)." },
-  { id: 4, title: "Recruitment Panels", desc: "Establishing the JD and Interview groups for January." },
+type DecisionStatus = 'decision-required' | 'pending-review' | 'ready';
+
+interface BoardDecision {
+  id: number;
+  title: string;
+  desc: string;
+  status: DecisionStatus;
+  options?: string[];
+  note?: string;
+  targetDate?: string;
+  notPreferred?: string;
+}
+
+const decisions: BoardDecision[] = [
+  { 
+    id: 1, 
+    title: "Brook Hub/Spoke Status", 
+    desc: "Designation for April go-live – Brook practice currently reviewing capacity.",
+    status: "pending-review",
+    options: ["Hub", "Spoke"],
+    note: "Brook practice reviewing – both options under consideration",
+    targetDate: "January 2025"
+  },
+  { 
+    id: 2, 
+    title: "ToR Ratification", 
+    desc: "Approval of final Governance framework.",
+    status: "ready"
+  },
+  { 
+    id: 3, 
+    title: "Innovation Pilots", 
+    desc: "Agreement on specific Part B clinics (Frailty/COPD).",
+    status: "ready"
+  },
+  { 
+    id: 4, 
+    title: "Recruitment Model", 
+    desc: "How staff are employed for the SDA programme.",
+    status: "decision-required",
+    options: ["PML Federation", "Neighbourhood practices (claiming back)"]
+  },
+  { 
+    id: 5, 
+    title: "Legal Review for LES", 
+    desc: "Whether legal review is required for the LES enhancement to GMS contract.",
+    status: "decision-required",
+    options: ["Yes – Legal Review", "No – Proceed without"]
+  },
+  { 
+    id: 6, 
+    title: "Insurance Approach", 
+    desc: "How practices obtain insurance for the programme.",
+    status: "decision-required",
+    options: ["Individual practices", "Combined (Neighbourhood)", "With PML"],
+    notPreferred: "With PML",
+    note: "With PML not preferred due to different entities"
+  },
+  { 
+    id: 7, 
+    title: "PPG Protocol", 
+    desc: "Patient Participation Group protocol and nominee numbers per practice.",
+    status: "decision-required",
+    note: "Strong interest noted – need to agree nominations"
+  },
+  { 
+    id: 8, 
+    title: "Recruitment Panels", 
+    desc: "Establishing the JD and Interview groups.",
+    status: "ready",
+    targetDate: "January"
+  },
 ];
 
 const lesAwarenessPoints = [
@@ -504,8 +571,14 @@ export const SDARisksMitigation = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
+                    {decisions.filter(d => d.status === 'decision-required').length} Decision Required
+                  </Badge>
+                  <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
+                    {decisions.filter(d => d.status === 'pending-review').length} Pending Review
+                  </Badge>
                   <Badge variant="outline" className="bg-blue-50 text-[#005EB8] border-[#005EB8]">
-                    4 Decisions
+                    {decisions.filter(d => d.status === 'ready').length} Ready
                   </Badge>
                   <ChevronDown className="chevron h-5 w-5 text-slate-500 transition-transform duration-200" />
                 </div>
@@ -513,19 +586,80 @@ export const SDARisksMitigation = () => {
             </AccordionTrigger>
             <AccordionContent>
               <CardContent className="pt-0">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {decisions.map((decision) => (
-                    <div 
-                      key={decision.id} 
-                      className="relative bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200"
-                    >
-                      <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-[#005EB8] flex items-center justify-center text-white font-bold text-sm">
-                        {decision.id}
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+                  {decisions.map((decision) => {
+                    const statusStyles = {
+                      'decision-required': {
+                        bg: 'bg-gradient-to-br from-red-50 to-red-100',
+                        border: 'border-red-200',
+                        badge: 'bg-red-100 text-red-700 border-red-300',
+                        badgeText: 'Decision Required',
+                        numberBg: 'bg-red-600'
+                      },
+                      'pending-review': {
+                        bg: 'bg-gradient-to-br from-amber-50 to-amber-100',
+                        border: 'border-amber-200',
+                        badge: 'bg-amber-100 text-amber-700 border-amber-300',
+                        badgeText: 'Pending Review',
+                        numberBg: 'bg-amber-500'
+                      },
+                      'ready': {
+                        bg: 'bg-gradient-to-br from-blue-50 to-slate-100',
+                        border: 'border-blue-200',
+                        badge: 'bg-blue-100 text-blue-700 border-blue-300',
+                        badgeText: 'Ready for Board',
+                        numberBg: 'bg-[#005EB8]'
+                      }
+                    };
+                    const styles = statusStyles[decision.status];
+                    
+                    return (
+                      <div 
+                        key={decision.id} 
+                        className={`relative ${styles.bg} rounded-lg p-4 border ${styles.border}`}
+                      >
+                        <div className={`absolute -top-3 -left-3 w-8 h-8 rounded-full ${styles.numberBg} flex items-center justify-center text-white font-bold text-sm`}>
+                          {decision.id}
+                        </div>
+                        <div className="flex justify-end mb-2">
+                          <Badge variant="outline" className={`${styles.badge} text-[10px]`}>
+                            {styles.badgeText}
+                          </Badge>
+                        </div>
+                        <h4 className="font-semibold text-slate-900">{decision.title}</h4>
+                        <p className="text-sm text-slate-600 mt-1">{decision.desc}</p>
+                        
+                        {decision.options && decision.options.length > 0 && (
+                          <div className="mt-3 flex flex-wrap gap-1.5">
+                            {decision.options.map((option, idx) => (
+                              <Badge 
+                                key={idx} 
+                                variant="outline" 
+                                className={`text-[10px] ${
+                                  decision.notPreferred === option 
+                                    ? 'bg-slate-100 text-slate-500 border-slate-300 line-through' 
+                                    : 'bg-white text-slate-700 border-slate-300'
+                                }`}
+                              >
+                                {option}
+                              </Badge>
+                            ))}
+                          </div>
+                        )}
+                        
+                        {decision.note && (
+                          <p className="text-[11px] text-slate-500 mt-2 italic">{decision.note}</p>
+                        )}
+                        
+                        {decision.targetDate && (
+                          <div className="mt-2 flex items-center gap-1 text-[11px] text-slate-500">
+                            <Clock className="w-3 h-3" />
+                            <span>Target: {decision.targetDate}</span>
+                          </div>
+                        )}
                       </div>
-                      <h4 className="font-semibold text-slate-900 mt-2">{decision.title}</h4>
-                      <p className="text-sm text-slate-600 mt-1">{decision.desc}</p>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </CardContent>
             </AccordionContent>
