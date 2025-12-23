@@ -107,7 +107,7 @@ export const SDAWorkforceInnovation = () => {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm bg-white px-3 py-1.5 rounded border border-green-300 text-green-700 hover:bg-green-100 transition-colors"
                 >
-                  GP Job Advert
+                  NHS Jobs: GP Advert (Live)
                 </a>
                 <a 
                   href="https://www.jobs.nhs.uk/candidate/jobadvert/A2001-25-0008" 
@@ -115,7 +115,7 @@ export const SDAWorkforceInnovation = () => {
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm bg-white px-3 py-1.5 rounded border border-green-300 text-green-700 hover:bg-green-100 transition-colors"
                 >
-                  ANP Job Advert
+                  NHS Jobs: ANP Advert (Live)
                 </a>
               </div>
             </div>
