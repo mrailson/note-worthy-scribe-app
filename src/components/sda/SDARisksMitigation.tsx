@@ -536,22 +536,17 @@ export const SDARisksMitigation = () => {
                   })}
                 </div>
 
-                {/* Outstanding Questions Summary */}
-                <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                {/* Programme Board Meeting Update */}
+                <div className="mt-6 p-4 bg-green-50 rounded-lg border border-green-200">
                   <div className="flex items-center gap-2 mb-3">
-                    <HelpCircle className="w-5 h-5 text-amber-600" />
-                    <h4 className="font-semibold text-amber-900">Outstanding Questions for Brackley Meeting (23 Dec)</h4>
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
+                    <h4 className="font-semibold text-green-900">Programme Board Meeting Update (23 Dec 2025)</h4>
                   </div>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {outstandingQuestions.map((question, index) => (
-                      <li key={index} className="text-sm text-amber-800 flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 font-semibold text-xs flex-shrink-0">
-                          {index + 1}
-                        </span>
-                        {question}
-                      </li>
-                    ))}
-                  </ul>
+                  <p className="text-sm text-green-800 leading-relaxed">
+                    These matters were discussed at the Programme Board Meeting. The Practices are joining the 
+                    <strong> Wellingborough Neighbourhood</strong> and are obtaining <strong>legal advice</strong> as 
+                    part of the due diligence for this pilot project.
+                  </p>
                 </div>
               </CardContent>
             </AccordionContent>
