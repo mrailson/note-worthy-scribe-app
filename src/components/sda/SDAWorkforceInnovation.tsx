@@ -230,7 +230,7 @@ export const SDAWorkforceInnovation = () => {
               <div className="bg-blue-50 rounded-xl p-4 text-center">
                 <p className="text-4xl font-bold text-[#005EB8]">8.5</p>
                 <p className="font-semibold text-slate-900 mt-1">GP WTE Sessions</p>
-                <p className="text-sm text-slate-500">Assumes 26 appointments per day per session.</p>
+                <p className="text-sm text-slate-500">Assumes 12 appointments per session.</p>
               </div>
               <div className="bg-cyan-50 rounded-xl p-4 text-center">
                 <p className="text-4xl font-bold text-cyan-600">6.9</p>
