@@ -1,12 +1,15 @@
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { AlertTriangle, Shield, Scale, Users, PoundSterling, UserCheck, Building2, Laptop, Handshake, FileText, ClipboardCheck, ShieldCheck, FileCheck, Calendar, Target, Pill, DoorOpen, RefreshCw, ShieldAlert, Database, Banknote, HelpCircle, CheckCircle2, AlertCircle, ChevronDown, TrendingDown, TrendingUp, Minus } from "lucide-react";
+import { AlertTriangle, Shield, Scale, Users, PoundSterling, UserCheck, Building2, Laptop, Handshake, FileText, ClipboardCheck, ShieldCheck, FileCheck, Calendar, Target, Pill, DoorOpen, RefreshCw, ShieldAlert, Database, Banknote, HelpCircle, CheckCircle2, AlertCircle, ChevronDown, TrendingDown, TrendingUp, Minus, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { RiskAssessmentGuidance } from "./risk-register/RiskAssessmentGuidance";
 import { RiskMatrixHeatmap } from "./risk-register/RiskMatrixHeatmap";
-import { projectRisks, getRatingFromScore, getRatingBadgeStyles, getRiskTypeBadgeStyles, getRiskTypeLabel } from "./risk-register/projectRisksData";
+import { projectRisks, getRatingFromScore, getRatingBadgeStyles, getRiskTypeBadgeStyles, getRiskTypeLabel, ProjectRisk } from "./risk-register/projectRisksData";
 
+type SortField = 'id' | 'risk' | 'riskType' | 'originalScore' | 'currentScore' | 'category' | 'owner';
+type SortDirection = 'asc' | 'desc';
 const decisions = [
   { id: 1, title: "Brook Hub/Spoke Status", desc: "Final decision on designation for April go-live." },
   { id: 2, title: "ToR Ratification", desc: "Approval of final Governance framework." },
@@ -127,11 +130,86 @@ const riskSummary = {
 };
 
 export const SDARisksMitigation = () => {
+  const [sortField, setSortField] = useState<SortField>('currentScore');
+  const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+
   const getScoreChangeIndicator = (original: number, current: number) => {
     if (current < original) return <TrendingDown className="w-3 h-3 text-green-600" />;
     if (current > original) return <TrendingUp className="w-3 h-3 text-red-600" />;
     return <Minus className="w-3 h-3 text-slate-400" />;
   };
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('desc');
+    }
+  };
+
+  const getSortIcon = (field: SortField) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-3 h-3 ml-1 text-slate-400" />;
+    }
+    return sortDirection === 'asc' 
+      ? <ArrowUp className="w-3 h-3 ml-1 text-[#005EB8]" />
+      : <ArrowDown className="w-3 h-3 ml-1 text-[#005EB8]" />;
+  };
+
+  const sortedRisks = useMemo(() => {
+    const sorted = [...projectRisks].sort((a, b) => {
+      let aValue: string | number;
+      let bValue: string | number;
+
+      switch (sortField) {
+        case 'id':
+          aValue = a.id;
+          bValue = b.id;
+          break;
+        case 'risk':
+          aValue = a.risk.toLowerCase();
+          bValue = b.risk.toLowerCase();
+          break;
+        case 'riskType':
+          const typeOrder = { principal: 0, operational: 1, project: 2 };
+          aValue = typeOrder[a.riskType];
+          bValue = typeOrder[b.riskType];
+          break;
+        case 'originalScore':
+          aValue = a.originalScore;
+          bValue = b.originalScore;
+          break;
+        case 'currentScore':
+          aValue = a.currentScore;
+          bValue = b.currentScore;
+          break;
+        case 'category':
+          aValue = a.category.toLowerCase();
+          bValue = b.category.toLowerCase();
+          break;
+        case 'owner':
+          aValue = a.owner.toLowerCase();
+          bValue = b.owner.toLowerCase();
+          break;
+        default:
+          aValue = a.currentScore;
+          bValue = b.currentScore;
+      }
+
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        return sortDirection === 'asc' 
+          ? aValue.localeCompare(bValue)
+          : bValue.localeCompare(aValue);
+      }
+
+      return sortDirection === 'asc' 
+        ? (aValue as number) - (bValue as number)
+        : (bValue as number) - (aValue as number);
+    });
+
+    return sorted;
+  }, [sortField, sortDirection]);
 
   return (
     <div className="space-y-4">
@@ -177,21 +255,56 @@ export const SDARisksMitigation = () => {
                   <Table>
                     <TableHeader>
                       <TableRow className="bg-slate-50">
-                        <TableHead className="w-[40px] font-semibold text-xs">#</TableHead>
-                        <TableHead className="font-semibold text-xs">Risk</TableHead>
-                        <TableHead className="font-semibold text-xs">Type</TableHead>
-                        <TableHead className="font-semibold text-xs text-center">Original<br/>Score</TableHead>
-                        <TableHead className="font-semibold text-xs text-center">Current<br/>Score</TableHead>
-                        <TableHead className="font-semibold text-xs">Rating</TableHead>
+                        <TableHead 
+                          className="w-[40px] font-semibold text-xs cursor-pointer hover:bg-slate-100"
+                          onClick={() => handleSort('id')}
+                        >
+                          <div className="flex items-center"># {getSortIcon('id')}</div>
+                        </TableHead>
+                        <TableHead 
+                          className="font-semibold text-xs cursor-pointer hover:bg-slate-100"
+                          onClick={() => handleSort('risk')}
+                        >
+                          <div className="flex items-center">Risk {getSortIcon('risk')}</div>
+                        </TableHead>
+                        <TableHead 
+                          className="font-semibold text-xs cursor-pointer hover:bg-slate-100"
+                          onClick={() => handleSort('riskType')}
+                        >
+                          <div className="flex items-center">Type {getSortIcon('riskType')}</div>
+                        </TableHead>
+                        <TableHead 
+                          className="font-semibold text-xs text-center cursor-pointer hover:bg-slate-100"
+                          onClick={() => handleSort('originalScore')}
+                        >
+                          <div className="flex items-center justify-center">Original<br/>Score {getSortIcon('originalScore')}</div>
+                        </TableHead>
+                        <TableHead 
+                          className="font-semibold text-xs text-center cursor-pointer hover:bg-slate-100"
+                          onClick={() => handleSort('currentScore')}
+                        >
+                          <div className="flex items-center justify-center">Current<br/>Score {getSortIcon('currentScore')}</div>
+                        </TableHead>
+                        <TableHead 
+                          className="font-semibold text-xs cursor-pointer hover:bg-slate-100"
+                          onClick={() => handleSort('currentScore')}
+                        >
+                          <div className="flex items-center">Rating {getSortIcon('currentScore')}</div>
+                        </TableHead>
                         <TableHead className="font-semibold text-xs min-w-[200px]">Key Concerns</TableHead>
                         <TableHead className="font-semibold text-xs min-w-[200px]">Mitigation</TableHead>
-                        <TableHead className="font-semibold text-xs">Owner</TableHead>
+                        <TableHead 
+                          className="font-semibold text-xs cursor-pointer hover:bg-slate-100"
+                          onClick={() => handleSort('owner')}
+                        >
+                          <div className="flex items-center">Owner {getSortIcon('owner')}</div>
+                        </TableHead>
                         <TableHead className="font-semibold text-xs">Last<br/>Reviewed</TableHead>
                         <TableHead className="font-semibold text-xs min-w-[150px]">Assurance Indicators</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {projectRisks.map((risk) => {
+                      {sortedRisks.map((risk) => {
                         const IconComponent = risk.icon;
                         return (
                           <TableRow key={risk.id} className="hover:bg-slate-50/50">
