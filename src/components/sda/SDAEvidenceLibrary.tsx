@@ -19,21 +19,6 @@ interface Meeting {
   documents: Document[];
 }
 
-// Regular documents (non-meeting)
-const documents: Document[] = [
-  { title: "PPT: Introduction", type: "presentation" },
-  { title: "PPT: Planning Assump.", type: "presentation" },
-  { title: "PPT: Model Matrix", type: "presentation" },
-  { title: "PPT: Staffing WTE", type: "presentation" },
-  { title: "PPT: Deep Dive", type: "presentation" },
-  { title: "Estate Audit Summary", type: "document" },
-  { title: "GP Connect Evidence Pack", type: "document" },
-  { title: "Data Sharing Agreement", type: "legal" },
-  { title: "Governance Framework ToR", type: "legal" },
-  { title: "Innovation Budget Breakdown", type: "finance" },
-  { title: "VCSE Partner Mapping", type: "document" },
-  { title: "Seasonality Analysis", type: "analysis" },
-];
 
 // Programme Board Meetings with their documents
 const meetings: Meeting[] = [
@@ -184,69 +169,31 @@ export const SDAEvidenceLibrary = () => {
         </div>
       </div>
 
-      {/* Other Documents Section */}
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-          <FileText className="w-5 h-5 text-slate-600" />
-          Supporting Documents
-        </h3>
-        
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {documents.map((doc, index) => (
-            <Card key={index} className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${getTypeColor(doc.type)}`}>
-                      <FileText className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="font-medium text-slate-900 text-sm group-hover:text-[#005EB8] transition-colors">
-                        {doc.title}
-                      </p>
-                      <p className="text-xs text-slate-500 capitalize mt-0.5">{doc.type}</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" className="opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Download className="w-4 h-4 text-slate-500" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      </div>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
         <Card className="bg-[#005EB8]/10 border-0">
           <CardContent className="p-4 text-center">
             <p className="text-3xl font-bold text-[#005EB8]">{meetings.length}</p>
             <p className="text-sm text-slate-600">Meetings</p>
           </CardContent>
         </Card>
-        <Card className="bg-blue-50 border-0">
-          <CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold text-blue-700">5</p>
-            <p className="text-sm text-slate-600">Presentations</p>
-          </CardContent>
-        </Card>
         <Card className="bg-slate-50 border-0">
           <CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold text-slate-700">{4 + totalMeetingDocs}</p>
+            <p className="text-3xl font-bold text-slate-700">{totalMeetingDocs}</p>
             <p className="text-sm text-slate-600">Documents</p>
           </CardContent>
         </Card>
-        <Card className="bg-purple-50 border-0">
+        <Card className="bg-cyan-50 border-0">
           <CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold text-purple-700">3</p>
-            <p className="text-sm text-slate-600">Legal</p>
+            <p className="text-3xl font-bold text-cyan-700">{meetings.reduce((sum, m) => sum + m.documents.filter(d => d.type === 'agenda').length, 0)}</p>
+            <p className="text-sm text-slate-600">Agendas</p>
           </CardContent>
         </Card>
-        <Card className="bg-green-50 border-0">
+        <Card className="bg-indigo-50 border-0">
           <CardContent className="p-4 text-center">
-            <p className="text-3xl font-bold text-green-700">1</p>
-            <p className="text-sm text-slate-600">Finance</p>
+            <p className="text-3xl font-bold text-indigo-700">{meetings.reduce((sum, m) => sum + m.documents.filter(d => d.type === 'minutes').length, 0)}</p>
+            <p className="text-sm text-slate-600">Minutes</p>
           </CardContent>
         </Card>
       </div>
