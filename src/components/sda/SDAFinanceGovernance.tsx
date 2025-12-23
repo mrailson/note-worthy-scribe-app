@@ -67,13 +67,13 @@ const insuranceRequirements = [
 ];
 
 const practiceInsuranceChecklist = [
-  { practice: "Weedon Surgery", confirmed: true },
-  { practice: "Long Buckby Practice", confirmed: true },
-  { practice: "Crick Medical Practice", confirmed: false },
-  { practice: "Woodford and Byfield", confirmed: true },
-  { practice: "Danetre Medical Practice", confirmed: true },
-  { practice: "Byfield Medical Centre", confirmed: false },
-  { practice: "Bugbrooke Surgery", confirmed: true },
+  { practice: "Towcester Medical Centre", confirmed: false },
+  { practice: "Brackley Medical Centre", confirmed: false },
+  { practice: "The Parks Medical Practice", confirmed: false },
+  { practice: "Springfield Surgery", confirmed: false },
+  { practice: "Brook Health Centre", confirmed: false },
+  { practice: "Bugbrooke Medical Practice", confirmed: false },
+  { practice: "Denton Village Surgery", confirmed: false },
 ];
 
 export const SDAFinanceGovernance = () => {
