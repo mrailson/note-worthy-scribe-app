@@ -139,190 +139,6 @@ export const SDARisksMitigation = () => {
         
         {/* PML Risk Assessment Framework */}
         <RiskAssessmentGuidance />
-        
-        {/* LES Contract: Top 10 Practice Awareness Points */}
-        <AccordionItem value="les-contract" className="border-0">
-          <Card className="bg-white border-0 shadow-sm border-t-4 border-t-[#005EB8]">
-            <AccordionTrigger className="hover:no-underline px-6 py-4 [&[data-state=open]>div>svg.chevron]:rotate-180">
-              <div className="flex items-center justify-between flex-wrap gap-4 w-full pr-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#005EB8] flex items-center justify-center">
-                    <FileCheck className="w-5 h-5 text-white" />
-                  </div>
-                  <div className="text-left">
-                    <CardTitle className="text-lg font-semibold text-slate-900">LES Contract: Top 10 Practice Awareness Points</CardTitle>
-                    <p className="text-sm text-slate-500">Key issues from the GMS Contract Variation – with ICB clarifications received 18 Dec 2025</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline" className="bg-blue-50 text-[#005EB8] border-[#005EB8]">
-                    Meeting: Brackley 23 Dec 2025
-                  </Badge>
-                  <ChevronDown className="chevron h-5 w-5 text-slate-500 transition-transform duration-200" />
-                </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <CardContent className="space-y-4 pt-0">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
-                  {lesAwarenessPoints.map((point) => {
-                    const IconComponent = point.icon;
-                    return (
-                      <div 
-                        key={point.id}
-                        className="relative bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200"
-                      >
-                        <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-[#005EB8] flex items-center justify-center text-white font-bold text-sm shadow-md">
-                          {point.id}
-                        </div>
-                        <div className="flex items-start gap-3 mt-1">
-                          <IconComponent className="w-5 h-5 text-[#005EB8] flex-shrink-0 mt-0.5" />
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <h4 className="font-semibold text-slate-900">{point.title}</h4>
-                              {point.status === "confirmed" ? (
-                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
-                                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                                  ICB Confirmed
-                                </Badge>
-                              ) : (
-                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
-                                  <AlertCircle className="w-3 h-3 mr-1" />
-                                  Pending
-                                </Badge>
-                              )}
-                            </div>
-                            <p className="text-sm text-slate-700 mt-1">{point.keyPoints}</p>
-                            <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-100">
-                              <p className="text-xs text-blue-800">
-                                <strong>ICB Response:</strong> {point.icbClarification}
-                              </p>
-                            </div>
-                            {point.outstandingQuestion && (
-                              <div className="mt-2 p-2 bg-amber-50 rounded border border-amber-100">
-                                <p className="text-xs text-amber-800 flex items-start gap-1">
-                                  <HelpCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
-                                  <span><strong>Outstanding:</strong> {point.outstandingQuestion}</span>
-                                </p>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                {/* Outstanding Questions Summary */}
-                <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
-                  <div className="flex items-center gap-2 mb-3">
-                    <HelpCircle className="w-5 h-5 text-amber-600" />
-                    <h4 className="font-semibold text-amber-900">Outstanding Questions for Brackley Meeting (23 Dec)</h4>
-                  </div>
-                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    {outstandingQuestions.map((question, index) => (
-                      <li key={index} className="text-sm text-amber-800 flex items-start gap-2">
-                        <span className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 font-semibold text-xs flex-shrink-0">
-                          {index + 1}
-                        </span>
-                        {question}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              </CardContent>
-            </AccordionContent>
-          </Card>
-        </AccordionItem>
-
-        {/* Critical Partner Decisions */}
-        <AccordionItem value="critical-decisions" className="border-0">
-          <Card className="bg-white border-0 shadow-sm border-l-4 border-l-red-500">
-            <AccordionTrigger className="hover:no-underline px-6 py-4 [&[data-state=open]>div>svg.chevron]:rotate-180">
-              <div className="flex items-center justify-between w-full pr-4">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-6 h-6 text-red-500" />
-                  <div className="text-left">
-                    <CardTitle className="text-lg font-semibold text-slate-900">Critical Partner Decisions Required</CardTitle>
-                    <p className="text-sm text-slate-500">Legal & Financial governance issues requiring partner sign-off</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                    2 Critical Items
-                  </Badge>
-                  <ChevronDown className="chevron h-5 w-5 text-slate-500 transition-transform duration-200" />
-                </div>
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <CardContent className="pt-0">
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {/* Legal: GMS Agreement Change */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <FileText className="w-5 h-5 text-red-500" />
-                      <h3 className="text-base font-semibold text-slate-900">Legal: GMS Contract Variation Required</h3>
-                    </div>
-                    <div className="bg-red-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-red-900 mb-2">The Core Issue</h4>
-                      <p className="text-sm text-red-800">
-                        The Neighbourhood Model requires a <strong>formal variation to each practice's GMS contract</strong>. Without this legal sign-off, practices cannot formally participate in shared Hub clinics or pool resources under PML.
-                      </p>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-slate-900 text-sm mb-2">Key Partner Decisions</h4>
-                      <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
-                        <li>Do we need independent legal review before signing?</li>
-                        <li>Do we contract as individual practices or collectively via PML?</li>
-                        <li>What governance protections are needed before signing?</li>
-                        <li>Who has authority to sign on behalf of each partnership?</li>
-                      </ul>
-                    </div>
-                    <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-                      <h4 className="font-semibold text-blue-900 text-sm mb-1">LMC Recommendation</h4>
-                      <p className="text-sm text-blue-700 italic">Awaiting LMC guidance - to be added.</p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="bg-slate-100">GMS Variation</Badge>
-                      <Badge variant="outline" className="bg-slate-100">NHSE Legal</Badge>
-                      <Badge variant="outline" className="bg-slate-100">Partner Sign-off</Badge>
-                    </div>
-                  </div>
-
-                  {/* Financial Governance - PML Funding */}
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <PoundSterling className="w-5 h-5 text-red-500" />
-                      <h3 className="text-base font-semibold text-slate-900">Financial: Centralised PML Funding Model</h3>
-                    </div>
-                    <div className="bg-red-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-red-900 mb-2">The Core Issue</h4>
-                      <p className="text-sm text-red-800">
-                        All practice funding will flow through PML, <strong>not retained by individual practices</strong>. This is a fundamental change to how practices receive and control their income.
-                      </p>
-                    </div>
-                    <div className="bg-slate-50 rounded-lg p-4">
-                      <h4 className="font-semibold text-slate-900 text-sm mb-2">Key Questions for Partners</h4>
-                      <ul className="text-sm text-slate-700 space-y-1 list-disc list-inside">
-                        <li>What happens if practices disagree on spend priorities?</li>
-                        <li>How are practice contributions calculated and tracked?</li>
-                        <li>What is the exit mechanism if a practice leaves?</li>
-                        <li>Who has signatory authority on the pooled fund?</li>
-                        <li>How is transparency of spend ensured?</li>
-                      </ul>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant="outline" className="bg-slate-100">Pooled Funding</Badge>
-                      <Badge variant="outline" className="bg-slate-100">PML Governance</Badge>
-                      <Badge variant="outline" className="bg-slate-100">Exit Clause</Badge>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </AccordionContent>
-          </Card>
-        </AccordionItem>
 
         {/* Project Risks Register */}
         <AccordionItem value="risks-register" className="border-0">
@@ -461,6 +277,101 @@ export const SDARisksMitigation = () => {
                   <p className="text-sm text-purple-700">
                     <strong>{riskSummary.requiresEscalation} risks</strong> have a score of ≥12 and require review by the Programme Board and ICB per the PML Risk Assessment Framework.
                   </p>
+                </div>
+              </CardContent>
+            </AccordionContent>
+          </Card>
+        </AccordionItem>
+        
+        {/* LES Contract: Top 10 Practice Awareness Points */}
+        <AccordionItem value="les-contract" className="border-0">
+          <Card className="bg-white border-0 shadow-sm border-t-4 border-t-[#005EB8]">
+            <AccordionTrigger className="hover:no-underline px-6 py-4 [&[data-state=open]>div>svg.chevron]:rotate-180">
+              <div className="flex items-center justify-between flex-wrap gap-4 w-full pr-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-lg bg-[#005EB8] flex items-center justify-center">
+                    <FileCheck className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="text-left">
+                    <CardTitle className="text-lg font-semibold text-slate-900">LES Contract: Top 10 Practice Awareness Points</CardTitle>
+                    <p className="text-sm text-slate-500">Key issues from the GMS Contract Variation – with ICB clarifications received 18 Dec 2025</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="bg-blue-50 text-[#005EB8] border-[#005EB8]">
+                    Meeting: Brackley 23 Dec 2025
+                  </Badge>
+                  <ChevronDown className="chevron h-5 w-5 text-slate-500 transition-transform duration-200" />
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <CardContent className="space-y-4 pt-0">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
+                  {lesAwarenessPoints.map((point) => {
+                    const IconComponent = point.icon;
+                    return (
+                      <div 
+                        key={point.id}
+                        className="relative bg-gradient-to-br from-slate-50 to-slate-100 rounded-lg p-4 border border-slate-200"
+                      >
+                        <div className="absolute -top-3 -left-3 w-8 h-8 rounded-full bg-[#005EB8] flex items-center justify-center text-white font-bold text-sm shadow-md">
+                          {point.id}
+                        </div>
+                        <div className="flex items-start gap-3 mt-1">
+                          <IconComponent className="w-5 h-5 text-[#005EB8] flex-shrink-0 mt-0.5" />
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <h4 className="font-semibold text-slate-900">{point.title}</h4>
+                              {point.status === "confirmed" ? (
+                                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 text-xs">
+                                  <CheckCircle2 className="w-3 h-3 mr-1" />
+                                  ICB Confirmed
+                                </Badge>
+                              ) : (
+                                <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200 text-xs">
+                                  <AlertCircle className="w-3 h-3 mr-1" />
+                                  Pending
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="text-sm text-slate-700 mt-1">{point.keyPoints}</p>
+                            <div className="mt-2 p-2 bg-blue-50 rounded border border-blue-100">
+                              <p className="text-xs text-blue-800">
+                                <strong>ICB Response:</strong> {point.icbClarification}
+                              </p>
+                            </div>
+                            {point.outstandingQuestion && (
+                              <div className="mt-2 p-2 bg-amber-50 rounded border border-amber-100">
+                                <p className="text-xs text-amber-800 flex items-start gap-1">
+                                  <HelpCircle className="w-3 h-3 flex-shrink-0 mt-0.5" />
+                                  <span><strong>Outstanding:</strong> {point.outstandingQuestion}</span>
+                                </p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Outstanding Questions Summary */}
+                <div className="mt-6 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <HelpCircle className="w-5 h-5 text-amber-600" />
+                    <h4 className="font-semibold text-amber-900">Outstanding Questions for Brackley Meeting (23 Dec)</h4>
+                  </div>
+                  <ul className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    {outstandingQuestions.map((question, index) => (
+                      <li key={index} className="text-sm text-amber-800 flex items-start gap-2">
+                        <span className="w-5 h-5 rounded-full bg-amber-200 flex items-center justify-center text-amber-800 font-semibold text-xs flex-shrink-0">
+                          {index + 1}
+                        </span>
+                        {question}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
               </CardContent>
             </AccordionContent>
