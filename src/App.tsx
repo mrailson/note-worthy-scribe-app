@@ -118,11 +118,31 @@ const App = () => {
               <Route path="/executive-overview" element={<ExecutiveOverview />} />
               <Route path="/demos" element={<DemoVideosPage />} />
               <Route path="/ai-showcase" element={<AIShowcasePage />} />
-              <Route path="/nres" element={<NRESDashboard />} />
-              <Route path="/NRESDashboard" element={<SDADashboard />} />
-              <Route path="/nres-presentation" element={<NRESPresentationPage />} />
-              <Route path="/nres/complex-care" element={<ProactiveComplexCareDashboard />} />
-              <Route path="/nres/comms-strategy" element={<CommsStrategyDashboard />} />
+              <Route path="/nres" element={
+                <ProtectedRoute requiredService="nres">
+                  <NRESDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/NRESDashboard" element={
+                <ProtectedRoute requiredService="nres">
+                  <SDADashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/nres-presentation" element={
+                <ProtectedRoute requiredService="nres">
+                  <NRESPresentationPage />
+                </ProtectedRoute>
+              } />
+              <Route path="/nres/complex-care" element={
+                <ProtectedRoute requiredService="nres">
+                  <ProactiveComplexCareDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/nres/comms-strategy" element={
+                <ProtectedRoute requiredService="nres">
+                  <CommsStrategyDashboard />
+                </ProtectedRoute>
+              } />
               <Route path="/ai4gp" element={<AI4GP />} />
               <Route path="/gp-scribe" element={<GPScribe />} />
               <Route path="/gp-scribe/settings" element={<GPScribeSettings />} />

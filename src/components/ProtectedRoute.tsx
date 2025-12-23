@@ -3,26 +3,44 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { useServiceActivation, ServiceType } from '@/hooks/useServiceActivation';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
   requiredModule?: string;
+  requiredService?: ServiceType;
   fallbackPath?: string;
 }
 
 export const ProtectedRoute = ({ 
   children, 
-  requiredModule, 
+  requiredModule,
+  requiredService,
   fallbackPath = '/' 
 }: ProtectedRouteProps) => {
   const { hasModuleAccess, loading, user, isSystemAdmin } = useAuth();
+  const { hasServiceAccess, isLoading: serviceLoading } = useServiceActivation();
   const navigate = useNavigate();
+
+  const isLoading = loading || serviceLoading;
 
   useEffect(() => {
     // If user is not logged in, redirect to auth page
-    if (!loading && !user) {
+    if (!isLoading && !user) {
       toast.error('Please log in to access this page.');
       navigate('/auth', { replace: true });
+      return;
+    }
+
+    // System admins can access all routes regardless of module/service access
+    if (!isLoading && isSystemAdmin) {
+      return;
+    }
+
+    // Check service access if requiredService is specified
+    if (!isLoading && requiredService && !hasServiceAccess(requiredService)) {
+      toast.error('You do not have access to this service. Please contact your administrator.');
+      navigate(fallbackPath, { replace: true });
       return;
     }
 
@@ -31,13 +49,8 @@ export const ProtectedRoute = ({
       return;
     }
 
-    // System admins can access all routes regardless of module access
-    if (!loading && isSystemAdmin) {
-      return;
-    }
-
     // Check module access if requiredModule is specified
-    if (!loading && !hasModuleAccess(requiredModule)) {
+    if (!isLoading && !hasModuleAccess(requiredModule)) {
       // Special handling for practice manager access
       if (requiredModule === 'practice_manager_access') {
         // Check if user has practice_manager role
@@ -66,9 +79,9 @@ export const ProtectedRoute = ({
       toast.error('You do not have access to this module. Please contact your administrator.');
       navigate(fallbackPath, { replace: true });
     }
-  }, [hasModuleAccess, requiredModule, loading, navigate, fallbackPath, user, isSystemAdmin]);
+  }, [hasModuleAccess, hasServiceAccess, requiredModule, requiredService, isLoading, navigate, fallbackPath, user, isSystemAdmin]);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -83,6 +96,12 @@ export const ProtectedRoute = ({
     return null;
   }
 
+  // Check service access
+  if (requiredService && !isSystemAdmin && !hasServiceAccess(requiredService)) {
+    return null;
+  }
+
+  // Check module access
   if (requiredModule && !isSystemAdmin && !hasModuleAccess(requiredModule)) {
     return null;
   }
