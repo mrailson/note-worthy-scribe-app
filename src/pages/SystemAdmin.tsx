@@ -1126,16 +1126,26 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
         // Upsert activation record (handles case where it already exists)
         const { error } = await supabase
           .from('user_service_activations')
-          .upsert({
-            user_id: editingUser.user_id,
-            service: serviceKey,
-            activated_by: user?.id,
-            activated_at: new Date().toISOString()
-          }, {
-            onConflict: 'user_id,service'
-          });
-        
-        if (error) throw error;
+          .upsert(
+            {
+              user_id: editingUser.user_id,
+              service: serviceKey,
+              activated_by: user?.id,
+              activated_at: new Date().toISOString(),
+            },
+            {
+              onConflict: 'user_id,service',
+            }
+          );
+
+        // If a record already exists, treat as success (defensive guard)
+        if (error) {
+          const msg = (error as any)?.message as string | undefined;
+          const code = (error as any)?.code as string | undefined;
+          const isDuplicate = code === '23505' || msg?.includes('user_service_activations_user_id_service_key');
+          if (!isDuplicate) throw error;
+        }
+
         toast.success(`${serviceKey.toUpperCase()} activated for user`);
       } else {
         // Remove activation record
