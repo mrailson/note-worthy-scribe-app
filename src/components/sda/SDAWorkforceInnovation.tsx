@@ -87,6 +87,7 @@ export const SDAWorkforceInnovation = () => {
   return (
     <div className="space-y-6">
       {/* Proposed Job Adverts for Board Approval */}
+      <div id="job-adverts-section">
       <CollapsibleCard
         title="Proposed Job Adverts for Programme Board Approval"
         icon={<Briefcase className="w-5 h-5" />}
@@ -190,6 +191,7 @@ export const SDAWorkforceInnovation = () => {
           </div>
         </div>
       </CollapsibleCard>
+      </div>
 
       {/* Job Description Templates */}
       <CollapsibleCard
@@ -231,29 +233,25 @@ export const SDAWorkforceInnovation = () => {
                 <p className="text-4xl font-bold text-[#005EB8]">8.5</p>
                 <p className="font-semibold text-slate-900 mt-1">GP WTE Sessions</p>
                 <p className="text-sm text-slate-500">Assumes 12 appointments per session.</p>
-                <a 
-                  href="https://www.jobs.nhs.uk/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-2 text-sm text-[#005EB8] hover:underline"
+                <button 
+                  onClick={() => document.getElementById('job-adverts-section')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="inline-flex items-center gap-1 mt-2 text-sm text-[#005EB8] hover:underline cursor-pointer"
                 >
                   <ExternalLink className="w-3 h-3" />
                   NHS Jobs
-                </a>
+                </button>
               </div>
               <div className="bg-cyan-50 rounded-xl p-4 text-center">
                 <p className="text-4xl font-bold text-cyan-600">6.9</p>
                 <p className="font-semibold text-slate-900 mt-1">ACP WTE Sessions</p>
                 <p className="text-sm text-slate-500">Advanced Clinical Practitioners (Prescribing).</p>
-                <a 
-                  href="https://www.jobs.nhs.uk/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 mt-2 text-sm text-cyan-600 hover:underline"
+                <button 
+                  onClick={() => document.getElementById('job-adverts-section')?.scrollIntoView({ behavior: 'smooth' })}
+                  className="inline-flex items-center gap-1 mt-2 text-sm text-cyan-600 hover:underline cursor-pointer"
                 >
                   <ExternalLink className="w-3 h-3" />
                   NHS Jobs
-                </a>
+                </button>
               </div>
             </div>
 
