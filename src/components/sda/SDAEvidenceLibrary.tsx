@@ -134,7 +134,7 @@ export const SDAEvidenceLibrary = () => {
                         <FolderIcon className="w-5 h-5 text-[#005EB8]" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold text-slate-900">Meeting {meeting.id}</p>
+                        <p className="font-semibold text-slate-900">December 23rd 2025 - Brackley Medical Centre</p>
                         <p className="text-sm text-slate-500">{meeting.date} • {meeting.location}</p>
                       </div>
                       <div className="flex items-center gap-2">
