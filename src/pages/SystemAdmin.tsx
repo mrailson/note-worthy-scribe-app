@@ -1123,14 +1123,16 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     
     try {
       if (enabled) {
-        // Insert activation record
+        // Upsert activation record (handles case where it already exists)
         const { error } = await supabase
           .from('user_service_activations')
-          .insert({
+          .upsert({
             user_id: editingUser.user_id,
             service: serviceKey,
             activated_by: user?.id,
             activated_at: new Date().toISOString()
+          }, {
+            onConflict: 'user_id,service'
           });
         
         if (error) throw error;
