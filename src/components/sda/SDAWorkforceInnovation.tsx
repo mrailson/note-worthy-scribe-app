@@ -205,7 +205,7 @@ export const SDAWorkforceInnovation = () => {
           </div>
           <div className="bg-purple-50 rounded-lg p-4 text-center border border-purple-200">
             <p className="text-2xl font-bold text-purple-700">1</p>
-            <p className="text-sm text-purple-600">Paediatric ANP</p>
+            <p className="text-sm text-purple-600">ACP Role Type</p>
           </div>
         </div>
       </CollapsibleCard>
