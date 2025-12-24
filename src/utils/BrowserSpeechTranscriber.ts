@@ -13,6 +13,7 @@ export interface TranscriptData {
 export class BrowserSpeechTranscriber {
   private recognition: SpeechRecognition | null = null;
   private isRecording = false;
+  private isPaused = false;
   private chunkCounter = 0;
   private restartTimeout: NodeJS.Timeout | null = null;
   private isRestarting = false;
@@ -163,11 +164,11 @@ export class BrowserSpeechTranscriber {
       };
 
       this.recognition.onend = () => {
-        if (this.isRecording && !this.isRestarting) {
+        if (this.isRecording && !this.isRestarting && !this.isPaused) {
           console.log('🔄 Speech recognition ended, restarting...');
           this.scheduleRestart();
         } else {
-          console.log('🛑 Speech recognition ended (stopped by user or restart in progress)');
+          console.log('🛑 Speech recognition ended (stopped by user, paused, or restart in progress)');
         }
       };
 
@@ -195,11 +196,13 @@ export class BrowserSpeechTranscriber {
 
   pauseTranscription() {
     console.log('⏸️ Pausing browser speech recognition...');
+    this.isPaused = true;
     this.clearRestartTimeout();
     this.isRestarting = false;
     
     if (this.recognition) {
       this.recognition.stop();
+      this.recognition = null;
     }
     
     this.onStatusChange('Paused');
@@ -207,7 +210,8 @@ export class BrowserSpeechTranscriber {
 
   resumeTranscription() {
     console.log('▶️ Resuming browser speech recognition...');
-    if (this.isRecording && !this.recognition) {
+    if (this.isRecording && this.isPaused) {
+      this.isPaused = false;
       this.startTranscription();
     }
   }
