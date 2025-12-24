@@ -146,11 +146,8 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
       
       <CardContent>
         <div className="space-y-4">
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-3 text-sm">
-            <p className="font-medium text-blue-900 mb-1">VPN Alternative Login</p>
-            <p className="text-blue-700">
-              Having trouble with your corporate VPN? Request a secure magic link that bypasses network restrictions.
-            </p>
+          <div className="text-sm text-muted-foreground text-center">
+            Enter your NHS email address and we'll send you a secure magic link to sign in instantly.
           </div>
 
           <div className="space-y-2">
