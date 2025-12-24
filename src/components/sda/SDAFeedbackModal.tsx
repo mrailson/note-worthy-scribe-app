@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Send } from "lucide-react";
+import { Loader2, Send, Mic, MicOff, Square } from "lucide-react";
 import { format } from "date-fns";
 
 interface SDAFeedbackModalProps {
@@ -26,7 +26,89 @@ const sectionLabels: Record<string, string> = {
 export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeedbackModalProps) => {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
   const { toast } = useToast();
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const audioChunksRef = useRef<Blob[]>([]);
+
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
+      mediaRecorderRef.current = mediaRecorder;
+      audioChunksRef.current = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) {
+          audioChunksRef.current.push(event.data);
+        }
+      };
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
+        stream.getTracks().forEach(track => track.stop());
+        await transcribeAudio(audioBlob);
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      
+      toast({
+        title: "Recording started",
+        description: "Speak now. Click the stop button when finished.",
+      });
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      toast({
+        title: "Microphone access denied",
+        description: "Please allow microphone access to use voice input.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current && isRecording) {
+      mediaRecorderRef.current.stop();
+      setIsRecording(false);
+    }
+  };
+
+  const transcribeAudio = async (audioBlob: Blob) => {
+    setIsTranscribing(true);
+    try {
+      const reader = new FileReader();
+      reader.readAsDataURL(audioBlob);
+      
+      reader.onloadend = async () => {
+        const base64Audio = (reader.result as string).split(',')[1];
+        
+        const { data, error } = await supabase.functions.invoke("voice-to-text", {
+          body: { audio: base64Audio },
+        });
+
+        if (error) throw error;
+
+        if (data?.text) {
+          setMessage(prev => prev ? `${prev} ${data.text}` : data.text);
+          toast({
+            title: "Transcription complete",
+            description: "Your voice has been converted to text.",
+          });
+        }
+        setIsTranscribing(false);
+      };
+    } catch (error) {
+      console.error("Error transcribing audio:", error);
+      toast({
+        title: "Transcription failed",
+        description: "Could not convert voice to text. Please try again.",
+        variant: "destructive",
+      });
+      setIsTranscribing(false);
+    }
+  };
 
   const handleSubmit = async () => {
     if (!message.trim()) {
@@ -119,18 +201,58 @@ export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeed
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-4 pt-2">
-          <Textarea
-            placeholder="Describe your feedback or the problem you're experiencing..."
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            rows={5}
-            className="resize-none"
-          />
+          <div className="relative rounded-lg border-2 border-[#005EB8]/30 focus-within:border-[#005EB8] transition-colors bg-background">
+            <Textarea
+              placeholder="Describe your feedback or the problem you're experiencing..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              rows={5}
+              className="resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 pr-12"
+              disabled={isTranscribing}
+            />
+            <div className="absolute right-2 top-2">
+              {isTranscribing ? (
+                <div className="flex items-center justify-center h-9 w-9">
+                  <Loader2 className="h-5 w-5 animate-spin text-[#005EB8]" />
+                </div>
+              ) : isRecording ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={stopRecording}
+                  className="h-9 w-9 rounded-full bg-red-500 hover:bg-red-600 text-white animate-pulse"
+                >
+                  <Square className="h-4 w-4" />
+                </Button>
+              ) : (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={startRecording}
+                  className="h-9 w-9 rounded-full hover:bg-[#005EB8]/10 text-[#005EB8]"
+                  title="Click to record voice feedback"
+                >
+                  <Mic className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
+          </div>
+          {isRecording && (
+            <p className="text-sm text-red-500 flex items-center gap-2">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              Recording... Click the stop button when finished.
+            </p>
+          )}
           <div className="flex justify-end gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting || isRecording}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting}>
+            <Button onClick={handleSubmit} disabled={isSubmitting || isRecording || isTranscribing}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
