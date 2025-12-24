@@ -376,35 +376,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const redirectUrl = `${window.location.origin}/reset-password`;
     
     try {
-      // First, generate the reset token via Supabase (this will fail to send email due to SMTP issues)
-      // But it will create the token in the database
-      const { data, error: supabaseError } = await supabase.auth.resetPasswordForEmail(email, {
+      // Use Supabase's built-in password reset - configure SMTP in Supabase dashboard to use Resend
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl
       });
       
-      // Even if Supabase email fails, we'll send via Resend
-      // The Supabase call generates the token, and we use our edge function for the email
-      
-      // Now send the email via our Resend-based edge function
-      const { data: functionData, error: functionError } = await supabase.functions.invoke('send-password-reset-email', {
-        body: {
-          email: email,
-          reset_link: redirectUrl,
-          user_name: email.split('@')[0]
-        }
-      });
-      
-      if (functionError) {
-        console.error("Password reset email failed:", functionError.message);
-        return { error: functionError };
+      if (error) {
+        console.error("Password reset failed:", error.message);
+        return { error };
       }
       
-      if (functionData && !functionData.success) {
-        console.error("Password reset email failed:", functionData.error);
-        return { error: { message: functionData.error || "Failed to send reset email" } };
-      }
-      
-      console.log("Password reset email sent successfully via Resend");
+      console.log("Password reset email sent successfully");
       return { error: null };
     } catch (err: any) {
       console.error("Password reset error:", err);
