@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { Resend } from "npm:resend@2.0.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -21,62 +22,86 @@ const handler = async (req: Request): Promise<Response> => {
   try {
     const { email, reset_link, user_name }: PasswordResetRequest = await req.json();
 
-    // Get EmailJS credentials from Supabase secrets
-    const serviceId = Deno.env.get("EMAILJS_SERVICE_ID");
-    const templateId = Deno.env.get("EMAILJS_TEMPLATE_ID");
-    const publicKey = Deno.env.get("EMAILJS_PUBLIC_KEY");
-    const privateKey = Deno.env.get("EMAILJS_PRIVATE_KEY");
+    // Get Resend API key from Supabase secrets
+    const resendApiKey = Deno.env.get("RESEND_API_KEY");
 
-    if (!serviceId || !templateId || !publicKey) {
-      throw new Error("EmailJS credentials not configured");
+    if (!resendApiKey) {
+      console.error("RESEND_API_KEY not configured");
+      throw new Error("Email service not configured");
     }
 
-    // Prepare the EmailJS API request
-    const emailjsUrl = "https://api.emailjs.com/api/v1.0/email/send";
-    
-    const payload = {
-      service_id: serviceId,
-      template_id: templateId,
-      user_id: publicKey,
-      accessToken: privateKey,
-      template_params: {
-        to_email: email,
-        user_name: user_name || email.split('@')[0],
-        reset_link: reset_link,
-        from_name: "Notewell AI Support"
-      }
-    };
+    const resend = new Resend(resendApiKey);
 
-    console.log("Sending password reset email via EmailJS:", { 
-      service_id: serviceId, 
-      template_id: templateId,
-      to_email: email 
+    const displayName = user_name || email.split('@')[0];
+
+    console.log("Sending password reset email via Resend:", { 
+      to_email: email,
+      user_name: displayName
     });
 
-    // Send email via EmailJS API with User-Agent header to bypass server-side restrictions
-    const emailjsResponse = await fetch(emailjsUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-        "Origin": "https://notewell.ai",
-        "Referer": "https://notewell.ai/"
-      },
-      body: JSON.stringify(payload),
+    const { data, error } = await resend.emails.send({
+      from: "Notewell AI <noreply@bluepcn.co.uk>",
+      to: [email],
+      subject: "Reset Your Notewell AI Password",
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        </head>
+        <body style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <div style="background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%); padding: 30px; border-radius: 12px 12px 0 0; text-align: center;">
+            <h1 style="color: white; margin: 0; font-size: 24px;">🔐 Password Reset Request</h1>
+          </div>
+          
+          <div style="background: #f8fafc; padding: 30px; border: 1px solid #e2e8f0; border-top: none; border-radius: 0 0 12px 12px;">
+            <p style="margin-top: 0;">Hello ${displayName},</p>
+            
+            <p>We received a request to reset your password for your Notewell AI account. Click the button below to create a new password:</p>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${reset_link}" style="display: inline-block; background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%); color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                Reset My Password
+              </a>
+            </div>
+            
+            <p style="color: #64748b; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="background: #e2e8f0; padding: 12px; border-radius: 6px; word-break: break-all; font-size: 12px; color: #475569;">
+              ${reset_link}
+            </p>
+            
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+            
+            <div style="color: #64748b; font-size: 13px;">
+              <p style="margin: 8px 0;">⏰ This link will expire in 1 hour</p>
+              <p style="margin: 8px 0;">🔒 If you didn't request this reset, you can safely ignore this email</p>
+              <p style="margin: 8px 0;">❓ Having trouble? Contact your system administrator</p>
+            </div>
+            
+            <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;">
+            
+            <p style="color: #94a3b8; font-size: 12px; text-align: center; margin-bottom: 0;">
+              This email was sent by Notewell AI<br>
+              NHS Meeting Notes & Practice Management
+            </p>
+          </div>
+        </body>
+        </html>
+      `,
     });
 
-    if (!emailjsResponse.ok) {
-      const errorText = await emailjsResponse.text();
-      console.error("EmailJS API error:", errorText);
-      throw new Error(`EmailJS API error: ${emailjsResponse.status} - ${errorText}`);
+    if (error) {
+      console.error("Resend API error:", error);
+      throw new Error(`Email sending failed: ${error.message}`);
     }
 
-    const result = await emailjsResponse.text();
-    console.log("EmailJS response:", result);
+    console.log("Resend response:", data);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      message: "Password reset email sent successfully via EmailJS"
+      message: "Password reset email sent successfully via Resend",
+      id: data?.id
     }), {
       status: 200,
       headers: {
