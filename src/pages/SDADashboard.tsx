@@ -29,7 +29,7 @@ const SDADashboard = () => {
       
       {/* Hero Header */}
       <div className="bg-gradient-to-r from-[#005EB8] via-[#003087] to-[#002060] text-white">
-        <div className="container mx-auto px-4 py-8">
+        <div className="max-w-[1800px] w-full mx-auto px-4 py-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
               <p className="text-blue-200 text-sm font-medium tracking-wider uppercase mb-1">
@@ -54,7 +54,7 @@ const SDADashboard = () => {
       </div>
 
       {/* Tab Navigation */}
-      <div className="container mx-auto px-4 -mt-4">
+      <div className="max-w-[1800px] w-full mx-auto px-4 -mt-4">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="w-full h-auto flex flex-wrap justify-start gap-1 bg-white/80 backdrop-blur-sm shadow-lg rounded-xl p-2 border border-slate-200">
             <TabsTrigger 
