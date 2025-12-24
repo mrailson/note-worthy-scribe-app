@@ -286,45 +286,41 @@ export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrow
   };
 
   return (
-    <div className={cn('flex items-center gap-1', className)}>
-      <div className="relative">
-        <Button
-          variant={micState === 'idle' ? 'ghost' : 'default'}
-          size="sm"
-          className={cn(
-            "h-20 w-20 p-0 transition-all duration-200 rounded-lg",
-            getButtonStyles()
-          )}
-          onClick={handleMainClick}
-          disabled={disabled}
-          title={getTooltip()}
-          aria-pressed={micState !== 'idle'}
-        >
-          {renderContent()}
-        </Button>
-
-        {/* Stop button - shown when recording or muted */}
-        {micState !== 'idle' && (
-          <Button
-            variant="destructive"
-            size="sm"
-            className="absolute -top-1 -right-1 h-6 w-6 p-0 rounded-full shadow-md"
-            onClick={stopRecording}
-            title="Stop recording"
-          >
-            <X className="w-3 h-3" />
-          </Button>
+    <div className={cn('relative', className)}>
+      <Button
+        variant={micState === 'idle' ? 'ghost' : 'default'}
+        size="sm"
+        className={cn(
+          "h-20 w-20 p-0 transition-all duration-200 rounded-lg",
+          getButtonStyles()
         )}
-      </div>
+        onClick={handleMainClick}
+        disabled={disabled}
+        title={getTooltip()}
+        aria-pressed={micState !== 'idle'}
+      >
+        <div className="flex flex-col items-center justify-center gap-1">
+          {renderContent()}
+          {/* State label inside button */}
+          {micState !== 'idle' && (
+            <span className="text-[10px] font-medium opacity-90">
+              {micState === 'recording' ? 'Recording' : 'Muted'}
+            </span>
+          )}
+        </div>
+      </Button>
 
-      {/* State label */}
+      {/* Stop button - shown when recording or muted */}
       {micState !== 'idle' && (
-        <span className={cn(
-          "text-xs font-medium px-2 py-1 rounded",
-          micState === 'recording' ? "text-red-600 bg-red-50" : "text-amber-600 bg-amber-50"
-        )}>
-          {micState === 'recording' ? 'Recording' : 'Muted'}
-        </span>
+        <Button
+          variant="destructive"
+          size="sm"
+          className="absolute -top-1 -right-1 h-6 w-6 p-0 rounded-full shadow-md"
+          onClick={stopRecording}
+          title="Stop recording"
+        >
+          <X className="w-3 h-3" />
+        </Button>
       )}
     </div>
   );
