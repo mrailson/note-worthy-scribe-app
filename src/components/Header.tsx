@@ -39,6 +39,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const [managementOpen, setManagementOpen] = useState(false);
   const [resourcesOpen, setResourcesOpen] = useState(false);
   const [adminOpen, setAdminOpen] = useState(false);
+  const [nresOpen, setNresOpen] = useState(false);
   const [hideGPClinical, setHideGPClinical] = useState(false);
   const [isOakLaneNonAdmin, setIsOakLaneNonAdmin] = useState(false);
   
@@ -656,6 +657,32 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                )}
                             </CollapsibleContent>
                           </Collapsible>
+
+                          {/* NRES Collapsible - Only show if user has access */}
+                          {hasServiceAccess('nres') && (
+                            <Collapsible open={nresOpen} onOpenChange={setNresOpen}>
+                              <CollapsibleTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  className="justify-between w-full font-semibold"
+                                >
+                                  <span className="flex items-center">
+                                    <Building2 className="h-4 w-4 mr-2" />
+                                    NRES
+                                  </span>
+                                  <ChevronRight className={`h-4 w-4 transition-transform ${nresOpen ? 'rotate-90' : ''}`} />
+                                </Button>
+                              </CollapsibleTrigger>
+                              <CollapsibleContent className="pl-6 space-y-1 mt-1">
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/NRESDashboard')}>
+                                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                                    SDA Programme Board
+                                  </Button>
+                                </DrawerClose>
+                              </CollapsibleContent>
+                            </Collapsible>
+                          )}
 
                           {/* Resources Collapsible */}
                           <Collapsible open={resourcesOpen} onOpenChange={setResourcesOpen}>
