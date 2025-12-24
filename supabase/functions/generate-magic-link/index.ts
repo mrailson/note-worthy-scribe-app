@@ -42,7 +42,7 @@ const handler = async (req: Request): Promise<Response> => {
       type: "magiclink",
       email: email,
       options: {
-        redirectTo: "https://notewell.dialai.co.uk/",
+        redirectTo: "https://gpnotewell.co.uk/",
       },
     });
 
