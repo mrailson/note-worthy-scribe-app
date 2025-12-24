@@ -80,10 +80,12 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     
     if (currentMessageCount > previousMessageCountRef.current) {
       // New message added, scroll to bottom
-      virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' });
+      requestAnimationFrame(() => {
+        virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' });
+      });
       previousMessageCountRef.current = currentMessageCount;
     }
-  }, [messages.length, virtualizer]);
+  }, [messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep scroll at bottom during streaming
   useEffect(() => {
@@ -91,11 +93,13 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     if (lastMessage?.isStreaming) {
       // Debounced scroll during streaming - only scroll every 500ms max
       const scrollTimeout = setTimeout(() => {
-        virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
+        requestAnimationFrame(() => {
+          virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
+        });
       }, 100);
       return () => clearTimeout(scrollTimeout);
     }
-  }, [messages, virtualizer]);
+  }, [messages.length, messages[messages.length - 1]?.isStreaming]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Memoize the virtual items to prevent recalculation
   const virtualItems = virtualizer.getVirtualItems();
