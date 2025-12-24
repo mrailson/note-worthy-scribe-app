@@ -136,6 +136,14 @@ export const SDAWorkforceInnovation = () => {
                 >
                   Indeed: ANP Advert (Live)
                 </a>
+                <a 
+                  href="https://uk.indeed.com/viewjob?jk=975074cba816dd04&from=shareddesktop_copy" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm bg-white px-3 py-1.5 rounded border border-green-300 text-green-700 hover:bg-green-100 transition-colors"
+                >
+                  Indeed: ACP Advert (Live)
+                </a>
               </div>
             </div>
           </div>
