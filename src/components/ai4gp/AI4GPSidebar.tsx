@@ -237,7 +237,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
 
           {/* Recent Meetings */}
           {!isCollapsed && (
-            <p className="text-xs text-muted-foreground px-2 mb-2 font-medium">Recent Meetings</p>
+            <p className="text-xs text-muted-foreground px-2 mb-2 font-medium">My Recent Meetings</p>
           )}
           {isCollapsed ? (
             <TooltipProvider delayDuration={0}>
