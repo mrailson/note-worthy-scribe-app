@@ -585,6 +585,14 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   LG Capture
                                 </Button>
                               </DrawerClose>
+                              {hasServiceAccess('nres') && (
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/NRESDashboard')}>
+                                    <LayoutDashboard className="h-4 w-4 mr-2" />
+                                    NRES Dashboard
+                                  </Button>
+                                </DrawerClose>
+                              )}
                             </CollapsibleContent>
                           </Collapsible>
 
