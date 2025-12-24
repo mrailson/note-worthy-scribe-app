@@ -5,15 +5,17 @@ import { HubConsultation } from "@/types/nresTypes";
 import { StatusBadge } from "./StatusBadge";
 import { format } from "date-fns";
 import { useState } from "react";
-import { Search, ArrowUpDown } from "lucide-react";
+import { Search, ArrowUpDown, Clock, Building2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 
 interface ConsultationsTableProps {
   consultations: HubConsultation[];
   onRowClick: (consultation: HubConsultation) => void;
+  isIPhone?: boolean;
 }
 
-export const ConsultationsTable = ({ consultations, onRowClick }: ConsultationsTableProps) => {
+export const ConsultationsTable = ({ consultations, onRowClick, isIPhone = false }: ConsultationsTableProps) => {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [practiceFilter, setPracticeFilter] = useState<string>('all');
@@ -49,6 +51,100 @@ export const ConsultationsTable = ({ consultations, onRowClick }: ConsultationsT
     }
   };
 
+  // Mobile card-based view for iPhone
+  if (isIPhone) {
+    return (
+      <div className="space-y-3">
+        {/* Filters - stacked vertically on iPhone */}
+        <div className="space-y-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search patients, tests..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10 text-sm"
+            />
+          </div>
+
+          <div className="flex gap-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="flex-1 text-sm">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="critical">Critical</SelectItem>
+                <SelectItem value="overdue">Overdue</SelectItem>
+                <SelectItem value="pending">Pending</SelectItem>
+                <SelectItem value="reviewed">Reviewed</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={practiceFilter} onValueChange={setPracticeFilter}>
+              <SelectTrigger className="flex-1 text-sm">
+                <SelectValue placeholder="Practice" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Practices</SelectItem>
+                {uniquePractices.map(practice => (
+                  <SelectItem key={practice} value={practice}>{practice}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Consultation Cards */}
+        <div className="space-y-2">
+          {filteredConsultations.length === 0 ? (
+            <Card className="p-4 text-center text-muted-foreground text-sm">
+              No consultations found
+            </Card>
+          ) : (
+            filteredConsultations.map(consultation => (
+              <Card 
+                key={consultation.id}
+                className="p-3 cursor-pointer hover:bg-[#F0F4F5] transition-colors active:scale-[0.98]"
+                onClick={() => onRowClick(consultation)}
+              >
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="font-semibold text-sm">{consultation.patientInitials}</p>
+                    <p className="text-xs text-muted-foreground">{consultation.patientDOB}</p>
+                  </div>
+                  <StatusBadge status={consultation.status} />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <Building2 className="h-3 w-3" />
+                    <span className="truncate">{consultation.homePractice}</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <Clock className="h-3 w-3" />
+                    <span className="font-medium text-foreground">{consultation.hoursElapsed}h elapsed</span>
+                  </div>
+                </div>
+                
+                <div className="mt-2 pt-2 border-t text-xs text-muted-foreground">
+                  <span>{consultation.testType}</span>
+                  <span className="mx-2">•</span>
+                  <span>{format(consultation.receivedAt, 'HH:mm dd/MM')}</span>
+                </div>
+              </Card>
+            ))
+          )}
+        </div>
+
+        <div className="text-xs text-muted-foreground text-center">
+          Showing {filteredConsultations.length} of {consultations.length}
+        </div>
+      </div>
+    );
+  }
+
+  // Desktop table view
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap gap-3">

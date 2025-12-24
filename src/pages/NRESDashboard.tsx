@@ -16,9 +16,11 @@ import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Link } from "react-router-dom";
+import { useIsIPhone } from "@/hooks/use-mobile";
 
 const NRESDashboard = () => {
   const { toast } = useToast();
+  const isIPhone = useIsIPhone();
   const [selectedPractice, setSelectedPractice] = useState('All Practices');
   const [dateRange, setDateRange] = useState('today');
   const [consultations, setConsultations] = useState(mockConsultations);
@@ -57,10 +59,10 @@ const NRESDashboard = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#F0F4F5]">
+    <div className={`min-h-screen bg-[#F0F4F5] ${isIPhone ? 'pb-safe' : ''}`}>
       <Header />
       
-      <div className="container mx-auto px-4 py-6 space-y-6">
+      <div className={`container mx-auto py-6 space-y-4 ${isIPhone ? 'px-2' : 'px-4 space-y-6'}`}>
         {/* Mock-up Warning Banner */}
         <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800">
           <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
@@ -85,6 +87,7 @@ const NRESDashboard = () => {
           dateRange={dateRange}
           onDateRangeChange={setDateRange}
           onManualRefresh={handleRefresh}
+          isIPhone={isIPhone}
         />
 
         {/* Metric Cards Row - Collapsible */}
@@ -100,8 +103,9 @@ const NRESDashboard = () => {
               subtitle="Awaiting review"
               tooltip="Total number of hub consultation results currently awaiting GP review. Includes all pending, overdue, and critical results."
               variant="default"
-              icon={<FileText className="h-8 w-8" />}
+              icon={<FileText className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
               onClick={() => setWorkflowModalOpen(true)}
+              isCompact={isIPhone}
             />
             
             <MetricCard
@@ -110,9 +114,10 @@ const NRESDashboard = () => {
               subtitle="Require urgent action"
               tooltip="Results overdue for review (>48 hours). These require immediate attention and have triggered automated escalation protocols."
               variant={filteredMetrics.overdue > 0 ? "danger" : "success"}
-              icon={<AlertTriangle className="h-8 w-8" />}
+              icon={<AlertTriangle className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
               pulse={filteredMetrics.overdue > 0}
               onClick={() => {}}
+              isCompact={isIPhone}
             />
 
             <MetricCard
@@ -121,9 +126,10 @@ const NRESDashboard = () => {
               subtitle="Target: 95%"
               tooltip="Percentage of results reviewed within 48 hours. ICB target is 95% compliance. Current performance is tracked in real-time."
               variant={filteredMetrics.onTimePercentage >= 95 ? "success" : "warning"}
-              icon={<TrendingUp className="h-8 w-8" />}
+              icon={<TrendingUp className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
               trend={filteredMetrics.trend}
               onClick={() => {}}
+              isCompact={isIPhone}
             />
 
             <MetricCard
@@ -132,8 +138,9 @@ const NRESDashboard = () => {
               subtitle="consecutive days"
               tooltip="Days since last lost result. Every hub consultation result is automatically tracked from receipt to review. Mathematical impossibility of lost results with this system."
               variant="success"
-              icon={<CheckCircle2 className="h-8 w-8" />}
+              icon={<CheckCircle2 className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
               onClick={() => {}}
+              isCompact={isIPhone}
             />
           </div>
         </CollapsibleCard>
@@ -159,6 +166,7 @@ const NRESDashboard = () => {
           <ConsultationsTable
             consultations={filteredConsultations}
             onRowClick={handleConsultationClick}
+            isIPhone={isIPhone}
           />
         </CollapsibleCard>
 
@@ -169,7 +177,7 @@ const NRESDashboard = () => {
             icon={<BarChart3 className="h-5 w-5" />}
             defaultOpen={true}
           >
-            <PerformanceChart data={mockPracticePerformance} />
+            <PerformanceChart data={mockPracticePerformance} isIPhone={isIPhone} />
           </CollapsibleCard>
           
           <CollapsibleCard 

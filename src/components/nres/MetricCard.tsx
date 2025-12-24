@@ -13,6 +13,7 @@ interface MetricCardProps {
   icon?: React.ReactNode;
   onClick?: () => void;
   pulse?: boolean;
+  isCompact?: boolean;
 }
 
 export const MetricCard = ({ 
@@ -24,7 +25,8 @@ export const MetricCard = ({
   variant = 'default',
   icon,
   onClick,
-  pulse = false
+  pulse = false,
+  isCompact = false
 }: MetricCardProps) => {
   const variantStyles = {
     default: 'border-border hover:border-[#005EB8]',
@@ -43,44 +45,45 @@ export const MetricCard = ({
   return (
     <Card 
       className={cn(
-        'p-6 transition-all hover:shadow-lg border-2',
+        'transition-all hover:shadow-lg border-2',
+        isCompact ? 'p-3' : 'p-6',
         variantStyles[variant],
         onClick && 'cursor-pointer',
         pulse && 'animate-pulse'
       )}
       onClick={onClick}
     >
-      <div className="flex items-start justify-between mb-3">
-        <h3 className="text-sm font-medium text-muted-foreground">{title}</h3>
+      <div className={`flex items-start justify-between ${isCompact ? 'mb-2' : 'mb-3'}`}>
+        <h3 className={`font-medium text-muted-foreground ${isCompact ? 'text-xs' : 'text-sm'}`}>{title}</h3>
         <InfoTooltip content={tooltip} />
       </div>
       
-      <div className="flex items-center gap-3 mb-2">
+      <div className={`flex items-center ${isCompact ? 'gap-2 mb-1' : 'gap-3 mb-2'}`}>
         {icon && <div className="text-[#005EB8]">{icon}</div>}
-        <div className={cn('text-5xl font-bold', valueColors[variant])}>
+        <div className={cn(isCompact ? 'text-3xl' : 'text-5xl', 'font-bold', valueColors[variant])}>
           {value}
         </div>
       </div>
 
       {subtitle && (
-        <p className="text-sm text-muted-foreground mb-2">{subtitle}</p>
+        <p className={`text-muted-foreground ${isCompact ? 'text-xs mb-1' : 'text-sm mb-2'}`}>{subtitle}</p>
       )}
 
       {trend && (
-        <div className="flex items-center gap-1 text-sm">
+        <div className={`flex items-center gap-1 ${isCompact ? 'text-xs' : 'text-sm'}`}>
           {trend === 'up' ? (
             <>
-              <TrendingUp className="h-4 w-4 text-[#007F3B]" />
+              <TrendingUp className={isCompact ? "h-3 w-3 text-[#007F3B]" : "h-4 w-4 text-[#007F3B]"} />
               <span className="text-[#007F3B]">Improving</span>
             </>
           ) : trend === 'down' ? (
             <>
-              <TrendingDown className="h-4 w-4 text-[#DA291C]" />
+              <TrendingDown className={isCompact ? "h-3 w-3 text-[#DA291C]" : "h-4 w-4 text-[#DA291C]"} />
               <span className="text-[#DA291C]">Needs attention</span>
             </>
           ) : (
             <>
-              <CheckCircle2 className="h-4 w-4 text-[#005EB8]" />
+              <CheckCircle2 className={isCompact ? "h-3 w-3 text-[#005EB8]" : "h-4 w-4 text-[#005EB8]"} />
               <span className="text-[#005EB8]">Stable</span>
             </>
           )}
