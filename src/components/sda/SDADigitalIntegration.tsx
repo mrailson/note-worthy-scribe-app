@@ -8,17 +8,17 @@ import gpConnectSystmoneConfig from "@/assets/gp-connect-systmone-config.png";
 
 // Digital Task and Finish Action Log Data
 const digitalTfActions = [
-  { id: 2, description: "Scope the cost and level of work required for GP system write-back into NARP re patient PNG flags", owner: "Matt Hutton", dueDate: "", status: "In progress", dateCompleted: "" },
-  { id: 3, description: "Scope options around a manual vs automatic patient flagging mechanism", owner: "Matt Hutton", dueDate: "", status: "In progress", dateCompleted: "" },
-  { id: 4, description: "Work up the potential costs of additional ICE licenses, or complexities where an individual works across multiple surgeries", owner: "Clare Craven", dueDate: "", status: "In progress", dateCompleted: "" },
-  { id: 5, description: "Add a member from the PCT to the T&F group", owner: "Ellie Wagg", dueDate: "", status: "In progress", dateCompleted: "" },
-  { id: 7, description: "Work through the technical capability within ICE re routing for results", owner: "Clare Craven", dueDate: "", status: "In progress", dateCompleted: "" },
-  { id: 8, description: "Review the SLAs in place for ICE account creation and management.", owner: "Clare Craven", dueDate: "", status: "In progress", dateCompleted: "" },
-  { id: 9, description: "Set up a futures page to host shared documents", owner: "Kirstie Watson", dueDate: "", status: "", dateCompleted: "" },
-  { id: 11, description: "Clarify if the True Hub model requires separate CQC registration and how it impacts reporting", owner: "Ellie Wagg", dueDate: "", status: "", dateCompleted: "" },
-  { id: 12, description: "CM speaking to Oxford colleges to ensure that OUH can see Northamptonshire SC records", owner: "Claire Mansfield", dueDate: "", status: "", dateCompleted: "" },
-  { id: 13, description: "Malcolm and Sue to share estimate of staffing numbers for ICE licenses (see ref 4)", owner: "Malcolm Railson/Sue Williams", dueDate: "", status: "In progress", dateCompleted: "" },
-  { id: 14, description: "Malcolm and Sue to share SOP for test results (see ref 7)", owner: "", dueDate: "", status: "", dateCompleted: "" },
+  { id: 2, description: "Scope the cost and level of work required for GP system write-back into NARP re patient PNG flags", owner: "Matt Hutton", organisation: "ICB", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 3, description: "Scope options around a manual vs automatic patient flagging mechanism", owner: "Matt Hutton", organisation: "ICB", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 4, description: "Work up the potential costs of additional ICE licenses, or complexities where an individual works across multiple surgeries", owner: "Clare Craven", organisation: "ICB", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 5, description: "Add a member from the PCT to the T&F group", owner: "Ellie Wagg", organisation: "ICB", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 7, description: "Work through the technical capability within ICE re routing for results", owner: "Clare Craven", organisation: "ICB", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 8, description: "Review the SLAs in place for ICE account creation and management.", owner: "Clare Craven", organisation: "ICB", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 9, description: "Set up a futures page to host shared documents", owner: "Kirstie Watson", organisation: "", dueDate: "", status: "", dateCompleted: "" },
+  { id: 11, description: "Clarify if the True Hub model requires separate CQC registration and how it impacts reporting", owner: "Ellie Wagg", organisation: "ICB", dueDate: "", status: "", dateCompleted: "" },
+  { id: 12, description: "CM speaking to Oxford colleges to ensure that OUH can see Northamptonshire SC records", owner: "Claire Mansfield", organisation: "ICB", dueDate: "", status: "", dateCompleted: "" },
+  { id: 13, description: "Malcolm and Sue to share estimate of staffing numbers for ICE licenses (see ref 4)", owner: "Malcolm Railson/Sue Williams", organisation: "NRES Manager/ICB", dueDate: "", status: "In progress", dateCompleted: "" },
+  { id: 14, description: "Malcolm and Sue to share SOP for test results (see ref 7)", owner: "", organisation: "", dueDate: "", status: "", dateCompleted: "" },
 ];
 
 export const SDADigitalIntegration = () => {
@@ -572,7 +572,7 @@ export const SDADigitalIntegration = () => {
               <TableRow className="bg-slate-50">
                 <TableHead className="w-20 font-semibold">Action ID</TableHead>
                 <TableHead className="font-semibold">Description</TableHead>
-                <TableHead className="w-36 font-semibold">Owner</TableHead>
+                <TableHead className="w-44 font-semibold">Owner</TableHead>
                 <TableHead className="w-28 font-semibold">Due Date</TableHead>
                 <TableHead className="w-28 font-semibold">Status</TableHead>
                 <TableHead className="w-32 font-semibold">Date Completed</TableHead>
@@ -583,7 +583,16 @@ export const SDADigitalIntegration = () => {
                 <TableRow key={action.id} className="hover:bg-slate-50">
                   <TableCell className="font-medium">{action.id}</TableCell>
                   <TableCell className="text-sm text-slate-700">{action.description}</TableCell>
-                  <TableCell className="text-sm">{action.owner}</TableCell>
+                  <TableCell className="text-sm">
+                    {action.owner ? (
+                      <div>
+                        <span>{action.owner}</span>
+                        {action.organisation && (
+                          <span className="text-xs text-slate-500 block">({action.organisation})</span>
+                        )}
+                      </div>
+                    ) : "-"}
+                  </TableCell>
                   <TableCell className="text-sm">{action.dueDate || "-"}</TableCell>
                   <TableCell>
                     {action.status === "In progress" ? (
