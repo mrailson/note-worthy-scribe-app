@@ -1,9 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Download, Folder, FolderOpen, ChevronRight, Calendar, FileSpreadsheet, File, Heart } from "lucide-react";
+import { FileText, Download, Folder, FolderOpen, ChevronRight, Calendar, FileSpreadsheet, File, Heart, Play, Pause, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
+import { Slider } from "@/components/ui/slider";
 
 type DocumentType = "presentation" | "document" | "legal" | "finance" | "analysis" | "spreadsheet" | "agenda" | "minutes" | "draft-minutes";
 
@@ -117,6 +118,53 @@ export const SDAEvidenceLibrary = () => {
   const [openProgrammeMeetings, setOpenProgrammeMeetings] = useState<number[]>([23]);
   const [openTaskFinishMeetings, setOpenTaskFinishMeetings] = useState<number[]>([]);
   const [openVcseMeetings, setOpenVcseMeetings] = useState<number[]>([1]);
+  
+  // Audio player state
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  const togglePlayPause = () => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setIsPlaying(!isPlaying);
+    }
+  };
+
+  const handleTimeUpdate = () => {
+    if (audioRef.current) {
+      setCurrentTime(audioRef.current.currentTime);
+    }
+  };
+
+  const handleLoadedMetadata = () => {
+    if (audioRef.current) {
+      setDuration(audioRef.current.duration);
+    }
+  };
+
+  const handleSliderChange = (value: number[]) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = value[0];
+      setCurrentTime(value[0]);
+    }
+  };
+
+  const handleEnded = () => {
+    setIsPlaying(false);
+    setCurrentTime(0);
+  };
 
   const toggleProgrammeMeeting = (meetingId: number) => {
     setOpenProgrammeMeetings(prev => 
@@ -178,7 +226,7 @@ export const SDAEvidenceLibrary = () => {
               </CollapsibleTrigger>
               
               <CollapsibleContent>
-                <div className="px-4 pb-4 pt-2 border-t border-slate-100">
+                <div className="px-4 pb-4 pt-2 border-t border-slate-100 space-y-4">
                   {meeting.documents.length > 0 ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {meeting.documents.map((doc, docIndex) => {
@@ -202,12 +250,12 @@ export const SDAEvidenceLibrary = () => {
                                     Draft
                                   </span>
                                 )}
-                                              </div>
-                                              <p className="text-xs text-slate-500 capitalize">
-                                                {doc.type === 'draft-minutes' ? 'minutes' : doc.type}
-                                                {doc.draftNote && <span className="text-amber-600 ml-1">• {doc.draftNote}</span>}
-                                                {doc.approvalNote && <span className="text-green-600 ml-1">• {doc.approvalNote}</span>}
-                                              </p>
+                              </div>
+                              <p className="text-xs text-slate-500 capitalize">
+                                {doc.type === 'draft-minutes' ? 'minutes' : doc.type}
+                                {doc.draftNote && <span className="text-amber-600 ml-1">• {doc.draftNote}</span>}
+                                {doc.approvalNote && <span className="text-green-600 ml-1">• {doc.approvalNote}</span>}
+                              </p>
                             </div>
                             <Download className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
@@ -216,6 +264,58 @@ export const SDAEvidenceLibrary = () => {
                     </div>
                   ) : (
                     <p className="text-sm text-slate-500 italic">No documents available yet</p>
+                  )}
+                  
+                  {/* Audio Summary for 23 Dec Meeting */}
+                  {prefix === 'pb' && meeting.id === 23 && (
+                    <div className="bg-gradient-to-r from-[#005EB8] to-[#003087] rounded-lg p-4">
+                      <audio
+                        ref={audioRef}
+                        src="/audio/23_12_25_SDA.mp3"
+                        onTimeUpdate={handleTimeUpdate}
+                        onLoadedMetadata={handleLoadedMetadata}
+                        onEnded={handleEnded}
+                      />
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                          <Headphones className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold text-white text-sm">Draft Audio Summary</h4>
+                            <Badge variant="secondary" className="bg-amber-400 text-amber-900 hover:bg-amber-400 text-[10px]">
+                              Draft
+                            </Badge>
+                          </div>
+                          <p className="text-white/70 text-xs">Key points, decisions and actions</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <button
+                          onClick={togglePlayPause}
+                          className="w-8 h-8 rounded-full bg-white flex items-center justify-center hover:bg-white/90 transition-colors flex-shrink-0"
+                        >
+                          {isPlaying ? (
+                            <Pause className="w-4 h-4 text-[#005EB8]" />
+                          ) : (
+                            <Play className="w-4 h-4 text-[#005EB8] ml-0.5" />
+                          )}
+                        </button>
+                        <div className="flex-1">
+                          <Slider
+                            value={[currentTime]}
+                            max={duration || 100}
+                            step={0.1}
+                            onValueChange={handleSliderChange}
+                            className="cursor-pointer [&_[role=slider]]:bg-white [&_[role=slider]]:border-0 [&>.bg-primary]:bg-white [&>span:first-child]:bg-white/30"
+                          />
+                        </div>
+                        <span className="text-white text-xs font-mono min-w-[70px] text-right">
+                          {formatTime(currentTime)} / {formatTime(duration)}
+                        </span>
+                      </div>
+                    </div>
                   )}
                 </div>
               </CollapsibleContent>
