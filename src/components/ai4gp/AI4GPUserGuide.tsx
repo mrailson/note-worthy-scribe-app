@@ -27,7 +27,20 @@ import {
   Stethoscope,
   Building2,
   Copy,
-  Volume2
+  Volume2,
+  Calendar,
+  Newspaper,
+  ImageIcon,
+  QrCode,
+  Video,
+  Presentation,
+  ClipboardCheck,
+  Syringe,
+  Megaphone,
+  NotebookPen,
+  Search,
+  Scale,
+  UserCheck
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -56,10 +69,10 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
       content: (
         <div className="space-y-6">
           <div className="bg-blue-50 p-4 rounded-lg border border-blue-200">
-            <h4 className="font-semibold text-blue-900 mb-2">Welcome to AI4GP Service</h4>
+            <h4 className="font-semibold text-blue-900 mb-2">Welcome to AI4GP & AI4PM Service</h4>
             <p className="text-blue-800 text-sm leading-relaxed">
               Your intelligent NHS assistant for clinical guidance, patient information, practice management, 
-              and medical translations. Built specifically for UK healthcare professionals.
+              meeting notes, medical translations, and more. Built specifically for UK healthcare professionals.
             </p>
           </div>
 
@@ -68,11 +81,11 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-green-800 flex items-center gap-2 text-base">
                   <Stethoscope className="w-4 h-4" />
-                  GP Mode
+                  GP Mode (AI4GP)
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-green-700">
-                Clinical guidance, prescribing, patient care, NHS protocols, and medical decision support.
+                Clinical guidance, NICE/BNF lookup, prescribing, patient care, NHS protocols, tricky case reviews, and medical decision support.
               </CardContent>
             </Card>
 
@@ -80,11 +93,11 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-purple-800 flex items-center gap-2 text-base">
                   <Building2 className="w-4 h-4" />
-                  Practice Manager Mode
+                  Practice Manager Mode (AI4PM)
                 </CardTitle>
               </CardHeader>
               <CardContent className="text-sm text-purple-700">
-                Practice operations, staff management, policies, compliance, and administrative guidance.
+                Meeting notes & transcription, PowerPoint generation, complaint handling, CQC evidence, staff management, and practice operations.
               </CardContent>
             </Card>
           </div>
@@ -108,6 +121,306 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
                 <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                 <span>Right-click any response to access <strong>Quick Pick</strong> enhancement options</span>
               </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <span>Use the <strong>sidebar</strong> for quick access to tools, history, and recent meetings</span>
+              </li>
+            </ul>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'sidebar',
+      title: 'Sidebar & Navigation',
+      icon: <Settings className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg border border-indigo-200">
+            <h4 className="font-semibold text-indigo-900 mb-2 flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Your Control Centre
+            </h4>
+            <p className="text-indigo-800 text-sm">
+              The sidebar provides quick access to all major features. Collapse it for more space or expand for full functionality.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Main Actions</h4>
+            <div className="grid md:grid-cols-3 gap-3">
+              <Card className="border-blue-200">
+                <CardContent className="pt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-blue-800 font-medium">
+                    <Sparkles className="w-4 h-4" />
+                    New Search
+                  </div>
+                  <p className="text-xs text-gray-600">Start a fresh conversation</p>
+                </CardContent>
+              </Card>
+              <Card className="border-green-200">
+                <CardContent className="pt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-green-800 font-medium">
+                    <History className="w-4 h-4" />
+                    Search History
+                  </div>
+                  <p className="text-xs text-gray-600">Browse past conversations</p>
+                </CardContent>
+              </Card>
+              <Card className="border-purple-200">
+                <CardContent className="pt-4 space-y-2">
+                  <div className="flex items-center gap-2 text-purple-800 font-medium">
+                    <Settings className="w-4 h-4" />
+                    Settings
+                  </div>
+                  <p className="text-xs text-gray-600">Customise your experience</p>
+                </CardContent>
+              </Card>
+            </div>
+
+            <h4 className="font-semibold mt-6">Quick Actions (Sidebar)</h4>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                <Sparkles className="w-4 h-4 text-purple-600" />
+                <div>
+                  <strong className="text-sm">All Quick Actions</strong>
+                  <p className="text-xs text-gray-600">Access all available quick prompts</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                <Newspaper className="w-4 h-4 text-blue-600" />
+                <div>
+                  <strong className="text-sm">GP News</strong>
+                  <p className="text-xs text-gray-600">Latest NHS and healthcare updates</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                <Languages className="w-4 h-4 text-green-600" />
+                <div>
+                  <strong className="text-sm">Translation</strong>
+                  <p className="text-xs text-gray-600">Full translation service for documents</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                <Zap className="w-4 h-4 text-yellow-600" />
+                <div>
+                  <strong className="text-sm">Quick Image</strong>
+                  <p className="text-xs text-gray-600">Generate AI images quickly</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                <QrCode className="w-4 h-4 text-gray-700" />
+                <div>
+                  <strong className="text-sm">QR Code Generator</strong>
+                  <p className="text-xs text-gray-600">Create QR codes with optional logo</p>
+                </div>
+              </div>
+            </div>
+
+            <h4 className="font-semibold mt-6">Recent Meetings</h4>
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+              <p className="text-sm text-amber-800">
+                Your most recent meeting recordings appear in the sidebar. Click any meeting to view its summary, transcript, and generated notes.
+              </p>
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'gp-quick-actions',
+      title: 'GP Mode Quick Actions',
+      icon: <Stethoscope className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-4 rounded-lg border border-green-200">
+            <h4 className="font-semibold text-green-900 mb-2 flex items-center gap-2">
+              <Stethoscope className="w-4 h-4" />
+              Clinical Quick Actions
+            </h4>
+            <p className="text-green-800 text-sm">
+              Pre-built prompts optimised for UK primary care, using NICE, BNF, NHS.uk, and local ICB sources.
+            </p>
+          </div>
+
+          <div className="grid gap-3">
+            {[
+              { label: 'NICE Guidance Finder', desc: 'Find latest NICE guidelines with key recommendations and implementation timelines', icon: BookOpen },
+              { label: 'BNF Drug Lookup', desc: 'Comprehensive prescribing info including dosing, interactions, and monitoring', icon: Shield },
+              { label: 'Northamptonshire Prescribing Guidance', desc: 'Local formulary and prescribing recommendations', icon: Search },
+              { label: 'Tricky Case Check', desc: 'Clinical case review with differentials, red flags, and teaching points (auto-anonymises)', icon: Stethoscope },
+              { label: 'Complaint Response Helper', desc: 'Draft professional NHS complaint responses with practice branding', icon: MessageSquare },
+              { label: 'QOF Indicator Quick Check', desc: 'Check achievement and improve performance on QOF targets', icon: CheckCircle },
+              { label: 'Patient Leaflet Finder', desc: 'Find NHS.uk and NICE patient information materials', icon: FileText },
+              { label: 'Immunisation Schedule Lookup', desc: 'Current UK immunisation schedules from the Green Book', icon: Syringe },
+              { label: 'Primary Care Prescribing Alerts', desc: 'Current MHRA drug safety updates and alerts', icon: AlertTriangle },
+              { label: 'Practice Policy & Protocol Finder', desc: 'NHS policy and guidance for practice management', icon: Settings }
+            ].map((item, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded border">
+                <item.icon className="w-5 h-5 text-green-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-sm text-gray-900">{item.label}</strong>
+                  <p className="text-xs text-gray-600">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h5 className="font-semibold text-blue-800 mb-2">Tricky Case Check - Auto Anonymisation</h5>
+            <p className="text-sm text-blue-700">
+              When using the Tricky Case Check, patient-identifiable information (names, DOBs, addresses, NHS numbers) is automatically removed and replaced with generic placeholders. This ensures governance compliance whilst providing clinical decision support.
+            </p>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'pm-quick-actions',
+      title: 'Practice Manager Quick Actions',
+      icon: <Building2 className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-purple-50 to-violet-50 p-4 rounded-lg border border-purple-200">
+            <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
+              <Building2 className="w-4 h-4" />
+              Practice Management Tools
+            </h4>
+            <p className="text-purple-800 text-sm">
+              Comprehensive tools for practice operations, meetings, compliance, and communications.
+            </p>
+          </div>
+
+          <div className="grid gap-3">
+            {[
+              { label: 'Load Teams Transcript', desc: 'Import and process Microsoft Teams meeting transcripts', icon: Video },
+              { label: 'Audio Transcribe', desc: 'Upload audio files for AI transcription and analysis', icon: Mic },
+              { label: 'Complaint Response Helper', desc: 'Draft professional complaint responses with practice details', icon: MessageSquare },
+              { label: 'Meeting Notes Service', desc: '10+ meeting templates including formal minutes, team summaries, partnership notes', icon: NotebookPen },
+              { label: 'PowerPoint Generator', desc: 'Create professional NHS presentations automatically', icon: Presentation },
+              { label: 'ARRS Claim Checker', desc: 'Review ARRS documentation for PCN DES compliance', icon: ClipboardCheck },
+              { label: 'PCN DES / Contract Finder', desc: 'Current PCN DES specifications and contract requirements', icon: Building2 },
+              { label: 'Staff Rota & Leave Planner', desc: 'Plan rotas and manage leave whilst maintaining service', icon: Calendar },
+              { label: 'CQC Evidence Pack Builder', desc: 'Organise evidence across all CQC domains', icon: Shield },
+              { label: 'DPIA / IG Helper', desc: 'Data Protection Impact Assessment and IG compliance', icon: Scale },
+              { label: 'Subject Access Request (SAR) Assistant', desc: 'SAR process guidance with timelines and exemptions', icon: UserCheck },
+              { label: 'Vaccine Clinic Planner', desc: 'Plan vaccine clinic logistics and staffing', icon: Syringe },
+              { label: 'Practice Comms Builder', desc: 'Create communications for patients, staff, or stakeholders', icon: Megaphone }
+            ].map((item, i) => (
+              <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded border">
+                <item.icon className="w-5 h-5 text-purple-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="text-sm text-gray-900">{item.label}</strong>
+                  <p className="text-xs text-gray-600">{item.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
+            <h5 className="font-semibold text-indigo-800 mb-2">Meeting Notes Templates</h5>
+            <div className="flex flex-wrap gap-1 mt-2">
+              {[
+                'Formal board/committee minutes',
+                'Informal team meeting summary',
+                'Agenda-based notes',
+                'Narrative minutes',
+                'Resolution-style minutes',
+                'Brainstorming session',
+                'HR meeting summary',
+                'GP partnership meeting',
+                'Supplier negotiation',
+                'Executive session'
+              ].map((template, i) => (
+                <Badge key={i} variant="secondary" className="text-xs">{template}</Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'meetings',
+      title: 'Meeting Notes & Transcription',
+      icon: <NotebookPen className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-amber-50 to-orange-50 p-4 rounded-lg border border-amber-200">
+            <h4 className="font-semibold text-amber-900 mb-2 flex items-center gap-2">
+              <NotebookPen className="w-4 h-4" />
+              Intelligent Meeting Support
+            </h4>
+            <p className="text-amber-800 text-sm">
+              Record meetings live, upload audio files, or import Teams transcripts. AI generates structured notes, action items, and summaries.
+            </p>
+          </div>
+
+          <div className="grid md:grid-cols-3 gap-4">
+            <Card className="border-blue-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-blue-800 flex items-center gap-2 text-base">
+                  <Mic className="w-4 h-4" />
+                  Live Recording
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-700">
+                Record meetings in real-time with live transcription and word count tracking.
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-green-800 flex items-center gap-2 text-base">
+                  <Upload className="w-4 h-4" />
+                  Audio Upload
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-700">
+                Upload MP3, WAV, or M4A files for transcription and note generation.
+              </CardContent>
+            </Card>
+
+            <Card className="border-purple-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-purple-800 flex items-center gap-2 text-base">
+                  <Video className="w-4 h-4" />
+                  Teams Import
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-700">
+                Import Microsoft Teams meeting transcripts for processing and note generation.
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Recent Meetings Access</h4>
+            <div className="bg-gray-50 border rounded-lg p-4">
+              <p className="text-sm text-gray-700 mb-3">
+                Your recent meetings appear in the sidebar. Click any meeting to:
+              </p>
+              <ul className="space-y-1 text-sm text-gray-600">
+                <li>• View the full meeting summary</li>
+                <li>• Access the complete transcript</li>
+                <li>• Review action items and decisions</li>
+                <li>• Export notes in various formats</li>
+                <li>• Edit meeting title and details</li>
+              </ul>
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h5 className="font-semibold text-blue-800 mb-3">Meeting Templates Available</h5>
+            <p className="text-sm text-blue-700 mb-2">
+              Choose from 10+ professional meeting note formats:
+            </p>
+            <ul className="text-xs space-y-1 text-blue-600">
+              <li>• Formal board/committee minutes with motions and votes</li>
+              <li>• Informal team meeting summaries</li>
+              <li>• GP partnership meeting notes</li>
+              <li>• HR meeting documentation (confidential)</li>
+              <li>• Brainstorming session capture</li>
+              <li>• And more...</li>
             </ul>
           </div>
         </div>
@@ -242,13 +555,13 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-gray-700">
-                  Upload and translate documents:
+                  Full translation service via sidebar:
                 </p>
                 <ol className="text-xs space-y-1 text-gray-600">
-                  <li>1. Click "+" button in input area</li>
-                  <li>2. Select "Translate Document"</li>
-                  <li>3. Upload image or document</li>
-                  <li>4. Choose target language</li>
+                  <li>1. Click "Translation" in sidebar</li>
+                  <li>2. Upload document or paste text</li>
+                  <li>3. Select source and target language</li>
+                  <li>4. Receive formatted translation</li>
                 </ol>
               </CardContent>
             </Card>
@@ -286,23 +599,6 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
               <li>4. Compare original vs. back-translation</li>
               <li>5. Identify any meaning changes or errors</li>
             </ol>
-          </div>
-
-          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-            <h5 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
-              <Shield className="w-4 h-4" />
-              Translation Quality Verification
-            </h5>
-            <p className="text-sm text-blue-700 mb-2">
-              Advanced AI-powered quality assessment for medical translations:
-            </p>
-            <ul className="text-xs space-y-1 text-blue-600">
-              <li>• Analyzes medical terminology preservation</li>
-              <li>• Checks for safety-critical translation errors</li>
-              <li>• Provides confidence scoring (0-100%)</li>
-              <li>• Identifies potential issues and suggestions</li>
-              <li>• Ensures culturally appropriate language</li>
-            </ul>
           </div>
         </div>
       )
@@ -392,24 +688,6 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
                   <li>• Citation validation</li>
                   <li>• Flag suspected errors</li>
                 </ul>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-            <h5 className="font-semibold text-gray-800 mb-3">Understanding Verification Scores</h5>
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Confidence Score:</span>
-                <span className="text-gray-900 font-medium">0-100% based on source quality</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">Source Trust:</span>
-                <span className="text-gray-900 font-medium">High (NICE/BNF) → Low (other)</span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-gray-700">LLM Consensus:</span>
-                <span className="text-gray-900 font-medium">Agreement across AI models</span>
               </div>
             </div>
           </div>
@@ -536,7 +814,7 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
               Multi-Format File Support
             </h4>
             <p className="text-orange-800 text-sm">
-              Upload and analyze documents, images, audio files, and spreadsheets. AI extracts content 
+              Upload and analyse documents, images, audio files, and spreadsheets. AI extracts content 
               and provides analysis, summaries, and recommendations.
             </p>
           </div>
@@ -558,7 +836,7 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
                   ))}
                 </div>
                 <p className="text-xs text-gray-600 mt-2">
-                  Extract text, analyze content, summarize documents, translate materials
+                  Extract text, analyse content, summarise documents, translate materials
                 </p>
               </CardContent>
             </Card>
@@ -587,7 +865,7 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
             <Card className="border-green-200">
               <CardHeader className="pb-3">
                 <CardTitle className="text-green-800 flex items-center gap-2 text-base">
-                  <FileText className="w-4 h-4" />
+                  <ImageIcon className="w-4 h-4" />
                   Images
                 </CardTitle>
               </CardHeader>
@@ -656,28 +934,13 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
               </div>
             </div>
           </div>
-
-          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-            <h5 className="font-semibold text-yellow-800 mb-2 flex items-center gap-2">
-              <Info className="w-4 h-4" />
-              File Processing Features
-            </h5>
-            <ul className="space-y-1 text-sm text-yellow-700">
-              <li>• Automatic content validation and safety checks</li>
-              <li>• Text extraction with formatting preservation</li>
-              <li>• Multi-language OCR for international documents</li>
-              <li>• Audio transcription with medical terminology recognition</li>
-              <li>• Progress tracking for large file uploads</li>
-              <li>• File content preview before processing</li>
-            </ul>
-          </div>
         </div>
       )
     },
     {
       id: 'history-settings',
       title: 'History & Settings',
-      icon: <Settings className="w-4 h-4" />,
+      icon: <History className="w-4 h-4" />,
       content: (
         <div className="space-y-6">
           <div className="grid md:grid-cols-2 gap-4">
@@ -693,7 +956,7 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
                   Access previous conversations and continue where you left off.
                 </p>
                 <ul className="text-xs space-y-1 text-gray-600">
-                  <li>• Click "History" button next to service title</li>
+                  <li>• Click "History" in the sidebar</li>
                   <li>• Browse by date or search keywords</li>
                   <li>• Reload previous conversations</li>
                   <li>• Protect important searches from deletion</li>
@@ -706,12 +969,12 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
               <CardHeader className="pb-3">
                 <CardTitle className="text-purple-800 flex items-center gap-2 text-base">
                   <Settings className="w-4 h-4" />
-                  Customization
+                  Customisation
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 <p className="text-sm text-gray-700">
-                  Personalize your AI4GP experience for optimal usability.
+                  Personalise your AI4GP/AI4PM experience for optimal usability.
                 </p>
                 <ul className="text-xs space-y-1 text-gray-600">
                   <li>• Adjust text size (8 different levels)</li>
@@ -733,8 +996,8 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
                 <ul className="space-y-1 text-sm text-gray-700">
                   <li>• GPT-5 (Latest) - Most capable</li>
                   <li>• GPT-4.1 - Reliable and fast</li>
-                  <li>• Specialized medical models</li>
-                  <li>• Performance vs. cost optimization</li>
+                  <li>• Specialised medical models</li>
+                  <li>• Performance vs. cost optimisation</li>
                 </ul>
               </div>
 
@@ -753,7 +1016,7 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
           <div className="bg-indigo-50 border border-indigo-200 rounded-lg p-4">
             <h5 className="font-semibold text-indigo-800 mb-3">Practice Integration</h5>
             <p className="text-sm text-indigo-700 mb-2">
-              Connect your practice details for enhanced personalization:
+              Connect your practice details for enhanced personalisation:
             </p>
             <ul className="space-y-1 text-xs text-indigo-600">
               <li>• Practice name and contact information</li>
@@ -782,50 +1045,63 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
         <DialogHeader className="px-4 sm:px-6 py-3 sm:py-4 border-b">
           <DialogTitle className="flex items-center gap-2 text-base sm:text-xl">
             <BookOpen className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-            <span className="hidden sm:inline">AI4GP Service - User Guide</span>
+            <span className="hidden sm:inline">AI4GP & AI4PM Service - User Guide</span>
             <span className="sm:hidden">User Guide</span>
           </DialogTitle>
         </DialogHeader>
         
         <div className="flex flex-col sm:flex-row h-[calc(90vh-80px)] sm:h-[calc(90vh-100px)]">
           {/* Sidebar Navigation - Horizontal on mobile, vertical on desktop */}
-          <div className="w-full sm:w-64 border-b sm:border-b-0 sm:border-r bg-gray-50 p-2 sm:p-4 overflow-x-auto sm:overflow-x-visible">
-            <ScrollArea className="h-full">
-              <div className="flex sm:flex-col gap-2 sm:space-y-2 min-w-max sm:min-w-0">
+          <div className="sm:w-56 border-b sm:border-b-0 sm:border-r bg-gray-50 flex-shrink-0">
+            {/* Mobile: Horizontal scroll */}
+            <div className="sm:hidden">
+              <ScrollArea className="w-full">
+                <div className="flex gap-1 p-2 min-w-max">
+                  {sections.map((section) => (
+                    <Button
+                      key={section.id}
+                      variant={activeSection === section.id ? "secondary" : "ghost"}
+                      size="sm"
+                      onClick={() => setActiveSection(section.id)}
+                      className="flex items-center gap-1.5 text-xs whitespace-nowrap flex-shrink-0 h-8"
+                    >
+                      {section.icon}
+                      <span className="max-w-[80px] truncate">{section.title}</span>
+                    </Button>
+                  ))}
+                </div>
+              </ScrollArea>
+            </div>
+
+            {/* Desktop: Vertical scroll */}
+            <ScrollArea className="hidden sm:block h-full">
+              <div className="p-3 space-y-1">
                 {sections.map((section) => (
                   <Button
                     key={section.id}
                     variant={activeSection === section.id ? "secondary" : "ghost"}
-                    className={`shrink-0 sm:w-full justify-start gap-2 text-left text-xs sm:text-sm ${
-                      activeSection === section.id ? 'bg-blue-100 text-blue-800' : ''
-                    }`}
+                    size="sm"
                     onClick={() => setActiveSection(section.id)}
+                    className="w-full justify-start gap-2 text-left h-9"
                   >
                     {section.icon}
-                    <span className="whitespace-nowrap sm:whitespace-normal">{section.title}</span>
+                    <span className="truncate text-sm">{section.title}</span>
                   </Button>
                 ))}
               </div>
             </ScrollArea>
           </div>
 
-          {/* Main Content */}
-          <div className="flex-1 p-3 sm:p-6 overflow-y-auto">
-            <ScrollArea className="h-full">
-              <div className="max-w-4xl">
-                <div className="mb-3 sm:mb-4">
-                  <h2 className="text-lg sm:text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2 sm:gap-3">
-                    {currentSection.icon}
-                    {currentSection.title}
-                  </h2>
-                </div>
-                
-                <div className="prose prose-sm max-w-none text-sm sm:text-base">
-                  {currentSection.content}
-                </div>
+          {/* Content Area */}
+          <ScrollArea className="flex-1">
+            <div className="p-4 sm:p-6">
+              <div className="flex items-center gap-2 mb-4 sm:mb-6">
+                {currentSection.icon}
+                <h3 className="text-lg sm:text-xl font-semibold">{currentSection.title}</h3>
               </div>
-            </ScrollArea>
-          </div>
+              {currentSection.content}
+            </div>
+          </ScrollArea>
         </div>
       </DialogContent>
     </Dialog>
