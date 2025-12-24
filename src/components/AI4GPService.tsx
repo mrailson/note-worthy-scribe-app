@@ -707,9 +707,9 @@ const AI4GPService = () => {
                    ) : (
                     /* Messages Area */
                     <div className={cn(
-                      "flex-1 overflow-y-auto",
+                      "flex-1 min-h-0",
                       deviceInfo.isIPhone && "pb-24"
-                    )} style={{ WebkitOverflowScrolling: 'touch' }}>
+                    )}>
                       <MessagesList
                         messages={messages}
                         isLoading={isLoading}
@@ -720,18 +720,18 @@ const AI4GPService = () => {
                         showResponseMetrics={showResponseMetrics}
                         showRenderTimes={showRenderTimes}
                         showAIService={showAIService}
-                           onSetDrugName={(drugName: string) => {
-                             if (setDrugNameFn) {
-                               setDrugNameFn(drugName);
-                             }
-                           }}
-                          autoCollapseUserPrompts={autoCollapseUserPrompts}
-                          onQuickResponse={(response) => {
-                            // Use the selected model from settings
-                            handleQuickResponse(response, practiceContext, selectedModel);
-                          }}
-                         />
-                     </div>
+                        onSetDrugName={(drugName: string) => {
+                          if (setDrugNameFn) {
+                            setDrugNameFn(drugName);
+                          }
+                        }}
+                        autoCollapseUserPrompts={autoCollapseUserPrompts}
+                        onQuickResponse={(response) => {
+                          // Use the selected model from settings
+                          handleQuickResponse(response, practiceContext, selectedModel);
+                        }}
+                      />
+                    </div>
                   )}
                   
                   {/* Input Area at Bottom - Desktop only */}
@@ -778,7 +778,7 @@ const AI4GPService = () => {
 
 
       {/* Expanded Message Dialog */}
-      <Dialog open={!!expandedMessage} onOpenChange={() => setExpandedMessage(null)}>
+      <Dialog open={!!expandedMessage} onOpenChange={(open) => !open && setExpandedMessage(null)}>
         <DialogContent className="max-w-[98vw] w-[98vw] max-h-[95vh] h-[95vh] p-0 flex flex-col">
           <DialogHeader className="p-4 pb-2 flex-shrink-0 border-b">
             <DialogTitle className="text-left">

@@ -95,7 +95,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     <div
       ref={parentRef}
       className={cn(
-        "flex-1 overflow-auto",
+        "h-full min-h-0 overflow-auto",
         deviceInfo.isIPhone ? "px-4 py-3" : "px-2 sm:p-2"
       )}
       style={{ contain: 'strict' }}
