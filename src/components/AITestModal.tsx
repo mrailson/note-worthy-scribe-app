@@ -11,7 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Loader2, TestTube, Clock, CheckCircle, XCircle, Zap, Download, ChevronDown, ChevronUp, FileText, Maximize2, Minimize2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-
+import DOMPurify from 'dompurify';
 interface AITestModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -69,12 +69,12 @@ const formatText = (text: string) => {
     .replace(/\n/g, '<br/>');
 };
 
-// Component to render formatted text
+// Component to render formatted text with DOMPurify sanitisation
 const FormattedText: React.FC<{ text: string; className?: string }> = ({ text, className = "" }) => {
   return (
     <div 
       className={className} 
-      dangerouslySetInnerHTML={{ __html: formatText(text) }}
+      dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(formatText(text)) }}
     />
   );
 };
