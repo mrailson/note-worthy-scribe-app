@@ -55,7 +55,7 @@ export const projectRisks: ProjectRisk[] = [
     icon: PoundSterling,
     concerns: "All practice funding will flow through PML, not retained by individual practices. Key questions: What happens if practices disagree on spend priorities? How are practice contributions calculated and tracked? What is the exit mechanism if a practice leaves?",
     mitigation: "Formal SLA between PML and practices; independent annual audit; clear governance ToR with weighted voting rights; ring-fencing of practice allocations; defined exit clause with 90-day notice period; quarterly financial reporting.",
-    owner: "PML Board / PCN Leads",
+    owner: "PML Board / Member Practices",
     lastReviewed: "18/12/2025",
     assuranceIndicators: "SLA drafted; Governance ToR agreed; Exit clause defined",
     comments: "Practices require detailed breakdown of funding allocation model before signing."
@@ -74,7 +74,7 @@ export const projectRisks: ProjectRisk[] = [
     icon: UserCheck,
     concerns: "Failure to recruit sufficient GPs/ANPs by April 2026 go-live. Competition from other neighbourhoods and private sector for limited workforce pool.",
     mitigation: "Brackley Medical Centre has identified a candidate (new GP) for the pilot. Early advertisement (Jan 2026); competitive packages with portfolio career options; flexible working arrangements; partnership with local training practices.",
-    owner: "HR Lead",
+    owner: "Managerial Lead/Member Practices/Programme Board",
     lastReviewed: "18/12/2025",
     assuranceIndicators: "GP candidate identified; JDs finalised; Interview panels scheduled",
     comments: "One GP candidate identified through BMC networks. Requires interview panel formation."
@@ -169,7 +169,7 @@ export const projectRisks: ProjectRisk[] = [
     icon: UserCheck,
     concerns: "Unable to recruit sufficient clinical and administrative staff by go-live. Competition for limited workforce pool may delay operational readiness.",
     mitigation: "Early recruitment campaign (Jan 2026); competitive salary packages; flexible working options; partnership with training practices; contingency for agency cover during initial phase.",
-    owner: "HR Lead",
+    owner: "Managerial Lead/Member Practices/Programme Board",
     lastReviewed: "18/12/2025",
     assuranceIndicators: "Recruitment timeline agreed; Salary benchmarking complete; Agency contingency in place",
     comments: "Linked to Risk #3. Admin recruitment to commence January."
@@ -228,7 +228,7 @@ export const projectRisks: ProjectRisk[] = [
     icon: Megaphone,
     concerns: "Multi-stranded patient and population engagement strategy not yet fully developed. Risk of patient confusion, poor uptake, or negative publicity if communications not coordinated effectively.",
     mitigation: "Dedicated communications workstream; Patient engagement events scheduled; Practice-level briefing packs; ICB communications team support; Phased messaging strategy aligned to programme milestones.",
-    owner: "Communications Lead",
+    owner: "Managerial Lead",
     lastReviewed: "18/12/2025",
     assuranceIndicators: "Communications plan approved; Patient materials drafted; Practice briefings scheduled",
     comments: "High priority - score 20. Requires dedicated resource. ICB comms team engagement needed urgently."
@@ -285,7 +285,7 @@ export const projectRisks: ProjectRisk[] = [
     icon: Building2,
     concerns: "Hub/spoke appointment delivery model and SOPs not yet fully developed. Risk of operational confusion, patient safety issues, or inconsistent service delivery across sites.",
     mitigation: "Hub operational protocols being developed; Standard Operating Procedures (SOPs) workstream; Staff training programme; Patient journey mapping; Clear escalation pathways between hub and spoke sites.",
-    owner: "Operations Manager",
+    owner: "Programme Board",
     lastReviewed: "18/12/2025",
     assuranceIndicators: "SOPs drafted; Training programme agreed; Patient pathways documented; Escalation routes clear",
     comments: "High priority - score 20. SOPs critical for go-live. Training must be complete by March 2026."
@@ -304,7 +304,7 @@ export const projectRisks: ProjectRisk[] = [
     icon: BarChart3,
     concerns: "Performance dashboard metrics and coding requirements not yet finalised. Risk of inability to demonstrate outcomes, potential funding clawback, or inability to evidence value of SDA model.",
     mitigation: "KPI workstream established; Dashboard specification drafted; Coding guidance being developed with ICB; Baseline data collection underway; Quarterly reporting framework aligned to ICB requirements.",
-    owner: "Performance Lead",
+    owner: "Digital Lead",
     lastReviewed: "18/12/2025",
     assuranceIndicators: "KPIs agreed with ICB; Dashboard live; Coding training complete; Baseline established",
     comments: "High priority - score 20. KPI definitions pending ICB confirmation. Critical for Part A/B conditionality."
