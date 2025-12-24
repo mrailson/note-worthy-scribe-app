@@ -114,6 +114,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/quick-record" element={<QuickRecord />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/executive-overview" element={<ExecutiveOverview />} />
               <Route path="/demos" element={<DemoVideosPage />} />
               <Route path="/ai-showcase" element={<AIShowcasePage />} />
