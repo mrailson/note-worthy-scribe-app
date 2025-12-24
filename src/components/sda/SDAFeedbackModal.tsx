@@ -1,10 +1,10 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Send, Mic, MicOff, Square } from "lucide-react";
+import { Loader2, Send, Mic, Square } from "lucide-react";
 import { format } from "date-fns";
 
 interface SDAFeedbackModalProps {
@@ -23,90 +23,132 @@ const sectionLabels: Record<string, string> = {
   evidence: "Evidence Library",
 };
 
+// Web Speech API types
+interface SpeechRecognitionEvent extends Event {
+  results: SpeechRecognitionResultList;
+  resultIndex: number;
+}
+
+interface SpeechRecognitionResultList {
+  length: number;
+  item(index: number): SpeechRecognitionResult;
+  [index: number]: SpeechRecognitionResult;
+}
+
+interface SpeechRecognitionResult {
+  isFinal: boolean;
+  length: number;
+  item(index: number): SpeechRecognitionAlternative;
+  [index: number]: SpeechRecognitionAlternative;
+}
+
+interface SpeechRecognitionAlternative {
+  transcript: string;
+  confidence: number;
+}
+
 export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeedbackModalProps) => {
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [interimTranscript, setInterimTranscript] = useState("");
   const { toast } = useToast();
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const audioChunksRef = useRef<Blob[]>([]);
+  const recognitionRef = useRef<any>(null);
 
-  const startRecording = async () => {
+  useEffect(() => {
+    // Cleanup on unmount
+    return () => {
+      if (recognitionRef.current) {
+        recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  const startRecording = () => {
+    // Check for browser support
+    const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      toast({
+        title: "Not supported",
+        description: "Speech recognition is not supported in this browser. Please use Chrome or Edge.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream, { mimeType: 'audio/webm' });
-      mediaRecorderRef.current = mediaRecorder;
-      audioChunksRef.current = [];
+      const recognition = new SpeechRecognition();
+      recognitionRef.current = recognition;
+      
+      recognition.continuous = true;
+      recognition.interimResults = true;
+      recognition.lang = 'en-GB';
 
-      mediaRecorder.ondataavailable = (event) => {
-        if (event.data.size > 0) {
-          audioChunksRef.current.push(event.data);
+      recognition.onstart = () => {
+        setIsRecording(true);
+        setInterimTranscript("");
+        toast({
+          title: "Recording started",
+          description: "Speak now. Your words will appear in real-time.",
+        });
+      };
+
+      recognition.onresult = (event: SpeechRecognitionEvent) => {
+        let interim = "";
+        let final = "";
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          const result = event.results[i];
+          if (result.isFinal) {
+            final += result[0].transcript + " ";
+          } else {
+            interim += result[0].transcript;
+          }
+        }
+
+        if (final) {
+          setMessage(prev => prev + final);
+          setInterimTranscript("");
+        } else {
+          setInterimTranscript(interim);
         }
       };
 
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' });
-        stream.getTracks().forEach(track => track.stop());
-        await transcribeAudio(audioBlob);
+      recognition.onerror = (event: any) => {
+        console.error("Speech recognition error:", event.error);
+        if (event.error !== 'aborted') {
+          toast({
+            title: "Recognition error",
+            description: `Error: ${event.error}. Please try again.`,
+            variant: "destructive",
+          });
+        }
+        setIsRecording(false);
+        setInterimTranscript("");
       };
 
-      mediaRecorder.start();
-      setIsRecording(true);
-      
-      toast({
-        title: "Recording started",
-        description: "Speak now. Click the stop button when finished.",
-      });
+      recognition.onend = () => {
+        setIsRecording(false);
+        setInterimTranscript("");
+      };
+
+      recognition.start();
     } catch (error) {
-      console.error("Error accessing microphone:", error);
+      console.error("Error starting speech recognition:", error);
       toast({
-        title: "Microphone access denied",
-        description: "Please allow microphone access to use voice input.",
+        title: "Failed to start",
+        description: "Could not start speech recognition. Please try again.",
         variant: "destructive",
       });
     }
   };
 
   const stopRecording = () => {
-    if (mediaRecorderRef.current && isRecording) {
-      mediaRecorderRef.current.stop();
+    if (recognitionRef.current) {
+      recognitionRef.current.stop();
       setIsRecording(false);
-    }
-  };
-
-  const transcribeAudio = async (audioBlob: Blob) => {
-    setIsTranscribing(true);
-    try {
-      const reader = new FileReader();
-      reader.readAsDataURL(audioBlob);
-      
-      reader.onloadend = async () => {
-        const base64Audio = (reader.result as string).split(',')[1];
-        
-        const { data, error } = await supabase.functions.invoke("voice-to-text", {
-          body: { audio: base64Audio },
-        });
-
-        if (error) throw error;
-
-        if (data?.text) {
-          setMessage(prev => prev ? `${prev} ${data.text}` : data.text);
-          toast({
-            title: "Transcription complete",
-            description: "Your voice has been converted to text.",
-          });
-        }
-        setIsTranscribing(false);
-      };
-    } catch (error) {
-      console.error("Error transcribing audio:", error);
-      toast({
-        title: "Transcription failed",
-        description: "Could not convert voice to text. Please try again.",
-        variant: "destructive",
-      });
-      setIsTranscribing(false);
+      setInterimTranscript("");
     }
   };
 
@@ -191,6 +233,9 @@ export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeed
     }
   };
 
+  // Combine message with interim transcript for display
+  const displayText = message + (interimTranscript ? interimTranscript : "");
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
@@ -204,18 +249,21 @@ export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeed
           <div className="relative rounded-lg border-2 border-[#005EB8]/30 focus-within:border-[#005EB8] transition-colors bg-background">
             <Textarea
               placeholder="Describe your feedback or the problem you're experiencing..."
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              value={displayText}
+              onChange={(e) => {
+                setMessage(e.target.value);
+                setInterimTranscript("");
+              }}
               rows={5}
               className="resize-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 pr-12"
-              disabled={isTranscribing}
             />
+            {interimTranscript && (
+              <div className="absolute bottom-2 left-3 right-12 text-sm text-muted-foreground italic truncate">
+                {interimTranscript}
+              </div>
+            )}
             <div className="absolute right-2 top-2">
-              {isTranscribing ? (
-                <div className="flex items-center justify-center h-9 w-9">
-                  <Loader2 className="h-5 w-5 animate-spin text-[#005EB8]" />
-                </div>
-              ) : isRecording ? (
+              {isRecording ? (
                 <Button
                   type="button"
                   variant="ghost"
@@ -245,14 +293,14 @@ export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeed
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
               </span>
-              Recording... Click the stop button when finished.
+              Listening... Speak now. Click stop when finished.
             </p>
           )}
           <div className="flex justify-end gap-2">
             <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting || isRecording}>
               Cancel
             </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting || isRecording || isTranscribing}>
+            <Button onClick={handleSubmit} disabled={isSubmitting || isRecording}>
               {isSubmitting ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
