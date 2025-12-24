@@ -32,12 +32,53 @@ export default function Auth() {
     confirmPassword: ''
   });
 
-  // Redirect if already logged in
+  // Handle magic link tokens and redirect if already logged in
   useEffect(() => {
-    if (user) {
-      navigate('/');
-    }
-  }, [user, navigate]);
+    const handleMagicLink = async () => {
+      // Check for hash parameters from magic link
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      
+      // If we have tokens from a magic link, set the session
+      if (accessToken && refreshToken && type === 'magiclink') {
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+          
+          if (error) {
+            console.error('Magic link session error:', error);
+            toast({
+              title: "Login Failed",
+              description: "The magic link has expired or is invalid. Please request a new one.",
+              variant: "destructive",
+            });
+          } else {
+            // Clear the hash from URL and redirect
+            window.history.replaceState(null, '', window.location.pathname);
+            toast({
+              title: "Welcome!",
+              description: "You have successfully logged in.",
+            });
+            navigate('/');
+            return;
+          }
+        } catch (err) {
+          console.error('Magic link error:', err);
+        }
+      }
+      
+      // If already logged in (and not processing magic link), redirect
+      if (user) {
+        navigate('/');
+      }
+    };
+    
+    handleMagicLink();
+  }, [user, navigate, toast]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
