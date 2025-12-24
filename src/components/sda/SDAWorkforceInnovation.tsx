@@ -101,7 +101,7 @@ export const SDAWorkforceInnovation = () => {
             <div>
               <p className="font-semibold text-green-800">PB 23/12/2025 Decision Made</p>
               <p className="text-sm text-green-700 mt-1">
-                Decision made to recruit via practice or neighbourhood (TBC). Malcolm asked to create NHS Job Adverts and Indeed - online as at 18:30 23rd December 2025.
+                Decision made to recruit via practice or neighbourhood (TBC). Malcolm asked to create NHS Job Adverts and Indeed adverts - online as at 18:30 23rd December 2025.
               </p>
               <div className="flex flex-wrap gap-2 mt-3">
                 <a 
