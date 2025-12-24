@@ -2,7 +2,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Routes, Route } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
 import { SecurityWrapper } from '@/components/SecurityWrapper';
-import { useSessionActivity } from '@/hooks/useSessionActivity';
+import { SessionActivityTracker } from '@/components/SessionActivityTracker';
 import { useEffect } from 'react';
 import { getSafeDOMObserver, installHasAttributeSafeguard } from '@/utils/domSafetyPolyfill';
 import Index from "./pages/Index";
@@ -97,8 +97,6 @@ import QuickRecord from "./pages/QuickRecord";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 
 const App = () => {
-  useSessionActivity();
-
   useEffect(() => {
     installHasAttributeSafeguard();
     const observer = getSafeDOMObserver();
@@ -110,6 +108,7 @@ const App = () => {
     <HelmetProvider>
       <SecurityWrapper>
         <TooltipProvider>
+          <SessionActivityTracker />
           <div className="mobile-keyboard-adjust">
             <Routes>
               <Route path="/" element={<Index />} />

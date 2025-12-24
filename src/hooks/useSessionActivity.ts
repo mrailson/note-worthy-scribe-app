@@ -1,13 +1,14 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useAuth } from '@/contexts/AuthContext';
+import { User } from '@supabase/supabase-js';
 
 /**
  * Hook to track user session activity and update last_activity timestamp
  * Updates activity every 5 minutes and on user interactions
+ * 
+ * IMPORTANT: This hook accepts user as a parameter to avoid context dependency issues
  */
-export const useSessionActivity = () => {
-  const { user } = useAuth();
+export const useSessionActivity = (user: User | null) => {
   const lastActivityRef = useRef<number>(Date.now());
   const intervalRef = useRef<NodeJS.Timeout>();
 
