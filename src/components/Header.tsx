@@ -424,7 +424,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                      )}
                      
                      {/* Hide Practice Management for Oak Lane non-admin users */}
-                     {!isOakLaneNonAdmin && (hasModuleAccess('practice_manager_access') || isPcnManager) && (
+                     {!isOakLaneNonAdmin && (hasModuleAccess('practice_manager_access') || isPcnManager || isSystemAdmin) && (
                        <DropdownMenuItem 
                          onClick={() => navigate('/practice-admin')}
                          className="cursor-pointer py-3"
@@ -650,7 +650,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                )}
                                
                                {/* Hide Practice Management for Oak Lane non-admin users */}
-                               {!isOakLaneNonAdmin && (hasModuleAccess('practice_manager_access') || isPcnManager) && (
+                               {!isOakLaneNonAdmin && (hasModuleAccess('practice_manager_access') || isPcnManager || isSystemAdmin) && (
                                  <DrawerClose asChild>
                                    <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/practice-admin')}>
                                      <Users className="h-4 w-4 mr-2" />
