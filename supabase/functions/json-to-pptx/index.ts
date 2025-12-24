@@ -9,96 +9,217 @@ const corsHeaders = {
 const NHS_BLUE = "005EB8";
 const LIGHT_GREY = "F0F0F0";
 
+// Layout constants for dynamic positioning
+const LAYOUT = {
+  SLIDE_WIDTH: 13.33,
+  SLIDE_HEIGHT: 7.5,
+  HEADER_HEIGHT: 0.9,
+  CONTENT_START_Y: 1.3,
+  CONTENT_END_Y: 6.4,
+  FOOTER_Y: 6.8,
+  LEFT_MARGIN: 0.5,
+  CONTENT_WIDTH: 9.5,
+  CHARS_PER_LINE: 75,
+  LINE_HEIGHT: 0.38,
+  BULLET_SPACING: 0.15,
+  MIN_BULLET_HEIGHT: 0.5,
+};
+
+// Estimate lines needed for text
+function estimateTextLines(text: string): number {
+  return Math.max(1, Math.ceil(text.length / LAYOUT.CHARS_PER_LINE));
+}
+
+// Calculate height needed for a bullet point
+function calculateBulletHeight(text: string): number {
+  const lines = estimateTextLines(text);
+  return Math.max(LAYOUT.MIN_BULLET_HEIGHT, lines * LAYOUT.LINE_HEIGHT + LAYOUT.BULLET_SPACING);
+}
+
+// Split bullets if they exceed available space, returning overflow for next slide
+function splitBulletsForSlide(bullets: string[], startY: number, maxY: number): { 
+  fitBullets: { text: string; y: number; height: number }[];
+  overflow: string[];
+} {
+  const fitBullets: { text: string; y: number; height: number }[] = [];
+  const overflow: string[] = [];
+  let currentY = startY;
+  
+  for (let i = 0; i < bullets.length; i++) {
+    const bulletText = bullets[i];
+    const height = calculateBulletHeight(bulletText);
+    
+    // Check if this bullet fits
+    if (currentY + height <= maxY) {
+      fitBullets.push({ text: bulletText, y: currentY, height });
+      currentY += height;
+    } else {
+      // This and remaining bullets overflow
+      overflow.push(...bullets.slice(i));
+      break;
+    }
+  }
+  
+  return { fitBullets, overflow };
+}
+
 export async function jsonToPpt(jsonString: string): Promise<ArrayBuffer> {
   const data = JSON.parse(jsonString);
   const pptx = new PptxGenJS();
 
   // Slide size & default text
   pptx.layout = "LAYOUT_16x9";
-  const bodyText = { fontFace: "Calibri", fontSize: 22, color: "000000" };
-  const titleText = { fontFace: "Calibri", fontSize: 36, bold: true, color: "FFFFFF" };
+  const bodyText = { fontFace: "Calibri", fontSize: 20, color: "000000" };
+  const titleText = { fontFace: "Calibri", fontSize: 32, bold: true, color: "FFFFFF" };
   const footerText = { fontFace: "Calibri", fontSize: 10, color: "777777" };
 
   // Title slide
   {
     const s = pptx.addSlide();
-    // NHS blue header band
-    s.addShape(pptx.shapes.RECTANGLE, { x: 0, y: 0, w: "100%", h: 0.9, fill: { color: NHS_BLUE }, line: { color: "FFFFFF", size: 0 } });
+    s.addShape(pptx.shapes.RECTANGLE, { x: 0, y: 0, w: "100%", h: LAYOUT.HEADER_HEIGHT, fill: { color: NHS_BLUE }, line: { color: "FFFFFF", size: 0 } });
     s.addText(data?.meta?.title || "AI Generated Presentation", { x: 0.4, y: 0.15, w: 10, h: 0.7, ...titleText });
     addFooter(s, footerText);
   }
 
   for (const slide of data.slides) {
-    const s = pptx.addSlide();
-    // Header band
-    s.addShape(pptx.shapes.RECTANGLE, { x: 0, y: 0, w: "100%", h: 0.9, fill: { color: NHS_BLUE }, line: { size: 0 } });
-    s.addText(slide.title || "", { x: 0.4, y: 0.15, w: 10, h: 0.7, ...titleText });
-
+    let slidesToCreate: { title: string; bullets?: string[]; table?: any }[] = [];
+    
     if (slide.table) {
-      // Table slide
-      const { headers, rows } = slide.table;
-      const rowsWithHeader = [headers, ...rows];
-      s.addTable(rowsWithHeader, {
-        x: 0.35, y: 1.25, w: 9.5,
-        fontFace: "Calibri", fontSize: 18,
-        colW: Array(headers.length).fill(9.5 / headers.length),
-        border: { type: "solid", color: "CCCCCC", pt: 1 },
-        fill: "FFFFFF",
-        rowH: 0.45,
-        // Header style
-        valign: "middle",
-        autoPage: true, // will spill to a new slide if too long
-        autoPageRepeatHeader: true,
-        tableHeaderRow: true,
-        color: "000000",
-        header: { fill: NHS_BLUE, color: "FFFFFF", bold: true, fontSize: 20 },
-        zebra: { isZebra: true, color: LIGHT_GREY },
-      });
+      // Table slides don't need splitting logic
+      slidesToCreate.push(slide);
     } else if (slide.bullets?.length) {
-      // Bullet slide - improved spacing to prevent overlap
-      let yPos = 1.4; // Start below header with more margin
-      const bulletSpacing = 0.6; // Increased spacing between bullets
-      const maxBulletsPerSlide = 6; // Limit bullets to prevent overflow
+      // Check if bullets fit on one slide, split if needed
+      let remainingBullets = [...slide.bullets];
+      let partNumber = 0;
       
-      const bulletsToShow = slide.bullets.slice(0, maxBulletsPerSlide);
-      
-      bulletsToShow.forEach((bulletText: string, index: number) => {
-        // Calculate text height based on content length
-        const estimatedLines = Math.ceil(bulletText.length / 80);
-        const textHeight = Math.max(0.4, estimatedLines * 0.3);
+      while (remainingBullets.length > 0) {
+        const { fitBullets, overflow } = splitBulletsForSlide(
+          remainingBullets,
+          LAYOUT.CONTENT_START_Y,
+          LAYOUT.CONTENT_END_Y
+        );
         
-        s.addText(`• ${bulletText}`, {
-          x: 0.6, 
-          y: yPos, 
-          w: 9.0, 
-          h: textHeight,
-          ...bodyText,
-          lineSpacing: 26, // Proper line spacing
-          wrap: true,
-          margin: 8,
-          valign: 'top'
-        });
+        if (fitBullets.length === 0 && overflow.length > 0) {
+          // Edge case: single bullet too tall, force it anyway
+          fitBullets.push({ 
+            text: remainingBullets[0], 
+            y: LAYOUT.CONTENT_START_Y, 
+            height: calculateBulletHeight(remainingBullets[0]) 
+          });
+          remainingBullets = remainingBullets.slice(1);
+        } else {
+          remainingBullets = overflow;
+        }
         
-        yPos += textHeight + bulletSpacing;
-        
-        // Prevent going off slide
-        if (yPos > 5.8) break;
-      });
+        const slideTitle = partNumber === 0 ? slide.title : `${slide.title} (continued)`;
+        slidesToCreate.push({ 
+          title: slideTitle, 
+          bullets: fitBullets.map(b => b.text),
+          // Store calculated positions for rendering
+          _bulletPositions: fitBullets
+        } as any);
+        partNumber++;
+      }
+    } else {
+      slidesToCreate.push(slide);
     }
+    
+    // Create all slides for this content
+    for (const slideData of slidesToCreate) {
+      const s = pptx.addSlide();
+      
+      // Header band
+      s.addShape(pptx.shapes.RECTANGLE, { x: 0, y: 0, w: "100%", h: LAYOUT.HEADER_HEIGHT, fill: { color: NHS_BLUE }, line: { size: 0 } });
+      s.addText(slideData.title || "", { x: 0.4, y: 0.12, w: 12, h: 0.65, ...titleText });
 
-    if (slide.notes) s.addNotes(slide.notes);
-    addFooter(s, footerText);
+      if (slideData.table) {
+        // Table slide with improved sizing
+        const { headers, rows } = slideData.table;
+        const rowsWithHeader = [headers, ...rows];
+        
+        // Calculate dynamic row height based on content
+        const maxCellLength = Math.max(
+          ...rowsWithHeader.flat().map((cell: string) => cell?.length || 0)
+        );
+        const rowHeight = Math.max(0.45, Math.min(0.7, maxCellLength / 40));
+        
+        s.addTable(rowsWithHeader, {
+          x: LAYOUT.LEFT_MARGIN,
+          y: LAYOUT.CONTENT_START_Y,
+          w: LAYOUT.CONTENT_WIDTH + 2,
+          fontFace: "Calibri",
+          fontSize: 16,
+          colW: Array(headers.length).fill((LAYOUT.CONTENT_WIDTH + 2) / headers.length),
+          border: { type: "solid", color: "CCCCCC", pt: 1 },
+          fill: "FFFFFF",
+          rowH: rowHeight,
+          valign: "middle",
+          autoPage: true,
+          autoPageRepeatHeader: true,
+          tableHeaderRow: true,
+          color: "000000",
+          header: { fill: NHS_BLUE, color: "FFFFFF", bold: true, fontSize: 17 },
+          zebra: { isZebra: true, color: LIGHT_GREY },
+        });
+      } else if ((slideData as any)._bulletPositions?.length) {
+        // Use pre-calculated positions for accurate placement
+        const positions = (slideData as any)._bulletPositions;
+        
+        for (const bullet of positions) {
+          s.addText(`• ${bullet.text}`, {
+            x: LAYOUT.LEFT_MARGIN + 0.1,
+            y: bullet.y,
+            w: LAYOUT.CONTENT_WIDTH,
+            h: bullet.height,
+            ...bodyText,
+            lineSpacing: 28,
+            wrap: true,
+            valign: 'top'
+          });
+        }
+      } else if (slideData.bullets?.length) {
+        // Fallback: render with dynamic positioning
+        let yPos = LAYOUT.CONTENT_START_Y;
+        
+        for (const bulletText of slideData.bullets) {
+          const height = calculateBulletHeight(bulletText);
+          
+          if (yPos + height > LAYOUT.CONTENT_END_Y) break;
+          
+          s.addText(`• ${bulletText}`, {
+            x: LAYOUT.LEFT_MARGIN + 0.1,
+            y: yPos,
+            w: LAYOUT.CONTENT_WIDTH,
+            h: height,
+            ...bodyText,
+            lineSpacing: 28,
+            wrap: true,
+            valign: 'top'
+          });
+          
+          yPos += height;
+        }
+      }
+
+      if (slide.notes) s.addNotes(slide.notes);
+      addFooter(s, footerText);
+    }
   }
 
   function addFooter(s: any, style: any) {
-    s.addText(`AI Generated Summary – ${new Date().toLocaleDateString("en-GB")}`, { x: 0.4, y: 6.8, w: 9.5, h: 0.3, ...style });
+    s.addText(`AI Generated Summary – ${new Date().toLocaleDateString("en-GB")}`, { 
+      x: 0.4, 
+      y: LAYOUT.FOOTER_Y, 
+      w: 12, 
+      h: 0.3, 
+      ...style 
+    });
   }
 
   return await pptx.write("arraybuffer");
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -113,7 +234,9 @@ serve(async (req) => {
       );
     }
 
+    console.log('Generating PowerPoint with dynamic layout...');
     const pptxBuffer = await jsonToPpt(jsonData);
+    console.log('PowerPoint generated successfully');
     
     return new Response(pptxBuffer, {
       headers: {
@@ -125,7 +248,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error generating PowerPoint:', error);
     return new Response(
-      JSON.stringify({ error: 'Failed to generate PowerPoint' }),
+      JSON.stringify({ error: 'Failed to generate PowerPoint', details: String(error) }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
