@@ -618,7 +618,7 @@ const AI4GPService = () => {
                     </button>
                   </div>
                   <div className="p-4">
-                    <NewsPanel />
+                    <NewsPanel cleanView />
                   </div>
                 </div>
               )}
