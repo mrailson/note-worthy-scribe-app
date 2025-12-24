@@ -1,5 +1,8 @@
 project_id = "dphcnbricafkbtizkoal"
 
+[functions.generate-magic-link]
+verify_jwt = false
+
 [functions.assemblyai-realtime]
 verify_jwt = false
 
