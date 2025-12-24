@@ -610,7 +610,7 @@ export const SDADigitalIntegration = () => {
           </Table>
         </div>
         <p className="text-xs text-slate-500 mt-4 italic">
-          Last updated: 22nd December 2024
+          Last updated: 22nd December 2025
         </p>
       </CollapsibleCard>
     </div>
