@@ -91,11 +91,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
         if (!rolesError && userRoles && userRoles.length > 0) {
           // Check if user is assigned to Oak Lane
           const isOakLane = userRoles.some((r: any) => r.practice_id === OAK_LANE_PRACTICE_ID);
-          // Check if user is NOT admin level (system_admin, administrator, practice_manager)
+          // Check if user is NOT admin level (system_admin, administrator, practice_manager, pcn_manager)
           const isNotAdmin = !userRoles.some((r: any) => 
             r.role === 'system_admin' || 
             r.role === 'administrator' || 
-            r.role === 'practice_manager'
+            r.role === 'practice_manager' ||
+            r.role === 'pcn_manager'
           );
           
           setIsOakLaneNonAdmin(isOakLane && isNotAdmin);
@@ -253,8 +254,20 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            <Shield className="h-4 w-4 mr-2" />
                            CQC Compliance
                          </DropdownMenuItem>
-                        )}
-                         {hasModuleAccess('shared_drive_access') && isServiceVisible('shared_drive') && (
+                       )}
+
+                       {/* Organisation Management (practice/PCN/LMC/ICB/Neighbourhood admins) */}
+                       {!isOakLaneNonAdmin && (isPracticeManager || isPcnManager || isSystemAdmin) && (
+                         <DropdownMenuItem 
+                           onClick={() => navigate('/practice-admin')}
+                           className="cursor-pointer py-3"
+                         >
+                           <Users className="h-4 w-4 mr-2" />
+                           Organisation Management
+                         </DropdownMenuItem>
+                       )}
+
+                       {hasModuleAccess('shared_drive_access') && isServiceVisible('shared_drive') && (
                           <DropdownMenuItem 
                             onClick={() => navigate('/shared-drive')}
                             className="cursor-pointer py-3"
