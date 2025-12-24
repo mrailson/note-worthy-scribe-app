@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Eye, EyeOff, HelpCircle } from "lucide-react";
+import { Mail, Eye, EyeOff, HelpCircle, Sparkles } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useSecurityValidation } from "@/hooks/useSecurityValidation";
 import { ForgotPassword } from "./ForgotPassword";
@@ -180,15 +180,37 @@ export const LoginForm = () => {
             {loading ? "Signing In..." : "Sign In"}
           </Button>
 
-          <div className="text-center">
-            <Button
-              variant="link"
-              size="sm"
-              onClick={() => setShowForgotPassword(true)}
-              className="text-primary hover:text-primary-hover text-sm"
-            >
-              Forgot your password?
-            </Button>
+          {/* Password Help Section */}
+          <div className="border-t border-border pt-4 mt-2 space-y-3">
+            <div className="bg-accent/50 rounded-lg p-4 border border-accent">
+              <div className="flex items-center gap-2 mb-2">
+                <Sparkles className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">Don't know your password?</span>
+              </div>
+              <p className="text-xs text-muted-foreground mb-3">
+                New user or forgotten your password? Get instant access via a magic link sent to your NHS email.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowMagicLink(true)}
+                className="w-full border-primary/30 hover:bg-primary/10 hover:border-primary"
+              >
+                <Mail className="h-4 w-4 mr-2" />
+                Send Me a Magic Link
+              </Button>
+            </div>
+            
+            <div className="text-center">
+              <Button
+                variant="link"
+                size="sm"
+                onClick={() => setShowForgotPassword(true)}
+                className="text-muted-foreground hover:text-primary text-xs"
+              >
+                Or reset password manually
+              </Button>
+            </div>
           </div>
         </div>
       </CardContent>
