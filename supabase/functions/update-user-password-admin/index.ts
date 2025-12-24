@@ -65,11 +65,11 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log("Looking up user by email for password update:", email);
 
-    // Find the user id by email via profiles table
+    // Find the user id by email via profiles table (case-insensitive)
     const { data: profile, error: profileError } = await supabaseAdmin
       .from('profiles')
       .select('user_id')
-      .eq('email', email)
+      .ilike('email', email)
       .maybeSingle();
 
     if (profileError) {
