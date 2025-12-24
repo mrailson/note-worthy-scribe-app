@@ -50,29 +50,36 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
     setLoading(true);
 
     try {
-      // Use Supabase's built-in magic link system which includes the actual working magic link
-      const { error } = await supabase.auth.signInWithOtp({
-        email: email,
-        options: {
-          emailRedirectTo: "https://notewell.dialai.co.uk/",
-          shouldCreateUser: false // Only allow existing users to use magic links
-        }
+      // Use our custom edge function to generate magic link and send via EmailJS
+      const { data, error } = await supabase.functions.invoke('generate-magic-link', {
+        body: { email: email }
       });
 
       if (error) {
+        console.error("Error invoking generate-magic-link:", error);
         toast({
           title: "Error",
-          description: error.message,
+          description: error.message || "Failed to send magic link. Please try again.",
           variant: "destructive"
         });
-      } else {
+        return;
+      }
+
+      if (data?.success) {
         setSubmitted(true);
         toast({
           title: "Magic Link Sent!",
           description: "Check your email for a secure login link that expires in 60 minutes.",
         });
+      } else {
+        toast({
+          title: "Error",
+          description: data?.error || "Failed to send magic link. Please try again.",
+          variant: "destructive"
+        });
       }
-    } catch (error) {
+    } catch (error: any) {
+      console.error("Error sending magic link:", error);
       toast({
         title: "Error",
         description: "Failed to send magic link. Please try again.",
@@ -107,7 +114,7 @@ export const MagicLinkRequest = ({ onBackToLogin }: MagicLinkRequestProps) => {
               <p>• Click the link in your email to log in securely</p>
               <p>• The link expires in 60 minutes for security</p>
               <p>• No VPN required - works from any network</p>
-              <p className="font-bold text-foreground">• The email will appear from Supabase Automatic service - please check your junk folder if it hasn't arrived in the next two minutes</p>
+              <p className="font-bold text-foreground">• The email will appear from Notewell AI Login Service - please check your junk folder if it hasn't arrived in the next two minutes</p>
             </div>
 
             <div className="space-y-2">
