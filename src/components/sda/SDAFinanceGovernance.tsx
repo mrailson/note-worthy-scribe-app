@@ -243,7 +243,7 @@ export const SDAFinanceGovernance = () => {
               <ul className="space-y-2 text-sm">
                 <li className="flex items-start gap-2">
                   <span className="text-[#005EB8] font-bold">•</span>
-                  <span><strong>7 Practices</strong> - 1 GP + 1 Practice Manager per practice = 1 vote each</span>
+                  <span><strong>7 Practices</strong> - 1 GP + 1 Practice Manager per practice = 1 vote per practice (7 votes total)</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#005EB8] font-bold">•</span>
