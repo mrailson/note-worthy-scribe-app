@@ -44,7 +44,10 @@ import {
   FileJson,
   TestTube,
   FileCheck,
-  Lock
+  Lock,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
@@ -188,6 +191,8 @@ const SystemAdmin = () => {
   // User management state
   const [users, setUsers] = useState<User[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userSortField, setUserSortField] = useState<'full_name' | 'last_login'>('full_name');
+  const [userSortDirection, setUserSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [userServiceActivations, setUserServiceActivations] = useState<{
@@ -2098,9 +2103,47 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Name</TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => {
+                            if (userSortField === 'full_name') {
+                              setUserSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setUserSortField('full_name');
+                              setUserSortDirection('asc');
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-1">
+                            Name
+                            {userSortField === 'full_name' ? (
+                              userSortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 opacity-50" />
+                            )}
+                          </div>
+                        </TableHead>
                         <TableHead>Email</TableHead>
-                        <TableHead>Last Login</TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50 select-none"
+                          onClick={() => {
+                            if (userSortField === 'last_login') {
+                              setUserSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setUserSortField('last_login');
+                              setUserSortDirection('asc');
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-1">
+                            Last Login
+                            {userSortField === 'last_login' ? (
+                              userSortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 opacity-50" />
+                            )}
+                          </div>
+                        </TableHead>
                         <TableHead>Practice Assignments</TableHead>
                         <TableHead className="text-center">GP Consultations</TableHead>
                         <TableHead>Actions</TableHead>
@@ -2112,6 +2155,16 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                           user.full_name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
                           user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
                         )
+                        .sort((a, b) => {
+                          if (userSortField === 'full_name') {
+                            const comparison = a.full_name.localeCompare(b.full_name);
+                            return userSortDirection === 'asc' ? comparison : -comparison;
+                          } else {
+                            const aTime = a.last_login ? new Date(a.last_login).getTime() : 0;
+                            const bTime = b.last_login ? new Date(b.last_login).getTime() : 0;
+                            return userSortDirection === 'asc' ? aTime - bTime : bTime - aTime;
+                          }
+                        })
                         .map((user) => (
                           <TableRow key={user.user_id}>
                             <TableCell className="font-medium">{user.full_name}</TableCell>
