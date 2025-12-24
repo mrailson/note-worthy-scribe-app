@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useMemo } from 'react';
+import React, { useRef, useEffect, useCallback } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import MessageRenderer from '@/components/MessageRenderer';
 import { Message } from '@/types/ai4gp';
@@ -42,19 +42,24 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   // Keep messages ref up to date
   messagesRef.current = messages;
 
-  // Stable count for virtualizer
+  // Stable count for virtualiser
   const itemCount = messages.length + (isLoading ? 1 : 0);
 
-  // Virtual list configuration with stable estimateSize
+  // Keep virtualiser option callbacks stable (prevents internal option-reset loops)
+  const getScrollElement = useCallback(() => parentRef.current, []);
+  const estimateSize = useCallback(() => 200, []); // fixed estimate; measureElement handles actual sizing
+  const getItemKey = useCallback((index: number) => {
+    if (index >= messagesRef.current.length) return 'loading-indicator';
+    return messagesRef.current[index]?.id || `msg-${index}`;
+  }, []);
+
+  // Virtual list configuration
   const virtualizer = useVirtualizer({
     count: itemCount,
-    getScrollElement: () => parentRef.current,
-    estimateSize: () => 200, // Use fixed estimate, measureElement will handle actual sizing
+    getScrollElement,
+    estimateSize,
     overscan: 3,
-    getItemKey: (index) => {
-      if (index >= messagesRef.current.length) return 'loading-indicator';
-      return messagesRef.current[index]?.id || `msg-${index}`;
-    },
+    getItemKey,
   });
 
   // Scroll to bottom when new message is added
