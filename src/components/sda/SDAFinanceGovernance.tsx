@@ -97,6 +97,7 @@ export const SDAFinanceGovernance = () => {
               <div>
                 <h3 className="font-semibold text-lg">Terms of Reference</h3>
                 <p className="text-sm text-blue-100">Official Programme Board governance document</p>
+                <p className="text-sm text-green-300 mt-1">✓ Approved as final by Programme Board on 23rd December 2025</p>
               </div>
             </div>
             <Button 
