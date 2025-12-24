@@ -34,19 +34,25 @@ export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrow
   const analyserRef = useRef<AnalyserNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const animationFrameRef = useRef<number | null>(null);
+  const accumulatedTextRef = useRef('');
 
   const handleTranscription = useCallback((data: TranscriptData) => {
     if (data.is_final) {
-      setFullTranscript(prev => {
-        const newTranscript = prev ? `${prev} ${data.text}` : data.text;
-        onTranscriptUpdate(newTranscript);
-        return newTranscript;
-      });
+      // Append final text to accumulated ref
+      const newAccumulated = accumulatedTextRef.current 
+        ? `${accumulatedTextRef.current} ${data.text}` 
+        : data.text;
+      accumulatedTextRef.current = newAccumulated;
+      setFullTranscript(newAccumulated);
+      onTranscriptUpdate(newAccumulated);
     } else {
-      const previewText = fullTranscript ? `${fullTranscript} ${data.text}` : data.text;
+      // For interim: show accumulated + current partial (uses ref to avoid stale closure)
+      const previewText = accumulatedTextRef.current 
+        ? `${accumulatedTextRef.current} ${data.text}` 
+        : data.text;
       onTranscriptUpdate(previewText);
     }
-  }, [fullTranscript, onTranscriptUpdate]);
+  }, [onTranscriptUpdate]);
 
   const handleError = useCallback((error: string) => {
     console.error('Browser speech error:', error);
@@ -206,6 +212,7 @@ export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrow
   }, [micState, startRecording, toggleMute]);
 
   const clearTranscript = useCallback(() => {
+    accumulatedTextRef.current = '';
     setFullTranscript('');
     onTranscriptUpdate('');
   }, [onTranscriptUpdate]);
