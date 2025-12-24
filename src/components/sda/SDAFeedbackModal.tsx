@@ -184,9 +184,9 @@ export const SDAFeedbackModal = ({ open, onOpenChange, currentSection }: SDAFeed
       // Send email via edge function
       const { error } = await supabase.functions.invoke("send-email-resend", {
         body: {
-          to: user.email,
+          to_email: user.email,
           subject: `[SDA Programme Feedback] - ${sectionName}`,
-          html: `
+          html_content: `
             <h2>SDA Programme Feedback Received</h2>
             <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
               <tr>
