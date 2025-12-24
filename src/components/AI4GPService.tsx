@@ -113,10 +113,10 @@ const AI4GPService = () => {
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [setDrugNameFn, setSetDrugNameFn] = useState<((drugName: string) => void) | null>(null);
   
-  // Sidebar collapsed state - persisted in localStorage
+  // Sidebar collapsed state - persisted in localStorage, default to collapsed
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem('ai4gp-sidebar-collapsed');
-    return saved === 'true';
+    return saved !== null ? saved === 'true' : true;
   });
   
   const handleToggleSidebar = () => {
