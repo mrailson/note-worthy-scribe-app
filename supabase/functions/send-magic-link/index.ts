@@ -41,11 +41,13 @@ const handler = async (req: Request): Promise<Response> => {
       accessToken: privateKey,
       template_params: {
         to_email: email,
+        to_name: user_name || email.split('@')[0],
         user_name: user_name || email.split('@')[0],
         magic_link: magic_link,
         from_name: "Notewell AI Login Service",
+        reply_to: "malcolm.railson@nhs.net",
         subject: "Your Secure Login Link - Notewell AI",
-        message_body: `Dear ${user_name || email.split('@')[0]},
+        message: `Dear ${user_name || email.split('@')[0]},
 
 As requested, here is your link to login to Notewell:
 
