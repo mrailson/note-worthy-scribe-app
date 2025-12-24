@@ -51,25 +51,33 @@ export const ProtectedRoute = ({
 
     // Check module access if requiredModule is specified
     if (!isLoading && !hasModuleAccess(requiredModule)) {
-      // Special handling for practice manager access
+      // Special handling for practice manager access (includes pcn_manager for PCN organisations)
       if (requiredModule === 'practice_manager_access') {
-        // Check if user has practice_manager role
-        const checkPracticeManagerRole = async () => {
+        // Check if user has practice_manager OR pcn_manager role
+        const checkOrganisationManagerRole = async () => {
           if (!user) return false;
           
           try {
-            const { data, error } = await supabase
+            // Check for practice_manager role
+            const { data: isPracticeManager, error: pmError } = await supabase
               .rpc('has_role', { _user_id: user.id, _role: 'practice_manager' });
-            return !error && data;
+            
+            if (!pmError && isPracticeManager) return true;
+            
+            // Also check for pcn_manager role
+            const { data: isPcnManager, error: pcnError } = await supabase
+              .rpc('has_role', { _user_id: user.id, _role: 'pcn_manager' });
+            
+            return !pcnError && isPcnManager;
           } catch (error) {
-            console.error('Error checking practice manager role:', error);
+            console.error('Error checking organisation manager role:', error);
             return false;
           }
         };
 
-        checkPracticeManagerRole().then(isPracticeManager => {
-          if (!isPracticeManager) {
-            toast.error('You must be a practice manager to access this module.');
+        checkOrganisationManagerRole().then(isOrganisationManager => {
+          if (!isOrganisationManager) {
+            toast.error('You must be an organisation manager to access this module.');
             navigate(fallbackPath, { replace: true });
           }
         });
