@@ -51,15 +51,15 @@ const proposedJobAdverts = [
     documentUrl: "/documents/NRES_ANP_Parks_Job_Advert.docx",
   },
   {
-    reference: "NRES-PARKS-Paeds_ANP-2526",
-    title: "Paediatric Advanced Nurse Practitioner",
-    location: "The Parks Medical Practice",
+    reference: "NRES-ACP-2526",
+    title: "Advanced Clinical Practitioner (ACP)",
+    location: "Multiple locations across NRES Neighbourhood",
     salary: "£55,690 - £62,682 per annum",
     band: "Band 8a",
-    closingDate: "9 January 2026",
-    type: "Paeds ANP",
-    keyRequirements: ["NMC registration (Children's Nurse)", "MSc in Advanced Clinical Practice", "Independent Prescriber (V300)"],
-    documentUrl: "/documents/NRES_Paeds_ANP_Parks_Job_Advert.docx",
+    closingDate: "20 January 2026",
+    type: "ACP",
+    keyRequirements: ["NMC/HCPC registration", "MSc in Advanced Clinical Practice", "Independent Prescriber (V300)"],
+    documentUrl: "/documents/NRES_ACP_Indeed_Advert_v1.docx",
   },
 ];
 
@@ -76,6 +76,8 @@ const getTypeColor = (type: string) => {
       return "bg-blue-100 text-blue-800";
     case "ANP":
       return "bg-green-100 text-green-800";
+    case "ACP":
+      return "bg-teal-100 text-teal-800";
     case "Paeds ANP":
       return "bg-purple-100 text-purple-800";
     default:
