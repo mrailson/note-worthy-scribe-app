@@ -13,6 +13,7 @@ interface Document {
   filePath?: string;
   isDraft?: boolean;
   draftNote?: string;
+  approvalNote?: string;
 }
 
 interface Meeting {
@@ -49,7 +50,8 @@ const programmeBoardMeetings: Meeting[] = [
       { 
         title: "Terms of Reference", 
         type: "legal",
-        filePath: "/evidence/meetings/meeting-23/Terms_of_Reference.docx"
+        filePath: "/evidence/meetings/meeting-23/Terms_of_Reference.docx",
+        approvalNote: "Approved as final by Programme Board on 23rd December 2025"
       },
       { 
         title: "SDA Innovator Project Plan", 
@@ -200,11 +202,12 @@ export const SDAEvidenceLibrary = () => {
                                     Draft
                                   </span>
                                 )}
-                              </div>
-                              <p className="text-xs text-slate-500 capitalize">
-                                {doc.type === 'draft-minutes' ? 'minutes' : doc.type}
-                                {doc.draftNote && <span className="text-amber-600 ml-1">• {doc.draftNote}</span>}
-                              </p>
+                                              </div>
+                                              <p className="text-xs text-slate-500 capitalize">
+                                                {doc.type === 'draft-minutes' ? 'minutes' : doc.type}
+                                                {doc.draftNote && <span className="text-amber-600 ml-1">• {doc.draftNote}</span>}
+                                                {doc.approvalNote && <span className="text-green-600 ml-1">• {doc.approvalNote}</span>}
+                                              </p>
                             </div>
                             <Download className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity" />
                           </div>
