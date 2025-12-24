@@ -1,16 +1,10 @@
 import { Badge } from "@/components/ui/badge";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
-interface Risk {
-  id: number;
-  risk: string;
-  currentLikelihood: number;
-  currentConsequence: number;
-  currentScore: number;
-}
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "@/components/ui/hover-card";
+import { TrendingDown, TrendingUp, Minus, User, Calendar, AlertTriangle, Shield } from "lucide-react";
+import { ProjectRisk, getRatingFromScore, getRatingBadgeStyles, getRiskTypeBadgeStyles, getRiskTypeLabel } from "./projectRisksData";
 
 interface RiskMatrixHeatmapProps {
-  risks: Risk[];
+  risks: ProjectRisk[];
 }
 
 const getRiskLevelConfig = (score: number) => {
@@ -18,6 +12,33 @@ const getRiskLevelConfig = (score: number) => {
   if (score >= 10) return { level: "Significant", color: "bg-amber-500", borderColor: "border-amber-600" };
   if (score >= 5) return { level: "Moderate", color: "bg-yellow-400", borderColor: "border-yellow-500" };
   return { level: "Low", color: "bg-green-500", borderColor: "border-green-600" };
+};
+
+const getScoreTrendIcon = (original: number, current: number) => {
+  if (current < original) return { icon: TrendingDown, color: "text-green-600", label: "Improved" };
+  if (current > original) return { icon: TrendingUp, color: "text-red-600", label: "Worsened" };
+  return { icon: Minus, color: "text-slate-400", label: "Unchanged" };
+};
+
+const truncateText = (text: string, maxLength: number) => {
+  if (text.length <= maxLength) return text;
+  return text.substring(0, maxLength).trim() + "...";
+};
+
+const formatDate = (dateStr: string) => {
+  // Handle DD/MM/YYYY format
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    const day = parts[0];
+    const month = parts[1];
+    const year = parts[2];
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const monthIndex = parseInt(month, 10) - 1;
+    if (monthIndex >= 0 && monthIndex < 12) {
+      return `${parseInt(day, 10)} ${months[monthIndex]} ${year}`;
+    }
+  }
+  return dateStr;
 };
 
 export const RiskMatrixHeatmap = ({ risks }: RiskMatrixHeatmapProps) => {
@@ -35,31 +56,118 @@ export const RiskMatrixHeatmap = ({ risks }: RiskMatrixHeatmapProps) => {
       >
         <span className="text-[10px] font-bold text-white/70 absolute top-0.5 right-1">{score}</span>
         {risksInCell.length > 0 && (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex flex-wrap justify-center gap-0.5">
-                  {risksInCell.map((risk) => (
+          <div className="flex flex-wrap justify-center gap-0.5">
+            {risksInCell.map((risk) => {
+              const trend = getScoreTrendIcon(risk.originalScore, risk.currentScore);
+              const TrendIcon = trend.icon;
+              const rating = getRatingFromScore(risk.currentScore);
+              
+              return (
+                <HoverCard key={risk.id} openDelay={100} closeDelay={50}>
+                  <HoverCardTrigger asChild>
                     <div
-                      key={risk.id}
-                      className={`w-5 h-5 rounded-full bg-white/90 ${config.borderColor} border-2 flex items-center justify-center text-[10px] font-bold text-slate-700 cursor-pointer hover:scale-110 transition-transform`}
+                      className={`w-5 h-5 rounded-full bg-white/90 ${config.borderColor} border-2 flex items-center justify-center text-[10px] font-bold text-slate-700 cursor-pointer hover:scale-110 transition-transform hover:shadow-lg`}
                     >
                       {risk.id}
                     </div>
-                  ))}
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="right" className="max-w-[250px]">
-                <div className="space-y-1">
-                  {risksInCell.map((risk) => (
-                    <div key={risk.id} className="text-xs">
-                      <span className="font-semibold">#{risk.id}:</span> {risk.risk}
+                  </HoverCardTrigger>
+                  <HoverCardContent 
+                    side="right" 
+                    align="start"
+                    className="w-[340px] p-0 shadow-xl border-slate-200"
+                  >
+                    {/* Header */}
+                    <div className="bg-slate-50 px-3 py-2 border-b border-slate-200 rounded-t-md">
+                      <div className="flex items-start gap-2">
+                        <div className={`w-7 h-7 rounded-full ${config.color} flex items-center justify-center text-xs font-bold text-white flex-shrink-0`}>
+                          {risk.id}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm text-slate-900 leading-tight">
+                            {risk.risk}
+                          </h4>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            <Badge variant="outline" className={`text-[10px] px-1.5 py-0 ${getRiskTypeBadgeStyles(risk.riskType)}`}>
+                              {getRiskTypeLabel(risk.riskType)}
+                            </Badge>
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0 bg-slate-100 text-slate-600 border-slate-300">
+                              {risk.category}
+                            </Badge>
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                  ))}
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+
+                    {/* Score Section */}
+                    <div className="px-3 py-2 bg-white border-b border-slate-100">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">Score:</span>
+                          <Badge variant="outline" className={`font-bold ${getRatingBadgeStyles(risk.currentScore)}`}>
+                            {risk.currentScore} ({rating})
+                          </Badge>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs">
+                          <TrendIcon className={`w-3.5 h-3.5 ${trend.color}`} />
+                          <span className={trend.color}>
+                            {trend.label}
+                          </span>
+                          {risk.originalScore !== risk.currentScore && (
+                            <span className="text-slate-400">(was {risk.originalScore})</span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-4 mt-1.5 text-[10px] text-slate-500">
+                        <span>L: {risk.currentLikelihood} × C: {risk.currentConsequence}</span>
+                        {risk.originalScore !== risk.currentScore && (
+                          <span className="text-slate-400">
+                            (was L: {risk.originalLikelihood} × C: {risk.originalConsequence})
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Content Section */}
+                    <div className="px-3 py-2 space-y-2.5 bg-white">
+                      {/* Key Concerns */}
+                      <div>
+                        <div className="flex items-center gap-1 mb-0.5">
+                          <AlertTriangle className="w-3 h-3 text-amber-500" />
+                          <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">Key Concerns</span>
+                        </div>
+                        <p className="text-xs text-slate-700 leading-relaxed">
+                          {truncateText(risk.concerns, 150)}
+                        </p>
+                      </div>
+
+                      {/* Mitigation */}
+                      <div>
+                        <div className="flex items-center gap-1 mb-0.5">
+                          <Shield className="w-3 h-3 text-green-600" />
+                          <span className="text-[10px] font-semibold text-slate-600 uppercase tracking-wide">Mitigation</span>
+                        </div>
+                        <p className="text-xs text-slate-700 leading-relaxed">
+                          {truncateText(risk.mitigation, 150)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-3 py-2 bg-slate-50 border-t border-slate-100 rounded-b-md flex items-center justify-between text-[10px] text-slate-500">
+                      <div className="flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        <span>{risk.owner}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>Reviewed: {formatDate(risk.lastReviewed)}</span>
+                      </div>
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+              );
+            })}
+          </div>
         )}
       </td>
     );
@@ -115,7 +223,7 @@ export const RiskMatrixHeatmap = ({ risks }: RiskMatrixHeatmapProps) => {
         </div>
         <div className="flex items-center gap-1 ml-2">
           <div className="w-4 h-4 rounded-full bg-white border-2 border-slate-400 flex items-center justify-center text-[8px] font-bold">1</div>
-          <span>Risk ID position</span>
+          <span>Risk ID (hover for details)</span>
         </div>
       </div>
     </div>
