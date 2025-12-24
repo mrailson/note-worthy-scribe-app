@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSub, DropdownMenuSubContent, DropdownMenuSubTrigger } from '@/components/ui/dropdown-menu';
-import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen, Languages } from 'lucide-react';
+import { Sparkles, History, Plus, Settings, Sparkles as GenieIcon, Newspaper, MoreVertical, Building2, Cpu, ImageIcon, Palette, Zap, BarChart3, TestTube, Info, Copy, Phone, Calendar, Mic, BookOpen, Languages, PanelLeft } from 'lucide-react';
 
 // Component imports
 import { LoginForm } from '@/components/LoginForm';
@@ -21,6 +21,7 @@ import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { MicroBanner, ShortCard, CollapsibleShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
+import { AI4GPSidebar } from '@/components/ai4gp/AI4GPSidebar';
 
 import NewsPanel from '@/components/NewsPanel';
 import ImageCreate from '@/pages/ImageCreate';
@@ -112,6 +113,20 @@ const AI4GPService = () => {
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [setDrugNameFn, setSetDrugNameFn] = useState<((drugName: string) => void) | null>(null);
   
+  // Sidebar collapsed state - persisted in localStorage
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    const saved = localStorage.getItem('ai4gp-sidebar-collapsed');
+    return saved === 'true';
+  });
+  
+  const handleToggleSidebar = () => {
+    setSidebarCollapsed(prev => {
+      const newState = !prev;
+      localStorage.setItem('ai4gp-sidebar-collapsed', String(newState));
+      return newState;
+    });
+  };
+
 
   // Local policy state - remove from component since it's now in the hook
   // const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
@@ -327,7 +342,7 @@ const AI4GPService = () => {
     <>
       <div 
         className={cn(
-          "flex-1 flex flex-col bg-background relative h-full overflow-x-hidden",
+          "flex-1 flex bg-background relative h-full overflow-x-hidden",
           "ai4gp-container-sized ai4gp-font-applied ai4gp-text-scaled",
           getTextScaleClass(textSize),
           deviceInfo.isIPhone ? "iphone-optimized" : "",
@@ -337,28 +352,48 @@ const AI4GPService = () => {
         style={{ 
           WebkitOverflowScrolling: 'touch',
           overscrollBehavior: 'contain',
-          maxWidth: deviceInfo.isIPhone ? '100%' : '96%',
-          width: deviceInfo.isIPhone ? '100%' : '96%',
-          margin: '0 auto',
+          maxWidth: '100%',
+          width: '100%',
           height: deviceInfo.supportsViewportUnits ? '100dvh' : '100vh'
         }}
       >
-        <div className="flex flex-1 min-h-0">
-          {/* Search History Sidebar */}
-          {showSearchHistory && (
-          <SearchHistorySidebar
-            searchHistory={searchHistory}
-            onLoadSearch={handleLoadPreviousSearch}
-            onDeleteSearch={deleteSearch}
-            onClearAllHistory={clearAllHistory}
-            onClose={() => setShowSearchHistory(false)}
-            onToggleFlag={toggleSearchFlag}
-            onToggleProtection={toggleSearchProtection}
-          />
-          )}
+        {/* Left Sidebar - Desktop Only */}
+        <AI4GPSidebar
+          isCollapsed={sidebarCollapsed}
+          onToggleCollapse={handleToggleSidebar}
+          selectedRole={selectedRole}
+          onNewSearch={handleNewSearch}
+          onShowHistory={() => setShowSearchHistory(!showSearchHistory)}
+          onShowSettings={() => setShowSettings(true)}
+          onShowNews={() => setShowNews(!showNews)}
+          onShowQuickImageModal={() => setShowQuickImageModal(true)}
+          onShowImageService={() => setShowImageService(!showImageService)}
+          onShowQRCodeGenerator={() => setShowQRCodeGeneratorModal(true)}
+          onShowDocumentTranslate={() => setShowDocumentTranslate(true)}
+          onShowUserGuide={() => setShowUserGuide(true)}
+          onShowAllQuickActions={() => setShowAllQuickActions(true)}
+          meetings={meetings as any}
+          meetingsLoading={meetingsLoading}
+          onSelectMeeting={(meetingId) => navigate(`/scribe?meeting=${meetingId}`)}
+        />
 
-          {/* Main Chat Area */}
-          <div className="flex-1 flex flex-col min-w-0 min-h-0">
+        <div className="flex flex-1 min-h-0 flex-col">
+          <div className="flex flex-1 min-h-0">
+            {/* Search History Sidebar */}
+            {showSearchHistory && (
+            <SearchHistorySidebar
+              searchHistory={searchHistory}
+              onLoadSearch={handleLoadPreviousSearch}
+              onDeleteSearch={deleteSearch}
+              onClearAllHistory={clearAllHistory}
+              onClose={() => setShowSearchHistory(false)}
+              onToggleFlag={toggleSearchFlag}
+              onToggleProtection={toggleSearchProtection}
+            />
+            )}
+
+            {/* Main Chat Area */}
+            <div className="flex-1 flex flex-col min-w-0 min-h-0">
             <Card className="flex-1 flex flex-col min-h-0 sm:border border-0 sm:rounded-lg rounded-none shadow-none sm:shadow-sm">
               <CardHeader className={cn(
                 "border-b flex-shrink-0",
@@ -720,6 +755,7 @@ const AI4GPService = () => {
               )}
             </Card>
           </div>
+          </div>
         </div>
       </div>
 
@@ -866,6 +902,26 @@ const AI4GPService = () => {
         isOpen={showUserGuide}
         onClose={() => setShowUserGuide(false)}
       />
+
+      {/* All Quick Actions Modal - Triggered from sidebar */}
+      <Dialog open={showAllQuickActions} onOpenChange={setShowAllQuickActions}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Quick Actions</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-y-auto max-h-[60vh]">
+            <QuickActionsPanel
+              showAllQuickActions={true}
+              setShowAllQuickActions={setShowAllQuickActions}
+              setInput={setInput}
+              selectedRole={selectedRole}
+              onInsertIntoChat={setInput}
+              onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
+              onOpenDocumentTranslate={() => setShowDocumentTranslate(true)}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
 
     </>
   );
