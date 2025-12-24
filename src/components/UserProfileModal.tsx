@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, User, Building2, KeyRound, Upload, X, FileImage, PenTool, Image as ImageIcon, Mail, FileText, Save } from 'lucide-react';
+import { Loader2, User, Building2, KeyRound, Upload, X, FileImage, PenTool, Image as ImageIcon, Mail, FileText, Save, Eye, EyeOff, CheckCircle, XCircle } from 'lucide-react';
 import SignatureEditor from '@/components/SignatureEditor';
 
 interface UserProfileModalProps {
@@ -40,7 +40,7 @@ interface PracticeDetails {
 }
 
 export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) => {
-  const { user, resetPassword } = useAuth();
+  const { user, resetPassword, updatePassword } = useAuth();
   const [loading, setLoading] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [resetLoading, setResetLoading] = useState(false);
@@ -48,6 +48,13 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
   const [logoUploading, setLogoUploading] = useState(false);
   const [logoSaved, setLogoSaved] = useState(false);
   const [signatureLoading, setSignatureLoading] = useState(false);
+  
+  // Password change state
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmNewPassword, setConfirmNewPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false);
   const [userProfile, setUserProfile] = useState<UserProfile>({
     title: '',
     first_name: '',
@@ -311,6 +318,38 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
       toast.error('Failed to send reset email');
     } finally {
       setResetLoading(false);
+    }
+  };
+
+  const handleChangePassword = async () => {
+    // Validate password requirements
+    if (newPassword.length < 8) {
+      toast.error('Password must be at least 8 characters long');
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    setPasswordChangeLoading(true);
+    try {
+      const { error } = await updatePassword(newPassword);
+      
+      if (error) {
+        toast.error('Failed to change password: ' + error.message);
+      } else {
+        toast.success('Password changed successfully!');
+        // Clear the form
+        setNewPassword('');
+        setConfirmNewPassword('');
+      }
+    } catch (error: any) {
+      console.error('Error changing password:', error);
+      toast.error('Failed to change password');
+    } finally {
+      setPasswordChangeLoading(false);
     }
   };
 
@@ -769,7 +808,7 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
             </CardContent>
           </Card>
 
-          {/* Password Reset */}
+          {/* Password Management */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
@@ -777,25 +816,105 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                 Password Management
               </CardTitle>
             </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground mb-4">
-                Click the button below to receive a password reset email at {user?.email}
-              </p>
-              <Button 
-                onClick={handleResetPassword}
-                disabled={resetLoading}
-                variant="outline"
-                className="w-full"
-              >
-                {resetLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Sending Reset Email...
-                  </>
-                ) : (
-                  'Send Password Reset Email'
-                )}
-              </Button>
+            <CardContent className="space-y-6">
+              {/* Direct Password Change */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">Change Password</h4>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="new-password">New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="new-password"
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      placeholder="Enter new password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="confirm-password">Confirm New Password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirm-password"
+                      type={showConfirmNewPassword ? 'text' : 'password'}
+                      value={confirmNewPassword}
+                      onChange={(e) => setConfirmNewPassword(e.target.value)}
+                      placeholder="Confirm new password"
+                      className="pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showConfirmNewPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Password Requirements */}
+                <div className="space-y-1 text-sm">
+                  <div className={`flex items-center gap-2 ${newPassword.length >= 8 ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {newPassword.length >= 8 ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                    At least 8 characters
+                  </div>
+                  <div className={`flex items-center gap-2 ${newPassword && confirmNewPassword && newPassword === confirmNewPassword ? 'text-green-600' : 'text-muted-foreground'}`}>
+                    {newPassword && confirmNewPassword && newPassword === confirmNewPassword ? <CheckCircle className="h-4 w-4" /> : <XCircle className="h-4 w-4" />}
+                    Passwords match
+                  </div>
+                </div>
+
+                <Button 
+                  onClick={handleChangePassword}
+                  disabled={passwordChangeLoading || newPassword.length < 8 || newPassword !== confirmNewPassword}
+                  className="w-full"
+                >
+                  {passwordChangeLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Changing Password...
+                    </>
+                  ) : (
+                    'Change Password'
+                  )}
+                </Button>
+              </div>
+
+              <Separator />
+
+              {/* Email Reset Option */}
+              <div className="space-y-4">
+                <h4 className="text-sm font-medium">Or Reset via Email</h4>
+                <p className="text-sm text-muted-foreground">
+                  Click the button below to receive a password reset email at {user?.email}
+                </p>
+                <Button 
+                  onClick={handleResetPassword}
+                  disabled={resetLoading}
+                  variant="outline"
+                  className="w-full"
+                >
+                  {resetLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending Reset Email...
+                    </>
+                  ) : (
+                    'Send Password Reset Email'
+                  )}
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </div>
