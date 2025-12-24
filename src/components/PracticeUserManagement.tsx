@@ -50,6 +50,15 @@ const practiceRoles = [
   { value: 'secretaries', label: 'Secretaries' }
 ];
 
+// Organisation types that are NOT GP practices
+const nonPracticeOrgTypes = ['Management', 'ICB', 'PCN', 'LMC', 'Neighbourhood'];
+
+// Roles available for non-practice organisations
+const organisationRoles = [
+  { value: 'user', label: 'User' },
+  { value: 'practice_manager', label: 'Organisation Admin' }
+];
+
 export const PracticeUserManagement = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
@@ -58,6 +67,7 @@ export const PracticeUserManagement = () => {
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<PracticeUser | null>(null);
   const [practiceInfo, setPracticeInfo] = useState<any>(null);
+  const [isNonPracticeOrg, setIsNonPracticeOrg] = useState(false);
   
   const [userFormData, setUserFormData] = useState({
     email: '',
@@ -117,7 +127,7 @@ export const PracticeUserManagement = () => {
         // Try gp_practices table
         const { data: gpPractice, error: gpError } = await supabase
           .from('gp_practices')
-          .select('name')
+          .select('name, organisation_type')
           .eq('id', practiceId)
           .single();
 
@@ -126,8 +136,10 @@ export const PracticeUserManagement = () => {
           return;
         }
         setPracticeInfo({ id: practiceId, name: gpPractice.name });
+        setIsNonPracticeOrg(nonPracticeOrgTypes.includes(gpPractice.organisation_type || ''));
       } else {
         setPracticeInfo({ id: practiceId, name: practice.practice_name });
+        setIsNonPracticeOrg(false);
       }
     } catch (error) {
       console.error('Error loading practice info:', error);
@@ -357,7 +369,7 @@ export const PracticeUserManagement = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Practice Role</TableHead>
+                    {!isNonPracticeOrg && <TableHead>Practice Role</TableHead>}
                     <TableHead>Module Access</TableHead>
                     <TableHead>Last Login</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
@@ -366,13 +378,13 @@ export const PracticeUserManagement = () => {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
+                      <TableCell colSpan={isNonPracticeOrg ? 6 : 7} className="text-center py-8">
                         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
                       </TableCell>
                     </TableRow>
                   ) : filteredUsers.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={isNonPracticeOrg ? 6 : 7} className="text-center py-8 text-muted-foreground">
                         No users found
                       </TableCell>
                     </TableRow>
@@ -383,18 +395,22 @@ export const PracticeUserManagement = () => {
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
                           <Badge variant={user.role === 'user' ? 'secondary' : 'default'}>
-                            {user.role}
+                            {isNonPracticeOrg && user.role === 'practice_manager' 
+                              ? 'Organisation Admin' 
+                              : user.role}
                           </Badge>
                         </TableCell>
-                        <TableCell>
-                          {user.practice_role ? (
-                            <Badge variant="outline">
-                              {practiceRoles.find(r => r.value === user.practice_role)?.label || user.practice_role}
-                            </Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">Not set</span>
-                          )}
-                        </TableCell>
+                        {!isNonPracticeOrg && (
+                          <TableCell>
+                            {user.practice_role ? (
+                              <Badge variant="outline">
+                                {practiceRoles.find(r => r.value === user.practice_role)?.label || user.practice_role}
+                              </Badge>
+                            ) : (
+                              <span className="text-muted-foreground text-sm">Not set</span>
+                            )}
+                          </TableCell>
+                        )}
                         <TableCell>
                           <div className="flex flex-wrap gap-1">
                             {user.meeting_notes_access && <Badge variant="outline" className="text-xs">Notes</Badge>}
@@ -478,24 +494,49 @@ export const PracticeUserManagement = () => {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="practice_role">Practice Role</Label>
-              <Select
-                value={userFormData.practice_role}
-                onValueChange={(value) => setUserFormData(prev => ({ ...prev, practice_role: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a practice role" />
-                </SelectTrigger>
-                <SelectContent>
-                  {practiceRoles.map((role) => (
-                    <SelectItem key={role.value} value={role.value}>
-                      {role.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Role selection for non-practice organisations */}
+            {isNonPracticeOrg && (
+              <div className="space-y-2">
+                <Label htmlFor="role">Role</Label>
+                <Select
+                  value={userFormData.role}
+                  onValueChange={(value) => setUserFormData(prev => ({ ...prev, role: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {organisationRoles.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Practice role selection for GP practices only */}
+            {!isNonPracticeOrg && (
+              <div className="space-y-2">
+                <Label htmlFor="practice_role">Practice Role</Label>
+                <Select
+                  value={userFormData.practice_role}
+                  onValueChange={(value) => setUserFormData(prev => ({ ...prev, practice_role: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select a practice role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {practiceRoles.map((role) => (
+                      <SelectItem key={role.value} value={role.value}>
+                        {role.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             {!editingUser && (
               <div className="space-y-2">
