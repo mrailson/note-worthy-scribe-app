@@ -131,7 +131,7 @@ export const projectRisks: ProjectRisk[] = [
     icon: Handshake,
     concerns: "Practice partners or staff resistance to new working model. Patient concern about travelling to Hub locations.",
     mitigation: "Regular partner engagement sessions; clear governance and benefits communication; patient engagement events in January; transport support for vulnerable patients.",
-    owner: "Programme Lead",
+    owner: "Programme Director",
     lastReviewed: "18/12/2025",
     assuranceIndicators: "Partner meetings scheduled; Patient engagement plan in place; Transport options identified",
     comments: "Good engagement at December practice meetings. January patient sessions planned."
@@ -150,7 +150,7 @@ export const projectRisks: ProjectRisk[] = [
     icon: ClipboardCheck,
     concerns: "CQC registration not approved before April 2026 go-live, preventing service launch. Registration process delays could impact entire programme timeline.",
     mitigation: "Early CQC engagement initiated; application submitted with buffer time; regular progress tracking with CQC liaison; contingency plans for phased launch if delays occur.",
-    owner: "Programme Lead",
+    owner: "Programme Director",
     lastReviewed: "18/12/2025",
     assuranceIndicators: "CQC liaison established; Application timeline agreed; Contingency plan documented",
     comments: "CQC engagement positive. Application to be submitted Q1 2026."
@@ -247,7 +247,7 @@ export const projectRisks: ProjectRisk[] = [
     icon: PoundSterling,
     concerns: "ICB grant application and monthly reporting requirements not yet fully understood. Risk of delayed funding or clawback if reporting not compliant.",
     mitigation: "Monthly financial reporting framework established; Named finance lead identified; Clear grant expenditure tracking; ICB finance liaison for guidance on requirements.",
-    owner: "Finance Lead",
+    owner: "Programme Director",
     lastReviewed: "18/12/2025",
     assuranceIndicators: "Reporting template agreed; Finance lead confirmed; First report submitted on time",
     comments: "£30k grant secured. Monthly reporting to ICB required. Template to be agreed with ICB finance."
@@ -266,7 +266,7 @@ export const projectRisks: ProjectRisk[] = [
     icon: Stethoscope,
     concerns: "Part B clinic planning (Frailty/COPD) not yet finalised. Risk of delayed innovation pilots or failure to meet proactive care commitments tied to Part A funding.",
     mitigation: "Part B workstream established; Clinical leads identified for Frailty and COPD; Pathway mapping underway; Integration with existing practice chronic disease management; Pilot sites identified.",
-    owner: "Clinical Director",
+    owner: "Clinical Lead",
     lastReviewed: "18/12/2025",
     assuranceIndicators: "Clinical leads confirmed; Pathways mapped; Pilot sites agreed; Coding requirements defined",
     comments: "Critical dependency on Part A funding. Frailty pathway prioritised for Q2 2026 launch."
