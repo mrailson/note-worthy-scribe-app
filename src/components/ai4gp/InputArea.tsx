@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, X } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { UploadedFile } from '@/types/ai4gp';
@@ -134,6 +134,13 @@ ${pastedText.trim()}
   };
 
 
+  const handleClearInput = () => {
+    setInput('');
+    setBrowserTranscript('');
+    micRef.current?.clearTranscript();
+    textareaRef.current?.focus();
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
@@ -142,6 +149,11 @@ ${pastedText.trim()}
       setBrowserTranscript('');
       setInput('');
       micRef.current?.clearTranscript();
+    }
+    // Escape key to clear input
+    if (e.key === 'Escape' && input.trim()) {
+      e.preventDefault();
+      handleClearInput();
     }
   };
 
@@ -168,10 +180,23 @@ ${pastedText.trim()}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
             placeholder={isClinical ? "Ask about NHS guidelines, clinical protocols, prescribing, referrals..." : "Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."}
-            className="min-h-[140px] max-h-80 resize-none bg-white border-border pr-28 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
+            className="min-h-[140px] max-h-80 resize-none bg-white border-border pr-28 pl-10 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
             disabled={isLoading}
             style={{ minHeight: '140px' }}
           />
+          
+          {/* Clear button - only shown when there's text */}
+          {input.trim().length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute left-2 bottom-3 h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
+              onClick={handleClearInput}
+              title="Clear input (Esc)"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          )}
           
           <input
             ref={fileInputRef}
@@ -258,7 +283,8 @@ ${pastedText.trim()}
       
       <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
         <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
-        to send • Supports: PDF, Word, Excel, images, audio • 
+        to send • <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Esc</kbd>
+        to clear • Supports: PDF, Word, Excel, images, audio • 
         <span className="text-blue-600 font-medium">🎙️ Voice control available</span>
       </div>
       
