@@ -12,6 +12,7 @@ export interface Message {
   isClinical?: boolean;
   clinicalVerification?: ClinicalVerificationData;
   isQuickPick?: boolean; // Flag to identify messages from quick pick actions
+  webSearchPerformed?: boolean; // Flag to indicate real-time web search was used
 }
 
 export interface ClinicalVerificationData {

@@ -329,3 +329,6 @@ verify_jwt = true
 
 [functions.bulk-create-nres-users]
 verify_jwt = true
+
+[functions.smart-web-search]
+verify_jwt = true

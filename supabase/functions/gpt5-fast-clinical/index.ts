@@ -1,8 +1,9 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 
-// Force redeploy to pick up updated OPENAI_API_KEY - v3
+// Force redeploy to pick up updated OPENAI_API_KEY - v4 with web search
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
-const OPENAI_ORG = Deno.env.get("OPENAI_ORG") ?? ""; // optional
+const OPENAI_ORG = Deno.env.get("OPENAI_ORG") ?? "";
+const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -11,6 +12,84 @@ const cors = {
 };
 
 const SMALL_SYS = "NHS GP assistant. Use BNF/NICE/MHRA/NHS.uk/Green Book/ICB only. Concise UK GP bullets.";
+
+// Keywords that indicate a need for real-time/current information
+const REALTIME_INDICATORS = [
+  'latest', 'current', 'today', 'this week', 'this month', 'recent', 'new',
+  'news', 'announcement', 'update', 'updated', 'breaking', '2024', '2025',
+  'what is happening', 'what\'s happening', 'now', 'currently', 'just',
+  'gp news', 'nhs news', 'nice update', 'nice guidance', 'latest guidance',
+  'contract', 'pay', 'bma', 'strike', 'industrial action', 'changes to'
+];
+
+// Check if query needs real-time information
+function needsWebSearch(messages: any[]): { needed: boolean; query: string } {
+  const lastMessage = messages[messages.length - 1];
+  const content = lastMessage?.content?.toLowerCase() || '';
+  
+  const needsSearch = REALTIME_INDICATORS.some(indicator => content.includes(indicator));
+  
+  if (needsSearch) {
+    // Extract a good search query from the user's message
+    const searchQuery = lastMessage?.content?.substring(0, 200) || '';
+    return { needed: true, query: searchQuery };
+  }
+  
+  return { needed: false, query: '' };
+}
+
+// Perform web search using Tavily
+async function performWebSearch(query: string): Promise<string> {
+  if (!TAVILY_API_KEY) {
+    console.log('[gpt5-fast-clinical] No TAVILY_API_KEY, skipping web search');
+    return '';
+  }
+
+  try {
+    console.log(`[gpt5-fast-clinical] Performing web search for: "${query.substring(0, 50)}..."`);
+    
+    const searchResponse = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: TAVILY_API_KEY,
+        query: query,
+        search_depth: 'basic',
+        include_domains: [
+          'nhs.uk', 'nice.org.uk', 'gov.uk', 'bma.org.uk', 'rcgp.org.uk',
+          'gponline.com', 'pulsetoday.co.uk', 'bmj.com', 'england.nhs.uk'
+        ],
+        max_results: 4,
+        include_answer: true
+      })
+    });
+
+    if (!searchResponse.ok) {
+      console.error('[gpt5-fast-clinical] Tavily API error:', await searchResponse.text());
+      return '';
+    }
+
+    const searchData = await searchResponse.json();
+    const results = searchData.results || [];
+    
+    if (results.length === 0) {
+      return '';
+    }
+
+    console.log(`[gpt5-fast-clinical] Found ${results.length} web results`);
+
+    // Format results for context injection
+    const formattedResults = results.map((r: any, i: number) => 
+      `[${i + 1}] ${r.title}\nSource: ${r.url}\n${(r.content || '').substring(0, 400)}`
+    ).join('\n\n');
+
+    return `\n\n🔍 REAL-TIME WEB SEARCH RESULTS:\n${formattedResults}\n\n---\nPlease incorporate these current sources into your response where relevant. Cite sources when using specific information.`;
+    
+  } catch (error) {
+    console.error('[gpt5-fast-clinical] Web search error:', error);
+    return '';
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -25,8 +104,7 @@ serve(async (req) => {
 
   if (!OPENAI_API_KEY) {
     console.error('CRITICAL: OPENAI_API_KEY environment variable is not set');
-    console.log('Available env vars:', Object.keys(Deno.env.toObject()));
-    return sseError("OpenAI API key not configured. Please set OPENAI_API_KEY environment variable.", 500);
+    return sseError("OpenAI API key not configured.", 500);
   }
 
   let body: any;
@@ -37,7 +115,20 @@ serve(async (req) => {
   }
 
   const { messages = [], model, systemPrompt, max_tokens } = body;
-  const sys = systemPrompt ?? SMALL_SYS;
+  
+  // Check if web search is needed
+  const { needed: needsSearch, query: searchQuery } = needsWebSearch(messages);
+  let webSearchContext = '';
+  let searchPerformed = false;
+  
+  if (needsSearch) {
+    console.log('[gpt5-fast-clinical] Query needs real-time info, performing web search...');
+    webSearchContext = await performWebSearch(searchQuery);
+    searchPerformed = webSearchContext.length > 0;
+  }
+
+  // Append web search results to system prompt if available
+  const sys = (systemPrompt ?? SMALL_SYS) + webSearchContext;
 
   const chatMessages = [{ role: "system", content: sys }, ...messages];
 
@@ -128,7 +219,7 @@ serve(async (req) => {
 
   try {
     // Use GPT-4o-mini directly with streaming for fast, reliable responses
-    console.log(`Starting request with model: gpt-4o-mini, tokens: ${finalMaxTokens}`);
+    console.log(`Starting request with model: gpt-4o-mini, tokens: ${finalMaxTokens}, webSearch: ${searchPerformed}`);
     const resp = await tryModel("gpt-4o-mini", true);
 
     if (!resp.ok) {
@@ -138,6 +229,33 @@ serve(async (req) => {
     }
 
     console.log(`Successfully got response from gpt-4o-mini`);
+    
+    // If web search was performed, prepend a meta message indicating this
+    if (searchPerformed) {
+      const metaMessage = `data: ${JSON.stringify({ _meta: { webSearchPerformed: true } })}\n\n`;
+      
+      // Create a new ReadableStream that prepends the meta message
+      const originalBody = resp.body;
+      const newStream = new ReadableStream({
+        async start(controller) {
+          controller.enqueue(new TextEncoder().encode(metaMessage));
+          
+          if (originalBody) {
+            const reader = originalBody.getReader();
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+              controller.enqueue(value);
+            }
+          }
+          controller.close();
+        }
+      });
+      
+      return new Response(newStream, {
+        headers: { ...cors, "Content-Type": "text/event-stream", "Cache-Control": "no-cache" }
+      });
+    }
     
     // Return the streaming response directly
     return new Response(resp.body, {
