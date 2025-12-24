@@ -283,8 +283,8 @@ export const SDAEvidenceLibrary = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <h4 className="font-semibold text-white text-sm">Draft Audio Summary</h4>
-                            <Badge variant="secondary" className="bg-amber-400 text-amber-900 hover:bg-amber-400 text-[10px]">
-                              Draft
+                            <Badge variant="secondary" className="bg-amber-400 text-amber-900 hover:bg-amber-400 text-[10px] whitespace-nowrap">
+                              Early Draft. Final Version to Follow
                             </Badge>
                           </div>
                           <p className="text-white/70 text-xs">Key points, decisions and actions</p>
