@@ -193,6 +193,25 @@ export class BrowserSpeechTranscriber {
     this.onStatusChange('Stopped');
   }
 
+  pauseTranscription() {
+    console.log('⏸️ Pausing browser speech recognition...');
+    this.clearRestartTimeout();
+    this.isRestarting = false;
+    
+    if (this.recognition) {
+      this.recognition.stop();
+    }
+    
+    this.onStatusChange('Paused');
+  }
+
+  resumeTranscription() {
+    console.log('▶️ Resuming browser speech recognition...');
+    if (this.isRecording && !this.recognition) {
+      this.startTranscription();
+    }
+  }
+
   private clearRestartTimeout() {
     if (this.restartTimeout) {
       clearTimeout(this.restartTimeout);
