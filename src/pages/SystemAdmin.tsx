@@ -61,6 +61,7 @@ import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings'
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
 import { BulkNRESUserCreation } from '@/components/admin/BulkNRESUserCreation';
+import { QuickPasswordUpdate } from '@/components/QuickPasswordUpdate';
 
 
 interface User {
@@ -2070,8 +2071,13 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </TabsList>
               
               <TabsContent value="users" className="space-y-6">
-                {/* Bulk NRES User Creation */}
-                <BulkNRESUserCreation />
+                {/* Admin Tools Row */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Bulk NRES User Creation */}
+                  <BulkNRESUserCreation />
+                  {/* Quick Password Reset */}
+                  <QuickPasswordUpdate />
+                </div>
                 <div className="flex justify-between items-center">
                   <div className="flex items-center space-x-2">
                     <Search className="h-4 w-4" />
