@@ -9,31 +9,46 @@ const corsHeaders = {
 const NHS_BLUE = "005EB8";
 const LIGHT_GREY = "F0F0F0";
 
-// Layout constants for dynamic positioning
+// Layout constants for dynamic positioning - INCREASED spacing to prevent overlap
 const LAYOUT = {
   SLIDE_WIDTH: 13.33,
   SLIDE_HEIGHT: 7.5,
   HEADER_HEIGHT: 0.9,
-  CONTENT_START_Y: 1.3,
-  CONTENT_END_Y: 6.4,
+  CONTENT_START_Y: 1.4,
+  CONTENT_END_Y: 6.2,
   FOOTER_Y: 6.8,
   LEFT_MARGIN: 0.5,
   CONTENT_WIDTH: 9.5,
-  CHARS_PER_LINE: 75,
-  LINE_HEIGHT: 0.38,
-  BULLET_SPACING: 0.15,
-  MIN_BULLET_HEIGHT: 0.5,
+  CHARS_PER_LINE: 65, // Reduced to be more conservative
+  LINE_HEIGHT: 0.45,  // Increased from 0.38
+  BULLET_SPACING: 0.25, // Increased from 0.15
+  MIN_BULLET_HEIGHT: 0.7, // Increased from 0.5
 };
 
-// Estimate lines needed for text
+// Estimate lines needed for text - more conservative
 function estimateTextLines(text: string): number {
-  return Math.max(1, Math.ceil(text.length / LAYOUT.CHARS_PER_LINE));
+  // Account for word wrapping breaking at word boundaries, not character boundaries
+  const words = text.split(' ');
+  let lines = 1;
+  let currentLineLength = 0;
+  
+  for (const word of words) {
+    if (currentLineLength + word.length + 1 > LAYOUT.CHARS_PER_LINE) {
+      lines++;
+      currentLineLength = word.length;
+    } else {
+      currentLineLength += word.length + 1;
+    }
+  }
+  
+  return Math.max(1, lines);
 }
 
-// Calculate height needed for a bullet point
+// Calculate height needed for a bullet point - more generous
 function calculateBulletHeight(text: string): number {
   const lines = estimateTextLines(text);
-  return Math.max(LAYOUT.MIN_BULLET_HEIGHT, lines * LAYOUT.LINE_HEIGHT + LAYOUT.BULLET_SPACING);
+  // Add extra padding for safety
+  return Math.max(LAYOUT.MIN_BULLET_HEIGHT, (lines * LAYOUT.LINE_HEIGHT) + LAYOUT.BULLET_SPACING + 0.1);
 }
 
 // Split bullets if they exceed available space, returning overflow for next slide
