@@ -1,9 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, PoundSterling, FileCheck, Play, Pause, Headphones } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
-import { useRef, useState, useEffect } from "react";
-import { Slider } from "@/components/ui/slider";
-import { Badge } from "@/components/ui/badge";
 import NRESLogo from "@/assets/NRES_Logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
 
@@ -23,52 +20,6 @@ const appointmentData = [
 ];
 
 export const SDAExecutiveSummary = () => {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
-
-  const formatTime = (time: number) => {
-    const minutes = Math.floor(time / 60);
-    const seconds = Math.floor(time % 60);
-    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
-  };
-
-  const togglePlayPause = () => {
-    if (audioRef.current) {
-      if (isPlaying) {
-        audioRef.current.pause();
-      } else {
-        audioRef.current.play();
-      }
-      setIsPlaying(!isPlaying);
-    }
-  };
-
-  const handleTimeUpdate = () => {
-    if (audioRef.current) {
-      setCurrentTime(audioRef.current.currentTime);
-    }
-  };
-
-  const handleLoadedMetadata = () => {
-    if (audioRef.current) {
-      setDuration(audioRef.current.duration);
-    }
-  };
-
-  const handleSliderChange = (value: number[]) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = value[0];
-      setCurrentTime(value[0]);
-    }
-  };
-
-  const handleEnded = () => {
-    setIsPlaying(false);
-    setCurrentTime(0);
-  };
-
   return (
     <div className="space-y-6">
       {/* Header with SRO */}
@@ -76,59 +27,6 @@ export const SDAExecutiveSummary = () => {
         <h2 className="text-2xl font-bold text-slate-900">Executive Dashboard</h2>
         <p className="text-slate-600">Northamptonshire Rural East & South Neighbourhood</p>
       </div>
-
-      {/* Audio Summary Card */}
-      <Card className="bg-gradient-to-r from-[#005EB8] to-[#003087] border-0 shadow-lg">
-        <CardContent className="p-6">
-          <audio
-            ref={audioRef}
-            src="/audio/23_12_25_SDA.mp3"
-            onTimeUpdate={handleTimeUpdate}
-            onLoadedMetadata={handleLoadedMetadata}
-            onEnded={handleEnded}
-          />
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-white/20 flex items-center justify-center flex-shrink-0">
-              <Headphones className="w-6 h-6 text-white" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <h3 className="text-lg font-semibold text-white">Draft Audio Summary</h3>
-                <Badge variant="secondary" className="bg-amber-400 text-amber-900 hover:bg-amber-400">
-                  Draft
-                </Badge>
-              </div>
-              <p className="text-white/80 text-sm">Key points, decisions and actions</p>
-            </div>
-            <p className="text-white/70 text-sm hidden sm:block">23 Dec 2025</p>
-          </div>
-          
-          <div className="flex items-center gap-4 mt-4">
-            <button
-              onClick={togglePlayPause}
-              className="w-10 h-10 rounded-full bg-white flex items-center justify-center hover:bg-white/90 transition-colors flex-shrink-0"
-            >
-              {isPlaying ? (
-                <Pause className="w-5 h-5 text-[#005EB8]" />
-              ) : (
-                <Play className="w-5 h-5 text-[#005EB8] ml-0.5" />
-              )}
-            </button>
-            <div className="flex-1">
-              <Slider
-                value={[currentTime]}
-                max={duration || 100}
-                step={0.1}
-                onValueChange={handleSliderChange}
-                className="cursor-pointer [&_[role=slider]]:bg-white [&_[role=slider]]:border-0 [&>.bg-primary]:bg-white [&>span:first-child]:bg-white/30"
-              />
-            </div>
-            <span className="text-white text-sm font-mono min-w-[80px] text-right">
-              {formatTime(currentTime)} / {formatTime(duration)}
-            </span>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Key Metrics Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
