@@ -985,7 +985,7 @@ Format your responses clearly with headings and bullet points where appropriate 
     <div className="min-h-screen bg-background">
       <Header onNewMeeting={() => {}} />
       
-      <div className="max-w-7xl mx-auto p-4">
+      <div className="max-w-[1536px] mx-auto p-4">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           {/* Mobile Collapsible Menu */}
           {isMobile && (
