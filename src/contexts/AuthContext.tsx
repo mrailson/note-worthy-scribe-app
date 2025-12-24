@@ -373,21 +373,24 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   };
 
   const resetPassword = async (email: string) => {
-    const redirectUrl = `${window.location.origin}/reset-password`;
-    
     try {
-      // Use Supabase's built-in password reset - configure SMTP in Supabase dashboard to use Resend
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl
+      // Use our custom edge function to generate password reset link and send via EmailJS
+      const { data, error } = await supabase.functions.invoke('generate-password-reset', {
+        body: { email: email }
       });
-      
+
       if (error) {
         console.error("Password reset failed:", error.message);
         return { error };
       }
-      
-      console.log("Password reset email sent successfully");
-      return { error: null };
+
+      if (data?.success) {
+        console.log("Password reset email sent successfully via EmailJS");
+        return { error: null };
+      } else {
+        console.error("Password reset failed:", data?.error);
+        return { error: { message: data?.error || "Failed to send password reset email" } };
+      }
     } catch (err: any) {
       console.error("Password reset error:", err);
       return { error: { message: err.message || "An error occurred while sending reset email" } };
