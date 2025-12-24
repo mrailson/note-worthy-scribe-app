@@ -43,6 +43,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const [hideGPClinical, setHideGPClinical] = useState(false);
   const [isOakLaneNonAdmin, setIsOakLaneNonAdmin] = useState(false);
   const [isPcnManager, setIsPcnManager] = useState(false);
+  const [isPracticeManager, setIsPracticeManager] = useState(false);
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -99,9 +100,13 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           
           setIsOakLaneNonAdmin(isOakLane && isNotAdmin);
           
-          // Check if user has pcn_manager role (for Practice Management access)
+          // Check if user has pcn_manager role (for Organisation Management access)
           const hasPcnManagerRole = userRoles.some((r: any) => r.role === 'pcn_manager');
           setIsPcnManager(hasPcnManagerRole);
+          
+          // Check if user has practice_manager role (for Organisation Management access)
+          const hasPracticeManagerRole = userRoles.some((r: any) => r.role === 'practice_manager');
+          setIsPracticeManager(hasPracticeManagerRole);
         }
       } catch (error) {
         console.error('Error checking user permissions:', error);
@@ -423,8 +428,8 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        </DropdownMenuItem>
                      )}
                      
-                     {/* Hide Practice Management for Oak Lane non-admin users */}
-                     {!isOakLaneNonAdmin && (hasModuleAccess('practice_manager_access') || isPcnManager || isSystemAdmin) && (
+                     {/* Show Organisation Management for practice_manager, pcn_manager, or system admin */}
+                     {!isOakLaneNonAdmin && (isPracticeManager || isPcnManager || isSystemAdmin) && (
                        <DropdownMenuItem 
                          onClick={() => navigate('/practice-admin')}
                          className="cursor-pointer py-3"
@@ -649,8 +654,8 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                 </DrawerClose>
                                )}
                                
-                               {/* Hide Practice Management for Oak Lane non-admin users */}
-                               {!isOakLaneNonAdmin && (hasModuleAccess('practice_manager_access') || isPcnManager || isSystemAdmin) && (
+                               {/* Show Organisation Management for practice_manager, pcn_manager, or system admin */}
+                               {!isOakLaneNonAdmin && (isPracticeManager || isPcnManager || isSystemAdmin) && (
                                  <DrawerClose asChild>
                                    <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/practice-admin')}>
                                      <Users className="h-4 w-4 mr-2" />
