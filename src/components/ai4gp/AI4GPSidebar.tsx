@@ -92,7 +92,6 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
         navigate('/translation-tool');
       }
     }},
-    { icon: Zap, label: 'Quick Image', action: onShowQuickImageModal },
     { icon: ImageIcon, label: 'QR Code Generator', action: onShowQRCodeGenerator },
   ];
 
