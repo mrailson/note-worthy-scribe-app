@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import MessageRenderer from '@/components/MessageRenderer';
 import { Message } from '@/types/ai4gp';
@@ -36,41 +36,24 @@ export const MessagesList: React.FC<MessagesListProps> = ({
 }) => {
   const parentRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef(0);
+  const messagesRef = useRef(messages);
   const deviceInfo = useDeviceInfo();
+  
+  // Keep messages ref up to date
+  messagesRef.current = messages;
 
-  // Estimate row height based on message content
-  const estimateSize = useCallback((index: number) => {
-    const message = messages[index];
-    if (!message) return 150;
-    
-    const contentLength = message.content?.length || 0;
-    const hasFiles = message.files && message.files.length > 0;
-    
-    // Base height + content-based estimate
-    let estimatedHeight = 100; // Base padding and controls
-    
-    if (message.role === 'user') {
-      // User messages are generally shorter
-      estimatedHeight += Math.min(contentLength / 2, 200);
-      if (hasFiles) estimatedHeight += 60;
-    } else {
-      // Assistant messages can be much longer
-      estimatedHeight += Math.min(contentLength / 3, 800);
-      if (message.isStreaming) estimatedHeight += 50;
-    }
-    
-    return Math.max(estimatedHeight, 120);
-  }, [messages]);
+  // Stable count for virtualizer
+  const itemCount = messages.length + (isLoading ? 1 : 0);
 
-  // Virtual list configuration
+  // Virtual list configuration with stable estimateSize
   const virtualizer = useVirtualizer({
-    count: messages.length + (isLoading ? 1 : 0), // +1 for loading indicator
+    count: itemCount,
     getScrollElement: () => parentRef.current,
-    estimateSize,
-    overscan: 3, // Render 3 extra items above/below viewport
+    estimateSize: () => 200, // Use fixed estimate, measureElement will handle actual sizing
+    overscan: 3,
     getItemKey: (index) => {
-      if (index >= messages.length) return 'loading-indicator';
-      return messages[index]?.id || `msg-${index}`;
+      if (index >= messagesRef.current.length) return 'loading-indicator';
+      return messagesRef.current[index]?.id || `msg-${index}`;
     },
   });
 
@@ -78,31 +61,30 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   useEffect(() => {
     const currentMessageCount = messages.length;
     
-    if (currentMessageCount > previousMessageCountRef.current) {
-      // New message added, scroll to bottom
-      requestAnimationFrame(() => {
-        virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' });
-      });
+    if (currentMessageCount > previousMessageCountRef.current && currentMessageCount > 0) {
+      const timeoutId = setTimeout(() => {
+        virtualizer.scrollToIndex(currentMessageCount - 1, { align: 'end', behavior: 'smooth' });
+      }, 50);
       previousMessageCountRef.current = currentMessageCount;
+      return () => clearTimeout(timeoutId);
     }
   }, [messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Keep scroll at bottom during streaming
+  const lastMessage = messages[messages.length - 1];
+  const isStreaming = lastMessage?.isStreaming;
+  
   useEffect(() => {
-    const lastMessage = messages[messages.length - 1];
-    if (lastMessage?.isStreaming) {
-      // Debounced scroll during streaming - only scroll every 500ms max
+    if (isStreaming && messages.length > 0) {
       const scrollTimeout = setTimeout(() => {
-        requestAnimationFrame(() => {
-          virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
-        });
-      }, 100);
+        virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
+      }, 150);
       return () => clearTimeout(scrollTimeout);
     }
-  }, [messages.length, messages[messages.length - 1]?.isStreaming]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isStreaming, messages.length]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Memoize the virtual items to prevent recalculation
   const virtualItems = virtualizer.getVirtualItems();
+  const totalSize = virtualizer.getTotalSize();
 
   return (
     <div
@@ -115,7 +97,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
     >
       <div
         style={{
-          height: `${virtualizer.getTotalSize()}px`,
+          height: `${totalSize}px`,
           width: '100%',
           position: 'relative',
         }}
