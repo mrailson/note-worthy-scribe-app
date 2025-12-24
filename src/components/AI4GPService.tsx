@@ -374,7 +374,7 @@ const AI4GPService = () => {
           onShowAllQuickActions={() => setShowAllQuickActions(true)}
           meetings={meetings as any}
           meetingsLoading={meetingsLoading}
-          onSelectMeeting={(meetingId) => navigate(`/gp-scribe?meeting=${meetingId}`)}
+          onSelectMeeting={(meetingId) => navigate(`/meeting-summary/${meetingId}`)}
         />
 
         <div className="flex flex-1 min-h-0 flex-col">
