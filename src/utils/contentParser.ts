@@ -6,6 +6,7 @@ interface SlideContent {
     rows: string[][];
   };
   notes?: string;
+  estimatedHeight?: number; // Track estimated height for overflow detection
 }
 
 interface ParsedPresentation {
@@ -14,6 +15,80 @@ interface ParsedPresentation {
   };
   slides: SlideContent[];
 }
+
+// Constants for layout calculations
+const LAYOUT_CONFIG = {
+  CHARS_PER_LINE: 65, // Characters that fit on one line
+  LINE_HEIGHT: 0.5, // Height per line in inches
+  BULLET_BASE_HEIGHT: 0.4, // Base height for a bullet
+  MAX_CONTENT_HEIGHT: 4.5, // Maximum content area height (slide height minus header/footer)
+  MAX_BULLETS_PER_SLIDE: 5, // Safe number of bullets per slide
+  MAX_CHARS_PER_BULLET: 150, // Maximum characters before splitting a bullet
+};
+
+// Estimate how many lines a text will wrap to
+const estimateTextLines = (text: string): number => {
+  return Math.max(1, Math.ceil(text.length / LAYOUT_CONFIG.CHARS_PER_LINE));
+};
+
+// Estimate the height a bullet point will take
+const estimateBulletHeight = (text: string): number => {
+  const lines = estimateTextLines(text);
+  return LAYOUT_CONFIG.BULLET_BASE_HEIGHT + ((lines - 1) * LAYOUT_CONFIG.LINE_HEIGHT);
+};
+
+// Split a long bullet into smaller chunks at logical break points
+const splitLongBullet = (text: string): string[] => {
+  if (text.length <= LAYOUT_CONFIG.MAX_CHARS_PER_BULLET) {
+    return [text];
+  }
+  
+  const chunks: string[] = [];
+  let remaining = text;
+  
+  while (remaining.length > LAYOUT_CONFIG.MAX_CHARS_PER_BULLET) {
+    // Find a good break point (sentence end, semicolon, comma, or space)
+    let breakPoint = LAYOUT_CONFIG.MAX_CHARS_PER_BULLET;
+    
+    // Try to find sentence end
+    const sentenceEnd = remaining.lastIndexOf('. ', breakPoint);
+    if (sentenceEnd > LAYOUT_CONFIG.MAX_CHARS_PER_BULLET * 0.5) {
+      breakPoint = sentenceEnd + 1;
+    } else {
+      // Try semicolon
+      const semicolon = remaining.lastIndexOf('; ', breakPoint);
+      if (semicolon > LAYOUT_CONFIG.MAX_CHARS_PER_BULLET * 0.5) {
+        breakPoint = semicolon + 1;
+      } else {
+        // Try comma
+        const comma = remaining.lastIndexOf(', ', breakPoint);
+        if (comma > LAYOUT_CONFIG.MAX_CHARS_PER_BULLET * 0.5) {
+          breakPoint = comma + 1;
+        } else {
+          // Fall back to last space
+          const space = remaining.lastIndexOf(' ', breakPoint);
+          if (space > LAYOUT_CONFIG.MAX_CHARS_PER_BULLET * 0.3) {
+            breakPoint = space;
+          }
+        }
+      }
+    }
+    
+    chunks.push(remaining.substring(0, breakPoint).trim());
+    remaining = remaining.substring(breakPoint).trim();
+  }
+  
+  if (remaining.length > 0) {
+    chunks.push(remaining);
+  }
+  
+  return chunks;
+};
+
+// Calculate total estimated height for a slide's content
+const calculateSlideContentHeight = (bullets: string[]): number => {
+  return bullets.reduce((total, bullet) => total + estimateBulletHeight(bullet), 0);
+};
 
 export function parseContentToSlides(content: string, title: string): ParsedPresentation {
   const lines = content.split('\n').map(line => line.trim()).filter(line => line.length > 0);
@@ -95,7 +170,9 @@ export function parseContentToSlides(content: string, title: string): ParsedPres
       
       const bulletText = line.replace(/^[-•*]\s*/, '').trim();
       if (bulletText.length > 0) {
-        currentSlide.bullets!.push(bulletText);
+        // Split long bullets into smaller chunks
+        const chunks = splitLongBullet(bulletText);
+        currentSlide.bullets!.push(...chunks);
       }
       continue;
     }
@@ -110,7 +187,9 @@ export function parseContentToSlides(content: string, title: string): ParsedPres
       }
       
       if (currentSlide.bullets && currentSlide.bullets.length < 6) {
-        currentSlide.bullets.push(line);
+        // Split long text if needed
+        const chunks = splitLongBullet(line);
+        currentSlide.bullets.push(...chunks);
       }
     }
   }
@@ -131,25 +210,62 @@ export function parseContentToSlides(content: string, title: string): ParsedPres
     });
   }
   
-  // Limit bullets per slide to prevent overlap
+  // Split slides that exceed content height limits
   const processedSlides: SlideContent[] = [];
+  
   slides.forEach(slide => {
-    if (slide.bullets && slide.bullets.length > 8) {
-      // Split into multiple slides
-      const bulletChunks = [];
-      for (let i = 0; i < slide.bullets.length; i += 6) {
-        bulletChunks.push(slide.bullets.slice(i, i + 6));
+    if (!slide.bullets || slide.bullets.length === 0) {
+      // Tables or empty slides pass through
+      processedSlides.push(slide);
+      return;
+    }
+    
+    // Calculate if content fits on one slide
+    const totalHeight = calculateSlideContentHeight(slide.bullets);
+    
+    if (totalHeight <= LAYOUT_CONFIG.MAX_CONTENT_HEIGHT && slide.bullets.length <= LAYOUT_CONFIG.MAX_BULLETS_PER_SLIDE) {
+      // Content fits, add estimated height
+      slide.estimatedHeight = totalHeight;
+      processedSlides.push(slide);
+    } else {
+      // Need to split across multiple slides
+      let currentBullets: string[] = [];
+      let currentHeight = 0;
+      let partNumber = 1;
+      
+      for (const bullet of slide.bullets) {
+        const bulletHeight = estimateBulletHeight(bullet);
+        
+        // Check if adding this bullet would exceed limits
+        if (currentBullets.length >= LAYOUT_CONFIG.MAX_BULLETS_PER_SLIDE || 
+            currentHeight + bulletHeight > LAYOUT_CONFIG.MAX_CONTENT_HEIGHT) {
+          // Save current slide and start new one
+          if (currentBullets.length > 0) {
+            processedSlides.push({
+              title: partNumber === 1 ? slide.title : `${slide.title} (${partNumber})`,
+              bullets: currentBullets,
+              estimatedHeight: currentHeight,
+              notes: slide.notes
+            });
+            partNumber++;
+          }
+          currentBullets = [];
+          currentHeight = 0;
+        }
+        
+        currentBullets.push(bullet);
+        currentHeight += bulletHeight;
       }
       
-      bulletChunks.forEach((chunk, index) => {
+      // Add remaining bullets
+      if (currentBullets.length > 0) {
         processedSlides.push({
-          title: index === 0 ? slide.title : `${slide.title} (${index + 1})`,
-          bullets: chunk,
+          title: partNumber === 1 ? slide.title : `${slide.title} (${partNumber})`,
+          bullets: currentBullets,
+          estimatedHeight: currentHeight,
           notes: slide.notes
         });
-      });
-    } else {
-      processedSlides.push(slide);
+      }
     }
   });
   

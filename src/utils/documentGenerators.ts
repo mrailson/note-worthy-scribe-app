@@ -430,33 +430,92 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
   }
 };
 
+// Layout configuration for PowerPoint generation
+const PPTX_LAYOUT = {
+  SLIDE_WIDTH: 10,
+  SLIDE_HEIGHT: 7.5,
+  HEADER_Y: 0.8,
+  HEADER_HEIGHT: 0.8,
+  CONTENT_START_Y: 1.9,
+  CONTENT_END_Y: 6.3,
+  FOOTER_Y: 6.9,
+  LEFT_MARGIN: 0.8,
+  CONTENT_WIDTH: 8.4,
+  CHARS_PER_LINE: 70,
+  LINE_HEIGHT: 0.4,
+  BULLET_SPACING: 0.2,
+  MIN_BULLET_HEIGHT: 0.55,
+  MAX_BULLETS_PER_SLIDE: 6,
+};
+
+// Estimate lines needed for text in PowerPoint
+const estimatePptxTextLines = (text: string): number => {
+  return Math.max(1, Math.ceil(text.length / PPTX_LAYOUT.CHARS_PER_LINE));
+};
+
+// Calculate height needed for a bullet point
+const calculatePptxBulletHeight = (text: string): number => {
+  const lines = estimatePptxTextLines(text);
+  return Math.max(PPTX_LAYOUT.MIN_BULLET_HEIGHT, lines * PPTX_LAYOUT.LINE_HEIGHT + PPTX_LAYOUT.BULLET_SPACING);
+};
+
+// Split long text into manageable chunks
+const splitLongText = (text: string, maxChars: number = 140): string[] => {
+  if (text.length <= maxChars) return [text];
+  
+  const chunks: string[] = [];
+  let remaining = text;
+  
+  while (remaining.length > maxChars) {
+    let breakPoint = maxChars;
+    
+    // Find natural break points
+    const sentenceEnd = remaining.lastIndexOf('. ', breakPoint);
+    const semicolon = remaining.lastIndexOf('; ', breakPoint);
+    const comma = remaining.lastIndexOf(', ', breakPoint);
+    const space = remaining.lastIndexOf(' ', breakPoint);
+    
+    if (sentenceEnd > maxChars * 0.5) {
+      breakPoint = sentenceEnd + 1;
+    } else if (semicolon > maxChars * 0.5) {
+      breakPoint = semicolon + 1;
+    } else if (comma > maxChars * 0.5) {
+      breakPoint = comma + 1;
+    } else if (space > maxChars * 0.3) {
+      breakPoint = space;
+    }
+    
+    chunks.push(remaining.substring(0, breakPoint).trim());
+    remaining = remaining.substring(breakPoint).trim();
+  }
+  
+  if (remaining) chunks.push(remaining);
+  return chunks;
+};
+
 export const generatePowerPoint = async (content: string, title: string = 'AI Generated Presentation') => {
   try {
     const pptx = new PptxGenJS();
     
     // NHS Color scheme
     const nhsBlue = '#005EB8';
-    const lightBlue = '#E8F4FD';
-    const lightGrey = '#F5F5F5';
     const darkGrey = '#666666';
     
     // Set slide layout
-    pptx.defineLayout({ name: 'NHS_LAYOUT', width: 10, height: 7.5 });
+    pptx.defineLayout({ name: 'NHS_LAYOUT', width: PPTX_LAYOUT.SLIDE_WIDTH, height: PPTX_LAYOUT.SLIDE_HEIGHT });
     pptx.layout = 'NHS_LAYOUT';
     
     // Helper function to add NHS-style background
     const addNHSBackground = (slide: any) => {
-      slide.background = { 
-        fill: 'FFFFFF'
-      };
+      slide.background = { fill: 'FFFFFF' };
     };
     
     // Helper function to add footer
     const addFooter = (slide: any) => {
-      const timestamp = `AI Generated Summary – ${new Date().toLocaleDateString()}`;
+      const timestamp = `AI Generated Summary – ${new Date().toLocaleDateString('en-GB')}`;
       slide.addText(timestamp, {
         x: 0.5,
-        y: 6.9,
+        y: PPTX_LAYOUT.FOOTER_Y,
         w: 9,
         h: 0.4,
         fontSize: 12,
@@ -469,18 +528,88 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
     // Helper function to get appropriate icon for section
     const getIconForSection = (text: string): string => {
       const lowerText = text.toLowerCase();
-      if (lowerText.includes('contraindication') || lowerText.includes('warning') || lowerText.includes('caution')) return '⚠️';
-      if (lowerText.includes('dos') || lowerText.includes('medication') || lowerText.includes('drug') || lowerText.includes('treatment')) return '💊';
-      if (lowerText.includes('reference') || lowerText.includes('study') || lowerText.includes('evidence')) return '📑';
-      if (lowerText.includes('symptom') || lowerText.includes('sign') || lowerText.includes('diagnosis')) return '🩺';
+      if (lowerText.includes('contraindication') || lowerText.includes('warning') || lowerText.includes('caution')) return '⚠️ ';
+      if (lowerText.includes('dos') || lowerText.includes('medication') || lowerText.includes('drug') || lowerText.includes('treatment')) return '💊 ';
+      if (lowerText.includes('reference') || lowerText.includes('study') || lowerText.includes('evidence')) return '📑 ';
+      if (lowerText.includes('symptom') || lowerText.includes('sign') || lowerText.includes('diagnosis')) return '🩺 ';
+      if (lowerText.includes('table') || lowerText.includes('data')) return '📊 ';
       return '';
+    };
+    
+    // Helper to add bullets with dynamic positioning
+    const addBulletsToSlide = (slide: any, bullets: string[], startY: number = PPTX_LAYOUT.CONTENT_START_Y): number => {
+      let currentY = startY;
+      
+      for (const point of bullets) {
+        const height = calculatePptxBulletHeight(point);
+        
+        // Stop if we'd exceed the content area
+        if (currentY + height > PPTX_LAYOUT.CONTENT_END_Y) break;
+        
+        slide.addText(point, {
+          x: PPTX_LAYOUT.LEFT_MARGIN + 0.4,
+          y: currentY,
+          w: PPTX_LAYOUT.CONTENT_WIDTH - 0.4,
+          h: height,
+          fontSize: 20,
+          fontFace: 'Calibri',
+          bullet: { type: 'bullet' },
+          lineSpacing: 28,
+          wrap: true,
+          valign: 'top',
+          color: '333333'
+        });
+        
+        currentY += height;
+      }
+      
+      return currentY;
+    };
+    
+    // Helper to split bullets across slides if needed
+    const createSlidesForBullets = (bullets: string[], slideTitle: string, titleIcon: string) => {
+      const slides: { title: string; bullets: string[] }[] = [];
+      let currentBullets: string[] = [];
+      let currentHeight = 0;
+      let partNumber = 1;
+      
+      for (const bullet of bullets) {
+        const height = calculatePptxBulletHeight(bullet);
+        
+        // Check if this bullet fits
+        const wouldExceed = currentHeight + height > (PPTX_LAYOUT.CONTENT_END_Y - PPTX_LAYOUT.CONTENT_START_Y);
+        const tooManyBullets = currentBullets.length >= PPTX_LAYOUT.MAX_BULLETS_PER_SLIDE;
+        
+        if ((wouldExceed || tooManyBullets) && currentBullets.length > 0) {
+          // Save current slide and start new one
+          slides.push({
+            title: partNumber === 1 ? titleIcon + slideTitle : titleIcon + slideTitle + ` (${partNumber})`,
+            bullets: currentBullets
+          });
+          partNumber++;
+          currentBullets = [];
+          currentHeight = 0;
+        }
+        
+        currentBullets.push(bullet);
+        currentHeight += height;
+      }
+      
+      // Add remaining bullets
+      if (currentBullets.length > 0) {
+        slides.push({
+          title: partNumber === 1 ? titleIcon + slideTitle : titleIcon + slideTitle + ` (${partNumber})`,
+          bullets: currentBullets
+        });
+      }
+      
+      return slides;
     };
     
     // Title slide
     const titleSlide = pptx.addSlide();
     addNHSBackground(titleSlide);
     
-    // Main title
     titleSlide.addText(title, {
       x: 1,
       y: 2.5,
@@ -493,7 +622,6 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
       align: 'center'
     });
     
-    // Subtitle
     titleSlide.addText('AI Generated Summary', {
       x: 1,
       y: 4.2,
@@ -522,93 +650,77 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
       const pipeLines = lines.filter(line => line.includes('|') && line.split('|').length > 2);
       const hasTable = pipeLines.length >= 2;
       
-      // Get non-table content (text before or after table)
+      // Get non-table content
       const nonTableLines = lines.filter(line => !(line.includes('|') && line.split('|').length > 2));
       const hasDescriptiveText = nonTableLines.some(line => line.trim().length > 0 && !line.match(/^[-\s|]+$/));
       
-      // If section has both descriptive text and table, create TWO slides
       if (hasTable && hasDescriptiveText) {
-        // SLIDE 1: Descriptive text
-        const textSlide = pptx.addSlide();
-        addNHSBackground(textSlide);
-        slideCount++;
-        
+        // Create text slide(s) first
         const slideTitle = cleanMarkdown(firstLine.replace(/^#+\s*/, '').replace(/:$/, ''));
         const titleIcon = getIconForSection(slideTitle);
         
-        textSlide.addText(titleIcon + slideTitle, {
-          x: 0.8,
-          y: 0.8,
-          w: 8.4,
-          h: 0.8,
-          fontSize: 36,
-          bold: true,
-          color: '005EB8',
-          fontFace: 'Calibri'
-        });
-        
-        // Convert dashes to bullet points and handle proper spacing
-        const bulletPoints = nonTableLines
+        // Process bullet points with text splitting
+        let bulletPoints = nonTableLines
           .filter(line => line.trim().length > 0)
-          .map(line => {
-            // Remove leading dashes and clean up
-            let cleanLine = cleanMarkdown(line.replace(/^[-•]\s*/, '').trim());
-            return cleanLine;
-          })
-          .filter(line => line.length > 0);
+          .map(line => cleanMarkdown(line.replace(/^[-•]\s*/, '').trim()))
+          .filter(line => line.length > 0)
+          .flatMap(line => splitLongText(line));
         
-        // Add each bullet point separately for proper spacing
-        bulletPoints.forEach((point, index) => {
-          textSlide.addText(point, {
-            x: 1.2,
-            y: 2.0 + (index * 0.4),
-            w: 7.6,
-            h: 0.35,
-            fontSize: 22,
-            fontFace: 'Calibri',
-            bullet: { type: 'bullet' },
-            lineSpacing: 26,
-            wrap: true,
-            autoFit: true,
-            color: '333333'
+        // Create slides for bullets (may be multiple if content is long)
+        const bulletSlides = createSlidesForBullets(bulletPoints, slideTitle, titleIcon);
+        
+        for (const slideData of bulletSlides) {
+          const textSlide = pptx.addSlide();
+          addNHSBackground(textSlide);
+          slideCount++;
+          
+          textSlide.addText(slideData.title, {
+            x: PPTX_LAYOUT.LEFT_MARGIN,
+            y: PPTX_LAYOUT.HEADER_Y,
+            w: PPTX_LAYOUT.CONTENT_WIDTH,
+            h: PPTX_LAYOUT.HEADER_HEIGHT,
+            fontSize: 32,
+            bold: true,
+            color: '005EB8',
+            fontFace: 'Calibri'
           });
-        });
+          
+          addBulletsToSlide(textSlide, slideData.bullets);
+          addFooter(textSlide);
+        }
         
-        addFooter(textSlide);
-        
-        // SLIDE 2: Table
+        // Create table slide
         const tableSlide = pptx.addSlide();
         addNHSBackground(tableSlide);
         slideCount++;
         
-        tableSlide.addText('📊 ' + slideTitle + ' - Data Table', {
-          x: 0.8,
-          y: 0.8,
-          w: 8.4,
-          h: 0.8,
-          fontSize: 36,
+        tableSlide.addText('📊 ' + slideTitle + ' - Data', {
+          x: PPTX_LAYOUT.LEFT_MARGIN,
+          y: PPTX_LAYOUT.HEADER_Y,
+          w: PPTX_LAYOUT.CONTENT_WIDTH,
+          h: PPTX_LAYOUT.HEADER_HEIGHT,
+          fontSize: 32,
           bold: true,
           color: '005EB8',
           fontFace: 'Calibri'
         });
 
-        // Process table
-        const tableRows = pipeLines.map(line => {
-          return line.split('|')
-            .map(cell => cell.trim())
-            .filter(cell => cell !== '');
-        });
-
-        const dataRows = tableRows.filter(row => 
-          !row.every(cell => /^[-\s]*$/.test(cell))
+        // Process table with dynamic row heights
+        const tableRows = pipeLines.map(line => 
+          line.split('|').map(cell => cell.trim()).filter(cell => cell !== '')
         );
 
+        const dataRows = tableRows.filter(row => !row.every(cell => /^[-\s]*$/.test(cell)));
+
         if (dataRows.length > 0) {
+          const maxCellLength = Math.max(...dataRows.flat().map(cell => cell.length));
+          const rowHeight = Math.max(0.5, Math.min(0.7, maxCellLength / 35));
+          
           const tableData = dataRows.map((row, rowIndex) => 
             row.map(cell => ({ 
               text: cleanMarkdown(cell), 
               options: { 
-                fontSize: 18,
+                fontSize: 16,
                 fontFace: 'Calibri',
                 color: rowIndex === 0 ? 'FFFFFF' : '333333',
                 bold: rowIndex === 0,
@@ -618,52 +730,53 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
           );
 
           tableSlide.addTable(tableData, {
-            x: 0.8,
-            y: 2.0,
-            w: 8.4,
-            h: 4.2,
+            x: PPTX_LAYOUT.LEFT_MARGIN,
+            y: PPTX_LAYOUT.CONTENT_START_Y,
+            w: PPTX_LAYOUT.CONTENT_WIDTH,
+            h: PPTX_LAYOUT.CONTENT_END_Y - PPTX_LAYOUT.CONTENT_START_Y,
             border: { pt: 1, color: '005EB8' },
-            rowH: 0.6,
-            margin: 0.1
+            rowH: rowHeight,
+            margin: 0.08,
+            autoPage: true,
+            autoPageRepeatHeader: true,
           });
         }
         
         addFooter(tableSlide);
         
       } else if (hasTable) {
-        // Table only - single slide
+        // Table only slide
         const tableSlide = pptx.addSlide();
         addNHSBackground(tableSlide);
         slideCount++;
         
         const slideTitle = cleanMarkdown(firstLine.includes('|') ? 'Data Table' : firstLine);
         tableSlide.addText('📊 ' + slideTitle, {
-          x: 0.8,
-          y: 0.8,
-          w: 8.4,
-          h: 0.8,
-          fontSize: 36,
+          x: PPTX_LAYOUT.LEFT_MARGIN,
+          y: PPTX_LAYOUT.HEADER_Y,
+          w: PPTX_LAYOUT.CONTENT_WIDTH,
+          h: PPTX_LAYOUT.HEADER_HEIGHT,
+          fontSize: 32,
           bold: true,
           color: '005EB8',
           fontFace: 'Calibri'
         });
 
-        const tableRows = pipeLines.map(line => {
-          return line.split('|')
-            .map(cell => cell.trim())
-            .filter(cell => cell !== '');
-        });
-
-        const dataRows = tableRows.filter(row => 
-          !row.every(cell => /^[-\s]*$/.test(cell))
+        const tableRows = pipeLines.map(line => 
+          line.split('|').map(cell => cell.trim()).filter(cell => cell !== '')
         );
 
+        const dataRows = tableRows.filter(row => !row.every(cell => /^[-\s]*$/.test(cell)));
+
         if (dataRows.length > 0) {
+          const maxCellLength = Math.max(...dataRows.flat().map(cell => cell.length));
+          const rowHeight = Math.max(0.5, Math.min(0.7, maxCellLength / 35));
+          
           const tableData = dataRows.map((row, rowIndex) => 
             row.map(cell => ({ 
               text: cleanMarkdown(cell), 
               options: { 
-                fontSize: 18,
+                fontSize: 16,
                 fontFace: 'Calibri',
                 color: rowIndex === 0 ? 'FFFFFF' : '333333',
                 bold: rowIndex === 0,
@@ -673,72 +786,60 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
           );
 
           tableSlide.addTable(tableData, {
-            x: 0.8,
-            y: 2.0,
-            w: 8.4,
-            h: 4.2,
+            x: PPTX_LAYOUT.LEFT_MARGIN,
+            y: PPTX_LAYOUT.CONTENT_START_Y,
+            w: PPTX_LAYOUT.CONTENT_WIDTH,
+            h: PPTX_LAYOUT.CONTENT_END_Y - PPTX_LAYOUT.CONTENT_START_Y,
             border: { pt: 1, color: '005EB8' },
-            rowH: 0.6,
-            margin: 0.1
+            rowH: rowHeight,
+            margin: 0.08,
+            autoPage: true,
+            autoPageRepeatHeader: true,
           });
         }
         
         addFooter(tableSlide);
         
       } else {
-        // Text only - single slide
-        const textSlide = pptx.addSlide();
-        addNHSBackground(textSlide);
-        slideCount++;
-        
+        // Text only - with automatic overflow handling
         const slideTitle = cleanMarkdown(firstLine.replace(/^#+\s*/, '').replace(/:$/, ''));
         const titleIcon = getIconForSection(slideTitle);
         
-        textSlide.addText(titleIcon + slideTitle, {
-          x: 0.8,
-          y: 0.8,
-          w: 8.4,
-          h: 0.8,
-          fontSize: 36,
-          bold: true,
-          color: '005EB8',
-          fontFace: 'Calibri'
-        });
+        // Process bullet points
+        const bulletPoints = lines.slice(1)
+          .filter(line => line.trim())
+          .map(line => cleanMarkdown(line.replace(/^[-•]\s*/, '').trim()))
+          .filter(line => line.length > 0)
+          .flatMap(line => splitLongText(line));
         
-        // Convert dashes to bullet points and handle proper spacing
-        if (lines.length > 1) {
-          const bulletPoints = lines.slice(1)
-            .filter(line => line.trim())
-            .map(line => {
-              // Remove leading dashes and clean up
-              let cleanLine = cleanMarkdown(line.replace(/^[-•]\s*/, '').trim());
-              return cleanLine;
-            })
-            .filter(line => line.length > 0);
+        if (bulletPoints.length === 0) continue;
+        
+        // Create slides (may be multiple if content overflows)
+        const bulletSlides = createSlidesForBullets(bulletPoints, slideTitle, titleIcon);
+        
+        for (const slideData of bulletSlides) {
+          const textSlide = pptx.addSlide();
+          addNHSBackground(textSlide);
+          slideCount++;
           
-          // Add each bullet point separately for proper spacing
-          bulletPoints.forEach((point, index) => {
-            textSlide.addText(point, {
-              x: 1.2,
-              y: 2.0 + (index * 0.4),
-              w: 7.6,
-              h: 0.35,
-              fontSize: 22,
-              fontFace: 'Calibri',
-              bullet: { type: 'bullet' },
-              lineSpacing: 26,
-              wrap: true,
-              autoFit: true,
-              color: '333333'
-            });
+          textSlide.addText(slideData.title, {
+            x: PPTX_LAYOUT.LEFT_MARGIN,
+            y: PPTX_LAYOUT.HEADER_Y,
+            w: PPTX_LAYOUT.CONTENT_WIDTH,
+            h: PPTX_LAYOUT.HEADER_HEIGHT,
+            fontSize: 32,
+            bold: true,
+            color: '005EB8',
+            fontFace: 'Calibri'
           });
+          
+          addBulletsToSlide(textSlide, slideData.bullets);
+          addFooter(textSlide);
         }
-        
-        addFooter(textSlide);
       }
       
       // Limit slides to prevent overly long presentations
-      if (slideCount >= 20) break;
+      if (slideCount >= 25) break;
     }
     
     // If no content slides were created, add a summary slide
@@ -747,34 +848,23 @@ export const generatePowerPoint = async (content: string, title: string = 'AI Ge
       addNHSBackground(contentSlide);
       
       contentSlide.addText('📋 Content Summary', {
-        x: 0.8,
-        y: 0.8,
-        w: 8.4,
-        h: 0.8,
-        fontSize: 36,
+        x: PPTX_LAYOUT.LEFT_MARGIN,
+        y: PPTX_LAYOUT.HEADER_Y,
+        w: PPTX_LAYOUT.CONTENT_WIDTH,
+        h: PPTX_LAYOUT.HEADER_HEIGHT,
+        fontSize: 32,
         bold: true,
         color: '005EB8',
         fontFace: 'Calibri'
       });
       
       const cleanedContent = cleanMarkdown(content);
-      const contentLines = cleanedContent.split('\n')
+      const contentBullets = cleanedContent.split('\n')
         .filter(line => line.trim())
-        .slice(0, 8)
-        .join('\n• ');
+        .slice(0, 6)
+        .flatMap(line => splitLongText(line));
       
-      contentSlide.addText('• ' + contentLines, {
-        x: 1.2,
-        y: 2.0,
-        w: 7.6,
-        h: 4.2,
-        fontSize: 22,
-        fontFace: 'Calibri',
-        color: '333333',
-        lineSpacing: 1.3,
-        valign: 'top'
-      });
-      
+      addBulletsToSlide(contentSlide, contentBullets);
       addFooter(contentSlide);
     }
 
