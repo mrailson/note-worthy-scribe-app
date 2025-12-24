@@ -1,0 +1,326 @@
+import React, { useState, useRef, useEffect, forwardRef, useImperativeHandle, useCallback } from 'react';
+import { Button } from '@/components/ui/button';
+import { Mic, MicOff, X } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import { BrowserSpeechTranscriber, TranscriptData } from '@/utils/BrowserSpeechTranscriber';
+
+interface EnhancedBrowserMicProps {
+  onTranscriptUpdate: (text: string) => void;
+  onRecordingStart?: () => void;
+  onRecordingStop?: () => void;
+  disabled?: boolean;
+  className?: string;
+}
+
+export interface EnhancedBrowserMicRef {
+  clearTranscript: () => void;
+}
+
+type MicState = 'idle' | 'recording' | 'muted';
+
+export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrowserMicProps>(({
+  onTranscriptUpdate,
+  onRecordingStart,
+  onRecordingStop,
+  disabled = false,
+  className = ''
+}, ref) => {
+  const [micState, setMicState] = useState<MicState>('idle');
+  const [audioLevels, setAudioLevels] = useState<number[]>([0.2, 0.3, 0.5, 0.3, 0.2]);
+  const [fullTranscript, setFullTranscript] = useState('');
+  
+  const transcriberRef = useRef<BrowserSpeechTranscriber | null>(null);
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const animationFrameRef = useRef<number | null>(null);
+
+  const handleTranscription = useCallback((data: TranscriptData) => {
+    if (data.is_final) {
+      setFullTranscript(prev => {
+        const newTranscript = prev ? `${prev} ${data.text}` : data.text;
+        onTranscriptUpdate(newTranscript);
+        return newTranscript;
+      });
+    } else {
+      const previewText = fullTranscript ? `${fullTranscript} ${data.text}` : data.text;
+      onTranscriptUpdate(previewText);
+    }
+  }, [fullTranscript, onTranscriptUpdate]);
+
+  const handleError = useCallback((error: string) => {
+    console.error('Browser speech error:', error);
+    setMicState('idle');
+    
+    if (!error.includes('no-speech') && !error.includes('network')) {
+      if (error.includes('not-allowed')) {
+        alert('Microphone access denied. Please allow microphone access and try again.');
+      } else if (error.includes('not supported')) {
+        alert('Speech recognition not supported in this browser. Try Chrome or Edge.');
+      }
+    }
+  }, []);
+
+  const handleStatusChange = useCallback((newStatus: string) => {
+    console.log('Status:', newStatus);
+  }, []);
+
+  const updateAudioLevels = useCallback(() => {
+    if (!analyserRef.current || micState !== 'recording') {
+      return;
+    }
+
+    const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+    analyserRef.current.getByteFrequencyData(dataArray);
+
+    // Sample 5 frequency bands for the waveform bars
+    const bands = 5;
+    const bandSize = Math.floor(dataArray.length / bands);
+    const levels: number[] = [];
+
+    for (let i = 0; i < bands; i++) {
+      let sum = 0;
+      for (let j = 0; j < bandSize; j++) {
+        sum += dataArray[i * bandSize + j];
+      }
+      // Normalise to 0-1 range with minimum height
+      const avg = sum / bandSize / 255;
+      levels.push(Math.max(0.15, Math.min(1, avg * 2.5 + 0.15)));
+    }
+
+    setAudioLevels(levels);
+    animationFrameRef.current = requestAnimationFrame(updateAudioLevels);
+  }, [micState]);
+
+  const startAudioAnalysis = useCallback(async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true
+        }
+      });
+      
+      streamRef.current = stream;
+      audioContextRef.current = new AudioContext();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      analyserRef.current.fftSize = 256;
+      analyserRef.current.smoothingTimeConstant = 0.7;
+
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      source.connect(analyserRef.current);
+
+      animationFrameRef.current = requestAnimationFrame(updateAudioLevels);
+    } catch (error) {
+      console.error('Error starting audio analysis:', error);
+    }
+  }, [updateAudioLevels]);
+
+  const stopAudioAnalysis = useCallback(() => {
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(track => track.stop());
+      streamRef.current = null;
+    }
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+    analyserRef.current = null;
+    setAudioLevels([0.2, 0.3, 0.5, 0.3, 0.2]);
+  }, []);
+
+  const startRecording = useCallback(async () => {
+    if (disabled) return;
+
+    try {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SpeechRecognition) {
+        throw new Error('Speech recognition not supported in this browser. Please use Chrome or Edge.');
+      }
+
+      await startAudioAnalysis();
+      
+      transcriberRef.current = new BrowserSpeechTranscriber(
+        handleTranscription,
+        handleError,
+        handleStatusChange
+      );
+
+      await transcriberRef.current.startTranscription();
+      setMicState('recording');
+      onRecordingStart?.();
+      
+    } catch (error: any) {
+      console.error('Error starting browser speech recognition:', error);
+      handleError(error.message || 'Failed to start speech recognition');
+      stopAudioAnalysis();
+    }
+  }, [disabled, startAudioAnalysis, stopAudioAnalysis, handleTranscription, handleError, handleStatusChange, onRecordingStart]);
+
+  const stopRecording = useCallback(() => {
+    if (transcriberRef.current) {
+      transcriberRef.current.stopTranscription();
+      transcriberRef.current = null;
+    }
+    
+    stopAudioAnalysis();
+    setMicState('idle');
+    onRecordingStop?.();
+  }, [stopAudioAnalysis, onRecordingStop]);
+
+  const toggleMute = useCallback(() => {
+    if (micState === 'recording') {
+      // Mute: pause the stream tracks
+      if (streamRef.current) {
+        streamRef.current.getAudioTracks().forEach(track => {
+          track.enabled = false;
+        });
+      }
+      setMicState('muted');
+    } else if (micState === 'muted') {
+      // Unmute: resume the stream tracks
+      if (streamRef.current) {
+        streamRef.current.getAudioTracks().forEach(track => {
+          track.enabled = true;
+        });
+      }
+      setMicState('recording');
+      // Restart audio visualisation
+      if (analyserRef.current) {
+        animationFrameRef.current = requestAnimationFrame(updateAudioLevels);
+      }
+    }
+  }, [micState, updateAudioLevels]);
+
+  const handleMainClick = useCallback(() => {
+    if (micState === 'idle') {
+      startRecording();
+    } else {
+      toggleMute();
+    }
+  }, [micState, startRecording, toggleMute]);
+
+  const clearTranscript = useCallback(() => {
+    setFullTranscript('');
+    onTranscriptUpdate('');
+  }, [onTranscriptUpdate]);
+
+  useImperativeHandle(ref, () => ({
+    clearTranscript
+  }));
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (transcriberRef.current) {
+        transcriberRef.current.stopTranscription();
+      }
+      stopAudioAnalysis();
+    };
+  }, [stopAudioAnalysis]);
+
+  // Handle visibility change
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.hidden && micState !== 'idle') {
+        stopRecording();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [micState, stopRecording]);
+
+  const renderContent = () => {
+    if (micState === 'idle') {
+      return <Mic className="w-12 h-12" />;
+    }
+    
+    if (micState === 'muted') {
+      return <MicOff className="w-12 h-12" />;
+    }
+
+    // Recording state - show waveform
+    return (
+      <div className="flex items-center justify-center gap-0.5 h-12">
+        {audioLevels.map((level, i) => (
+          <div
+            key={i}
+            className="w-1.5 bg-white rounded-full transition-all duration-75"
+            style={{
+              height: `${Math.max(8, level * 48)}px`,
+              animationDelay: `${i * 0.1}s`
+            }}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  const getButtonStyles = () => {
+    if (micState === 'recording') {
+      return 'bg-red-500 hover:bg-red-600 text-white shadow-lg shadow-red-500/30';
+    }
+    if (micState === 'muted') {
+      return 'bg-amber-500 hover:bg-amber-600 text-white';
+    }
+    return 'hover:bg-accent';
+  };
+
+  const getTooltip = () => {
+    if (micState === 'recording') return 'Click to mute';
+    if (micState === 'muted') return 'Click to unmute';
+    return 'Start voice input';
+  };
+
+  return (
+    <div className={cn('flex items-center gap-1', className)}>
+      <div className="relative">
+        <Button
+          variant={micState === 'idle' ? 'ghost' : 'default'}
+          size="sm"
+          className={cn(
+            "h-20 w-20 p-0 transition-all duration-200 rounded-lg",
+            getButtonStyles()
+          )}
+          onClick={handleMainClick}
+          disabled={disabled}
+          title={getTooltip()}
+          aria-pressed={micState !== 'idle'}
+        >
+          {renderContent()}
+        </Button>
+
+        {/* Stop button - shown when recording or muted */}
+        {micState !== 'idle' && (
+          <Button
+            variant="destructive"
+            size="sm"
+            className="absolute -top-1 -right-1 h-6 w-6 p-0 rounded-full shadow-md"
+            onClick={stopRecording}
+            title="Stop recording"
+          >
+            <X className="w-3 h-3" />
+          </Button>
+        )}
+      </div>
+
+      {/* State label */}
+      {micState !== 'idle' && (
+        <span className={cn(
+          "text-xs font-medium px-2 py-1 rounded",
+          micState === 'recording' ? "text-red-600 bg-red-50" : "text-amber-600 bg-amber-50"
+        )}>
+          {micState === 'recording' ? 'Recording' : 'Muted'}
+        </span>
+      )}
+    </div>
+  );
+});
+
+EnhancedBrowserMic.displayName = "EnhancedBrowserMic";
