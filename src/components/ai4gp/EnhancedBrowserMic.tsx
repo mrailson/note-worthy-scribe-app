@@ -181,19 +181,27 @@ export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrow
 
   const toggleMute = useCallback(() => {
     if (micState === 'recording') {
-      // Mute: pause the stream tracks
+      // Mute: pause the stream tracks AND stop recognition
       if (streamRef.current) {
         streamRef.current.getAudioTracks().forEach(track => {
           track.enabled = false;
         });
       }
+      // Pause speech recognition to stop transcribing
+      if (transcriberRef.current) {
+        transcriberRef.current.pauseTranscription();
+      }
       setMicState('muted');
     } else if (micState === 'muted') {
-      // Unmute: resume the stream tracks
+      // Unmute: resume the stream tracks AND restart recognition
       if (streamRef.current) {
         streamRef.current.getAudioTracks().forEach(track => {
           track.enabled = true;
         });
+      }
+      // Resume speech recognition
+      if (transcriberRef.current) {
+        transcriberRef.current.resumeTranscription();
       }
       setMicState('recording');
       // Restart audio visualisation
