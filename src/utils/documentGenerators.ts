@@ -430,33 +430,48 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
   }
 };
 
-// Layout configuration for PowerPoint generation
+// Layout configuration for PowerPoint generation - INCREASED spacing to prevent overlap
 const PPTX_LAYOUT = {
   SLIDE_WIDTH: 10,
   SLIDE_HEIGHT: 7.5,
   HEADER_Y: 0.8,
   HEADER_HEIGHT: 0.8,
   CONTENT_START_Y: 1.9,
-  CONTENT_END_Y: 6.3,
+  CONTENT_END_Y: 5.8, // Reduced to give more breathing room
   FOOTER_Y: 6.9,
   LEFT_MARGIN: 0.8,
   CONTENT_WIDTH: 8.4,
-  CHARS_PER_LINE: 70,
-  LINE_HEIGHT: 0.4,
-  BULLET_SPACING: 0.2,
-  MIN_BULLET_HEIGHT: 0.55,
-  MAX_BULLETS_PER_SLIDE: 6,
+  CHARS_PER_LINE: 55, // Reduced from 70 to be more conservative
+  LINE_HEIGHT: 0.55,  // Increased from 0.4
+  BULLET_SPACING: 0.35, // Increased from 0.2
+  MIN_BULLET_HEIGHT: 0.85, // Increased from 0.55
+  MAX_BULLETS_PER_SLIDE: 5, // Reduced from 6
 };
 
-// Estimate lines needed for text in PowerPoint
+// Estimate lines needed for text in PowerPoint - account for word wrapping
 const estimatePptxTextLines = (text: string): number => {
-  return Math.max(1, Math.ceil(text.length / PPTX_LAYOUT.CHARS_PER_LINE));
+  // Word-aware line estimation
+  const words = text.split(' ');
+  let lines = 1;
+  let currentLineLength = 0;
+  
+  for (const word of words) {
+    if (currentLineLength + word.length + 1 > PPTX_LAYOUT.CHARS_PER_LINE) {
+      lines++;
+      currentLineLength = word.length;
+    } else {
+      currentLineLength += word.length + 1;
+    }
+  }
+  
+  return Math.max(1, lines);
 };
 
-// Calculate height needed for a bullet point
+// Calculate height needed for a bullet point - more generous spacing
 const calculatePptxBulletHeight = (text: string): number => {
   const lines = estimatePptxTextLines(text);
-  return Math.max(PPTX_LAYOUT.MIN_BULLET_HEIGHT, lines * PPTX_LAYOUT.LINE_HEIGHT + PPTX_LAYOUT.BULLET_SPACING);
+  // Add extra padding for safety
+  return Math.max(PPTX_LAYOUT.MIN_BULLET_HEIGHT, (lines * PPTX_LAYOUT.LINE_HEIGHT) + PPTX_LAYOUT.BULLET_SPACING + 0.15);
 };
 
 // Split long text into manageable chunks
