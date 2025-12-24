@@ -92,11 +92,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
         navigate('/translation-tool');
       }
     }},
-  ];
-
-  const imageActions = [
     { icon: Zap, label: 'Quick Image', action: onShowQuickImageModal },
-    { icon: Palette, label: 'Practice Image Maker', action: onShowImageService },
     { icon: ImageIcon, label: 'QR Code Generator', action: onShowQRCodeGenerator },
   ];
 
@@ -207,23 +203,6 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
           )}
           <div className="space-y-1">
             {quickActions.map((item) => (
-              <SidebarButton
-                key={item.label}
-                icon={item.icon}
-                label={item.label}
-                action={item.action}
-              />
-            ))}
-          </div>
-
-          <Separator className="my-3" />
-
-          {/* Image Tools */}
-          {!isCollapsed && (
-            <p className="text-xs text-muted-foreground px-2 mb-2 font-medium">Image Tools</p>
-          )}
-          <div className="space-y-1">
-            {imageActions.map((item) => (
               <SidebarButton
                 key={item.label}
                 icon={item.icon}
