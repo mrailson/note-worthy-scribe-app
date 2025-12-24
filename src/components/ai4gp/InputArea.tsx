@@ -7,7 +7,7 @@ import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { UploadedFile } from '@/types/ai4gp';
 import { useEnhancedFileProcessing } from '@/hooks/useEnhancedFileProcessing';
-import { SimpleBrowserMic, SimpleBrowserMicRef } from './SimpleBrowserMic';
+import { EnhancedBrowserMic, EnhancedBrowserMicRef } from './EnhancedBrowserMic';
 import { useToast } from '@/hooks/use-toast';
 import { FileProcessingProgress } from './FileProcessingProgress';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
@@ -41,7 +41,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const micRef = useRef<SimpleBrowserMicRef>(null);
+  const micRef = useRef<EnhancedBrowserMicRef>(null);
   const { 
     processFilesWithValidation, 
     isProcessing: isFileProcessing,
@@ -193,7 +193,7 @@ ${pastedText.trim()}
                     disabled={isLoading}
                     title="More options"
                   >
-                    <Plus className="w-16 h-16" />
+                    <Plus className="w-12 h-12" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="start" side="top" className="w-48 bg-white border border-border shadow-lg z-50">
@@ -226,9 +226,9 @@ ${pastedText.trim()}
                 </DropdownMenuContent>
               </DropdownMenu>
               
-              <SimpleBrowserMic
+              <EnhancedBrowserMic
                 ref={micRef}
-                key="browser-mic-component"
+                key="enhanced-browser-mic-component"
                 onTranscriptUpdate={handleBrowserTranscriptUpdate}
                 onRecordingStart={() => textareaRef.current?.focus()}
                 disabled={isLoading}
