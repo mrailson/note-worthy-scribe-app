@@ -77,8 +77,8 @@ export const useAI4GPService = () => {
   const handleGPT5FastClinical = async (
     messages: { role: 'user' | 'assistant' | 'system'; content: string }[],
     systemPrompt?: string,
-    onStream?: (chunk: string) => void
-  ): Promise<string> => {
+    onStream?: (chunk: string, webSearchPerformed?: boolean) => void
+  ): Promise<{ response: string; webSearchPerformed: boolean }> => {
     try {
       // Use stable model names instead of date-suffixed ones
       const stableModel = selectedModel === 'gpt-5-2025-08-07' ? 'gpt-5' :
@@ -156,6 +156,7 @@ export const useAI4GPService = () => {
       if (!reader) throw new Error('No response stream');
 
       let fullResponse = '';
+      let webSearchPerformed = false;
       const decoder = new TextDecoder();
 
       while (true) {
@@ -173,13 +174,19 @@ export const useAI4GPService = () => {
             try {
               const data = JSON.parse(payload);
               
-              // Skip the meta message from the function
+              // Check for web search meta message
+              if (data._meta?.webSearchPerformed) {
+                webSearchPerformed = true;
+                continue;
+              }
+              
+              // Skip other meta messages
               if (data._meta) continue;
               
               const content = data.choices?.[0]?.delta?.content;
               if (content) {
                 fullResponse += content;
-                onStream?.(content);
+                onStream?.(content, webSearchPerformed);
               }
             } catch (e) {
               // Skip invalid JSON
@@ -188,7 +195,7 @@ export const useAI4GPService = () => {
         }
       }
 
-      return fullResponse || 'No response received';
+      return { response: fullResponse || 'No response received', webSearchPerformed };
     } catch (error) {
       console.error('GPT-5 Fast Clinical error:', error);
       throw error;
@@ -458,9 +465,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         try {
           let accumulatedContent = '';
           let timeToFirstWords: number | undefined;
+          let webSearchUsed = false;
           
-          const streamHandler = (chunk: string) => {
+          const streamHandler = (chunk: string, webSearchPerformed?: boolean) => {
             accumulatedContent += chunk;
+            if (webSearchPerformed) webSearchUsed = true;
             
             if (!timeToFirstWords) {
               timeToFirstWords = Date.now() - startTime;
@@ -468,23 +477,24 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             
             setMessages(prev => prev.map(msg => 
               msg.id === assistantMessageId 
-                ? { ...msg, content: accumulatedContent, isStreaming: true, timeToFirstWords }
+                ? { ...msg, content: accumulatedContent, isStreaming: true, timeToFirstWords, webSearchPerformed: webSearchUsed }
                 : msg
             ));
           };
           
-          const response = await handleGPT5FastClinical(messagesForAPI, systemPrompt, streamHandler);
+          const result = await handleGPT5FastClinical(messagesForAPI, systemPrompt, streamHandler);
           
           const endTime = Date.now();
           const responseTime = endTime - startTime;
           
           const finalAssistantMessage = {
             ...assistantMessage,
-            content: response,
+            content: result.response,
             isStreaming: false,
             responseTime,
             timeToFirstWords,
-            apiResponseTime: responseTime
+            apiResponseTime: responseTime,
+            webSearchPerformed: result.webSearchPerformed || webSearchUsed
           };
 
           setMessages(prev => prev.map(msg => 
@@ -1121,9 +1131,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         try {
           let accumulatedContent = '';
           let timeToFirstWords: number | undefined;
+          let webSearchUsed = false;
           
-          const streamHandler = (chunk: string) => {
+          const streamHandler = (chunk: string, webSearchPerformed?: boolean) => {
             accumulatedContent += chunk;
+            if (webSearchPerformed) webSearchUsed = true;
             
             if (!timeToFirstWords) {
               timeToFirstWords = Date.now() - startTime;
@@ -1131,23 +1143,24 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             
             setMessages(prev => prev.map(msg => 
               msg.id === assistantMessageId 
-                ? { ...msg, content: accumulatedContent, isStreaming: true, timeToFirstWords }
+                ? { ...msg, content: accumulatedContent, isStreaming: true, timeToFirstWords, webSearchPerformed: webSearchUsed }
                 : msg
             ));
           };
           
-          const response = await handleGPT5FastClinical(messagesForAPI, systemPrompt, streamHandler);
+          const result = await handleGPT5FastClinical(messagesForAPI, systemPrompt, streamHandler);
           
           const endTime = Date.now();
           const responseTime = endTime - startTime;
           
           const finalAssistantMessage = {
             ...assistantMessage,
-            content: response,
+            content: result.response,
             isStreaming: false,
             responseTime,
             timeToFirstWords,
-            apiResponseTime: responseTime
+            apiResponseTime: responseTime,
+            webSearchPerformed: result.webSearchPerformed || webSearchUsed
           };
 
           setMessages(prev => prev.map(msg => 

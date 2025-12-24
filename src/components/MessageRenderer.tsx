@@ -34,7 +34,8 @@ import {
   WandSparkles,
   Palette,
   Volume2,
-  VolumeX
+  VolumeX,
+  Search
 } from 'lucide-react';
 import PolicyBadge from '@/components/PolicyBadge';
 import PolicyBanner from '@/components/PolicyBanner';
@@ -1102,4 +1103,16 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   );
 };
 
-export default MessageRenderer;
+// Memoize the component to prevent unnecessary re-renders
+export default React.memo(MessageRenderer, (prevProps, nextProps) => {
+  // Only re-render if key props change
+  return (
+    prevProps.message.id === nextProps.message.id &&
+    prevProps.message.content === nextProps.message.content &&
+    prevProps.message.isStreaming === nextProps.message.isStreaming &&
+    prevProps.showResponseMetrics === nextProps.showResponseMetrics &&
+    prevProps.showRenderTimes === nextProps.showRenderTimes &&
+    prevProps.showAIService === nextProps.showAIService &&
+    prevProps.autoCollapseUserPrompts === nextProps.autoCollapseUserPrompts
+  );
+});

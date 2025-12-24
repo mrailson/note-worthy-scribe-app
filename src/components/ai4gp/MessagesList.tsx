@@ -1,6 +1,5 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Bot, Sparkles } from 'lucide-react';
+import React, { useRef, useEffect, useCallback, useMemo } from 'react';
+import { useVirtualizer } from '@tanstack/react-virtual';
 import MessageRenderer from '@/components/MessageRenderer';
 import { Message } from '@/types/ai4gp';
 import { useDeviceInfo } from '@/hooks/use-mobile';
@@ -35,70 +34,152 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   onSetDrugName,
   autoCollapseUserPrompts = false
 }) => {
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const parentRef = useRef<HTMLDivElement>(null);
   const previousMessageCountRef = useRef(0);
   const deviceInfo = useDeviceInfo();
 
-  const scrollToBottom = () => {
-    if (messagesEndRef.current && messages.length > 0) {
-      const chatContainer = messagesEndRef.current.closest('[data-radix-scroll-area-viewport]');
-      if (chatContainer) {
-        messagesEndRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-      }
+  // Estimate row height based on message content
+  const estimateSize = useCallback((index: number) => {
+    const message = messages[index];
+    if (!message) return 150;
+    
+    const contentLength = message.content?.length || 0;
+    const hasFiles = message.files && message.files.length > 0;
+    
+    // Base height + content-based estimate
+    let estimatedHeight = 100; // Base padding and controls
+    
+    if (message.role === 'user') {
+      // User messages are generally shorter
+      estimatedHeight += Math.min(contentLength / 2, 200);
+      if (hasFiles) estimatedHeight += 60;
+    } else {
+      // Assistant messages can be much longer
+      estimatedHeight += Math.min(contentLength / 3, 800);
+      if (message.isStreaming) estimatedHeight += 50;
     }
-  };
+    
+    return Math.max(estimatedHeight, 120);
+  }, [messages]);
 
-  // Only scroll when a NEW message is added, not when existing messages update (streaming)
+  // Virtual list configuration
+  const virtualizer = useVirtualizer({
+    count: messages.length + (isLoading ? 1 : 0), // +1 for loading indicator
+    getScrollElement: () => parentRef.current,
+    estimateSize,
+    overscan: 3, // Render 3 extra items above/below viewport
+    getItemKey: (index) => {
+      if (index >= messages.length) return 'loading-indicator';
+      return messages[index]?.id || `msg-${index}`;
+    },
+  });
+
+  // Scroll to bottom when new message is added
   useEffect(() => {
     const currentMessageCount = messages.length;
     
     if (currentMessageCount > previousMessageCountRef.current) {
-      scrollToBottom();
+      // New message added, scroll to bottom
+      virtualizer.scrollToIndex(messages.length - 1, { align: 'end', behavior: 'smooth' });
       previousMessageCountRef.current = currentMessageCount;
     }
-  }, [messages.length]);
+  }, [messages.length, virtualizer]);
+
+  // Keep scroll at bottom during streaming
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage?.isStreaming) {
+      // Debounced scroll during streaming - only scroll every 500ms max
+      const scrollTimeout = setTimeout(() => {
+        virtualizer.scrollToIndex(messages.length - 1, { align: 'end' });
+      }, 100);
+      return () => clearTimeout(scrollTimeout);
+    }
+  }, [messages, virtualizer]);
+
+  // Memoize the virtual items to prevent recalculation
+  const virtualItems = virtualizer.getVirtualItems();
 
   return (
-    <ScrollArea className={cn(
-      "flex-1",
-      deviceInfo.isIPhone ? "px-4 py-3" : "px-2 sm:p-2"
-    )}>
-      <div className={cn(
-        "space-y-4",
-        deviceInfo.isIPhone ? "py-3" : "py-2"
-      )}>
-        {messages.map((message) => (
-            <MessageRenderer
-            key={message.id}
-            message={message}
-            onExpandMessage={setExpandedMessage}
-              onExportWord={onExportWord}
-              onExportPowerPoint={onExportPowerPoint}
-              showResponseMetrics={showResponseMetrics}
-              showRenderTimes={showRenderTimes}
-              showAIService={showAIService}
-              onQuickResponse={onQuickResponse}
-              onSetDrugName={onSetDrugName}
-              autoCollapseUserPrompts={autoCollapseUserPrompts}
-            />
-        ))}
-        
-        {isLoading && (
-          <div className="flex items-center justify-center py-4">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <span className="text-sm">Working on it...</span>
-              <span className="inline-flex items-center gap-0.5">
-                <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite]"></span>
-                <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.1s]"></span>
-                <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.2s]"></span>
-                <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.3s]"></span>
-              </span>
+    <div
+      ref={parentRef}
+      className={cn(
+        "flex-1 overflow-auto",
+        deviceInfo.isIPhone ? "px-4 py-3" : "px-2 sm:p-2"
+      )}
+      style={{ contain: 'strict' }}
+    >
+      <div
+        style={{
+          height: `${virtualizer.getTotalSize()}px`,
+          width: '100%',
+          position: 'relative',
+        }}
+      >
+        {virtualItems.map((virtualRow) => {
+          const index = virtualRow.index;
+          const isLoadingIndicator = index >= messages.length;
+          
+          if (isLoadingIndicator) {
+            return (
+              <div
+                key="loading-indicator"
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  transform: `translateY(${virtualRow.start}px)`,
+                }}
+              >
+                <div className="flex items-center justify-center py-4">
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <span className="text-sm">Working on it...</span>
+                    <span className="inline-flex items-center gap-0.5">
+                      <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite]"></span>
+                      <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.1s]"></span>
+                      <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.2s]"></span>
+                      <span className="w-1 h-3 bg-current rounded-full animate-[wave_1.2s_ease-in-out_infinite_0.3s]"></span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+            );
+          }
+
+          const message = messages[index];
+          if (!message) return null;
+
+          return (
+            <div
+              key={message.id}
+              data-index={index}
+              ref={virtualizer.measureElement}
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '100%',
+                transform: `translateY(${virtualRow.start}px)`,
+              }}
+              className="py-2"
+            >
+              <MessageRenderer
+                message={message}
+                onExpandMessage={setExpandedMessage}
+                onExportWord={onExportWord}
+                onExportPowerPoint={onExportPowerPoint}
+                showResponseMetrics={showResponseMetrics}
+                showRenderTimes={showRenderTimes}
+                showAIService={showAIService}
+                onQuickResponse={onQuickResponse}
+                onSetDrugName={onSetDrugName}
+                autoCollapseUserPrompts={autoCollapseUserPrompts}
+              />
             </div>
-          </div>
-        )}
-        
-        <div ref={messagesEndRef} />
+          );
+        })}
       </div>
-    </ScrollArea>
+    </div>
   );
 };
