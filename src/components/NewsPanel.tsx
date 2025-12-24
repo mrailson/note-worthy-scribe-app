@@ -79,7 +79,7 @@ const isHealthRelatedByUrl = (a: NewsArticle) => {
   return healthKeywords.some(k => u.includes(k)) || u.includes('/health');
 };
 
-const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: boolean }) => {
+const NewsPanel = ({ showFiltersInHeader = false, cleanView = false }: { showFiltersInHeader?: boolean; cleanView?: boolean }) => {
   const [articles, setArticles] = useState<NewsArticle[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -472,27 +472,29 @@ const NewsPanel = ({ showFiltersInHeader = false }: { showFiltersInHeader?: bool
 
   return (
     <div>
-      {/* Header with Refresh and Filter Controls */}
-      <div className="flex items-center justify-end mb-4">
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => refreshNews()}
-            disabled={refreshing}
-          >
-            <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
-            {refreshing ? 'Loading...' : 'Refresh'}
-          </Button>
-          <FilterControls />
+      {/* Header with Refresh and Filter Controls - hidden in cleanView */}
+      {!cleanView && (
+        <div className="flex items-center justify-end mb-4">
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => refreshNews()}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${refreshing ? 'animate-spin' : ''}`} />
+              {refreshing ? 'Loading...' : 'Refresh'}
+            </Button>
+            <FilterControls />
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* Quick Toggle Bar */}
-      <QuickToggleBar />
+      {/* Quick Toggle Bar - hidden in cleanView */}
+      {!cleanView && <QuickToggleBar />}
 
-      {/* Desktop filters - collapsible */}
-      {showFilters && (
+      {/* Desktop filters - collapsible - hidden in cleanView */}
+      {showFilters && !cleanView && (
         <div className="hidden sm:flex flex-wrap gap-3 p-3 bg-muted/20 rounded-lg mb-4">
           <Select value={filterTag} onValueChange={setFilterTag}>
             <SelectTrigger className="w-40">
