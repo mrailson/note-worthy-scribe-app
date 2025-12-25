@@ -64,7 +64,7 @@ import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
 import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings';
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
-import { QuickPasswordUpdate } from '@/components/QuickPasswordUpdate';
+
 import * as XLSX from 'xlsx';
 
 
@@ -2161,10 +2161,6 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               
               <TabsContent value="users" className="space-y-6">
                 {/* Admin Tools Row */}
-                <div className="grid grid-cols-1 gap-4">
-                  {/* Quick Password Reset */}
-                  <QuickPasswordUpdate />
-                </div>
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="flex items-center space-x-2">
