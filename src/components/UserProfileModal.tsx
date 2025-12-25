@@ -898,7 +898,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   <div className="relative">
                     <Input
                       id="new-password"
+                      name="new-password"
                       type={showNewPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
                       placeholder="Enter new password"
@@ -919,7 +921,9 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   <div className="relative">
                     <Input
                       id="confirm-password"
+                      name="confirm-password"
                       type={showConfirmNewPassword ? 'text' : 'password'}
+                      autoComplete="new-password"
                       value={confirmNewPassword}
                       onChange={(e) => setConfirmNewPassword(e.target.value)}
                       placeholder="Confirm new password"
