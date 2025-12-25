@@ -44,6 +44,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const [isOakLaneNonAdmin, setIsOakLaneNonAdmin] = useState(false);
   const [isPcnManager, setIsPcnManager] = useState(false);
   const [isPracticeManager, setIsPracticeManager] = useState(false);
+  const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -58,15 +59,22 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
       }
       
       try {
-        // Check shared drive visibility
+        // Check shared drive visibility and get display name
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('shared_drive_visible')
+          .select('shared_drive_visible, full_name')
           .eq('user_id', user.id)
           .single();
 
-        if (!profileError && profileData?.shared_drive_visible !== undefined) {
-          setSharedDriveVisible(profileData.shared_drive_visible);
+        if (!profileError && profileData) {
+          if (profileData.shared_drive_visible !== undefined) {
+            setSharedDriveVisible(profileData.shared_drive_visible);
+          }
+          // Set display name (prefer full_name, fallback to email)
+          setUserDisplayName(profileData.full_name || user.email || null);
+        } else {
+          // Fallback to email if profile not found
+          setUserDisplayName(user.email || null);
         }
 
         // Load AI4GP preferences to control menu visibility
@@ -535,6 +543,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                 <DrawerHeader className="text-left">
                   <DrawerTitle>Menu</DrawerTitle>
                   <DrawerDescription>Quick access to services</DrawerDescription>
+                  {user && userDisplayName && (
+                    <div className="mt-3 pt-3 border-t">
+                      <p className="text-xs text-muted-foreground">Signed in as</p>
+                      <p className="text-sm font-medium text-foreground truncate">{userDisplayName}</p>
+                    </div>
+                  )}
                 </DrawerHeader>
                 <div className="px-4 pb-4 space-y-2">
                   <nav className="grid gap-2">
