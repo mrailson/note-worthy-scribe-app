@@ -106,10 +106,10 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
       }
 
       if (data) {
-        // Determine organisation type based on role
-        const nonPracticeRoles = ['LMC User', 'Federation User', 'ICB User'];
+        // Determine organisation type based on role (case-insensitive check)
+        const nonPracticeRoles = ['lmc user', 'federation user', 'icb user'];
         const savedRole = data.department || '';
-        const orgType: OrganisationType = nonPracticeRoles.includes(savedRole) ? 'non-practice' : 'practice';
+        const orgType: OrganisationType = nonPracticeRoles.includes(savedRole.toLowerCase()) ? 'non-practice' : 'practice';
         
         setUserProfile({
           id: data.id,
