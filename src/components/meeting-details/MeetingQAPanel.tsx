@@ -1,12 +1,12 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, MessageCircle, Download, Save, History, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Send, Loader2, Bot, User, MessageCircle, Download, Save, History, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SpeechToText } from '@/components/SpeechToText';
+import { EnhancedBrowserMic, EnhancedBrowserMicRef } from '@/components/ai4gp/EnhancedBrowserMic';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { useMeetingQAHistory } from '@/hooks/useMeetingQAHistory';
@@ -29,7 +29,8 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
   const [isLoading, setIsLoading] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const micRef = useRef<EnhancedBrowserMicRef>(null);
   const { sessions, loading: historyLoading, saveSession, deleteSession } = useMeetingQAHistory(meetingId);
 
   useEffect(() => {
@@ -73,11 +74,26 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
     }
   };
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
       e.preventDefault();
       handleSend();
+      micRef.current?.clearTranscript();
     }
+    if (e.key === 'Escape' && input.trim()) {
+      e.preventDefault();
+      handleClearInput();
+    }
+  };
+
+  const handleClearInput = () => {
+    setInput('');
+    micRef.current?.clearTranscript();
+    textareaRef.current?.focus();
+  };
+
+  const handleTranscriptUpdate = (text: string) => {
+    setInput(text);
   };
 
   const handleExportToWord = async () => {
@@ -247,31 +263,60 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
             </ScrollArea>
 
             {/* Input Area */}
-            <div className="flex gap-2">
-              <Input
-                ref={inputRef}
-                placeholder="Ask a question about this meeting..."
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyPress={handleKeyPress}
-                disabled={isLoading}
-                className="flex-1"
-              />
-              <SpeechToText 
-                onTranscription={(text) => setInput(prev => prev ? `${prev} ${text}` : text)}
-                size="sm"
-              />
-              <Button 
-                onClick={handleSend} 
-                disabled={isLoading || !input.trim()}
-                size="icon"
-              >
-                {isLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Send className="h-4 w-4" />
+            <div className="flex gap-2 items-end">
+              <div className="flex-1 relative">
+                <Textarea
+                  ref={textareaRef}
+                  placeholder="Ask a question about this meeting..."
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  disabled={isLoading}
+                  className="min-h-[80px] max-h-40 resize-none pr-10"
+                  rows={3}
+                />
+                {/* Clear button */}
+                {input.trim().length > 0 && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="absolute right-2 bottom-2 h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-full"
+                    onClick={handleClearInput}
+                    title="Clear input (Esc)"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
                 )}
-              </Button>
+              </div>
+              <div className="flex flex-col gap-2">
+                <EnhancedBrowserMic
+                  ref={micRef}
+                  onTranscriptUpdate={handleTranscriptUpdate}
+                  onRecordingStart={() => textareaRef.current?.focus()}
+                  disabled={isLoading}
+                  className=""
+                />
+                <Button 
+                  onClick={() => {
+                    handleSend();
+                    micRef.current?.clearTranscript();
+                  }} 
+                  disabled={isLoading || !input.trim()}
+                  size="icon"
+                  className="h-10 w-10"
+                >
+                  {isLoading ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Send className="h-4 w-4" />
+                  )}
+                </Button>
+              </div>
+            </div>
+            <div className="text-xs text-muted-foreground text-center pt-1">
+              <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
+              to send • <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Esc</kbd>
+              to clear • <span className="text-blue-600 font-medium">🎙️ Voice control with pause</span>
             </div>
           </div>
         </CardContent>
