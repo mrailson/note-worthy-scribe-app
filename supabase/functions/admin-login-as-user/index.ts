@@ -97,17 +97,19 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Log the impersonation for audit purposes
-    await adminClient.from('admin_impersonation_log').insert({
-      admin_user_id: currentUser.id,
-      admin_email: currentUser.email,
-      target_user_id: targetUserId,
-      target_email: targetUser.user.email,
-      created_at: new Date().toISOString()
-    }).catch(() => {
+    // Log the impersonation for audit purposes (optional - table may not exist)
+    try {
+      await adminClient.from('admin_impersonation_log').insert({
+        admin_user_id: currentUser.id,
+        admin_email: currentUser.email,
+        target_user_id: targetUserId,
+        target_email: targetUser.user.email,
+        created_at: new Date().toISOString()
+      });
+    } catch (logError) {
       // Log table might not exist, that's okay
-      console.log('Impersonation log table not available');
-    });
+      console.log('Impersonation log table not available:', logError);
+    }
 
     return new Response(
       JSON.stringify({ 
