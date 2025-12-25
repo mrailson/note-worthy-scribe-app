@@ -159,32 +159,43 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
         const practiceId = userRoles[0].practice_id;
         console.log('Found practice_id:', practiceId);
         
-        // Get practice details by practice_id
-        const { data: practiceData, error: practiceError } = await supabase
-          .from('practice_details')
-          .select('*')
+        // IMPORTANT: practice_id references gp_practices.id, NOT practice_details.id
+        // First get the organisation name from gp_practices
+        const { data: gpPractice, error: gpError } = await supabase
+          .from('gp_practices')
+          .select('name')
           .eq('id', practiceId)
           .maybeSingle();
 
-        console.log('Practice details query result:', { practiceData, practiceError });
+        console.log('GP practice lookup result:', { gpPractice, gpError });
 
-        if (practiceError) {
-          console.error('Error fetching practice details by ID:', practiceError);
-        } else if (practiceData) {
-          console.log('Setting practice details from practice_id lookup:', practiceData);
-          setPracticeDetails({
-            id: practiceData.id,
-            practice_name: practiceData.practice_name || '',
-            address: practiceData.address || '',
-            email: practiceData.email || '',
-            website: practiceData.website || '',
-            phone: practiceData.phone || '',
-            direct_dial: '',
-            practice_logo_url: (practiceData as any).practice_logo_url || '',
-            letter_signature: (practiceData as any).letter_signature || ''
-          });
-          console.log('Practice details state updated successfully');
-          return;
+        if (gpPractice?.name) {
+          // Now find practice_details that matches this organisation name (shared across all users)
+          const { data: practiceData, error: practiceError } = await supabase
+            .from('practice_details')
+            .select('*')
+            .ilike('practice_name', gpPractice.name)
+            .order('updated_at', { ascending: false })
+            .maybeSingle();
+
+          console.log('Practice details query result:', { practiceData, practiceError });
+
+          if (!practiceError && practiceData) {
+            console.log('Setting practice details from organisation lookup:', practiceData);
+            setPracticeDetails({
+              id: practiceData.id,
+              practice_name: practiceData.practice_name || '',
+              address: practiceData.address || '',
+              email: practiceData.email || '',
+              website: practiceData.website || '',
+              phone: practiceData.phone || '',
+              direct_dial: '',
+              practice_logo_url: (practiceData as any).practice_logo_url || '',
+              letter_signature: (practiceData as any).letter_signature || ''
+            });
+            console.log('Practice details state updated successfully (shared org details)');
+            return;
+          }
         }
       }
 
