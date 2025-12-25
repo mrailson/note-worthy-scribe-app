@@ -143,7 +143,7 @@ export default function Settings() {
   const { voicePreference, setVoicePreference } = useVoicePreference();
 
   // Voice sample playback state
-  const DEFAULT_SAMPLE_SCRIPT = "Hello, I'm here to help you with your meeting summaries and audio overviews. This is a sample of how I sound when reading your content. You can customise this text to hear exactly how I'll pronounce specific terms or phrases.";
+  const DEFAULT_SAMPLE_SCRIPT = "Hello, this is a sample of my voice. I'll help you with meeting summaries and audio overviews.";
   const [sampleScript, setSampleScript] = useState(() => {
     return localStorage.getItem('voiceSampleScript') || DEFAULT_SAMPLE_SCRIPT;
   });
@@ -224,6 +224,15 @@ export default function Settings() {
       });
 
       if (error) throw error;
+      
+      // Check for quota exceeded error in response
+      if (data?.error) {
+        if (data.error.includes('quota_exceeded') || data.error.includes('quota')) {
+          throw new Error('ElevenLabs quota exceeded. Please try a shorter sample text or top up your ElevenLabs credits.');
+        }
+        throw new Error(data.error);
+      }
+      
       if (!data?.audioContent) throw new Error('No audio content received');
 
       // Convert base64 to blob URL
@@ -245,13 +254,24 @@ export default function Settings() {
       
       setPlayingVoice(voice);
       await audio.play();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error generating voice sample:', error);
-      toast({
-        title: "Failed to generate voice sample",
-        description: error instanceof Error ? error.message : "Please try again",
-        variant: "destructive"
-      });
+      const errorMessage = error?.message || '';
+      
+      // Handle quota exceeded specifically
+      if (errorMessage.includes('quota') || errorMessage.includes('credits')) {
+        toast({
+          title: "ElevenLabs quota exceeded",
+          description: "Try a shorter sample text or top up your ElevenLabs credits.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Failed to generate voice sample",
+          description: "Please try again",
+          variant: "destructive"
+        });
+      }
     } finally {
       setLoadingVoice(null);
     }
