@@ -47,7 +47,8 @@ import {
   Lock,
   ArrowUpDown,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  LogIn
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
@@ -293,6 +294,7 @@ const [showPasswordModal, setShowPasswordModal] = useState(false);
 const [passwordTargetUser, setPasswordTargetUser] = useState<User | null>(null);
 const [newPassword, setNewPassword] = useState('');
 const [updatingPassword, setUpdatingPassword] = useState(false);
+const [loggingInAsUser, setLoggingInAsUser] = useState<string | null>(null);
 
 // Login history modal state
 const [showLoginHistoryModal, setShowLoginHistoryModal] = useState(false);
@@ -1246,6 +1248,35 @@ const openPasswordModal = (u: User) => {
   setPasswordTargetUser(u);
   setNewPassword('');
   setShowPasswordModal(true);
+};
+
+const handleLoginAsUser = async (targetUser: User) => {
+  if (!targetUser.user_id) return;
+  
+  setLoggingInAsUser(targetUser.user_id);
+  try {
+    const { data, error } = await supabase.functions.invoke('admin-login-as-user', {
+      body: { 
+        targetUserId: targetUser.user_id,
+        redirectTo: window.location.origin + '/'
+      }
+    });
+    
+    if (error) throw error;
+    
+    if (!data?.loginUrl) {
+      throw new Error(data?.error || 'Failed to generate login link');
+    }
+    
+    // Open in new tab so admin stays logged in
+    window.open(data.loginUrl, '_blank');
+    toast.success(`Opening login as ${targetUser.full_name} in new tab`);
+  } catch (err: any) {
+    console.error('Error logging in as user:', err);
+    toast.error(err.message || 'Failed to login as user');
+  } finally {
+    setLoggingInAsUser(null);
+  }
 };
 
 const openLoginHistoryModal = async (user: User) => {
@@ -2343,16 +2374,29 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                             </TableCell>
                             <TableCell>
                               <div className="flex space-x-2">
-                                <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)}>
+                                <Button variant="ghost" size="sm" onClick={() => handleEditUser(user)} title="Edit User">
                                   <Edit className="h-4 w-4" />
                                 </Button>
                                 <Button variant="ghost" size="sm" onClick={() => openPasswordModal(user)} title="Set Password">
                                   <Key className="h-4 w-4" />
                                 </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  onClick={() => handleLoginAsUser(user)} 
+                                  title="Login as User"
+                                  disabled={loggingInAsUser === user.user_id}
+                                >
+                                  {loggingInAsUser === user.user_id ? (
+                                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                                  ) : (
+                                    <LogIn className="h-4 w-4" />
+                                  )}
+                                </Button>
                                 <Button variant="ghost" size="sm" onClick={() => openLoginHistoryModal(user)} title="View Login History">
                                   <Clock className="h-4 w-4" />
                                 </Button>
-                                <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.user_id)}>
+                                <Button variant="ghost" size="sm" onClick={() => handleDeleteUser(user.user_id)} title="Delete User">
                                   <Trash2 className="h-4 w-4 text-destructive" />
                                 </Button>
                               </div>
