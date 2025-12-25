@@ -288,13 +288,13 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
                   </Button>
                 )}
               </div>
-              <div className="flex flex-col gap-2">
+              <div className="flex gap-2">
                 <EnhancedBrowserMic
                   ref={micRef}
                   onTranscriptUpdate={handleTranscriptUpdate}
                   onRecordingStart={() => textareaRef.current?.focus()}
                   disabled={isLoading}
-                  className=""
+                  compact
                 />
                 <Button 
                   onClick={() => {

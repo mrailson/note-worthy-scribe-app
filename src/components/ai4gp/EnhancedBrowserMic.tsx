@@ -10,6 +10,7 @@ interface EnhancedBrowserMicProps {
   onRecordingStop?: () => void;
   disabled?: boolean;
   className?: string;
+  compact?: boolean;
 }
 
 export interface EnhancedBrowserMicRef {
@@ -23,7 +24,8 @@ export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrow
   onRecordingStart,
   onRecordingStop,
   disabled = false,
-  className = ''
+  className = '',
+  compact = false
 }, ref) => {
   const [micState, setMicState] = useState<MicState>('idle');
   const [audioLevels, setAudioLevels] = useState<number[]>([0.2, 0.3, 0.5, 0.3, 0.2]);
@@ -252,23 +254,28 @@ export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrow
   }, [micState, stopRecording]);
 
   const renderContent = () => {
+    const iconSize = compact ? "w-5 h-5" : "w-12 h-12";
+    const waveformHeight = compact ? "h-5" : "h-12";
+    const waveformMaxHeight = compact ? 20 : 48;
+    const barWidth = compact ? "w-0.5" : "w-1.5";
+    
     if (micState === 'idle') {
-      return <Mic className="w-12 h-12" />;
+      return <Mic className={iconSize} />;
     }
     
     if (micState === 'muted') {
-      return <MicOff className="w-12 h-12" />;
+      return <MicOff className={iconSize} />;
     }
 
     // Recording state - show waveform
     return (
-      <div className="flex items-center justify-center gap-0.5 h-12">
+      <div className={cn("flex items-center justify-center gap-0.5", waveformHeight)}>
         {audioLevels.map((level, i) => (
           <div
             key={i}
-            className="w-1.5 bg-white rounded-full transition-all duration-75"
+            className={cn(barWidth, "bg-white rounded-full transition-all duration-75")}
             style={{
-              height: `${Math.max(8, level * 48)}px`,
+              height: `${Math.max(compact ? 4 : 8, level * waveformMaxHeight)}px`,
               animationDelay: `${i * 0.1}s`
             }}
           />
@@ -293,13 +300,18 @@ export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrow
     return 'Start voice input';
   };
 
+  const buttonSize = compact ? "h-10 w-10" : "h-20 w-20";
+  const stopButtonSize = compact ? "h-4 w-4" : "h-6 w-6";
+  const stopIconSize = compact ? "w-2 h-2" : "w-3 h-3";
+
   return (
     <div className={cn('relative', className)}>
       <Button
         variant={micState === 'idle' ? 'ghost' : 'default'}
         size="sm"
         className={cn(
-          "h-20 w-20 p-0 transition-all duration-200 rounded-lg",
+          "p-0 transition-all duration-200 rounded-lg",
+          buttonSize,
           getButtonStyles()
         )}
         onClick={handleMainClick}
@@ -309,8 +321,8 @@ export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrow
       >
         <div className="flex flex-col items-center justify-center gap-1">
           {renderContent()}
-          {/* State label inside button */}
-          {micState !== 'idle' && (
+          {/* State label inside button - hide in compact mode */}
+          {!compact && micState !== 'idle' && (
             <span className="text-[10px] font-medium opacity-90">
               {micState === 'recording' ? 'Recording' : 'Muted'}
             </span>
@@ -323,11 +335,11 @@ export const EnhancedBrowserMic = forwardRef<EnhancedBrowserMicRef, EnhancedBrow
         <Button
           variant="destructive"
           size="sm"
-          className="absolute -top-1 -right-1 h-6 w-6 p-0 rounded-full shadow-md"
+          className={cn("absolute -top-1 -right-1 p-0 rounded-full shadow-md", stopButtonSize)}
           onClick={stopRecording}
           title="Stop recording"
         >
-          <X className="w-3 h-3" />
+          <X className={stopIconSize} />
         </Button>
       )}
     </div>
