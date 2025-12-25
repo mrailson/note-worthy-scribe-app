@@ -143,9 +143,10 @@ export default function Settings() {
   const { voicePreference, setVoicePreference } = useVoicePreference();
 
   // Voice sample playback state
-  const DEFAULT_SAMPLE_SCRIPT = "Hello, this is a sample of my voice. I'll help you with meeting summaries and audio overviews.";
+  const DEFAULT_SAMPLE_SCRIPT = "Hello, this is a sample of my voice. I'll help you with meeting summaries.";
+  const VOICE_SAMPLE_STORAGE_KEY = 'voiceSampleScriptV2'; // Changed key to reset old long values
   const [sampleScript, setSampleScript] = useState(() => {
-    return localStorage.getItem('voiceSampleScript') || DEFAULT_SAMPLE_SCRIPT;
+    return localStorage.getItem(VOICE_SAMPLE_STORAGE_KEY) || DEFAULT_SAMPLE_SCRIPT;
   });
   const [playingVoice, setPlayingVoice] = useState<VoiceOption | null>(null);
   const [loadingVoice, setLoadingVoice] = useState<VoiceOption | null>(null);
@@ -154,7 +155,7 @@ export default function Settings() {
 
   // Save sample script to localStorage when it changes
   useEffect(() => {
-    localStorage.setItem('voiceSampleScript', sampleScript);
+    localStorage.setItem(VOICE_SAMPLE_STORAGE_KEY, sampleScript);
     // Clear audio cache when script changes
     audioCacheRef.current.clear();
   }, [sampleScript]);
@@ -872,7 +873,18 @@ export default function Settings() {
 
                     {/* Sample Script Textarea */}
                     <div className="space-y-2">
-                      <Label htmlFor="sample-script">Sample Script</Label>
+                      <div className="flex items-center justify-between">
+                        <Label htmlFor="sample-script">Sample Script</Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSampleScript(DEFAULT_SAMPLE_SCRIPT)}
+                          className="h-6 text-xs text-muted-foreground hover:text-foreground"
+                          disabled={sampleScript === DEFAULT_SAMPLE_SCRIPT}
+                        >
+                          Reset to default
+                        </Button>
+                      </div>
                       <Textarea
                         id="sample-script"
                         value={sampleScript}
@@ -880,10 +892,14 @@ export default function Settings() {
                         placeholder="Enter text to preview voice samples..."
                         className="min-h-[80px] resize-none"
                         rows={3}
+                        maxLength={200}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        Edit this text to hear how each voice pronounces specific terms or phrases.
-                      </p>
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>Keep text short to reduce credit usage.</span>
+                        <span className={sampleScript.length > 150 ? 'text-destructive' : ''}>
+                          {sampleScript.length}/200
+                        </span>
+                      </div>
                     </div>
 
                     {/* Voice Options */}
