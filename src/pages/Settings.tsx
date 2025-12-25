@@ -1611,7 +1611,7 @@ export default function Settings() {
                     <h5 className="font-semibold text-purple-800 dark:text-purple-200 mb-2">Bottom Line for Practice Managers</h5>
                     <p className="text-sm text-purple-700 dark:text-purple-300">
                       Notewell AI V1.3 exceeds NHS security requirements and has been designed specifically for healthcare. 
-                      You can be confident that patient data is protected to the highest standards. We handle all the technical 
+                      You can be confident that all data is protected to the highest standards. We handle all the technical 
                       security measures so you can focus on patient care.
                     </p>
                   </div>
