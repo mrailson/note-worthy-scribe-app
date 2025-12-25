@@ -64,6 +64,8 @@ import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
 import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings';
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
+import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAccess';
+import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
 import * as XLSX from 'xlsx';
 
@@ -1068,30 +1070,27 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       cqc: false,
       lg_capture: false
     });
+    // Apply role-based defaults for 'user' role
+    const defaultModules = getDefaultModulesForRole('user');
     setUserFormData({
       email: '',
       full_name: '',
       password: '',
       role: 'user',
       practice_id: 'none',
-      module_access: {
-        meeting_notes_access: true,
-        gp_scribe_access: false,
-        complaints_manager_access: false,
-        ai4gp_access: false,
-        enhanced_access: false,
-        cqc_compliance_access: false,
-        shared_drive_access: false,
-        mic_test_service_access: false,
-        api_testing_service_access: false,
-        translation_service_access: false,
-        fridge_monitoring_access: false,
-        cso_governance_access: false,
-        lg_capture_access: false,
-        bp_service_access: false
-      }
+      module_access: defaultModules
     });
     setShowUserModal(true);
+  };
+
+  // Handle role change to apply defaults
+  const handleRoleChange = (newRole: string) => {
+    const defaultModules = getDefaultModulesForRole(newRole);
+    setUserFormData(prev => ({
+      ...prev,
+      role: newRole as any,
+      module_access: editingUser ? prev.module_access : defaultModules
+    }));
   };
 
   const handleEditUser = async (user: any) => {
@@ -4327,7 +4326,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="role">Role</Label>
-                  <Select value={userFormData.role} onValueChange={(value) => setUserFormData({...userFormData, role: value as any})}>
+                  <Select value={userFormData.role} onValueChange={handleRoleChange}>
                     <SelectTrigger>
                       <SelectValue />
                     </SelectTrigger>
@@ -4357,406 +4356,66 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                 </div>
               </div>
 
-              <div className="space-y-4">
-                <div>
-                  <Label className="text-base font-medium">Module Access</Label>
-                  <p className="text-sm text-muted-foreground mb-4">Select which modules this user can access</p>
+              <CreateUserModuleAccess
+                moduleAccess={userFormData.module_access}
+                onModuleChange={(key, value) => {
+                  setUserFormData(prev => ({
+                    ...prev,
+                    module_access: { ...prev.module_access, [key]: value }
+                  }));
+                }}
+                role={userFormData.role}
+                isEditing={!!editingUser}
+                onAutoSave={autoSaveModuleAccess}
+              />
+
+              {/* Premium Service Activations - Only show when editing */}
+              {editingUser && (
+                <div className="mt-4 pt-4 border-t">
+                  <Label className="text-base font-medium">Premium Service Activations</Label>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Activate premium/licensed services for this user
+                  </p>
                   
                   <div className="space-y-3">
-                     <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between py-2">
                       <div className="space-y-0.5">
-                        <Label htmlFor="meeting_notes_access">Meeting Notes</Label>
-                        <p className="text-xs text-muted-foreground">Access to meeting recording and note-taking features</p>
+                        <Label htmlFor="nres_activation">NRES (SDA Programme)</Label>
+                        <p className="text-xs text-muted-foreground">Access to NRES service development and analytics tools</p>
                       </div>
-                       <Switch
-                         id="meeting_notes_access"
-                         checked={userFormData.module_access.meeting_notes_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('Meeting notes access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, meeting_notes_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('meeting_notes_access', checked);
-                           }
-                         }}
-                       />
+                      <Switch
+                        id="nres_activation"
+                        checked={userServiceActivations.nres}
+                        onCheckedChange={(checked) => toggleServiceActivation('nres', checked)}
+                      />
                     </div>
 
-                     <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between py-2">
                       <div className="space-y-0.5">
-                        <Label htmlFor="gp_scribe_access">GP Scribe</Label>
-                        <p className="text-xs text-muted-foreground">Access to consultation transcription and note generation</p>
+                        <Label htmlFor="ai4pm_activation">AI4PM</Label>
+                        <p className="text-xs text-muted-foreground">AI-powered practice management tools</p>
                       </div>
-                       <Switch
-                         id="gp_scribe_access"
-                         checked={userFormData.module_access.gp_scribe_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('GP Scribe access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, gp_scribe_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('gp_scribe_access', checked);
-                           }
-                         }}
-                       />
+                      <Switch
+                        id="ai4pm_activation"
+                        checked={userServiceActivations.ai4pm}
+                        onCheckedChange={(checked) => toggleServiceActivation('ai4pm', checked)}
+                      />
                     </div>
 
-                     <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between py-2">
                       <div className="space-y-0.5">
-                        <Label htmlFor="complaints_manager_access">Complaints Manager</Label>
-                        <p className="text-xs text-muted-foreground">Access to view and manage complaints</p>
+                        <Label htmlFor="meeting_recorder_activation">Meeting Recorder</Label>
+                        <p className="text-xs text-muted-foreground">Advanced meeting recording and transcription</p>
                       </div>
-                       <Switch
-                         id="complaints_manager_access"
-                         checked={userFormData.module_access.complaints_manager_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('Complaints Manager access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, complaints_manager_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('complaints_manager_access', checked);
-                           }
-                         }}
-                       />
-                    </div>
-
-
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="ai4gp_access">AI4GP Service</Label>
-                        <p className="text-xs text-muted-foreground">Access to AI4GP service for enhanced GP practice support</p>
-                      </div>
-                       <Switch
-                         id="ai4gp_access"
-                         checked={userFormData.module_access.ai4gp_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('AI4GP access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, ai4gp_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('ai4gp_access', checked);
-                           }
-                         }}
-                       />
-                    </div>
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="enhanced_access">Enhanced Access</Label>
-                        <p className="text-xs text-muted-foreground">Access to enhanced appointment booking and patient services</p>
-                      </div>
-                       <Switch
-                         id="enhanced_access"
-                         checked={userFormData.module_access.enhanced_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('Enhanced access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, enhanced_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('enhanced_access', checked);
-                           }
-                         }}
-                       />
-                    </div>
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="cqc_compliance_access">CQC Compliance</Label>
-                        <p className="text-xs text-muted-foreground">Access to CQC compliance monitoring and assessment tools</p>
-                      </div>
-                       <Switch
-                         id="cqc_compliance_access"
-                         checked={userFormData.module_access.cqc_compliance_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('CQC Compliance access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, cqc_compliance_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('cqc_compliance_access', checked);
-                           }
-                         }}
-                       />
-                    </div>
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="shared_drive_access">Shared Drive Access</Label>
-                        <p className="text-xs text-muted-foreground">Access to shared file storage and collaboration features</p>
-                      </div>
-                       <Switch
-                         id="shared_drive_access"
-                         checked={userFormData.module_access.shared_drive_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('Shared Drive access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, shared_drive_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('shared_drive_access', checked);
-                           }
-                         }}
-                       />
-                    </div>
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="mic_test_service_access">Mic Test Service</Label>
-                        <p className="text-xs text-muted-foreground">Access to microphone testing and recording playback features</p>
-                      </div>
-                       <Switch
-                         id="mic_test_service_access"
-                         checked={userFormData.module_access.mic_test_service_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('Mic Test Service access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, mic_test_service_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('mic_test_service_access', checked);
-                           }
-                         }}
-                       />
-                    </div>
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="api_testing_service_access">API Testing Service</Label>
-                        <p className="text-xs text-muted-foreground">Access to AI model comparison and API testing features</p>
-                      </div>
-                       <Switch
-                         id="api_testing_service_access"
-                         checked={userFormData.module_access.api_testing_service_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('API Testing Service access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, api_testing_service_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('api_testing_service_access', checked);
-                           }
-                         }}
-                       />
-                    </div>
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="translation_service_access">Translation Service</Label>
-                        <p className="text-xs text-muted-foreground">Access to Notewell AI translation tool for multilingual patient communication</p>
-                      </div>
-                       <Switch
-                         id="translation_service_access"
-                         checked={userFormData.module_access.translation_service_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('Translation Service access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, translation_service_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('translation_service_access', checked);
-                           }
-                         }}
-                       />
-                    </div>
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="fridge_monitoring_access">Fridge Monitoring</Label>
-                        <p className="text-xs text-muted-foreground">Access to practice fridge temperature monitoring and management</p>
-                      </div>
-                       <Switch
-                         id="fridge_monitoring_access"
-                         checked={userFormData.module_access.fridge_monitoring_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('Fridge Monitoring access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, fridge_monitoring_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('fridge_monitoring_access', checked);
-                           }
-                         }}
-                       />
-                     </div>
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="cso_governance_access">CSO Governance Access</Label>
-                        <p className="text-xs text-muted-foreground">Access to CSO Report, DPIA, Hazard Log, and sensitive clinical safety documentation</p>
-                      </div>
-                       <Switch
-                         id="cso_governance_access"
-                         checked={userFormData.module_access.cso_governance_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('CSO Governance access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, cso_governance_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('cso_governance_access', checked);
-                           }
-                         }}
-                       />
-                    </div>
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="lg_capture_access">LG Capture</Label>
-                        <p className="text-xs text-muted-foreground">Access to Lloyd George record scanning and digitisation service</p>
-                      </div>
-                       <Switch
-                         id="lg_capture_access"
-                         checked={userFormData.module_access.lg_capture_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('LG Capture access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, lg_capture_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('lg_capture_access', checked);
-                           }
-                         }}
-                       />
-                    </div>
-
-                     <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <Label htmlFor="bp_service_access">BP Average Service</Label>
-                        <p className="text-xs text-muted-foreground">Access to blood pressure averaging calculator</p>
-                      </div>
-                       <Switch
-                         id="bp_service_access"
-                         checked={userFormData.module_access.bp_service_access}
-                         onCheckedChange={async (checked) => {
-                           console.log('BP Service access changed to:', checked);
-                           setUserFormData(prevData => ({
-                             ...prevData, 
-                             module_access: {...prevData.module_access, bp_service_access: checked}
-                           }));
-                           if (editingUser) {
-                             await autoSaveModuleAccess('bp_service_access', checked);
-                           }
-                         }}
-                       />
+                      <Switch
+                        id="meeting_recorder_activation"
+                        checked={userServiceActivations.meeting_recorder}
+                        onCheckedChange={(checked) => toggleServiceActivation('meeting_recorder', checked)}
+                      />
                     </div>
                   </div>
                 </div>
-
-                {/* Service Activations Section - Only show when editing an existing user */}
-                {editingUser && (
-                  <div className="mt-6 pt-4 border-t">
-                    <Label className="text-base font-medium">Service Activations</Label>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Activate premium services for this user. These control access to specialised features.
-                    </p>
-                    
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="nres_activation">NRES (SDA Programme)</Label>
-                          <p className="text-xs text-muted-foreground">Access to NRES service development and analytics tools</p>
-                        </div>
-                        <Switch
-                          id="nres_activation"
-                          checked={userServiceActivations.nres}
-                          onCheckedChange={(checked) => toggleServiceActivation('nres', checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="ai4pm_activation">AI4PM</Label>
-                          <p className="text-xs text-muted-foreground">AI-powered practice management tools</p>
-                        </div>
-                        <Switch
-                          id="ai4pm_activation"
-                          checked={userServiceActivations.ai4pm}
-                          onCheckedChange={(checked) => toggleServiceActivation('ai4pm', checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="ai4gp_activation">AI4GP</Label>
-                          <p className="text-xs text-muted-foreground">AI-powered clinical decision support</p>
-                        </div>
-                        <Switch
-                          id="ai4gp_activation"
-                          checked={userServiceActivations.ai4gp}
-                          onCheckedChange={(checked) => toggleServiceActivation('ai4gp', checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="meeting_recorder_activation">Meeting Recorder</Label>
-                          <p className="text-xs text-muted-foreground">Advanced meeting recording and transcription</p>
-                        </div>
-                        <Switch
-                          id="meeting_recorder_activation"
-                          checked={userServiceActivations.meeting_recorder}
-                          onCheckedChange={(checked) => toggleServiceActivation('meeting_recorder', checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="complaints_activation">Complaints System</Label>
-                          <p className="text-xs text-muted-foreground">Full complaints management suite</p>
-                        </div>
-                        <Switch
-                          id="complaints_activation"
-                          checked={userServiceActivations.complaints}
-                          onCheckedChange={(checked) => toggleServiceActivation('complaints', checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="cqc_activation">CQC Compliance</Label>
-                          <p className="text-xs text-muted-foreground">CQC compliance tracking and reporting</p>
-                        </div>
-                        <Switch
-                          id="cqc_activation"
-                          checked={userServiceActivations.cqc}
-                          onCheckedChange={(checked) => toggleServiceActivation('cqc', checked)}
-                        />
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <div className="space-y-0.5">
-                          <Label htmlFor="lg_capture_activation">LG Capture Service</Label>
-                          <p className="text-xs text-muted-foreground">Lloyd George record digitisation service</p>
-                        </div>
-                        <Switch
-                          id="lg_capture_activation"
-                          checked={userServiceActivations.lg_capture}
-                          onCheckedChange={(checked) => toggleServiceActivation('lg_capture', checked)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
+              )}
             </div>
 
             <DialogFooter className="flex-shrink-0 mt-4 pt-4 border-t">
