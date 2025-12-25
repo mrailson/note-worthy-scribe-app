@@ -967,30 +967,6 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                 </Button>
               </div>
 
-              <Separator />
-
-              {/* Email Reset Option */}
-              <div className="space-y-4">
-                <h4 className="text-sm font-medium">Or Reset via Email</h4>
-                <p className="text-sm text-muted-foreground">
-                  Click the button below to receive a password reset email at {user?.email}
-                </p>
-                <Button 
-                  onClick={handleResetPassword}
-                  disabled={resetLoading}
-                  variant="outline"
-                  className="w-full"
-                >
-                  {resetLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Sending Reset Email...
-                    </>
-                  ) : (
-                    'Send Password Reset Email'
-                  )}
-                </Button>
-              </div>
             </CardContent>
           </Card>
         </div>
