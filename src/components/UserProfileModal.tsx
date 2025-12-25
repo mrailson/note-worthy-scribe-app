@@ -713,8 +713,20 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   <Label htmlFor="direct_dial">Direct Dial (Optional)</Label>
                   <Input
                     id="direct_dial"
+                    name="direct_dial"
+                    type="tel"
+                    inputMode="tel"
+                    autoComplete="off"
                     value={practiceDetails.direct_dial}
-                    onChange={(e) => setPracticeDetails(prev => ({ ...prev, direct_dial: e.target.value }))}
+                    onChange={(e) => {
+                      const next = e.target.value;
+                      // Prevent browser/email autofill from polluting a telephone field
+                      if (next.includes('@')) {
+                        setPracticeDetails((prev) => ({ ...prev, direct_dial: '' }));
+                        return;
+                      }
+                      setPracticeDetails((prev) => ({ ...prev, direct_dial: next }));
+                    }}
                     placeholder="Enter direct dial number"
                   />
                 </div>
