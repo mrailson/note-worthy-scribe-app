@@ -288,7 +288,7 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
                   </Button>
                 )}
               </div>
-              <div className="flex gap-2">
+              <div className="flex flex-col gap-1">
                 <EnhancedBrowserMic
                   ref={micRef}
                   onTranscriptUpdate={handleTranscriptUpdate}
