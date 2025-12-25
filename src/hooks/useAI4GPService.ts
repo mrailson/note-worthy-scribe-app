@@ -341,6 +341,10 @@ EXAMPLES OF CORRECT USAGE:
       if (practiceContext.practiceEmail) {
         prompt += `\n- Use "${practiceContext.practiceEmail}" not "[Email Address]"`;
       }
+      
+      if (practiceContext.practiceWebsite) {
+        prompt += `\n- Use "${practiceContext.practiceWebsite}" not "[Website]" - display as plain text, NOT as a markdown link`;
+      }
 
       prompt += `\n\nWhen relevant to queries, you can reference this ${entityLabel.toLowerCase()} and user information to provide more personalised and contextual responses. For example:
 - Use the ${entityLabel.toLowerCase()} name and address when creating letters or referrals
