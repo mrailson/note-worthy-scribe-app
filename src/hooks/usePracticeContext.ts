@@ -197,7 +197,8 @@ export const usePracticeContext = () => {
           userRole: userRoles?.[0]?.role,
           userRoles: userRoles?.map(r => r.role) || [],
           emailSignature: practiceDetailsFromRoles.email_signature,
-          letterSignature: practiceDetailsFromRoles.letter_signature
+          letterSignature: practiceDetailsFromRoles.letter_signature,
+          organisationType: 'GP Practice'
         });
 
         console.log('✅ Practice context loaded from user_roles for current user:', {
@@ -206,13 +207,60 @@ export const usePracticeContext = () => {
           currentUser: userProfile?.full_name
         });
       } else {
-        console.log('❌ No practice details found for assigned practice - using user-only context');
-        setPracticeContext({
-          userFullName: userProfile?.full_name,
-          userEmail: userProfile?.email || user.email,
-          userRole: userRoles?.[0]?.role,
-          userRoles: userRoles?.map(r => r.role) || []
-        });
+        // No practice_details found - try gp_practices table for non-GP organisations (ICB, PCN, LMC, Management)
+        console.log('🔍 No practice_details found, checking gp_practices for organisation details...');
+        
+        const { data: gpPracticeData, error: gpError } = await supabase
+          .from('gp_practices')
+          .select('id, name, organisation_type, email, phone, address, website, pcn_code')
+          .eq('id', userRole.practice_id)
+          .maybeSingle();
+
+        console.log('🏢 GP practices lookup result:', { gpPracticeData, gpError });
+
+        if (gpPracticeData) {
+          console.log('✅ Found organisation in gp_practices:', gpPracticeData.name);
+          
+          // Get PCN information if available
+          let pcnData = null;
+          if (gpPracticeData.pcn_code) {
+            const { data: pcnResult } = await supabase
+              .from('primary_care_networks')
+              .select('pcn_name')
+              .eq('pcn_code', gpPracticeData.pcn_code)
+              .maybeSingle();
+            pcnData = pcnResult;
+          }
+
+          setPracticeContext({
+            practiceName: gpPracticeData.name,
+            organisationType: gpPracticeData.organisation_type || 'Organisation',
+            practiceAddress: gpPracticeData.address,
+            practicePhone: gpPracticeData.phone,
+            practiceEmail: gpPracticeData.email,
+            practiceWebsite: gpPracticeData.website,
+            pcnName: pcnData?.pcn_name,
+            // User details
+            userFullName: userProfile?.full_name,
+            userEmail: userProfile?.email || user.email,
+            userRole: userRoles?.[0]?.role,
+            userRoles: userRoles?.map(r => r.role) || []
+          });
+
+          console.log('✅ Organisation context loaded from gp_practices:', {
+            organisationName: gpPracticeData.name,
+            organisationType: gpPracticeData.organisation_type,
+            currentUser: userProfile?.full_name
+          });
+        } else {
+          console.log('❌ No organisation found - using user-only context');
+          setPracticeContext({
+            userFullName: userProfile?.full_name,
+            userEmail: userProfile?.email || user.email,
+            userRole: userRoles?.[0]?.role,
+            userRoles: userRoles?.map(r => r.role) || []
+          });
+        }
       }
 
     } catch (error) {
