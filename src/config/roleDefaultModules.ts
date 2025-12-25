@@ -134,7 +134,7 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     meeting_notes_access: true,
     gp_scribe_access: true,
     complaints_manager_access: true,
-    ai4gp_access: false,
+    ai4gp_access: true,
     enhanced_access: true,
     cqc_compliance_access: true,
     shared_drive_access: true,
@@ -142,7 +142,7 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     api_testing_service_access: false,
     translation_service_access: true,
     fridge_monitoring_access: true,
-    cso_governance_access: false,
+    cso_governance_access: true,
     lg_capture_access: true,
     bp_service_access: true
   },
@@ -187,7 +187,7 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
   gp: {
     meeting_notes_access: true,
     gp_scribe_access: true,
-    complaints_manager_access: false,
+    complaints_manager_access: true,
     ai4gp_access: true,
     enhanced_access: false,
     cqc_compliance_access: false,
@@ -196,7 +196,7 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     api_testing_service_access: false,
     translation_service_access: true,
     fridge_monitoring_access: false,
-    cso_governance_access: false,
+    cso_governance_access: true,
     lg_capture_access: false,
     bp_service_access: true
   },
