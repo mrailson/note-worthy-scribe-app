@@ -193,10 +193,17 @@ export const useDocumentGeneration = () => {
   }, []);
 
   const startEdit = useCallback((field: keyof EditStates) => {
+    const stateMap: Record<keyof EditStates, string> = {
+      gpSummary,
+      fullNote,
+      patientCopy,
+      traineeFeedback,
+      referralLetter
+    };
     setEditStates(prev => ({ ...prev, [field]: true }));
     setEditContent(prev => ({
       ...prev,
-      [field]: eval(field) // Get current value
+      [field]: stateMap[field]
     }));
   }, [gpSummary, fullNote, patientCopy, traineeFeedback, referralLetter]);
 
