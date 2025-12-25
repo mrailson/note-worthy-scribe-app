@@ -1561,10 +1561,10 @@ export default function Settings() {
                       <div className="p-4 border rounded-lg bg-accent/20">
                         <h5 className="font-medium text-sm mb-2 flex items-center gap-2">
                           <Database className="h-4 w-4" />
-                          NHS-Approved Infrastructure
+                          NHS IT Governance
                         </h5>
                         <p className="text-xs text-muted-foreground">
-                          Built on Supabase (SOC 2 Type II, ISO 27001) - the same security standards used by major NHS trusts.
+                          Infrastructure under continuous NHS IT Governance review during pilot phase. Designed for transition to NHS-provided infrastructure with full compliance monitoring.
                         </p>
                       </div>
                       <div className="p-4 border rounded-lg bg-accent/20">
