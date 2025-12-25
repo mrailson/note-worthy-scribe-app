@@ -252,26 +252,35 @@ You are processing ${fileCount} files. To ensure accuracy:
 - Double-check any cross-file calculations or comparisons`;
     }
 
-    // Add practice context if available
+    // Add practice/organisation context if available
     if (practiceContext.practiceName) {
-      console.log('✅ Adding practice details to system prompt:', practiceContext.practiceName);
-      prompt += `\n\n=== YOUR PRACTICE INFORMATION (ALWAYS USE THIS WHEN CREATING DOCUMENTS) ===
-Practice Name: ${practiceContext.practiceName}`;
+      // Determine if this is a GP Practice or another organisation type
+      const isGPPractice = !practiceContext.organisationType || practiceContext.organisationType === 'GP Practice';
+      const entityLabel = isGPPractice ? 'Practice' : 'Organisation';
+      
+      console.log('✅ Adding organisation details to system prompt:', practiceContext.practiceName, '(', practiceContext.organisationType || 'GP Practice', ')');
+      
+      prompt += `\n\n=== YOUR ${entityLabel.toUpperCase()} INFORMATION (ALWAYS USE THIS WHEN CREATING DOCUMENTS) ===
+${entityLabel} Name: ${practiceContext.practiceName}`;
+      
+      if (practiceContext.organisationType && !isGPPractice) {
+        prompt += `\nOrganisation Type: ${practiceContext.organisationType}`;
+      }
       
       if (practiceContext.practiceAddress) {
-        prompt += `\nPractice Address: ${practiceContext.practiceAddress}`;
+        prompt += `\n${entityLabel} Address: ${practiceContext.practiceAddress}`;
       }
       
       if (practiceContext.practicePhone) {
-        prompt += `\nPractice Phone: ${practiceContext.practicePhone}`;
+        prompt += `\n${entityLabel} Phone: ${practiceContext.practicePhone}`;
       }
       
       if (practiceContext.practiceEmail) {
-        prompt += `\nPractice Email: ${practiceContext.practiceEmail}`;
+        prompt += `\n${entityLabel} Email: ${practiceContext.practiceEmail}`;
       }
       
       if (practiceContext.practiceWebsite) {
-        prompt += `\nPractice Website: ${practiceContext.practiceWebsite}`;
+        prompt += `\n${entityLabel} Website: ${practiceContext.practiceWebsite}`;
       }
       
       if (practiceContext.userFullName) {
@@ -291,7 +300,7 @@ Practice Name: ${practiceContext.practiceName}`;
       }
       
       if (practiceContext.practiceManagerName) {
-        prompt += `\nPractice Manager: ${practiceContext.practiceManagerName}`;
+        prompt += `\n${isGPPractice ? 'Practice' : 'Organisation'} Manager: ${practiceContext.practiceManagerName}`;
       }
       
       if (practiceContext.pcnName) {
@@ -314,15 +323,15 @@ Practice Name: ${practiceContext.practiceName}`;
         prompt += `\nLetter Signature Available: Yes (can be used in formal letters when appropriate)`;
       }
       
-      prompt += `\n=== END PRACTICE INFORMATION ===
+      prompt += `\n=== END ${entityLabel.toUpperCase()} INFORMATION ===
 
-CRITICAL: When creating any documents, letters, or responses (especially complaint responses), you MUST use the actual practice information listed above. NEVER use placeholder text like "[Your Practice Address]" or "[Phone Number]". Always use the real practice name, address, phone, and email provided above.
+CRITICAL: When creating any documents, letters, or responses, you MUST use the actual ${entityLabel.toLowerCase()} information listed above. NEVER use placeholder text like "[Your ${entityLabel} Address]" or "[Phone Number]". Always use the real ${entityLabel.toLowerCase()} name, address, phone, and email provided above.
 
 EXAMPLES OF CORRECT USAGE:
-- Use "${practiceContext.practiceName}" not "[Practice Name]"`;
+- Use "${practiceContext.practiceName}" not "[${entityLabel} Name]"`;
       
       if (practiceContext.practiceAddress) {
-        prompt += `\n- Use "${practiceContext.practiceAddress}" not "[Your Practice Address]"`;
+        prompt += `\n- Use "${practiceContext.practiceAddress}" not "[Your ${entityLabel} Address]"`;
       }
       
       if (practiceContext.practicePhone) {
@@ -333,13 +342,13 @@ EXAMPLES OF CORRECT USAGE:
         prompt += `\n- Use "${practiceContext.practiceEmail}" not "[Email Address]"`;
       }
 
-      prompt += `\n\nWhen relevant to queries, you can reference this practice and user information to provide more personalized and contextual responses. For example:
-- Use the practice name and address when creating letters or referrals
+      prompt += `\n\nWhen relevant to queries, you can reference this ${entityLabel.toLowerCase()} and user information to provide more personalised and contextual responses. For example:
+- Use the ${entityLabel.toLowerCase()} name and address when creating letters or referrals
 - Reference the user's role when providing role-specific guidance
-- Include contact details when generating practice communications
+- Include contact details when generating ${entityLabel.toLowerCase()} communications
 - Use available signatures when creating formal documents`;
     } else {
-      console.log('❌ No practice name found in context:', practiceContext);
+      console.log('❌ No practice/organisation name found in context:', practiceContext);
     }
 
     prompt += `\n\nKnowledge domains you should reference:

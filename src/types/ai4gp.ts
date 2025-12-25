@@ -82,6 +82,8 @@ export interface PracticeContext {
   userRoles?: string[];
   emailSignature?: string;
   letterSignature?: string;
+  // Organisation type (for non-GP organisations like ICB, PCN, LMC, Management)
+  organisationType?: string;
 }
 
 export const SUPPORTED_VOICES = ["alloy","ash","ballad","coral","echo","sage","shimmer","verse"] as const;
