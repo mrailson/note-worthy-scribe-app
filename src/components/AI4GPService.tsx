@@ -636,69 +636,98 @@ const AI4GPService = () => {
                       deviceInfo.isIPhone ? "p-4 pb-24" : "p-3 sm:p-6"
                     )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className="w-full max-w-2xl mx-auto space-y-4">
-                        <p className={cn(
-                          "text-center text-muted-foreground mb-3",
-                          deviceInfo.isIPhone ? "text-sm" : "text-xs sm:text-sm"
-                        )}>
-                          Get started with these common queries:
-                        </p>
-                        
-                        {/* Role Selection */}
-                        {!hideGPClinical && (
-                          <div className="flex justify-center">
-                            <div className={cn(
-                              "flex bg-muted rounded-lg p-1",
-                              deviceInfo.isIPhone && "w-full max-w-sm"
-                            )}>
-                              <button
-                                onClick={() => setSelectedRole('gp')}
-                                className={cn(
-                                  "flex-1 rounded-md transition-all",
-                                  deviceInfo.isIPhone ? "px-4 py-3 text-sm min-h-[44px]" : "px-3 py-1.5 text-xs sm:text-sm",
-                                  selectedRole === 'gp'
-                                    ? 'bg-background text-foreground shadow-sm font-bold'
-                                    : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
-                                )}
-                              >
-                                For GP/Clinical
-                              </button>
-                              <button
-                                onClick={() => setSelectedRole('practice-manager')}
-                                className={cn(
-                                  "flex-1 rounded-md transition-all",
-                                  deviceInfo.isIPhone ? "px-4 py-3 text-sm min-h-[44px]" : "px-3 py-1.5 text-xs sm:text-sm",
-                                  selectedRole === 'practice-manager'
-                                    ? 'bg-background text-foreground shadow-sm font-bold'
-                                    : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
-                                )}
-                              >
-                                For Practice Managers
-                              </button>
+                        {/* iPhone: Show quick tips and suggested searches */}
+                        {deviceInfo.isIPhone ? (
+                          <div className="space-y-4">
+                            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
+                              <h3 className="font-medium text-sm text-foreground">Quick Tips</h3>
+                              <ul className="text-xs text-muted-foreground space-y-1.5">
+                                <li>• Ask clinical questions for evidence-based guidance</li>
+                                <li>• Use voice input by tapping the microphone</li>
+                                <li>• Upload documents for AI-powered analysis</li>
+                                <li>• Check history to revisit past searches</li>
+                              </ul>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <p className="text-xs text-muted-foreground text-center">Try these searches:</p>
+                              <div className="flex flex-col gap-2">
+                                {[
+                                  "Latest NICE guidance on hypertension",
+                                  "Red flag symptoms for headache",
+                                  "CQC inspection preparation tips",
+                                  "QOF targets for diabetes management"
+                                ].map((query, index) => (
+                                  <button
+                                    key={index}
+                                    onClick={() => setInput(query)}
+                                    className="w-full text-left px-3 py-2.5 text-sm bg-background border border-border rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                                  >
+                                    {query}
+                                  </button>
+                                ))}
+                              </div>
                             </div>
                           </div>
-                        )}
-                        
-                        {/* Hide QuickActionsPanel on iPhone for simpler ChatGPT-like interface */}
-                        {!deviceInfo.isIPhone && (
-                          <QuickActionsPanel
-                            showAllQuickActions={showAllQuickActions}
-                            setShowAllQuickActions={setShowAllQuickActions}
-                            setInput={setInput}
-                            selectedRole={selectedRole}
-                            onInsertIntoChat={setInput}
-                            onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
-                            onOpenDocumentTranslate={() => setShowDocumentTranslate(true)}
-                          />
-                        )}
-                        
-                        {/* Collapsible Short Card Disclaimer - Only show for GP role and if user hasn't logged in for a week */}
-                        {selectedRole === 'gp' && shouldShowDisclaimer() && (
-                          <div className="mt-6">
-                            <CollapsibleShortCard 
-                              isCollapsed={disclaimerCollapsed}
-                              onCollapsedChange={updateCollapsedPreference}
+                        ) : (
+                          <>
+                            <p className={cn(
+                              "text-center text-muted-foreground mb-3",
+                              "text-xs sm:text-sm"
+                            )}>
+                              Get started with these common queries:
+                            </p>
+                            
+                            {/* Role Selection - Desktop only */}
+                            {!hideGPClinical && (
+                              <div className="flex justify-center">
+                                <div className="flex bg-muted rounded-lg p-1">
+                                  <button
+                                    onClick={() => setSelectedRole('gp')}
+                                    className={cn(
+                                      "flex-1 rounded-md transition-all px-3 py-1.5 text-xs sm:text-sm",
+                                      selectedRole === 'gp'
+                                        ? 'bg-background text-foreground shadow-sm font-bold'
+                                        : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
+                                    )}
+                                  >
+                                    For GP/Clinical
+                                  </button>
+                                  <button
+                                    onClick={() => setSelectedRole('practice-manager')}
+                                    className={cn(
+                                      "flex-1 rounded-md transition-all px-3 py-1.5 text-xs sm:text-sm",
+                                      selectedRole === 'practice-manager'
+                                        ? 'bg-background text-foreground shadow-sm font-bold'
+                                        : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
+                                    )}
+                                  >
+                                    For Practice Managers
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                            
+                            <QuickActionsPanel
+                              showAllQuickActions={showAllQuickActions}
+                              setShowAllQuickActions={setShowAllQuickActions}
+                              setInput={setInput}
+                              selectedRole={selectedRole}
+                              onInsertIntoChat={setInput}
+                              onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
+                              onOpenDocumentTranslate={() => setShowDocumentTranslate(true)}
                             />
-                          </div>
+                            
+                            {/* Collapsible Short Card Disclaimer - Only show for GP role and if user hasn't logged in for a week */}
+                            {selectedRole === 'gp' && shouldShowDisclaimer() && (
+                              <div className="mt-6">
+                                <CollapsibleShortCard 
+                                  isCollapsed={disclaimerCollapsed}
+                                  onCollapsedChange={updateCollapsedPreference}
+                                />
+                              </div>
+                            )}
+                          </>
                         )}
                         
                         {/* Show User Prompts - Messages start here */}
