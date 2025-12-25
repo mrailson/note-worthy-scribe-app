@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { 
@@ -52,14 +52,17 @@ import {
   Stethoscope,
   Sparkles,
   Bell,
-  Plug
+  Plug,
+  Play,
+  Square,
+  Loader2
 } from 'lucide-react';
 import { PlaudIntegrationSettings } from '@/components/settings/PlaudIntegrationSettings';
 import { ServiceVisibilitySettings } from '@/components/settings/ServiceVisibilitySettings';
 import { QuickRecordSettings } from '@/components/settings/QuickRecordSettings';
 import { useToast } from '@/hooks/use-toast';
 import { useToastPreferences } from '@/hooks/useToastPreferences';
-import { useVoicePreference } from '@/hooks/useVoicePreference';
+import { useVoicePreference, VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { 
   Select, 
@@ -138,6 +141,121 @@ export default function Settings() {
 
   // Voice preferences
   const { voicePreference, setVoicePreference } = useVoicePreference();
+
+  // Voice sample playback state
+  const DEFAULT_SAMPLE_SCRIPT = "Hello, I'm here to help you with your meeting summaries and audio overviews. This is a sample of how I sound when reading your content. You can customise this text to hear exactly how I'll pronounce specific terms or phrases.";
+  const [sampleScript, setSampleScript] = useState(() => {
+    return localStorage.getItem('voiceSampleScript') || DEFAULT_SAMPLE_SCRIPT;
+  });
+  const [playingVoice, setPlayingVoice] = useState<VoiceOption | null>(null);
+  const [loadingVoice, setLoadingVoice] = useState<VoiceOption | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioCacheRef = useRef<Map<string, string>>(new Map());
+
+  // Save sample script to localStorage when it changes
+  useEffect(() => {
+    localStorage.setItem('voiceSampleScript', sampleScript);
+    // Clear audio cache when script changes
+    audioCacheRef.current.clear();
+  }, [sampleScript]);
+
+  // Cleanup audio on unmount
+  useEffect(() => {
+    return () => {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current = null;
+      }
+      // Revoke all blob URLs
+      audioCacheRef.current.forEach((url) => {
+        URL.revokeObjectURL(url);
+      });
+    };
+  }, []);
+
+  // Play voice sample
+  const playVoiceSample = async (voice: VoiceOption) => {
+    const voiceConfig = VOICE_OPTIONS[voice];
+    
+    // If this voice is currently playing, stop it
+    if (playingVoice === voice) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+      }
+      setPlayingVoice(null);
+      return;
+    }
+
+    // Stop any currently playing audio
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+
+    // Check cache first
+    const cacheKey = `${voice}-${sampleScript}`;
+    const cachedUrl = audioCacheRef.current.get(cacheKey);
+    
+    if (cachedUrl) {
+      const audio = new Audio(cachedUrl);
+      audioRef.current = audio;
+      audio.onended = () => setPlayingVoice(null);
+      audio.onerror = () => {
+        setPlayingVoice(null);
+        toast({
+          title: "Failed to play audio sample",
+          variant: "destructive"
+        });
+      };
+      setPlayingVoice(voice);
+      await audio.play();
+      return;
+    }
+
+    // Generate new audio
+    setLoadingVoice(voice);
+    try {
+      const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+        body: { 
+          text: sampleScript,
+          voiceId: voiceConfig.voiceId
+        }
+      });
+
+      if (error) throw error;
+      if (!data?.audioContent) throw new Error('No audio content received');
+
+      // Convert base64 to blob URL
+      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
+      
+      // Cache the URL
+      audioCacheRef.current.set(cacheKey, audioUrl);
+
+      const audio = new Audio(audioUrl);
+      audioRef.current = audio;
+      audio.onended = () => setPlayingVoice(null);
+      audio.onerror = () => {
+        setPlayingVoice(null);
+        toast({
+          title: "Failed to play audio sample",
+          variant: "destructive"
+        });
+      };
+      
+      setPlayingVoice(voice);
+      await audio.play();
+    } catch (error) {
+      console.error('Error generating voice sample:', error);
+      toast({
+        title: "Failed to generate voice sample",
+        description: error instanceof Error ? error.message : "Please try again",
+        variant: "destructive"
+      });
+    } finally {
+      setLoadingVoice(null);
+    }
+  };
 
 
 
@@ -727,29 +845,71 @@ export default function Settings() {
                   </p>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-4">
+                  <div className="space-y-6">
                     <p className="text-sm text-muted-foreground">
-                      Choose between Alice (British Female) or George (British Male) for all audio summaries and overviews.
+                      Choose your preferred voice for all audio summaries and overviews. Click the play button to hear a sample.
                     </p>
+
+                    {/* Sample Script Textarea */}
+                    <div className="space-y-2">
+                      <Label htmlFor="sample-script">Sample Script</Label>
+                      <Textarea
+                        id="sample-script"
+                        value={sampleScript}
+                        onChange={(e) => setSampleScript(e.target.value)}
+                        placeholder="Enter text to preview voice samples..."
+                        className="min-h-[80px] resize-none"
+                        rows={3}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        Edit this text to hear how each voice pronounces specific terms or phrases.
+                      </p>
+                    </div>
+
+                    {/* Voice Options */}
                     <RadioGroup 
                       value={voicePreference} 
-                      onValueChange={(value) => setVoicePreference(value as 'alice' | 'george')}
-                      className="space-y-3"
+                      onValueChange={(value) => setVoicePreference(value as VoiceOption)}
+                      className="space-y-2"
                     >
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
-                        <RadioGroupItem value="alice" id="voice-alice" />
-                        <Label htmlFor="voice-alice" className="flex-1 cursor-pointer">
-                          <div className="font-medium">Alice</div>
-                          <div className="text-sm text-muted-foreground">British Female - Friendly voice</div>
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-3 p-3 border rounded-lg hover:bg-accent transition-colors">
-                        <RadioGroupItem value="george" id="voice-george" />
-                        <Label htmlFor="voice-george" className="flex-1 cursor-pointer">
-                          <div className="font-medium">George</div>
-                          <div className="text-sm text-muted-foreground">British Male - Professional voice</div>
-                        </Label>
-                      </div>
+                      {(Object.keys(VOICE_OPTIONS) as VoiceOption[]).map((voice) => {
+                        const config = VOICE_OPTIONS[voice];
+                        const isPlaying = playingVoice === voice;
+                        const isLoading = loadingVoice === voice;
+                        
+                        return (
+                          <div 
+                            key={voice}
+                            className={`flex items-center justify-between p-3 border rounded-lg hover:bg-accent/50 transition-colors ${
+                              voicePreference === voice ? 'border-primary bg-accent/30' : ''
+                            }`}
+                          >
+                            <div className="flex items-center space-x-3 flex-1">
+                              <RadioGroupItem value={voice} id={`voice-${voice}`} />
+                              <Label htmlFor={`voice-${voice}`} className="flex-1 cursor-pointer">
+                                <div className="font-medium">{config.name}</div>
+                                <div className="text-sm text-muted-foreground">{config.description}</div>
+                              </Label>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => playVoiceSample(voice)}
+                              disabled={isLoading || !sampleScript.trim()}
+                              className="ml-2 h-9 w-9 p-0"
+                              title={isPlaying ? 'Stop' : 'Play sample'}
+                            >
+                              {isLoading ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : isPlaying ? (
+                                <Square className="h-4 w-4 fill-current" />
+                              ) : (
+                                <Play className="h-4 w-4" />
+                              )}
+                            </Button>
+                          </div>
+                        );
+                      })}
                     </RadioGroup>
                   </div>
                 </CardContent>
