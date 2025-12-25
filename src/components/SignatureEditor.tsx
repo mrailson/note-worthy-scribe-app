@@ -1,5 +1,5 @@
-import React from 'react';
-import { useEditor, EditorContent } from '@tiptap/react';
+import React, { useRef, useEffect } from 'react';
+import { useEditor, EditorContent, Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { TextStyle } from '@tiptap/extension-text-style';
 import { Color } from '@tiptap/extension-color';
@@ -19,7 +19,8 @@ import {
   List,
   ListOrdered,
   Palette,
-  Type
+  Type,
+  ImageIcon
 } from 'lucide-react';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 
@@ -34,6 +35,9 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
   onChange, 
   placeholder = "Enter your signature..." 
 }) => {
+  const editorRef = useRef<Editor | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -81,14 +85,8 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
               const reader = new FileReader();
               reader.onload = (e) => {
                 const result = e.target?.result as string;
-                if (result) {
-                  // Insert image at current cursor position
-                  const { schema } = view.state;
-                  const imageNode = schema.nodes.image?.create({ src: result });
-                  if (imageNode) {
-                    const transaction = view.state.tr.replaceSelectionWith(imageNode);
-                    view.dispatch(transaction);
-                  }
+                if (result && editorRef.current) {
+                  editorRef.current.chain().focus().setImage({ src: result }).run();
                 }
               };
               reader.readAsDataURL(file);
@@ -106,16 +104,8 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
             const reader = new FileReader();
             reader.onload = (e) => {
               const result = e.target?.result as string;
-              if (result) {
-                const { schema } = view.state;
-                const imageNode = schema.nodes.image?.create({ src: result });
-                if (imageNode) {
-                  const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
-                  if (coordinates) {
-                    const transaction = view.state.tr.insert(coordinates.pos, imageNode);
-                    view.dispatch(transaction);
-                  }
-                }
+              if (result && editorRef.current) {
+                editorRef.current.chain().focus().setImage({ src: result }).run();
               }
             };
             reader.readAsDataURL(file);
@@ -127,6 +117,33 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
       },
     },
   });
+
+  // Keep ref updated
+  useEffect(() => {
+    editorRef.current = editor;
+  }, [editor]);
+
+  const handleImageUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const result = e.target?.result as string;
+        if (result && editor) {
+          editor.chain().focus().setImage({ src: result }).run();
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   if (!editor) {
     return null;
@@ -266,6 +283,25 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
         >
           <ListOrdered className="h-4 w-4" />
         </Button>
+
+        <Separator orientation="vertical" className="h-6 mx-1" />
+
+        {/* Image Upload */}
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleImageUpload}
+          title="Insert image"
+        >
+          <ImageIcon className="h-4 w-4" />
+        </Button>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="hidden"
+        />
       </div>
 
       {/* Editor Content */}
