@@ -156,7 +156,11 @@ export default function Settings() {
   // Save sample script to localStorage when it changes
   useEffect(() => {
     localStorage.setItem(VOICE_SAMPLE_STORAGE_KEY, sampleScript);
-    // Clear audio cache when script changes
+
+    // Clear audio cache when script changes (revoke old blob URLs first)
+    audioCacheRef.current.forEach((url) => {
+      if (url.startsWith('blob:')) URL.revokeObjectURL(url);
+    });
     audioCacheRef.current.clear();
   }, [sampleScript]);
 
@@ -167,17 +171,29 @@ export default function Settings() {
         audioRef.current.pause();
         audioRef.current = null;
       }
-      // Revoke all blob URLs
+
+      // Revoke any blob URLs we created
       audioCacheRef.current.forEach((url) => {
-        URL.revokeObjectURL(url);
+        if (url.startsWith('blob:')) URL.revokeObjectURL(url);
       });
+      audioCacheRef.current.clear();
     };
   }, []);
+
+  const base64Mp3ToBlobUrl = (base64: string) => {
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) {
+      bytes[i] = binary.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'audio/mpeg' });
+    return URL.createObjectURL(blob);
+  };
 
   // Play voice sample
   const playVoiceSample = async (voice: VoiceOption) => {
     const voiceConfig = VOICE_OPTIONS[voice];
-    
+
     // If this voice is currently playing, stop it
     if (playingVoice === voice) {
       if (audioRef.current) {
@@ -197,7 +213,7 @@ export default function Settings() {
     // Check cache first
     const cacheKey = `${voice}-${sampleScript}`;
     const cachedUrl = audioCacheRef.current.get(cacheKey);
-    
+
     if (cachedUrl) {
       const audio = new Audio(cachedUrl);
       audioRef.current = audio;
@@ -206,11 +222,22 @@ export default function Settings() {
         setPlayingVoice(null);
         toast({
           title: "Failed to play audio sample",
+          description: "Your browser couldn't play the generated audio. Please try again.",
           variant: "destructive"
         });
       };
       setPlayingVoice(voice);
-      await audio.play();
+      try {
+        await audio.play();
+      } catch (e) {
+        console.error('Audio play failed:', e);
+        setPlayingVoice(null);
+        toast({
+          title: "Failed to play audio sample",
+          description: "Your browser blocked or couldn't play the audio. Please try again.",
+          variant: "destructive"
+        });
+      }
       return;
     }
 
@@ -218,14 +245,14 @@ export default function Settings() {
     setLoadingVoice(voice);
     try {
       const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
-        body: { 
+        body: {
           text: sampleScript,
           voiceId: voiceConfig.voiceId
         }
       });
 
       if (error) throw error;
-      
+
       // Check for quota exceeded error in response
       if (data?.error) {
         if (data.error.includes('quota_exceeded') || data.error.includes('quota')) {
@@ -233,12 +260,12 @@ export default function Settings() {
         }
         throw new Error(data.error);
       }
-      
+
       if (!data?.audioContent) throw new Error('No audio content received');
 
-      // Convert base64 to blob URL
-      const audioUrl = `data:audio/mpeg;base64,${data.audioContent}`;
-      
+      // Convert base64 MP3 to blob URL (more reliable than data: URIs)
+      const audioUrl = base64Mp3ToBlobUrl(data.audioContent);
+
       // Cache the URL
       audioCacheRef.current.set(cacheKey, audioUrl);
 
@@ -249,16 +276,17 @@ export default function Settings() {
         setPlayingVoice(null);
         toast({
           title: "Failed to play audio sample",
+          description: "Your browser couldn't play the generated audio. Please try again.",
           variant: "destructive"
         });
       };
-      
+
       setPlayingVoice(voice);
       await audio.play();
     } catch (error: any) {
       console.error('Error generating voice sample:', error);
       const errorMessage = error?.message || '';
-      
+
       // Handle quota exceeded specifically
       if (errorMessage.includes('quota') || errorMessage.includes('credits')) {
         toast({
@@ -269,7 +297,7 @@ export default function Settings() {
       } else {
         toast({
           title: "Failed to generate voice sample",
-          description: "Please try again",
+          description: errorMessage || "Please try again",
           variant: "destructive"
         });
       }
