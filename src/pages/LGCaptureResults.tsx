@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
 import { useLGCapture, LGPatient, getPreviousNames, getIdentityIssues } from '@/hooks/useLGCapture';
 import { generateLGFilename } from '@/utils/lgFilenameGenerator';
 import { LGProcessingStatus } from '@/components/lg-capture/LGProcessingStatus';
@@ -196,15 +197,17 @@ export default function LGCaptureResults() {
   };
 
   return (
-    <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/lg-capture/patients')}
-        className="mb-4"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to List
-      </Button>
+    <>
+      <Header />
+      <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/lg-capture/patients')}
+          className="mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to List
+        </Button>
 
       {/* Patient Info - AI Extracted */}
       <Card className={patient.requires_verification ? 'border-amber-500' : identityStatus === 'conflict' ? 'border-destructive' : ''}>
@@ -593,6 +596,7 @@ export default function LGCaptureResults() {
           Start Next Patient
         </Button>
       )}
-    </div>
+      </div>
+    </>
   );
 }

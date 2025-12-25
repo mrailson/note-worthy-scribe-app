@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
 import { useDropzone } from 'react-dropzone';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -531,7 +532,9 @@ export default function LGCaptureBulk() {
   const failedCount = files.filter(f => f.status === 'failed').length;
 
   return (
-    <div className="container max-w-3xl mx-auto py-8 px-4 space-y-6">
+    <>
+      <Header />
+      <div className="container max-w-3xl mx-auto py-8 px-4 space-y-6">
       <Button variant="ghost" onClick={() => navigate('/lg-capture')} className="mb-2">
         <Home className="mr-2 h-4 w-4" />
         Back to LG Capture
@@ -1001,6 +1004,7 @@ export default function LGCaptureBulk() {
           )}
         </TabsContent>
       </Tabs>
-    </div>
+      </div>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
 import { useLGCapture, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -310,7 +311,9 @@ export default function LGCapturePatients() {
   };
 
   return (
-    <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
+    <>
+      <Header />
+      <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
       <div className="flex items-center justify-between">
         <Button
           variant="ghost"
@@ -775,6 +778,7 @@ export default function LGCapturePatients() {
           }}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }

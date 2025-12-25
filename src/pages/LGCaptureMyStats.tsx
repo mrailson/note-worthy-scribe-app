@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Home, BarChart3, TrendingUp, TrendingDown, Minus, Clock, FileCheck, Target, Award, FolderDown, Loader2 } from 'lucide-react';
@@ -330,14 +331,19 @@ export default function LGCaptureMyStats() {
 
   if (loading) {
     return (
-      <div className="container max-w-4xl mx-auto py-8 px-4 flex items-center justify-center min-h-[50vh]">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <>
+        <Header />
+        <div className="container max-w-4xl mx-auto py-8 px-4 flex items-center justify-center min-h-[50vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="container max-w-4xl mx-auto py-8 px-4 space-y-6">
+    <>
+      <Header />
+      <div className="container max-w-4xl mx-auto py-8 px-4 space-y-6">
       {/* Navigation */}
       <div className="flex items-center justify-between">
         <Button
@@ -542,7 +548,8 @@ export default function LGCaptureMyStats() {
           </Card>
         </>
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

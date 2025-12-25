@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -352,7 +353,9 @@ export default function LGCaptureFileView() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <>
+      <Header />
+      <div className="min-h-screen bg-background">
       <div className="container mx-auto px-4 py-6 max-w-6xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
@@ -629,6 +632,7 @@ export default function LGCaptureFileView() {
           onValidated={fetchPatients}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }
