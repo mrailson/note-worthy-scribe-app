@@ -63,8 +63,8 @@ import { MeetingUsageReport } from '@/components/admin/MeetingUsageReport';
 import { LiveAndRecentMeetings } from '@/components/admin/LiveAndRecentMeetings';
 import { AdminVideoUpload } from '@/components/admin/AdminVideoUpload';
 import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
-import { BulkNRESUserCreation } from '@/components/admin/BulkNRESUserCreation';
 import { QuickPasswordUpdate } from '@/components/QuickPasswordUpdate';
+import * as XLSX from 'xlsx';
 
 
 interface User {
@@ -191,6 +191,7 @@ const SystemAdmin = () => {
   // User management state
   const [users, setUsers] = useState<User[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
+  const [userPracticeFilter, setUserPracticeFilter] = useState('all');
   const [userSortField, setUserSortField] = useState<'full_name' | 'last_login'>('full_name');
   const [userSortDirection, setUserSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showUserModal, setShowUserModal] = useState(false);
@@ -999,6 +1000,56 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       case 'pending': return <Badge className="bg-blue-100 text-blue-800">Pending</Badge>;
       default: return <Badge className="bg-gray-100 text-gray-800">Unknown</Badge>;
     }
+  };
+
+  // Export users to Excel function
+  const handleExportUsersToExcel = () => {
+    // Get filtered users based on current filters
+    const filteredUsers = users
+      .filter(user => 
+        (user.full_name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+        user.email.toLowerCase().includes(userSearchQuery.toLowerCase())) &&
+        (userPracticeFilter === 'all' || 
+          user.practice_assignments.some(pa => pa.practice_id === userPracticeFilter))
+      );
+
+    // Prepare data for export
+    const exportData = filteredUsers.map(user => ({
+      'Full Name': user.full_name,
+      'Email': user.email,
+      'Last Login': user.last_login 
+        ? new Date(user.last_login).toLocaleDateString('en-GB', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit'
+          })
+        : 'Never',
+      'Practice Assignments': user.practice_assignments.map(pa => `${pa.role} - ${pa.practice_name}`).join('; ') || 'None'
+    }));
+
+    // Create workbook and worksheet
+    const wb = XLSX.utils.book_new();
+    const ws = XLSX.utils.json_to_sheet(exportData);
+
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 25 }, // Full Name
+      { wch: 35 }, // Email
+      { wch: 20 }, // Last Login
+      { wch: 50 }  // Practice Assignments
+    ];
+
+    XLSX.utils.book_append_sheet(wb, ws, 'Users');
+
+    // Generate filename with date
+    const date = new Date().toISOString().split('T')[0];
+    const filename = `users_export_${date}.xlsx`;
+
+    // Download file
+    XLSX.writeFile(wb, filename);
+    toast.success(`Exported ${filteredUsers.length} users to Excel`);
   };
 
   // User management functions
@@ -2077,26 +2128,45 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               
               <TabsContent value="users" className="space-y-6">
                 {/* Admin Tools Row */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Bulk NRES User Creation */}
-                  <BulkNRESUserCreation />
+                <div className="grid grid-cols-1 gap-4">
                   {/* Quick Password Reset */}
                   <QuickPasswordUpdate />
                 </div>
-                <div className="flex justify-between items-center">
-                  <div className="flex items-center space-x-2">
-                    <Search className="h-4 w-4" />
-                    <Input
-                      placeholder="Search users..."
-                      value={userSearchQuery}
-                      onChange={(e) => setUserSearchQuery(e.target.value)}
-                      className="w-64"
-                    />
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex items-center space-x-2">
+                      <Search className="h-4 w-4" />
+                      <Input
+                        placeholder="Search users..."
+                        value={userSearchQuery}
+                        onChange={(e) => setUserSearchQuery(e.target.value)}
+                        className="w-64"
+                      />
+                    </div>
+                    <Select value={userPracticeFilter} onValueChange={setUserPracticeFilter}>
+                      <SelectTrigger className="w-[200px]">
+                        <SelectValue placeholder="Filter by Practice" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Practices</SelectItem>
+                        {practices.map((practice) => (
+                          <SelectItem key={practice.id} value={practice.id}>
+                            {practice.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <Button onClick={handleAddUser}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add User
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button variant="outline" onClick={handleExportUsersToExcel}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      Export to Excel
+                    </Button>
+                    <Button onClick={handleAddUser}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add User
+                    </Button>
+                  </div>
                 </div>
 
                 <Card>
@@ -2152,8 +2222,10 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     <TableBody>
                       {users
                         .filter(user => 
-                          user.full_name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
-                          user.email.toLowerCase().includes(userSearchQuery.toLowerCase())
+                          (user.full_name.toLowerCase().includes(userSearchQuery.toLowerCase()) ||
+                          user.email.toLowerCase().includes(userSearchQuery.toLowerCase())) &&
+                          (userPracticeFilter === 'all' || 
+                            user.practice_assignments.some(pa => pa.practice_id === userPracticeFilter))
                         )
                         .sort((a, b) => {
                           if (userSortField === 'full_name') {
