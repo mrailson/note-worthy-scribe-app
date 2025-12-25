@@ -95,10 +95,37 @@ const GPScribeSettings = () => {
 
   const loadPractices = async () => {
     try {
-      const { data, error } = await supabase
-        .from('practice_details')
-        .select('*')
-        .eq('user_id', user?.id);
+      // Get user's practice_id from user_roles to find their organisation
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('practice_id')
+        .eq('user_id', user?.id)
+        .not('practice_id', 'is', null)
+        .maybeSingle();
+
+      // Get the organisation name from gp_practices
+      let orgName: string | null = null;
+      if (userRole?.practice_id) {
+        const { data: gpPractice } = await supabase
+          .from('gp_practices')
+          .select('name')
+          .eq('id', userRole.practice_id)
+          .maybeSingle();
+        orgName = gpPractice?.name || null;
+      }
+
+      // Fetch practice_details matching the organisation name (shared across all users)
+      let query = supabase.from('practice_details').select('*');
+      
+      if (orgName) {
+        // Get shared practice details for the organisation
+        query = query.ilike('practice_name', orgName);
+      } else {
+        // Fallback to user-specific records
+        query = query.eq('user_id', user?.id);
+      }
+
+      const { data, error } = await query;
 
       if (error) throw error;
       setPractices(data || []);

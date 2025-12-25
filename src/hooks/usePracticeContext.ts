@@ -28,7 +28,7 @@ export const usePracticeContext = () => {
 
       console.log('👤 User profile loaded:', userProfile);
 
-      // Get user roles
+      // Get user roles with practice_id
       const { data: userRoles } = await supabase
         .from('user_roles')
         .select('role, practice_id')
@@ -36,249 +36,139 @@ export const usePracticeContext = () => {
       
       console.log('👥 User roles loaded:', userRoles);
 
-      // CRITICAL: Only use practice details that belong to THIS specific user
-      // First, try to get the user's own practice details directly (prioritize records with practice names)
-      const { data: userPracticeDetails, error: userPracticeError } = await supabase
-        .from('practice_details')
-        .select('practice_name, pcn_code, user_id, logo_url, address, phone, email, website, email_signature, letter_signature')
-        .eq('user_id', user.id)
-        .not('practice_name', 'is', null)
-        .neq('practice_name', '')
-        .order('updated_at', { ascending: false })
-        .maybeSingle();
+      // Find the user's practice_id from user_roles
+      const userRoleWithPractice = userRoles?.find(r => r.practice_id);
+      const practiceId = userRoleWithPractice?.practice_id;
 
-      console.log('🏥 User practice details query result:', { userPracticeDetails, userPracticeError });
+      console.log('🏢 User practice_id:', practiceId);
 
-      if (userPracticeDetails && userPracticeDetails.user_id === user.id) {
-        // SECURITY CHECK: Ensure the practice details actually belong to this user
-        console.log('✅ Using user\'s own practice details:', userPracticeDetails.practice_name);
-        setPracticeDetails(userPracticeDetails);
-
-        // Get practice manager name (which should be the user themselves)
-        const { data: practiceManagerProfile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('user_id', userPracticeDetails.user_id)
+      // SHARED PRACTICE DETAILS: Look up practice_details by practice_id (gp_practices.id)
+      // This ensures all users in the same organisation see the same details
+      let sharedPracticeDetails = null;
+      
+      if (practiceId) {
+        // First, get the gp_practice info
+        const { data: gpPractice } = await supabase
+          .from('gp_practices')
+          .select('id, name, organisation_type, email, phone, address, website, pcn_code')
+          .eq('id', practiceId)
           .maybeSingle();
+
+        console.log('🏥 GP Practice from user_roles:', gpPractice);
+
+        // Then look for practice_details that match this organisation
+        // Priority: practice_details with matching practice name (case-insensitive)
+        if (gpPractice?.name) {
+          const { data: matchedDetails } = await supabase
+            .from('practice_details')
+            .select('*')
+            .ilike('practice_name', gpPractice.name)
+            .order('updated_at', { ascending: false })
+            .limit(1)
+            .maybeSingle();
+          
+          if (matchedDetails) {
+            console.log('✅ Found shared practice_details for organisation:', matchedDetails.practice_name);
+            sharedPracticeDetails = matchedDetails;
+          }
+        }
+
+        // If no matching practice_details, create context from gp_practices
+        if (!sharedPracticeDetails && gpPractice) {
+          console.log('📝 Using gp_practices data as base (no practice_details found)');
+          sharedPracticeDetails = {
+            practice_name: gpPractice.name,
+            address: gpPractice.address,
+            phone: gpPractice.phone,
+            email: gpPractice.email,
+            website: gpPractice.website,
+            pcn_code: gpPractice.pcn_code,
+            organisation_type: gpPractice.organisation_type
+          };
+        }
+      }
+
+      // Fallback: Check user's own practice_details if no shared details found
+      if (!sharedPracticeDetails) {
+        const { data: userPracticeDetails } = await supabase
+          .from('practice_details')
+          .select('*')
+          .eq('user_id', user.id)
+          .not('practice_name', 'is', null)
+          .neq('practice_name', '')
+          .order('updated_at', { ascending: false })
+          .maybeSingle();
+
+        if (userPracticeDetails) {
+          console.log('📋 Using user-specific practice_details as fallback:', userPracticeDetails.practice_name);
+          sharedPracticeDetails = userPracticeDetails;
+        }
+      }
+
+      if (sharedPracticeDetails) {
+        setPracticeDetails(sharedPracticeDetails);
 
         // Get PCN information
-        const { data: pcnData } = await supabase
-          .from('primary_care_networks')
-          .select('pcn_name')
-          .eq('pcn_code', userPracticeDetails.pcn_code)
-          .maybeSingle();
+        let pcnData = null;
+        if (sharedPracticeDetails.pcn_code) {
+          const { data: pcnResult } = await supabase
+            .from('primary_care_networks')
+            .select('pcn_name')
+            .eq('pcn_code', sharedPracticeDetails.pcn_code)
+            .maybeSingle();
+          pcnData = pcnResult;
+        }
 
         // Get other practices in the same PCN
-        const { data: otherPractices } = await supabase
-          .from('practice_details')
-          .select('practice_name')
-          .eq('pcn_code', userPracticeDetails.pcn_code)
-          .neq('user_id', user.id);
+        let otherPractices: any[] = [];
+        if (sharedPracticeDetails.pcn_code) {
+          const { data: otherPracticesResult } = await supabase
+            .from('practice_details')
+            .select('practice_name')
+            .eq('pcn_code', sharedPracticeDetails.pcn_code)
+            .neq('practice_name', sharedPracticeDetails.practice_name);
+          otherPractices = otherPracticesResult || [];
+        }
 
-        // Get neighbourhood information (if exists)
+        // Get neighbourhood information
         const { data: neighbourhoodData } = await supabase
           .from('neighbourhoods')
           .select('name')
           .limit(1);
 
         setPracticeContext({
-          practiceName: userPracticeDetails.practice_name,
-          practiceManagerName: practiceManagerProfile?.full_name,
+          practiceName: sharedPracticeDetails.practice_name,
+          organisationType: sharedPracticeDetails.organisation_type || 'GP Practice',
           pcnName: pcnData?.pcn_name,
           neighbourhoodName: neighbourhoodData?.[0]?.name,
           otherPracticesInPCN: otherPractices?.map(p => p.practice_name) || [],
-          logoUrl: userPracticeDetails.logo_url,
-          // Enhanced practice details
-          practiceAddress: userPracticeDetails.address,
-          practicePhone: userPracticeDetails.phone,
-          practiceEmail: userPracticeDetails.email,
-          practiceWebsite: userPracticeDetails.website,
-          // User details
+          logoUrl: sharedPracticeDetails.logo_url,
+          practiceAddress: sharedPracticeDetails.address,
+          practicePhone: sharedPracticeDetails.phone,
+          practiceEmail: sharedPracticeDetails.email,
+          practiceWebsite: sharedPracticeDetails.website,
           userFullName: userProfile?.full_name,
           userEmail: userProfile?.email || user.email,
           userRole: userRoles?.[0]?.role,
           userRoles: userRoles?.map(r => r.role) || [],
-          emailSignature: userPracticeDetails.email_signature,
-          letterSignature: userPracticeDetails.letter_signature
+          emailSignature: sharedPracticeDetails.email_signature,
+          letterSignature: sharedPracticeDetails.letter_signature
         });
 
-        console.log('Practice context loaded from user practice details:', {
-          practiceName: userPracticeDetails.practice_name,
-          pcnName: pcnData?.pcn_name
+        console.log('✅ Practice context loaded (shared across organisation):', {
+          practiceName: sharedPracticeDetails.practice_name,
+          pcnName: pcnData?.pcn_name,
+          currentUser: userProfile?.full_name
         });
-        return;
-      }
-
-      // If user doesn't have their own practice details, try user_roles approach (BUT ONLY FOR THIS USER)
-      // IMPORTANT: Find a role that HAS a practice_id set (user may have multiple roles, some without practice assignments)
-      console.log('❓ No user practice details found, checking user_roles for current user only...');
-      
-      const { data: userRolesWithPractice, error: roleError } = await supabase
-        .from('user_roles')
-        .select('practice_id, role')
-        .eq('user_id', user.id)
-        .not('practice_id', 'is', null);
-
-      console.log('🔍 User roles with practice_id:', { userRolesWithPractice, roleError });
-
-      // Get the first role that has a practice_id
-      const userRole = userRolesWithPractice?.[0];
-
-      if (roleError || !userRole?.practice_id) {
-        console.log('❌ No practice assignment found for current user - using empty context');
+      } else {
+        // No practice details found - user-only context
+        console.log('❌ No practice details found - using user-only context');
         setPracticeContext({
           userFullName: userProfile?.full_name,
           userEmail: userProfile?.email || user.email,
           userRole: userRoles?.[0]?.role,
           userRoles: userRoles?.map(r => r.role) || []
         });
-        return;
-      }
-
-      // user_roles.practice_id references gp_practices.id, NOT practice_details.id
-      // First, get the gp_practice name, then try to find matching practice_details by name
-      const { data: gpPractice } = await supabase
-        .from('gp_practices')
-        .select('id, name, organisation_type, email, phone, address, website, pcn_code')
-        .eq('id', userRole.practice_id)
-        .maybeSingle();
-
-      console.log('🏢 GP Practice from user_roles:', gpPractice);
-
-      // Try to find practice_details that matches by practice name (case-insensitive)
-      let practiceDetailsFromRoles = null;
-      if (gpPractice?.name) {
-        const { data: matchedDetails } = await supabase
-          .from('practice_details')
-          .select('id, practice_name, pcn_code, user_id, logo_url, address, phone, email, website, email_signature, letter_signature')
-          .ilike('practice_name', gpPractice.name)
-          .maybeSingle();
-        
-        console.log('🔍 Matched practice_details by name:', matchedDetails);
-        practiceDetailsFromRoles = matchedDetails;
-      }
-
-      if (practiceDetailsFromRoles) {
-        console.log('✅ Setting practice details from user_roles lookup');
-        setPracticeDetails(practiceDetailsFromRoles);
-
-        // Get practice manager name from profiles (if practice belongs to someone else)
-        const { data: practiceManagerProfile } = await supabase
-          .from('profiles')
-          .select('full_name')
-          .eq('user_id', practiceDetailsFromRoles.user_id)
-          .maybeSingle();
-
-        // Get PCN information (if pcn_code exists)
-        let pcnData = null;
-        if (practiceDetailsFromRoles.pcn_code) {
-          const { data: pcnResult } = await supabase
-            .from('primary_care_networks')
-            .select('pcn_name')
-            .eq('pcn_code', practiceDetailsFromRoles.pcn_code)
-            .maybeSingle();
-          pcnData = pcnResult;
-        }
-
-        // Get other practices in the same PCN (if pcn_code exists)
-        let otherPractices = [];
-        if (practiceDetailsFromRoles.pcn_code) {
-          const { data: otherPracticesResult } = await supabase
-            .from('practice_details')
-            .select('practice_name')
-            .eq('pcn_code', practiceDetailsFromRoles.pcn_code)
-            .neq('id', userRole.practice_id);
-          otherPractices = otherPracticesResult || [];
-        }
-
-        // Get neighbourhood information (if exists)
-        const { data: neighbourhoodData } = await supabase
-          .from('neighbourhoods')
-          .select('name')
-          .limit(1);
-
-        setPracticeContext({
-          practiceName: practiceDetailsFromRoles.practice_name,
-          practiceManagerName: practiceManagerProfile?.full_name,
-          pcnName: pcnData?.pcn_name,
-          neighbourhoodName: neighbourhoodData?.[0]?.name,
-          otherPracticesInPCN: otherPractices?.map(p => p.practice_name) || [],
-          logoUrl: practiceDetailsFromRoles.logo_url,
-          // Enhanced practice details
-          practiceAddress: practiceDetailsFromRoles.address,
-          practicePhone: practiceDetailsFromRoles.phone,
-          practiceEmail: practiceDetailsFromRoles.email,
-          practiceWebsite: practiceDetailsFromRoles.website,
-          // User details - ALWAYS use current user's details, not practice owner's
-          userFullName: userProfile?.full_name,
-          userEmail: userProfile?.email || user.email,
-          userRole: userRoles?.[0]?.role,
-          userRoles: userRoles?.map(r => r.role) || [],
-          emailSignature: practiceDetailsFromRoles.email_signature,
-          letterSignature: practiceDetailsFromRoles.letter_signature,
-          organisationType: 'GP Practice'
-        });
-
-        console.log('✅ Practice context loaded from user_roles for current user:', {
-          practiceName: practiceDetailsFromRoles.practice_name,
-          pcnName: pcnData?.pcn_name,
-          currentUser: userProfile?.full_name
-        });
-      } else {
-        // No practice_details found - try gp_practices table for non-GP organisations (ICB, PCN, LMC, Management)
-        console.log('🔍 No practice_details found, checking gp_practices for organisation details...');
-        
-        const { data: gpPracticeData, error: gpError } = await supabase
-          .from('gp_practices')
-          .select('id, name, organisation_type, email, phone, address, website, pcn_code')
-          .eq('id', userRole.practice_id)
-          .maybeSingle();
-
-        console.log('🏢 GP practices lookup result:', { gpPracticeData, gpError });
-
-        if (gpPracticeData) {
-          console.log('✅ Found organisation in gp_practices:', gpPracticeData.name);
-          
-          // Get PCN information if available
-          let pcnData = null;
-          if (gpPracticeData.pcn_code) {
-            const { data: pcnResult } = await supabase
-              .from('primary_care_networks')
-              .select('pcn_name')
-              .eq('pcn_code', gpPracticeData.pcn_code)
-              .maybeSingle();
-            pcnData = pcnResult;
-          }
-
-          setPracticeContext({
-            practiceName: gpPracticeData.name,
-            organisationType: gpPracticeData.organisation_type || 'Organisation',
-            practiceAddress: gpPracticeData.address,
-            practicePhone: gpPracticeData.phone,
-            practiceEmail: gpPracticeData.email,
-            practiceWebsite: gpPracticeData.website,
-            pcnName: pcnData?.pcn_name,
-            // User details
-            userFullName: userProfile?.full_name,
-            userEmail: userProfile?.email || user.email,
-            userRole: userRoles?.[0]?.role,
-            userRoles: userRoles?.map(r => r.role) || []
-          });
-
-          console.log('✅ Organisation context loaded from gp_practices:', {
-            organisationName: gpPracticeData.name,
-            organisationType: gpPracticeData.organisation_type,
-            currentUser: userProfile?.full_name
-          });
-        } else {
-          console.log('❌ No organisation found - using user-only context');
-          setPracticeContext({
-            userFullName: userProfile?.full_name,
-            userEmail: userProfile?.email || user.email,
-            userRole: userRoles?.[0]?.role,
-            userRoles: userRoles?.map(r => r.role) || []
-          });
-        }
       }
 
     } catch (error) {

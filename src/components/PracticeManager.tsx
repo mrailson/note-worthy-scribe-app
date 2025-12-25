@@ -59,18 +59,57 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
     fetchGpPractices();
   }, []);
 
+  // Fetch practices - prioritise showing the user's organisation's shared practice details
   const fetchPractices = async () => {
     try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      // Get user's practice_id from user_roles
+      const { data: userRole } = await supabase
+        .from('user_roles')
+        .select('practice_id')
+        .eq('user_id', user.id)
+        .not('practice_id', 'is', null)
+        .maybeSingle();
+
+      // Get the user's organisation name from gp_practices
+      let orgName: string | null = null;
+      if (userRole?.practice_id) {
+        const { data: gpPractice } = await supabase
+          .from('gp_practices')
+          .select('name')
+          .eq('id', userRole.practice_id)
+          .maybeSingle();
+        orgName = gpPractice?.name || null;
+      }
+
+      // Fetch practice_details - if user is in an org, show that org's details first
       const { data, error } = await supabase
         .from('practice_details')
         .select('*')
         .order('practice_name');
 
       if (error) throw error;
-      setPractices(data || []);
+
+      // Filter to show user's organisation's practice details (if exists)
+      // or show all if user is a system admin
+      let filteredPractices = data || [];
+      if (orgName) {
+        // Find practice details matching the user's organisation
+        const orgPractice = filteredPractices.find(p => 
+          p.practice_name?.toLowerCase() === orgName?.toLowerCase()
+        );
+        if (orgPractice) {
+          // Put org practice first, mark as shared
+          filteredPractices = [orgPractice, ...filteredPractices.filter(p => p.id !== orgPractice.id)];
+        }
+      }
+
+      setPractices(filteredPractices);
       
       // Find default practice and notify parent
-      const defaultPractice = data?.find(p => p.is_default);
+      const defaultPractice = filteredPractices?.find(p => p.is_default);
       if (onPracticeChange) {
         onPracticeChange(defaultPractice || null);
       }
@@ -142,27 +181,47 @@ export const PracticeManager = ({ onPracticeChange }: PracticeManagerProps) => {
       };
 
       if (isEditing) {
+        // Update existing practice_details record - this will be shared across all users
         const { error } = await supabase
           .from('practice_details')
           .update(practiceData)
           .eq('id', isEditing);
 
         if (error) throw error;
+        toast.success('Organisation details updated - changes visible to all members');
       } else {
-        const { error } = await supabase
+        // Check if practice_details already exists for this practice name (shared record)
+        const { data: existingPractice } = await supabase
           .from('practice_details')
-          .insert({
-            user_id: user.id,
-            ...practiceData
-          });
+          .select('id')
+          .ilike('practice_name', formData.practice_name)
+          .maybeSingle();
 
-        if (error) throw error;
+        if (existingPractice) {
+          // Update existing shared record instead of creating duplicate
+          const { error } = await supabase
+            .from('practice_details')
+            .update(practiceData)
+            .eq('id', existingPractice.id);
+
+          if (error) throw error;
+          toast.success('Organisation details updated - changes visible to all members');
+        } else {
+          // Create new practice_details record
+          const { error } = await supabase
+            .from('practice_details')
+            .insert({
+              user_id: user.id,
+              ...practiceData
+            });
+
+          if (error) throw error;
+          toast.success('Organisation details saved');
+        }
       }
 
       await fetchPractices();
       resetForm();
-      toast.success(`Practice ${isEditing ? 'updated' : 'added'} successfully`);
-      console.log(`Practice ${isEditing ? 'updated' : 'added'} successfully`);
     } catch (error) {
       console.error('Error saving practice:', error);
       toast.error(`Failed to save practice details: ${(error as any)?.message || 'Unknown error'}`);
