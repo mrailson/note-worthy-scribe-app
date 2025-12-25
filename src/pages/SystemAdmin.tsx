@@ -193,7 +193,7 @@ const SystemAdmin = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [userSearchQuery, setUserSearchQuery] = useState('');
   const [userPracticeFilter, setUserPracticeFilter] = useState('all');
-  const [userSortField, setUserSortField] = useState<'full_name' | 'last_login'>('full_name');
+  const [userSortField, setUserSortField] = useState<'full_name' | 'last_login' | 'practice_name' | 'role'>('full_name');
   const [userSortDirection, setUserSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
@@ -1028,7 +1028,8 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
             minute: '2-digit'
           })
         : 'Never',
-      'Practice Assignments': user.practice_assignments.map(pa => `${pa.role} - ${pa.practice_name}`).join('; ') || 'None'
+      'Practice Name': user.practice_assignments.map(pa => pa.practice_name).join('; ') || 'None',
+      'Role': user.practice_assignments.map(pa => pa.role).join('; ') || 'None'
     }));
 
     // Create workbook and worksheet
@@ -1040,7 +1041,8 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       { wch: 25 }, // Full Name
       { wch: 35 }, // Email
       { wch: 20 }, // Last Login
-      { wch: 50 }  // Practice Assignments
+      { wch: 35 }, // Practice Name
+      { wch: 20 }  // Role
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, 'Users');
@@ -2245,8 +2247,46 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                             )}
                           </div>
                         </TableHead>
-                        <TableHead>Practice Assignments</TableHead>
-                        <TableHead className="text-center">GP Consultations</TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => {
+                            if (userSortField === 'practice_name') {
+                              setUserSortDirection(userSortDirection === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setUserSortField('practice_name');
+                              setUserSortDirection('asc');
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-1">
+                            Practice Name
+                            {userSortField === 'practice_name' ? (
+                              userSortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 opacity-50" />
+                            )}
+                          </div>
+                        </TableHead>
+                        <TableHead 
+                          className="cursor-pointer hover:bg-muted/50"
+                          onClick={() => {
+                            if (userSortField === 'role') {
+                              setUserSortDirection(userSortDirection === 'asc' ? 'desc' : 'asc');
+                            } else {
+                              setUserSortField('role');
+                              setUserSortDirection('asc');
+                            }
+                          }}
+                        >
+                          <div className="flex items-center gap-1">
+                            User Role
+                            {userSortField === 'role' ? (
+                              userSortDirection === 'asc' ? <ArrowUp className="h-4 w-4" /> : <ArrowDown className="h-4 w-4" />
+                            ) : (
+                              <ArrowUpDown className="h-4 w-4 opacity-50" />
+                            )}
+                          </div>
+                        </TableHead>
                         <TableHead>Actions</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -2262,11 +2302,22 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                           if (userSortField === 'full_name') {
                             const comparison = a.full_name.localeCompare(b.full_name);
                             return userSortDirection === 'asc' ? comparison : -comparison;
-                          } else {
+                          } else if (userSortField === 'last_login') {
                             const aTime = a.last_login ? new Date(a.last_login).getTime() : 0;
                             const bTime = b.last_login ? new Date(b.last_login).getTime() : 0;
                             return userSortDirection === 'asc' ? aTime - bTime : bTime - aTime;
+                          } else if (userSortField === 'practice_name') {
+                            const aPractice = a.practice_assignments[0]?.practice_name || '';
+                            const bPractice = b.practice_assignments[0]?.practice_name || '';
+                            const comparison = aPractice.localeCompare(bPractice);
+                            return userSortDirection === 'asc' ? comparison : -comparison;
+                          } else if (userSortField === 'role') {
+                            const aRole = a.practice_assignments[0]?.role || '';
+                            const bRole = b.practice_assignments[0]?.role || '';
+                            const comparison = aRole.localeCompare(bRole);
+                            return userSortDirection === 'asc' ? comparison : -comparison;
                           }
+                          return 0;
                         })
                         .map((user) => (
                           <TableRow key={user.user_id}>
@@ -2297,7 +2348,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                               <div className="flex flex-wrap gap-1">
                                 {user.practice_assignments.slice(0, 2).map((assignment, index) => (
                                   <Badge key={index} variant="outline" className="text-xs">
-                                    {assignment.role} - {assignment.practice_name}
+                                    {assignment.practice_name}
                                   </Badge>
                                 ))}
                                 {user.practice_assignments.length > 2 && (
@@ -2305,71 +2356,26 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                                     +{user.practice_assignments.length - 2} more
                                   </Badge>
                                 )}
+                                {user.practice_assignments.length === 0 && (
+                                  <span className="text-muted-foreground text-sm">None</span>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
-                              <div className="flex justify-center">
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={async () => {
-                                    // Cycle through: null -> true -> false -> null
-                                    let newValue: boolean | null;
-                                    if (user.show_consultation_examples === null || user.show_consultation_examples === undefined) {
-                                      newValue = true;
-                                    } else if (user.show_consultation_examples === true) {
-                                      newValue = false;
-                                    } else {
-                                      newValue = null;
-                                    }
-                                    
-                                    try {
-                                      const { error } = await supabase
-                                        .from('user_roles')
-                                        .update({ show_consultation_examples: newValue })
-                                        .eq('user_id', user.user_id);
-                                      
-                                      if (error) throw error;
-                                      
-                                      // Update local state
-                                      setUsers(users.map(u => 
-                                        u.user_id === user.user_id 
-                                          ? { ...u, show_consultation_examples: newValue }
-                                          : u
-                                      ));
-                                      
-                                      const statusText = newValue === null ? 'System Default' : newValue ? 'Always Show' : 'Always Hide';
-                                      toast.success(`GP consultation features: ${statusText}`);
-                                    } catch (error) {
-                                      console.error('Error updating consultation visibility:', error);
-                                      toast.error('Failed to update setting');
-                                    }
-                                  }}
-                                  title={
-                                    user.show_consultation_examples === null || user.show_consultation_examples === undefined
-                                      ? 'System Default - Click to Always Show'
-                                      : user.show_consultation_examples === true
-                                      ? 'Always Show - Click to Always Hide'
-                                      : 'Always Hide - Click to use System Default'
-                                  }
-                                >
-                                  {user.show_consultation_examples === null || user.show_consultation_examples === undefined ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <div className="h-5 w-5 rounded-full border-2 border-muted-foreground/40" />
-                                      <span className="text-xs text-muted-foreground">Default</span>
-                                    </div>
-                                  ) : user.show_consultation_examples === true ? (
-                                    <div className="flex items-center gap-1.5">
-                                      <CheckCircle className="h-5 w-5 text-green-600" />
-                                      <span className="text-xs text-green-600">Show</span>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center gap-1.5">
-                                      <AlertCircle className="h-5 w-5 text-red-600" />
-                                      <span className="text-xs text-red-600">Hide</span>
-                                    </div>
-                                  )}
-                                </Button>
+                              <div className="flex flex-wrap gap-1">
+                                {user.practice_assignments.slice(0, 2).map((assignment, index) => (
+                                  <Badge key={index} variant="secondary" className="text-xs">
+                                    {assignment.role}
+                                  </Badge>
+                                ))}
+                                {user.practice_assignments.length > 2 && (
+                                  <Badge variant="secondary" className="text-xs">
+                                    +{user.practice_assignments.length - 2} more
+                                  </Badge>
+                                )}
+                                {user.practice_assignments.length === 0 && (
+                                  <span className="text-muted-foreground text-sm">None</span>
+                                )}
                               </div>
                             </TableCell>
                             <TableCell>
