@@ -608,9 +608,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                 <Input
                   id="practice_name"
                   value={practiceDetails.practice_name}
-                  disabled
-                  className="bg-muted"
-                  placeholder="Practice name is defined in system settings"
+                  onChange={(e) => setPracticeDetails(prev => ({ ...prev, practice_name: e.target.value }))}
+                  placeholder="Enter practice name"
                 />
               </div>
 
@@ -619,22 +618,20 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                 <Textarea
                   id="address"
                   value={practiceDetails.address}
-                  disabled
-                  className="bg-muted"
-                  placeholder="Practice address is managed by system administrators"
+                  onChange={(e) => setPracticeDetails(prev => ({ ...prev, address: e.target.value }))}
+                  placeholder="Enter practice address"
                   rows={3}
                 />
               </div>
 
               <div>
-                <Label htmlFor="email">Practice Email</Label>
+                <Label htmlFor="practice_email">Practice Email</Label>
                 <Input
-                  id="email"
+                  id="practice_email"
                   type="email"
                   value={practiceDetails.email}
-                  disabled
-                  className="bg-muted"
-                  placeholder="Practice email is managed by system administrators"
+                  onChange={(e) => setPracticeDetails(prev => ({ ...prev, email: e.target.value }))}
+                  placeholder="Enter practice email"
                 />
               </div>
 
@@ -643,9 +640,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                 <Input
                   id="website"
                   value={practiceDetails.website}
-                  disabled
-                  className="bg-muted"
-                  placeholder="Website is managed by system administrators"
+                  onChange={(e) => setPracticeDetails(prev => ({ ...prev, website: e.target.value }))}
+                  placeholder="Enter website URL"
                 />
               </div>
 
@@ -655,9 +651,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   <Input
                     id="phone"
                     value={practiceDetails.phone}
-                    disabled
-                    className="bg-muted"
-                    placeholder="Phone number is managed by system administrators"
+                    onChange={(e) => setPracticeDetails(prev => ({ ...prev, phone: e.target.value }))}
+                    placeholder="Enter phone number"
                   />
                 </div>
 
@@ -666,56 +661,26 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   <Input
                     id="direct_dial"
                     value={practiceDetails.direct_dial}
-                    disabled
-                    className="bg-muted"
-                    placeholder="Managed by system administrators"
+                    onChange={(e) => setPracticeDetails(prev => ({ ...prev, direct_dial: e.target.value }))}
+                    placeholder="Enter direct dial number"
                   />
                 </div>
               </div>
 
-              <div className="text-sm text-muted-foreground bg-muted/50 p-3 rounded-md">
-                <p className="font-medium">Practice details are managed by system administrators</p>
-                <p>If you need to update any practice information, please contact your system administrator.</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Digital Signature */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <PenTool className="h-5 w-5" />
-                Digital Signature
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {/* Signature */}
-              <div>
-                <Label className="flex items-center gap-2 mb-3">
-                  <FileText className="h-4 w-4" />
-                  Signature
-                </Label>
-                <SignatureEditor
-                  content={practiceDetails.letter_signature || ''}
-                  onChange={(content) => setPracticeDetails(prev => ({ ...prev, letter_signature: content }))}
-                  placeholder="Create your professional signature..."
-                />
-              </div>
-
-              <Button 
-                onClick={handleSaveSignatures}
-                disabled={signatureLoading}
+              <Button
+                onClick={handleSavePracticeDetails}
+                disabled={loading}
                 className="w-full"
               >
-                {signatureLoading ? (
+                {loading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving Signature...
+                    Saving...
                   </>
                 ) : (
                   <>
                     <Save className="mr-2 h-4 w-4" />
-                    Save Signature
+                    Save Practice Details
                   </>
                 )}
               </Button>
@@ -802,6 +767,48 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                   <>
                     <Save className="mr-2 h-4 w-4" />
                     Save Practice Logo
+                  </>
+                )}
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Digital Signature */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <PenTool className="h-5 w-5" />
+                Digital Signature
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Signature */}
+              <div>
+                <Label className="flex items-center gap-2 mb-3">
+                  <FileText className="h-4 w-4" />
+                  Signature
+                </Label>
+                <SignatureEditor
+                  content={practiceDetails.letter_signature || ''}
+                  onChange={(content) => setPracticeDetails(prev => ({ ...prev, letter_signature: content }))}
+                  placeholder="Create your professional signature..."
+                />
+              </div>
+
+              <Button 
+                onClick={handleSaveSignatures}
+                disabled={signatureLoading}
+                className="w-full"
+              >
+                {signatureLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving Signature...
+                  </>
+                ) : (
+                  <>
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Signature
                   </>
                 )}
               </Button>
