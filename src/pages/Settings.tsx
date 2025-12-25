@@ -1591,9 +1591,7 @@ export default function Settings() {
                         { name: "DSPT", desc: "Data Security Protection Toolkit", status: "Compliant" },
                         { name: "GDPR", desc: "Data Protection Regulation", status: "Compliant" },
                         { name: "ISO 27001", desc: "Information Security Standard", status: "Certified" },
-                        { name: "SOC 2 Type II", desc: "Service Organization Controls", status: "Certified" },
-                        { name: "Cyber Essentials", desc: "UK Government Security", status: "Certified" },
-                        { name: "MHRA", desc: "Medical Device Regulation", status: "Under Review" }
+                        { name: "MHRA", desc: "Medical Device Regulation (PCN Services Ltd)", status: "Certified" }
                       ].map((cert) => (
                         <div key={cert.name} className="p-3 border rounded-lg text-center">
                           <h6 className="font-medium text-xs mb-1">{cert.name}</h6>
