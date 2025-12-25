@@ -110,15 +110,19 @@ export const usePracticeContext = () => {
       }
 
       // If user doesn't have their own practice details, try user_roles approach (BUT ONLY FOR THIS USER)
+      // IMPORTANT: Find a role that HAS a practice_id set (user may have multiple roles, some without practice assignments)
       console.log('❓ No user practice details found, checking user_roles for current user only...');
       
-      const { data: userRole, error: roleError } = await supabase
+      const { data: userRolesWithPractice, error: roleError } = await supabase
         .from('user_roles')
         .select('practice_id, role')
         .eq('user_id', user.id)
-        .maybeSingle();
+        .not('practice_id', 'is', null);
 
-      console.log('🔍 User role query result:', { userRole, roleError });
+      console.log('🔍 User roles with practice_id:', { userRolesWithPractice, roleError });
+
+      // Get the first role that has a practice_id
+      const userRole = userRolesWithPractice?.[0];
 
       if (roleError || !userRole?.practice_id) {
         console.log('❌ No practice assignment found for current user - using empty context');
@@ -131,14 +135,28 @@ export const usePracticeContext = () => {
         return;
       }
 
-      // Get practice details including all information - ONLY if it exists
-      const { data: practiceDetailsFromRoles } = await supabase
-        .from('practice_details')
-        .select('practice_name, pcn_code, user_id, logo_url, address, phone, email, website, email_signature, letter_signature')
+      // user_roles.practice_id references gp_practices.id, NOT practice_details.id
+      // First, get the gp_practice name, then try to find matching practice_details by name
+      const { data: gpPractice } = await supabase
+        .from('gp_practices')
+        .select('id, name, organisation_type, email, phone, address, website, pcn_code')
         .eq('id', userRole.practice_id)
         .maybeSingle();
 
-      console.log('🏢 Practice details from user_roles:', { practiceDetailsFromRoles });
+      console.log('🏢 GP Practice from user_roles:', gpPractice);
+
+      // Try to find practice_details that matches by practice name (case-insensitive)
+      let practiceDetailsFromRoles = null;
+      if (gpPractice?.name) {
+        const { data: matchedDetails } = await supabase
+          .from('practice_details')
+          .select('id, practice_name, pcn_code, user_id, logo_url, address, phone, email, website, email_signature, letter_signature')
+          .ilike('practice_name', gpPractice.name)
+          .maybeSingle();
+        
+        console.log('🔍 Matched practice_details by name:', matchedDetails);
+        practiceDetailsFromRoles = matchedDetails;
+      }
 
       if (practiceDetailsFromRoles) {
         console.log('✅ Setting practice details from user_roles lookup');
