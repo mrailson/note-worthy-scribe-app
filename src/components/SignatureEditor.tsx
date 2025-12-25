@@ -60,6 +60,7 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
           class: 'max-w-full h-auto',
         },
         allowBase64: true,
+        inline: true,
       }),
     ],
     content,
@@ -70,7 +71,7 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
       attributes: {
         class: 'prose prose-sm max-w-none focus:outline-none min-h-[100px] p-3 border rounded-md',
       },
-      handlePaste(view, event, slice) {
+      handlePaste(view, event) {
         const items = Array.from(event.clipboardData?.items || []);
         
         for (const item of items) {
@@ -80,14 +81,46 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
               const reader = new FileReader();
               reader.onload = (e) => {
                 const result = e.target?.result as string;
-                if (result && editor) {
-                  editor.chain().focus().setImage({ src: result }).run();
+                if (result) {
+                  // Insert image at current cursor position
+                  const { schema } = view.state;
+                  const imageNode = schema.nodes.image?.create({ src: result });
+                  if (imageNode) {
+                    const transaction = view.state.tr.replaceSelectionWith(imageNode);
+                    view.dispatch(transaction);
+                  }
                 }
               };
               reader.readAsDataURL(file);
               event.preventDefault();
               return true;
             }
+          }
+        }
+        return false;
+      },
+      handleDrop(view, event, slice, moved) {
+        if (!moved && event.dataTransfer?.files?.length) {
+          const file = event.dataTransfer.files[0];
+          if (file.type.indexOf('image') === 0) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+              const result = e.target?.result as string;
+              if (result) {
+                const { schema } = view.state;
+                const imageNode = schema.nodes.image?.create({ src: result });
+                if (imageNode) {
+                  const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+                  if (coordinates) {
+                    const transaction = view.state.tr.insert(coordinates.pos, imageNode);
+                    view.dispatch(transaction);
+                  }
+                }
+              }
+            };
+            reader.readAsDataURL(file);
+            event.preventDefault();
+            return true;
           }
         }
         return false;
