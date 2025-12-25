@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
 import { useLGCapture } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { useAuth } from '@/contexts/AuthContext';
@@ -85,14 +86,16 @@ export default function LGCaptureStart() {
   }
 
   return (
-    <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/lg-capture')}
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back
-      </Button>
+    <>
+      <Header />
+      <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/lg-capture')}
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
 
       {/* Background upload indicator */}
       {activeUploads > 0 && (
@@ -136,6 +139,7 @@ export default function LGCaptureStart() {
           </p>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </>
   );
 }

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
 import { useLGCapture, CapturedImage, LGPatient } from '@/hooks/useLGCapture';
 import { useLGUploadQueue } from '@/contexts/LGUploadQueueContext';
 import { LGCameraCapture } from '@/components/lg-capture/LGCameraCapture';
@@ -44,14 +45,19 @@ export default function LGCaptureCamera() {
 
   if (!patient) {
     return (
-      <div className="container max-w-2xl mx-auto py-8 px-4 flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
+      <>
+        <Header />
+        <div className="container max-w-2xl mx-auto py-8 px-4 flex items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </>
     );
   }
 
   return (
-    <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
+    <>
+      <Header />
+      <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
       <Button
         variant="ghost"
         onClick={() => navigate('/lg-capture')}
@@ -67,6 +73,7 @@ export default function LGCaptureCamera() {
         onFinish={handleDoneNextPatient}
         isProcessing={false}
       />
-    </div>
+      </div>
+    </>
   );
 }

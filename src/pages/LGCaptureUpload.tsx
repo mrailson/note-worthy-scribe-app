@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -499,15 +500,17 @@ export default function LGCaptureUpload() {
   const failedCount = files.filter(f => f.status === 'failed').length;
 
   return (
-    <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/lg-capture')}
-        className="mb-2"
-      >
-        <ArrowLeft className="mr-2 h-4 w-4" />
-        Back to LG Capture
-      </Button>
+    <>
+      <Header />
+      <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
+        <Button
+          variant="ghost"
+          onClick={() => navigate('/lg-capture')}
+          className="mb-2"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to LG Capture
+        </Button>
 
       <div className="text-center space-y-2">
         <h1 className="text-2xl font-bold">Capture Lloyd George Pages</h1>
@@ -1036,6 +1039,7 @@ export default function LGCaptureUpload() {
           </TabsContent>
         </Tabs>
       )}
-    </div>
+      </div>
+    </>
   );
 }

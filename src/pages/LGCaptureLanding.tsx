@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -384,16 +385,9 @@ export default function LGCaptureLanding() {
   );
 
   return (
-    <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
-      {/* Home Navigation */}
-      <Button
-        variant="ghost"
-        onClick={() => navigate('/')}
-        className="mb-2"
-      >
-        <Home className="mr-2 h-4 w-4" />
-        Back to Notewell Home
-      </Button>
+    <>
+      <Header />
+      <div className="container max-w-2xl mx-auto py-8 px-4 space-y-6">
 
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold">Notewell LG Capture</h1>
@@ -683,6 +677,7 @@ export default function LGCaptureLanding() {
           </CardContent>
         )}
       </Card>
-    </div>
+      </div>
+    </>
   );
 }
