@@ -18,6 +18,8 @@ interface UserProfileModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+type OrganisationType = 'practice' | 'non-practice';
+
 interface UserProfile {
   id?: string;
   title: string;
@@ -25,6 +27,7 @@ interface UserProfile {
   last_name: string;
   email: string;
   role: string;
+  organisation_type: OrganisationType;
 }
 
 interface PracticeDetails {
@@ -60,7 +63,8 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
     first_name: '',
     last_name: '',
     email: '',
-    role: ''
+    role: '',
+    organisation_type: 'practice'
   });
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails>({
     practice_name: '',
@@ -102,13 +106,19 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
       }
 
       if (data) {
+        // Determine organisation type based on role
+        const nonPracticeRoles = ['LMC User', 'Federation User', 'ICB User'];
+        const savedRole = data.department || '';
+        const orgType: OrganisationType = nonPracticeRoles.includes(savedRole) ? 'non-practice' : 'practice';
+        
         setUserProfile({
           id: data.id,
-          title: (data as any).title || '', // Use title field from profiles table (type will be updated)
-          first_name: data.full_name?.split(' ')[0] || '', // Extract from full_name
-          last_name: data.full_name?.split(' ').slice(1).join(' ') || '', // Extract from full_name
+          title: (data as any).title || '',
+          first_name: data.full_name?.split(' ')[0] || '',
+          last_name: data.full_name?.split(' ').slice(1).join(' ') || '',
           email: user.email || '',
-          role: data.department || '' // Use department field from profiles table for role
+          role: savedRole,
+          organisation_type: orgType
         });
       } else {
         // No profile found, use email from auth
@@ -547,6 +557,28 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
               </div>
 
               <div>
+                <Label htmlFor="organisation_type">Organisation Type</Label>
+                <Select
+                  value={userProfile.organisation_type}
+                  onValueChange={(value: OrganisationType) => {
+                    setUserProfile(prev => ({ 
+                      ...prev, 
+                      organisation_type: value,
+                      role: '' // Reset role when organisation type changes
+                    }));
+                  }}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select organisation type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="practice">Practice</SelectItem>
+                    <SelectItem value="non-practice">Non-Practice (LMC, Federation, ICB)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
                 <Label htmlFor="role">Role</Label>
                 <Select
                   value={userProfile.role}
@@ -556,23 +588,33 @@ export const UserProfileModal = ({ open, onOpenChange }: UserProfileModalProps) 
                     <SelectValue placeholder="Select your role" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="GP Partner">GP Partner</SelectItem>
-                    <SelectItem value="Practice Manager">Practice Manager</SelectItem>
-                    <SelectItem value="Salaried GP">Salaried GP</SelectItem>
-                    <SelectItem value="Locum GP">Locum GP</SelectItem>
-                    <SelectItem value="Advanced Nurse Practitioner">Advanced Nurse Practitioner</SelectItem>
-                    <SelectItem value="Practice Nurse">Practice Nurse</SelectItem>
-                    <SelectItem value="Clinical Pharmacist">Clinical Pharmacist</SelectItem>
-                    <SelectItem value="First Contact Practitioner">First Contact Practitioner</SelectItem>
-                    <SelectItem value="Physician Associate">Physician Associate</SelectItem>
-                    <SelectItem value="Healthcare Assistant">Healthcare Assistant</SelectItem>
-                    <SelectItem value="Mental Health Practitioner">Mental Health Practitioner</SelectItem>
-                    <SelectItem value="Social Prescriber">Social Prescriber</SelectItem>
-                    <SelectItem value="Care Coordinator">Care Coordinator</SelectItem>
-                    <SelectItem value="Administrative Staff">Administrative Staff</SelectItem>
-                    <SelectItem value="Receptionist">Receptionist</SelectItem>
-                    <SelectItem value="Secretary">Secretary</SelectItem>
-                    <SelectItem value="Other">Other</SelectItem>
+                    {userProfile.organisation_type === 'practice' ? (
+                      <>
+                        <SelectItem value="GP Partner">GP Partner</SelectItem>
+                        <SelectItem value="Practice Manager">Practice Manager</SelectItem>
+                        <SelectItem value="Salaried GP">Salaried GP</SelectItem>
+                        <SelectItem value="Locum GP">Locum GP</SelectItem>
+                        <SelectItem value="Advanced Nurse Practitioner">Advanced Nurse Practitioner</SelectItem>
+                        <SelectItem value="Practice Nurse">Practice Nurse</SelectItem>
+                        <SelectItem value="Clinical Pharmacist">Clinical Pharmacist</SelectItem>
+                        <SelectItem value="First Contact Practitioner">First Contact Practitioner</SelectItem>
+                        <SelectItem value="Physician Associate">Physician Associate</SelectItem>
+                        <SelectItem value="Healthcare Assistant">Healthcare Assistant</SelectItem>
+                        <SelectItem value="Mental Health Practitioner">Mental Health Practitioner</SelectItem>
+                        <SelectItem value="Social Prescriber">Social Prescriber</SelectItem>
+                        <SelectItem value="Care Coordinator">Care Coordinator</SelectItem>
+                        <SelectItem value="Administrative Staff">Administrative Staff</SelectItem>
+                        <SelectItem value="Receptionist">Receptionist</SelectItem>
+                        <SelectItem value="Secretary">Secretary</SelectItem>
+                        <SelectItem value="Other">Other</SelectItem>
+                      </>
+                    ) : (
+                      <>
+                        <SelectItem value="LMC User">LMC User</SelectItem>
+                        <SelectItem value="Federation User">Federation User</SelectItem>
+                        <SelectItem value="ICB User">ICB User</SelectItem>
+                      </>
+                    )}
                   </SelectContent>
                 </Select>
               </div>
