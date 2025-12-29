@@ -1579,23 +1579,19 @@ const MeetingHistory = () => {
     
     setIsDeletingEmpty(true);
     try {
-      // Calculate 90 minutes ago
-      const ninetyMinutesAgo = new Date(Date.now() - 90 * 60 * 1000).toISOString();
-      
-      // Delete meetings older than 90 mins with no word count (0 or null)
-      const { data: deletedMeetings, error } = await supabase
-        .from('meetings')
-        .delete()
-        .eq('user_id', user.id)
-        .lt('created_at', ninetyMinutesAgo)
-        .or('word_count.is.null,word_count.eq.0')
-        .select('id');
+      // Use database function to find and delete truly empty meetings
+      // This checks actual transcript content, not just the word_count field
+      const { data, error } = await supabase.rpc('cleanup_truly_empty_meetings', {
+        p_user_id: user.id,
+        p_min_age_minutes: 30, // Only delete meetings older than 30 mins
+        p_max_word_threshold: 0 // Zero actual words in transcript chunks
+      });
 
       if (error) throw error;
 
-      const count = deletedMeetings?.length || 0;
+      const count = data?.[0]?.deleted_count || 0;
       if (count > 0) {
-        showToast.success(`Cleared ${count} empty meeting${count > 1 ? 's' : ''}`, { section: 'meeting_manager' });
+        showToast.success(`Cleared ${count} truly empty meeting${count > 1 ? 's' : ''}`, { section: 'meeting_manager' });
       } else {
         showToast.info('No empty meetings to clear', { section: 'meeting_manager' });
       }
@@ -1615,17 +1611,17 @@ const MeetingHistory = () => {
     setIsDeletingEmpty(true);
     setShowDeleteEmptyDialog(false);
     try {
-      // Delete meetings with less than 100 words
-      const { data: deletedMeetings, error } = await supabase
-        .from('meetings')
-        .delete()
-        .eq('user_id', user.id)
-        .lt('word_count', 100)
-        .select('id');
+      // Use database function to find and delete meetings with less than 100 actual words
+      // This checks actual transcript content, not just the word_count field
+      const { data, error } = await supabase.rpc('cleanup_truly_empty_meetings', {
+        p_user_id: user.id,
+        p_min_age_minutes: 30, // Only delete meetings older than 30 mins  
+        p_max_word_threshold: 100 // Less than 100 actual words
+      });
 
       if (error) throw error;
 
-      const count = deletedMeetings?.length || 0;
+      const count = data?.[0]?.deleted_count || 0;
       if (count > 0) {
         showToast.success(`Deleted ${count} meeting${count > 1 ? 's' : ''} with less than 100 words`, { section: 'meeting_manager' });
       } else {
