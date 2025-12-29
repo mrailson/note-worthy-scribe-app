@@ -48,7 +48,8 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
-  LogIn
+  LogIn,
+  Mail
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
@@ -239,6 +240,11 @@ const SystemAdmin = () => {
       bp_service_access: false
     }
   });
+  
+  // Welcome email options
+  const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
+  const [welcomeEmailTestMode, setWelcomeEmailTestMode] = useState(false);
+  const [sendingWelcomeEmail, setSendingWelcomeEmail] = useState(false);
   
   // Practice management state
   const [practices, setPractices] = useState<Practice[]>([]);
@@ -1080,6 +1086,9 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       practice_id: 'none',
       module_access: defaultModules
     });
+    // Reset welcome email options
+    setSendWelcomeEmail(true);
+    setWelcomeEmailTestMode(false);
     setShowUserModal(true);
   };
 
@@ -1737,6 +1746,43 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
           }
         });
         if (error) throw error;
+        
+        // Send welcome email if enabled
+        if (sendWelcomeEmail) {
+          setSendingWelcomeEmail(true);
+          try {
+            const practiceName = userFormData.practice_id !== 'none' 
+              ? practices.find(p => p.id === userFormData.practice_id)?.name 
+              : undefined;
+            
+            const { data: emailResult, error: emailError } = await supabase.functions.invoke('send-user-welcome-email', {
+              body: {
+                user_email: userFormData.email,
+                user_name: userFormData.full_name,
+                temporary_password: userFormData.password,
+                user_role: userFormData.role,
+                practice_name: practiceName,
+                module_access: userFormData.module_access,
+                test_mode: welcomeEmailTestMode,
+                test_email: 'Malcolm.Railson@nhs.net'
+              }
+            });
+            
+            if (emailError) {
+              console.error('Welcome email error:', emailError);
+              toast.error('User created but welcome email failed to send');
+            } else {
+              const recipient = welcomeEmailTestMode ? 'Malcolm.Railson@nhs.net (test mode)' : userFormData.email;
+              toast.success(`Welcome email sent to ${recipient}`);
+            }
+          } catch (emailErr) {
+            console.error('Welcome email error:', emailErr);
+            toast.error('User created but welcome email failed to send');
+          } finally {
+            setSendingWelcomeEmail(false);
+          }
+        }
+        
         await fetchUsers(); // Refresh the users list
         toast.success('User created successfully');
       }
@@ -4416,14 +4462,57 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                   </div>
                 </div>
               )}
+
+              {/* Welcome Email Options - Only show when creating new user */}
+              {!editingUser && (
+                <div className="mt-4 pt-4 border-t">
+                  <Label className="text-base font-medium flex items-center gap-2">
+                    <Mail className="h-4 w-4" />
+                    Welcome Email Options
+                  </Label>
+                  <p className="text-sm text-muted-foreground mt-1 mb-3">
+                    Send a welcome email with login details and enabled features
+                  </p>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">Send welcome email to user</span>
+                        <span className="text-xs text-muted-foreground">
+                          Email will include login URL, credentials and enabled modules
+                        </span>
+                      </div>
+                      <Switch
+                        checked={sendWelcomeEmail}
+                        onCheckedChange={setSendWelcomeEmail}
+                      />
+                    </div>
+                    {sendWelcomeEmail && (
+                      <div className="flex items-center justify-between p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200 dark:border-amber-800">
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                            Test mode - send to Malcolm.Railson@nhs.net only
+                          </span>
+                          <span className="text-xs text-amber-600 dark:text-amber-400">
+                            Use this to preview the email before sending to the actual user
+                          </span>
+                        </div>
+                        <Switch
+                          checked={welcomeEmailTestMode}
+                          onCheckedChange={setWelcomeEmailTestMode}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
             </div>
 
             <DialogFooter className="flex-shrink-0 mt-4 pt-4 border-t">
               <Button type="button" variant="outline" onClick={() => setShowUserModal(false)}>
                 Cancel
               </Button>
-              <Button type="submit">
-                {editingUser ? 'Update User' : 'Create User'}
+              <Button type="submit" disabled={sendingWelcomeEmail}>
+                {sendingWelcomeEmail ? 'Sending email...' : (editingUser ? 'Update User' : 'Create User')}
               </Button>
             </DialogFooter>
           </form>

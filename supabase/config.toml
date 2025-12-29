@@ -341,3 +341,6 @@ verify_jwt = true
 
 [functions.auto-cleanup-empty-meetings]
 verify_jwt = false
+
+[functions.send-user-welcome-email]
+verify_jwt = true
