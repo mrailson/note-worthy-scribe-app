@@ -17,7 +17,8 @@ import {
   ChevronLeft,
   ChevronRight,
   PanelLeftClose,
-  PanelLeft
+  PanelLeft,
+  Activity
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -84,6 +85,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
   const quickActions = [
     { icon: Sparkles, label: 'All Quick Actions', action: onShowAllQuickActions },
     { icon: Newspaper, label: 'GP News', action: onShowNews },
+    { icon: Activity, label: 'BP Average Service', action: () => navigate('/bp-calculator') },
     { icon: Languages, label: 'Translation', action: () => {
       const isMobileScreen = window.innerWidth < 768;
       if (isMobileScreen) {
