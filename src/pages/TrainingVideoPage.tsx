@@ -73,7 +73,6 @@ const TrainingVideoPage = () => {
               referrerPolicy="unsafe-url"
               allowFullScreen
               allow="clipboard-write"
-              sandbox="allow-popups allow-popups-to-escape-sandbox allow-scripts allow-forms allow-same-origin allow-presentation"
               className="rounded-lg"
             />
           </div>
