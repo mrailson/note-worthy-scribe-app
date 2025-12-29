@@ -140,7 +140,7 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
     }
   }
 
-  // Generate modules HTML
+  // Generate modules HTML - simple list format
   let modulesHTML = '';
   const categoryOrder = ['Core Features', 'Clinical Tools', 'Compliance & Governance', 'Practice Management', 'Developer & Testing'];
   
@@ -148,26 +148,30 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
     const modules = enabledModules[category];
     if (modules && modules.length > 0) {
       modulesHTML += `
-        <div style="margin-bottom: 20px;">
-          <h3 style="color: #0EA5E9; font-size: 14px; font-weight: 600; margin: 0 0 10px 0; text-transform: uppercase; letter-spacing: 0.5px;">
-            ${category}
-          </h3>
-          ${modules.map(m => `
-            <div style="background: #F8FAFC; border-radius: 8px; padding: 12px 15px; margin-bottom: 8px; border-left: 3px solid #0EA5E9;">
-              <div style="font-weight: 600; color: #1E293B; font-size: 14px;">${m.label}</div>
-              <div style="color: #64748B; font-size: 12px; margin-top: 2px;">${m.description}</div>
+        <tr>
+          <td style="padding: 0 0 15px 0;">
+            <div style="color: #005EB8; font-size: 13px; font-weight: 600; margin-bottom: 8px; text-transform: uppercase;">
+              ${category}
             </div>
-          `).join('')}
-        </div>
+            ${modules.map(m => `
+              <div style="padding: 8px 12px; margin-bottom: 6px; background: #F0F4F5; border-left: 3px solid #005EB8;">
+                <div style="font-weight: 600; color: #212B32; font-size: 14px;">${m.label}</div>
+                <div style="color: #4C6272; font-size: 12px;">${m.description}</div>
+              </div>
+            `).join('')}
+          </td>
+        </tr>
       `;
     }
   }
 
   if (!modulesHTML) {
     modulesHTML = `
-      <div style="background: #FEF3C7; border-radius: 8px; padding: 15px; border-left: 3px solid #F59E0B;">
-        <div style="color: #92400E; font-size: 14px;">No modules have been enabled for your account yet. Please contact your administrator.</div>
-      </div>
+      <tr>
+        <td style="padding: 15px; background: #FFF9C4; border-left: 3px solid #FFB300;">
+          <div style="color: #7A4A00; font-size: 14px;">No modules have been enabled for your account yet. Please contact your administrator.</div>
+        </td>
+      </tr>
     `;
   }
 
@@ -179,19 +183,19 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Welcome to GP Notewell AI</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #F1F5F9;">
-  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #F1F5F9;">
+<body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #E8EDEE;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #E8EDEE;">
     <tr>
-      <td align="center" style="padding: 40px 20px;">
-        <table role="presentation" width="600" cellspacing="0" cellpadding="0" style="max-width: 600px; background-color: #FFFFFF; border-radius: 16px; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);">
+      <td align="center" style="padding: 30px 15px;">
+        <table role="presentation" width="800" cellspacing="0" cellpadding="0" style="max-width: 800px; width: 100%; background-color: #FFFFFF;">
           
-          <!-- Header -->
+          <!-- NHS Blue Header -->
           <tr>
-            <td style="background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 100%); padding: 40px 40px 30px; border-radius: 16px 16px 0 0; text-align: center;">
-              <h1 style="margin: 0; color: #FFFFFF; font-size: 28px; font-weight: 700;">
-                🏥 Welcome to GP Notewell AI
+            <td style="background-color: #005EB8; padding: 25px 40px; text-align: left;">
+              <h1 style="margin: 0; color: #FFFFFF; font-size: 24px; font-weight: 600;">
+                GP Notewell AI
               </h1>
-              <p style="margin: 10px 0 0; color: #94A3B8; font-size: 14px;">
+              <p style="margin: 5px 0 0; color: #AED6F1; font-size: 14px;">
                 Your AI-powered practice management platform
               </p>
             </td>
@@ -200,128 +204,144 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
           <!-- Greeting -->
           <tr>
             <td style="padding: 30px 40px 20px;">
-              <p style="margin: 0; color: #1E293B; font-size: 16px; line-height: 1.6;">
+              <p style="margin: 0; color: #212B32; font-size: 16px;">
                 Hello <strong>${data.user_name}</strong>,
               </p>
-              <p style="margin: 15px 0 0; color: #475569; font-size: 14px; line-height: 1.6;">
-                Your account has been created for GP Notewell AI. Below you'll find your login details and a summary of the features available to you.
+              <p style="margin: 12px 0 0; color: #4C6272; font-size: 14px; line-height: 1.5;">
+                Your account has been created for GP Notewell AI. Below you will find your login details and a summary of the features available to you.
               </p>
             </td>
           </tr>
 
-          <!-- Login Details Box -->
+          <!-- Login Details -->
           <tr>
             <td style="padding: 0 40px 25px;">
-              <div style="background: linear-gradient(135deg, #0F172A 0%, #1E3A5F 100%); border-radius: 12px; padding: 25px; color: #FFFFFF;">
-                <h2 style="margin: 0 0 20px; font-size: 16px; font-weight: 600; color: #0EA5E9; text-transform: uppercase; letter-spacing: 0.5px;">
-                  📋 Your Login Details
-                </h2>
-                
-                <div style="margin-bottom: 15px;">
-                  <div style="color: #94A3B8; font-size: 12px; margin-bottom: 4px;">Login URL</div>
-                  <a href="https://gpnotewell.co.uk" style="color: #0EA5E9; font-size: 16px; font-weight: 600; text-decoration: none;">
-                    https://gpnotewell.co.uk
-                  </a>
-                </div>
-                
-                <div style="margin-bottom: 15px;">
-                  <div style="color: #94A3B8; font-size: 12px; margin-bottom: 4px;">Email Address</div>
-                  <div style="color: #FFFFFF; font-size: 16px; font-weight: 500;">${data.user_email}</div>
-                </div>
-                
-                <div style="margin-bottom: 0;">
-                  <div style="color: #94A3B8; font-size: 12px; margin-bottom: 4px;">Temporary Password</div>
-                  <div style="background: #1E293B; border-radius: 6px; padding: 10px 15px; font-family: monospace; font-size: 16px; color: #22D3EE; letter-spacing: 1px;">
-                    ${data.temporary_password}
-                  </div>
-                </div>
-              </div>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #005EB8;">
+                <tr>
+                  <td style="padding: 20px 25px;">
+                    <div style="color: #FFFFFF; font-size: 14px; font-weight: 600; margin-bottom: 15px; text-transform: uppercase;">
+                      Your Login Details
+                    </div>
+                    
+                    <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                      <tr>
+                        <td style="padding-bottom: 12px;">
+                          <div style="color: #AED6F1; font-size: 12px; margin-bottom: 3px;">Login URL</div>
+                          <a href="https://gpnotewell.co.uk" style="color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: underline;">
+                            https://gpnotewell.co.uk
+                          </a>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom: 12px;">
+                          <div style="color: #AED6F1; font-size: 12px; margin-bottom: 3px;">Email Address</div>
+                          <div style="color: #FFFFFF; font-size: 15px;">${data.user_email}</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td>
+                          <div style="color: #AED6F1; font-size: 12px; margin-bottom: 3px;">Temporary Password</div>
+                          <div style="background: #003D7A; padding: 8px 12px; font-family: monospace; font-size: 15px; color: #FFFFFF; display: inline-block;">
+                            ${data.temporary_password}
+                          </div>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
-          <!-- Password Change Notice -->
+          <!-- Password Warning -->
           <tr>
-            <td style="padding: 0 40px 25px;">
-              <div style="background: #FEF3C7; border-radius: 8px; padding: 15px; border-left: 4px solid #F59E0B;">
-                <div style="display: flex; align-items: flex-start;">
-                  <span style="font-size: 18px; margin-right: 10px;">⚠️</span>
-                  <div>
-                    <div style="color: #92400E; font-weight: 600; font-size: 14px;">Important: Change Your Password</div>
-                    <div style="color: #A16207; font-size: 13px; margin-top: 4px;">
-                      Please change your password after your first login via your profile settings for security.
+            <td style="padding: 0 40px 20px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #FFF9C4; border-left: 4px solid #FFB300;">
+                <tr>
+                  <td style="padding: 12px 15px;">
+                    <div style="color: #7A4A00; font-weight: 600; font-size: 14px;">Important: Change Your Password</div>
+                    <div style="color: #8B6914; font-size: 13px; margin-top: 3px;">
+                      Please change your password after your first login via your profile settings.
                     </div>
-                  </div>
-                </div>
-              </div>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
           <!-- Practice Assignment -->
           ${data.practice_name ? `
           <tr>
-            <td style="padding: 0 40px 25px;">
-              <div style="background: #F0FDF4; border-radius: 8px; padding: 15px; border-left: 4px solid #22C55E;">
-                <h3 style="margin: 0 0 8px; color: #166534; font-size: 14px; font-weight: 600;">
-                  🏥 Practice Assignment
-                </h3>
-                <div style="color: #15803D; font-size: 14px;">
-                  You have been assigned to: <strong>${data.practice_name}</strong>
-                </div>
-                <div style="color: #16A34A; font-size: 13px; margin-top: 4px;">
-                  Role: <strong>${getRoleDisplayName(data.user_role)}</strong>
-                </div>
-              </div>
+            <td style="padding: 0 40px 20px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #E8F5E9; border-left: 4px solid #007F3B;">
+                <tr>
+                  <td style="padding: 12px 15px;">
+                    <div style="color: #004D23; font-weight: 600; font-size: 14px;">Practice Assignment</div>
+                    <div style="color: #006B2D; font-size: 13px; margin-top: 3px;">
+                      You have been assigned to: <strong>${data.practice_name}</strong>
+                    </div>
+                    <div style="color: #007F3B; font-size: 13px; margin-top: 2px;">
+                      Role: <strong>${getRoleDisplayName(data.user_role)}</strong>
+                    </div>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           ` : `
           <tr>
-            <td style="padding: 0 40px 25px;">
-              <div style="background: #EFF6FF; border-radius: 8px; padding: 15px; border-left: 4px solid #3B82F6;">
-                <h3 style="margin: 0 0 8px; color: #1E40AF; font-size: 14px; font-weight: 600;">
-                  👤 Your Role
-                </h3>
-                <div style="color: #1D4ED8; font-size: 14px;">
-                  Role: <strong>${getRoleDisplayName(data.user_role)}</strong>
-                </div>
-              </div>
+            <td style="padding: 0 40px 20px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #E3F2FD; border-left: 4px solid #005EB8;">
+                <tr>
+                  <td style="padding: 12px 15px;">
+                    <div style="color: #003D7A; font-weight: 600; font-size: 14px;">Your Role</div>
+                    <div style="color: #005EB8; font-size: 13px; margin-top: 3px;">
+                      Role: <strong>${getRoleDisplayName(data.user_role)}</strong>
+                    </div>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
           `}
 
-          <!-- Enabled Features -->
+          <!-- Enabled Features Section -->
           <tr>
-            <td style="padding: 0 40px 30px;">
-              <h2 style="margin: 0 0 20px; font-size: 16px; font-weight: 600; color: #1E293B; border-bottom: 2px solid #E2E8F0; padding-bottom: 10px;">
-                ✅ Your Enabled Features
-              </h2>
-              ${modulesHTML}
+            <td style="padding: 0 40px 25px;">
+              <div style="font-size: 16px; font-weight: 600; color: #212B32; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #005EB8;">
+                Your Enabled Features
+              </div>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
+                ${modulesHTML}
+              </table>
             </td>
           </tr>
 
-          <!-- Getting Started -->
+          <!-- Login Button -->
           <tr>
             <td style="padding: 0 40px 30px;">
-              <div style="background: #EFF6FF; border-radius: 12px; padding: 20px; text-align: center;">
-                <h3 style="margin: 0 0 10px; color: #1E40AF; font-size: 16px;">Ready to Get Started?</h3>
-                <p style="margin: 0 0 15px; color: #3B82F6; font-size: 14px;">
-                  Click the button below to login to your account
-                </p>
-                <a href="https://gpnotewell.co.uk" style="display: inline-block; background: linear-gradient(135deg, #0EA5E9 0%, #3B82F6 100%); color: #FFFFFF; text-decoration: none; padding: 14px 35px; border-radius: 8px; font-weight: 600; font-size: 14px; box-shadow: 0 4px 14px 0 rgba(14, 165, 233, 0.35);">
-                  Login to GP Notewell AI →
-                </a>
-              </div>
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #F0F4F5;">
+                <tr>
+                  <td style="padding: 20px; text-align: center;">
+                    <div style="color: #212B32; font-size: 14px; margin-bottom: 12px;">Ready to get started?</div>
+                    <a href="https://gpnotewell.co.uk" style="display: inline-block; background: #005EB8; color: #FFFFFF; text-decoration: none; padding: 12px 30px; font-weight: 600; font-size: 14px;">
+                      Login to GP Notewell AI
+                    </a>
+                  </td>
+                </tr>
+              </table>
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
-            <td style="background: #F8FAFC; padding: 25px 40px; border-radius: 0 0 16px 16px; text-align: center; border-top: 1px solid #E2E8F0;">
-              <p style="margin: 0 0 8px; color: #64748B; font-size: 13px;">
+            <td style="background: #F0F4F5; padding: 20px 40px; border-top: 1px solid #D8DDE0;">
+              <p style="margin: 0; color: #4C6272; font-size: 12px; text-align: center;">
                 Need help? Contact your system administrator or email
-                <a href="mailto:support@gpnotewell.co.uk" style="color: #0EA5E9; text-decoration: none;">support@gpnotewell.co.uk</a>
+                <a href="mailto:support@gpnotewell.co.uk" style="color: #005EB8; text-decoration: none;">support@gpnotewell.co.uk</a>
               </p>
-              <p style="margin: 0; color: #94A3B8; font-size: 12px;">
-                © ${new Date().getFullYear()} GP Notewell AI. All rights reserved.
+              <p style="margin: 8px 0 0; color: #768692; font-size: 11px; text-align: center;">
+                &copy; ${new Date().getFullYear()} GP Notewell AI. All rights reserved.
               </p>
             </td>
           </tr>
