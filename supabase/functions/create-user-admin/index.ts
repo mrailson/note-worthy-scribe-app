@@ -57,7 +57,6 @@ const handler = async (req: Request): Promise<Response> => {
       email: userData.email,
       password: userData.password,
       email_confirm: true,
-      email_confirmed_at: new Date().toISOString(),
       user_metadata: {
         full_name: userData.name
       }
