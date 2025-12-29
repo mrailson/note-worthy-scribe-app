@@ -245,6 +245,7 @@ const SystemAdmin = () => {
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
   const [welcomeEmailTestMode, setWelcomeEmailTestMode] = useState(false);
   const [sendingWelcomeEmail, setSendingWelcomeEmail] = useState(false);
+  const [savingUser, setSavingUser] = useState(false);
   
   // Practice management state
   const [practices, setPractices] = useState<Practice[]>([]);
@@ -1572,6 +1573,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
     console.log('Module access being saved:', userFormData.module_access);
     console.log('Editing user:', editingUser?.user_id);
     
+    setSavingUser(true);
     try {
       if (editingUser) {
         console.log('=== UPDATING EXISTING USER ===');
@@ -1792,6 +1794,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
       console.error('=== FORM SUBMIT ERROR ===');
       console.error('Error saving user:', error);
       toast.error('Failed to save user: ' + (error as any)?.message);
+    } finally {
+      setSavingUser(false);
     }
   };
 
@@ -4511,8 +4515,8 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               <Button type="button" variant="outline" onClick={() => setShowUserModal(false)}>
                 Cancel
               </Button>
-              <Button type="submit" disabled={sendingWelcomeEmail}>
-                {sendingWelcomeEmail ? 'Sending email...' : (editingUser ? 'Update User' : 'Create User')}
+              <Button type="submit" disabled={savingUser || sendingWelcomeEmail}>
+                {savingUser ? (sendingWelcomeEmail ? 'Sending email...' : 'Creating...') : (editingUser ? 'Update User' : 'Create User')}
               </Button>
             </DialogFooter>
           </form>
