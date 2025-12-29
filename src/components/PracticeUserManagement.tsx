@@ -78,7 +78,6 @@ export const PracticeUserManagement = () => {
   const [userFormData, setUserFormData] = useState({
     email: '',
     full_name: '',
-    password: '',
     role: 'practice_user',
     practice_role: '',
     module_access: {
@@ -184,7 +183,11 @@ export const PracticeUserManagement = () => {
       setLoading(true);
       
       const { data, error } = await supabase.functions.invoke('create-user-practice-manager', {
-        body: userFormData
+        body: {
+          ...userFormData,
+          send_welcome_email: sendWelcomeEmail,
+          practice_name: practiceInfo?.name || 'Your Practice'
+        }
       });
 
       if (error) throw error;
@@ -192,15 +195,15 @@ export const PracticeUserManagement = () => {
       if (data.success) {
         toast.success(data.message);
         
-        // Send welcome email if enabled
-        if (sendWelcomeEmail) {
+        // Send welcome email if enabled and we have a password reset link
+        if (sendWelcomeEmail && data.password_reset_link) {
           setSendingEmail(true);
           try {
             const { error: emailError } = await supabase.functions.invoke('send-user-welcome-email', {
               body: {
                 user_email: userFormData.email,
                 user_name: userFormData.full_name,
-                temporary_password: userFormData.password,
+                password_reset_link: data.password_reset_link,
                 user_role: userFormData.role,
                 practice_name: practiceInfo?.name || 'Your Practice',
                 module_access: {
@@ -217,7 +220,7 @@ export const PracticeUserManagement = () => {
               console.error('Failed to send welcome email:', emailError);
               toast.error('User created but welcome email failed to send');
             } else {
-              toast.success('Welcome email sent to user');
+              toast.success('Welcome email with password setup link sent to user');
             }
           } catch (emailErr) {
             console.error('Error sending welcome email:', emailErr);
@@ -225,6 +228,8 @@ export const PracticeUserManagement = () => {
           } finally {
             setSendingEmail(false);
           }
+        } else if (sendWelcomeEmail && !data.password_reset_link) {
+          toast.info('User created but password reset link could not be generated. User can use "Forgot Password" to set their password.');
         }
         
         loadPracticeUsers();
@@ -314,7 +319,6 @@ export const PracticeUserManagement = () => {
     setUserFormData({
       email: user.email,
       full_name: user.full_name,
-      password: '',
       role: user.role,
       practice_role: user.practice_role || '',
       module_access: {
@@ -337,7 +341,6 @@ export const PracticeUserManagement = () => {
     setUserFormData({
       email: '',
       full_name: '',
-      password: '',
       role: 'practice_user',
       practice_role: '',
       module_access: {
@@ -604,18 +607,6 @@ export const PracticeUserManagement = () => {
               </div>
             )}
 
-            {!editingUser && (
-              <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={userFormData.password}
-                  onChange={(e) => setUserFormData(prev => ({ ...prev, password: e.target.value }))}
-                  placeholder="Minimum 8 characters"
-                />
-              </div>
-            )}
 
             <div className="space-y-3">
               <Label>Module Access</Label>
@@ -718,7 +709,7 @@ export const PracticeUserManagement = () => {
             </Button>
             <Button
               onClick={editingUser ? handleUpdateUser : handleCreateUser}
-              disabled={loading || sendingEmail || !userFormData.email || !userFormData.full_name || (!editingUser && !userFormData.password)}
+              disabled={loading || sendingEmail || !userFormData.email || !userFormData.full_name}
             >
               {loading ? 'Processing...' : sendingEmail ? 'Sending email...' : (editingUser ? 'Update User' : 'Create User')}
             </Button>

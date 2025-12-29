@@ -27,7 +27,7 @@ interface ModuleAccess {
 interface WelcomeEmailRequest {
   user_email: string;
   user_name: string;
-  temporary_password: string;
+  password_reset_link?: string;
   user_role: string;
   practice_name?: string;
   module_access: ModuleAccess;
@@ -238,15 +238,23 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
                           <div style="color: #212B32; font-size: 15px;">${data.user_email}</div>
                         </td>
                       </tr>
+                      ${data.password_reset_link ? `
                       <tr>
                         <td style="padding-bottom: 12px;">
-                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Password</div>
-                          <div style="font-family: monospace; font-size: 15px; color: #212B32;">${data.temporary_password}</div>
+                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 8px;">Set Your Password</div>
+                          <a href="${data.password_reset_link}" 
+                             style="display: inline-block; background: #005EB8; color: #FFFFFF; text-decoration: none; padding: 10px 20px; font-weight: 600; font-size: 13px; border-radius: 4px;">
+                            Create Your Password
+                          </a>
+                          <div style="color: #768692; font-size: 11px; margin-top: 8px;">
+                            This link expires in 24 hours. If it expires, use "Forgot Password" on the login page.
+                          </div>
                         </td>
                       </tr>
+                      ` : ''}
                       <tr>
                         <td style="padding-bottom: 12px;">
-                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Your Role (e.g. Practice Manager)</div>
+                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Your Role</div>
                           <div style="color: #212B32; font-size: 15px;">${getRoleDisplayName(data.user_role)}</div>
                         </td>
                       </tr>
@@ -258,13 +266,6 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
                         </td>
                       </tr>
                       ` : ''}
-                      <tr>
-                        <td>
-                          <div style="color: #4C6272; font-size: 13px;">
-                            You can change your password anytime in the "My Profile" section once logged into Notewell AI, or by selecting the forgotten password link on the homepage.
-                          </div>
-                        </td>
-                      </tr>
                     </table>
                   </td>
                 </tr>
@@ -373,10 +374,10 @@ const handler = async (req: Request): Promise<Response> => {
     console.log("Test mode:", data.test_mode);
 
     // Validate required fields
-    if (!data.user_email || !data.user_name || !data.temporary_password) {
+    if (!data.user_email || !data.user_name) {
       console.error("Missing required fields");
       return new Response(
-        JSON.stringify({ error: "Missing required fields: user_email, user_name, temporary_password", success: false }),
+        JSON.stringify({ error: "Missing required fields: user_email, user_name", success: false }),
         { status: 400, headers: { "Content-Type": "application/json", ...corsHeaders } }
       );
     }

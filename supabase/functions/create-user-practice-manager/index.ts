@@ -10,7 +10,6 @@ const corsHeaders = {
 interface CreateUserRequest {
   email: string;
   full_name: string;
-  password: string;
   role: string;
   practice_role?: string;
   module_access: {
@@ -23,7 +22,22 @@ interface CreateUserRequest {
     shared_drive_access?: boolean;
     mic_test_service_access?: boolean;
     api_testing_service_access?: boolean;
+    fridge_monitoring_access?: boolean;
   };
+  send_welcome_email?: boolean;
+  practice_name?: string;
+}
+
+// Generate a secure random password
+function generateSecurePassword(): string {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$%';
+  let password = '';
+  const array = new Uint8Array(16);
+  crypto.getRandomValues(array);
+  for (let i = 0; i < 16; i++) {
+    password += chars[array[i] % chars.length];
+  }
+  return password;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -77,7 +91,10 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Parse the request body
-    const { email, full_name, password, role, practice_role, module_access }: CreateUserRequest = await req.json();
+    const { email, full_name, role, practice_role, module_access, send_welcome_email, practice_name }: CreateUserRequest = await req.json();
+    
+    // Generate a secure random password (user won't see this, they'll get a reset link)
+    const generatedPassword = generateSecurePassword();
 
     // Validate role is allowed for practice managers
     const allowedRoles = ['user'];
@@ -163,10 +180,10 @@ const handler = async (req: Request): Promise<Response> => {
       }
     }
 
-    // Create new user
+    // Create new user with generated password
     const { data: newUser, error: createError } = await supabase.auth.admin.createUser({
       email,
-      password,
+      password: generatedPassword,
       email_confirm: true,
       user_metadata: {
         full_name
@@ -219,10 +236,35 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error(`Failed to assign role: ${roleInsertError.message}`);
     }
 
+    // Generate password reset link for the user
+    let passwordResetLink = null;
+    try {
+      const { data: linkData, error: linkError } = await supabase.auth.admin.generateLink({
+        type: 'recovery',
+        email: email,
+        options: {
+          redirectTo: 'https://gpnotewell.co.uk/reset-password'
+        }
+      });
+      
+      if (!linkError && linkData?.properties?.action_link) {
+        passwordResetLink = linkData.properties.action_link;
+        console.log("Generated password reset link for user:", email);
+      } else {
+        console.warn("Could not generate password reset link:", linkError);
+      }
+    } catch (linkErr) {
+      console.warn("Error generating password reset link:", linkErr);
+    }
+
     return new Response(JSON.stringify({
       success: true,
       message: "User created successfully and assigned to your practice",
-      user_existed: false
+      user_existed: false,
+      password_reset_link: passwordResetLink,
+      user_id: newUser.user.id,
+      module_access: module_access,
+      practice_name: practice_name
     }), {
       status: 200,
       headers: {
