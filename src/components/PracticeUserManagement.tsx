@@ -494,6 +494,24 @@ export const PracticeUserManagement = () => {
               </div>
             </div>
 
+            {/* Last logged in display for editing */}
+            {editingUser && (
+              <div className="p-3 bg-muted/50 rounded-md">
+                <Label className="text-sm text-muted-foreground">Last Logged In</Label>
+                <p className="text-sm font-medium mt-1">
+                  {editingUser.last_login 
+                    ? new Date(editingUser.last_login).toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })
+                    : 'Never logged in'}
+                </p>
+              </div>
+            )}
+
             {/* Role selection for non-practice organisations */}
             {isNonPracticeOrg && (
               <div className="space-y-2">
@@ -521,11 +539,11 @@ export const PracticeUserManagement = () => {
               <div className="space-y-2">
                 <Label htmlFor="practice_role">Practice Role</Label>
                 <Select
-                  value={userFormData.practice_role}
+                  value={userFormData.practice_role || undefined}
                   onValueChange={(value) => setUserFormData(prev => ({ ...prev, practice_role: value }))}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select a practice role" />
+                    <SelectValue placeholder={editingUser && !userFormData.practice_role ? "Select a practice role" : "Select a practice role"} />
                   </SelectTrigger>
                   <SelectContent>
                     {practiceRoles.map((role) => (
