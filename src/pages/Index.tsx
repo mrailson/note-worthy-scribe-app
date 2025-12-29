@@ -16,7 +16,7 @@ import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
 import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
-import { Building2 } from "lucide-react";
+import { Building2, ExternalLink } from "lucide-react";
 const Index = () => {
   const {
     user,
@@ -339,6 +339,18 @@ const Index = () => {
                       <span>Multi-channel complaint capture</span>
                     </li>
                   </ul>
+                  <div className="mt-4 pt-3 border-t border-border ml-11">
+                    <a 
+                      href="https://www.loom.com/share/58d3d16963224dddac2ea8211bd2b90d" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                    >
+                      <span>🎬</span>
+                      <span>Watch Training Video</span>
+                      <ExternalLink className="h-3 w-3" />
+                    </a>
+                  </div>
                 </div>
               </div>
             </div>
