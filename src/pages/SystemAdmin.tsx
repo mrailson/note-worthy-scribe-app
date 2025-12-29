@@ -4334,7 +4334,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               </DialogDescription>
             </DialogHeader>
 
-            <div className="space-y-4 py-4 overflow-y-auto max-h-[60vh]">
+            <div className="space-y-4 py-4 px-1 overflow-y-auto max-h-[60vh]">
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="email">Email Address</Label>
