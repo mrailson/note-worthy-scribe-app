@@ -215,54 +215,43 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
 
           <!-- Login Details -->
           <tr>
-            <td style="padding: 0 40px 25px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #005EB8;">
+            <td style="padding: 0 40px 20px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #F0F4F5; border-left: 3px solid #005EB8;">
                 <tr>
                   <td style="padding: 20px 25px;">
-                    <div style="color: #FFFFFF; font-size: 14px; font-weight: 600; margin-bottom: 15px; text-transform: uppercase;">
+                    <div style="color: #005EB8; font-size: 14px; font-weight: 600; margin-bottom: 15px; text-transform: uppercase;">
                       Your Login Details
                     </div>
                     
                     <table role="presentation" width="100%" cellspacing="0" cellpadding="0">
                       <tr>
                         <td style="padding-bottom: 12px;">
-                          <div style="color: #AED6F1; font-size: 12px; margin-bottom: 3px;">Login URL</div>
-                          <a href="https://gpnotewell.co.uk" style="color: #FFFFFF; font-size: 15px; font-weight: 600; text-decoration: underline;">
+                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Login URL</div>
+                          <a href="https://gpnotewell.co.uk" style="color: #005EB8; font-size: 15px; font-weight: 600; text-decoration: underline;">
                             https://gpnotewell.co.uk
                           </a>
                         </td>
                       </tr>
                       <tr>
                         <td style="padding-bottom: 12px;">
-                          <div style="color: #AED6F1; font-size: 12px; margin-bottom: 3px;">Email Address</div>
-                          <div style="color: #FFFFFF; font-size: 15px;">${data.user_email}</div>
+                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Email Address</div>
+                          <div style="color: #212B32; font-size: 15px;">${data.user_email}</div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding-bottom: 12px;">
+                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Temporary Password</div>
+                          <div style="font-family: monospace; font-size: 15px; color: #212B32;">${data.temporary_password}</div>
                         </td>
                       </tr>
                       <tr>
                         <td>
-                          <div style="color: #AED6F1; font-size: 12px; margin-bottom: 3px;">Temporary Password</div>
-                          <div style="background: #003D7A; padding: 8px 12px; font-family: monospace; font-size: 15px; color: #FFFFFF; display: inline-block;">
-                            ${data.temporary_password}
+                          <div style="color: #4C6272; font-size: 13px;">
+                            You can change your password anytime in the "My Profile" section once logged into Notewell AI, or by selecting the forgotten password link on the homepage.
                           </div>
                         </td>
                       </tr>
                     </table>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-
-          <!-- Password Warning -->
-          <tr>
-            <td style="padding: 0 40px 20px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #FFF9C4; border-left: 4px solid #FFB300;">
-                <tr>
-                  <td style="padding: 12px 15px;">
-                    <div style="color: #7A4A00; font-weight: 600; font-size: 14px;">Important: Change Your Password</div>
-                    <div style="color: #8B6914; font-size: 13px; margin-top: 3px;">
-                      Please change your password after your first login via your profile settings.
-                    </div>
                   </td>
                 </tr>
               </table>
