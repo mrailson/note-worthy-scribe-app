@@ -284,8 +284,7 @@ ${pastedText.trim()}
       <div className="text-xs text-muted-foreground text-center pt-2 pb-1 px-3 bg-background/50 rounded-md border-t border-border/20">
         <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Ctrl+Enter</kbd>
         to send • <kbd className="px-1.5 py-0.5 text-xs bg-muted border border-border rounded mr-1">Esc</kbd>
-        to clear • Supports: PDF, Word, Excel, images, audio • 
-        <span className="text-blue-600 font-medium">🎙️ Voice control available</span>
+        to clear • <span className="text-amber-600">AI can make mistakes — please verify important information</span>
       </div>
       
       <DocumentTranslateModal
