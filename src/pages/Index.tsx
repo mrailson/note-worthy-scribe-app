@@ -388,11 +388,13 @@ const Index = () => {
             </div>
           </div>
 
-          {/* GP News Ticker */}
-          <NewsTicker />
-
           {/* Service Overview - without the duplicate cards */}
           <ServiceOverview />
+        </div>
+        
+        {/* GP News Ticker - Bottom of page */}
+        <div className="container mx-auto px-4 pb-8 max-w-6xl">
+          <NewsTicker />
         </div>
       </div>;
   }
