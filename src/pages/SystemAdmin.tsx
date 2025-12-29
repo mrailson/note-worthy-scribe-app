@@ -4345,6 +4345,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     onChange={(e) => setUserFormData({...userFormData, email: e.target.value})}
                     placeholder="user@nhs.net"
                     required
+                    autoComplete="off"
                   />
                 </div>
                 <div>
@@ -4355,6 +4356,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     onChange={(e) => setUserFormData({...userFormData, full_name: e.target.value})}
                     placeholder="John Doe"
                     required
+                    autoComplete="off"
                   />
                 </div>
               </div>
@@ -4369,6 +4371,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                     onChange={(e) => setUserFormData({...userFormData, password: e.target.value})}
                     placeholder="Enter a secure password"
                     required
+                    autoComplete="new-password"
                   />
                 </div>
               )}
