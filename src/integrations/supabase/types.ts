@@ -8294,7 +8294,7 @@ export type Database = {
         | "administrator"
         | "nurse"
         | "receptionist"
-        | "user"
+        | "practice_user"
         | "complaints_manager"
         | "pcn_manager"
         | "lmc_user"
@@ -8516,7 +8516,7 @@ export const Constants = {
         "administrator",
         "nurse",
         "receptionist",
-        "user",
+        "practice_user",
         "complaints_manager",
         "pcn_manager",
         "lmc_user",

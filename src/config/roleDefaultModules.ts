@@ -18,7 +18,7 @@ export interface ModuleAccess {
   bp_service_access: boolean;
 }
 
-export type UserRole = 'user' | 'practice_manager' | 'pcn_manager' | 'system_admin' | 'gp' | 'nurse' | 'admin_staff' | 'icb_user';
+export type UserRole = 'practice_user' | 'practice_manager' | 'pcn_manager' | 'system_admin' | 'gp' | 'nurse' | 'admin_staff' | 'icb_user';
 
 // Module categories for organised display
 export const moduleCategories = {
@@ -111,8 +111,8 @@ export const moduleInfo: Record<keyof ModuleAccess, { label: string; description
 
 // Default module access for each role
 export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
-  // Standard user - minimal access
-  user: {
+  // Practice User - minimal access
+  practice_user: {
     meeting_notes_access: true,
     gp_scribe_access: false,
     complaints_manager_access: false,
@@ -129,19 +129,19 @@ export const roleDefaultModules: Record<UserRole, ModuleAccess> = {
     bp_service_access: false
   },
 
-  // Practice Manager - full practice-level access
+  // Practice Manager - core management access (excludes Shared Drive, GP Scribe, CQC Compliance, Enhanced Access, Fridge Monitoring)
   practice_manager: {
     meeting_notes_access: true,
-    gp_scribe_access: true,
+    gp_scribe_access: false,
     complaints_manager_access: true,
     ai4gp_access: true,
-    enhanced_access: true,
-    cqc_compliance_access: true,
-    shared_drive_access: true,
+    enhanced_access: false,
+    cqc_compliance_access: false,
+    shared_drive_access: false,
     mic_test_service_access: false,
     api_testing_service_access: false,
     translation_service_access: true,
-    fridge_monitoring_access: true,
+    fridge_monitoring_access: false,
     cso_governance_access: true,
     lg_capture_access: true,
     bp_service_access: true
@@ -262,6 +262,6 @@ export const getDefaultModulesForRole = (role: string): ModuleAccess => {
   if (roleDefaultModules[knownRole]) {
     return { ...roleDefaultModules[knownRole] };
   }
-  // Default to 'user' role if unknown
-  return { ...roleDefaultModules.user };
+  // Default to 'practice_user' role if unknown
+  return { ...roleDefaultModules.practice_user };
 };

@@ -220,7 +220,7 @@ const SystemAdmin = () => {
     email: '',
     full_name: '',
     password: '',
-    role: 'user' as 'user' | 'practice_manager' | 'pcn_manager' | 'system_admin',
+    role: 'practice_user' as 'practice_user' | 'practice_manager' | 'pcn_manager' | 'system_admin',
     practice_id: 'none',
     module_access: {
       meeting_notes_access: true,
@@ -1070,13 +1070,13 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       cqc: false,
       lg_capture: false
     });
-    // Apply role-based defaults for 'user' role
-    const defaultModules = getDefaultModulesForRole('user');
+    // Apply role-based defaults for 'practice_user' role
+    const defaultModules = getDefaultModulesForRole('practice_user');
     setUserFormData({
       email: '',
       full_name: '',
       password: '',
-      role: 'user',
+      role: 'practice_user',
       practice_id: 'none',
       module_access: defaultModules
     });
@@ -1132,14 +1132,14 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
     });
     
     // Get the user's role - check if they have a system_admin role first
-    let userRole: 'user' | 'practice_manager' | 'pcn_manager' | 'system_admin' = 'user';
+    let userRole: 'practice_user' | 'practice_manager' | 'pcn_manager' | 'system_admin' = 'practice_user';
     if (user.practice_assignments && user.practice_assignments.length > 0) {
       // Check if any assignment has system_admin role
       const systemAdminAssignment = user.practice_assignments.find((assignment: any) => assignment.role === 'system_admin');
       if (systemAdminAssignment) {
         userRole = 'system_admin';
       } else {
-        userRole = user.practice_assignments[0].role || 'user';
+        userRole = user.practice_assignments[0].role || 'practice_user';
       }
     }
     
@@ -1387,7 +1387,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
       // Create new user_roles record
       const insertData = {
         user_id: editingUser.user_id,
-        role: userFormData.role || 'user',
+        role: userFormData.role || 'practice_user',
         practice_id: userFormData.practice_id !== 'none' ? userFormData.practice_id : null,
         assigned_by: user?.id,
         meeting_notes_access: moduleKey === 'meeting_notes_access' ? checked : userFormData.module_access.meeting_notes_access,
@@ -1643,7 +1643,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
               translation_service_access: currentFormData.module_access.translation_service_access,
               fridge_monitoring_access: currentFormData.module_access.fridge_monitoring_access,
               cso_governance_access: currentFormData.module_access.cso_governance_access,
-              role: currentFormData.role || 'user'
+              role: currentFormData.role || 'practice_user'
             };
             
             console.log('Updating existing roles with data:', updateData);
@@ -1664,7 +1664,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
             // Create new user_roles record if none exists
             const insertData = {
               user_id: editingUser.user_id,
-              role: currentFormData.role || 'user',
+              role: currentFormData.role || 'practice_user',
               assigned_by: user?.id,
               meeting_notes_access: currentFormData.module_access.meeting_notes_access,
               gp_scribe_access: currentFormData.module_access.gp_scribe_access,
@@ -4331,7 +4331,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="user">User</SelectItem>
+                      <SelectItem value="practice_user">Practice User</SelectItem>
                       <SelectItem value="practice_manager">Practice Manager</SelectItem>
                       <SelectItem value="pcn_manager">PCN Manager</SelectItem>
                       <SelectItem value="system_admin">System Admin</SelectItem>

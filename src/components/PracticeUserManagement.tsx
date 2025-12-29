@@ -55,7 +55,7 @@ const nonPracticeOrgTypes = ['Management', 'ICB', 'PCN', 'LMC', 'Neighbourhood']
 
 // Roles available for non-practice organisations
 const organisationRoles = [
-  { value: 'user', label: 'User' },
+  { value: 'practice_user', label: 'User' },
   { value: 'practice_manager', label: 'Organisation Admin' }
 ];
 
@@ -73,7 +73,7 @@ export const PracticeUserManagement = () => {
     email: '',
     full_name: '',
     password: '',
-    role: 'user',
+    role: 'practice_user',
     practice_role: '',
     module_access: {
       meeting_notes_access: true,
@@ -291,7 +291,7 @@ export const PracticeUserManagement = () => {
       email: '',
       full_name: '',
       password: '',
-      role: 'user',
+      role: 'practice_user',
       practice_role: '',
       module_access: {
         meeting_notes_access: true,
@@ -394,10 +394,10 @@ export const PracticeUserManagement = () => {
                         <TableCell className="font-medium">{user.full_name}</TableCell>
                         <TableCell>{user.email}</TableCell>
                         <TableCell>
-                          <Badge variant={user.role === 'user' ? 'secondary' : 'default'}>
+                          <Badge variant={user.role === 'practice_user' ? 'secondary' : 'default'}>
                             {isNonPracticeOrg && user.role === 'practice_manager' 
                               ? 'Organisation Admin' 
-                              : user.role}
+                              : user.role === 'practice_user' ? 'Practice User' : user.role}
                           </Badge>
                         </TableCell>
                         {!isNonPracticeOrg && (
