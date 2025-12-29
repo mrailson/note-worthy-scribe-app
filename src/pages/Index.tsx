@@ -16,7 +16,7 @@ import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
 import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
-import { Building2, ExternalLink } from "lucide-react";
+import { Building2, ExternalLink, MessageSquare, FileText } from "lucide-react";
 const Index = () => {
   const {
     user,
@@ -282,30 +282,18 @@ const Index = () => {
             </div>
 
             {/* Welcome Content - appears second on mobile, left on desktop */}
-            <div className="space-y-8 lg:order-1">
+            <div className="space-y-6 lg:order-1">
               {/* Hero Section */}
-              <div className="text-center lg:text-left space-y-4 animate-fade-in">
-                
+              <div className="text-center lg:text-left animate-fade-in">
                 <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
                   Welcome to Notewell AI
                 </h1>
-                
               </div>
 
-              {/* Combined Demo & Complaints Section */}
+              {/* Service Cards */}
               <div className="space-y-4">
-                <div className="text-center lg:text-left">
-                  <h2 className="text-xl font-semibold text-foreground mb-1">
-                    See Notewell AI Complaints Service in Action
-                  </h2>
-                  
-                  <Link to="/demos" className="inline-flex items-center px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90 shadow border border-border">
-                    View Complaints Service System
-                  </Link>
-                </div>
-
-                {/* Complaints Management Details */}
-                <div className="p-4 border border-border rounded-lg bg-card">
+                {/* Complaints Management System */}
+                <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
                   <div className="flex items-start gap-3 mb-3">
                     <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
                       <Building2 className="w-5 h-5" />
@@ -313,11 +301,11 @@ const Index = () => {
                     <div>
                       <h3 className="font-semibold text-base mb-1">Complaints Management System</h3>
                       <p className="text-sm text-muted-foreground">
-                        Comprehensive patient complaint management system with automated workflows and NHS compliance
+                        Comprehensive patient complaint management with automated workflows and NHS compliance
                       </p>
                     </div>
                   </div>
-                  <ul className="space-y-1.5 ml-11">
+                  <ul className="space-y-1.5 ml-11 mb-3">
                     <li className="flex items-center gap-2 text-xs">
                       <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                       <span>Automated complaint tracking</span>
@@ -330,16 +318,8 @@ const Index = () => {
                       <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
                       <span>NHS compliance monitoring</span>
                     </li>
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                      <span>Performance analytics</span>
-                    </li>
-                    <li className="flex items-center gap-2 text-xs">
-                      <div className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />
-                      <span>Multi-channel complaint capture</span>
-                    </li>
                   </ul>
-                  <div className="mt-4 pt-3 border-t border-border ml-11">
+                  <div className="pt-3 border-t border-border ml-11">
                     <a 
                       href="https://www.loom.com/share/58d3d16963224dddac2ea8211bd2b90d" 
                       target="_blank" 
@@ -351,6 +331,64 @@ const Index = () => {
                       <ExternalLink className="h-3 w-3" />
                     </a>
                   </div>
+                </div>
+
+                {/* AI4GP Service */}
+                <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <MessageSquare className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">AI4GP Service</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Advanced AI assistant specifically designed for UK NHS GPs with comprehensive clinical support
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="space-y-1.5 ml-11">
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>NICE guidance finder</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>BNF drug lookups</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>Clinical decision support</span>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Meeting Recording & Management */}
+                <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3 mb-3">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <FileText className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">Meeting Recording & Management</h3>
+                      <p className="text-sm text-muted-foreground">
+                        Professional meeting transcription and management for Practice Managers and administrative teams
+                      </p>
+                    </div>
+                  </div>
+                  <ul className="space-y-1.5 ml-11">
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>Partnership meeting transcription</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>Automated meeting summaries</span>
+                    </li>
+                    <li className="flex items-center gap-2 text-xs">
+                      <div className="h-1.5 w-1.5 rounded-full bg-success shrink-0" />
+                      <span>Action item tracking</span>
+                    </li>
+                  </ul>
                 </div>
               </div>
             </div>
