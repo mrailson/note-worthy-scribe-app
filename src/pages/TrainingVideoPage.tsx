@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ExternalLink } from "lucide-react";
+import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
 import {
   Accordion,
@@ -45,61 +46,86 @@ const TrainingVideoPage = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
-        <Link to="/">
-          <Button variant="ghost" className="mb-6 gap-2">
-            <ArrowLeft className="h-4 w-4" />
-            Back to Home
-          </Button>
-        </Link>
+      <SEO
+        title="Notewell AI training video | First-time guide"
+        description="Watch a 2 minute Notewell AI training video showing how to log in and navigate the basic features."
+        canonical="https://www.gpnotewell.co.uk/training"
+        keywords="Notewell AI training video, Notewell AI login, NHS primary care AI, GP practice AI tools"
+      />
 
-        <div className="space-y-6">
-          <div className="text-center space-y-2">
-            <h1 className="text-3xl font-bold text-foreground">
-              First Time to Notewell AI?
-            </h1>
-            <p className="text-muted-foreground">
-              Watch our 2 minute training video to get started
-            </p>
-          </div>
+      <main>
+        <div className="container mx-auto px-4 py-8 max-w-4xl">
+          <nav aria-label="Breadcrumb" className="mb-6">
+            <Link to="/">
+              <Button variant="ghost" className="gap-2">
+                <ArrowLeft className="h-4 w-4" />
+                Back to Home
+              </Button>
+            </Link>
+          </nav>
 
-          <div className="rounded-lg overflow-hidden border border-border shadow-lg">
-            <iframe
-              width="100%"
-              height="400"
-              src="https://embed.app.guidde.com/playbooks/gCxn8UuCkRPWiXTDrfZ5dj?mode=videoOnly"
-              title="Login and Navigate Basic Features in NoteWell AI"
-              frameBorder="0"
-              referrerPolicy="unsafe-url"
-              allowFullScreen
-              allow="clipboard-write"
-              className="rounded-lg"
-            />
-          </div>
+          <div className="space-y-6">
+            <header className="text-center space-y-2">
+              <h1 className="text-3xl font-bold text-foreground">
+                First Time to Notewell AI? Training video
+              </h1>
+              <p className="text-muted-foreground">
+                Watch our 2 minute training video to get started
+              </p>
+            </header>
 
-          <Accordion type="single" collapsible className="w-full">
-            <AccordionItem value="transcript" className="border rounded-lg px-4">
-              <AccordionTrigger className="text-sm font-medium">
-                View Video Transcript
-              </AccordionTrigger>
-              <AccordionContent>
-                <div className="space-y-3 pt-2">
-                  {transcriptEntries.map((entry, index) => (
-                    <div key={index} className="flex gap-3 text-sm">
-                      <span className="text-primary font-mono shrink-0">
-                        {entry.time}
-                      </span>
-                      <span className="text-muted-foreground">
-                        {entry.text}
-                      </span>
+            <section aria-label="Training video" className="space-y-3">
+              <div className="rounded-lg overflow-hidden border border-border shadow-lg">
+                <iframe
+                  width="100%"
+                  height="400"
+                  src="https://embed.app.guidde.com/playbooks/gCxn8UuCkRPWiXTDrfZ5dj?mode=videoOnly"
+                  title="Login and Navigate Basic Features in NoteWell AI"
+                  frameBorder="0"
+                  referrerPolicy="unsafe-url"
+                  allowFullScreen
+                  allow="clipboard-write"
+                  className="rounded-lg"
+                />
+              </div>
+
+              <a
+                href="https://embed.app.guidde.com/playbooks/gCxn8UuCkRPWiXTDrfZ5dj?mode=videoOnly"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+              >
+                <span>Open video in a new tab</span>
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            </section>
+
+            <section aria-label="Transcript">
+              <Accordion type="single" collapsible className="w-full">
+                <AccordionItem value="transcript" className="border rounded-lg px-4">
+                  <AccordionTrigger className="text-sm font-medium">
+                    View Video Transcript
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="space-y-3 pt-2">
+                      {transcriptEntries.map((entry, index) => (
+                        <div key={index} className="flex gap-3 text-sm">
+                          <span className="text-primary font-mono shrink-0">
+                            {entry.time}
+                          </span>
+                          <span className="text-muted-foreground">
+                            {entry.text}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              </AccordionContent>
-            </AccordionItem>
-          </Accordion>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+            </section>
+          </div>
         </div>
-      </div>
+      </main>
     </div>
   );
 };
