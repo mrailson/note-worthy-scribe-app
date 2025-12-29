@@ -240,10 +240,24 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
                       </tr>
                       <tr>
                         <td style="padding-bottom: 12px;">
-                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Temporary Password</div>
+                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Password</div>
                           <div style="font-family: monospace; font-size: 15px; color: #212B32;">${data.temporary_password}</div>
                         </td>
                       </tr>
+                      <tr>
+                        <td style="padding-bottom: 12px;">
+                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Your Role (e.g. Practice Manager)</div>
+                          <div style="color: #212B32; font-size: 15px;">${getRoleDisplayName(data.user_role)}</div>
+                        </td>
+                      </tr>
+                      ${data.practice_name ? `
+                      <tr>
+                        <td style="padding-bottom: 12px;">
+                          <div style="color: #4C6272; font-size: 12px; margin-bottom: 3px;">Your Practice/Organisation</div>
+                          <div style="color: #212B32; font-size: 15px;">${data.practice_name}</div>
+                        </td>
+                      </tr>
+                      ` : ''}
                       <tr>
                         <td>
                           <div style="color: #4C6272; font-size: 13px;">
@@ -257,42 +271,6 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
               </table>
             </td>
           </tr>
-
-          <!-- Practice Assignment -->
-          ${data.practice_name ? `
-          <tr>
-            <td style="padding: 0 40px 20px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #E8F5E9; border-left: 4px solid #007F3B;">
-                <tr>
-                  <td style="padding: 12px 15px;">
-                    <div style="color: #004D23; font-weight: 600; font-size: 14px;">Practice Assignment</div>
-                    <div style="color: #006B2D; font-size: 13px; margin-top: 3px;">
-                      You have been assigned to: <strong>${data.practice_name}</strong>
-                    </div>
-                    <div style="color: #007F3B; font-size: 13px; margin-top: 2px;">
-                      Role: <strong>${getRoleDisplayName(data.user_role)}</strong>
-                    </div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          ` : `
-          <tr>
-            <td style="padding: 0 40px 20px;">
-              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: #E3F2FD; border-left: 4px solid #005EB8;">
-                <tr>
-                  <td style="padding: 12px 15px;">
-                    <div style="color: #003D7A; font-weight: 600; font-size: 14px;">Your Role</div>
-                    <div style="color: #005EB8; font-size: 13px; margin-top: 3px;">
-                      Role: <strong>${getRoleDisplayName(data.user_role)}</strong>
-                    </div>
-                  </td>
-                </tr>
-              </table>
-            </td>
-          </tr>
-          `}
 
           <!-- Enabled Features Section -->
           <tr>
@@ -327,7 +305,7 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
             <td style="background: #F0F4F5; padding: 20px 40px; border-top: 1px solid #D8DDE0;">
               <p style="margin: 0; color: #4C6272; font-size: 12px; text-align: center;">
                 Need help? Contact your system administrator or email
-                <a href="mailto:support@gpnotewell.co.uk" style="color: #005EB8; text-decoration: none;">support@gpnotewell.co.uk</a>
+                <a href="mailto:malcolm.railson@nhs.net" style="color: #005EB8; text-decoration: none;">malcolm.railson@nhs.net</a>
               </p>
               <p style="margin: 8px 0 0; color: #768692; font-size: 11px; text-align: center;">
                 &copy; ${new Date().getFullYear()} GP Notewell AI. All rights reserved.

@@ -221,7 +221,7 @@ const SystemAdmin = () => {
     email: '',
     full_name: '',
     password: '',
-    role: 'practice_user' as 'practice_user' | 'practice_manager' | 'pcn_manager' | 'system_admin',
+    role: 'practice_manager' as 'practice_user' | 'practice_manager' | 'pcn_manager' | 'system_admin',
     practice_id: 'none',
     module_access: {
       meeting_notes_access: true,
@@ -1077,13 +1077,13 @@ const [loadingLoginHistory, setLoadingLoginHistory] = useState(false);
       cqc: false,
       lg_capture: false
     });
-    // Apply role-based defaults for 'practice_user' role
-    const defaultModules = getDefaultModulesForRole('practice_user');
+    // Apply role-based defaults for 'practice_manager' role
+    const defaultModules = getDefaultModulesForRole('practice_manager');
     setUserFormData({
       email: '',
       full_name: '',
       password: '',
-      role: 'practice_user',
+      role: 'practice_manager',
       practice_id: 'none',
       module_access: defaultModules
     });
