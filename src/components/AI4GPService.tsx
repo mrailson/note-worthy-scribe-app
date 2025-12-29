@@ -33,6 +33,7 @@ import { AIModelVerificationChart } from '@/components/AIModelVerificationChart'
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
 import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
+import { TranslationToolInterface } from '@/components/TranslationToolInterface';
 
 
   // Hook imports
@@ -105,6 +106,7 @@ const AI4GPService = () => {
   
   const [showNews, setShowNews] = useState(false);
   const [showBPCalculator, setShowBPCalculator] = useState(false);
+  const [showTranslation, setShowTranslation] = useState(false);
   const [showImageCreate, setShowImageCreate] = useState(false);
   const [showImageService, setShowImageService] = useState(false);
   const [showQuickImageModal, setShowQuickImageModal] = useState(false);
@@ -369,6 +371,7 @@ const AI4GPService = () => {
           onShowSettings={() => setShowSettings(true)}
           onShowNews={() => setShowNews(!showNews)}
           onShowBPCalculator={() => setShowBPCalculator(!showBPCalculator)}
+          onShowTranslation={() => setShowTranslation(!showTranslation)}
           onShowQuickImageModal={() => setShowQuickImageModal(true)}
           onShowImageService={() => setShowImageService(!showImageService)}
           onShowQRCodeGenerator={() => setShowQRCodeGeneratorModal(true)}
@@ -644,8 +647,26 @@ const AI4GPService = () => {
                 </div>
               )}
 
+              {/* Translation Panel - Inline Display */}
+              {showTranslation && (
+                <div className="flex-1 overflow-y-auto bg-background">
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <h2 className="text-lg font-semibold">Translation Tool</h2>
+                    <button
+                      onClick={() => setShowTranslation(false)}
+                      className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 rounded hover:bg-muted/50"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <TranslationToolInterface />
+                  </div>
+                </div>
+              )}
+
               {/* Main Chat Content - Only show when services are not active */}
-              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && (
+              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && !showTranslation && (
                 <CardContent className={cn(
                   "flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden",
                   deviceInfo.isIPhone && "pb-safe"
