@@ -35,19 +35,27 @@ const handler = async (req: Request): Promise<Response> => {
     // Get the authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
+      console.error("No authorization header provided");
       throw new Error("No authorization header");
     }
 
     // Create Supabase client with the user's session
-    const supabaseUrl = "https://dphcnbricafkbtizkoal.supabase.co";
+    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://dphcnbricafkbtizkoal.supabase.co";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
     
     if (!supabaseServiceKey) {
+      console.error("Missing SUPABASE_SERVICE_ROLE_KEY");
       throw new Error("Missing service role key");
     }
 
+    if (!supabaseAnonKey) {
+      console.error("Missing SUPABASE_ANON_KEY");
+      throw new Error("Missing anon key");
+    }
+
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const supabaseUser = createClient(supabaseUrl, Deno.env.get("SUPABASE_ANON_KEY")!, {
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: { Authorization: authHeader },
       },
@@ -55,9 +63,16 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Get the current user from the authorization header
     const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
-    if (userError || !user) {
+    if (userError) {
+      console.error("Auth error:", userError.message);
+      throw new Error("Unauthorized: " + userError.message);
+    }
+    if (!user) {
+      console.error("No user found from auth header");
       throw new Error("Unauthorized");
     }
+    
+    console.log("Authenticated user:", user.id);
 
     // Verify the user is a practice manager
     const { data: practiceManagerData, error: pmError } = await supabase
