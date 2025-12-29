@@ -309,13 +309,13 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     setForceFancyView(false);
   }, [meeting?.id]);
 
-  // Determine if this is a long meeting (60+ minutes) to skip expensive rendering
+  // Determine if this is a long meeting (75+ minutes) to skip expensive rendering
   const isLongMeetingRaw = React.useMemo(() => {
     if (!meeting) return false;
 
     // Prefer stored duration if available
     if (typeof meeting.duration_minutes === "number") {
-      return meeting.duration_minutes >= 60;
+      return meeting.duration_minutes >= 75;
     }
 
     // Fallback: compute from start_time / end_time if possible
@@ -324,7 +324,7 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const end = new Date(meeting.end_time).getTime();
       if (!Number.isNaN(start) && !Number.isNaN(end) && end > start) {
         const diffMinutes = (end - start) / (1000 * 60);
-        return diffMinutes >= 60;
+        return diffMinutes >= 75;
       }
     }
 
@@ -379,8 +379,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       return;
     }
 
-    // Primary rule: Skip expensive rendering for long meetings (60+ minutes)
-    // Use isLongMeetingRaw (not isLongMeeting) so this always skips for 60+ min meetings,
+    // Primary rule: Skip expensive rendering for long meetings (75+ minutes)
+    // Use isLongMeetingRaw (not isLongMeeting) so this always skips for 75+ min meetings,
     // even when forceFancyView is true - the Web Worker handles formatted view instead
     if (isLongMeetingRaw) {
       console.log("⏱ Long meeting detected – skipping synchronous formatter (Web Worker handles formatted view)");
