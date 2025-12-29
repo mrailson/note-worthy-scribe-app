@@ -284,6 +284,34 @@ const generateEmailHTML = (data: WelcomeEmailRequest): string => {
             </td>
           </tr>
 
+          ${data.module_access.complaints_manager_access ? `
+          <!-- Complaints Manager Training Section -->
+          <tr>
+            <td style="padding: 0 40px 25px;">
+              <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background: linear-gradient(135deg, #E3F2FD 0%, #F3E5F5 100%); border-left: 4px solid #7B1FA2;">
+                <tr>
+                  <td style="padding: 20px 25px;">
+                    <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                      <span style="font-size: 24px; margin-right: 10px;">🎬</span>
+                      <span style="color: #7B1FA2; font-size: 15px; font-weight: 600; text-transform: uppercase;">
+                        Complaints Manager Training
+                      </span>
+                    </div>
+                    <p style="margin: 0 0 15px; color: #4C6272; font-size: 14px; line-height: 1.5;">
+                      Get started with a demonstration video showing you how to use the Complaints Manager effectively. Learn how to log, investigate, and resolve patient complaints with AI assistance.
+                    </p>
+                    <a href="https://www.loom.com/share/58d3d16963224dddac2ea8211bd2b90d" 
+                       target="_blank"
+                       style="display: inline-block; background: #7B1FA2; color: #FFFFFF; text-decoration: none; padding: 10px 20px; font-weight: 600; font-size: 13px; border-radius: 4px;">
+                      ▶ Watch Training Video
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          ` : ''}
+
           <!-- Login Button -->
           <tr>
             <td style="padding: 0 40px 30px;">
