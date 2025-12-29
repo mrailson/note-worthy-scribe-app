@@ -4392,7 +4392,7 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                   </Select>
                 </div>
                 <div>
-                  <Label htmlFor="practice_id">Practice (Optional)</Label>
+                  <Label htmlFor="practice_id">Practice/Organisation</Label>
                   <Select value={userFormData.practice_id} onValueChange={(value) => setUserFormData({...userFormData, practice_id: value})}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select practice" />
