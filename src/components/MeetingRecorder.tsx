@@ -4559,17 +4559,15 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     if (!user?.id) return;
     setIsDeletingEmpty(true);
     try {
-      const ninetyMinutesAgo = new Date(Date.now() - 90 * 60 * 1000).toISOString();
-      const { data: deletedMeetings, error } = await supabase
-        .from('meetings')
-        .delete()
-        .eq('user_id', user.id)
-        .lt('created_at', ninetyMinutesAgo)
-        .or('word_count.is.null,word_count.eq.0')
-        .select('id');
+      // Use database function to find and delete truly empty meetings
+      const { data, error } = await supabase.rpc('cleanup_truly_empty_meetings', {
+        p_user_id: user.id,
+        p_min_age_minutes: 30,
+        p_max_word_threshold: 0
+      });
       if (error) throw error;
-      const count = deletedMeetings?.length || 0;
-      if (count > 0) showToast.success(`Cleared ${count} empty meeting${count > 1 ? 's' : ''}`);
+      const count = data?.[0]?.deleted_count || 0;
+      if (count > 0) showToast.success(`Cleared ${count} truly empty meeting${count > 1 ? 's' : ''}`);
       else showToast.info('No empty meetings to clear');
       loadMeetingHistory();
     } catch (error: any) {
@@ -4585,14 +4583,14 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
     setIsDeletingEmpty(true);
     setShowDeleteEmptyDialog(false);
     try {
-      const { data: deletedMeetings, error } = await supabase
-        .from('meetings')
-        .delete()
-        .eq('user_id', user.id)
-        .lt('word_count', 100)
-        .select('id');
+      // Use database function to find and delete meetings with less than 100 actual words
+      const { data, error } = await supabase.rpc('cleanup_truly_empty_meetings', {
+        p_user_id: user.id,
+        p_min_age_minutes: 30,
+        p_max_word_threshold: 100
+      });
       if (error) throw error;
-      const count = deletedMeetings?.length || 0;
+      const count = data?.[0]?.deleted_count || 0;
       if (count > 0) showToast.success(`Deleted ${count} meeting${count > 1 ? 's' : ''} with less than 100 words`);
       else showToast.info('No meetings with less than 100 words found');
       loadMeetingHistory();

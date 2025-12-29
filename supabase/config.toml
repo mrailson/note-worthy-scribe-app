@@ -338,3 +338,6 @@ verify_jwt = true
 
 [functions.smart-web-search]
 verify_jwt = true
+
+[functions.auto-cleanup-empty-meetings]
+verify_jwt = false

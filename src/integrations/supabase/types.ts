@@ -7621,6 +7621,17 @@ export type Database = {
           fixed_meetings_count: number
         }[]
       }
+      cleanup_truly_empty_meetings: {
+        Args: {
+          p_max_word_threshold?: number
+          p_min_age_minutes?: number
+          p_user_id: string
+        }
+        Returns: {
+          deleted_count: number
+          deleted_ids: string[]
+        }[]
+      }
       complete_meeting: { Args: { meeting_id: string }; Returns: Json }
       create_complaint_outcome: {
         Args: {
@@ -7695,6 +7706,10 @@ export type Database = {
       }
       generate_complaint_reference: { Args: never; Returns: string }
       generate_incident_reference: { Args: never; Returns: string }
+      get_actual_meeting_word_count: {
+        Args: { p_meeting_id: string }
+        Returns: number
+      }
       get_all_live_recordings: {
         Args: never
         Returns: {
@@ -7781,6 +7796,22 @@ export type Database = {
           default_email: string
           default_phone: string
           staff_name: string
+        }[]
+      }
+      get_empty_meetings_for_cleanup: {
+        Args: {
+          p_max_word_threshold?: number
+          p_min_age_minutes?: number
+          p_user_id: string
+        }
+        Returns: {
+          actual_word_count: number
+          created_at: string
+          has_chunks: boolean
+          meeting_id: string
+          status: string
+          stored_word_count: number
+          title: string
         }[]
       }
       get_large_files: {
@@ -8181,6 +8212,10 @@ export type Database = {
       submit_external_response: {
         Args: { access_token_param: string; response_text_param: string }
         Returns: boolean
+      }
+      sync_meeting_word_count: {
+        Args: { p_meeting_id: string }
+        Returns: number
       }
       trigger_queue_processing: { Args: never; Returns: Json }
       update_chunk_cleaning_stats: {
