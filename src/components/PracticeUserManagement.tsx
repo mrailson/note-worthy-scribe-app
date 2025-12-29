@@ -609,7 +609,19 @@ export const PracticeUserManagement = () => {
 
 
             <div className="space-y-3">
-              <Label>Module Access</Label>
+              <div className="flex items-center justify-between">
+                <Label>Module Access</Label>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <div className="w-6 h-3 rounded-full bg-muted border"></div>
+                    <span>Off</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <div className="w-6 h-3 rounded-full bg-primary"></div>
+                    <span>On</span>
+                  </div>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="flex items-center space-x-2">
                   <Switch
