@@ -250,6 +250,20 @@ All colors MUST be HSL.
   animation: scroll 10s linear infinite;
 }
 
+/* Horizontal news ticker animation */
+@keyframes ticker {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-ticker {
+  animation: ticker 30s linear infinite;
+}
+
 /* Hide scrollbars for mobile compatibility */
 .scrollbar-hide {
   -ms-overflow-style: none;  /* Internet Explorer 10+ */

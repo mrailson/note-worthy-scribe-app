@@ -9,6 +9,7 @@ import { MeetingSettings } from "@/components/MeetingSettings";
 import { LiveTranscript } from "@/components/LiveTranscript";
 import { MeetingSummary } from "@/components/MeetingSummary";
 import { ServiceOverview } from "@/components/ServiceOverview";
+import { NewsTicker } from "@/components/NewsTicker";
 import { DemoVideoSection } from "@/components/DemoVideoSection";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
@@ -386,6 +387,9 @@ const Index = () => {
               </div>
             </div>
           </div>
+
+          {/* GP News Ticker */}
+          <NewsTicker />
 
           {/* Service Overview - without the duplicate cards */}
           <ServiceOverview />
