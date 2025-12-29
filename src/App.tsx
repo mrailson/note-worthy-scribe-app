@@ -61,6 +61,7 @@ import AdminChunkRepair from "./pages/AdminChunkRepair";
 import ExecutiveOverview from "./pages/ExecutiveOverview";
 import LoadDemoTeamData from "./pages/LoadDemoTeamData";
 import DemoVideosPage from "./pages/DemoVideosPage";
+import TrainingVideoPage from "./pages/TrainingVideoPage";
 import NRESDashboard from "./pages/NRESDashboard";
 import SDADashboard from "./pages/SDADashboard";
 import ProactiveComplexCareDashboard from "./pages/ProactiveComplexCareDashboard";
@@ -117,6 +118,7 @@ const App = () => {
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/executive-overview" element={<ExecutiveOverview />} />
               <Route path="/demos" element={<DemoVideosPage />} />
+              <Route path="/training" element={<TrainingVideoPage />} />
               <Route path="/ai-showcase" element={<AIShowcasePage />} />
               <Route path="/nres" element={
                 <ProtectedRoute requiredService="nres">

@@ -17,7 +17,7 @@ import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
 import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
 import { toast } from "sonner";
 import { ImportedTranscript } from "@/utils/FileImporter";
-import { Building2, ExternalLink, MessageSquare, FileText } from "lucide-react";
+import { Building2, ExternalLink, MessageSquare, FileText, Play } from "lucide-react";
 const Index = () => {
   const {
     user,
@@ -286,6 +286,28 @@ const Index = () => {
             <div className="space-y-6 lg:order-1">
               {/* Service Cards */}
               <div className="space-y-4">
+                {/* First Time Training Video */}
+                <div className="p-4 border border-primary/30 rounded-lg bg-primary/5 hover:shadow-md transition-shadow">
+                  <div className="flex items-start gap-3">
+                    <div className="p-2 rounded-lg bg-primary/10 text-primary shrink-0">
+                      <Play className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-base mb-1">First Time to Notewell AI?</h3>
+                      <p className="text-sm text-muted-foreground mb-2">
+                        Learn how to login and navigate the basic features
+                      </p>
+                      <Link 
+                        to="/training"
+                        className="inline-flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
+                      >
+                        <span>Watch 2 min training video</span>
+                        <ExternalLink className="h-3 w-3" />
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+
                 {/* Complaints Management System */}
                 <div className="p-4 border border-border rounded-lg bg-card hover:shadow-md transition-shadow">
                   <div className="flex items-start gap-3 mb-3">
