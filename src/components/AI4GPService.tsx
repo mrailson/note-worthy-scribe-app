@@ -24,6 +24,7 @@ import { MicroBanner, ShortCard, CollapsibleShortCard, FullModal, getAuditLine }
 import { AI4GPSidebar } from '@/components/ai4gp/AI4GPSidebar';
 
 import NewsPanel from '@/components/NewsPanel';
+import { BPCalculatorPanel } from '@/components/ai4gp/BPCalculatorPanel';
 import ImageCreate from '@/pages/ImageCreate';
 import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
@@ -103,6 +104,7 @@ const AI4GPService = () => {
   const [genieTab, setGenieTab] = useState<'gp-genie' | 'pm-genie'>('gp-genie');
   
   const [showNews, setShowNews] = useState(false);
+  const [showBPCalculator, setShowBPCalculator] = useState(false);
   const [showImageCreate, setShowImageCreate] = useState(false);
   const [showImageService, setShowImageService] = useState(false);
   const [showQuickImageModal, setShowQuickImageModal] = useState(false);
@@ -366,6 +368,7 @@ const AI4GPService = () => {
           onShowHistory={() => setShowSearchHistory(!showSearchHistory)}
           onShowSettings={() => setShowSettings(true)}
           onShowNews={() => setShowNews(!showNews)}
+          onShowBPCalculator={() => setShowBPCalculator(!showBPCalculator)}
           onShowQuickImageModal={() => setShowQuickImageModal(true)}
           onShowImageService={() => setShowImageService(!showImageService)}
           onShowQRCodeGenerator={() => setShowQRCodeGeneratorModal(true)}
@@ -623,8 +626,26 @@ const AI4GPService = () => {
                 </div>
               )}
 
+              {/* BP Calculator Panel - Inline Display */}
+              {showBPCalculator && (
+                <div className="flex-1 overflow-y-auto bg-background">
+                  <div className="flex items-center justify-between p-4 border-b">
+                    <h2 className="text-lg font-semibold">BP Average Service</h2>
+                    <button
+                      onClick={() => setShowBPCalculator(false)}
+                      className="text-muted-foreground hover:text-foreground text-sm px-2 py-1 rounded hover:bg-muted/50"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
+                  <div className="p-4">
+                    <BPCalculatorPanel cleanView />
+                  </div>
+                </div>
+              )}
+
               {/* Main Chat Content - Only show when services are not active */}
-              {!showImageCreate && !showImageService && !showNews && (
+              {!showImageCreate && !showImageService && !showNews && !showBPCalculator && (
                 <CardContent className={cn(
                   "flex-1 flex flex-col p-0 relative min-h-0 overflow-hidden",
                   deviceInfo.isIPhone && "pb-safe"
