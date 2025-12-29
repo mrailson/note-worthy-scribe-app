@@ -46,6 +46,7 @@ interface AI4GPSidebarProps {
   onShowSettings: () => void;
   onShowNews: () => void;
   onShowBPCalculator: () => void;
+  onShowTranslation: () => void;
   onShowQuickImageModal: () => void;
   onShowImageService: () => void;
   onShowQRCodeGenerator: () => void;
@@ -66,6 +67,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
   onShowSettings,
   onShowNews,
   onShowBPCalculator,
+  onShowTranslation,
   onShowQuickImageModal,
   onShowImageService,
   onShowQRCodeGenerator,
@@ -88,14 +90,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
     { icon: Sparkles, label: 'All Quick Actions', action: onShowAllQuickActions },
     { icon: Newspaper, label: 'GP News', action: onShowNews },
     { icon: Activity, label: 'BP Average Service', action: onShowBPCalculator },
-    { icon: Languages, label: 'Translation', action: () => {
-      const isMobileScreen = window.innerWidth < 768;
-      if (isMobileScreen) {
-        navigate('/mobile-translate');
-      } else {
-        navigate('/translation-tool');
-      }
-    }},
+    { icon: Languages, label: 'Translation', action: onShowTranslation },
     { icon: ImageIcon, label: 'QR Code Generator', action: onShowQRCodeGenerator },
   ];
 
