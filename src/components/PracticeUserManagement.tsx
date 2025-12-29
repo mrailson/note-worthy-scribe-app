@@ -72,6 +72,9 @@ export const PracticeUserManagement = () => {
   const [practiceInfo, setPracticeInfo] = useState<any>(null);
   const [isNonPracticeOrg, setIsNonPracticeOrg] = useState(false);
   
+  const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
+  const [sendingEmail, setSendingEmail] = useState(false);
+
   const [userFormData, setUserFormData] = useState({
     email: '',
     full_name: '',
@@ -188,6 +191,42 @@ export const PracticeUserManagement = () => {
 
       if (data.success) {
         toast.success(data.message);
+        
+        // Send welcome email if enabled
+        if (sendWelcomeEmail) {
+          setSendingEmail(true);
+          try {
+            const { error: emailError } = await supabase.functions.invoke('send-user-welcome-email', {
+              body: {
+                user_email: userFormData.email,
+                user_name: userFormData.full_name,
+                temporary_password: userFormData.password,
+                user_role: userFormData.role,
+                practice_name: practiceInfo?.name || 'Your Practice',
+                module_access: {
+                  ...userFormData.module_access,
+                  translation_service_access: false,
+                  cso_governance_access: false,
+                  lg_capture_access: false,
+                  bp_service_access: false
+                }
+              }
+            });
+            
+            if (emailError) {
+              console.error('Failed to send welcome email:', emailError);
+              toast.error('User created but welcome email failed to send');
+            } else {
+              toast.success('Welcome email sent to user');
+            }
+          } catch (emailErr) {
+            console.error('Error sending welcome email:', emailErr);
+            toast.error('User created but welcome email failed to send');
+          } finally {
+            setSendingEmail(false);
+          }
+        }
+        
         loadPracticeUsers();
         setShowUserModal(false);
         resetForm();
@@ -314,6 +353,7 @@ export const PracticeUserManagement = () => {
         fridge_monitoring_access: false
       }
     });
+    setSendWelcomeEmail(true);
   };
 
   const filteredUsers = users.filter(user =>
@@ -627,21 +667,6 @@ export const PracticeUserManagement = () => {
                 </div>
                 <div className="flex items-center space-x-2">
                   <Switch
-                    id="shared_drive_access"
-                    checked={userFormData.module_access.shared_drive_access}
-                    onCheckedChange={(checked) => 
-                      setUserFormData(prev => ({
-                        ...prev,
-                        module_access: { ...prev.module_access, shared_drive_access: checked }
-                      }))
-                    }
-                  />
-                  <Label htmlFor="shared_drive_access" className="text-sm">
-                    Shared Drive Access
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Switch
                     id="fridge_monitoring_access"
                     checked={userFormData.module_access.fridge_monitoring_access}
                     onCheckedChange={(checked) => 
@@ -657,6 +682,27 @@ export const PracticeUserManagement = () => {
                 </div>
               </div>
             </div>
+
+            {/* Send Welcome Email - Only for new users */}
+            {!editingUser && (
+              <div className="p-4 border border-border rounded-lg bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <Label htmlFor="send_welcome_email" className="text-sm font-medium">
+                      Send welcome email to user
+                    </Label>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Email will include login URL, credentials and enabled modules
+                    </p>
+                  </div>
+                  <Switch
+                    id="send_welcome_email"
+                    checked={sendWelcomeEmail}
+                    onCheckedChange={setSendWelcomeEmail}
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           <DialogFooter>
@@ -672,9 +718,9 @@ export const PracticeUserManagement = () => {
             </Button>
             <Button
               onClick={editingUser ? handleUpdateUser : handleCreateUser}
-              disabled={loading || !userFormData.email || !userFormData.full_name || (!editingUser && !userFormData.password)}
+              disabled={loading || sendingEmail || !userFormData.email || !userFormData.full_name || (!editingUser && !userFormData.password)}
             >
-              {loading ? 'Processing...' : (editingUser ? 'Update User' : 'Create User')}
+              {loading ? 'Processing...' : sendingEmail ? 'Sending email...' : (editingUser ? 'Update User' : 'Create User')}
             </Button>
           </DialogFooter>
         </DialogContent>
