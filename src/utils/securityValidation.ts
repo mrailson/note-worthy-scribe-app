@@ -218,6 +218,8 @@ export const CSP_HEADERS = {
     "img-src 'self' data: blob: https:",
     "media-src 'self' blob:",
     "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
+    "frame-src 'self' https://embed.app.guidde.com https://*.guidde.com",
+    "child-src 'self' https://embed.app.guidde.com https://*.guidde.com",
     "frame-ancestors 'none'",
     "base-uri 'self'",
     "form-action 'self'"
