@@ -393,9 +393,6 @@ const Index = () => {
               </div>
             </div>
           </div>
-
-          {/* Service Overview */}
-          <ServiceOverview />
         </div>
       </div>;
   }
