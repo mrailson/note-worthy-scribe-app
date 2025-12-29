@@ -208,7 +208,7 @@ export const LoginForm = () => {
                 onClick={() => setShowForgotPassword(true)}
                 className="text-muted-foreground hover:text-primary text-xs"
               >
-                Or reset password manually
+                Or Forgotten Password/Reset Password
               </Button>
             </div>
           </div>
