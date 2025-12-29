@@ -324,7 +324,7 @@ export const PracticeUserManagement = () => {
         ai4gp_access: user.ai4gp_access,
         enhanced_access: user.enhanced_access,
         cqc_compliance_access: user.cqc_compliance_access,
-        shared_drive_access: user.shared_drive_access,
+        shared_drive_access: false,
         mic_test_service_access: user.mic_test_service_access,
         api_testing_service_access: user.api_testing_service_access,
         fridge_monitoring_access: user.fridge_monitoring_access
