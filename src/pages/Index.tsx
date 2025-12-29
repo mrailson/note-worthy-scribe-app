@@ -283,13 +283,6 @@ const Index = () => {
 
             {/* Welcome Content - appears second on mobile, left on desktop */}
             <div className="space-y-6 lg:order-1">
-              {/* Hero Section */}
-              <div className="text-center lg:text-left animate-fade-in">
-                <h1 className="text-3xl sm:text-4xl font-bold text-foreground">
-                  Welcome to Notewell AI
-                </h1>
-              </div>
-
               {/* Service Cards */}
               <div className="space-y-4">
                 {/* Complaints Management System */}
