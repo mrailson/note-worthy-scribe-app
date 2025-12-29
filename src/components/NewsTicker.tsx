@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Newspaper, ExternalLink, Clock } from 'lucide-react';
+import { ExternalLink, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { formatDistanceToNow } from 'date-fns';
 
@@ -43,14 +43,8 @@ export const NewsTicker = () => {
 
   return (
     <div className="relative overflow-hidden rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm shadow-sm">
-      {/* Header Label */}
-      <div className="absolute left-0 top-0 bottom-0 z-10 flex items-center gap-2 px-4 sm:px-5 bg-primary text-primary-foreground font-semibold text-sm whitespace-nowrap">
-        <Newspaper className="h-4 w-4" />
-        <span className="hidden sm:inline">GP News</span>
-      </div>
-
       {/* Ticker content */}
-      <div className="py-3 sm:py-4 pl-14 sm:pl-32 pr-4 overflow-hidden">
+      <div className="py-3 sm:py-4 px-4 overflow-hidden">
         <div className="animate-ticker flex items-center gap-8 sm:gap-10 hover:[animation-play-state:paused]">
           {duplicatedArticles.map((article, index) => (
             <a
@@ -97,7 +91,7 @@ export const NewsTicker = () => {
       </div>
 
       {/* Gradient fade edges */}
-      <div className="absolute left-28 sm:left-32 top-0 bottom-0 w-12 bg-gradient-to-r from-card/80 to-transparent pointer-events-none z-[5]" />
+      <div className="absolute left-0 top-0 bottom-0 w-12 bg-gradient-to-r from-card/80 to-transparent pointer-events-none z-[5]" />
       <div className="absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-card/80 to-transparent pointer-events-none" />
     </div>
   );
