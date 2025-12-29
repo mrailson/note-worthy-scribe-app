@@ -344,38 +344,8 @@ const Index = () => {
             </div>
           </div>
 
-          {/* Full-width sections below */}
-          <div className="space-y-8">
-
-            {/* CSO Training Section - Refined */}
-            <div className="animate-fade-in">
-              <Link to="/usingai_nhs" className="block">
-                <div className="p-6 border border-border rounded-lg bg-card hover:shadow-lg transition-all hover:border-primary/50">
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
-                    <div className="flex-shrink-0 w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                      <Building2 className="w-5 h-5 text-primary" />
-                    </div>
-                    <div className="flex-1">
-                      <h3 className="text-lg font-semibold text-foreground mb-1">
-                        Using AI in Your GP Practice & CSO Training
-                      </h3>
-                      <p className="text-sm text-muted-foreground">
-                        Watch our explainer video and access free CSO training resources for NHS practices
-                      </p>
-                    </div>
-                    <div className="sm:ml-auto self-center">
-                      <span className="inline-flex items-center px-3 py-1.5 bg-primary/10 text-primary rounded-md font-medium text-sm hover:bg-primary/20 transition-colors">
-                        View Resources →
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              </Link>
-            </div>
-
-            {/* Service Overview */}
-            <ServiceOverview />
-          </div>
+          {/* Service Overview */}
+          <ServiceOverview />
         </div>
       </div>;
   }
