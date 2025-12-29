@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { ArrowLeft, ExternalLink } from "lucide-react";
 import { SEO } from "@/components/SEO";
 import { Button } from "@/components/ui/button";
+import { AspectRatio } from "@/components/ui/aspect-ratio";
 import {
   Accordion,
   AccordionContent,
@@ -75,22 +76,22 @@ const TrainingVideoPage = () => {
             </header>
 
             <section aria-label="Training video" className="space-y-3">
-              <div className="rounded-lg overflow-hidden border border-border shadow-lg">
-                <iframe
-                  width="100%"
-                  height="400"
-                  src="https://embed.app.guidde.com/playbooks/gCxn8UuCkRPWiXTDrfZ5dj?mode=videoOnly"
-                  title="Login and Navigate Basic Features in NoteWell AI"
-                  frameBorder="0"
-                  referrerPolicy="unsafe-url"
-                  allowFullScreen
-                  allow="clipboard-write"
-                  className="rounded-lg"
-                />
+              <div className="rounded-lg overflow-hidden border border-border shadow-lg bg-card">
+                <AspectRatio ratio={16 / 9}>
+                  <video
+                    className="h-full w-full"
+                    controls
+                    playsInline
+                    preload="metadata"
+                  >
+                    <source src="/videos/notewell-ai-training.mp4" type="video/mp4" />
+                    Your browser does not support the video tag.
+                  </video>
+                </AspectRatio>
               </div>
 
               <a
-                href="https://embed.app.guidde.com/playbooks/gCxn8UuCkRPWiXTDrfZ5dj?mode=videoOnly"
+                href="/videos/notewell-ai-training.mp4"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors font-medium"
