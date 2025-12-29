@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -66,6 +67,8 @@ export const PracticeUserManagement = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showUserModal, setShowUserModal] = useState(false);
   const [editingUser, setEditingUser] = useState<PracticeUser | null>(null);
+  const [userToDelete, setUserToDelete] = useState<PracticeUser | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [practiceInfo, setPracticeInfo] = useState<any>(null);
   const [isNonPracticeOrg, setIsNonPracticeOrg] = useState(false);
   
@@ -234,16 +237,19 @@ export const PracticeUserManagement = () => {
     }
   };
 
-  const handleRemoveUser = async (userId: string) => {
-    if (!confirm('Are you sure you want to remove this user from your practice?')) {
-      return;
-    }
+  const confirmDeleteUser = (user: PracticeUser) => {
+    setUserToDelete(user);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleRemoveUser = async () => {
+    if (!userToDelete) return;
 
     try {
       setLoading(true);
       
       const { data, error } = await supabase.functions.invoke('remove-user-practice-manager', {
-        body: { user_id: userId }
+        body: { user_id: userToDelete.user_id }
       });
 
       if (error) throw error;
@@ -259,6 +265,8 @@ export const PracticeUserManagement = () => {
       toast.error(error.message || "Failed to remove user");
     } finally {
       setLoading(false);
+      setShowDeleteConfirm(false);
+      setUserToDelete(null);
     }
   };
 
@@ -438,7 +446,7 @@ export const PracticeUserManagement = () => {
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => handleRemoveUser(user.user_id)}
+                              onClick={() => confirmDeleteUser(user)}
                               className="text-destructive hover:text-destructive"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -671,6 +679,27 @@ export const PracticeUserManagement = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove <span className="font-semibold">{userToDelete?.full_name}</span> ({userToDelete?.email}) from your practice. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setUserToDelete(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleRemoveUser}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {loading ? 'Deleting...' : 'Delete User'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
