@@ -69,9 +69,8 @@ export const ServiceOverview = () => {
     }
   ];
 
-  // Show only key services on the logged-out page
-  const allowedServices = new Set(['AI4GP Service','Meeting Recording & Management']);
-  const displayedServices = services.filter(s => allowedServices.has(s.title));
+  // Hide all service cards on logged-out page - they're now shown inline on Index.tsx
+  const displayedServices: typeof services = [];
 
 
   const securityFeatures = [

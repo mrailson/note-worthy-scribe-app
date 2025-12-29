@@ -393,6 +393,9 @@ const Index = () => {
               </div>
             </div>
           </div>
+
+          {/* Service Overview - without the duplicate cards */}
+          <ServiceOverview />
         </div>
       </div>;
   }
