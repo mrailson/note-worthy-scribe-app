@@ -94,6 +94,28 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
     setOverview(newOverview);
   };
 
+  const handleDownloadWord = async () => {
+    if (!meeting?.notes_style_2 && !overview) {
+      toast.error('No notes available to download');
+      return;
+    }
+    const meetingDateFormatted = meeting?.start_time || meeting?.created_at;
+    const content = [
+      `# ${meeting?.title || 'Meeting Notes'}`,
+      '',
+      `**Date:** ${meetingDateFormatted ? format(new Date(meetingDateFormatted), 'dd MMMM yyyy, HH:mm') : 'Unknown'}`,
+      meeting?.duration_minutes ? `**Duration:** ${formatDuration(meeting.duration_minutes)}` : '',
+      meeting?.word_count ? `**Word Count:** ${meeting.word_count.toLocaleString()}` : '',
+      '',
+      overview ? `## Overview\n\n${overview}` : '',
+      '',
+      meeting?.notes_style_2 ? `## Meeting Notes\n\n${meeting.notes_style_2}` : ''
+    ].filter(Boolean).join('\n');
+    
+    await generateWordDocument(content, `${meeting?.title || 'Meeting Notes'} - ${format(new Date(), 'dd-MM-yyyy')}`);
+    toast.success('Meeting notes downloaded');
+  };
+
   const formatDuration = (minutes: number | null) => {
     if (!minutes) return 'Unknown';
     if (minutes < 60) return `${minutes} min`;
@@ -141,6 +163,13 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
                     </div>
                   </DrawerDescription>
                 </div>
+                <Button 
+                  onClick={handleDownloadWord}
+                  className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+                >
+                  <Download className="h-4 w-4" />
+                  Download Notes
+                </Button>
               </div>
             </DrawerHeader>
 
@@ -225,43 +254,14 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
             </div>
 
             {/* Footer */}
-            <div className="border-t p-4 flex justify-between items-center">
-              <Button 
-                variant="outline" 
-                onClick={async () => {
-                  if (!meeting?.notes_style_2 && !overview) {
-                    toast.error('No notes available to download');
-                    return;
-                  }
-                  const content = [
-                    `# ${meeting?.title || 'Meeting Notes'}`,
-                    '',
-                    `**Date:** ${meetingDate ? format(new Date(meetingDate), 'dd MMMM yyyy, HH:mm') : 'Unknown'}`,
-                    meeting?.duration_minutes ? `**Duration:** ${formatDuration(meeting.duration_minutes)}` : '',
-                    meeting?.word_count ? `**Word Count:** ${meeting.word_count.toLocaleString()}` : '',
-                    '',
-                    overview ? `## Overview\n\n${overview}` : '',
-                    '',
-                    meeting?.notes_style_2 ? `## Meeting Notes\n\n${meeting.notes_style_2}` : ''
-                  ].filter(Boolean).join('\n');
-                  
-                  await generateWordDocument(content, `${meeting?.title || 'Meeting Notes'} - ${format(new Date(), 'dd-MM-yyyy')}`);
-                  toast.success('Meeting notes downloaded');
-                }}
-                className="flex items-center gap-2"
-              >
-                <Download className="h-4 w-4" />
-                Download Word
+            <div className="border-t p-4 flex justify-end gap-2">
+              <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                Close
               </Button>
-              <div className="flex gap-2">
-                <Button variant="ghost" onClick={() => onOpenChange(false)}>
-                  Close
-                </Button>
-                <Button onClick={handleOpenFullMeeting} className="flex items-center gap-2">
-                  <ExternalLink className="h-4 w-4" />
-                  Open Full Meeting
-                </Button>
-              </div>
+              <Button onClick={handleOpenFullMeeting} className="flex items-center gap-2">
+                <ExternalLink className="h-4 w-4" />
+                Open Full Meeting
+              </Button>
             </div>
           </>
         ) : (
