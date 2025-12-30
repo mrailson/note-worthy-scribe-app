@@ -154,12 +154,16 @@ export function renderNHSMarkdown(content: string, options: RenderOptions = {}):
     .replace(/\|(.+?)\|\s*\n\s*\|[\s\-:]+\|.*?\n((?:\s*\|.+?\|\s*(?:\n|$))+)/gs, (match, headerRow, bodyRows) => {
        // Debug disabled: console.log('🔍 TABLE MATCH FOUND:', match);
        
-       const headers = headerRow.split('|').map(h => h.trim()).filter(h => h);
+       // Split by | and use slice(1, -1) to remove empty first/last elements from pipe borders
+       // This preserves empty cells in the middle of the table
+       const rawHeaders = headerRow.split('|').map(h => h.trim());
+       const headers = rawHeaders.slice(1, -1);
       // Debug disabled: console.log('🔍 TABLE HEADERS:', headers);
       
       const rows = bodyRows.trim().split('\n').map(row => {
-        const cells = row.split('|').map(cell => cell.trim()).filter(cell => cell);
-        return cells;
+        const rawCells = row.split('|').map(cell => cell.trim());
+        // Use slice(1, -1) to preserve empty cells while removing pipe border artifacts
+        return rawCells.slice(1, -1);
       }).filter(row => row.length > 0);
       
       // Debug disabled: console.log('🔍 TABLE ROWS:', rows);

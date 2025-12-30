@@ -131,11 +131,11 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
       
       if (tableLines.length < 2) return null;
 
-      // Parse table rows
+      // Parse table rows - use slice(1, -1) to remove pipe borders while preserving empty cells
       const rows = tableLines.map(line => {
-        return line.split('|')
-          .map(cell => cell.trim())
-          .filter(cell => cell !== '') // Remove empty cells from start/end
+        const rawCells = line.split('|').map(cell => cell.trim());
+        // Use slice(1, -1) to preserve empty cells while removing pipe border artifacts
+        return rawCells.slice(1, -1);
       });
 
       // Skip header separator lines and horizontal rules
