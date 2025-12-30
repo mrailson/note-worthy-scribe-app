@@ -30,6 +30,9 @@ interface MeetingDetails {
   word_count: number | null;
   status: string | null;
   notes_style_2: string | null;
+  notes_style_3: string | null;
+  notes_style_4: string | null;
+  notes_style_5: string | null;
   overview: string | null;
 }
 
@@ -51,10 +54,10 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
     
     setLoading(true);
     try {
-      // Fetch meeting details including notes
+      // Fetch meeting details including all notes styles
       const { data: meetingData, error: meetingError } = await supabase
         .from('meetings')
-        .select('id, title, start_time, created_at, duration_minutes, word_count, status, notes_style_2, overview')
+        .select('id, title, start_time, created_at, duration_minutes, word_count, status, notes_style_2, notes_style_3, notes_style_4, notes_style_5, overview')
         .eq('id', meetingId)
         .single();
 
@@ -95,22 +98,36 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
   };
 
   const handleDownloadWord = async () => {
-    if (!meeting?.notes_style_2 && !overview) {
+    // Priority: notes_style_3 (Minutes Standard with action table) > notes_style_2 > overview
+    const fullNotes = meeting?.notes_style_3 || meeting?.notes_style_2 || meeting?.notes_style_4 || meeting?.notes_style_5 || '';
+    
+    if (!fullNotes && !overview) {
       toast.error('No notes available to download');
       return;
     }
-    const meetingDateFormatted = meeting?.start_time || meeting?.created_at;
-    const content = [
-      `# ${meeting?.title || 'Meeting Notes'}`,
-      '',
-      `**Date:** ${meetingDateFormatted ? format(new Date(meetingDateFormatted), 'dd MMMM yyyy, HH:mm') : 'Unknown'}`,
-      meeting?.duration_minutes ? `**Duration:** ${formatDuration(meeting.duration_minutes)}` : '',
-      meeting?.word_count ? `**Word Count:** ${meeting.word_count.toLocaleString()}` : '',
-      '',
-      overview ? `## Overview\n\n${overview}` : '',
-      '',
-      meeting?.notes_style_2 ? `## Meeting Notes\n\n${meeting.notes_style_2}` : ''
-    ].filter(Boolean).join('\n');
+    
+    // Use the full notes directly if available, otherwise build from overview
+    let content = '';
+    if (fullNotes) {
+      // Strip out transcript section before generating Word doc
+      content = fullNotes
+        .replace(/\n*MEETING TRANSCRIPT FOR REFERENCE:[\s\S]*$/i, '')
+        .replace(/\n*Transcript:[\s\S]*$/i, '')
+        .replace(/\n*Full Transcript:[\s\S]*$/i, '')
+        .replace(/\n*##?\s*TRANSCRIPT[\s\S]*$/i, '')
+        .replace(/\n*##?\s*Meeting Transcript[\s\S]*$/i, '');
+    } else {
+      const meetingDateFormatted = meeting?.start_time || meeting?.created_at;
+      content = [
+        `# ${meeting?.title || 'Meeting Notes'}`,
+        '',
+        `**Date:** ${meetingDateFormatted ? format(new Date(meetingDateFormatted), 'dd MMMM yyyy, HH:mm') : 'Unknown'}`,
+        meeting?.duration_minutes ? `**Duration:** ${formatDuration(meeting.duration_minutes)}` : '',
+        meeting?.word_count ? `**Word Count:** ${meeting.word_count.toLocaleString()}` : '',
+        '',
+        overview ? `## Overview\n\n${overview}` : ''
+      ].filter(Boolean).join('\n');
+    }
     
     await generateWordDocument(content, `${meeting?.title || 'Meeting Notes'} - ${format(new Date(), 'dd-MM-yyyy')}`);
     toast.success('Meeting notes downloaded');
@@ -203,31 +220,35 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
                           />
                         </div>
 
-                        {/* Notes Preview */}
-                        {meeting.notes_style_2 && (
-                          <div>
-                            <h3 className="text-sm font-medium mb-2">Meeting Notes</h3>
-                            <div 
-                              className="prose prose-sm max-w-none text-muted-foreground bg-muted/30 rounded-lg p-3"
-                              dangerouslySetInnerHTML={{ 
-                                __html: renderMinutesMarkdown(
-                                  meeting.notes_style_2.substring(0, 500) + 
-                                  (meeting.notes_style_2.length > 500 ? '...' : '')
-                                ) 
-                              }}
-                            />
-                            {meeting.notes_style_2.length > 500 && (
-                              <Button 
-                                variant="link" 
-                                size="sm" 
-                                className="mt-1 p-0 h-auto"
-                                onClick={handleOpenFullMeeting}
-                              >
-                                View full notes →
-                              </Button>
-                            )}
-                          </div>
-                        )}
+                        {/* Notes Preview - Priority: notes_style_3 > notes_style_2 */}
+                        {(() => {
+                          const notesContent = meeting.notes_style_3 || meeting.notes_style_2 || meeting.notes_style_4 || meeting.notes_style_5;
+                          if (!notesContent) return null;
+                          return (
+                            <div>
+                              <h3 className="text-sm font-medium mb-2">Meeting Notes</h3>
+                              <div 
+                                className="prose prose-sm max-w-none text-muted-foreground bg-muted/30 rounded-lg p-3"
+                                dangerouslySetInnerHTML={{ 
+                                  __html: renderMinutesMarkdown(
+                                    notesContent.substring(0, 800) + 
+                                    (notesContent.length > 800 ? '...' : '')
+                                  ) 
+                                }}
+                              />
+                              {notesContent.length > 800 && (
+                                <Button 
+                                  variant="link" 
+                                  size="sm" 
+                                  className="mt-1 p-0 h-auto"
+                                  onClick={handleOpenFullMeeting}
+                                >
+                                  View full notes →
+                                </Button>
+                              )}
+                            </div>
+                          );
+                        })()}
                       </div>
                     </ScrollArea>
                   </TabsContent>
