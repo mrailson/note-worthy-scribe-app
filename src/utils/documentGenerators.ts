@@ -138,9 +138,10 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
         return rawCells.slice(1, -1);
       });
 
-      // Skip header separator lines and horizontal rules
+      // Skip header separator lines (like ---) but keep empty data rows
+      // Use /^[-:]+$/ which requires at least one character, so empty cells are preserved
       const dataRows = rows.filter(row => 
-        !row.every(cell => /^[-\s]*$/.test(cell))
+        !row.every(cell => /^[-:]+$/.test(cell))
       );
 
       if (dataRows.length === 0) return null;
