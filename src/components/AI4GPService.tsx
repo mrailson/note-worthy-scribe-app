@@ -34,6 +34,7 @@ import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
 import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
 import { TranslationToolInterface } from '@/components/TranslationToolInterface';
+import { MeetingPreviewDrawer } from '@/components/ai4gp/MeetingPreviewDrawer';
 
 
   // Hook imports
@@ -113,6 +114,8 @@ const AI4GPService = () => {
   const [showQRCodeGeneratorModal, setShowQRCodeGeneratorModal] = useState(false);
   const [showVerificationChart, setShowVerificationChart] = useState(false);
   const [showDocumentTranslate, setShowDocumentTranslate] = useState(false);
+  const [previewMeetingId, setPreviewMeetingId] = useState<string | null>(null);
+  const [showMeetingPreview, setShowMeetingPreview] = useState(false);
   
   const [selectedRole, setSelectedRole] = useState<'gp' | 'practice-manager'>('gp');
   const [setDrugNameFn, setSetDrugNameFn] = useState<((drugName: string) => void) | null>(null);
@@ -380,7 +383,10 @@ const AI4GPService = () => {
           onShowAllQuickActions={() => setShowAllQuickActions(true)}
           meetings={meetings as any}
           meetingsLoading={meetingsLoading}
-          onSelectMeeting={(meetingId) => navigate(`/meeting-summary/${meetingId}`)}
+          onSelectMeeting={(meetingId) => {
+            setPreviewMeetingId(meetingId);
+            setShowMeetingPreview(true);
+          }}
         />
 
         <div className="flex flex-1 min-h-0 flex-col">
@@ -993,6 +999,13 @@ const AI4GPService = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Meeting Preview Drawer */}
+      <MeetingPreviewDrawer
+        meetingId={previewMeetingId}
+        open={showMeetingPreview}
+        onOpenChange={setShowMeetingPreview}
+      />
 
     </>
   );
