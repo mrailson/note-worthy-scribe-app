@@ -20,19 +20,18 @@ export function parseMarkdownTable(tableMarkdown: string): TableData | null {
 
   const [, headerRow, bodyRows] = match;
 
-  const headers = headerRow
-    .split('|')
-    .map(h => h.trim())
-    .filter(h => h);
+  // Split by | and use slice(1, -1) to remove empty first/last elements from pipe borders
+  // This preserves empty cells in the middle of the table
+  const rawHeaders = headerRow.split('|').map(h => h.trim());
+  const headers = rawHeaders.slice(1, -1);
 
   const rows = bodyRows
     .trim()
     .split('\n')
     .map(row => {
-      const cells = row
-        .split('|')
-        .map(cell => cell.trim())
-        .filter(cell => cell);
+      const rawCells = row.split('|').map(cell => cell.trim());
+      // Use slice(1, -1) to preserve empty cells while removing pipe border artifacts
+      const cells = rawCells.slice(1, -1);
 
       const rowData: { [key: string]: string } = {};
       headers.forEach((header, index) => {
