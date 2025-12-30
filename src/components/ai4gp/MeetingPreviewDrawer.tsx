@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from 'date-fns';
-import { Clock, FileText, ExternalLink, Calendar, Loader2 } from 'lucide-react';
+import { Clock, FileText, ExternalLink, Calendar, Loader2, Download } from 'lucide-react';
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from '@/components/ui/drawer';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -13,6 +13,7 @@ import { TextOverviewEditor } from '@/components/meeting-details/TextOverviewEdi
 import { MeetingQAPanel } from '@/components/meeting-details/MeetingQAPanel';
 import { MeetingDocumentsList } from '@/components/MeetingDocumentsList';
 import { renderMinutesMarkdown } from '@/lib/minutesRenderer';
+import { generateWordDocument } from '@/utils/documentGenerators';
 
 interface MeetingPreviewDrawerProps {
   meetingId: string | null;
@@ -224,14 +225,43 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
             </div>
 
             {/* Footer */}
-            <div className="border-t p-4 flex justify-end gap-2">
-              <Button variant="outline" onClick={() => onOpenChange(false)}>
-                Close
+            <div className="border-t p-4 flex justify-between items-center">
+              <Button 
+                variant="outline" 
+                onClick={async () => {
+                  if (!meeting?.notes_style_2 && !overview) {
+                    toast.error('No notes available to download');
+                    return;
+                  }
+                  const content = [
+                    `# ${meeting?.title || 'Meeting Notes'}`,
+                    '',
+                    `**Date:** ${meetingDate ? format(new Date(meetingDate), 'dd MMMM yyyy, HH:mm') : 'Unknown'}`,
+                    meeting?.duration_minutes ? `**Duration:** ${formatDuration(meeting.duration_minutes)}` : '',
+                    meeting?.word_count ? `**Word Count:** ${meeting.word_count.toLocaleString()}` : '',
+                    '',
+                    overview ? `## Overview\n\n${overview}` : '',
+                    '',
+                    meeting?.notes_style_2 ? `## Meeting Notes\n\n${meeting.notes_style_2}` : ''
+                  ].filter(Boolean).join('\n');
+                  
+                  await generateWordDocument(content, `${meeting?.title || 'Meeting Notes'} - ${format(new Date(), 'dd-MM-yyyy')}`);
+                  toast.success('Meeting notes downloaded');
+                }}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download Word
               </Button>
-              <Button onClick={handleOpenFullMeeting} className="flex items-center gap-2">
-                <ExternalLink className="h-4 w-4" />
-                Open Full Meeting
-              </Button>
+              <div className="flex gap-2">
+                <Button variant="ghost" onClick={() => onOpenChange(false)}>
+                  Close
+                </Button>
+                <Button onClick={handleOpenFullMeeting} className="flex items-center gap-2">
+                  <ExternalLink className="h-4 w-4" />
+                  Open Full Meeting
+                </Button>
+              </div>
             </div>
           </>
         ) : (
