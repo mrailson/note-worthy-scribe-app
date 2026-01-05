@@ -5303,6 +5303,7 @@ export type Database = {
           meeting_date: string
           notes: string | null
           priority: string
+          reference_number: string | null
           responsible_person: string
           status: string
           updated_at: string
@@ -5317,6 +5318,7 @@ export type Database = {
           meeting_date: string
           notes?: string | null
           priority?: string
+          reference_number?: string | null
           responsible_person: string
           status?: string
           updated_at?: string
@@ -5331,6 +5333,7 @@ export type Database = {
           meeting_date?: string
           notes?: string | null
           priority?: string
+          reference_number?: string | null
           responsible_person?: string
           status?: string
           updated_at?: string

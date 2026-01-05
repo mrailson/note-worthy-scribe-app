@@ -43,7 +43,7 @@ export const BoardActionTracker = () => {
       );
     } else {
       createAction.mutate(data, {
-        onSuccess: async (newAction: NRESBoardAction) => {
+        onSuccess: async (newAction) => {
           // Upload any pending files for new action
           if (files && files.length > 0 && newAction?.id) {
             for (const file of files) {
