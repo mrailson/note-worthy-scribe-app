@@ -202,8 +202,8 @@ Return ONLY a valid JSON object with these fields (use null for missing informat
   "patient_contact_email": "Email address", 
   "patient_address": "Full address",
   "incident_date": "Date of incident in YYYY-MM-DD format",
-  "complaint_title": "Brief title summarizing the complaint",
-  "complaint_description": "Detailed description of the complaint",
+  "complaint_title": "Brief title summarizing the complaint (max 10 words)",
+  "complaint_description": "A professional, clinical summary of the complaint in 2-4 sentences. Extract the core concerns without preserving offensive language, emotional outbursts, or inappropriate references. Focus on: what happened, when, what the patient is unhappy about, and what outcome they seek. Write in third person, professional tone (e.g. 'The patient reports...').",
   "category": "One of: Clinical Care & Treatment, Prescriptions, Staff Attitude & Behaviour, Appointments & Access, Communication Issues, Test Results & Follow-Up, Confidentiality & Data, Digital Services, Facilities & Environment, Administration, other",
   "location_service": "Location or service where incident occurred",
   "staff_mentioned": ["Array", "of", "staff", "names", "mentioned"],
@@ -226,6 +226,14 @@ CRITICAL: Category Selection Rules (prioritize by severity - highest to lowest):
 11. "other" - Anything not covered above
 
 If multiple complaint categories apply, ALWAYS select the most serious category from the hierarchy above.
+
+CRITICAL SUMMARISATION RULES for complaint_description:
+- NEVER copy offensive language, profanity, or inappropriate references verbatim
+- Summarise the complaint professionally in 2-4 sentences maximum
+- Focus on factual concerns rather than emotional expression
+- Write in third person, clinical tone (e.g., "The patient reports..." or "The complainant states...")
+- If the patient mentions specific staff, note that staff were mentioned but do not repeat accusations verbatim
+- Extract the core issue: what happened, when, impact on patient, and desired resolution
 
 Important:
 - The text may be messy with XML tags, namespaces, or formatting artifacts - ignore these and focus on readable content
