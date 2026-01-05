@@ -1588,6 +1588,7 @@ export type Database = {
           is_active: boolean
           name: string
           phone: string | null
+          practice_id: string | null
           role: string
           updated_at: string
           user_id: string
@@ -1599,6 +1600,7 @@ export type Database = {
           is_active?: boolean
           name: string
           phone?: string | null
+          practice_id?: string | null
           role: string
           updated_at?: string
           user_id: string
@@ -1610,11 +1612,20 @@ export type Database = {
           is_active?: boolean
           name?: string
           phone?: string | null
+          practice_id?: string | null
           role?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "complaint_team_members_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "gp_practices"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       complaint_templates: {
         Row: {

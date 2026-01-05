@@ -8,14 +8,15 @@ import { InvestigationEvidence } from '@/components/InvestigationEvidence';
 
 interface InvestigationEvidenceTabProps {
   complaintId: string;
+  practiceId?: string | null;
   disabled?: boolean;
 }
 
-export function InvestigationEvidenceTab({ complaintId, disabled = false }: InvestigationEvidenceTabProps) {
+export function InvestigationEvidenceTab({ complaintId, practiceId, disabled = false }: InvestigationEvidenceTabProps) {
   return (
     <div className="space-y-6">
       {/* Request Information Panel - Top Priority */}
-      <RequestInformationPanel complaintId={complaintId} disabled={disabled} />
+      <RequestInformationPanel complaintId={complaintId} practiceId={practiceId} disabled={disabled} />
 
       {/* Evidence & Transcripts Section */}
       <InvestigationEvidence complaintId={complaintId} disabled={disabled} />
