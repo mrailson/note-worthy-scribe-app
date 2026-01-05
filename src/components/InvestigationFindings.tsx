@@ -31,11 +31,9 @@ interface InvestigationFinding {
 
 export function InvestigationFindings({ complaintId, disabled = false, onCreateOutcomeLetter }: InvestigationFindingsProps) {
   const [findings, setFindings] = useState<InvestigationFinding | null>(null);
-  const [investigationSummary, setInvestigationSummary] = useState('');
   const [findingsText, setFindingsText] = useState('');
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(false);
-  const [generatingSummary, setGeneratingSummary] = useState(false);
   const [generatingFindings, setGeneratingFindings] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -57,7 +55,6 @@ export function InvestigationFindings({ complaintId, disabled = false, onCreateO
 
       if (data) {
         setFindings(data);
-        setInvestigationSummary(data.investigation_summary);
         setFindingsText(data.findings_text);
         setEditing(false);
       } else {
@@ -70,8 +67,8 @@ export function InvestigationFindings({ complaintId, disabled = false, onCreateO
   };
 
   const saveInvestigationFindings = async () => {
-    if (!investigationSummary.trim() || !findingsText.trim()) {
-      toast.error('Please provide both investigation summary and findings');
+    if (!findingsText.trim()) {
+      toast.error('Please provide investigation findings');
       return;
     }
 
@@ -87,8 +84,8 @@ export function InvestigationFindings({ complaintId, disabled = false, onCreateO
         const { data, error } = await supabase
           .from('complaint_investigation_findings')
           .update({
-            investigation_summary: investigationSummary,
             findings_text: findingsText,
+            investigation_summary: findingsText.substring(0, 500), // Use first 500 chars as summary for backwards compat
             updated_at: new Date().toISOString()
           })
           .eq('id', findings.id)
@@ -103,8 +100,8 @@ export function InvestigationFindings({ complaintId, disabled = false, onCreateO
           .from('complaint_investigation_findings')
           .insert({
             complaint_id: complaintId,
-            investigation_summary: investigationSummary,
             findings_text: findingsText,
+            investigation_summary: findingsText.substring(0, 500), // Use first 500 chars as summary for backwards compat
             investigated_by: user.data.user.id
           })
           .select()
@@ -130,35 +127,8 @@ export function InvestigationFindings({ complaintId, disabled = false, onCreateO
 
   const handleCancel = () => {
     if (findings) {
-      setInvestigationSummary(findings.investigation_summary);
       setFindingsText(findings.findings_text);
       setEditing(false);
-    }
-  };
-
-  const generateInvestigationSummary = async () => {
-    setGeneratingSummary(true);
-    try {
-      const { data, error } = await supabase.functions.invoke('ai-investigation-assistant', {
-        body: {
-          complaint_id: complaintId,
-          request_type: 'investigation_summary'
-        }
-      });
-
-      if (error) throw error;
-
-      if (data?.success && data?.content) {
-        setInvestigationSummary(data.content);
-        toast.success('Investigation summary generated successfully');
-      } else {
-        throw new Error(data?.error || 'Failed to generate summary');
-      }
-    } catch (error) {
-      console.error('Error generating investigation summary:', error);
-      toast.error('Failed to generate investigation summary');
-    } finally {
-      setGeneratingSummary(false);
     }
   };
 
@@ -176,7 +146,7 @@ export function InvestigationFindings({ complaintId, disabled = false, onCreateO
 
       if (data?.success && data?.content) {
         setFindingsText(data.content);
-        toast.success('Detailed findings generated successfully');
+        toast.success('Investigation findings generated successfully');
       } else {
         throw new Error(data?.error || 'Failed to generate findings');
       }
@@ -223,19 +193,7 @@ export function InvestigationFindings({ complaintId, disabled = false, onCreateO
             </div>
 
             <div>
-              <Label className="text-sm font-medium">Investigation Summary</Label>
-              <div className="mt-1 p-4 bg-background/50 border rounded-lg">
-                <div 
-                  className="prose prose-sm max-w-none whitespace-pre-wrap"
-                  dangerouslySetInnerHTML={{ 
-                    __html: renderNHSMarkdown(findings.investigation_summary || "", { enableNHSStyling: true })
-                  }} 
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label className="text-sm font-medium">Detailed Findings</Label>
+              <Label className="text-sm font-medium">Investigation Findings</Label>
               <div className="mt-1 p-4 bg-background/50 border rounded-lg">
                 <div 
                   className="prose prose-sm max-w-none whitespace-pre-wrap"
@@ -276,52 +234,7 @@ export function InvestigationFindings({ complaintId, disabled = false, onCreateO
           <div className="space-y-4">
             <div>
               <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="investigation-summary">Investigation Summary *</Label>
-                {!disabled && (
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={generateInvestigationSummary}
-                    disabled={generatingSummary || saving}
-                    className="text-xs"
-                  >
-                    {generatingSummary ? (
-                      <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3 w-3 mr-1" />
-                    )}
-                    {generatingSummary ? 'Generating...' : 'AI Generate'}
-                  </Button>
-                )}
-              </div>
-              <div className="relative">
-                <Textarea
-                  id="investigation-summary"
-                  placeholder="Provide a brief summary of how the investigation was conducted..."
-                  value={investigationSummary}
-                  onChange={(e) => setInvestigationSummary(e.target.value)}
-                  disabled={disabled || saving}
-                  rows={3}
-                  className="pl-12"
-                />
-                {!disabled && (
-                  <div className="absolute top-2 left-2">
-                    <SpeechToText
-                      onTranscription={(text) => {
-                        setInvestigationSummary(prev => prev + (prev ? '\n\n' : '') + text);
-                      }}
-                      size="sm"
-                      className="text-sm"
-                    />
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="findings-text">Detailed Findings *</Label>
+                <Label htmlFor="findings-text">Investigation Findings *</Label>
                 {!disabled && (
                   <Button
                     type="button"
@@ -347,7 +260,7 @@ export function InvestigationFindings({ complaintId, disabled = false, onCreateO
                   value={findingsText}
                   onChange={(e) => setFindingsText(e.target.value)}
                   disabled={disabled || saving}
-                  rows={6}
+                  rows={8}
                   className="pl-12"
                 />
                 {!disabled && (
@@ -367,7 +280,7 @@ export function InvestigationFindings({ complaintId, disabled = false, onCreateO
             <div className="flex gap-2">
               <Button
                 onClick={saveInvestigationFindings}
-                disabled={disabled || saving || !investigationSummary.trim() || !findingsText.trim()}
+                disabled={disabled || saving || !findingsText.trim()}
               >
                 <Save className="h-4 w-4 mr-2" />
                 {saving ? 'Saving...' : 'Save Findings'}
