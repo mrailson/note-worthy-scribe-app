@@ -90,7 +90,34 @@ const getTypeColor = (type: string) => {
 export const SDAWorkforceInnovation = () => {
   return (
     <div className="space-y-6">
-      {/* Proposed Job Adverts for Board Approval */}
+      {/* Job Description Templates */}
+      <CollapsibleCard
+        title="Job Description Templates"
+        icon={<FileText className="w-5 h-5" />}
+        defaultOpen={false}
+      >
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {jobDescriptionTemplates.map((template, index) => (
+            <div key={index} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+              <div className="flex items-center justify-between mb-2">
+                <Badge className={getTypeColor(template.type)}>{template.type}</Badge>
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  {template.status}
+                </Badge>
+              </div>
+              <p className="text-sm font-medium text-slate-900 mb-3">{template.name}</p>
+              <a href={template.documentUrl} download>
+                <Button size="sm" variant="outline" className="w-full gap-1">
+                  <Download className="w-3 h-3" />
+                  Download DOCX
+                </Button>
+              </a>
+            </div>
+          ))}
+        </div>
+      </CollapsibleCard>
+
+      {/* Job Adverts for Board Approval */}
       <div id="job-adverts-section">
       <CollapsibleCard
         title="Job Adverts for Programme Board Approval"
@@ -240,33 +267,6 @@ export const SDAWorkforceInnovation = () => {
         defaultOpen={false}
       >
         <GPRecruitmentPanel />
-      </CollapsibleCard>
-
-      {/* Job Description Templates */}
-      <CollapsibleCard
-        title="Job Description Templates"
-        icon={<FileText className="w-5 h-5" />}
-        defaultOpen={false}
-      >
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {jobDescriptionTemplates.map((template, index) => (
-            <div key={index} className="bg-slate-50 rounded-lg p-4 border border-slate-200">
-              <div className="flex items-center justify-between mb-2">
-                <Badge className={getTypeColor(template.type)}>{template.type}</Badge>
-                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-                  {template.status}
-                </Badge>
-              </div>
-              <p className="text-sm font-medium text-slate-900 mb-3">{template.name}</p>
-              <a href={template.documentUrl} download>
-                <Button size="sm" variant="outline" className="w-full gap-1">
-                  <Download className="w-3 h-3" />
-                  Download DOCX
-                </Button>
-              </a>
-            </div>
-          ))}
-        </div>
       </CollapsibleCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
