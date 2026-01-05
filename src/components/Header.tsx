@@ -298,7 +298,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   className="cursor-pointer py-3"
                                 >
                                   <LayoutDashboard className="h-4 w-4 mr-2" />
-                                  SDA Programme Board
+                                  SDA Pilot Dashboard
                                 </DropdownMenuItem>
                                 <DropdownMenuSeparator />
                                 <DropdownMenuItem 
