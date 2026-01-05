@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { format } from "date-fns";
+import { format, differenceInDays, addDays, startOfWeek, eachWeekOfInterval, endOfWeek } from "date-fns";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -120,7 +120,6 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
 
   const exportToExcel = () => {
     const now = new Date();
-    const numCols = 9;
     
     // Border style
     const border = {
@@ -146,6 +145,24 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
       font: { bold: true, sz: 14 },
       alignment: { horizontal: "left" },
     };
+
+    if (viewMode === 'gantt') {
+      // Gantt-style export
+      exportGanttExcel(now, border, headerStyle, cellStyle, titleStyle);
+    } else {
+      // Table-style export
+      exportTableExcel(now, border, headerStyle, cellStyle, titleStyle);
+    }
+  };
+
+  const exportTableExcel = (
+    now: Date,
+    border: object,
+    headerStyle: object,
+    cellStyle: object,
+    titleStyle: object
+  ) => {
+    const numCols = 9;
     
     // Build title rows
     const titleRows: (string | { v: string; s: object })[][] = [
@@ -195,6 +212,149 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Actions");
     XLSX.writeFile(wb, `NMP-Actions-${format(now, "yyyy-MM-dd")}.xlsx`);
+  };
+
+  const exportGanttExcel = (
+    now: Date,
+    border: object,
+    headerStyle: object,
+    cellStyle: object,
+    titleStyle: object
+  ) => {
+    if (filteredAndSortedActions.length === 0) {
+      exportTableExcel(now, border, headerStyle, cellStyle, titleStyle);
+      return;
+    }
+
+    // Calculate date range for Gantt
+    const dates = filteredAndSortedActions.flatMap(a => {
+      const meetingDate = new Date(a.meeting_date);
+      const dueDate = a.due_date ? new Date(a.due_date) : addDays(meetingDate, 14);
+      return [meetingDate, dueDate];
+    });
+    
+    const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
+    const startDate = startOfWeek(addDays(minDate, -7), { weekStartsOn: 1 });
+    const endDate = endOfWeek(addDays(maxDate, 7), { weekStartsOn: 1 });
+    
+    // Generate week columns
+    const weeks = eachWeekOfInterval({ start: startDate, end: endDate }, { weekStartsOn: 1 });
+    
+    // Status colours for bars
+    const statusColors: Record<string, string> = {
+      'pending': 'A0A0A0',
+      'in-progress': '005EB8',
+      'completed': '22C55E',
+      'overdue': 'EF4444',
+    };
+
+    const fixedCols = 5; // Ref, Action, Owner, Start, End
+    const numCols = fixedCols + weeks.length;
+    
+    // Build header rows
+    const titleRows: (string | { v: string; s: object })[][] = [
+      [{ v: "NRES New Models Pilot - Action Tracker (Gantt View)", s: titleStyle }],
+      [{ v: `Downloaded: ${format(now, "dd/MM/yyyy")} at ${format(now, "HH:mm")}`, s: { font: { italic: true } } }],
+      [], // Empty spacing row
+    ];
+
+    // Column headers
+    const headers = [
+      { v: "Ref", s: headerStyle },
+      { v: "Action", s: headerStyle },
+      { v: "Owner", s: headerStyle },
+      { v: "Start", s: headerStyle },
+      { v: "End", s: headerStyle },
+      ...weeks.map(w => ({ v: format(w, "dd MMM"), s: headerStyle }))
+    ];
+    titleRows.push(headers);
+    
+    // Build data rows with Gantt bars
+    const dataRows = filteredAndSortedActions.map((action) => {
+      const meetingDate = new Date(action.meeting_date);
+      const dueDate = action.due_date ? new Date(action.due_date) : addDays(meetingDate, 14);
+      
+      const baseRow: ({ v: string; s: object })[] = [
+        { v: action.reference_number || "", s: cellStyle },
+        { v: action.action_title, s: cellStyle },
+        { v: action.responsible_person, s: cellStyle },
+        { v: format(meetingDate, "dd/MM/yyyy"), s: cellStyle },
+        { v: format(dueDate, "dd/MM/yyyy"), s: cellStyle },
+      ];
+      
+      // Add Gantt bar cells for each week
+      weeks.forEach((weekStart) => {
+        const weekEnd = addDays(weekStart, 6);
+        const isInRange = meetingDate <= weekEnd && dueDate >= weekStart;
+        
+        if (isInRange) {
+          baseRow.push({
+            v: "█",
+            s: {
+              ...cellStyle,
+              font: { color: { rgb: statusColors[action.status] || '005EB8' }, bold: true, sz: 14 },
+              fill: { fgColor: { rgb: statusColors[action.status] || '005EB8' } },
+              alignment: { horizontal: "center" },
+            }
+          });
+        } else {
+          baseRow.push({ v: "", s: cellStyle });
+        }
+      });
+      
+      return baseRow;
+    });
+    
+    const allRows = [...titleRows, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(allRows);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 12 },  // Ref
+      { wch: 35 },  // Action
+      { wch: 18 },  // Owner
+      { wch: 12 },  // Start
+      { wch: 12 },  // End
+      ...weeks.map(() => ({ wch: 8 }))  // Week columns
+    ];
+    
+    // Merge title and date cells
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: numCols - 1 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: numCols - 1 } }
+    ];
+    
+    // Add legend row
+    const legendRowIndex = allRows.length + 1;
+    const legendItems = [
+      { label: "Pending", color: "A0A0A0" },
+      { label: "In Progress", color: "005EB8" },
+      { label: "Completed", color: "22C55E" },
+      { label: "Overdue", color: "EF4444" },
+    ];
+    
+    legendItems.forEach((item, i) => {
+      const colIndex = i * 2;
+      ws[XLSX.utils.encode_cell({ r: legendRowIndex, c: colIndex })] = {
+        v: "█",
+        s: { font: { color: { rgb: item.color }, bold: true, sz: 12 } }
+      };
+      ws[XLSX.utils.encode_cell({ r: legendRowIndex, c: colIndex + 1 })] = {
+        v: item.label,
+        s: { font: { sz: 10 } }
+      };
+    });
+    
+    // Update range to include legend
+    ws['!ref'] = XLSX.utils.encode_range({
+      s: { r: 0, c: 0 },
+      e: { r: legendRowIndex, c: numCols - 1 }
+    });
+    
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Gantt");
+    XLSX.writeFile(wb, `NMP-Gantt-${format(now, "yyyy-MM-dd")}.xlsx`);
   };
 
   const hasActiveFilters = filters.reference || filters.title || filters.responsible || filters.status !== "all" || filters.priority !== "all";
