@@ -1,10 +1,10 @@
 import React from 'react';
 import { RequestInformationPanel } from '@/components/RequestInformationPanel';
-import { InvestigationFindings } from '@/components/InvestigationFindings';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { FileText, Upload, Volume2 } from 'lucide-react';
 import { InvestigationEvidence } from '@/components/InvestigationEvidence';
+import { CriticalFriendReview } from '@/components/CriticalFriendReview';
+import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { FileText, ArrowRight } from 'lucide-react';
 
 interface InvestigationEvidenceTabProps {
   complaintId: string;
@@ -22,8 +22,29 @@ export function InvestigationEvidenceTab({ complaintId, practiceId, disabled = f
       {/* Evidence & Transcripts Section */}
       <InvestigationEvidence complaintId={complaintId} disabled={disabled} />
 
-      {/* Investigation Findings */}
-      <InvestigationFindings complaintId={complaintId} disabled={disabled} onCreateOutcomeLetter={onCreateOutcomeLetter} />
+      {/* Critical Friend Review */}
+      <CriticalFriendReview complaintId={complaintId} disabled={disabled} />
+
+      {/* Create Outcome Letter CTA */}
+      {onCreateOutcomeLetter && (
+        <Card className="border-primary/20 bg-primary/5">
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="font-semibold text-lg">Ready to Create Outcome Letter?</h4>
+                <p className="text-sm text-muted-foreground mt-1">
+                  When you're satisfied with your investigation, create the formal outcome letter for the patient.
+                </p>
+              </div>
+              <Button onClick={onCreateOutcomeLetter} className="ml-4">
+                <FileText className="h-4 w-4 mr-2" />
+                Create Outcome Letter
+                <ArrowRight className="h-4 w-4 ml-2" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }
