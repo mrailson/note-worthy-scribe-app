@@ -68,7 +68,7 @@ export const ActionInfoTooltip = ({ action }: ActionInfoTooltipProps) => {
           <Info className="h-4 w-4 text-muted-foreground" />
         </button>
       </HoverCardTrigger>
-      <HoverCardContent className="w-80 p-0" align="end">
+      <HoverCardContent className="w-80 p-0" align="end" side="left" sideOffset={5}>
         <div className="p-3 bg-muted/50 border-b">
           <h4 className="font-semibold text-sm flex items-center gap-2">
             <Info className="h-4 w-4" />
