@@ -120,7 +120,7 @@ export const SDAWorkforceInnovation = () => {
       {/* Job Adverts for Board Approval */}
       <div id="job-adverts-section">
       <CollapsibleCard
-        title="Job Adverts for Programme Board Approval"
+        title="Job Adverts - Board Approved 23rd December 2025"
         icon={<Briefcase className="w-5 h-5" />}
         badge={<Badge className="bg-amber-500">{proposedJobAdverts.length} Adverts</Badge>}
         defaultOpen={false}
