@@ -65,11 +65,13 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     fileName: string;
     text: string;
     confidence: number | null;
+    audioDuration: number | null;
   }>({
     isOpen: false,
     fileName: '',
     text: '',
-    confidence: null
+    confidence: null,
+    audioDuration: null
   });
   const [deleteConfirmation, setDeleteConfirmation] = useState<{
     isOpen: boolean;
@@ -623,7 +625,8 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         isOpen: true,
         fileName: audioFile.file_name,
         text: transcriptionData.text,
-        confidence: transcriptionData.confidence || null
+        confidence: transcriptionData.confidence || null,
+        audioDuration: audioDurationSeconds
       });
       
       toast.success('Audio transcribed successfully');
@@ -816,7 +819,12 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button
               variant="outline"
-              onClick={() => downloadTranscriptAsWord()}
+              onClick={() => downloadTranscriptAsWord(
+                transcriptionModal.text,
+                transcriptionModal.fileName,
+                transcriptionModal.confidence,
+                transcriptionModal.audioDuration
+              )}
             >
               <Download className="h-4 w-4 mr-2" />
               Download Word
