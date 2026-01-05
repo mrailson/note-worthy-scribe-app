@@ -406,39 +406,54 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       </AlertDialog>
 
       <Dialog open={transcriptionModal.isOpen} onOpenChange={(open) => setTranscriptionModal(prev => ({ ...prev, isOpen: open }))}>
-        <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-          <DialogHeader>
-            <DialogTitle className="flex items-center gap-2">
-              <Volume2 className="h-5 w-5" />
+        <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
+          <DialogHeader className="pb-4 border-b">
+            <DialogTitle className="flex items-center gap-2 text-lg">
+              <Volume2 className="h-5 w-5 text-primary" />
               Audio Transcription
             </DialogTitle>
-            <DialogDescription>
-              Transcription for: {transcriptionModal.fileName}
+            <DialogDescription className="flex flex-wrap items-center gap-2 text-sm">
+              <span className="font-medium">{transcriptionModal.fileName}</span>
               {transcriptionModal.confidence && (
-                <span className="ml-2 text-sm">
-                  • Confidence: {Math.round(transcriptionModal.confidence * 100)}%
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                  {Math.round(transcriptionModal.confidence * 100)}% confidence
                 </span>
               )}
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg">
-              <p className="text-sm whitespace-pre-wrap">{transcriptionModal.text}</p>
+          <div className="flex-1 overflow-y-auto py-4">
+            <div className="bg-muted/50 p-6 rounded-lg border">
+              <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert space-y-4">
+                {transcriptionModal.text.split(/(?<=[.!?])\s+(?=[A-Z])|(?<=\?)\s+|(?<=\.)\s{2,}/).reduce((acc: string[][], sentence, index, arr) => {
+                  // Group sentences into paragraphs of roughly 3-4 sentences
+                  const lastGroup = acc[acc.length - 1];
+                  if (!lastGroup || lastGroup.length >= 4 || (lastGroup.join(' ').length > 400)) {
+                    acc.push([sentence]);
+                  } else {
+                    lastGroup.push(sentence);
+                  }
+                  return acc;
+                }, [] as string[][]).map((paragraph, idx) => (
+                  <p key={idx} className="text-base leading-relaxed text-foreground">
+                    {paragraph.join(' ')}
+                  </p>
+                ))}
+              </div>
             </div>
-            <div className="flex justify-end gap-2">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  navigator.clipboard.writeText(transcriptionModal.text);
-                  toast.success('Transcription copied to clipboard');
-                }}
-              >
-                Copy to Clipboard
-              </Button>
-              <Button onClick={() => setTranscriptionModal(prev => ({ ...prev, isOpen: false }))}>
-                Close
-              </Button>
-            </div>
+          </div>
+          <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={() => {
+                navigator.clipboard.writeText(transcriptionModal.text);
+                toast.success('Transcription copied to clipboard');
+              }}
+            >
+              Copy to Clipboard
+            </Button>
+            <Button onClick={() => setTranscriptionModal(prev => ({ ...prev, isOpen: false }))}>
+              Close
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -573,23 +588,37 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                 {audioTranscripts.map((transcript) => {
                   const audioFile = evidenceFiles.find(f => f.id === transcript.audio_file_id);
                   return (
-                    <div key={transcript.id} className="p-4 border rounded-lg">
-                      <div className="flex items-center justify-between mb-3">
+                    <div key={transcript.id} className="p-5 border rounded-lg bg-card">
+                      <div className="flex items-center justify-between mb-4 pb-3 border-b">
                         <div className="flex items-center gap-2">
-                          <Volume2 className="h-4 w-4" />
-                          <span className="font-medium">{audioFile?.file_name || 'Unknown file'}</span>
+                          <Volume2 className="h-5 w-5 text-primary" />
+                          <span className="font-semibold text-base">{audioFile?.file_name || 'Unknown file'}</span>
                         </div>
-                        <div className="text-sm text-muted-foreground">
-                          {new Date(transcript.transcribed_at).toLocaleDateString()}
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <span>{new Date(transcript.transcribed_at).toLocaleDateString()}</span>
                           {transcript.transcription_confidence && (
-                            <span className="ml-2">
-                              Confidence: {Math.round(transcript.transcription_confidence * 100)}%
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                              {Math.round(transcript.transcription_confidence * 100)}% confidence
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="bg-gray-50 p-3 rounded text-sm whitespace-pre-wrap">
-                        {transcript.transcript_text}
+                      <div className="bg-muted/50 p-5 rounded-lg border">
+                        <div className="prose prose-sm md:prose-base max-w-none dark:prose-invert space-y-4">
+                          {transcript.transcript_text.split(/(?<=[.!?])\s+(?=[A-Z])|(?<=\?)\s+|(?<=\.)\s{2,}/).reduce((acc: string[][], sentence) => {
+                            const lastGroup = acc[acc.length - 1];
+                            if (!lastGroup || lastGroup.length >= 4 || (lastGroup.join(' ').length > 400)) {
+                              acc.push([sentence]);
+                            } else {
+                              lastGroup.push(sentence);
+                            }
+                            return acc;
+                          }, [] as string[][]).map((paragraph, idx) => (
+                            <p key={idx} className="text-base leading-relaxed text-foreground">
+                              {paragraph.join(' ')}
+                            </p>
+                          ))}
+                        </div>
                       </div>
                     </div>
                   );
