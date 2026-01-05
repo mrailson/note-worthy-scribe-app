@@ -5,10 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, X, Filter, FileSpreadsheet } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, X, Filter, FileSpreadsheet, GanttChart, Table as TableIcon } from "lucide-react";
 import { ActionInfoTooltip } from "./ActionInfoTooltip";
 import * as XLSX from "xlsx-js-style";
 import type { NRESBoardAction, BoardActionStatus, BoardActionPriority } from "@/types/nresBoardActions";
+import { GanttChartView } from "./GanttChartView";
 
 interface BoardActionsTableProps {
   actions: NRESBoardAction[];
@@ -81,6 +82,7 @@ const statusOrder = { overdue: 4, "in-progress": 3, pending: 2, completed: 1 };
 export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTableProps) => {
   const [sort, setSort] = useState<SortState>({ field: null, direction: null });
   const [showFilters, setShowFilters] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'gantt'>('table');
   const [filters, setFilters] = useState<FilterState>({
     reference: "",
     title: "",
@@ -298,6 +300,23 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
             <FileSpreadsheet className="h-4 w-4 mr-2" />
             Export
           </Button>
+          <Button
+            variant={viewMode === 'gantt' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setViewMode(viewMode === 'table' ? 'gantt' : 'table')}
+          >
+            {viewMode === 'table' ? (
+              <>
+                <GanttChart className="h-4 w-4 mr-2" />
+                Gantt View
+              </>
+            ) : (
+              <>
+                <TableIcon className="h-4 w-4 mr-2" />
+                Table View
+              </>
+            )}
+          </Button>
         </div>
         {hasActiveFilters ? (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
@@ -379,148 +398,152 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
         </p>
       )}
 
-      {/* Table */}
-      <div className="rounded-md border overflow-x-auto">
-        <Table>
-          <TableHeader>
-          <TableRow>
-              <TableHead className="w-[70px]">
-                <button
-                  onClick={() => handleSort("reference_number")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors text-xs"
-                >
-                  Ref
-                  {getSortIcon("reference_number")}
-                </button>
-              </TableHead>
-              <TableHead className="min-w-[180px]">
-                <button
-                  onClick={() => handleSort("action_title")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  Action
-                  {getSortIcon("action_title")}
-                </button>
-              </TableHead>
-              <TableHead className="min-w-[120px]">
-                <button
-                  onClick={() => handleSort("responsible_person")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  Responsible
-                  {getSortIcon("responsible_person")}
-                </button>
-              </TableHead>
-              <TableHead className="min-w-[100px]">
-                <button
-                  onClick={() => handleSort("meeting_date")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  Meeting
-                  {getSortIcon("meeting_date")}
-                </button>
-              </TableHead>
-              <TableHead className="min-w-[100px]">
-                <button
-                  onClick={() => handleSort("due_date")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  Due Date
-                  {getSortIcon("due_date")}
-                </button>
-              </TableHead>
-              <TableHead className="min-w-[100px]">
-                <button
-                  onClick={() => handleSort("status")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  Status
-                  {getSortIcon("status")}
-                </button>
-              </TableHead>
-              <TableHead className="min-w-[80px]">
-                <button
-                  onClick={() => handleSort("priority")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
-                >
-                  Priority
-                  {getSortIcon("priority")}
-                </button>
-              </TableHead>
-              <TableHead className="min-w-[100px] text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {filteredAndSortedActions.length === 0 ? (
-              <TableRow>
-                <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
-                  No actions match the current filters.
-                </TableCell>
+      {/* Table or Gantt View */}
+      {viewMode === 'gantt' ? (
+        <GanttChartView actions={filteredAndSortedActions} onEdit={onEdit} />
+      ) : (
+        <div className="rounded-md border overflow-x-auto">
+          <Table>
+            <TableHeader>
+            <TableRow>
+                <TableHead className="w-[70px]">
+                  <button
+                    onClick={() => handleSort("reference_number")}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors text-xs"
+                  >
+                    Ref
+                    {getSortIcon("reference_number")}
+                  </button>
+                </TableHead>
+                <TableHead className="min-w-[180px]">
+                  <button
+                    onClick={() => handleSort("action_title")}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    Action
+                    {getSortIcon("action_title")}
+                  </button>
+                </TableHead>
+                <TableHead className="min-w-[120px]">
+                  <button
+                    onClick={() => handleSort("responsible_person")}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    Responsible
+                    {getSortIcon("responsible_person")}
+                  </button>
+                </TableHead>
+                <TableHead className="min-w-[100px]">
+                  <button
+                    onClick={() => handleSort("meeting_date")}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    Meeting
+                    {getSortIcon("meeting_date")}
+                  </button>
+                </TableHead>
+                <TableHead className="min-w-[100px]">
+                  <button
+                    onClick={() => handleSort("due_date")}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    Due Date
+                    {getSortIcon("due_date")}
+                  </button>
+                </TableHead>
+                <TableHead className="min-w-[100px]">
+                  <button
+                    onClick={() => handleSort("status")}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    Status
+                    {getSortIcon("status")}
+                  </button>
+                </TableHead>
+                <TableHead className="min-w-[80px]">
+                  <button
+                    onClick={() => handleSort("priority")}
+                    className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  >
+                    Priority
+                    {getSortIcon("priority")}
+                  </button>
+                </TableHead>
+                <TableHead className="min-w-[100px] text-right">Actions</TableHead>
               </TableRow>
-            ) : (
-              filteredAndSortedActions.map((action) => (
-                <TableRow key={action.id}>
-                <TableCell className="py-2">
-                    <code className="text-[10px] bg-muted px-1 py-0.5 rounded font-mono whitespace-nowrap">
-                      {action.reference_number || "-"}
-                    </code>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <p className="font-medium">{action.action_title}</p>
-                      {action.description && (
-                        <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {action.description}
-                        </p>
-                      )}
-                    </div>
-                  </TableCell>
-                  <TableCell>{action.responsible_person}</TableCell>
-                  <TableCell>
-                    {format(new Date(action.meeting_date), "dd/MM/yyyy")}
-                  </TableCell>
-                  <TableCell>
-                    {action.due_date
-                      ? format(new Date(action.due_date), "dd/MM/yyyy")
-                      : "-"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={getStatusBadgeVariant(action.status)}>
-                      {getStatusLabel(action.status)}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(action.priority)}`}>
-                      {action.priority.charAt(0).toUpperCase() + action.priority.slice(1)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex justify-end gap-1">
-                      <ActionInfoTooltip action={action} />
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onEdit(action)}
-                        className="h-8 w-8"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => onDelete(action.id)}
-                        className="h-8 w-8 text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+            </TableHeader>
+            <TableBody>
+              {filteredAndSortedActions.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-6 text-muted-foreground">
+                    No actions match the current filters.
                   </TableCell>
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </div>
+              ) : (
+                filteredAndSortedActions.map((action) => (
+                  <TableRow key={action.id}>
+                  <TableCell className="py-2">
+                      <code className="text-[10px] bg-muted px-1 py-0.5 rounded font-mono whitespace-nowrap">
+                        {action.reference_number || "-"}
+                      </code>
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <p className="font-medium">{action.action_title}</p>
+                        {action.description && (
+                          <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                            {action.description}
+                          </p>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell>{action.responsible_person}</TableCell>
+                    <TableCell>
+                      {format(new Date(action.meeting_date), "dd/MM/yyyy")}
+                    </TableCell>
+                    <TableCell>
+                      {action.due_date
+                        ? format(new Date(action.due_date), "dd/MM/yyyy")
+                        : "-"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge variant={getStatusBadgeVariant(action.status)}>
+                        {getStatusLabel(action.status)}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${getPriorityBadgeClass(action.priority)}`}>
+                        {action.priority.charAt(0).toUpperCase() + action.priority.slice(1)}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-1">
+                        <ActionInfoTooltip action={action} />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onEdit(action)}
+                          className="h-8 w-8"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => onDelete(action.id)}
+                          className="h-8 w-8 text-destructive hover:text-destructive"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </div>
+      )}
     </div>
   );
 };
