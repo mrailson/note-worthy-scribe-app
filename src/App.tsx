@@ -127,7 +127,7 @@ const App = () => {
               } />
               <Route path="/NRESDashboard" element={
                 <ProtectedRoute requiredService="nres">
-                  <NRESDashboard />
+                  <SDADashboard />
                 </ProtectedRoute>
               } />
               <Route path="/nres-presentation" element={
