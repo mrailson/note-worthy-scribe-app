@@ -143,7 +143,7 @@ export function CriticalFriendReview({ complaintId, disabled = false }: Critical
             <CollapsibleContent className="mt-4">
               <div className="p-4 bg-background border rounded-lg">
                 <div 
-                  className="prose prose-sm max-w-none dark:prose-invert"
+                  className="prose prose-base max-w-none dark:prose-invert text-base leading-relaxed"
                   dangerouslySetInnerHTML={{ 
                     __html: renderNHSMarkdown(review, { enableNHSStyling: true })
                   }} 
