@@ -1725,7 +1725,41 @@ const ComplaintDetails = () => {
               })()}
               
               <div className="mt-4">
-                <div className="flex items-center justify-between mb-1"><strong>Description:</strong><Button variant="outline" size="sm" onClick={async () => { setIsReSummarising(true); try { const { data, error } = await supabase.functions.invoke('re-summarise-complaint', { body: { complaintId: complaint.id } }); if (error) throw error; if (data?.success) { showToast.success('Description re-summarised successfully'); const { data: refreshed } = await supabase.from('complaints').select('*').eq('id', complaint.id).single(); if (refreshed) setComplaint(refreshed); } else { throw new Error(data?.error || 'Failed to re-summarise'); } } catch (err: any) { console.error('Re-summarise error:', err); showToast.error(err.message || 'Failed to re-summarise description'); } finally { setIsReSummarising(false); } }} disabled={isReSummarising} className="gap-1">{isReSummarising ? (<Loader2 className="h-3 w-3 animate-spin" />) : (<Sparkles className="h-3 w-3" />)}Re-summarise</Button></div>
+                <div className="flex items-center justify-between mb-2">
+                  <strong className="text-foreground">Description:</strong>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={async () => { 
+                      setIsReSummarising(true); 
+                      try { 
+                        const { data, error } = await supabase.functions.invoke('re-summarise-complaint', { body: { complaintId: complaint.id } }); 
+                        if (error) throw error; 
+                        if (data?.success) { 
+                          showToast.success('Description re-summarised successfully'); 
+                          const { data: refreshed } = await supabase.from('complaints').select('*').eq('id', complaint.id).single(); 
+                          if (refreshed) setComplaint(refreshed); 
+                        } else { 
+                          throw new Error(data?.error || 'Failed to re-summarise'); 
+                        } 
+                      } catch (err: any) { 
+                        console.error('Re-summarise error:', err); 
+                        showToast.error(err.message || 'Failed to re-summarise description'); 
+                      } finally { 
+                        setIsReSummarising(false); 
+                      } 
+                    }} 
+                    disabled={isReSummarising} 
+                    className="gap-1.5"
+                  >
+                    {isReSummarising ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Sparkles className="h-3.5 w-3.5" />
+                    )}
+                    Re-summarise
+                  </Button>
+                </div>
                 <p className="mt-1 text-base text-muted-foreground">{complaint.complaint_description
                   .replace(/([.!?])(?!\s|$)(?=[A-Z“”"'])/g, '$1 ')
                   .replace(/\s{2,}/g, ' ')
