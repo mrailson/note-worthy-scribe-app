@@ -5252,6 +5252,47 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_board_action_documents: {
+        Row: {
+          action_id: string
+          created_at: string
+          file_name: string
+          file_path: string
+          file_size: number | null
+          id: string
+          mime_type: string | null
+          user_id: string
+        }
+        Insert: {
+          action_id: string
+          created_at?: string
+          file_name: string
+          file_path: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          user_id: string
+        }
+        Update: {
+          action_id?: string
+          created_at?: string
+          file_name?: string
+          file_path?: string
+          file_size?: number | null
+          id?: string
+          mime_type?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "nres_board_action_documents_action_id_fkey"
+            columns: ["action_id"]
+            isOneToOne: false
+            referencedRelation: "nres_board_actions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       nres_board_actions: {
         Row: {
           action_title: string
@@ -5292,6 +5333,42 @@ export type Database = {
           priority?: string
           responsible_person?: string
           status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nres_board_members: {
+        Row: {
+          created_at: string
+          email: string | null
+          group_name: string | null
+          id: string
+          is_active: boolean
+          name: string
+          role: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          group_name?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          role?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          group_name?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
+          role?: string | null
           updated_at?: string
           user_id?: string
         }
