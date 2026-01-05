@@ -222,6 +222,9 @@ export const ACPRecruitmentPanel = () => {
   const toConsider = getCandidatesToConsider();
   const notShortlisted = getNotShortlistedCandidates();
 
+  // Sort candidates by recommendation status: Interview → Consider → Do Not Shortlist
+  const sortedCandidates = [...shortlisted, ...toConsider, ...notShortlisted];
+
   return (
     <div className="space-y-6">
       {/* Executive Summary */}
@@ -276,7 +279,7 @@ export const ACPRecruitmentPanel = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allCandidates.map((candidate) => (
+              {sortedCandidates.map((candidate) => (
                 <TableRow key={candidate.id} className="hover:bg-slate-50">
                   <TableCell className="font-mono text-xs sticky left-0 bg-white z-10">
                     {candidate.id}
