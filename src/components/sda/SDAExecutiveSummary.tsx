@@ -3,6 +3,7 @@ import { Users, Calendar, PoundSterling, FileCheck } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/NRES_Logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
+import { BoardActionTracker } from "./board-actions/BoardActionTracker";
 
 const populationData = [
   { name: "The Parks MC", value: 22689, color: "#005EB8" },
@@ -187,6 +188,9 @@ export const SDAExecutiveSummary = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Board Action Tracker */}
+      <BoardActionTracker />
     </div>
   );
 };

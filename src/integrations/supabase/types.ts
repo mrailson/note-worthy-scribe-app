@@ -5252,6 +5252,51 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_board_actions: {
+        Row: {
+          action_title: string
+          created_at: string
+          description: string | null
+          due_date: string | null
+          id: string
+          meeting_date: string
+          notes: string | null
+          priority: string
+          responsible_person: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          action_title: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          meeting_date: string
+          notes?: string | null
+          priority?: string
+          responsible_person: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          action_title?: string
+          created_at?: string
+          description?: string | null
+          due_date?: string | null
+          id?: string
+          meeting_date?: string
+          notes?: string | null
+          priority?: string
+          responsible_person?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       nres_candidate_feedback: {
         Row: {
           agrees_with_assessment: boolean
