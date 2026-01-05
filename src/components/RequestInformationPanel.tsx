@@ -365,12 +365,12 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
           <div className="flex items-center justify-between">
             <CardTitle className="flex items-center gap-2">
               <Mail className="h-5 w-5" />
-              Request Information
+              Request Information/Feedback
             </CardTitle>
             {!disabled && (
               <Button onClick={() => setShowRequestDialog(true)} size="lg" className="gap-2">
                 <Mail className="h-5 w-5" />
-                Request Information
+                Request Information/Feedback
               </Button>
             )}
           </div>
@@ -380,7 +380,7 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
             <div className="text-center py-8 text-muted-foreground">
               <Mail className="h-12 w-12 mx-auto mb-3 opacity-50" />
               <p>No information requests sent yet</p>
-              <p className="text-sm mt-1">Click "Request Information" to send your first request</p>
+              <p className="text-sm mt-1">Click "Request Information/Feedback" to send your first request</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -476,7 +476,7 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="request" className="gap-2">
                 <Mail className="h-4 w-4" />
-                Request Information
+                Request Information/Feedback
               </TabsTrigger>
               <TabsTrigger value="team" className="gap-2">
                 <Users className="h-4 w-4" />
