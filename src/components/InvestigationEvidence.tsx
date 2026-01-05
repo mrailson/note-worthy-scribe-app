@@ -399,7 +399,6 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       const blob = await Packer.toBlob(doc);
       const outputFileName = `Transcript_${complaintDetails.reference_number}_${fileName.replace(/\.[^/.]+$/, '')}.docx`;
       saveAs(blob, outputFileName);
-      toast.success('Transcript downloaded successfully');
     } catch (error) {
       console.error('Error generating Word document:', error);
       toast.error('Failed to generate Word document');
@@ -445,8 +444,6 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       setSelectedFile(null);
       setEvidenceType('other');
       setDescription('');
-      
-      toast.success('Evidence file uploaded successfully');
     } catch (error) {
       console.error('Error uploading file:', error);
       const message = error && typeof error === 'object' && 'message' in (error as any)
@@ -475,7 +472,6 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       if (error) throw error;
 
       setAudioTranscripts(prev => prev.filter(t => t.id !== transcript.id));
-      toast.success('Transcript deleted successfully');
     } catch (error) {
       console.error('Error deleting transcript:', error);
       toast.error('Failed to delete transcript');
@@ -628,8 +624,6 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         confidence: transcriptionData.confidence || null,
         audioDuration: audioDurationSeconds
       });
-      
-      toast.success('Audio transcribed successfully');
     } catch (error) {
       console.error('Error transcribing audio:', error);
       const message = error && typeof error === 'object' && 'message' in (error as any)
@@ -706,7 +700,6 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       }
 
       setEvidenceFiles(prev => prev.filter(f => f.id !== file.id));
-      toast.success('Evidence file deleted successfully');
       
       console.log('Evidence file deleted successfully:', file.file_name);
     } catch (error) {
@@ -833,7 +826,6 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
               variant="outline"
               onClick={() => {
                 navigator.clipboard.writeText(transcriptionModal.text);
-                toast.success('Transcription copied to clipboard');
               }}
             >
               Copy to Clipboard
