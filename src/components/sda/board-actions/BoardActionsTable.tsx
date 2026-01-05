@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, X, Filter } from "lucide-react";
+import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, X, Filter, FileSpreadsheet } from "lucide-react";
+import * as XLSX from "xlsx";
 import type { NRESBoardAction, BoardActionStatus, BoardActionPriority } from "@/types/nresBoardActions";
 
 interface BoardActionsTableProps {
@@ -114,6 +115,25 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
     });
   };
 
+  const exportToExcel = () => {
+    const exportData = filteredAndSortedActions.map((action) => ({
+      Reference: action.reference_number || "",
+      Action: action.action_title,
+      Description: action.description || "",
+      Responsible: action.responsible_person,
+      "Meeting Date": format(new Date(action.meeting_date), "dd/MM/yyyy"),
+      "Due Date": action.due_date ? format(new Date(action.due_date), "dd/MM/yyyy") : "",
+      Status: getStatusLabel(action.status),
+      Priority: action.priority.charAt(0).toUpperCase() + action.priority.slice(1),
+      Notes: action.notes || "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Actions");
+    XLSX.writeFile(wb, `NMP-Actions-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+  };
+
   const hasActiveFilters = filters.reference || filters.title || filters.responsible || filters.status !== "all" || filters.priority !== "all";
 
   // Get unique responsible persons for filter dropdown
@@ -196,27 +216,35 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
 
   return (
     <div className="space-y-3">
-      {/* Filter toggle and clear */}
+      {/* Filter toggle, export, and clear */}
       <div className="flex items-center justify-between">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowFilters(!showFilters)}
-          className={showFilters ? "bg-muted" : ""}
-        >
-          <Filter className="h-4 w-4 mr-2" />
-          Filters
-          {hasActiveFilters && (
-            <Badge variant="secondary" className="ml-2 h-5 px-1.5">
-              Active
-            </Badge>
-          )}
-        </Button>
-        {hasActiveFilters && (
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowFilters(!showFilters)}
+            className={showFilters ? "bg-muted" : ""}
+          >
+            <Filter className="h-4 w-4 mr-2" />
+            Filters
+            {hasActiveFilters && (
+              <Badge variant="secondary" className="ml-2 h-5 px-1.5">
+                Active
+              </Badge>
+            )}
+          </Button>
+          <Button variant="outline" size="sm" onClick={exportToExcel}>
+            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            Export
+          </Button>
+        </div>
+        {hasActiveFilters ? (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
             <X className="h-4 w-4 mr-1" />
             Clear filters
           </Button>
+        ) : (
+          <div />
         )}
       </div>
 
@@ -294,11 +322,11 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
       <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
-            <TableRow>
-              <TableHead className="min-w-[90px]">
+          <TableRow>
+              <TableHead className="w-[70px]">
                 <button
                   onClick={() => handleSort("reference_number")}
-                  className="flex items-center gap-1 hover:text-foreground transition-colors"
+                  className="flex items-center gap-1 hover:text-foreground transition-colors text-xs"
                 >
                   Ref
                   {getSortIcon("reference_number")}
@@ -371,8 +399,8 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
             ) : (
               filteredAndSortedActions.map((action) => (
                 <TableRow key={action.id}>
-                  <TableCell>
-                    <code className="text-xs bg-muted px-1.5 py-0.5 rounded font-mono">
+                <TableCell className="py-2">
+                    <code className="text-[10px] bg-muted px-1 py-0.5 rounded font-mono whitespace-nowrap">
                       {action.reference_number || "-"}
                     </code>
                   </TableCell>
