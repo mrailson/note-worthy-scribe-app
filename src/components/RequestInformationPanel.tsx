@@ -24,6 +24,7 @@ import {
 
 interface RequestInformationPanelProps {
   complaintId: string;
+  practiceId?: string | null;
   disabled?: boolean;
 }
 
@@ -51,7 +52,7 @@ interface TeamMember {
   is_active: boolean;
 }
 
-export function RequestInformationPanel({ complaintId, disabled = false }: RequestInformationPanelProps) {
+export function RequestInformationPanel({ complaintId, practiceId, disabled = false }: RequestInformationPanelProps) {
   const [parties, setParties] = useState<InvolvedParty[]>([]);
   const [showRequestDialog, setShowRequestDialog] = useState(false);
   const [newParty, setNewParty] = useState({
@@ -102,18 +103,30 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
 
   const fetchTeamMembers = async () => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      // Filter by practice if provided, else fall back to user-owned rows
+      if (practiceId) {
+        const { data, error } = await supabase
+          .from('complaint_team_members')
+          .select('*')
+          .eq('practice_id', practiceId)
+          .eq('is_active', true)
+          .order('name');
 
-      const { data, error } = await supabase
-        .from('complaint_team_members')
-        .select('*')
-        .eq('user_id', user.id)
-        .eq('is_active', true)
-        .order('name');
-
-      if (error) throw error;
-      setTeamMembers(data || []);
+        if (error) throw error;
+        setTeamMembers(data || []);
+      } else {
+        // fallback: show user's own members
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        const { data, error } = await supabase
+          .from('complaint_team_members')
+          .select('*')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .order('name');
+        if (error) throw error;
+        setTeamMembers(data || []);
+      }
     } catch (error) {
       console.error('Error fetching team members:', error);
     }
@@ -157,6 +170,7 @@ export function RequestInformationPanel({ complaintId, disabled = false }: Reque
         .from('complaint_team_members')
         .insert({
           user_id: user.id,
+          practice_id: practiceId ?? null,
           name: newTeamMember.name,
           email: newTeamMember.email,
           role: newTeamMember.role,

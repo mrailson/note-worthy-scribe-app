@@ -2829,7 +2829,7 @@ const ComplaintDetails = () => {
 
             {/* Investigation Evidence Tab */}
             <TabsContent value="investigation" className="space-y-6">
-              <InvestigationEvidenceTab complaintId={complaint.id} />
+              <InvestigationEvidenceTab complaintId={complaint.id} practiceId={complaint.practice_id} />
             </TabsContent>
 
             {/* Compliance Tab */}
