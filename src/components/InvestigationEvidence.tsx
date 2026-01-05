@@ -46,6 +46,7 @@ interface ComplaintDetails {
   complaint_title: string;
   category: string;
   status: string;
+  practice_name: string | null;
 }
 
 export function InvestigationEvidence({ complaintId, disabled = false }: InvestigationEvidenceProps) {
@@ -87,12 +88,23 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     try {
       const { data, error } = await supabase
         .from('complaints')
-        .select('reference_number, patient_name, incident_date, complaint_title, category, status')
+        .select(`
+          reference_number, 
+          patient_name, 
+          incident_date, 
+          complaint_title, 
+          category, 
+          status,
+          gp_practices (name)
+        `)
         .eq('id', complaintId)
         .single();
 
       if (error) throw error;
-      setComplaintDetails(data);
+      setComplaintDetails({
+        ...data,
+        practice_name: data.gp_practices?.name || null
+      });
     } catch (error) {
       console.error('Error fetching complaint details:', error);
     }
@@ -201,6 +213,16 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
               ],
               spacing: { after: 200 }
             }),
+            
+            ...(complaintDetails.practice_name ? [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Practice: ", bold: true }),
+                  new TextRun({ text: complaintDetails.practice_name })
+                ],
+                spacing: { after: 120 }
+              })
+            ] : []),
             
             new Paragraph({
               children: [
