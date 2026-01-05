@@ -147,7 +147,7 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
     
     // Build title rows
     const titleRows: (string | { v: string; s: object })[][] = [
-      [{ v: "New Models Pilot - Action Tracker", s: titleStyle }],
+      [{ v: "NRES New Models Pilot - Action Tracker", s: titleStyle }],
       [{ v: `Downloaded: ${format(now, "dd/MM/yyyy")} at ${format(now, "HH:mm")}`, s: { font: { italic: true } } }],
       [], // Empty spacing row
       ["Reference", "Action", "Description", "Responsible", "Meeting Date", "Due Date", "Status", "Priority", "Notes"].map(
