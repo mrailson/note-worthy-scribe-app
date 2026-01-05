@@ -278,7 +278,9 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       const message = error && typeof error === 'object' && 'message' in (error as any)
         ? String((error as any).message)
         : JSON.stringify(error);
-      toast.error(`Failed to transcribe audio: ${message}`);
+      toast.error('Failed to transcribe audio', {
+        description: message || 'Unknown error'
+      });
     } finally {
       setTranscribing(null);
     }
