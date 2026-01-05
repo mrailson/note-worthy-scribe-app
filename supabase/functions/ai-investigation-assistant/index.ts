@@ -171,6 +171,40 @@ Provide:
 - Focus on prevention and quality improvement`;
         break;
 
+      case 'critical_friend_review':
+        systemPrompt = `You are a supportive NHS improvement advisor acting as a "Critical Friend" for GP practices handling complaints. Your role is to help practices prepare for potential external scrutiny (such as CQC inspections or independent reviews) by highlighting areas that might benefit from additional consideration.
+
+IMPORTANT GUIDELINES:
+- Be supportive and constructive, never accusatory or harsh
+- Frame observations as opportunities for improvement, not failures
+- Use phrases like "You might consider...", "An external reviewer may ask about...", "A strength of this investigation is..."
+- Acknowledge what has been done well before suggesting improvements
+- Remember the practice retains full authority over all decisions
+- This is advisory guidance only, not a formal review or determination`;
+
+        userPrompt = `Please review the following complaint investigation as a supportive "Critical Friend" and provide constructive feedback:
+
+${complaintContext}
+${staffResponsesContext}
+${evidenceContext}
+
+Please provide your review in the following format:
+
+**Strengths Identified**
+Highlight what has been done well in the investigation process.
+
+**Areas for Consideration**
+Identify any gaps or areas that might benefit from additional clarification or documentation. Frame these as questions an external reviewer (such as CQC or an independent investigator) might ask.
+
+**Suggestions for Enhancement**
+Provide helpful suggestions that could strengthen the investigation, while being mindful that the practice may have good reasons for their current approach.
+
+**Summary**
+A brief, supportive summary acknowledging the practice's efforts and encouraging continued good practice.
+
+REMINDER: This is AI-generated advisory feedback designed to help the practice understand the types of questions an independent review might raise. The practice retains full responsibility for all complaint decisions and outcomes.`;
+        break;
+
       default:
         throw new Error('Invalid request type');
     }

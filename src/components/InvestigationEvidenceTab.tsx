@@ -10,9 +10,10 @@ interface InvestigationEvidenceTabProps {
   complaintId: string;
   practiceId?: string | null;
   disabled?: boolean;
+  onCreateOutcomeLetter?: () => void;
 }
 
-export function InvestigationEvidenceTab({ complaintId, practiceId, disabled = false }: InvestigationEvidenceTabProps) {
+export function InvestigationEvidenceTab({ complaintId, practiceId, disabled = false, onCreateOutcomeLetter }: InvestigationEvidenceTabProps) {
   return (
     <div className="space-y-6">
       {/* Request Information Panel - Top Priority */}
@@ -22,7 +23,7 @@ export function InvestigationEvidenceTab({ complaintId, practiceId, disabled = f
       <InvestigationEvidence complaintId={complaintId} disabled={disabled} />
 
       {/* Investigation Findings */}
-      <InvestigationFindings complaintId={complaintId} disabled={disabled} />
+      <InvestigationFindings complaintId={complaintId} disabled={disabled} onCreateOutcomeLetter={onCreateOutcomeLetter} />
     </div>
   );
 }

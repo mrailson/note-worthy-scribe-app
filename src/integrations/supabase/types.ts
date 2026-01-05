@@ -1172,6 +1172,8 @@ export type Database = {
         Row: {
           complaint_id: string
           created_at: string
+          critical_friend_review: string | null
+          critical_friend_review_generated_at: string | null
           evidence_notes: string | null
           findings_text: string
           id: string
@@ -1183,6 +1185,8 @@ export type Database = {
         Insert: {
           complaint_id: string
           created_at?: string
+          critical_friend_review?: string | null
+          critical_friend_review_generated_at?: string | null
           evidence_notes?: string | null
           findings_text: string
           id?: string
@@ -1194,6 +1198,8 @@ export type Database = {
         Update: {
           complaint_id?: string
           created_at?: string
+          critical_friend_review?: string | null
+          critical_friend_review_generated_at?: string | null
           evidence_notes?: string | null
           findings_text?: string
           id?: string
