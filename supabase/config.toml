@@ -344,3 +344,6 @@ verify_jwt = false
 
 [functions.send-user-welcome-email]
 verify_jwt = true
+
+[functions.re-summarise-complaint]
+verify_jwt = true
