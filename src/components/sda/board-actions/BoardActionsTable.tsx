@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, X, Filter, FileSpreadsheet } from "lucide-react";
+import { ActionInfoTooltip } from "./ActionInfoTooltip";
 import * as XLSX from "xlsx-js-style";
 import type { NRESBoardAction, BoardActionStatus, BoardActionPriority } from "@/types/nresBoardActions";
 
@@ -494,7 +495,8 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
                     </span>
                   </TableCell>
                   <TableCell className="text-right">
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-1">
+                      <ActionInfoTooltip action={action} />
                       <Button
                         variant="ghost"
                         size="icon"

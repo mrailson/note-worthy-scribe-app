@@ -68,7 +68,7 @@ import { LGCaptureStats } from '@/components/admin/LGCaptureStats';
 import { CreateUserModuleAccess } from '@/components/admin/CreateUserModuleAccess';
 import { getDefaultModulesForRole, ModuleAccess } from '@/config/roleDefaultModules';
 
-import * as XLSX from 'xlsx';
+import * as XLSX from 'xlsx-js-style';
 
 
 interface User {

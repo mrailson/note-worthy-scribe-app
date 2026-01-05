@@ -30,6 +30,11 @@ export const useNRESBoardActions = () => {
         .insert({
           ...actionData,
           user_id: user.id,
+          created_by_email: user.email,
+          updated_by_email: user.email,
+          original_status: actionData.status,
+          original_status_date: new Date().toISOString(),
+          status_changed_at: new Date().toISOString(),
         })
         .select()
         .single();
@@ -55,9 +60,28 @@ export const useNRESBoardActions = () => {
 
   const updateAction = useMutation({
     mutationFn: async ({ id, ...actionData }: UpdateBoardActionData) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Get the current action to check if status changed
+      const { data: currentAction } = await supabase
+        .from("nres_board_actions")
+        .select("status")
+        .eq("id", id)
+        .single();
+
+      const updateData: Record<string, unknown> = {
+        ...actionData,
+        updated_by_email: user?.email,
+      };
+
+      // If status changed, update status_changed_at
+      if (actionData.status && currentAction && actionData.status !== currentAction.status) {
+        updateData.status_changed_at = new Date().toISOString();
+      }
+
       const { data, error } = await supabase
         .from("nres_board_actions")
-        .update(actionData)
+        .update(updateData)
         .eq("id", id)
         .select()
         .single();
