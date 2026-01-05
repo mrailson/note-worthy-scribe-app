@@ -12,9 +12,15 @@ interface ToastOptions {
   description?: string;
 }
 
+// Sections where success/info toasts are disabled
+const DISABLED_TOAST_SECTIONS: ToastSection[] = ['complaints'];
+
 // Helper to check if a section is enabled
 const isSectionEnabled = (section?: ToastSection): boolean => {
   if (!section) return true; // If no section specified, always show
+  
+  // Check if section is in the disabled list
+  if (DISABLED_TOAST_SECTIONS.includes(section)) return false;
 
   try {
     const stored = localStorage.getItem(STORAGE_KEY);

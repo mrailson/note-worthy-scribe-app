@@ -169,8 +169,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
 
       if (error) throw error;
 
-      toast.success(`${newTeamMember.name} has been added to your team.`);
-
       setNewTeamMember({ name: "", email: "", role: "", phone: "" });
       setShowAddTeamDialog(false);
       fetchTeamMembers();
@@ -196,8 +194,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
 
       if (error) throw error;
 
-      toast.success(`${editingMember.name} has been updated.`);
-
       setEditingMember(null);
       setShowEditDialog(false);
       fetchTeamMembers();
@@ -219,7 +215,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
 
       if (error) throw error;
 
-      toast.success("The team member has been removed from your list.");
       fetchTeamMembers();
     } catch (error) {
       console.error('Error deleting team member:', error);
@@ -261,7 +256,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         throw new Error('Failed to send information request email');
       }
 
-      toast.success('Information request sent successfully');
       setNewParty({ name: "", email: "", role: "", notes: "" });
       setSelectedTeamMemberId("");
       setShowRequestDialog(false);
@@ -283,7 +277,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
 
       if (error) throw error;
 
-      toast.success('Request deleted successfully');
       fetchInvolvedParties();
     } catch (error) {
       console.error('Error deleting request:', error);
