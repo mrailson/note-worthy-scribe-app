@@ -15,6 +15,11 @@ export interface NRESBoardAction {
   notes: string | null;
   created_at: string;
   updated_at: string;
+  created_by_email: string | null;
+  updated_by_email: string | null;
+  original_status: BoardActionStatus | null;
+  original_status_date: string | null;
+  status_changed_at: string | null;
 }
 
 export interface CreateBoardActionData {
