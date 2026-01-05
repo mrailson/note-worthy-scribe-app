@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Users, Calendar, PoundSterling, FileCheck } from "lucide-react";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/NRES_Logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
+import { Button } from "@/components/ui/button";
 
 const populationData = [
   { name: "The Parks MC", value: 22689, color: "#005EB8" },
@@ -21,6 +24,8 @@ const appointmentData = [
 ];
 
 export const SDAExecutiveSummary = () => {
+  const [chartsOpen, setChartsOpen] = useState(false);
+
   return (
     <div className="space-y-6">
       {/* Header with SRO */}
@@ -108,86 +113,108 @@ export const SDAExecutiveSummary = () => {
         </div>
       </div>
 
-      {/* Charts Row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Population Mix Chart */}
+      {/* Collapsible Charts Section */}
+      <Collapsible open={chartsOpen} onOpenChange={setChartsOpen}>
         <Card className="bg-white border-0 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-semibold text-slate-900">Practice Population Mix</CardTitle>
-            <p className="text-sm text-slate-500">Source: April 25 List Size</p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[320px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
-                  <Pie
-                    data={populationData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={85}
-                    paddingAngle={2}
-                    dataKey="value"
-                    label={({ name, percent, value }) => `${name} ${(percent * 100).toFixed(1)}% (${value.toLocaleString()})`}
-                    labelLine={true}
-                  >
-                    {populationData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    formatter={(value: number) => [value.toLocaleString(), 'Patients']}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="w-full flex items-center justify-between p-4 hover:bg-slate-50"
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-[#005EB8]" />
+                <span className="font-semibold text-slate-900">Population & Allocation Charts</span>
+              </div>
+              {chartsOpen ? (
+                <ChevronUp className="h-5 w-5 text-slate-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-slate-500" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 p-4 pt-0">
+              {/* Population Mix Chart */}
+              <Card className="bg-slate-50 border shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-semibold text-slate-900">Practice Population Mix</CardTitle>
+                  <p className="text-sm text-slate-500">Source: April 25 List Size</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[320px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart margin={{ top: 20, right: 30, bottom: 20, left: 30 }}>
+                        <Pie
+                          data={populationData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={50}
+                          outerRadius={85}
+                          paddingAngle={2}
+                          dataKey="value"
+                          label={({ name, percent, value }) => `${name} ${(percent * 100).toFixed(1)}% (${value.toLocaleString()})`}
+                          labelLine={true}
+                        >
+                          {populationData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={entry.color} />
+                          ))}
+                        </Pie>
+                        <Tooltip 
+                          formatter={(value: number) => [value.toLocaleString(), 'Patients']}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                </CardContent>
+              </Card>
 
-        {/* Appointment Allocation */}
-        <Card className="bg-white border-0 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg font-semibold text-slate-900">Appointment Allocation Model</CardTitle>
-            <p className="text-sm text-slate-500">Mandatory Split</p>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[150px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={appointmentData} layout="vertical">
-                  <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
-                  <YAxis type="category" dataKey="name" width={100} />
-                  <Tooltip />
-                  <Bar dataKey="hub" stackId="a" fill="#41B6E6" name="Hub" radius={[0, 0, 0, 0]} />
-                  <Bar dataKey="spoke" stackId="a" fill="#768692" name="Spoke" radius={[0, 8, 8, 0]} />
-                  <Bar dataKey="remote" stackId="b" fill="#005EB8" name="Remote" radius={[0, 8, 8, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              {/* Appointment Allocation */}
+              <Card className="bg-slate-50 border shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg font-semibold text-slate-900">Appointment Allocation Model</CardTitle>
+                  <p className="text-sm text-slate-500">Mandatory Split</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-[150px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart data={appointmentData} layout="vertical">
+                        <XAxis type="number" domain={[0, 100]} tickFormatter={(v) => `${v}%`} />
+                        <YAxis type="category" dataKey="name" width={100} />
+                        <Tooltip />
+                        <Bar dataKey="hub" stackId="a" fill="#41B6E6" name="Hub" radius={[0, 0, 0, 0]} />
+                        <Bar dataKey="spoke" stackId="a" fill="#768692" name="Spoke" radius={[0, 8, 8, 0]} />
+                        <Bar dataKey="remote" stackId="b" fill="#005EB8" name="Remote" radius={[0, 8, 8, 0]} />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex justify-center gap-6 mt-4">
+                    <div className="text-center">
+                      <p className="text-2xl font-bold text-[#005EB8]">50%</p>
+                      <p className="text-sm text-slate-600">REMOTE</p>
+                      <p className="text-xs text-slate-500 mt-1">36,888 appts/year</p>
+                    </div>
+                    <div className="text-center border-l border-slate-200 pl-6">
+                      <p className="text-2xl font-bold text-slate-700">50%</p>
+                      <p className="text-sm text-slate-600">FACE TO FACE</p>
+                      <p className="text-xs text-slate-500 mt-1">36,887 appts/year</p>
+                      <div className="flex gap-3 mt-2 text-xs">
+                        <span className="flex items-center gap-1">
+                          <span className="w-3 h-3 rounded" style={{ backgroundColor: "#41B6E6" }}></span>
+                          Hub 30% (22,133)
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <span className="w-3 h-3 rounded" style={{ backgroundColor: "#768692" }}></span>
+                          Spoke 20% (14,755)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-            <div className="flex justify-center gap-6 mt-4">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-[#005EB8]">50%</p>
-                <p className="text-sm text-slate-600">REMOTE</p>
-                <p className="text-xs text-slate-500 mt-1">36,888 appts/year</p>
-              </div>
-              <div className="text-center border-l border-slate-200 pl-6">
-                <p className="text-2xl font-bold text-slate-700">50%</p>
-                <p className="text-sm text-slate-600">FACE TO FACE</p>
-                <p className="text-xs text-slate-500 mt-1">36,887 appts/year</p>
-                <div className="flex gap-3 mt-2 text-xs">
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded" style={{ backgroundColor: "#41B6E6" }}></span>
-                    Hub 30% (22,133)
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <span className="w-3 h-3 rounded" style={{ backgroundColor: "#768692" }}></span>
-                    Spoke 20% (14,755)
-                  </span>
-                </div>
-              </div>
-            </div>
-          </CardContent>
+          </CollapsibleContent>
         </Card>
-      </div>
+      </Collapsible>
 
       {/* Board Action Tracker */}
       <BoardActionTracker />
