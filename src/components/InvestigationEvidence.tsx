@@ -13,6 +13,8 @@ import { FileText, Upload, Download, Trash2, Mic, Play, Pause, Volume2 } from 'l
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { SpeechToText } from '@/components/SpeechToText';
+import { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType, BorderStyle } from 'docx';
+import { saveAs } from 'file-saver';
 
 interface InvestigationEvidenceProps {
   complaintId: string;
@@ -37,8 +39,17 @@ interface AudioTranscript {
   transcription_confidence: number | null;
   transcribed_at: string;
 }
+interface ComplaintDetails {
+  reference_number: string;
+  patient_name: string;
+  incident_date: string;
+  complaint_title: string;
+  category: string;
+  status: string;
+}
 
 export function InvestigationEvidence({ complaintId, disabled = false }: InvestigationEvidenceProps) {
+  const [complaintDetails, setComplaintDetails] = useState<ComplaintDetails | null>(null);
   const [evidenceFiles, setEvidenceFiles] = useState<EvidenceFile[]>([]);
   const [audioTranscripts, setAudioTranscripts] = useState<AudioTranscript[]>([]);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -67,9 +78,25 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
   });
 
   useEffect(() => {
+    fetchComplaintDetails();
     fetchEvidenceFiles();
     fetchAudioTranscripts();
   }, [complaintId]);
+
+  const fetchComplaintDetails = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('complaints')
+        .select('reference_number, patient_name, incident_date, complaint_title, category, status')
+        .eq('id', complaintId)
+        .single();
+
+      if (error) throw error;
+      setComplaintDetails(data);
+    } catch (error) {
+      console.error('Error fetching complaint details:', error);
+    }
+  };
 
   const fetchEvidenceFiles = async () => {
     try {
@@ -103,6 +130,226 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     }
   };
 
+  const formatTranscriptIntoParagraphs = (text: string): string[] => {
+    return text.split(/(?<=[.!?])\s+(?=[A-Z])|(?<=\?)\s+|(?<=\.)\s{2,}/).reduce((acc: string[][], sentence) => {
+      const lastGroup = acc[acc.length - 1];
+      if (!lastGroup || lastGroup.length >= 4 || (lastGroup.join(' ').length > 400)) {
+        acc.push([sentence]);
+      } else {
+        lastGroup.push(sentence);
+      }
+      return acc;
+    }, [] as string[][]).map(paragraph => paragraph.join(' '));
+  };
+
+  const downloadTranscriptAsWord = async () => {
+    if (!complaintDetails) {
+      toast.error('Complaint details not available');
+      return;
+    }
+
+    try {
+      const paragraphs = formatTranscriptIntoParagraphs(transcriptionModal.text);
+      
+      const doc = new Document({
+        sections: [{
+          properties: {},
+          children: [
+            // Title
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: "Audio Transcription Record",
+                  bold: true,
+                  size: 36,
+                })
+              ],
+              heading: HeadingLevel.HEADING_1,
+              spacing: { after: 400 }
+            }),
+            
+            // Complaint Reference
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Complaint Reference: ${complaintDetails.reference_number}`,
+                  bold: true,
+                  size: 28,
+                })
+              ],
+              spacing: { after: 300 }
+            }),
+            
+            // Divider line effect via border
+            new Paragraph({
+              children: [],
+              border: {
+                bottom: {
+                  color: "999999",
+                  space: 1,
+                  size: 6,
+                  style: BorderStyle.SINGLE,
+                }
+              },
+              spacing: { after: 300 }
+            }),
+            
+            // Complaint Details Section
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Complaint Details", bold: true, size: 24 })
+              ],
+              spacing: { after: 200 }
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Patient Name: ", bold: true }),
+                new TextRun({ text: complaintDetails.patient_name })
+              ],
+              spacing: { after: 120 }
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Incident Date: ", bold: true }),
+                new TextRun({ text: new Date(complaintDetails.incident_date).toLocaleDateString('en-GB') })
+              ],
+              spacing: { after: 120 }
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Complaint Title: ", bold: true }),
+                new TextRun({ text: complaintDetails.complaint_title })
+              ],
+              spacing: { after: 120 }
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Category: ", bold: true }),
+                new TextRun({ text: complaintDetails.category })
+              ],
+              spacing: { after: 120 }
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Status: ", bold: true }),
+                new TextRun({ text: complaintDetails.status })
+              ],
+              spacing: { after: 300 }
+            }),
+            
+            // Audio File Details
+            new Paragraph({
+              children: [],
+              border: {
+                bottom: {
+                  color: "999999",
+                  space: 1,
+                  size: 6,
+                  style: BorderStyle.SINGLE,
+                }
+              },
+              spacing: { after: 300 }
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Audio File Details", bold: true, size: 24 })
+              ],
+              spacing: { after: 200 }
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({ text: "File Name: ", bold: true }),
+                new TextRun({ text: transcriptionModal.fileName })
+              ],
+              spacing: { after: 120 }
+            }),
+            
+            ...(transcriptionModal.confidence ? [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Transcription Confidence: ", bold: true }),
+                  new TextRun({ text: `${Math.round(transcriptionModal.confidence * 100)}%` })
+                ],
+                spacing: { after: 120 }
+              })
+            ] : []),
+            
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Transcription Date: ", bold: true }),
+                new TextRun({ text: new Date().toLocaleDateString('en-GB') })
+              ],
+              spacing: { after: 300 }
+            }),
+            
+            // Transcript Section
+            new Paragraph({
+              children: [],
+              border: {
+                bottom: {
+                  color: "999999",
+                  space: 1,
+                  size: 6,
+                  style: BorderStyle.SINGLE,
+                }
+              },
+              spacing: { after: 300 }
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({ text: "Transcript", bold: true, size: 24 })
+              ],
+              spacing: { after: 300 }
+            }),
+            
+            // Transcript paragraphs with nice spacing
+            ...paragraphs.map(para => 
+              new Paragraph({
+                children: [
+                  new TextRun({ text: para, size: 22 })
+                ],
+                spacing: { after: 240, line: 360 }
+              })
+            ),
+            
+            // Footer
+            new Paragraph({
+              children: [],
+              spacing: { before: 400 }
+            }),
+            
+            new Paragraph({
+              children: [
+                new TextRun({
+                  text: `Document generated on ${new Date().toLocaleDateString('en-GB')} at ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
+                  italics: true,
+                  size: 18,
+                  color: "666666"
+                })
+              ],
+              alignment: AlignmentType.RIGHT
+            })
+          ]
+        }]
+      });
+
+      const blob = await Packer.toBlob(doc);
+      const fileName = `Transcript_${complaintDetails.reference_number}_${transcriptionModal.fileName.replace(/\.[^/.]+$/, '')}.docx`;
+      saveAs(blob, fileName);
+      toast.success('Transcript downloaded successfully');
+    } catch (error) {
+      console.error('Error generating Word document:', error);
+      toast.error('Failed to generate Word document');
+    }
+  };
   const handleFileUpload = async () => {
     if (!selectedFile) {
       toast.error('Please select a file');
@@ -442,6 +689,13 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
             </div>
           </div>
           <div className="flex justify-end gap-3 pt-4 border-t">
+            <Button
+              variant="outline"
+              onClick={downloadTranscriptAsWord}
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Download Word
+            </Button>
             <Button
               variant="outline"
               onClick={() => {
