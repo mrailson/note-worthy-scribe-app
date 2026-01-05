@@ -30,7 +30,9 @@ import {
   Briefcase,
   GraduationCap,
   Stethoscope,
-  MessageSquare
+  MessageSquare,
+  Clock,
+  Calendar
 } from "lucide-react";
 import {
   recruitmentSummary,
@@ -227,6 +229,22 @@ export const ACPRecruitmentPanel = () => {
 
   return (
     <div className="space-y-6">
+      {/* Header with dates */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-slate-500" />
+            <span className="text-sm text-slate-600">
+              Last updated: <span className="font-semibold text-slate-800">5 January 2026, 09:36</span>
+            </span>
+          </div>
+        </div>
+        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-100 border border-red-300 rounded-lg">
+          <Calendar className="w-4 h-4 text-red-600" />
+          <span className="text-sm font-semibold text-red-700">Closing Date: 20 January 2026</span>
+        </div>
+      </div>
+
       {/* Executive Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="p-4 text-center border-2 border-slate-200">
