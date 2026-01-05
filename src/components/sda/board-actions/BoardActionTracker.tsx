@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, ClipboardList, Loader2 } from "lucide-react";
 import { useNRESBoardActions } from "@/hooks/useNRESBoardActions";
+import { useBoardActionDocuments } from "@/hooks/useBoardActionDocuments";
 import { BoardActionForm } from "./BoardActionForm";
 import { BoardActionsTable } from "./BoardActionsTable";
 import type { NRESBoardAction, CreateBoardActionData } from "@/types/nresBoardActions";
@@ -21,12 +22,20 @@ export const BoardActionTracker = () => {
     deleteAction,
   } = useNRESBoardActions();
 
-  const handleSubmit = (data: CreateBoardActionData) => {
+  const { uploadDocument } = useBoardActionDocuments();
+
+  const handleSubmit = async (data: CreateBoardActionData, files?: File[]) => {
     if (editingAction) {
       updateAction.mutate(
         { id: editingAction.id, ...data },
         {
-          onSuccess: () => {
+          onSuccess: async () => {
+            // Upload any pending files for existing action
+            if (files && files.length > 0) {
+              for (const file of files) {
+                await uploadDocument.mutateAsync({ actionId: editingAction.id, file });
+              }
+            }
             setFormOpen(false);
             setEditingAction(null);
           },
@@ -34,7 +43,13 @@ export const BoardActionTracker = () => {
       );
     } else {
       createAction.mutate(data, {
-        onSuccess: () => {
+        onSuccess: async (newAction: NRESBoardAction) => {
+          // Upload any pending files for new action
+          if (files && files.length > 0 && newAction?.id) {
+            for (const file of files) {
+              await uploadDocument.mutateAsync({ actionId: newAction.id, file });
+            }
+          }
           setFormOpen(false);
         },
       });
