@@ -116,22 +116,54 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
   };
 
   const exportToExcel = () => {
-    const exportData = filteredAndSortedActions.map((action) => ({
-      Reference: action.reference_number || "",
-      Action: action.action_title,
-      Description: action.description || "",
-      Responsible: action.responsible_person,
-      "Meeting Date": format(new Date(action.meeting_date), "dd/MM/yyyy"),
-      "Due Date": action.due_date ? format(new Date(action.due_date), "dd/MM/yyyy") : "",
-      Status: getStatusLabel(action.status),
-      Priority: action.priority.charAt(0).toUpperCase() + action.priority.slice(1),
-      Notes: action.notes || "",
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(exportData);
+    const now = new Date();
+    
+    // Build title rows
+    const titleRows = [
+      ["New Models Pilot - Action Tracker"],
+      [`Downloaded: ${format(now, "dd/MM/yyyy")} at ${format(now, "HH:mm")}`],
+      [], // Empty spacing row
+      ["Reference", "Action", "Description", "Responsible", "Meeting Date", "Due Date", "Status", "Priority", "Notes"]
+    ];
+    
+    // Build data rows
+    const dataRows = filteredAndSortedActions.map((action) => [
+      action.reference_number || "",
+      action.action_title,
+      action.description || "",
+      action.responsible_person,
+      format(new Date(action.meeting_date), "dd/MM/yyyy"),
+      action.due_date ? format(new Date(action.due_date), "dd/MM/yyyy") : "",
+      getStatusLabel(action.status),
+      action.priority.charAt(0).toUpperCase() + action.priority.slice(1),
+      action.notes || "",
+    ]);
+    
+    const allRows = [...titleRows, ...dataRows];
+    const ws = XLSX.utils.aoa_to_sheet(allRows);
+    
+    // Set column widths
+    ws['!cols'] = [
+      { wch: 18 },  // Reference
+      { wch: 40 },  // Action
+      { wch: 50 },  // Description
+      { wch: 20 },  // Responsible
+      { wch: 14 },  // Meeting Date
+      { wch: 14 },  // Due Date
+      { wch: 14 },  // Status
+      { wch: 12 },  // Priority
+      { wch: 40 }   // Notes
+    ];
+    
+    // Merge title and date cells across all columns
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },  // Title row
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } }   // Date row
+    ];
+    
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Actions");
-    XLSX.writeFile(wb, `NMP-Actions-${format(new Date(), "yyyy-MM-dd")}.xlsx`);
+    XLSX.writeFile(wb, `NMP-Actions-${format(now, "yyyy-MM-dd")}.xlsx`);
   };
 
   const hasActiveFilters = filters.reference || filters.title || filters.responsible || filters.status !== "all" || filters.priority !== "all";
