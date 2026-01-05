@@ -154,14 +154,18 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     }, [] as string[][]).map(paragraph => paragraph.join(' '));
   };
 
-  const downloadTranscriptAsWord = async () => {
+  const downloadTranscriptAsWord = async (
+    text: string = transcriptionModal.text,
+    fileName: string = transcriptionModal.fileName,
+    confidence: number | null = transcriptionModal.confidence
+  ) => {
     if (!complaintDetails) {
       toast.error('Complaint details not available');
       return;
     }
 
     try {
-      const paragraphs = formatTranscriptIntoParagraphs(transcriptionModal.text);
+      const paragraphs = formatTranscriptIntoParagraphs(text);
       
       const doc = new Document({
         sections: [{
@@ -288,16 +292,16 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
             new Paragraph({
               children: [
                 new TextRun({ text: "File Name: ", bold: true }),
-                new TextRun({ text: transcriptionModal.fileName })
+                new TextRun({ text: fileName })
               ],
               spacing: { after: 120 }
             }),
             
-            ...(transcriptionModal.confidence ? [
+            ...(confidence ? [
               new Paragraph({
                 children: [
                   new TextRun({ text: "Transcription Confidence: ", bold: true }),
-                  new TextRun({ text: `${Math.round(transcriptionModal.confidence * 100)}%` })
+                  new TextRun({ text: `${Math.round(confidence * 100)}%` })
                 ],
                 spacing: { after: 120 }
               })
@@ -364,8 +368,8 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       });
 
       const blob = await Packer.toBlob(doc);
-      const fileName = `Transcript_${complaintDetails.reference_number}_${transcriptionModal.fileName.replace(/\.[^/.]+$/, '')}.docx`;
-      saveAs(blob, fileName);
+      const outputFileName = `Transcript_${complaintDetails.reference_number}_${fileName.replace(/\.[^/.]+$/, '')}.docx`;
+      saveAs(blob, outputFileName);
       toast.success('Transcript downloaded successfully');
     } catch (error) {
       console.error('Error generating Word document:', error);
@@ -713,7 +717,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           <div className="flex justify-end gap-3 pt-4 border-t">
             <Button
               variant="outline"
-              onClick={downloadTranscriptAsWord}
+              onClick={() => downloadTranscriptAsWord()}
             >
               <Download className="h-4 w-4 mr-2" />
               Download Word
@@ -870,13 +874,25 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                           <Volume2 className="h-5 w-5 text-primary" />
                           <span className="font-semibold text-base">{audioFile?.file_name || 'Unknown file'}</span>
                         </div>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <span>{new Date(transcript.transcribed_at).toLocaleDateString()}</span>
+                        <div className="flex items-center gap-3">
+                          <span className="text-sm text-muted-foreground">{new Date(transcript.transcribed_at).toLocaleDateString()}</span>
                           {transcript.transcription_confidence && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
                               {Math.round(transcript.transcription_confidence * 100)}% confidence
                             </span>
                           )}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => downloadTranscriptAsWord(
+                              transcript.transcript_text,
+                              audioFile?.file_name || 'transcript',
+                              transcript.transcription_confidence
+                            )}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Word
+                          </Button>
                         </div>
                       </div>
                       <div className="bg-muted/50 p-5 rounded-lg border">
