@@ -1568,15 +1568,6 @@ const ComplaintDetails = () => {
                 <p className="text-muted-foreground">Manage complaint workflow and compliance</p>
               </div>
             </div>
-            
-            <Button 
-              onClick={() => navigate('/complaints-guide')}
-              variant="outline"
-              className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300 shrink-0"
-            >
-              <BookOpen className="h-4 w-4 mr-2" />
-              Intro Slides
-            </Button>
           </div>
 
           {/* Complaint Header */}
