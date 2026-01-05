@@ -140,7 +140,7 @@ export function GanttChartView({ actions, onEdit }: GanttChartViewProps) {
                     className="border-r text-xs font-medium px-2 flex items-center"
                     style={{ width: 7 * dayWidth }}
                   >
-                    {format(weekStart, 'MMM d')}
+                    {format(weekStart, 'd MMM yyyy')}
                   </div>
                 ))}
               </div>
