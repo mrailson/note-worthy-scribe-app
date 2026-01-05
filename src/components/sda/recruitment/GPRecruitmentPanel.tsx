@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -42,6 +42,10 @@ import {
   getNotShortlistedGPCandidates,
   GPCandidate
 } from "@/data/nresGPRecruitmentData";
+import { useCandidateFeedback } from '@/hooks/useCandidateFeedback';
+import { CandidateFeedbackButton } from './CandidateFeedbackButton';
+import { CandidateFeedbackModal } from './CandidateFeedbackModal';
+import { FeedbackSummaryCard } from './FeedbackSummaryCard';
 
 const getScoreColor = (score: number, maxScore: number = 10) => {
   const percentage = (score / maxScore) * 100;
@@ -60,6 +64,19 @@ const getRecommendationBadge = (recommendation: GPCandidate['recommendation']) =
       return <Badge className="bg-amber-500 text-white">Consider</Badge>;
     case 'do-not-shortlist':
       return <Badge className="bg-red-500 text-white">Do Not Shortlist</Badge>;
+  }
+};
+
+const getRecommendationText = (recommendation: GPCandidate['recommendation']) => {
+  switch (recommendation) {
+    case 'strongly-recommend':
+      return 'Strongly Recommend';
+    case 'recommend':
+      return 'Recommend - Invite to Interview';
+    case 'consider':
+      return 'Consider';
+    case 'do-not-shortlist':
+      return 'Do Not Shortlist';
   }
 };
 
@@ -225,6 +242,8 @@ const GPCandidateDetailCard = ({ candidate }: { candidate: GPCandidate }) => {
 
 export const GPRecruitmentPanel = () => {
   const [showAllCandidates, setShowAllCandidates] = useState(false);
+  const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
+  const [selectedCandidate, setSelectedCandidate] = useState<GPCandidate | null>(null);
   
   const stronglyRecommended = getStronglyRecommendedGPCandidates();
   const recommended = getRecommendedGPCandidates();
@@ -232,6 +251,37 @@ export const GPRecruitmentPanel = () => {
 
   // Sort candidates by recommendation status
   const sortedCandidates = [...stronglyRecommended, ...recommended, ...notShortlisted];
+
+  // Get all candidate IDs for feedback hook
+  const candidateIds = useMemo(() => allGPCandidates.map(c => c.id), []);
+  
+  const {
+    isLoading: feedbackLoading,
+    isSubmitting,
+    getFeedbackForCandidate,
+    getUserFeedbackForCandidate,
+    getCandidateStats,
+    getSummary,
+    submitFeedback,
+    deleteFeedback,
+  } = useCandidateFeedback('GP', candidateIds);
+
+  const handleOpenFeedback = (candidate: GPCandidate) => {
+    setSelectedCandidate(candidate);
+    setFeedbackModalOpen(true);
+  };
+
+  const handleSubmitFeedback = async (agrees: boolean, comment?: string) => {
+    if (!selectedCandidate) return false;
+    return submitFeedback(selectedCandidate.id, agrees, comment);
+  };
+
+  const handleDeleteFeedback = async () => {
+    if (!selectedCandidate) return false;
+    return deleteFeedback(selectedCandidate.id);
+  };
+
+  const summary = getSummary();
 
   return (
     <div className="space-y-6">
@@ -250,6 +300,14 @@ export const GPRecruitmentPanel = () => {
           <span className="text-sm font-semibold text-red-700">Closing Date: 20 January 2026</span>
         </div>
       </div>
+
+      {/* Team Feedback Summary */}
+      <FeedbackSummaryCard
+        summary={summary}
+        totalCandidates={allGPCandidates.length}
+        roleType="GP"
+        isLoading={feedbackLoading}
+      />
 
       {/* Executive Summary */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -300,31 +358,44 @@ export const GPRecruitmentPanel = () => {
                 ))}
                 <TableHead className="text-center font-semibold bg-slate-200">TOTAL</TableHead>
                 <TableHead className="font-semibold">Recommendation</TableHead>
+                <TableHead className="font-semibold text-center">Feedback</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedCandidates.map((candidate) => (
-                <TableRow key={candidate.id} className="hover:bg-slate-50">
-                  <TableCell className="font-mono text-xs sticky left-0 bg-white z-10">
-                    {candidate.id}
-                  </TableCell>
-                  {candidate.scoringBreakdown.map((score, idx) => (
-                    <TableCell key={idx} className="text-center p-1">
-                      <span className={`inline-block w-6 h-6 rounded text-xs font-bold leading-6 ${getScoreColor(score.score, score.maxScore)}`}>
-                        {score.score}
+              {sortedCandidates.map((candidate) => {
+                const stats = getCandidateStats(candidate.id);
+                const userFeedback = getUserFeedbackForCandidate(candidate.id);
+                return (
+                  <TableRow key={candidate.id} className="hover:bg-slate-50">
+                    <TableCell className="font-mono text-xs sticky left-0 bg-white z-10">
+                      {candidate.id}
+                    </TableCell>
+                    {candidate.scoringBreakdown.map((score, idx) => (
+                      <TableCell key={idx} className="text-center p-1">
+                        <span className={`inline-block w-6 h-6 rounded text-xs font-bold leading-6 ${getScoreColor(score.score, score.maxScore)}`}>
+                          {score.score}
+                        </span>
+                      </TableCell>
+                    ))}
+                    <TableCell className="text-center bg-slate-50">
+                      <span className={`inline-block px-2 py-1 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
+                        {candidate.score}
                       </span>
                     </TableCell>
-                  ))}
-                  <TableCell className="text-center bg-slate-50">
-                    <span className={`inline-block px-2 py-1 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
-                      {candidate.score}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    {getRecommendationBadge(candidate.recommendation)}
-                  </TableCell>
-                </TableRow>
-              ))}
+                    <TableCell>
+                      {getRecommendationBadge(candidate.recommendation)}
+                    </TableCell>
+                    <TableCell>
+                      <CandidateFeedbackButton
+                        stats={stats}
+                        onClick={() => handleOpenFeedback(candidate)}
+                        hasUserFeedback={!!userFeedback}
+                        userAgreed={userFeedback?.agrees_with_assessment}
+                      />
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
             </TableBody>
           </Table>
         </div>
@@ -340,26 +411,36 @@ export const GPRecruitmentPanel = () => {
               <h4 className="font-semibold text-green-800">Strongly Recommend - Invite to Interview ({stronglyRecommended.length} candidate)</h4>
             </div>
             <Accordion type="multiple" className="space-y-2">
-              {stronglyRecommended.map((candidate) => (
-                <AccordionItem key={candidate.id} value={candidate.id} className="bg-white rounded-lg border border-green-300">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-3 w-full">
-                      <span className="font-mono text-sm font-semibold text-green-700">{candidate.id}</span>
-                      <span className={`px-2 py-0.5 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
-                        {candidate.score}/100
-                      </span>
-                      {getRecommendationBadge(candidate.recommendation)}
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                        GMC: {candidate.gmcNumber}
-                      </Badge>
+              {stronglyRecommended.map((candidate) => {
+                const stats = getCandidateStats(candidate.id);
+                const userFeedback = getUserFeedbackForCandidate(candidate.id);
+                return (
+                  <AccordionItem key={candidate.id} value={candidate.id} className="bg-white rounded-lg border border-green-300">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                      <div className="flex items-center gap-3 w-full flex-wrap">
+                        <span className="font-mono text-sm font-semibold text-green-700">{candidate.id}</span>
+                        <span className={`px-2 py-0.5 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
+                          {candidate.score}/100
+                        </span>
+                        {getRecommendationBadge(candidate.recommendation)}
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          GMC: {candidate.gmcNumber}
+                        </Badge>
                       <span className="text-sm text-slate-600 ml-auto mr-4">{candidate.currentRole}</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <GPCandidateDetailCard candidate={candidate} />
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
+                      <CandidateFeedbackButton
+                        stats={stats}
+                        onClick={() => handleOpenFeedback(candidate)}
+                        hasUserFeedback={!!userFeedback}
+                        userAgreed={userFeedback?.agrees_with_assessment}
+                      />
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <GPCandidateDetailCard candidate={candidate} />
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
             </Accordion>
           </div>
         )}
@@ -372,26 +453,36 @@ export const GPRecruitmentPanel = () => {
               <h4 className="font-semibold text-green-800">Recommend - Invite to Interview ({recommended.length} candidates)</h4>
             </div>
             <Accordion type="multiple" className="space-y-2">
-              {recommended.map((candidate) => (
-                <AccordionItem key={candidate.id} value={candidate.id} className="bg-white rounded-lg border border-green-200">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-3 w-full">
-                      <span className="font-mono text-sm font-semibold text-green-700">{candidate.id}</span>
-                      <span className={`px-2 py-0.5 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
-                        {candidate.score}/100
-                      </span>
-                      {getRecommendationBadge(candidate.recommendation)}
-                      <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                        GMC: {candidate.gmcNumber}
-                      </Badge>
+              {recommended.map((candidate) => {
+                const stats = getCandidateStats(candidate.id);
+                const userFeedback = getUserFeedbackForCandidate(candidate.id);
+                return (
+                  <AccordionItem key={candidate.id} value={candidate.id} className="bg-white rounded-lg border border-green-200">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                      <div className="flex items-center gap-3 w-full flex-wrap">
+                        <span className="font-mono text-sm font-semibold text-green-700">{candidate.id}</span>
+                        <span className={`px-2 py-0.5 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
+                          {candidate.score}/100
+                        </span>
+                        {getRecommendationBadge(candidate.recommendation)}
+                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                          GMC: {candidate.gmcNumber}
+                        </Badge>
                       <span className="text-sm text-slate-600 ml-auto mr-4">{candidate.currentRole}</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <GPCandidateDetailCard candidate={candidate} />
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
+                      <CandidateFeedbackButton
+                        stats={stats}
+                        onClick={() => handleOpenFeedback(candidate)}
+                        hasUserFeedback={!!userFeedback}
+                        userAgreed={userFeedback?.agrees_with_assessment}
+                      />
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <GPCandidateDetailCard candidate={candidate} />
+                    </AccordionContent>
+                  </AccordionItem>
+                );
+              })}
             </Accordion>
           </div>
         )}
@@ -420,21 +511,34 @@ export const GPRecruitmentPanel = () => {
                       <TableHead className="font-semibold">Score</TableHead>
                       <TableHead className="font-semibold">GMC</TableHead>
                       <TableHead className="font-semibold">Reason for Rejection</TableHead>
+                      <TableHead className="font-semibold">Feedback</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {notShortlisted.map((candidate) => (
-                      <TableRow key={candidate.id}>
-                        <TableCell className="font-mono text-sm">{candidate.id}</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-0.5 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
-                            {candidate.score}/100
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-sm">{candidate.gmcNumber}</TableCell>
-                        <TableCell className="text-sm text-red-700">{candidate.recommendationReason}</TableCell>
-                      </TableRow>
-                    ))}
+                    {notShortlisted.map((candidate) => {
+                      const stats = getCandidateStats(candidate.id);
+                      const userFeedback = getUserFeedbackForCandidate(candidate.id);
+                      return (
+                        <TableRow key={candidate.id}>
+                          <TableCell className="font-mono text-sm">{candidate.id}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-0.5 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
+                              {candidate.score}/100
+                            </span>
+                          </TableCell>
+                          <TableCell className="text-sm">{candidate.gmcNumber}</TableCell>
+                          <TableCell className="text-sm text-red-700">{candidate.recommendationReason}</TableCell>
+                          <TableCell>
+                            <CandidateFeedbackButton
+                              stats={stats}
+                              onClick={() => handleOpenFeedback(candidate)}
+                              hasUserFeedback={!!userFeedback}
+                              userAgreed={userFeedback?.agrees_with_assessment}
+                            />
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
                   </TableBody>
                 </Table>
               </div>
@@ -442,6 +546,22 @@ export const GPRecruitmentPanel = () => {
           )}
         </div>
       </div>
+
+      {/* Feedback Modal */}
+      {selectedCandidate && (
+        <CandidateFeedbackModal
+          open={feedbackModalOpen}
+          onOpenChange={setFeedbackModalOpen}
+          candidateId={selectedCandidate.id}
+          currentRecommendation={getRecommendationText(selectedCandidate.recommendation)}
+          roleType="GP"
+          feedback={getFeedbackForCandidate(selectedCandidate.id)}
+          userFeedback={getUserFeedbackForCandidate(selectedCandidate.id)}
+          isSubmitting={isSubmitting}
+          onSubmit={handleSubmitFeedback}
+          onDelete={handleDeleteFeedback}
+        />
+      )}
     </div>
   );
 };
