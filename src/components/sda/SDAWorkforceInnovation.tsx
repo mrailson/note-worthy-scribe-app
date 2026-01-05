@@ -96,6 +96,7 @@ export const SDAWorkforceInnovation = () => {
         title="Job Adverts for Programme Board Approval"
         icon={<Briefcase className="w-5 h-5" />}
         badge={<Badge className="bg-amber-500">{proposedJobAdverts.length} Adverts</Badge>}
+        defaultOpen={false}
       >
         <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
           <div className="flex items-start gap-3">
@@ -226,6 +227,7 @@ export const SDAWorkforceInnovation = () => {
         title="ACP Recruitment - Candidate Assessment"
         icon={<ClipboardCheck className="w-5 h-5" />}
         badge={<Badge className="bg-teal-500">9 Applicants</Badge>}
+        defaultOpen={false}
       >
         <ACPRecruitmentPanel />
       </CollapsibleCard>
@@ -235,6 +237,7 @@ export const SDAWorkforceInnovation = () => {
         title="GP Recruitment - Candidate Assessment"
         icon={<UserCheck className="w-5 h-5" />}
         badge={<Badge className="bg-blue-500">6 Applicants</Badge>}
+        defaultOpen={false}
       >
         <GPRecruitmentPanel />
       </CollapsibleCard>
@@ -272,6 +275,7 @@ export const SDAWorkforceInnovation = () => {
           title="Workforce Requirements"
           icon={<Users className="w-5 h-5" />}
           badge={<Badge className="bg-[#005EB8]">WTE</Badge>}
+          defaultOpen={false}
         >
           <div className="space-y-6">
             <div className="grid grid-cols-2 gap-4">
@@ -308,6 +312,7 @@ export const SDAWorkforceInnovation = () => {
         <CollapsibleCard
           title="Innovation Component (£306k Budget)"
           icon={<Lightbulb className="w-5 h-5 text-amber-500" />}
+          defaultOpen={false}
         >
           <div className="space-y-4">
             <div className="border border-slate-200 rounded-lg p-4">
