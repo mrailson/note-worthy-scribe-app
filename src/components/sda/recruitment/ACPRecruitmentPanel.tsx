@@ -369,70 +369,67 @@ export const ACPRecruitmentPanel = () => {
 
         {/* Do Not Shortlist */}
         <div className="bg-red-50 border-2 border-red-200 rounded-lg p-4">
-          <div className="flex items-center justify-between mb-3">
+          <button 
+            onClick={() => setShowAllCandidates(!showAllCandidates)}
+            className="flex items-center justify-between w-full text-left"
+          >
             <div className="flex items-center gap-2">
               <XCircle className="w-5 h-5 text-red-600" />
               <h4 className="font-semibold text-red-800">Do Not Shortlist ({notShortlisted.length} candidates)</h4>
             </div>
-            <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={() => setShowAllCandidates(!showAllCandidates)}
-              className="text-red-700 hover:text-red-800 hover:bg-red-100"
-            >
-              {showAllCandidates ? 'Hide Details' : 'Show Details'}
-              <ChevronDown className={`w-4 h-4 ml-1 transition-transform ${showAllCandidates ? 'rotate-180' : ''}`} />
-            </Button>
-          </div>
+            <ChevronDown className={`w-5 h-5 text-red-600 transition-transform ${showAllCandidates ? 'rotate-180' : ''}`} />
+          </button>
           
-          {/* Summary Table */}
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-red-100">
-                  <TableHead className="font-semibold text-red-800">ID</TableHead>
-                  <TableHead className="font-semibold text-red-800">Score</TableHead>
-                  <TableHead className="font-semibold text-red-800">Current Role</TableHead>
-                  <TableHead className="font-semibold text-red-800">Reason</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {notShortlisted.map((candidate) => (
-                  <TableRow key={candidate.id} className="bg-white">
-                    <TableCell className="font-mono text-sm">{candidate.id}</TableCell>
-                    <TableCell>
-                      <span className={`px-2 py-0.5 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
-                        {candidate.score}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-sm">{candidate.currentRole}</TableCell>
-                    <TableCell className="text-sm text-red-700">{candidate.recommendationReason}</TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-
-          {/* Expandable Details */}
           {showAllCandidates && (
-            <Accordion type="multiple" className="space-y-2 mt-4">
-              {notShortlisted.map((candidate) => (
-                <AccordionItem key={candidate.id} value={candidate.id} className="bg-white rounded-lg border border-red-200">
-                  <AccordionTrigger className="px-4 py-3 hover:no-underline">
-                    <div className="flex items-center gap-3 w-full">
-                      <span className="font-mono text-sm font-semibold text-red-700">{candidate.id}</span>
-                      <span className={`px-2 py-0.5 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
-                        {candidate.score}/100
-                      </span>
-                      <span className="text-sm text-slate-600">{candidate.currentRole}</span>
-                    </div>
-                  </AccordionTrigger>
-                  <AccordionContent className="px-4 pb-4">
-                    <CandidateDetailCard candidate={candidate} />
-                  </AccordionContent>
-                </AccordionItem>
-              ))}
-            </Accordion>
+            <div className="mt-4 space-y-4">
+              {/* Summary Table */}
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-red-100">
+                      <TableHead className="font-semibold text-red-800">ID</TableHead>
+                      <TableHead className="font-semibold text-red-800">Score</TableHead>
+                      <TableHead className="font-semibold text-red-800">Current Role</TableHead>
+                      <TableHead className="font-semibold text-red-800">Reason</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {notShortlisted.map((candidate) => (
+                      <TableRow key={candidate.id} className="bg-white">
+                        <TableCell className="font-mono text-sm">{candidate.id}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-0.5 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
+                            {candidate.score}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-sm">{candidate.currentRole}</TableCell>
+                        <TableCell className="text-sm text-red-700">{candidate.recommendationReason}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+
+              {/* Expandable Details */}
+              <Accordion type="multiple" className="space-y-2">
+                {notShortlisted.map((candidate) => (
+                  <AccordionItem key={candidate.id} value={candidate.id} className="bg-white rounded-lg border border-red-200">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                      <div className="flex items-center gap-3 w-full">
+                        <span className="font-mono text-sm font-semibold text-red-700">{candidate.id}</span>
+                        <span className={`px-2 py-0.5 rounded text-sm font-bold ${getScoreColor(candidate.score, 100)}`}>
+                          {candidate.score}/100
+                        </span>
+                        <span className="text-sm text-slate-600">{candidate.currentRole}</span>
+                      </div>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <CandidateDetailCard candidate={candidate} />
+                    </AccordionContent>
+                  </AccordionItem>
+                ))}
+              </Accordion>
+            </div>
           )}
         </div>
       </div>
