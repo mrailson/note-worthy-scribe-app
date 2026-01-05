@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Pencil, Trash2, ArrowUpDown, ArrowUp, ArrowDown, X, Filter, FileSpreadsheet } from "lucide-react";
-import * as XLSX from "xlsx";
+import * as XLSX from "xlsx-js-style";
 import type { NRESBoardAction, BoardActionStatus, BoardActionPriority } from "@/types/nresBoardActions";
 
 interface BoardActionsTableProps {
@@ -117,26 +117,54 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
 
   const exportToExcel = () => {
     const now = new Date();
+    const numCols = 9;
+    
+    // Border style
+    const border = {
+      top: { style: "thin", color: { rgb: "000000" } },
+      bottom: { style: "thin", color: { rgb: "000000" } },
+      left: { style: "thin", color: { rgb: "000000" } },
+      right: { style: "thin", color: { rgb: "000000" } },
+    };
+    
+    // Header style (bold with grey background)
+    const headerStyle = {
+      font: { bold: true },
+      fill: { fgColor: { rgb: "E0E0E0" } },
+      border,
+      alignment: { horizontal: "center", vertical: "center" },
+    };
+    
+    // Data cell style
+    const cellStyle = { border };
+    
+    // Title style
+    const titleStyle = {
+      font: { bold: true, sz: 14 },
+      alignment: { horizontal: "left" },
+    };
     
     // Build title rows
-    const titleRows = [
-      ["New Models Pilot - Action Tracker"],
-      [`Downloaded: ${format(now, "dd/MM/yyyy")} at ${format(now, "HH:mm")}`],
+    const titleRows: (string | { v: string; s: object })[][] = [
+      [{ v: "New Models Pilot - Action Tracker", s: titleStyle }],
+      [{ v: `Downloaded: ${format(now, "dd/MM/yyyy")} at ${format(now, "HH:mm")}`, s: { font: { italic: true } } }],
       [], // Empty spacing row
-      ["Reference", "Action", "Description", "Responsible", "Meeting Date", "Due Date", "Status", "Priority", "Notes"]
+      ["Reference", "Action", "Description", "Responsible", "Meeting Date", "Due Date", "Status", "Priority", "Notes"].map(
+        (h) => ({ v: h, s: headerStyle })
+      ),
     ];
     
-    // Build data rows
+    // Build data rows with borders
     const dataRows = filteredAndSortedActions.map((action) => [
-      action.reference_number || "",
-      action.action_title,
-      action.description || "",
-      action.responsible_person,
-      format(new Date(action.meeting_date), "dd/MM/yyyy"),
-      action.due_date ? format(new Date(action.due_date), "dd/MM/yyyy") : "",
-      getStatusLabel(action.status),
-      action.priority.charAt(0).toUpperCase() + action.priority.slice(1),
-      action.notes || "",
+      { v: action.reference_number || "", s: cellStyle },
+      { v: action.action_title, s: cellStyle },
+      { v: action.description || "", s: cellStyle },
+      { v: action.responsible_person, s: cellStyle },
+      { v: format(new Date(action.meeting_date), "dd/MM/yyyy"), s: cellStyle },
+      { v: action.due_date ? format(new Date(action.due_date), "dd/MM/yyyy") : "", s: cellStyle },
+      { v: getStatusLabel(action.status), s: cellStyle },
+      { v: action.priority.charAt(0).toUpperCase() + action.priority.slice(1), s: cellStyle },
+      { v: action.notes || "", s: cellStyle },
     ]);
     
     const allRows = [...titleRows, ...dataRows];
@@ -157,8 +185,8 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
     
     // Merge title and date cells across all columns
     ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 8 } },  // Title row
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 8 } }   // Date row
+      { s: { r: 0, c: 0 }, e: { r: 0, c: numCols - 1 } },  // Title row
+      { s: { r: 1, c: 0 }, e: { r: 1, c: numCols - 1 } }   // Date row
     ];
     
     const wb = XLSX.utils.book_new();
