@@ -228,7 +228,17 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           }
         });
 
-      if (transcriptionError) throw transcriptionError;
+      if (transcriptionError) {
+        console.error('Transcription service error:', transcriptionError);
+        throw transcriptionError;
+      }
+
+      console.log('Transcription response:', transcriptionData);
+
+      if (!transcriptionData?.text) {
+        console.error('No transcription text returned:', transcriptionData);
+        throw new Error('No transcription text was returned from the service');
+      }
 
       // Save transcript to database
       const { data, error } = await supabase
@@ -243,7 +253,10 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         .select()
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('Database save error:', error);
+        throw error;
+      }
 
       setAudioTranscripts(prev => [data, ...prev]);
       
