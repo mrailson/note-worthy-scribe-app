@@ -5252,6 +5252,45 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_candidate_feedback: {
+        Row: {
+          agrees_with_assessment: boolean
+          candidate_id: string
+          comment: string | null
+          created_at: string
+          id: string
+          role_type: string
+          updated_at: string
+          user_id: string
+          user_name: string
+          user_role: string | null
+        }
+        Insert: {
+          agrees_with_assessment: boolean
+          candidate_id: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          role_type: string
+          updated_at?: string
+          user_id: string
+          user_name: string
+          user_role?: string | null
+        }
+        Update: {
+          agrees_with_assessment?: boolean
+          candidate_id?: string
+          comment?: string | null
+          created_at?: string
+          id?: string
+          role_type?: string
+          updated_at?: string
+          user_id?: string
+          user_name?: string
+          user_role?: string | null
+        }
+        Relationships: []
+      }
       pcn_manager_practices: {
         Row: {
           assigned_at: string | null
