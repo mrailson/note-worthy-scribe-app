@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { useBoardMembers } from "@/hooks/useBoardMembers";
 import type { BoardMember, CreateBoardMemberData } from "@/types/boardMembers";
 
@@ -14,10 +14,13 @@ interface BoardMemberManagementProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const ITEMS_PER_PAGE = 10;
+
 export const BoardMemberManagement = ({ open, onOpenChange }: BoardMemberManagementProps) => {
   const { members, createMember, updateMember, deleteMember } = useBoardMembers();
   const [editingMember, setEditingMember] = useState<BoardMember | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const [formData, setFormData] = useState<CreateBoardMemberData>({
     name: "",
     role: "",
@@ -25,6 +28,12 @@ export const BoardMemberManagement = ({ open, onOpenChange }: BoardMemberManagem
     email: "",
     is_active: true,
   });
+
+  const totalPages = Math.ceil(members.length / ITEMS_PER_PAGE);
+  const paginatedMembers = members.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
+  );
 
   const resetForm = () => {
     setFormData({ name: "", role: "", group_name: "", email: "", is_active: true });
@@ -55,8 +64,12 @@ export const BoardMemberManagement = ({ open, onOpenChange }: BoardMemberManagem
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this member?")) {
+    if (confirm("Are you sure you want to delete this person?")) {
       await deleteMember.mutateAsync(id);
+      // Reset to page 1 if current page becomes empty
+      if (paginatedMembers.length === 1 && currentPage > 1) {
+        setCurrentPage(currentPage - 1);
+      }
     }
   };
 
@@ -64,7 +77,7 @@ export const BoardMemberManagement = ({ open, onOpenChange }: BoardMemberManagem
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[700px]">
         <DialogHeader>
-          <DialogTitle>Manage Board Members</DialogTitle>
+          <DialogTitle>Manage Responsible People - NRES New Models Pilot</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4">
@@ -72,7 +85,7 @@ export const BoardMemberManagement = ({ open, onOpenChange }: BoardMemberManagem
             <>
               <Button onClick={() => setShowForm(true)} size="sm">
                 <Plus className="h-4 w-4 mr-2" />
-                Add Member
+                Add Person
               </Button>
 
               <div className="border rounded-lg overflow-hidden">
@@ -90,11 +103,11 @@ export const BoardMemberManagement = ({ open, onOpenChange }: BoardMemberManagem
                     {members.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                          No board members yet. Add your first member above.
+                          No responsible people yet. Add your first person above.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      members.map((member) => (
+                      paginatedMembers.map((member) => (
                         <TableRow key={member.id}>
                           <TableCell className="font-medium">{member.name}</TableCell>
                           <TableCell>{member.role || "-"}</TableCell>
@@ -131,12 +144,44 @@ export const BoardMemberManagement = ({ open, onOpenChange }: BoardMemberManagem
                   </TableBody>
                 </Table>
               </div>
+
+              {totalPages > 1 && (
+                <div className="flex items-center justify-between pt-2">
+                  <span className="text-sm text-muted-foreground">
+                    Showing {(currentPage - 1) * ITEMS_PER_PAGE + 1} to{" "}
+                    {Math.min(currentPage * ITEMS_PER_PAGE, members.length)} of {members.length}
+                  </span>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage - 1)}
+                      disabled={currentPage === 1}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                      Previous
+                    </Button>
+                    <span className="text-sm">
+                      Page {currentPage} of {totalPages}
+                    </span>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(currentPage + 1)}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              )}
             </>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex items-center justify-between">
                 <h3 className="font-medium">
-                  {editingMember ? "Edit Member" : "Add New Member"}
+                  {editingMember ? "Edit Person" : "Add New Person"}
                 </h3>
                 <Button type="button" variant="ghost" size="icon" onClick={resetForm}>
                   <X className="h-4 w-4" />
@@ -201,7 +246,7 @@ export const BoardMemberManagement = ({ open, onOpenChange }: BoardMemberManagem
                   Cancel
                 </Button>
                 <Button type="submit">
-                  {editingMember ? "Update" : "Add"} Member
+                  {editingMember ? "Update" : "Add"} Person
                 </Button>
               </div>
             </form>
