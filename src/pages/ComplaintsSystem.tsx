@@ -1407,18 +1407,6 @@ const ComplaintsSystem = () => {
                 <span className="sm:hidden">NHS-compliant complaint management</span>
               </p>
             </div>
-            
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-              <Button 
-                onClick={() => navigate('/complaints-guide')}
-                variant="outline"
-                className="bg-blue-50 border-blue-200 text-blue-700 hover:bg-blue-100 hover:border-blue-300"
-              >
-                <BookOpen className="h-4 w-4 mr-2" />
-                <span className="hidden sm:inline">Intro Slides</span>
-                <span className="sm:hidden">Intro</span>
-              </Button>
-            </div>
           </div>
         </div>
 
