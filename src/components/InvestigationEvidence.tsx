@@ -38,6 +38,7 @@ interface AudioTranscript {
   transcript_text: string;
   transcription_confidence: number | null;
   transcribed_at: string;
+  audio_duration_seconds: number | null;
 }
 interface ComplaintDetails {
   reference_number: string;
@@ -161,10 +162,19 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     }, [] as string[][]).map(paragraph => paragraph.join(' '));
   };
 
+  const formatDuration = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins === 0) return `${secs} seconds`;
+    if (secs === 0) return `${mins} minute${mins !== 1 ? 's' : ''}`;
+    return `${mins} minute${mins !== 1 ? 's' : ''} ${secs} second${secs !== 1 ? 's' : ''}`;
+  };
+
   const downloadTranscriptAsWord = async (
     text: string = transcriptionModal.text,
     fileName: string = transcriptionModal.fileName,
-    confidence: number | null = transcriptionModal.confidence
+    confidence: number | null = transcriptionModal.confidence,
+    audioDuration: number | null = null
   ) => {
     if (!complaintDetails) {
       toast.error('Complaint details not available');
@@ -309,6 +319,16 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                 children: [
                   new TextRun({ text: "Transcription Confidence: ", bold: true }),
                   new TextRun({ text: `${Math.round(confidence * 100)}%` })
+                ],
+                spacing: { after: 120 }
+              })
+            ] : []),
+            
+            ...(audioDuration ? [
+              new Paragraph({
+                children: [
+                  new TextRun({ text: "Audio Duration: ", bold: true }),
+                  new TextRun({ text: formatDuration(audioDuration) })
                 ],
                 spacing: { after: 120 }
               })
@@ -491,6 +511,33 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
 
       console.log('Audio file downloaded, size:', fileData.size);
 
+      // Extract audio duration
+      let audioDurationSeconds: number | null = null;
+      try {
+        const audioUrl = URL.createObjectURL(fileData);
+        const audio = new Audio(audioUrl);
+        await new Promise<void>((resolve, reject) => {
+          audio.onloadedmetadata = () => {
+            audioDurationSeconds = Math.round(audio.duration);
+            console.log('Audio duration:', audioDurationSeconds, 'seconds');
+            URL.revokeObjectURL(audioUrl);
+            resolve();
+          };
+          audio.onerror = () => {
+            console.warn('Could not extract audio duration');
+            URL.revokeObjectURL(audioUrl);
+            resolve(); // Don't reject, just continue without duration
+          };
+          // Timeout after 5 seconds
+          setTimeout(() => {
+            URL.revokeObjectURL(audioUrl);
+            resolve();
+          }, 5000);
+        });
+      } catch (durationError) {
+        console.warn('Error extracting audio duration:', durationError);
+      }
+
       // Convert to base64 for the transcription service
       const arrayBuffer = await fileData.arrayBuffer();
       let base64Audio;
@@ -558,7 +605,8 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           audio_file_id: audioFile.id,
           transcript_text: transcriptionData.text,
           transcription_confidence: transcriptionData.confidence || null,
-          transcribed_by: authData.user.id
+          transcribed_by: authData.user.id,
+          audio_duration_seconds: audioDurationSeconds
         })
         .select()
         .single();
@@ -927,6 +975,11 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                         </div>
                         <div className="flex items-center gap-3">
                           <span className="text-sm text-muted-foreground">{new Date(transcript.transcribed_at).toLocaleDateString()}</span>
+                          {transcript.audio_duration_seconds && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-muted text-muted-foreground text-xs font-medium">
+                              {formatDuration(transcript.audio_duration_seconds)}
+                            </span>
+                          )}
                           {transcript.transcription_confidence && (
                             <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium">
                               {Math.round(transcript.transcription_confidence * 100)}% confidence
@@ -938,7 +991,8 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                             onClick={() => downloadTranscriptAsWord(
                               transcript.transcript_text,
                               audioFile?.file_name || 'transcript',
-                              transcript.transcription_confidence
+                              transcript.transcription_confidence,
+                              transcript.audio_duration_seconds
                             )}
                           >
                             <Download className="h-4 w-4 mr-1" />

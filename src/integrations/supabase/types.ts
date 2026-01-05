@@ -1212,6 +1212,7 @@ export type Database = {
       }
       complaint_investigation_transcripts: {
         Row: {
+          audio_duration_seconds: number | null
           audio_file_id: string | null
           complaint_id: string
           created_at: string
@@ -1222,6 +1223,7 @@ export type Database = {
           transcription_confidence: number | null
         }
         Insert: {
+          audio_duration_seconds?: number | null
           audio_file_id?: string | null
           complaint_id: string
           created_at?: string
@@ -1232,6 +1234,7 @@ export type Database = {
           transcription_confidence?: number | null
         }
         Update: {
+          audio_duration_seconds?: number | null
           audio_file_id?: string | null
           complaint_id?: string
           created_at?: string
