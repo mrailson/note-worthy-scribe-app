@@ -5291,6 +5291,108 @@ export type Database = {
         }
         Relationships: []
       }
+      nres_expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          description: string | null
+          expense_date: string
+          id: string
+          receipt_reference: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          category: string
+          created_at?: string
+          description?: string | null
+          expense_date: string
+          id?: string
+          receipt_reference?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          description?: string | null
+          expense_date?: string
+          id?: string
+          receipt_reference?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      nres_hours_entries: {
+        Row: {
+          activity_type: string
+          created_at: string
+          description: string | null
+          duration_hours: number
+          end_time: string
+          id: string
+          start_time: string
+          updated_at: string
+          user_id: string
+          work_date: string
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string
+          description?: string | null
+          duration_hours: number
+          end_time: string
+          id?: string
+          start_time: string
+          updated_at?: string
+          user_id: string
+          work_date: string
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string
+          description?: string | null
+          duration_hours?: number
+          end_time?: string
+          id?: string
+          start_time?: string
+          updated_at?: string
+          user_id?: string
+          work_date?: string
+        }
+        Relationships: []
+      }
+      nres_user_settings: {
+        Row: {
+          created_at: string
+          hourly_rate: number | null
+          id: string
+          rate_set_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          hourly_rate?: number | null
+          id?: string
+          rate_set_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          hourly_rate?: number | null
+          id?: string
+          rate_set_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       pcn_manager_practices: {
         Row: {
           assigned_at: string | null

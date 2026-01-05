@@ -9,9 +9,11 @@ import { EscalationsLog } from "@/components/nres/EscalationsLog";
 import { PatientDetailModal } from "@/components/nres/PatientDetailModal";
 import { WorkflowModal } from "@/components/nres/WorkflowModal";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { NRESHoursTracker } from "@/components/nres/hours-tracker/NRESHoursTracker";
 import { mockConsultations, mockMetrics, mockPracticePerformance, mockEscalations } from "@/data/nresMockData";
 import { HubConsultation } from "@/types/nresTypes";
-import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell } from "lucide-react";
+import { FileText, AlertTriangle, TrendingUp, CheckCircle2, Info, Presentation, LayoutGrid, ListChecks, Table2, BarChart3, Bell, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -28,6 +30,7 @@ const NRESDashboard = () => {
   const [selectedConsultation, setSelectedConsultation] = useState<HubConsultation | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [workflowModalOpen, setWorkflowModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('dashboard');
 
   const handleRefresh = useCallback(() => {
     // Simulate data refresh with slight variations
@@ -63,136 +66,156 @@ const NRESDashboard = () => {
       <Header />
       
       <div className={`container mx-auto py-6 space-y-4 ${isIPhone ? 'px-2' : 'px-4 space-y-6'}`}>
-        {/* Mock-up Warning Banner */}
-        <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800">
-          <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-          <AlertDescription className="text-amber-800 dark:text-amber-200">
-            <strong>Mock-up Dashboard:</strong> This is a demonstration interface with no real functionality. 
-            Full integration with SystmOne and EMIS is required for live data and operational features.
-          </AlertDescription>
-        </Alert>
+        {/* Tab Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-4">
+            <TabsTrigger value="dashboard" className="gap-2">
+              <LayoutGrid className="w-4 h-4" />
+              Dashboard
+            </TabsTrigger>
+            <TabsTrigger value="hours-tracker" className="gap-2">
+              <Clock className="w-4 h-4" />
+              Hours Tracker
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Presentation Link */}
-        <div className="flex justify-end">
-          <Link to="/nres-presentation">
-            <Button variant="outline" size="sm">
-              <Presentation className="w-4 h-4 mr-2" />
-              View NRES Presentation
-            </Button>
-          </Link>
-        </div>
-        <DashboardHeader
-          selectedPractice={selectedPractice}
-          onPracticeChange={setSelectedPractice}
-          dateRange={dateRange}
-          onDateRangeChange={setDateRange}
-          onManualRefresh={handleRefresh}
-          isIPhone={isIPhone}
-        />
+          <TabsContent value="dashboard" className="space-y-4 sm:space-y-6">
+            {/* Mock-up Warning Banner */}
+            <Alert className="bg-amber-50 border-amber-200 dark:bg-amber-950 dark:border-amber-800">
+              <Info className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+              <AlertDescription className="text-amber-800 dark:text-amber-200">
+                <strong>Mock-up Dashboard:</strong> This is a demonstration interface with no real functionality. 
+                Full integration with SystmOne and EMIS is required for live data and operational features.
+              </AlertDescription>
+            </Alert>
 
-        {/* Metric Cards Row - Collapsible */}
-        <CollapsibleCard 
-          title="Key Metrics" 
-          icon={<LayoutGrid className="h-5 w-5" />}
-          defaultOpen={true}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <MetricCard
-              title="Outstanding Results"
-              value={filteredMetrics.outstanding}
-              subtitle="Awaiting review"
-              tooltip="Total number of hub consultation results currently awaiting GP review. Includes all pending, overdue, and critical results."
-              variant="default"
-              icon={<FileText className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
-              onClick={() => setWorkflowModalOpen(true)}
-              isCompact={isIPhone}
-            />
-            
-            <MetricCard
-              title="Overdue Reviews"
-              value={filteredMetrics.overdue}
-              subtitle="Require urgent action"
-              tooltip="Results overdue for review (>48 hours). These require immediate attention and have triggered automated escalation protocols."
-              variant={filteredMetrics.overdue > 0 ? "danger" : "success"}
-              icon={<AlertTriangle className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
-              pulse={filteredMetrics.overdue > 0}
-              onClick={() => {}}
-              isCompact={isIPhone}
+            {/* Presentation Link */}
+            <div className="flex justify-end">
+              <Link to="/nres-presentation">
+                <Button variant="outline" size="sm">
+                  <Presentation className="w-4 h-4 mr-2" />
+                  View NRES Presentation
+                </Button>
+              </Link>
+            </div>
+            <DashboardHeader
+              selectedPractice={selectedPractice}
+              onPracticeChange={setSelectedPractice}
+              dateRange={dateRange}
+              onDateRangeChange={setDateRange}
+              onManualRefresh={handleRefresh}
+              isIPhone={isIPhone}
             />
 
-            <MetricCard
-              title="On-Time Performance"
-              value={`${filteredMetrics.onTimePercentage}%`}
-              subtitle="Target: 95%"
-              tooltip="Percentage of results reviewed within 48 hours. ICB target is 95% compliance. Current performance is tracked in real-time."
-              variant={filteredMetrics.onTimePercentage >= 95 ? "success" : "warning"}
-              icon={<TrendingUp className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
-              trend={filteredMetrics.trend}
-              onClick={() => {}}
-              isCompact={isIPhone}
-            />
+            {/* Metric Cards Row - Collapsible */}
+            <CollapsibleCard 
+              title="Key Metrics" 
+              icon={<LayoutGrid className="h-5 w-5" />}
+              defaultOpen={true}
+            >
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <MetricCard
+                  title="Outstanding Results"
+                  value={filteredMetrics.outstanding}
+                  subtitle="Awaiting review"
+                  tooltip="Total number of hub consultation results currently awaiting GP review. Includes all pending, overdue, and critical results."
+                  variant="default"
+                  icon={<FileText className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
+                  onClick={() => setWorkflowModalOpen(true)}
+                  isCompact={isIPhone}
+                />
+                
+                <MetricCard
+                  title="Overdue Reviews"
+                  value={filteredMetrics.overdue}
+                  subtitle="Require urgent action"
+                  tooltip="Results overdue for review (>48 hours). These require immediate attention and have triggered automated escalation protocols."
+                  variant={filteredMetrics.overdue > 0 ? "danger" : "success"}
+                  icon={<AlertTriangle className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
+                  pulse={filteredMetrics.overdue > 0}
+                  onClick={() => {}}
+                  isCompact={isIPhone}
+                />
 
-            <MetricCard
-              title="Zero Lost Results"
-              value={filteredMetrics.zeroLostDays}
-              subtitle="consecutive days"
-              tooltip="Days since last lost result. Every hub consultation result is automatically tracked from receipt to review. Mathematical impossibility of lost results with this system."
-              variant="success"
-              icon={<CheckCircle2 className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
-              onClick={() => {}}
-              isCompact={isIPhone}
-            />
-          </div>
-        </CollapsibleCard>
+                <MetricCard
+                  title="On-Time Performance"
+                  value={`${filteredMetrics.onTimePercentage}%`}
+                  subtitle="Target: 95%"
+                  tooltip="Percentage of results reviewed within 48 hours. ICB target is 95% compliance. Current performance is tracked in real-time."
+                  variant={filteredMetrics.onTimePercentage >= 95 ? "success" : "warning"}
+                  icon={<TrendingUp className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
+                  trend={filteredMetrics.trend}
+                  onClick={() => {}}
+                  isCompact={isIPhone}
+                />
 
-        {/* Priority Actions Panel - Collapsible */}
-        <CollapsibleCard 
-          title="Priority Actions" 
-          icon={<ListChecks className="h-5 w-5" />}
-          defaultOpen={true}
-        >
-          <PriorityActionsPanel
-            consultations={filteredConsultations}
-            onViewDetails={handleConsultationClick}
-          />
-        </CollapsibleCard>
+                <MetricCard
+                  title="Zero Lost Results"
+                  value={filteredMetrics.zeroLostDays}
+                  subtitle="consecutive days"
+                  tooltip="Days since last lost result. Every hub consultation result is automatically tracked from receipt to review. Mathematical impossibility of lost results with this system."
+                  variant="success"
+                  icon={<CheckCircle2 className={isIPhone ? "h-6 w-6" : "h-8 w-8"} />}
+                  onClick={() => {}}
+                  isCompact={isIPhone}
+                />
+              </div>
+            </CollapsibleCard>
 
-        {/* Consultations Table - Collapsible */}
-        <CollapsibleCard 
-          title="NRES Consultations (Patients seen by non home practice)" 
-          icon={<Table2 className="h-5 w-5" />}
-          defaultOpen={true}
-        >
-          <ConsultationsTable
-            consultations={filteredConsultations}
-            onRowClick={handleConsultationClick}
-            isIPhone={isIPhone}
-          />
-        </CollapsibleCard>
+            {/* Priority Actions Panel - Collapsible */}
+            <CollapsibleCard 
+              title="Priority Actions" 
+              icon={<ListChecks className="h-5 w-5" />}
+              defaultOpen={true}
+            >
+              <PriorityActionsPanel
+                consultations={filteredConsultations}
+                onViewDetails={handleConsultationClick}
+              />
+            </CollapsibleCard>
 
-        {/* Bottom Row - Charts - Collapsible */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <CollapsibleCard 
-            title="Practice Performance" 
-            icon={<BarChart3 className="h-5 w-5" />}
-            defaultOpen={true}
-          >
-            <PerformanceChart data={mockPracticePerformance} isIPhone={isIPhone} />
-          </CollapsibleCard>
-          
-          <CollapsibleCard 
-            title="Escalations Log" 
-            icon={<Bell className="h-5 w-5" />}
-            defaultOpen={true}
-          >
-            <EscalationsLog events={mockEscalations} />
-          </CollapsibleCard>
-        </div>
+            {/* Consultations Table - Collapsible */}
+            <CollapsibleCard 
+              title="NRES Consultations (Patients seen by non home practice)" 
+              icon={<Table2 className="h-5 w-5" />}
+              defaultOpen={true}
+            >
+              <ConsultationsTable
+                consultations={filteredConsultations}
+                onRowClick={handleConsultationClick}
+                isIPhone={isIPhone}
+              />
+            </CollapsibleCard>
 
-        {/* Footer Info */}
-        <div className="text-center text-sm text-muted-foreground pb-4">
-          <p>NHS Rural East & South Neighbourhood • Real-time Results Management</p>
-        </div>
+            {/* Bottom Row - Charts - Collapsible */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <CollapsibleCard 
+                title="Practice Performance" 
+                icon={<BarChart3 className="h-5 w-5" />}
+                defaultOpen={true}
+              >
+                <PerformanceChart data={mockPracticePerformance} isIPhone={isIPhone} />
+              </CollapsibleCard>
+              
+              <CollapsibleCard 
+                title="Escalations Log" 
+                icon={<Bell className="h-5 w-5" />}
+                defaultOpen={true}
+              >
+                <EscalationsLog events={mockEscalations} />
+              </CollapsibleCard>
+            </div>
+
+            {/* Footer Info */}
+            <div className="text-center text-sm text-muted-foreground pb-4">
+              <p>NHS Rural East & South Neighbourhood • Real-time Results Management</p>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="hours-tracker">
+            <NRESHoursTracker />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Patient Detail Modal */}
