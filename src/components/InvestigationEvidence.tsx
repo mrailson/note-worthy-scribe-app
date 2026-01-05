@@ -241,6 +241,10 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       }
 
       // Save transcript to database
+      const { data: authData, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!authData.user) throw new Error('You must be signed in to transcribe audio');
+
       const { data, error } = await supabase
         .from('complaint_investigation_transcripts')
         .insert({
@@ -248,7 +252,7 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
           audio_file_id: audioFile.id,
           transcript_text: transcriptionData.text,
           transcription_confidence: transcriptionData.confidence || null,
-          transcribed_by: (await supabase.auth.getUser()).data.user?.id
+          transcribed_by: authData.user.id
         })
         .select()
         .single();
@@ -271,7 +275,10 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
       toast.success('Audio transcribed successfully');
     } catch (error) {
       console.error('Error transcribing audio:', error);
-      toast.error('Failed to transcribe audio');
+      const message = error && typeof error === 'object' && 'message' in (error as any)
+        ? String((error as any).message)
+        : JSON.stringify(error);
+      toast.error(`Failed to transcribe audio: ${message}`);
     } finally {
       setTranscribing(null);
     }
