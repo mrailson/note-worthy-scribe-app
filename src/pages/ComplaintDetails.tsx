@@ -2829,7 +2829,11 @@ const ComplaintDetails = () => {
 
             {/* Investigation Evidence Tab */}
             <TabsContent value="investigation" className="space-y-6">
-              <InvestigationEvidenceTab complaintId={complaint.id} practiceId={complaint.practice_id} />
+              <InvestigationEvidenceTab 
+                complaintId={complaint.id} 
+                practiceId={complaint.practice_id} 
+                onCreateOutcomeLetter={() => setShowQuestionnaireModal(true)}
+              />
             </TabsContent>
 
             {/* Compliance Tab */}

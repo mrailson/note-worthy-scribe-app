@@ -5,15 +5,17 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Search, Save, Edit, CheckCircle, Sparkles, Loader2, ChevronDown } from 'lucide-react';
+import { Search, Save, Edit, CheckCircle, Sparkles, Loader2, ChevronDown, FileText, ArrowRight } from 'lucide-react';
 import { SpeechToText } from '@/components/SpeechToText';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
+import { CriticalFriendReview } from '@/components/CriticalFriendReview';
 
 interface InvestigationFindingsProps {
   complaintId: string;
   disabled?: boolean;
+  onCreateOutcomeLetter?: () => void;
 }
 
 interface InvestigationFinding {
@@ -27,7 +29,7 @@ interface InvestigationFinding {
   updated_at: string;
 }
 
-export function InvestigationFindings({ complaintId, disabled = false }: InvestigationFindingsProps) {
+export function InvestigationFindings({ complaintId, disabled = false, onCreateOutcomeLetter }: InvestigationFindingsProps) {
   const [findings, setFindings] = useState<InvestigationFinding | null>(null);
   const [investigationSummary, setInvestigationSummary] = useState('');
   const [findingsText, setFindingsText] = useState('');
@@ -243,6 +245,32 @@ export function InvestigationFindings({ complaintId, disabled = false }: Investi
                 />
               </div>
             </div>
+
+            {/* Critical Friend Review Section */}
+            <div className="mt-6">
+              <CriticalFriendReview complaintId={complaintId} disabled={disabled} />
+            </div>
+
+            {/* Create Outcome Letter CTA */}
+            {onCreateOutcomeLetter && (
+              <Card className="mt-6 border-primary/20 bg-primary/5">
+                <CardContent className="pt-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-semibold text-lg">Ready to Create Outcome Letter?</h4>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        When you're satisfied with your investigation findings, create the formal outcome letter for the patient.
+                      </p>
+                    </div>
+                    <Button onClick={onCreateOutcomeLetter} className="ml-4">
+                      <FileText className="h-4 w-4 mr-2" />
+                      Create Outcome Letter
+                      <ArrowRight className="h-4 w-4 ml-2" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
