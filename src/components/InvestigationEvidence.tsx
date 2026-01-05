@@ -77,6 +77,13 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     isOpen: false,
     file: null
   });
+  const [transcriptDeleteConfirmation, setTranscriptDeleteConfirmation] = useState<{
+    isOpen: boolean;
+    transcript: AudioTranscript | null;
+  }>({
+    isOpen: false,
+    transcript: null
+  });
 
   useEffect(() => {
     fetchComplaintDetails();
@@ -429,6 +436,32 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
     }
   };
 
+  const confirmDeleteTranscript = (transcript: AudioTranscript) => {
+    setTranscriptDeleteConfirmation({ isOpen: true, transcript });
+  };
+
+  const deleteTranscript = async () => {
+    const transcript = transcriptDeleteConfirmation.transcript;
+    if (!transcript) return;
+
+    try {
+      const { error } = await supabase
+        .from('complaint_investigation_transcripts')
+        .delete()
+        .eq('id', transcript.id);
+
+      if (error) throw error;
+
+      setAudioTranscripts(prev => prev.filter(t => t.id !== transcript.id));
+      toast.success('Transcript deleted successfully');
+    } catch (error) {
+      console.error('Error deleting transcript:', error);
+      toast.error('Failed to delete transcript');
+    } finally {
+      setTranscriptDeleteConfirmation({ isOpen: false, transcript: null });
+    }
+  };
+
   const transcribeAudio = async (audioFile: EvidenceFile) => {
     // Check if it's an audio file by MIME type or evidence type
     const isAudioFile = audioFile.file_type?.startsWith('audio/') || 
@@ -678,6 +711,24 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={transcriptDeleteConfirmation.isOpen} onOpenChange={(open) => !open && setTranscriptDeleteConfirmation({ isOpen: false, transcript: null })}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Transcript?</AlertDialogTitle>
+            <AlertDialogDescription className="space-y-2">
+              <p>Are you sure you want to delete this transcript?</p>
+              <p className="font-semibold text-destructive mt-3">This action cannot be undone.</p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={deleteTranscript} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Transcript
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={transcriptionModal.isOpen} onOpenChange={(open) => setTranscriptionModal(prev => ({ ...prev, isOpen: open }))}>
         <DialogContent className="max-w-4xl max-h-[85vh] overflow-hidden flex flex-col">
           <DialogHeader className="pb-4 border-b">
@@ -893,6 +944,16 @@ export function InvestigationEvidence({ complaintId, disabled = false }: Investi
                             <Download className="h-4 w-4 mr-1" />
                             Word
                           </Button>
+                          {!disabled && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => confirmDeleteTranscript(transcript)}
+                              className="text-destructive hover:text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                       <div className="bg-muted/50 p-5 rounded-lg border">
