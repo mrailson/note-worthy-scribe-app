@@ -841,8 +841,8 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteConfirmId} onOpenChange={() => setDeleteConfirmId(null)}>
-        <AlertDialogContent>
+      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
+        <AlertDialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
           <AlertDialogHeader>
             <AlertDialogTitle>Are you sure?</AlertDialogTitle>
             <AlertDialogDescription>
@@ -850,9 +850,11 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setDeleteConfirmId(null)}>Cancel</AlertDialogCancel>
             <AlertDialogAction
-              onClick={() => deleteConfirmId && handleDeleteTeamMember(deleteConfirmId)}
+              onClick={() => {
+                if (deleteConfirmId) handleDeleteTeamMember(deleteConfirmId);
+              }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Remove
