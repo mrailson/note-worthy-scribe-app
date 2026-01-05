@@ -11,16 +11,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Mail, Clock, CheckCircle, AlertCircle, Trash2, Users, Plus, Edit, Sparkles, Loader2 } from "lucide-react";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
 
 interface RequestInformationPanelProps {
   complaintId: string;
@@ -218,6 +208,9 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
   };
 
   const handleDeleteTeamMember = async (id: string) => {
+    // Close any confirmation UI immediately to avoid modal/focus lock issues
+    setDeleteConfirmId(null);
+
     try {
       const { error } = await supabase
         .from('complaint_team_members')
@@ -227,8 +220,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
       if (error) throw error;
 
       toast.success("The team member has been removed from your list.");
-
-      setDeleteConfirmId(null);
       fetchTeamMembers();
     } catch (error) {
       console.error('Error deleting team member:', error);
@@ -663,25 +654,47 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
                           <p className="text-sm text-muted-foreground">{member.phone}</p>
                         )}
                       </div>
-                      <div className="flex gap-2">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            setEditingMember(member);
-                            setShowEditDialog(true);
-                          }}
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setDeleteConfirmId(member.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
+                      {deleteConfirmId === member.id ? (
+                        <div className="flex flex-col items-end gap-2">
+                          <p className="text-xs text-muted-foreground">Remove this member?</p>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setDeleteConfirmId(null)}
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              onClick={() => handleDeleteTeamMember(member.id)}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              setEditingMember(member);
+                              setShowEditDialog(true);
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteConfirmId(member.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-destructive" />
+                          </Button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -841,27 +854,6 @@ export function RequestInformationPanel({ complaintId, practiceId, disabled = fa
         </DialogContent>
       </Dialog>
 
-      <AlertDialog open={!!deleteConfirmId} onOpenChange={(open) => { if (!open) setDeleteConfirmId(null); }}>
-        <AlertDialogContent onOpenAutoFocus={(e) => e.preventDefault()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will remove this team member from your list. They can be added back later if needed.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setDeleteConfirmId(null)}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (deleteConfirmId) handleDeleteTeamMember(deleteConfirmId);
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Remove
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }
