@@ -4,6 +4,7 @@ export type BoardActionPriority = 'low' | 'medium' | 'high';
 export interface NRESBoardAction {
   id: string;
   user_id: string;
+  reference_number: string | null;
   action_title: string;
   description: string | null;
   responsible_person: string;
