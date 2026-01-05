@@ -1,8 +1,9 @@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Lightbulb, Truck, Heart, FileText, AlertCircle, Briefcase, Download, ExternalLink } from "lucide-react";
+import { Users, Lightbulb, Truck, Heart, FileText, AlertCircle, Briefcase, Download, ExternalLink, ClipboardCheck } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
+import { ACPRecruitmentPanel } from "./recruitment/ACPRecruitmentPanel";
 
 // Proposed job adverts for Programme Board approval
 const proposedJobAdverts = [
@@ -218,6 +219,15 @@ export const SDAWorkforceInnovation = () => {
         </div>
       </CollapsibleCard>
       </div>
+
+      {/* ACP Recruitment - Candidate Assessment */}
+      <CollapsibleCard
+        title="ACP Recruitment - Candidate Assessment"
+        icon={<ClipboardCheck className="w-5 h-5" />}
+        badge={<Badge className="bg-teal-500">9 Applicants</Badge>}
+      >
+        <ACPRecruitmentPanel />
+      </CollapsibleCard>
 
       {/* Job Description Templates */}
       <CollapsibleCard
