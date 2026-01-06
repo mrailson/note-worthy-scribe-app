@@ -147,9 +147,9 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
     // Italic text (only if not already processed)
     .replace(/\*([^\*\n]+?)\*/g, '<em class="italic text-[#425563]">$1</em>')
     
-    // Enhanced subsection formatting with improved spacing, prominent headings, and indentation
+    // Enhanced subsection formatting with improved spacing, prominent headings - LEFT ALIGNED
     .replace(/<strong class="font-semibold text-\[#212B32\]">([^<]+?):<\/strong>\s*((?:(?!<strong class="font-semibold text-\[#212B32\]">).)+?)(?=<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>|$)/gs, 
-      `<p class="mb-6 mt-2 ml-6 leading-relaxed text-[#212B32]" style="font-size: ${baseFontSize}px"><strong class="font-bold text-[#005EB8]" style="font-size: ${baseFontSize * 1.15}px">$1:</strong> $2</p>`)
+      `<p class="mb-4 mt-2 leading-relaxed text-[#212B32]" style="font-size: ${baseFontSize}px"><strong class="font-bold text-[#005EB8]" style="font-size: ${baseFontSize * 1.15}px">$1:</strong> $2</p>`)
     
     // Enhanced intelligent paragraph breaking - detect natural topic transitions
     // Split after sentences when followed by key transition phrases or topic changes
@@ -229,7 +229,7 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
     .replace(/<!NESTED!>|<!NESTED_END!>/g, '')
     
     // Wrap consecutive top-level list items in ul tags with better spacing
-    .replace(/(<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-6 mb-4 space-y-2">$&</ul>')
+    .replace(/(<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-4 mb-4 space-y-2">$&</ul>')
 
     // Convert nested numbered items to bullets within list items
     .replace(/(<li[^>]*value="[^"]*">.*?)((?:<!NESTED_NUM!>.*?<!NESTED_NUM_END!>\s*)+)(<\/li>)/gs, (match, opening, nested, closing) => {
@@ -244,10 +244,10 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
     .replace(/<!NESTED_NUM!>|<!NESTED_NUM_END!>/g, '')
     
     // Wrap remaining numbered items with mb-3 (items that have nested content)
-    .replace(/(<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-7 space-y-2">$&</ol>')
+    .replace(/(<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-4 mb-7 space-y-2">$&</ol>')
 
     // Wrap remaining numbered items (regular without nesting)
-    .replace(/(<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-6 space-y-1">$&</ol>')
+    .replace(/(<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-4 mb-6 space-y-1">$&</ol>')
 
     // Paragraphs
     .replace(/\n\n/g, `</p><p style="font-size: ${baseFontSize}px" class="mb-4 text-[#212B32] leading-relaxed">`)
