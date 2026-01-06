@@ -39,6 +39,13 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("No authorization header");
     }
 
+    // Extract the JWT token
+    const token = authHeader.replace("Bearer ", "");
+    if (!token) {
+      console.error("No token in authorization header");
+      throw new Error("No token provided");
+    }
+
     // Create Supabase client with the user's session
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "https://dphcnbricafkbtizkoal.supabase.co";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -55,20 +62,15 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: { Authorization: authHeader },
-      },
-    });
 
-    // Get the current user from the authorization header
-    const { data: { user }, error: userError } = await supabaseUser.auth.getUser();
+    // Use service role client to get user from JWT token
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token);
     if (userError) {
       console.error("Auth error:", userError.message);
       throw new Error("Unauthorized: " + userError.message);
     }
     if (!user) {
-      console.error("No user found from auth header");
+      console.error("No user found from auth token");
       throw new Error("Unauthorized");
     }
     
