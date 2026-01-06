@@ -24,25 +24,26 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent 
-        className="max-w-4xl w-full max-h-[90vh] overflow-y-auto p-8"
+        className="max-w-4xl w-full max-h-[90vh] p-0 flex flex-col"
       >
-        <DialogHeader className="space-y-4">
-          <DialogTitle className="text-center text-2xl font-bold text-primary">
+        <DialogHeader className="p-4 sm:p-6 md:p-8 pb-2 sm:pb-4 space-y-2 sm:space-y-4 flex-shrink-0">
+          <DialogTitle className="text-center text-xl sm:text-2xl font-bold text-primary">
             Patient Consent Required
           </DialogTitle>
-          <div className="text-center text-lg text-muted-foreground">
+          <div className="text-center text-base sm:text-lg text-muted-foreground">
             Language Support Service - {languageName}
           </div>
         </DialogHeader>
 
-        <div className="space-y-8">
+        {/* Scrollable content area */}
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 md:px-8 py-4 space-y-4 sm:space-y-6">
           {/* Patient consent message in their language */}
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-6">
-            <div className="text-center text-lg font-medium text-primary mb-4">
+          <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 sm:p-6">
+            <div className="text-center text-base sm:text-lg font-medium text-primary mb-3 sm:mb-4">
               Patient Consent Message ({languageName})
             </div>
             <div 
-              className="text-2xl leading-relaxed text-center font-medium"
+              className="text-lg sm:text-xl md:text-2xl leading-relaxed text-center font-medium"
               style={{ fontFamily: 'system-ui', lineHeight: '1.6' }}
             >
               {consentMessage}
@@ -50,11 +51,11 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
           </div>
 
           {/* Clinician reference in English */}
-          <div className="bg-muted/50 border border-muted rounded-lg p-4">
+          <div className="bg-muted/50 border border-muted rounded-lg p-3 sm:p-4">
             <div className="text-sm font-medium text-muted-foreground mb-2">
               For clinician reference (English):
             </div>
-            <div className="text-sm text-muted-foreground leading-relaxed">
+            <div className="text-xs sm:text-sm text-muted-foreground leading-relaxed">
               "We are using a language support service to help with today's consultation. 
               Please be aware this service is not always 100% accurate. If something does not 
               sound correct, please let the clinician know or ask for it to be repeated. 
@@ -64,14 +65,16 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
               Do you give your consent to proceed?"
             </div>
           </div>
+        </div>
 
-          {/* Consent buttons */}
-          <div className="flex gap-6 justify-center pt-4">
+        {/* Fixed footer with buttons - always visible */}
+        <div className="flex-shrink-0 border-t bg-background p-4 sm:p-6 space-y-3 sm:space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3 sm:gap-6 justify-center">
             <Button
               onClick={onConsentDenied}
               variant="outline"
               size="lg"
-              className="px-8 py-4 text-lg font-medium min-w-[180px]"
+              className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-medium w-full sm:w-auto sm:min-w-[180px]"
             >
               <XCircle className="w-5 h-5 mr-2" />
               No, Go Back
@@ -79,7 +82,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
             <Button
               onClick={onConsentGiven}
               size="lg"
-              className="px-8 py-4 text-lg font-medium min-w-[180px] bg-green-600 hover:bg-green-700"
+              className="px-6 sm:px-8 py-3 sm:py-4 text-base sm:text-lg font-medium w-full sm:w-auto sm:min-w-[180px] bg-green-600 hover:bg-green-700"
             >
               <CheckCircle className="w-5 h-5 mr-2" />
               Yes, I Consent
@@ -87,7 +90,7 @@ export const ConsentModal: React.FC<ConsentModalProps> = ({
           </div>
 
           {/* Instructions for clinician */}
-          <div className="text-center text-sm text-muted-foreground border-t pt-4">
+          <div className="text-center text-xs sm:text-sm text-muted-foreground">
             <strong>Instructions:</strong> Please read the consent message above to the patient 
             in their language, then click their response below.
           </div>
