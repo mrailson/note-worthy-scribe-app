@@ -347,3 +347,6 @@ verify_jwt = true
 
 [functions.re-summarise-complaint]
 verify_jwt = true
+
+[functions.send-chat-email]
+verify_jwt = false
