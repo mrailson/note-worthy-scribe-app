@@ -25,7 +25,15 @@ Merging Instructions:
 - Keep concise, deduplicate, and resolve contradictions.
 - British English. Markdown output. Do not include non-deterministic preambles.
 - Filter out any informal banter, personal anecdotes, humour, or off-topic remarks.
-- Ensure every paragraph could safely appear in a circulated Board pack.`;
+- Ensure every paragraph could safely appear in a circulated Board pack.
+
+CRITICAL - Return to Work & HR Matters:
+- If ANY discussion of phased returns, return to work arrangements, reduced hours, modified duties, or wellbeing matters appears in the transcript:
+  - Create a dedicated "# RETURN TO WORK & WELLBEING" or "# STAFFING & HR MATTERS" section in the body
+  - Include ALL specific details: duration of phased return, shift patterns, start dates, excluded shift types
+  - Do NOT relegate these details solely to Action Items - expand them fully in the discussion narrative
+  - Example: "A phased return to work over 2 weeks was discussed, with morning shifts only and no late duties"
+- These topics must appear BOTH in the discussion narrative AND as action items where applicable.`;
 
 // Professional-tone audit post-processing (v2)
 function performProfessionalToneAudit(content: string): string {
