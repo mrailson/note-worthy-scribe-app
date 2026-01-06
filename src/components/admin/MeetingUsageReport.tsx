@@ -30,6 +30,8 @@ interface SystemStats {
   total_words: number;
 }
 
+const MIN_WORDS_FOR_COUNT = 100;
+
 export const MeetingUsageReport = () => {
   const [userStats, setUserStats] = useState<UserMeetingStats[]>([]);
   const [systemStats, setSystemStats] = useState<SystemStats | null>(null);
@@ -65,17 +67,17 @@ export const MeetingUsageReport = () => {
         deleted_meetings_count: number;
       }>;
 
+      const totalMeetings = results.reduce((sum, r) => sum + (r.all_time || 0), 0);
+      const totalDuration = results.reduce((sum, r) => sum + (r.total_duration_mins || 0), 0);
+
       // Calculate system-wide totals from all users
       const systemStatsCalc: SystemStats = {
         last_24h: results.reduce((sum, r) => sum + (r.last_24h || 0), 0),
         last_7d: results.reduce((sum, r) => sum + (r.last_7d || 0), 0),
         last_30d: results.reduce((sum, r) => sum + (r.last_30d || 0), 0),
-        all_time: results.reduce((sum, r) => sum + (r.all_time || 0), 0),
-        total_duration_mins: results.reduce((sum, r) => sum + (r.total_duration_mins || 0), 0),
-        avg_duration_mins: results.length > 0
-          ? Math.round(results.reduce((sum, r) => sum + (r.total_duration_mins || 0), 0) / 
-                       results.reduce((sum, r) => sum + (r.all_time || 0), 0))
-          : 0,
+        all_time: totalMeetings,
+        total_duration_mins: totalDuration,
+        avg_duration_mins: totalMeetings > 0 ? Math.round(totalDuration / totalMeetings) : 0,
         total_words: results.reduce((sum, r) => sum + (r.total_words || 0), 0),
       };
 
@@ -145,7 +147,7 @@ export const MeetingUsageReport = () => {
           Meeting Usage Report
         </CardTitle>
         <CardDescription>
-          Completed meetings statistics across all users
+          Completed meetings (over {MIN_WORDS_FOR_COUNT} words) statistics across all users
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -154,27 +156,27 @@ export const MeetingUsageReport = () => {
           <MetricCard
             title="Last 24 Hours"
             value={systemStats?.last_24h || 0}
-            tooltip="Completed meetings in the last 24 hours"
+            tooltip={`Completed meetings (over ${MIN_WORDS_FOR_COUNT} words) in the last 24 hours`}
             icon={<Clock className="h-4 w-4" />}
             variant={systemStats && systemStats.last_24h > 0 ? 'success' : 'default'}
           />
           <MetricCard
             title="Last 7 Days"
             value={systemStats?.last_7d || 0}
-            tooltip="Completed meetings in the last 7 days"
+            tooltip={`Completed meetings (over ${MIN_WORDS_FOR_COUNT} words) in the last 7 days`}
             icon={<Calendar className="h-4 w-4" />}
             variant={systemStats && systemStats.last_7d > 5 ? 'success' : 'default'}
           />
           <MetricCard
             title="Last 30 Days"
             value={systemStats?.last_30d || 0}
-            tooltip="Completed meetings in the last 30 days"
+            tooltip={`Completed meetings (over ${MIN_WORDS_FOR_COUNT} words) in the last 30 days`}
             icon={<TrendingUp className="h-4 w-4" />}
           />
           <MetricCard
             title="All Time"
             value={systemStats?.all_time || 0}
-            tooltip="Total completed meetings since system launch"
+            tooltip={`Total completed meetings (over ${MIN_WORDS_FOR_COUNT} words) since system launch`}
             icon={<Users className="h-4 w-4" />}
           />
         </div>
