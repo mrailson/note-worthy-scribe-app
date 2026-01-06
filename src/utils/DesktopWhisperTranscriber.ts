@@ -45,7 +45,8 @@ export class DesktopWhisperTranscriber {
     private onStatusChange: (status: string) => void,
     meetingSettings?: any,
     meetingId?: string,
-    private onAudioActivity?: (hasActivity: boolean) => void
+    private onAudioActivity?: (hasActivity: boolean) => void,
+    private onChunkProcessed?: () => void
   ) {
     this.sessionId = meetingId || this.generateSessionId();
     this.meetingId = meetingId || null;
@@ -529,6 +530,11 @@ export class DesktopWhisperTranscriber {
         // Always send transcription to UI for better user experience
         console.log('✅ Desktop transcription sent to UI:', cleanText);
         this.onTranscription(transcriptData);
+        
+        // Notify watchdog that a chunk was successfully processed
+        if (this.onChunkProcessed) {
+          this.onChunkProcessed();
+        }
 
         // Log quality for analysis but don't block user interface
         if (!meetsConfidenceThreshold(transcriptData.confidence, this.meetingSettings)) {
