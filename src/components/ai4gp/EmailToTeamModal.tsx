@@ -13,10 +13,11 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Loader2, Users, Search } from 'lucide-react';
+import { Mail, Loader2, Users, Search, Sparkles } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
+import { stripMarkdown } from '@/utils/stripMarkdown';
 
 interface TeamMember {
   user_id: string;
@@ -41,11 +42,46 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
   const { user } = useAuth();
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
-  const [subject, setSubject] = useState('AI4PM Chat Summary');
+  const [subject, setSubject] = useState('');
+  const [isGeneratingSubject, setIsGeneratingSubject] = useState(false);
   const [additionalNotes, setAdditionalNotes] = useState('');
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Generate AI subject when modal opens
+  useEffect(() => {
+    const generateSubject = async () => {
+      if (!isOpen || !messageContent || subject) return;
+      
+      setIsGeneratingSubject(true);
+      try {
+        // Use a simple extraction approach - take first meaningful line or generate summary
+        const plainContent = stripMarkdown(messageContent);
+        const lines = plainContent.split('\n').filter(l => l.trim().length > 10);
+        
+        if (lines.length > 0) {
+          // Take first meaningful line and truncate
+          let autoSubject = lines[0].trim();
+          if (autoSubject.length > 60) {
+            autoSubject = autoSubject.substring(0, 57) + '...';
+          }
+          setSubject(autoSubject);
+        } else {
+          setSubject('AI4PM Chat Summary');
+        }
+      } catch (error) {
+        console.error('Error generating subject:', error);
+        setSubject('AI4PM Chat Summary');
+      } finally {
+        setIsGeneratingSubject(false);
+      }
+    };
+
+    generateSubject();
+  }, [isOpen, messageContent]);
+
+  // Get clean content for email (strip markdown)
 
   // Fetch team members from the same practice
   useEffect(() => {
@@ -163,11 +199,14 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
 
     setIsSending(true);
     try {
+      // Strip markdown from content for cleaner email
+      const cleanContent = stripMarkdown(messageContent);
+      
       const { data, error } = await supabase.functions.invoke('send-chat-email', {
         body: {
           recipientEmails: selectedEmails,
           subject,
-          chatContent: messageContent,
+          chatContent: cleanContent,
           senderName,
           additionalNotes: additionalNotes.trim() || undefined,
         },
@@ -191,7 +230,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
 
   const handleClose = () => {
     setSelectedMembers([]);
-    setSubject('AI4PM Chat Summary');
+    setSubject('');
     setAdditionalNotes('');
     setSearchQuery('');
     onClose();
@@ -278,7 +317,13 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
                     >
                       <Checkbox
                         checked={selectedMembers.includes(member.user_id)}
-                        onCheckedChange={() => toggleMember(member.user_id)}
+                        onCheckedChange={(checked) => {
+                          // Prevent double-toggle from parent onClick
+                        }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleMember(member.user_id);
+                        }}
                       />
                       <div className="flex-1 min-w-0">
                         <div className="font-medium text-sm truncate">
@@ -332,9 +377,12 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
           <div className="space-y-2">
             <Label>Content Preview</Label>
             <div className="bg-muted/50 p-3 rounded-md max-h-[100px] overflow-y-auto text-sm text-muted-foreground whitespace-pre-wrap">
-              {messageContent.length > 300 
-                ? messageContent.substring(0, 300) + '...' 
-                : messageContent || 'No content to preview'}
+              {(() => {
+                const cleanContent = stripMarkdown(messageContent);
+                return cleanContent.length > 300 
+                  ? cleanContent.substring(0, 300) + '...' 
+                  : cleanContent || 'No content to preview';
+              })()}
             </div>
           </div>
         </div>
