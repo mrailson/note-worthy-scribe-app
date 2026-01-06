@@ -270,7 +270,15 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-hidden resize" style={{ resize: 'both', minWidth: '400px', minHeight: '500px' }}>
+      <DialogContent 
+        className="sm:max-w-[650px] max-w-[90vw] max-h-[90vh] overflow-hidden flex flex-col"
+        style={{ 
+          resize: 'both', 
+          minWidth: '450px', 
+          minHeight: '550px',
+          overflow: 'auto'
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -404,9 +412,23 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
 
           <div className="space-y-2">
             <Label>Content Preview</Label>
-            <ScrollArea className="h-[200px] bg-muted/50 p-3 rounded-md">
-              <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-                {cleanedContent || 'No content to preview'}
+            <ScrollArea className="h-[250px] rounded-lg border overflow-hidden">
+              <div className="bg-white dark:bg-zinc-900">
+                {/* Email-style header */}
+                <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4">
+                  <h3 className="text-base font-semibold m-0">AI4PM Chat Summary</h3>
+                  <p className="text-sm opacity-90 mt-1">Shared by {senderName}</p>
+                </div>
+                {/* Email-style content */}
+                <div className="p-4 bg-gray-50 dark:bg-zinc-800/50">
+                  <div className="bg-white dark:bg-zinc-900 p-4 rounded-md border border-gray-200 dark:border-zinc-700 text-sm leading-relaxed">
+                    {cleanedContent.split('\n').map((line, index) => (
+                      <p key={index} className={`${line.trim() ? 'mb-2' : 'mb-4'} text-foreground`}>
+                        {line || '\u00A0'}
+                      </p>
+                    ))}
+                  </div>
+                </div>
               </div>
             </ScrollArea>
           </div>
