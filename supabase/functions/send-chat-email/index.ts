@@ -169,7 +169,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Prepare email options
     const emailOptions: any = {
-      from: "AI4PM <noreply@bluepcn.co.uk>",
+      from: "Notewell AI <noreply@bluepcn.co.uk>",
       to: recipientEmails,
       subject: subject,
       html: html,
