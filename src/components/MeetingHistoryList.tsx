@@ -2601,6 +2601,26 @@ export const MeetingHistoryList = ({
                   <span className={isMobile ? 'hidden sm:inline' : ''}>Manage Attendees</span>
                   {isMobile && <span className="sm:hidden">Attendees</span>}
                 </Button>
+
+                {/* Quick Word Download Button */}
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDownloadWord(meeting)}
+                        className="flex items-center justify-center gap-2 flex-1 sm:flex-none touch-manipulation min-h-[44px] text-blue-600 hover:text-blue-700"
+                      >
+                        <FileDown className="h-4 w-4" />
+                        <span className={isMobile ? 'hidden sm:inline' : ''}>Word</span>
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Download Meeting Notes (Word)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 
                 {/* Actions Dropdown Menu */}
                 <AlertDialog>
