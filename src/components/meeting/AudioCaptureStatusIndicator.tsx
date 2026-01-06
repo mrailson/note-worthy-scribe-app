@@ -90,10 +90,10 @@ export const AudioCaptureStatusIndicator = ({
         </TooltipContent>
       </Tooltip>
 
-      {/* Voice Detection Indicator - always rendered to prevent layout shift, visibility controlled via CSS */}
+      {/* Voice Detection Indicator - mobile only (desktop has wave icon), always rendered to prevent layout shift */}
       <Badge 
         variant="outline" 
-        className={`flex items-center gap-1.5 bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700 transition-opacity duration-200 ${
+        className={`md:hidden flex items-center gap-1.5 bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700 transition-opacity duration-200 ${
           audioActivity && showVoiceIndicator ? 'opacity-100' : 'opacity-0 pointer-events-none'
         }`}
       >
