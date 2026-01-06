@@ -1037,10 +1037,14 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
       const dateStr = new Date().toLocaleDateString('en-GB');
       const filename = `${cleanTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${dateStr.replace(/\//g, '-')}.docx`;
 
+      // Get logged-in user's name to replace Facilitator/Unidentified
+      const loggedUserName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+
       await generateMeetingNotesDocx({
         metadata: { 
           title: cleanTitle,
-          attendees: extractedAttendees
+          attendees: extractedAttendees,
+          loggedUserName: loggedUserName,
         },
         content,
         filename,

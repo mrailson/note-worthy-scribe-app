@@ -8,6 +8,7 @@ interface MeetingMetadata {
   duration?: string;
   location?: string;
   attendees?: string;
+  loggedUserName?: string; // The logged-in user who ran the meeting
 }
 
 interface GenerateMeetingNotesOptions {
@@ -15,6 +16,24 @@ interface GenerateMeetingNotesOptions {
   content: string;
   filename?: string;
 }
+
+// Replace "Facilitator" or "Unidentified" references with the actual user name
+export const replaceFacilitatorWithUserName = (content: string, userName?: string): string => {
+  if (!userName) return content;
+  
+  let cleaned = content;
+  
+  // Replace various patterns of Facilitator/Unidentified with the actual user name
+  cleaned = cleaned.replace(/\[Unidentified\]\s*\(Facilitator\)/gi, userName);
+  cleaned = cleaned.replace(/Unidentified\s*\(Facilitator\)/gi, userName);
+  cleaned = cleaned.replace(/\[Facilitator\]/gi, userName);
+  cleaned = cleaned.replace(/\(Facilitator\)/gi, `(${userName})`);
+  cleaned = cleaned.replace(/Facilitator(?=\s*[,\.\-\:])/gi, userName);
+  cleaned = cleaned.replace(/\[Unidentified\]/gi, userName);
+  cleaned = cleaned.replace(/Unidentified(?=\s*[,\.\-\:])/gi, userName);
+  
+  return cleaned;
+};
 
 // Strip transcript sections and duplicate meeting title from content
 export const stripTranscriptSection = (content: string): string => {
@@ -462,8 +481,14 @@ const createMetadataTable = async (metadata: MeetingMetadata) => {
 export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOptions): Promise<void> => {
   const { Document, Packer, Paragraph, TextRun, AlignmentType } = await import("docx");
   
-  // Strip transcript sections
-  const cleanedContent = stripTranscriptSection(options.content);
+  // Strip transcript sections and replace Facilitator/Unidentified with logged user's name
+  let cleanedContent = stripTranscriptSection(options.content);
+  cleanedContent = replaceFacilitatorWithUserName(cleanedContent, options.metadata.loggedUserName);
+  
+  // Also clean the attendees field
+  const cleanedAttendees = options.metadata.attendees 
+    ? replaceFacilitatorWithUserName(options.metadata.attendees, options.metadata.loggedUserName)
+    : options.metadata.attendees;
   
   // Clean the title by removing leading asterisks and markdown formatting
   const cleanTitle = options.metadata.title.replace(/^\*+\s*/, '').replace(/\*\*/g, '').trim();
@@ -501,7 +526,7 @@ export const generateMeetingNotesDocx = async (options: GenerateMeetingNotesOpti
             font: FONTS.default,
           }),
           new TextRun({
-            text: options.metadata.attendees,
+            text: cleanedAttendees || '',
             size: FONTS.size.body,
             color: NHS_COLORS.textGrey,
             font: FONTS.default,
