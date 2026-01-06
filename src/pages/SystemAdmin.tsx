@@ -52,6 +52,8 @@ import {
   Mail
 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { ChevronDown } from 'lucide-react';
 import { AudioBackupManager } from '@/components/AudioBackupManager';
 import AITestModal from '@/components/AITestModal';
 import { CSOComplianceReport } from '@/components/CSOComplianceReport';
@@ -190,6 +192,9 @@ const SystemAdmin = () => {
   } | null>(null);
 
   const [deletingFile, setDeletingFile] = useState<string | null>(null);
+  const [largeFilesOpen, setLargeFilesOpen] = useState(false);
+  const [largeFilesSortField, setLargeFilesSortField] = useState<'file_size' | 'uploaded_at' | 'file_name'>('file_size');
+  const [largeFilesSortDirection, setLargeFilesSortDirection] = useState<'asc' | 'desc'>('desc');
 
   
   // User management state
@@ -2137,48 +2142,147 @@ const autoSaveModuleAccess = async (moduleKey: string, checked: boolean) => {
                   ) : (
                     <div className="text-muted-foreground mb-6">Loading file statistics...</div>
                   )}
-                  <div className="space-y-3">
-                    {largeFiles.slice(0, 10).map((file, index) => {
-                      const fileKey = `${file.table_name}-${file.file_name}`;
-                      const isDeleting = deletingFile === fileKey;
-                      
-                      return (
-                        <div key={`${file.table_name}-${index}`} className="flex items-center justify-between gap-3 p-3 border rounded-lg hover:bg-muted/50">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-medium text-sm truncate">{file.file_name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {file.table_name} • {file.uploaded_by_email}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">{file.file_size_pretty}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {new Date(file.uploaded_at).toLocaleDateString()}
-                            </p>
-                          </div>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => {
-                              console.log('Button clicked!', file);
-                              deleteFile(file);
-                            }}
-                            disabled={isDeleting}
-                            className="text-destructive hover:text-destructive-foreground hover:bg-destructive"
-                          >
-                            {isDeleting ? (
-                              <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
+                  {/* Collapsible Users Table for files over 1MB */}
+                  <Collapsible open={largeFilesOpen} onOpenChange={setLargeFilesOpen}>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full justify-between mb-4">
+                        <span className="flex items-center gap-2">
+                          <Users className="h-4 w-4" />
+                          Users with Large Files ({largeFiles.filter(f => f.file_size >= 1048576).length})
+                        </span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${largeFilesOpen ? 'rotate-180' : ''}`} />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="border rounded-lg overflow-hidden mb-4">
+                        <Table>
+                          <TableHeader>
+                            <TableRow>
+                              <TableHead 
+                                className="cursor-pointer hover:bg-muted/50"
+                                onClick={() => {
+                                  if (largeFilesSortField === 'file_name') {
+                                    setLargeFilesSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                                  } else {
+                                    setLargeFilesSortField('file_name');
+                                    setLargeFilesSortDirection('asc');
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center gap-1">
+                                  File Name
+                                  {largeFilesSortField === 'file_name' && (
+                                    largeFilesSortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                                  )}
+                                </div>
+                              </TableHead>
+                              <TableHead>User Email</TableHead>
+                              <TableHead>Type</TableHead>
+                              <TableHead 
+                                className="cursor-pointer hover:bg-muted/50"
+                                onClick={() => {
+                                  if (largeFilesSortField === 'file_size') {
+                                    setLargeFilesSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                                  } else {
+                                    setLargeFilesSortField('file_size');
+                                    setLargeFilesSortDirection('desc');
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Size
+                                  {largeFilesSortField === 'file_size' && (
+                                    largeFilesSortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                                  )}
+                                </div>
+                              </TableHead>
+                              <TableHead 
+                                className="cursor-pointer hover:bg-muted/50"
+                                onClick={() => {
+                                  if (largeFilesSortField === 'uploaded_at') {
+                                    setLargeFilesSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+                                  } else {
+                                    setLargeFilesSortField('uploaded_at');
+                                    setLargeFilesSortDirection('desc');
+                                  }
+                                }}
+                              >
+                                <div className="flex items-center gap-1">
+                                  Date Uploaded
+                                  {largeFilesSortField === 'uploaded_at' && (
+                                    largeFilesSortDirection === 'asc' ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+                                  )}
+                                </div>
+                              </TableHead>
+                              <TableHead className="w-[50px]"></TableHead>
+                            </TableRow>
+                          </TableHeader>
+                          <TableBody>
+                            {largeFiles
+                              .filter(f => f.file_size >= 1048576)
+                              .sort((a, b) => {
+                                let comparison = 0;
+                                if (largeFilesSortField === 'file_size') {
+                                  comparison = a.file_size - b.file_size;
+                                } else if (largeFilesSortField === 'uploaded_at') {
+                                  comparison = new Date(a.uploaded_at).getTime() - new Date(b.uploaded_at).getTime();
+                                } else if (largeFilesSortField === 'file_name') {
+                                  comparison = a.file_name.localeCompare(b.file_name);
+                                }
+                                return largeFilesSortDirection === 'asc' ? comparison : -comparison;
+                              })
+                              .map((file, index) => {
+                                const fileKey = `${file.table_name}-${file.file_name}`;
+                                const isDeleting = deletingFile === fileKey;
+                                const fileExtension = file.file_name.split('.').pop()?.toUpperCase() || 'Unknown';
+                                
+                                return (
+                                  <TableRow key={`${file.table_name}-${index}`}>
+                                    <TableCell className="font-medium max-w-[200px] truncate" title={file.file_name}>
+                                      {file.file_name}
+                                    </TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                      {file.uploaded_by_email || 'Unknown'}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Badge variant="secondary" className="text-xs">
+                                        {fileExtension}
+                                      </Badge>
+                                    </TableCell>
+                                    <TableCell className="font-medium">{file.file_size_pretty}</TableCell>
+                                    <TableCell className="text-muted-foreground">
+                                      {new Date(file.uploaded_at).toLocaleDateString('en-GB')}
+                                    </TableCell>
+                                    <TableCell>
+                                      <Button
+                                        variant="ghost"
+                                        size="sm"
+                                        onClick={() => deleteFile(file)}
+                                        disabled={isDeleting}
+                                        className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-8 w-8 p-0"
+                                      >
+                                        {isDeleting ? (
+                                          <div className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
+                                        ) : (
+                                          <Trash2 className="h-4 w-4" />
+                                        )}
+                                      </Button>
+                                    </TableCell>
+                                  </TableRow>
+                                );
+                              })}
+                            {largeFiles.filter(f => f.file_size >= 1048576).length === 0 && (
+                              <TableRow>
+                                <TableCell colSpan={6} className="text-center text-muted-foreground py-4">
+                                  No files over 1MB found
+                                </TableCell>
+                              </TableRow>
                             )}
-                          </Button>
-                        </div>
-                      );
-                    })}
-                    {largeFiles.length === 0 && (
-                      <p className="text-sm text-muted-foreground text-center py-4">No large files found</p>
-                    )}
-                  </div>
+                          </TableBody>
+                        </Table>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </CardContent>
               </Card>
             </div>
