@@ -67,13 +67,13 @@ const insuranceRequirements = [
 ];
 
 const practiceInsuranceChecklist = [
-  { practice: "Towcester Medical Centre", confirmed: false },
-  { practice: "Brackley Medical Centre", confirmed: false },
-  { practice: "The Parks Medical Practice", confirmed: false },
-  { practice: "Springfield Surgery", confirmed: false },
-  { practice: "Brook Health Centre", confirmed: false },
-  { practice: "Bugbrooke Medical Practice", confirmed: false },
-  { practice: "Denton Village Surgery", confirmed: false },
+  { practice: "Towcester Medical Centre", confirmed: true, amount: "£10m" },
+  { practice: "Brook Health Centre", confirmed: true, amount: "£10m" },
+  { practice: "Brackley Medical Centre", confirmed: true, amount: "£5m" },
+  { practice: "Springfield Surgery", confirmed: true, amount: "£5m" },
+  { practice: "Denton Village Surgery", confirmed: false, amount: "Pending" },
+  { practice: "The Parks Medical Practice", confirmed: false, amount: "Pending" },
+  { practice: "Bugbrooke Medical Practice", confirmed: false, amount: "Pending" },
 ];
 
 export const SDAFinanceGovernance = () => {
@@ -417,14 +417,15 @@ export const SDAFinanceGovernance = () => {
               {practiceInsuranceChecklist.map((practice, index) => (
                 <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
                   <Checkbox id={`insurance-${index}`} checked={practice.confirmed} disabled />
-                  <label htmlFor={`insurance-${index}`} className={`text-sm cursor-pointer ${practice.confirmed ? 'text-slate-700' : 'text-amber-600'}`}>
+                  <label htmlFor={`insurance-${index}`} className={`text-sm cursor-pointer flex-1 ${practice.confirmed ? 'text-slate-700' : 'text-amber-600'}`}>
                     {practice.practice}
                   </label>
-                  {!practice.confirmed && (
-                    <Badge variant="outline" className="text-xs text-amber-600 border-amber-600 ml-auto">
-                      Pending
-                    </Badge>
-                  )}
+                  <Badge 
+                    variant="outline" 
+                    className={`text-xs ml-auto ${practice.confirmed ? 'text-green-600 border-green-600 bg-green-50' : 'text-amber-600 border-amber-600 bg-amber-50'}`}
+                  >
+                    {practice.amount}
+                  </Badge>
                 </div>
               ))}
             </div>
