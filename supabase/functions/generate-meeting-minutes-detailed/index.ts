@@ -71,8 +71,10 @@ serve(async (req) => {
       console.warn('⚠️ Error fetching meeting_attendees:', attendeesError);
     }
 
-    // Format explicit attendees
-    let attendeesList = 'TBC';
+    // Format explicit attendees - always include the logged-in user who ran the meeting
+    const loggedUserName = meetingData.profiles.full_name;
+    let attendeesList = loggedUserName; // Start with logged user
+    
     if (cardAttendees && cardAttendees.length > 0) {
       const formattedAttendees = cardAttendees
         .map((item: any) => {
@@ -81,14 +83,16 @@ serve(async (req) => {
           if (!name) return null;
           return org ? `${name} (${org})` : name;
         })
-        .filter(Boolean);
+        .filter(Boolean)
+        // Exclude the logged user if they're also in the attendees list to avoid duplication
+        .filter((name: string) => !name.toLowerCase().includes(loggedUserName.toLowerCase()));
       
       if (formattedAttendees.length > 0) {
-        attendeesList = formattedAttendees.join(', ');
+        attendeesList = `${loggedUserName}, ${formattedAttendees.join(', ')}`;
       }
     }
 
-    console.log('👥 Explicit attendees:', attendeesList);
+    console.log('👥 Attendees (including logged user):', attendeesList);
 
     // Get full transcript using the database function
     const { data: transcriptData, error: transcriptError } = await supabase
@@ -109,8 +113,10 @@ serve(async (req) => {
 
     // Build context information from meeting metadata
     const contextInfo = `**MEETING CONTEXT:**
-${meetingData.agenda ? `- Agenda: ${meetingData.agenda}\n` : ''}${attendeesList !== 'TBC' ? `- Attendees: ${attendeesList}\n` : ''}${meetingData.meeting_location ? `- Location: ${meetingData.meeting_location}\n` : ''}${meetingData.meeting_format ? `- Format: ${meetingData.meeting_format}\n` : ''}${meetingData.meeting_context ? `- Additional Context: ${JSON.stringify(meetingData.meeting_context)}\n` : ''}
-**IMPORTANT: Use the exact attendee names provided above. Do not modify spellings.**
+- Meeting Recorder: ${loggedUserName}
+${meetingData.agenda ? `- Agenda: ${meetingData.agenda}\n` : ''}- Attendees: ${attendeesList}
+${meetingData.meeting_location ? `- Location: ${meetingData.meeting_location}\n` : ''}${meetingData.meeting_format ? `- Format: ${meetingData.meeting_format}\n` : ''}${meetingData.meeting_context ? `- Additional Context: ${JSON.stringify(meetingData.meeting_context)}\n` : ''}
+**IMPORTANT: Use the exact attendee names provided above. Do not use "Facilitator", "Unidentified", or placeholder names. The Meeting Recorder (${loggedUserName}) should always be listed by their actual name.**
 
 `;
 
@@ -118,9 +124,10 @@ ${meetingData.agenda ? `- Agenda: ${meetingData.agenda}\n` : ''}${attendeesList 
     const prompt = `Please analyze this meeting transcript and create detailed, professional meeting minutes for an informal partners meeting. Structure the minutes with the following sections:
 
 **MEETING DETAILS:**
-- Date: ${new Date(meetingData.created_at).toLocaleDateString()}
-- Time: ${new Date(meetingData.start_time).toLocaleTimeString()} - ${new Date(meetingData.end_time).toLocaleTimeString()}
-- Attendees: ${meetingData.profiles.full_name} (${meetingData.profiles.email})
+- Date: ${new Date(meetingData.created_at).toLocaleDateString('en-GB')}
+- Time: ${new Date(meetingData.start_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} - ${new Date(meetingData.end_time).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+- Meeting Recorder: ${loggedUserName}
+- Attendees: ${attendeesList}
 - Meeting Type: Informal Partners Meeting
 
 ${contextInfo}
