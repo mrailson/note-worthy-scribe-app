@@ -87,11 +87,15 @@ export function transformMinutesToHtml(content: string, baseFontSize: number = 1
 
     // Tables
     .replace(/\|(.+?)\|\s*\n\s*\|[-:]+\|.*?\n((?:\s*\|.+?\|\s*(?:\n|$))+)/gs, (match, headerRow, bodyRows) => {
-      const headers = headerRow.split('|').map((h: string) => h.trim()).filter((h: string) => h);
-      const rows = bodyRows.trim().split('\n').map((row: string) => {
-        const cells = row.split('|').map((cell: string) => cell.trim()).filter((cell: string) => cell);
-        return cells;
-      }).filter((row: string[]) => row.length > 0);
+      const splitPipeRow = (row: string): string[] => {
+        const parts = row.split('|').map((p: string) => p.trim());
+        if (parts.length > 0 && parts[0] === '') parts.shift();
+        if (parts.length > 0 && parts[parts.length - 1] === '') parts.pop();
+        return parts;
+      };
+
+      const headers = splitPipeRow(headerRow);
+      const rows = bodyRows.trim().split('\n').map((row: string) => splitPipeRow(row)).filter((row: string[]) => row.length > 0);
 
       const isActionItemsTable = headers.some((h: string) => h.toLowerCase().includes('priority'));
 
@@ -139,9 +143,9 @@ export function transformMinutesToHtml(content: string, baseFontSize: number = 1
     .replace(/\s\*([A-Z])/g, ' $1')
     .replace(/\*([^\*\n]+?)\*/g, '<em class="italic text-[#425563]">$1</em>')
 
-    // Subsection formatting
+    // Subsection formatting (left-aligned)
     .replace(/<strong class="font-semibold text-\[#212B32\]">([^<]+?):<\/strong>\s*((?:(?!<strong class="font-semibold text-\[#212B32\]">).)+?)(?=<strong class="font-semibold text-\[#212B32\]">[^<]+?:<\/strong>|$)/gs, 
-      `<p class="mb-6 mt-2 ml-6 leading-relaxed text-[#212B32]" style="font-size: ${baseFontSize}px"><strong class="font-bold text-[#005EB8]" style="font-size: ${baseFontSize * 1.15}px">$1:</strong> $2</p>`)
+      `<p class="mb-4 mt-2 leading-relaxed text-[#212B32]" style="font-size: ${baseFontSize}px"><strong class="font-bold text-[#005EB8]" style="font-size: ${baseFontSize * 1.15}px">$1:</strong> $2</p>`)
 
     // Paragraph breaks
     .replace(/(\.\s+)((?:Key |A |The |This |Concerns |Expressions |However,|Additionally,|Furthermore,|Subsequently,|Moreover,|Meanwhile,|In addition,)[A-Z][^.]{20,})/g, `.$1</p>\n<p class="mb-4 leading-relaxed text-[#212B32]" style="font-size: ${baseFontSize}px">$2`)
@@ -184,7 +188,7 @@ export function transformMinutesToHtml(content: string, baseFontSize: number = 1
       return `${opening}<ul class="list-circle list-outside ml-6 mt-2 mb-2 space-y-1 text-[#425563]">${nestedItems}</ul>${closing}`;
     })
     .replace(/<!NESTED!>|<!NESTED_END!>/g, '')
-    .replace(/(<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-6 mb-4 space-y-2">$&</ul>')
+    .replace(/(<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*>(?:(?!<li class="mb-[23])[\s\S])*?<\/li>\s*)*)/g, '<ul class="list-disc list-outside ml-4 mb-4 space-y-2">$&</ul>')
     .replace(/(<li[^>]*value="[^"]*">.*?)((?:<!NESTED_NUM!>.*?<!NESTED_NUM_END!>\s*)+)(<\/li>)/gs, (match, opening, nested, closing) => {
       const nestedItems = nested.match(/<!NESTED_NUM!>(.*?)<!NESTED_NUM_END!>/g)
         ?.map((item: string) => item.replace(/<!NESTED_NUM!>|<!NESTED_NUM_END!>/g, '').trim())
@@ -193,8 +197,8 @@ export function transformMinutesToHtml(content: string, baseFontSize: number = 1
       return `${opening}<ul class="list-disc list-outside ml-8 mt-2 mb-2 space-y-1 text-[#425563]">${nestedItems}</ul>${closing}`;
     })
     .replace(/<!NESTED_NUM!>|<!NESTED_NUM_END!>/g, '')
-    .replace(/(<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-7 space-y-2">$&</ol>')
-    .replace(/(<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-6 mb-6 space-y-1">$&</ol>')
+    .replace(/(<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-3[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-4 mb-7 space-y-2">$&</ol>')
+    .replace(/(<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>(?:\s*<li class="mb-2[^>]*value="[^"]*">(?:(?!<li)[\s\S])*?<\/li>\s*)*)/g, '<ol class="list-decimal list-outside ml-4 mb-6 space-y-1">$&</ol>')
 
     // Paragraphs
     .replace(/\n\n/g, `</p><p style="font-size: ${baseFontSize}px" class="mb-4 text-[#212B32] leading-relaxed">`)
