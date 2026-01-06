@@ -7,45 +7,73 @@ interface FormattedLetterContentProps {
   content: string;
 }
 
+interface PracticeDetails {
+  logo_url: string | null;
+  practice_logo_url: string | null;
+  phone: string | null;
+  email: string | null;
+  practice_name: string | null;
+}
+
 export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ content }) => {
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
+  const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
   
   // Extract practice logo URL from HTML comment if present
   const logoUrlMatch = content.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
   const embeddedLogoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
   
-  // Fetch practice logo if not embedded in content
+  // Fetch practice details including logo, phone, and email
   useEffect(() => {
-    const fetchPracticeLogo = async () => {
-      if (embeddedLogoUrl) {
-        setPracticeLogoUrl(embeddedLogoUrl);
-        return;
-      }
-      
+    const fetchPracticeDetails = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
         
         const { data: practiceData } = await supabase
           .from('practice_details')
-          .select('logo_url, practice_logo_url')
+          .select('logo_url, practice_logo_url, phone, email, practice_name')
           .eq('user_id', user.id)
           .single();
           
         if (practiceData) {
-          const logoUrl = practiceData.practice_logo_url || practiceData.logo_url;
+          setPracticeDetails(practiceData);
+          // Use embedded logo URL or fetch from practice details
+          const logoUrl = embeddedLogoUrl || practiceData.practice_logo_url || practiceData.logo_url;
           setPracticeLogoUrl(logoUrl);
+        } else if (embeddedLogoUrl) {
+          setPracticeLogoUrl(embeddedLogoUrl);
         }
       } catch (error) {
-        console.error('Error fetching practice logo:', error);
+        console.error('Error fetching practice details:', error);
+        // Still set the embedded logo if fetch fails
+        if (embeddedLogoUrl) {
+          setPracticeLogoUrl(embeddedLogoUrl);
+        }
       }
     };
     
-    fetchPracticeLogo();
+    fetchPracticeDetails();
   }, [embeddedLogoUrl]);
   
+  // Replace placeholder text with actual practice details
+  const replacePlaceholders = (text: string): string => {
+    let result = text;
+    if (practiceDetails?.phone) {
+      result = result.replace(/\[Practice phone number\]/gi, practiceDetails.phone);
+      result = result.replace(/\[Practice phone\]/gi, practiceDetails.phone);
+    }
+    if (practiceDetails?.email) {
+      result = result.replace(/\[Practice email\]/gi, practiceDetails.email);
+    }
+    if (practiceDetails?.practice_name) {
+      result = result.replace(/\[Practice name\]/gi, practiceDetails.practice_name);
+    }
+    return result;
+  };
+  
   // Remove the logo metadata comment from content for parsing
-  const cleanContent = content
+  const cleanContent = replacePlaceholders(content)
     .replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '')
     .replace(/!\[.*?\]\(.*?\)/g, '') // Remove markdown image syntax
     .replace(/\[.*?Logo\/Letterhead.*?\]/gi, '') // Remove letterhead placeholder text
@@ -128,11 +156,11 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
     <div className="max-w-4xl mx-auto bg-white shadow-lg">
       {/* Practice Logo at Top Center */}
       {practiceLogoUrl && (
-        <div className="p-2 text-center">
+        <div className="p-4 text-center">
           <img 
             src={practiceLogoUrl}
             alt="Practice Logo" 
-            className="h-40 w-auto mx-auto object-contain"
+            className="h-16 w-auto mx-auto object-contain"
           />
         </div>
       )}
