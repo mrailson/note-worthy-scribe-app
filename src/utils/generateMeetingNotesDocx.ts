@@ -123,21 +123,52 @@ export const parseContentToDocxElements = async (content: string) => {
           return deadline;
         };
         
-        // Create table with NHS blue header
+        // Calculate column widths based on typical action table layout
+        // Action(40%), Owner(20%), Deadline(20%), Priority(20%)
+        const columnCount = headerCells.length;
+        const getColumnWidths = (headers: string[]): number[] => {
+          // Default to equal distribution
+          const defaultWidth = Math.floor(100 / headers.length);
+          const widths = headers.map(() => defaultWidth);
+          
+          // Adjust based on typical column names for action tables
+          headers.forEach((h, i) => {
+            const lower = h.toLowerCase();
+            if (lower.includes('action') || lower.includes('description') || lower.includes('item') || lower.includes('task')) {
+              widths[i] = 40; // Give more space to action/description columns
+            } else if (lower.includes('owner') || lower.includes('assigned') || lower.includes('responsible')) {
+              widths[i] = 20;
+            } else if (lower.includes('deadline') || lower.includes('due') || lower.includes('date')) {
+              widths[i] = 20;
+            } else if (lower.includes('priority') || lower.includes('status')) {
+              widths[i] = 15;
+            }
+          });
+          
+          // Normalize to 100%
+          const total = widths.reduce((a, b) => a + b, 0);
+          return widths.map(w => Math.round((w / total) * 100));
+        };
+        
+        const columnWidths = getColumnWidths(headerCells);
+        
+        // Create table with NHS blue header and proper column widths
         const table = new Table({
           width: { size: 100, type: WidthType.PERCENTAGE },
+          columnWidths: columnWidths.map(w => Math.round((w / 100) * 9638)), // Convert % to twips (9638 twips = 6.69 inches page width)
           borders: {
-            top: { style: BorderStyle.SINGLE, size: 1, color: NHS_COLORS.headingBlue },
-            bottom: { style: BorderStyle.SINGLE, size: 1, color: NHS_COLORS.headingBlue },
-            left: { style: BorderStyle.SINGLE, size: 1, color: NHS_COLORS.headingBlue },
-            right: { style: BorderStyle.SINGLE, size: 1, color: NHS_COLORS.headingBlue },
-            insideHorizontal: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
-            insideVertical: { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" },
+            top: { style: BorderStyle.SINGLE, size: 8, color: NHS_COLORS.headingBlue },
+            bottom: { style: BorderStyle.SINGLE, size: 8, color: NHS_COLORS.headingBlue },
+            left: { style: BorderStyle.SINGLE, size: 8, color: NHS_COLORS.headingBlue },
+            right: { style: BorderStyle.SINGLE, size: 8, color: NHS_COLORS.headingBlue },
+            insideHorizontal: { style: BorderStyle.SINGLE, size: 4, color: "CCCCCC" },
+            insideVertical: { style: BorderStyle.SINGLE, size: 4, color: "CCCCCC" },
           },
           rows: [
             // Header row with blue background
             new TableRow({
-              children: headerCells.map(cell => 
+              tableHeader: true,
+              children: headerCells.map((cell, colIndex) => 
                 new TableCell({
                   children: [new Paragraph({
                     children: [new TextRun({ 
@@ -150,22 +181,23 @@ export const parseContentToDocxElements = async (content: string) => {
                     spacing: { before: 80, after: 80 },
                   })],
                   shading: { fill: NHS_COLORS.tableHeaderBg },
+                  width: { size: columnWidths[colIndex], type: WidthType.PERCENTAGE },
                   margins: {
-                    top: 80,
-                    bottom: 80,
-                    left: 100,
-                    right: 100,
+                    top: 100,
+                    bottom: 100,
+                    left: 120,
+                    right: 120,
                   },
                 })
               ),
             }),
             // Body rows with priority colouring and deadline suggestions
-            ...bodyRows.map(row => 
+            ...bodyRows.map((row, rowIndex) => 
               new TableRow({
                 children: row.map((cell, colIndex) => {
                   let displayText = cell;
                   let cellColor = NHS_COLORS.textGrey;
-                  let cellBg: string | undefined = undefined;
+                  let cellBg: string | undefined = rowIndex % 2 === 0 ? undefined : "F9FAFB"; // Alternate row shading
                   let isBold = false;
                   
                   // Apply priority colouring
@@ -192,13 +224,15 @@ export const parseContentToDocxElements = async (content: string) => {
                         font: FONTS.default,
                         bold: isBold,
                       })],
+                      spacing: { before: 60, after: 60 },
                     })],
                     shading: cellBg ? { fill: cellBg } : undefined,
+                    width: { size: columnWidths[colIndex], type: WidthType.PERCENTAGE },
                     margins: {
                       top: 80,
                       bottom: 80,
-                      left: 100,
-                      right: 100,
+                      left: 120,
+                      right: 120,
                     },
                   });
                 }),
