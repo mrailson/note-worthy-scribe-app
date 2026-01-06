@@ -36,8 +36,12 @@ import {
   Video,
   MonitorSpeaker,
   Drama,
-  Folder
+  Folder,
+  FilePlus2
 } from "lucide-react";
+import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
+import { UploadedFile } from '@/types/ai4gp';
+import { formatTranscriptContext, extractCleanContent } from '@/utils/meeting/formatTranscriptContext';
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -216,6 +220,8 @@ export const MeetingHistoryList = ({
   const [openDropdowns, setOpenDropdowns] = useState<Record<string, boolean>>({});
   const [folderSheetOpen, setFolderSheetOpen] = useState(false);
   const [selectedMeetingForFolder, setSelectedMeetingForFolder] = useState<Meeting | null>(null);
+  const [showContextDialog, setShowContextDialog] = useState(false);
+  const [selectedMeetingForContext, setSelectedMeetingForContext] = useState<Meeting | null>(null);
   
   // Sync localMeetings with meetings prop - database is source of truth
   useEffect(() => {
@@ -964,7 +970,91 @@ export const MeetingHistoryList = ({
     setAttendeeModalOpen(true);
   };
 
-  // Handle download meeting notes as Word
+  // Handle add context click
+  const handleAddContextClick = (meeting: Meeting) => {
+    setSelectedMeetingForContext(meeting);
+    setShowContextDialog(true);
+  };
+
+  // Handle adding context to meeting
+  const handleAddContext = async (
+    contextTypes: Array<'agenda' | 'attendees' | 'presentation' | 'other' | 'additional-transcript'>,
+    files: UploadedFile[],
+    customLabel?: string
+  ) => {
+    if (!selectedMeetingForContext) return;
+    
+    const meetingId = selectedMeetingForContext.id;
+    
+    try {
+      // Clean file content
+      const cleanedFiles = files.map(file => ({
+        ...file,
+        content: extractCleanContent(file.content || '')
+      }));
+      
+      // Format the context content
+      const formattedContext = contextTypes.includes('additional-transcript')
+        ? cleanedFiles.map(f => f.content).join('\n\n')
+        : formatTranscriptContext(
+            contextTypes.filter(t => t !== 'additional-transcript') as Array<'agenda' | 'attendees' | 'presentation' | 'other'>,
+            cleanedFiles,
+            customLabel
+          );
+      
+      // Fetch current meeting context and live transcript
+      const { data: meetingData, error: fetchError } = await supabase
+        .from('meetings')
+        .select('meeting_context, live_transcript_text')
+        .eq('id', meetingId)
+        .single();
+        
+      if (fetchError) throw fetchError;
+      
+      // Build update data
+      const updateData: Record<string, any> = {
+        notes_generation_status: 'queued',
+        updated_at: new Date().toISOString()
+      };
+      
+      if (contextTypes.includes('additional-transcript')) {
+        // Append to live transcript
+        const currentTranscript = meetingData?.live_transcript_text || '';
+        updateData.live_transcript_text = currentTranscript + '\n\n--- Additional Transcript ---\n\n' + formattedContext;
+      } else {
+        // Store context in meeting_context JSON field and prepend to transcript
+        const existingContext = (meetingData?.meeting_context as any) || {};
+        const newContext = {
+          ...existingContext,
+          addedAt: new Date().toISOString(),
+          contextTypes,
+          content: formattedContext
+        };
+        updateData.meeting_context = newContext;
+        
+        // Also prepend to live transcript for AI processing
+        const currentTranscript = meetingData?.live_transcript_text || '';
+        updateData.live_transcript_text = formattedContext + '\n\n' + currentTranscript;
+      }
+      
+      // Update meeting
+      const { error: updateError } = await supabase
+        .from('meetings')
+        .update(updateData)
+        .eq('id', meetingId);
+        
+      if (updateError) throw updateError;
+      
+      toast.success('Meeting context added - notes will regenerate');
+      onRefresh?.();
+      setShowContextDialog(false);
+      setSelectedMeetingForContext(null);
+    } catch (error) {
+      console.error('Error adding context:', error);
+      toast.error('Failed to add meeting context');
+    }
+  };
+
   const handleDownloadWord = async (meeting: Meeting) => {
     try {
       console.log('📄 Downloading Word document for meeting:', meeting.id, meeting.title);
@@ -2536,6 +2626,16 @@ export const MeetingHistoryList = ({
                         onSelect={(e) => {
                           e.preventDefault();
                           setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
+                          handleAddContextClick(meeting);
+                        }}
+                      >
+                        <FilePlus2 className="h-4 w-4 mr-2" />
+                        Add Meeting Context
+                      </DropdownMenuItem>
+                      <DropdownMenuItem 
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          setOpenDropdowns(prev => ({ ...prev, [meeting.id]: false }));
                           handleProcessClick(meeting);
                         }}
                         disabled={processingMeetings[meeting.id]?.isProcessing}
@@ -3020,6 +3120,18 @@ export const MeetingHistoryList = ({
           }
         }}
       />
+
+      {/* Add Meeting Context Dialog */}
+      {showContextDialog && selectedMeetingForContext && (
+        <TranscriptContextDialog
+          open={showContextDialog}
+          onOpenChange={(open) => {
+            setShowContextDialog(open);
+            if (!open) setSelectedMeetingForContext(null);
+          }}
+          onAddContext={handleAddContext}
+        />
+      )}
     </div>
     </TooltipProvider>
   );
