@@ -73,7 +73,7 @@ const practiceInsuranceChecklist = [
   { practice: "Springfield Surgery", confirmed: true, amount: "£5m", type: "Public" },
   { practice: "Denton Village Surgery", confirmed: false, amount: "Pending", type: "Public" },
   { practice: "The Parks Medical Practice", confirmed: false, amount: "Pending", type: "Public" },
-  { practice: "Bugbrooke Medical Practice", confirmed: false, amount: "Pending", type: "Public" },
+  { practice: "Bugbrooke Medical Practice", confirmed: true, amount: "£5m", type: "Public" },
 ];
 
 export const SDAFinanceGovernance = () => {
