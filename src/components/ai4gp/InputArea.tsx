@@ -2,15 +2,17 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, X, Upload } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, X, Upload, Mail } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
-import { UploadedFile } from '@/types/ai4gp';
+import { UploadedFile, Message } from '@/types/ai4gp';
 import { useEnhancedFileProcessing } from '@/hooks/useEnhancedFileProcessing';
 import { EnhancedBrowserMic, EnhancedBrowserMicRef } from './EnhancedBrowserMic';
 import { useToast } from '@/hooks/use-toast';
 import { FileProcessingProgress } from './FileProcessingProgress';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
+import { EmailChatModal } from '@/components/ai4gp/EmailChatModal';
+
 interface InputAreaProps {
   input: string;
   setInput: (input: string) => void;
@@ -21,6 +23,8 @@ interface InputAreaProps {
   isClinical: boolean;
   setIsClinical: (clinical: boolean) => void;
   onNewChat?: () => void;
+  messages?: Message[];
+  senderName?: string;
 }
 
 export interface InputAreaRef {
@@ -36,7 +40,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   isLoading,
   isClinical,
   setIsClinical,
-  onNewChat
+  onNewChat,
+  messages = [],
+  senderName = 'Team Member'
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -48,6 +54,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   } = useEnhancedFileProcessing();
   const [browserTranscript, setBrowserTranscript] = useState('');
   const [showDocumentTranslate, setShowDocumentTranslate] = useState(false);
+  const [showEmailChat, setShowEmailChat] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
 
@@ -325,6 +332,14 @@ ${pastedText.trim()}
                     <Languages className="w-4 h-4 mr-2" />
                     Translate Document
                   </DropdownMenuItem>
+                  <DropdownMenuItem 
+                    onClick={() => setShowEmailChat(true)}
+                    disabled={isLoading || messages.length === 0}
+                    className="cursor-pointer"
+                  >
+                    <Mail className="w-4 h-4 mr-2" />
+                    Email to Team Members
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
               
@@ -368,6 +383,13 @@ ${pastedText.trim()}
         isOpen={showDocumentTranslate}
         onClose={() => setShowDocumentTranslate(false)}
         onInsertToChat={(text) => setInput(input + (input ? '\n\n' : '') + text)}
+      />
+      
+      <EmailChatModal
+        isOpen={showEmailChat}
+        onClose={() => setShowEmailChat(false)}
+        chatContent={messages.map(m => `${m.role === 'user' ? 'You' : 'AI'}: ${m.content}`).join('\n\n')}
+        senderName={senderName}
       />
     </div>
     </>

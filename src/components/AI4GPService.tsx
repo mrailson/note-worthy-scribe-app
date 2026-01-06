@@ -825,6 +825,8 @@ const AI4GPService = () => {
                         isClinical={isClinical}
                         setIsClinical={setIsClinical}
                         onNewChat={handleNewSearch}
+                        messages={messages}
+                        senderName={profile?.full_name || user?.email || 'Team Member'}
                       />
                     </div>
                   )}
