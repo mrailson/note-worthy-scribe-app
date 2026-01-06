@@ -1,6 +1,18 @@
 import { saveAs } from "file-saver";
 import { NHS_COLORS, FONTS, buildNHSStyles, buildNumbering } from "./wordTheme";
 
+// Decode HTML entities to plain characters for Word output
+const decodeHtmlEntities = (text: string): string => {
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+};
+
 interface MeetingMetadata {
   title: string;
   date?: string;
@@ -113,7 +125,7 @@ export const parseContentToDocxElements = async (content: string) => {
           return line.split('|')
             .map(cell => cell.trim())
             .filter(cell => cell.length > 0)
-            .map(cell => cell.replace(/\*\*/g, '').replace(/\*/g, '')); // Remove markdown
+            .map(cell => decodeHtmlEntities(cell.replace(/\*\*/g, '').replace(/\*/g, ''))); // Remove markdown and decode entities
         };
         
         const headerCells = parseCells(tableLines[0]);
@@ -270,7 +282,7 @@ export const parseContentToDocxElements = async (content: string) => {
     const headingMatch = line.match(/^(#{1,3})\s+(.+)$/);
     if (headingMatch) {
       const level = headingMatch[1].length;
-      const headingText = headingMatch[2];
+      const headingText = decodeHtmlEntities(headingMatch[2]);
       
       const headingLevels = [HeadingLevel.HEADING_1, HeadingLevel.HEADING_2, HeadingLevel.HEADING_3];
       
@@ -344,14 +356,17 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   const runs: any[] = [];
   let currentIndex = 0;
   
+  // Decode HTML entities first
+  const decodedText = decodeHtmlEntities(text);
+  
   // Match **bold** and *italic*
   const markdownRegex = /(\*\*(.+?)\*\*|\*(.+?)\*)/g;
   let match;
   
-  while ((match = markdownRegex.exec(text)) !== null) {
+  while ((match = markdownRegex.exec(decodedText)) !== null) {
     // Add text before match
     if (match.index > currentIndex) {
-      const normalText = text.substring(currentIndex, match.index);
+      const normalText = decodedText.substring(currentIndex, match.index);
       if (normalText) {
         runs.push(new TextRun({ 
           text: normalText, 
@@ -387,8 +402,8 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   }
   
   // Add remaining text
-  if (currentIndex < text.length) {
-    const remainingText = text.substring(currentIndex);
+  if (currentIndex < decodedText.length) {
+    const remainingText = decodedText.substring(currentIndex);
     if (remainingText) {
       runs.push(new TextRun({ 
         text: remainingText, 
@@ -402,7 +417,7 @@ const parseInlineFormatting = (text: string, TextRun: any) => {
   // If no formatting found, return plain text
   if (runs.length === 0) {
     runs.push(new TextRun({ 
-      text: text, 
+      text: decodedText, 
       size: FONTS.size.body,
       color: NHS_COLORS.textGrey,
       font: FONTS.default,
