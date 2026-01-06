@@ -422,7 +422,13 @@ export const SDAFinanceGovernance = () => {
                   </label>
                   <Badge 
                     variant="outline" 
-                    className={`text-xs ml-auto ${practice.confirmed ? 'text-green-600 border-green-600 bg-green-50' : 'text-amber-600 border-amber-600 bg-amber-50'}`}
+                    className={`text-xs ml-auto ${
+                      !practice.confirmed 
+                        ? 'text-amber-600 border-amber-600 bg-amber-50' 
+                        : practice.amount === "£10m" 
+                          ? 'text-green-600 border-green-600 bg-green-50' 
+                          : 'text-amber-600 border-amber-600 bg-amber-50'
+                    }`}
                   >
                     {practice.type}: {practice.amount}
                   </Badge>
