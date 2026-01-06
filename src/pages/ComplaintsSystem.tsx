@@ -76,7 +76,7 @@ import { format } from "date-fns";
 import { showToast } from "@/utils/toastWrapper";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { FormattedLetterContent } from "@/components/FormattedLetterContent";
-import { createLetterDocument } from "@/utils/letterFormatter";
+import { createLetterDocument, fetchLetterDetails } from "@/utils/letterFormatter";
 import { cn } from "@/lib/utils";
 import { calculateDaysUntilDeadline, addWorkingDays, calculateWorkingDays } from "@/utils/workingDays";
 import { logComplaintViewWithMetadata } from "@/utils/auditLogger";
@@ -3097,10 +3097,13 @@ const ComplaintsSystem = () => {
                                 size="sm"
                                 onClick={async () => {
                                   try {
+                                    const letterDetails = await fetchLetterDetails();
                                     const doc = await createLetterDocument(
                                       outcomeLetter,
                                       'outcome',
-                                      selectedComplaint.reference_number
+                                      selectedComplaint.reference_number,
+                                      letterDetails.signatoryName,
+                                      letterDetails.practiceDetails
                                     );
                                     
                                     const blob = await Packer.toBlob(doc);
@@ -3684,10 +3687,13 @@ const ComplaintsSystem = () => {
                       onClick={async () => {
                         try {
                           const contentToDownload = isEditingLetter ? editedLetterContent : modalLetterContent;
+                          const letterDetails = await fetchLetterDetails();
                           const doc = await createLetterDocument(
                             contentToDownload,
                             letterType,
-                            viewingLetterComplaint.reference_number
+                            viewingLetterComplaint.reference_number,
+                            letterDetails.signatoryName,
+                            letterDetails.practiceDetails
                           );
                           
                           const blob = await Packer.toBlob(doc);

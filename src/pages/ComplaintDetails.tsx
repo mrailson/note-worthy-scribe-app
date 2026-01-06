@@ -57,7 +57,7 @@ import {
 } from "lucide-react";
 import { format } from "date-fns";
 import { showToast } from '@/utils/toastWrapper';
-import { createLetterDocument } from "@/utils/letterFormatter";
+import { createLetterDocument, fetchLetterDetails } from "@/utils/letterFormatter";
 import { Document, Packer } from "docx";
 import { exportComplaintReportToWord } from "@/utils/exportComplaintReport";
 import { InvestigationEvidence } from "@/components/InvestigationEvidence";
@@ -2503,7 +2503,15 @@ const ComplaintDetails = () => {
                               if (!outcomeLetter || !complaint) return;
                               
                               try {
-                                const doc = await createLetterDocument(outcomeLetter, 'outcome', complaint.reference_number);
+                                // Fetch signatory and practice details for proper name/contact display
+                                const letterDetails = await fetchLetterDetails(existingOutcome?.decided_by);
+                                const doc = await createLetterDocument(
+                                  outcomeLetter, 
+                                  'outcome', 
+                                  complaint.reference_number,
+                                  letterDetails.signatoryName,
+                                  letterDetails.practiceDetails
+                                );
                                 const buffer = await Packer.toBlob(doc);
                                 
                                 const url = window.URL.createObjectURL(buffer);
@@ -2810,10 +2818,14 @@ const ComplaintDetails = () => {
                             size="sm"
                             onClick={async () => {
                               try {
+                                // Fetch signatory and practice details for proper name/contact display
+                                const letterDetails = await fetchLetterDetails(existingOutcome?.decided_by);
                                 const doc = await createLetterDocument(
                                   outcomeLetter,
                                   'outcome',
-                                  complaint?.reference_number || 'OUTCOME'
+                                  complaint?.reference_number || 'OUTCOME',
+                                  letterDetails.signatoryName,
+                                  letterDetails.practiceDetails
                                 );
                                 const blob = await Packer.toBlob(doc);
                                 const url = URL.createObjectURL(blob);

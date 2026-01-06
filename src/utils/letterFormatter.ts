@@ -1,8 +1,68 @@
 import { Document, Paragraph, TextRun, AlignmentType, Header, Footer, ImageRun, ExternalHyperlink, Table, TableRow, TableCell, WidthType } from 'docx';
+import { supabase } from '@/integrations/supabase/client';
 
 export interface FormattedContent {
   type: 'text' | 'bold' | 'heading';
   content: string;
+}
+
+export interface LetterDetails {
+  signatoryName: string | null;
+  practiceDetails: {
+    phone: string | null;
+    email: string | null;
+    practice_name: string | null;
+  } | null;
+}
+
+// Fetch signatory and practice details for letter generation
+export async function fetchLetterDetails(signatoryUserId?: string | null): Promise<LetterDetails> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { signatoryName: null, practiceDetails: null };
+
+    let signatoryName: string | null = null;
+    let practiceDetails: LetterDetails['practiceDetails'] = null;
+
+    // Fetch signatory profile
+    if (signatoryUserId) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', signatoryUserId)
+        .maybeSingle();
+      signatoryName = profile?.full_name || null;
+    }
+
+    // Fetch practice details - try default first, then fallback
+    const { data: defaultPractice } = await supabase
+      .from('practice_details')
+      .select('phone, email, practice_name')
+      .eq('user_id', user.id)
+      .eq('is_default', true)
+      .maybeSingle();
+
+    if (defaultPractice) {
+      practiceDetails = defaultPractice;
+    } else {
+      // Fallback to most recent
+      const { data: practices } = await supabase
+        .from('practice_details')
+        .select('phone, email, practice_name')
+        .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1);
+      
+      if (practices && practices.length > 0) {
+        practiceDetails = practices[0];
+      }
+    }
+
+    return { signatoryName, practiceDetails };
+  } catch (error) {
+    console.error('Error fetching letter details:', error);
+    return { signatoryName: null, practiceDetails: null };
+  }
 }
 
 export function parseLetterContent(content: string): FormattedContent[] {
@@ -46,13 +106,38 @@ export function parseLetterContent(content: string): FormattedContent[] {
   return formatted;
 }
 
-export async function createLetterDocument(letterContent: string, letterType: string, referenceNumber: string): Promise<Document> {
+export async function createLetterDocument(
+  letterContent: string, 
+  letterType: string, 
+  referenceNumber: string,
+  signatoryName?: string | null,
+  practiceDetails?: { phone?: string | null; email?: string | null; practice_name?: string | null } | null
+): Promise<Document> {
   // Extract logo URL from HTML comment if present
   const logoUrlMatch = letterContent.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
   const logoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
   
+  // Replace placeholders with actual practice details
+  let processedContent = letterContent;
+  if (practiceDetails?.phone) {
+    processedContent = processedContent.replace(/\[Practice phone number\]/gi, practiceDetails.phone);
+    processedContent = processedContent.replace(/\[Practice phone\]/gi, practiceDetails.phone);
+    processedContent = processedContent.replace(/\[[^\]]+\s+phone\s*number\]/gi, practiceDetails.phone);
+    processedContent = processedContent.replace(/\[[^\]]+\s+phone\]/gi, practiceDetails.phone);
+  }
+  if (practiceDetails?.email) {
+    processedContent = processedContent.replace(/\[Practice email\]/gi, practiceDetails.email);
+    processedContent = processedContent.replace(/\[[^\]]+\s+email\]/gi, practiceDetails.email);
+    // Replace hallucinated email patterns
+    processedContent = processedContent.replace(/[a-z]+\.?surgery@nhs\.net/gi, practiceDetails.email);
+    processedContent = processedContent.replace(/[a-z]+\.practice@nhs\.net/gi, practiceDetails.email);
+  }
+  if (practiceDetails?.practice_name) {
+    processedContent = processedContent.replace(/\[Practice name\]/gi, practiceDetails.practice_name);
+  }
+  
   // Remove the logo metadata comment from content for parsing
-  const cleanContent = letterContent
+  const cleanContent = processedContent
     .replace(/<!--\s*logo_url:.*?-->\s*\n*/g, '')
     .replace(/!\[.*?\]\(.*?\)/g, '') // Remove markdown image syntax
     .replace(/```[\s\S]*?$/g, '') // Remove markdown code blocks at the end
@@ -320,12 +405,18 @@ export async function createLetterDocument(letterContent: string, letterType: st
         return;
       }
       
-      // Handle signature name (usually bold)
+      // Handle signature name (usually bold) - use provided signatory name if available
       if (trimmedLine.includes('*') || index === 1) {
+        // Check if this is a generic "Complaints Team" line and we have a real signatory name
+        const isGenericTeamName = /complaints?\s*team/i.test(trimmedLine);
+        const displayName = (signatoryName && isGenericTeamName) 
+          ? signatoryName 
+          : trimmedLine.replace(/\*/g, '');
+        
         documentChildren.push(new Paragraph({
           children: [
             new TextRun({
-              text: trimmedLine.replace(/\*/g, ''),
+              text: displayName,
               bold: true,
               size: 24,
               color: "1f4e79",
