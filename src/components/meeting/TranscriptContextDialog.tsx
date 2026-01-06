@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
+import { toast } from 'sonner';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -39,7 +40,7 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
     );
   };
 
-  const onDrop = async (acceptedFiles: File[]) => {
+  const onDrop = useCallback(async (acceptedFiles: File[]) => {
     if (acceptedFiles.length === 0) return;
     
     try {
@@ -54,12 +55,42 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
       } as FileList;
 
       const processed = await processFiles(fileList);
-      setUploadedFiles([...uploadedFiles, ...processed]);
+      setUploadedFiles(prev => [...prev, ...processed]);
     } catch (error) {
       console.error('File processing error:', error);
       showToast.error('Failed to process some files');
     }
-  };
+  }, [processFiles]);
+
+  const handlePaste = useCallback(async (event: React.ClipboardEvent) => {
+    const items = event.clipboardData?.items;
+    if (!items) return;
+    
+    const imageFiles: File[] = [];
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.startsWith('image/')) {
+        const file = item.getAsFile();
+        if (file) {
+          const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+          const extension = item.type.split('/')[1] || 'png';
+          const namedFile = new File(
+            [file], 
+            `pasted-image-${timestamp}.${extension}`,
+            { type: item.type }
+          );
+          imageFiles.push(namedFile);
+        }
+      }
+    }
+    
+    if (imageFiles.length > 0) {
+      event.preventDefault();
+      await onDrop(imageFiles);
+      toast.success(`Pasted ${imageFiles.length} image(s) from clipboard`);
+    }
+  }, [onDrop]);
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -232,17 +263,19 @@ export const TranscriptContextDialog: React.FC<TranscriptContextDialogProps> = (
             <TabsContent value="image" className="space-y-4">
               <div
                 {...getRootProps()}
-                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
+                onPaste={handlePaste}
+                tabIndex={0}
+                className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 ${
                   isDragActive ? 'border-primary bg-primary/5' : 'border-muted-foreground/25 hover:border-primary/50'
                 }`}
               >
                 <input {...getInputProps()} accept="image/*" />
                 <ImageIcon className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
                 <p className="text-sm text-muted-foreground mb-2">
-                  {isDragActive ? 'Drop images here...' : 'Drag and drop images here, or click to browse'}
+                  {isDragActive ? 'Drop images here...' : 'Drag and drop, click to browse, or paste (Ctrl+V)'}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Supports PNG, JPG, JPEG, GIF, WebP (max 20MB)
+                  Supports PNG, JPG, JPEG, GIF, WebP (max 20MB) - perfect for Teams/Outlook screenshots
                 </p>
               </div>
 
