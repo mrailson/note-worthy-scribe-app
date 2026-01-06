@@ -116,6 +116,12 @@ interface MeetingRecorderProps {
       deepgram: number;
     };
   };
+  // Continuation props for "Continue Recording" functionality
+  continueMeetingId?: string | null;
+  existingTranscript?: string;
+  existingDuration?: number;
+  forceRecorderTab?: boolean;
+  onContinuationComplete?: () => void;
 }
 
 export const MeetingRecorder = ({ 
@@ -123,7 +129,12 @@ export const MeetingRecorder = ({
   onDurationUpdate, 
   onWordCountUpdate,
   autoStart = false,
-  initialSettings
+  initialSettings,
+  continueMeetingId,
+  existingTranscript,
+  existingDuration = 0,
+  forceRecorderTab = false,
+  onContinuationComplete
 }: MeetingRecorderProps) => {
   const [isRecording, setIsRecording] = useState(false);
   const { isResourceOperationSafe } = useRecording();
@@ -344,6 +355,13 @@ export const MeetingRecorder = ({
   const [systemAudioCaptured, setSystemAudioCaptured] = useState(false);
   const [audioActivity, setAudioActivity] = useState(false);
   
+  // Controlled tabs state for programmatic switching
+  const [activeTab, setActiveTab] = useState<string>("recorder");
+  
+  // Continuation state
+  const [isContinuationMode, setIsContinuationMode] = useState(false);
+  const [continuationMeetingTitle, setContinuationMeetingTitle] = useState<string>('');
+  
   // Transcription watchdog for detecting stalled transcription
   const watchdog = useTranscriptionWatchdog({
     isActive: isRecording,
@@ -563,7 +581,33 @@ export const MeetingRecorder = ({
     }
   }, [autoStart, isRecording, user]);
 
-  // Update location when meeting type changes to face-to-face
+  // Handle continuation mode setup
+  useEffect(() => {
+    if (forceRecorderTab && continueMeetingId) {
+      console.log('🔄 Setting up continuation mode for meeting:', continueMeetingId);
+      
+      // Switch to recorder tab
+      setActiveTab("recorder");
+      
+      // Set continuation mode
+      setIsContinuationMode(true);
+      setContinuationMeetingTitle(initialSettings?.title || 'Previous Meeting');
+      
+      // Set session storage for meeting ID so startRecording knows to continue
+      sessionStorage.setItem('continuationMeetingId', continueMeetingId);
+      
+      // If there's existing duration, store it for combining later
+      if (existingDuration > 0) {
+        sessionStorage.setItem('continuationDuration', existingDuration.toString());
+      }
+      
+      showToast.info(`Ready to continue "${initialSettings?.title || 'meeting'}". Press record to add more.`, { 
+        section: 'meeting_manager',
+        duration: 5000 
+      });
+    }
+  }, [forceRecorderTab, continueMeetingId, initialSettings?.title, existingDuration]);
+
   useEffect(() => {
     if (meetingType === 'face-to-face' && userPractices.length > 0 && !meetingLocation) {
       setMeetingLocation(userPractices[0].practice_name);
@@ -3196,37 +3240,96 @@ export const MeetingRecorder = ({
         transcriptHandler.current.clear();
       }
 
-      // Create meeting record FIRST to get real meeting ID
+      // Create meeting record FIRST to get real meeting ID (or use continuation ID)
       let realMeetingId: string;
+      let startingChunkNumber = 0;
+      const continuationId = sessionStorage.getItem('continuationMeetingId');
+      
       try {
         if (!user?.id) {
           throw new Error('User not authenticated - cannot create meeting');
         }
 
-        const meetingData = {
-          title: meetingSettings.title || 'General Meeting',
-          duration_minutes: 0, // Will be updated when stopped
-          meeting_type: 'general',
-          start_time: generateMeetingTimestamp(),
-          status: 'recording' as const,
-          user_id: user.id,
-          practice_id: meetingSettings.practiceId || null,
-          meeting_format: meetingSettings.format || 'face-to-face'
-        };
+        if (continuationId) {
+          // CONTINUATION MODE: Use existing meeting ID
+          console.log('🔄 Continuation mode - using existing meeting:', continuationId);
+          realMeetingId = continuationId;
+          
+          // Update meeting status to recording
+          const { error: updateError } = await supabase
+            .from('meetings')
+            .update({ 
+              status: 'recording',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', continuationId);
+          
+          if (updateError) {
+            console.error('❌ Failed to update meeting status:', updateError);
+            throw updateError;
+          }
+          
+          // Get existing chunk count for proper numbering
+          const { count, error: countError } = await supabase
+            .from('meeting_transcription_chunks')
+            .select('*', { count: 'exact', head: true })
+            .eq('meeting_id', continuationId);
+          
+          if (!countError && count) {
+            startingChunkNumber = count;
+            console.log(`📊 Starting chunk numbering at: ${startingChunkNumber}`);
+          }
+          
+          // Add session marker to transcript
+          const sessionMarker = `\n\n--- Session ${Math.floor(startingChunkNumber / 10) + 2} started at ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })} ---\n\n`;
+          
+          // Insert a marker chunk to indicate new session
+          await supabase
+            .from('meeting_transcription_chunks')
+            .insert({
+              meeting_id: continuationId,
+              session_id: continuationId, // Use meeting ID as session ID for continuation
+              user_id: user.id,
+              chunk_number: startingChunkNumber,
+              transcription_text: JSON.stringify([{ text: sessionMarker.trim(), speaker: 'System', start: 0, end: 0 }]),
+              word_count: 0,
+              cleaning_status: 'completed',
+              cleaned_text: sessionMarker.trim()
+            });
+          
+          startingChunkNumber += 1;
+          
+          // Clear continuation ID from session storage
+          sessionStorage.removeItem('continuationMeetingId');
+          
+          console.log(`✅ Continuing meeting record: ${realMeetingId}`);
+        } else {
+          // NORMAL MODE: Create new meeting
+          const meetingData = {
+            title: meetingSettings.title || 'General Meeting',
+            duration_minutes: 0, // Will be updated when stopped
+            meeting_type: 'general',
+            start_time: generateMeetingTimestamp(),
+            status: 'recording' as const,
+            user_id: user.id,
+            practice_id: meetingSettings.practiceId || null,
+            meeting_format: meetingSettings.format || 'face-to-face'
+          };
 
-        const { data: savedMeeting, error: saveError } = await supabase
-          .from('meetings')
-          .insert(meetingData)
-          .select()
-          .single();
+          const { data: savedMeeting, error: saveError } = await supabase
+            .from('meetings')
+            .insert(meetingData)
+            .select()
+            .single();
 
-        if (saveError) {
-          console.error('❌ Failed to create meeting record:', saveError);
-          throw saveError;
+          if (saveError) {
+            console.error('❌ Failed to create meeting record:', saveError);
+            throw saveError;
+          }
+
+          realMeetingId = savedMeeting.id;
+          console.log(`✅ Created meeting record: ${realMeetingId}`);
         }
-
-        realMeetingId = savedMeeting.id;
-        console.log(`✅ Created meeting record: ${realMeetingId}`);
         
         // CRITICAL: Set recording start time IMMEDIATELY after meeting creation
         // This must happen BEFORE any chunk recording starts
@@ -3237,8 +3340,11 @@ export const MeetingRecorder = ({
         // Store both session ID and meeting ID as the same value
         sessionStorage.setItem('currentSessionId', realMeetingId);
         sessionStorage.setItem('currentMeetingId', realMeetingId);
+        
+        // Set starting chunk counter for continuation mode
+        setChunkCounter(startingChunkNumber);
       } catch (error) {
-        console.error('❌ Failed to create meeting:', error);
+        console.error('❌ Failed to create/continue meeting:', error);
         throw error;
       }
       
@@ -3876,11 +3982,24 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
         throw new Error('No meeting ID found in session storage');
       }
 
+      // Check if this was a continuation - combine durations
+      const existingDurationStr = sessionStorage.getItem('continuationDuration');
+      const existingDurationMins = existingDurationStr ? parseInt(existingDurationStr, 10) : 0;
+      const newDurationMins = Math.ceil(duration / 60);
+      const totalDurationMins = existingDurationMins + newDurationMins;
+      
+      console.log(`📊 Duration calculation: existing=${existingDurationMins}m + new=${newDurationMins}m = total=${totalDurationMins}m`);
+      
+      // Clear continuation state
+      sessionStorage.removeItem('continuationDuration');
+      setIsContinuationMode(false);
+      setContinuationMeetingTitle('');
+
       const { data: savedMeeting, error: saveError } = await supabase
         .from('meetings')
         .update({
           title: meetingData.title,
-          duration_minutes: Math.ceil(duration / 60),
+          duration_minutes: totalDurationMins,
           status: 'completed'
         })
         .eq('id', meetingId)
@@ -4813,8 +4932,42 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
               
   return (
     <div className="space-y-6">
+      {/* Continuation Mode Banner */}
+      {isContinuationMode && !isRecording && (
+        <Card className="border-primary/50 bg-primary/5">
+          <CardContent className="py-3 px-4">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-full bg-primary/10">
+                <Play className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1">
+                <p className="text-sm font-medium text-primary">
+                  Continuing: {continuationMeetingTitle}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Press record to add more content to this meeting
+                </p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setIsContinuationMode(false);
+                  setContinuationMeetingTitle('');
+                  sessionStorage.removeItem('continuationMeetingId');
+                  sessionStorage.removeItem('continuationDuration');
+                  onContinuationComplete?.();
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Tabbed Interface */}
-      <Tabs defaultValue="recorder" className="w-full">
+      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="recorder" className="flex items-center gap-2">
             <Mic className="h-5 w-5" />

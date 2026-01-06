@@ -428,7 +428,23 @@ const Index = () => {
           <MaintenanceBanner />
           
           <div id="meeting-recorder">
-            <MeetingRecorder onTranscriptUpdate={setTranscript} onDurationUpdate={setDuration} onWordCountUpdate={setWordCount} initialSettings={meetingSettings} autoStart={autoStart} />
+            <MeetingRecorder 
+              onTranscriptUpdate={setTranscript} 
+              onDurationUpdate={setDuration} 
+              onWordCountUpdate={setWordCount} 
+              initialSettings={meetingSettings} 
+              autoStart={autoStart}
+              continueMeetingId={currentMeetingId}
+              existingTranscript={transcript}
+              existingDuration={parseInt(duration.split(':')[0]) * 60 + parseInt(duration.split(':')[1] || '0')}
+              forceRecorderTab={!!(location.state as any)?.continueMeeting}
+              onContinuationComplete={() => {
+                setCurrentMeetingId(null);
+                setTranscript('');
+                setDuration('00:00');
+                setWordCount(0);
+              }}
+            />
           </div>
         </div>
 
