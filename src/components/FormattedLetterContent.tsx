@@ -127,7 +127,7 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
     fetchLetterDetails();
   }, [embeddedLogoUrl, practiceId, signatoryUserId]);
   
-  // Replace placeholder text with actual practice details
+  // Replace placeholder text and hallucinated emails with actual practice details
   const replacePlaceholders = (text: string): string => {
     let result = text;
     if (practiceDetails?.phone) {
@@ -136,6 +136,12 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
     }
     if (practiceDetails?.email) {
       result = result.replace(/\[Practice email\]/gi, practiceDetails.email);
+      // Replace hallucinated/fake email patterns that look like practice emails
+      // Match patterns like "county.surgery@nhs.net", "practice@nhs.net", etc.
+      result = result.replace(/[a-z]+\.?surgery@nhs\.net/gi, practiceDetails.email);
+      result = result.replace(/[a-z]+\.practice@nhs\.net/gi, practiceDetails.email);
+      result = result.replace(/practice\.email@nhs\.net/gi, practiceDetails.email);
+      result = result.replace(/[a-z]+surgery@nhs\.net/gi, practiceDetails.email);
     }
     if (practiceDetails?.practice_name) {
       result = result.replace(/\[Practice name\]/gi, practiceDetails.practice_name);
