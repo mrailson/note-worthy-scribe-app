@@ -55,6 +55,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [editableContent, setEditableContent] = useState('');
 
   // Clean content: strip markdown and remove boilerplate prefix
   const cleanedContent = useMemo(() => {
@@ -65,6 +66,13 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
     }
     return content;
   }, [messageContent]);
+
+  // Initialize editable content when cleaned content changes
+  useEffect(() => {
+    if (isOpen && cleanedContent && !editableContent) {
+      setEditableContent(cleanedContent);
+    }
+  }, [isOpen, cleanedContent]);
 
   // Generate AI subject when modal opens
   useEffect(() => {
@@ -219,7 +227,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
         body: {
           recipientEmails: selectedEmails,
           subject,
-          chatContent: cleanedContent,
+          chatContent: editableContent,
           senderName,
           additionalNotes: additionalNotes.trim() || undefined,
           includeWordDoc,
@@ -249,6 +257,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
     setShowAdditionalNotes(false);
     setIncludeWordDoc(true);
     setSearchQuery('');
+    setEditableContent('');
     onClose();
   };
 
@@ -411,26 +420,25 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
           </Collapsible>
 
           <div className="space-y-2">
-            <Label>Content Preview</Label>
-            <ScrollArea className="h-[250px] rounded-lg border overflow-hidden">
+            <Label>Email Content (editable)</Label>
+            <div className="rounded-lg border overflow-hidden">
               <div className="bg-white dark:bg-zinc-900">
                 {/* Email-style header */}
                 <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white p-4">
                   <h3 className="text-base font-semibold m-0">AI4PM Chat Summary</h3>
                   <p className="text-sm opacity-90 mt-1">Shared by {senderName}</p>
                 </div>
-                {/* Email-style content */}
+                {/* Editable content area */}
                 <div className="p-4 bg-gray-50 dark:bg-zinc-800/50">
-                  <div className="bg-white dark:bg-zinc-900 p-4 rounded-md border border-gray-200 dark:border-zinc-700 text-sm leading-relaxed">
-                    {cleanedContent.split('\n').map((line, index) => (
-                      <p key={index} className={`${line.trim() ? 'mb-2' : 'mb-4'} text-foreground`}>
-                        {line || '\u00A0'}
-                      </p>
-                    ))}
-                  </div>
+                  <Textarea
+                    value={editableContent}
+                    onChange={(e) => setEditableContent(e.target.value)}
+                    className="min-h-[180px] bg-white dark:bg-zinc-900 text-sm leading-relaxed border-gray-200 dark:border-zinc-700 resize-none"
+                    placeholder="Email content..."
+                  />
                 </div>
               </div>
-            </ScrollArea>
+            </div>
           </div>
 
           {/* Word Doc attachment toggle */}
