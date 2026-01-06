@@ -68,9 +68,9 @@ const insuranceRequirements = [
 
 const practiceInsuranceChecklist = [
   { practice: "Towcester Medical Centre", confirmed: true, amount: "£10m", type: "Public" },
-  { practice: "Brook Health Centre", confirmed: true, amount: "£10m", type: "Clinical" },
-  { practice: "Brackley Medical Centre", confirmed: true, amount: "£5m", type: "Employer's" },
-  { practice: "Springfield Surgery", confirmed: true, amount: "£5m", type: "Professional" },
+  { practice: "Brook Health Centre", confirmed: true, amount: "£10m", type: "Public" },
+  { practice: "Brackley Medical Centre", confirmed: true, amount: "£5m", type: "Public" },
+  { practice: "Springfield Surgery", confirmed: true, amount: "£5m", type: "Public" },
   { practice: "Denton Village Surgery", confirmed: false, amount: "Pending", type: "Public" },
   { practice: "The Parks Medical Practice", confirmed: false, amount: "Pending", type: "Public" },
   { practice: "Bugbrooke Medical Practice", confirmed: false, amount: "Pending", type: "Public" },
