@@ -67,13 +67,13 @@ const insuranceRequirements = [
 ];
 
 const practiceInsuranceChecklist = [
-  { practice: "Towcester Medical Centre", confirmed: true, amount: "£10m" },
-  { practice: "Brook Health Centre", confirmed: true, amount: "£10m" },
-  { practice: "Brackley Medical Centre", confirmed: true, amount: "£5m" },
-  { practice: "Springfield Surgery", confirmed: true, amount: "£5m" },
-  { practice: "Denton Village Surgery", confirmed: false, amount: "Pending" },
-  { practice: "The Parks Medical Practice", confirmed: false, amount: "Pending" },
-  { practice: "Bugbrooke Medical Practice", confirmed: false, amount: "Pending" },
+  { practice: "Towcester Medical Centre", confirmed: true, amount: "£10m", type: "Public" },
+  { practice: "Brook Health Centre", confirmed: true, amount: "£10m", type: "Clinical" },
+  { practice: "Brackley Medical Centre", confirmed: true, amount: "£5m", type: "Employer's" },
+  { practice: "Springfield Surgery", confirmed: true, amount: "£5m", type: "Professional" },
+  { practice: "Denton Village Surgery", confirmed: false, amount: "Pending", type: "Public" },
+  { practice: "The Parks Medical Practice", confirmed: false, amount: "Pending", type: "Public" },
+  { practice: "Bugbrooke Medical Practice", confirmed: false, amount: "Pending", type: "Public" },
 ];
 
 export const SDAFinanceGovernance = () => {
@@ -424,7 +424,7 @@ export const SDAFinanceGovernance = () => {
                     variant="outline" 
                     className={`text-xs ml-auto ${practice.confirmed ? 'text-green-600 border-green-600 bg-green-50' : 'text-amber-600 border-amber-600 bg-amber-50'}`}
                   >
-                    {practice.amount}
+                    {practice.type}: {practice.amount}
                   </Badge>
                 </div>
               ))}
