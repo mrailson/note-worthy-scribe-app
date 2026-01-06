@@ -245,11 +245,11 @@ export async function createLetterDocument(letterContent: string, letterType: st
     spacing: { after: 300 }
   }));
 
-  // Addressee section
+  // Addressee section - compact spacing for envelope window
   addresseeSection.forEach(line => {
     documentChildren.push(new Paragraph({
       children: formatTextWithBold(line),
-      spacing: { after: 100 }
+      spacing: { after: 0, line: 240, lineRule: "auto" } // Single line spacing, no paragraph gap
     }));
   });
 
