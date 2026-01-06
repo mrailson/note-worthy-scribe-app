@@ -428,19 +428,22 @@ export const SDAFinanceGovernance = () => {
                       {practice.practice}
                     </label>
                     <div className="flex flex-wrap gap-1 ml-auto">
-                      {practice.insurances.map((ins, insIndex) => (
-                        <Badge 
-                          key={insIndex}
-                          variant="outline" 
-                          className={`text-xs ${
-                            !ins.confirmed 
-                              ? 'text-amber-600 border-amber-600 bg-amber-50' 
-                              : 'text-green-600 border-green-600 bg-green-50'
-                          }`}
-                        >
-                          {ins.type}: {ins.amount}
-                        </Badge>
-                      ))}
+                      {practice.insurances.map((ins, insIndex) => {
+                        const isAmber = !ins.confirmed || (ins.type === "Public" && ins.amount !== "£10m");
+                        return (
+                          <Badge 
+                            key={insIndex}
+                            variant="outline" 
+                            className={`text-xs ${
+                              isAmber 
+                                ? 'text-amber-600 border-amber-600 bg-amber-50' 
+                                : 'text-green-600 border-green-600 bg-green-50'
+                            }`}
+                          >
+                            {ins.type}: {ins.amount}
+                          </Badge>
+                        );
+                      })}
                     </div>
                   </div>
                 );
