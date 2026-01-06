@@ -37,6 +37,17 @@ const Index = () => {
   // Handle magic link tokens from URL hash
   useEffect(() => {
     const handleMagicLink = async () => {
+      // Skip if user just logged out (prevent auto re-login)
+      const justLoggedOut = sessionStorage.getItem('just_logged_out');
+      if (justLoggedOut) {
+        sessionStorage.removeItem('just_logged_out');
+        // Clear any tokens from URL
+        if (window.location.hash) {
+          window.history.replaceState(null, '', window.location.pathname);
+        }
+        return;
+      }
+      
       const hashParams = new URLSearchParams(window.location.hash.substring(1));
       const accessToken = hashParams.get('access_token');
       const refreshToken = hashParams.get('refresh_token');

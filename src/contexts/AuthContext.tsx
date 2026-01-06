@@ -310,6 +310,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       console.log('Starting logout process...');
       
+      // Set flag to prevent magic link re-authentication
+      sessionStorage.setItem('just_logged_out', 'true');
+      
+      // Clear any auth tokens from URL hash
+      if (window.location.hash && window.location.hash.includes('access_token')) {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+      
       // Mark session as inactive in database before signing out
       if (user?.id) {
         try {
@@ -320,7 +328,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         }
       }
       
-      const { error } = await supabase.auth.signOut();
+      // Sign out globally to invalidate all sessions
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) {
         // Handle common logout errors gracefully
