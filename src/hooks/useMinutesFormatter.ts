@@ -28,7 +28,8 @@ const getCacheKey = (meetingId: string, content: string, fontSize: number): stri
   for (let i = 0; i < content.length; i++) {
     h = ((h << 5) + h) ^ content.charCodeAt(i);
   }
-  return `minutes-worker-${meetingId}-${(h >>> 0).toString(16)}-fs${fontSize}`;
+  // Bump version to invalidate old cached worker HTML when formatter changes
+  return `minutes-worker-v2-${meetingId}-${(h >>> 0).toString(16)}-fs${fontSize}`;
 };
 
 export function useMinutesFormatter({

@@ -89,15 +89,20 @@ export function renderMinutesMarkdown(content: string, baseFontSize: number = 13
 
     // Process markdown tables with enhanced NHS styling
     .replace(/\|(.+?)\|\s*\n\s*\|[-:]+\|.*?\n((?:\s*\|.+?\|\s*(?:\n|$))+)/gs, (match, headerRow, bodyRows) => {
-      // Split by | and use slice(1, -1) to remove empty first/last elements from pipe borders
-      // This preserves empty cells in the middle of the table
-      const rawHeaders = headerRow.split('|').map(h => h.trim());
-      const headers = rawHeaders.slice(1, -1);
-      const rows = bodyRows.trim().split('\n').map(row => {
-        const rawCells = row.split('|').map(cell => cell.trim());
-        // Use slice(1, -1) to preserve empty cells while removing pipe border artifacts
-        return rawCells.slice(1, -1);
-      }).filter(row => row.length > 0);
+      // Split rows by pipe and remove ONLY the outer border pipes (preserve empty cells in the middle)
+      const splitPipeRow = (row: string): string[] => {
+        const parts = row.split('|').map((p) => p.trim());
+        if (parts.length > 0 && parts[0] === '') parts.shift();
+        if (parts.length > 0 && parts[parts.length - 1] === '') parts.pop();
+        return parts;
+      };
+
+      const headers = splitPipeRow(headerRow);
+      const rows = bodyRows
+        .trim()
+        .split('\n')
+        .map((row) => splitPipeRow(row))
+        .filter((row) => row.length > 0);
 
       // Check if this is the Action Items table (has Priority column)
       const isActionItemsTable = headers.some(h => h.toLowerCase().includes('priority'));

@@ -228,7 +228,8 @@ export const FullPageNotesModal: React.FC<FullPageNotesModalProps> = ({
     for (let i = 0; i < s.length; i++) h = ((h << 5) + h) ^ s.charCodeAt(i);
     return (h >>> 0).toString(16);
   };
-  const getMinutesCacheKey = (id: string, content: string) => `minutes-html-${id}-${minutesHash(content)}`;
+  // Bump version to invalidate old cached HTML when renderer changes
+  const getMinutesCacheKey = (id: string, content: string) => `minutes-html-v2-${id}-${minutesHash(content)}`;
   const [fontSizeStyle1, setFontSizeStyle1] = useState(13); // Font size for Minutes (default 13)
   const [backupTranscript, setBackupTranscript] = useState(""); // Assembly AI backup transcript
   const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
