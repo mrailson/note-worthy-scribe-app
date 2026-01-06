@@ -53,11 +53,11 @@ serve(async (req) => {
       throw new Error('Complaint not found');
     }
 
-    // Get practice details - try user profile (user_roles) first, then complaint.practice_id, then fallback by name
+    // Get practice details - try practice_details first, then gp_practices as fallback
     let practiceDetails = null;
     let signatureDetails = null;
 
-    console.log('Fetching practice details from user profile first');
+    console.log('Fetching practice details');
 
     // First, get the practice_id from user_roles
     const { data: userRole } = await supabase
@@ -70,50 +70,48 @@ serve(async (req) => {
 
     console.log('User role query result:', { userRole });
 
-    // Then fetch practice details separately if we have a practice_id
-    if (userRole?.practice_id) {
+    // Determine which practice_id to use
+    const practiceId = userRole?.practice_id || complaint.practice_id;
+
+    if (practiceId) {
+      // Try practice_details table first
       const { data: practice } = await supabase
         .from('practice_details')
         .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
-        .eq('id', userRole.practice_id)
+        .eq('id', practiceId)
         .maybeSingle();
       
       if (practice) {
         practiceDetails = practice;
-        console.log('Retrieved practice details from user profile practice_id:', practiceDetails);
+        console.log('Retrieved practice details from practice_details table:', practiceDetails);
+      } else {
+        // Fallback to gp_practices table
+        console.log('No practice_details found, trying gp_practices table');
+        const { data: gpPractice } = await supabase
+          .from('gp_practices')
+          .select('name, address, phone, email')
+          .eq('id', practiceId)
+          .maybeSingle();
+        
+        if (gpPractice) {
+          practiceDetails = {
+            practice_name: gpPractice.name,
+            address: gpPractice.address,
+            phone: gpPractice.phone,
+            email: gpPractice.email,
+            logo_url: null,
+            practice_logo_url: null,
+            footer_text: null,
+            website: null,
+            show_page_numbers: false
+          };
+          console.log('Retrieved practice details from gp_practices table:', practiceDetails);
+        }
       }
     }
     
-    if (!practiceDetails && complaint.practice_id) {
-      console.log('Fallback: Fetching practice details for complaint practice_id:', complaint.practice_id);
-      const { data: practice } = await supabase
-        .from('practice_details')
-        .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers')
-        .eq('id', complaint.practice_id)
-        .single();
-      practiceDetails = practice;
-      console.log('Retrieved practice details from complaint:', practiceDetails);
-    } else {
-      console.log('Final fallback: fetching practice details directly by practice name');
-      const { data: directPractice } = await supabase
-        .from('practice_details')
-        .select('practice_name, address, phone, email, logo_url, practice_logo_url, footer_text, website, show_page_numbers, updated_at')
-        .eq('practice_name', 'Oak Lane Medical Practice')
-        .order('updated_at', { ascending: false })
-        .limit(1)
-        .single();
-      
-      if (directPractice) {
-        practiceDetails = directPractice;
-        console.log('Retrieved practice details directly (latest):', {
-          practice_name: practiceDetails.practice_name,
-          logo_url: practiceDetails.logo_url,
-          practice_logo_url: practiceDetails.practice_logo_url,
-          updated_at: practiceDetails.updated_at
-        });
-      } else {
-        console.log('No practice details found by name');
-      }
+    if (!practiceDetails) {
+      console.log('No practice details found for practice_id:', practiceId);
     }
 
     // Get signature details for the user who created the complaint
@@ -122,8 +120,52 @@ serve(async (req) => {
       .select('*')
       .eq('user_id', complaint.created_by)
       .eq('use_for_outcome_letters', true)
-      .single();
-    signatureDetails = signature;
+      .maybeSingle();
+    
+    if (signature) {
+      signatureDetails = signature;
+      console.log('Found signature details:', signatureDetails?.name);
+    } else {
+      // Fallback: get user name from user_profiles or auth metadata
+      console.log('No signature found, trying to get user details from profiles');
+      
+      const { data: userProfile } = await supabase
+        .from('user_profiles')
+        .select('full_name, email')
+        .eq('id', complaint.created_by)
+        .maybeSingle();
+      
+      if (userProfile?.full_name) {
+        signatureDetails = {
+          name: userProfile.full_name,
+          job_title: 'Complaints Officer',
+          qualifications: null,
+          signature_text: null,
+          email: userProfile.email
+        };
+        console.log('Using user profile for signature:', signatureDetails.name);
+      } else {
+        // Final fallback: get from user_roles
+        const { data: roleInfo } = await supabase
+          .from('user_roles')
+          .select('role')
+          .eq('user_id', complaint.created_by)
+          .limit(1)
+          .maybeSingle();
+        
+        const roleName = roleInfo?.role ? 
+          roleInfo.role.replace(/_/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()) : 
+          'Complaints Officer';
+        
+        signatureDetails = {
+          name: 'The Complaints Team',
+          job_title: roleName,
+          qualifications: null,
+          signature_text: null
+        };
+        console.log('Using fallback signature:', signatureDetails.name, signatureDetails.job_title);
+      }
+    }
 
     // Build tone instruction based on questionnaire
     const toneInstruction = questionnaireData?.tone ? `
