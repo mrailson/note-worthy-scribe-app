@@ -136,8 +136,24 @@ export const formatTranscriptContext = (
 
 /**
  * Extract clean text from file processors that might include metadata
+ * Also detects and warns about failed image extractions
  */
 export const extractCleanContent = (content: string): string => {
+  // Check for failed image extraction patterns
+  const failedImagePatterns = [
+    /^\[Image:.*- OCR failed.*\]$/,
+    /^\[Image:.*- No text found\]$/,
+    /^\[Image:.*- Processing failed\]$/
+  ];
+  
+  for (const pattern of failedImagePatterns) {
+    if (pattern.test(content.trim())) {
+      console.warn('Image extraction failed or found no text:', content);
+      // Return empty string for failed extractions so they can be detected
+      return '';
+    }
+  }
+  
   // Remove common file processor metadata headers
   const patterns = [
     /^TEXT FILE CONTENT FROM:.*?\n\n/s,
