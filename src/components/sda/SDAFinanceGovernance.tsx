@@ -67,16 +67,18 @@ const insuranceRequirements = [
 ];
 
 const practiceInsuranceChecklist = [
-  { practice: "Towcester Medical Centre", confirmed: true, amount: "£10m", type: "Public" },
-  { practice: "Brook Health Centre", confirmed: true, amount: "£10m", type: "Public" },
-  { practice: "Brackley Medical Centre", confirmed: true, amount: "£5m", type: "Public" },
-  { practice: "Springfield Surgery", confirmed: true, amount: "£5m", type: "Public" },
-  { practice: "Denton Village Surgery", confirmed: true, amount: "£10m", type: "Public" },
-  { practice: "Denton Village Surgery", confirmed: true, amount: "£10m", type: "Employers" },
-  { practice: "Denton Village Surgery", confirmed: true, amount: "No Limit", type: "Professional Negligence - MDU Scheme" },
-  { practice: "Denton Village Surgery", confirmed: true, amount: "No Limit", type: "Clinical Negligence - CNSGP" },
-  { practice: "The Parks Medical Practice", confirmed: false, amount: "Pending", type: "Public" },
-  { practice: "Bugbrooke Medical Practice", confirmed: true, amount: "£5m", type: "Public" },
+  { practice: "Towcester Medical Centre", insurances: [{ confirmed: true, amount: "£10m", type: "Public" }] },
+  { practice: "Brook Health Centre", insurances: [{ confirmed: true, amount: "£10m", type: "Public" }] },
+  { practice: "Brackley Medical Centre", insurances: [{ confirmed: true, amount: "£5m", type: "Public" }] },
+  { practice: "Springfield Surgery", insurances: [{ confirmed: true, amount: "£5m", type: "Public" }] },
+  { practice: "Denton Village Surgery", insurances: [
+    { confirmed: true, amount: "£10m", type: "Public" },
+    { confirmed: true, amount: "£10m", type: "Employers" },
+    { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
+    { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+  ]},
+  { practice: "The Parks Medical Practice", insurances: [{ confirmed: false, amount: "Pending", type: "Public" }] },
+  { practice: "Bugbrooke Medical Practice", insurances: [{ confirmed: true, amount: "£5m", type: "Public" }] },
 ];
 
 export const SDAFinanceGovernance = () => {
@@ -417,26 +419,32 @@ export const SDAFinanceGovernance = () => {
               </Badge>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-              {practiceInsuranceChecklist.map((practice, index) => (
-                <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                  <Checkbox id={`insurance-${index}`} checked={practice.confirmed} disabled />
-                  <label htmlFor={`insurance-${index}`} className={`text-sm cursor-pointer flex-1 ${practice.confirmed ? 'text-slate-700' : 'text-amber-600'}`}>
-                    {practice.practice}
-                  </label>
-                  <Badge 
-                    variant="outline" 
-                    className={`text-xs ml-auto ${
-                      !practice.confirmed 
-                        ? 'text-amber-600 border-amber-600 bg-amber-50' 
-                        : practice.amount === "£10m" 
-                          ? 'text-green-600 border-green-600 bg-green-50' 
-                          : 'text-amber-600 border-amber-600 bg-amber-50'
-                    }`}
-                  >
-                    {practice.type}: {practice.amount}
-                  </Badge>
-                </div>
-              ))}
+              {practiceInsuranceChecklist.map((practice, index) => {
+                const allConfirmed = practice.insurances.every(ins => ins.confirmed);
+                return (
+                  <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <Checkbox id={`insurance-${index}`} checked={allConfirmed} disabled />
+                    <label htmlFor={`insurance-${index}`} className={`text-sm cursor-pointer flex-shrink-0 ${allConfirmed ? 'text-slate-700' : 'text-amber-600'}`}>
+                      {practice.practice}
+                    </label>
+                    <div className="flex flex-wrap gap-1 ml-auto">
+                      {practice.insurances.map((ins, insIndex) => (
+                        <Badge 
+                          key={insIndex}
+                          variant="outline" 
+                          className={`text-xs ${
+                            !ins.confirmed 
+                              ? 'text-amber-600 border-amber-600 bg-amber-50' 
+                              : 'text-green-600 border-green-600 bg-green-50'
+                          }`}
+                        >
+                          {ins.type}: {ins.amount}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
         </CardContent>
