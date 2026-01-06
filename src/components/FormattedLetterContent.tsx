@@ -133,11 +133,15 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
     if (practiceDetails?.phone) {
       result = result.replace(/\[Practice phone number\]/gi, practiceDetails.phone);
       result = result.replace(/\[Practice phone\]/gi, practiceDetails.phone);
+      // Handle dynamic practice name placeholders like "[County Surgery phone number]"
+      result = result.replace(/\[[^\]]+\s+phone\s*number\]/gi, practiceDetails.phone);
+      result = result.replace(/\[[^\]]+\s+phone\]/gi, practiceDetails.phone);
     }
     if (practiceDetails?.email) {
       result = result.replace(/\[Practice email\]/gi, practiceDetails.email);
+      // Handle dynamic practice name placeholders like "[County Surgery email]"
+      result = result.replace(/\[[^\]]+\s+email\]/gi, practiceDetails.email);
       // Replace hallucinated/fake email patterns that look like practice emails
-      // Match patterns like "county.surgery@nhs.net", "practice@nhs.net", etc.
       result = result.replace(/[a-z]+\.?surgery@nhs\.net/gi, practiceDetails.email);
       result = result.replace(/[a-z]+\.practice@nhs\.net/gi, practiceDetails.email);
       result = result.replace(/practice\.email@nhs\.net/gi, practiceDetails.email);
