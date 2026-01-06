@@ -143,15 +143,24 @@ ${fullTranscript}
 
 5. **STAFFING & HR MATTERS** - Personnel changes, retirement planning, training needs
 
-6. **STRATEGIC PLANNING** - Long-term considerations and future planning
+6. **RETURN TO WORK & WELLBEING** - IMPORTANT: Capture ALL details about:
+   - Phased return to work arrangements (duration, shift patterns, start dates)
+   - Reduced hours or modified duties discussed
+   - Any specific shift patterns mentioned (e.g. morning-only, avoiding certain shift types)
+   - Impact on colleagues or cover arrangements
+   - Health and wellbeing check-ins
+   - Any adjustments to normal working patterns
+   - Include specific details like "2 weeks phased return", "morning shifts only", etc.
 
-7. **ACTION ITEMS** - Specific tasks, responsibilities, and deadlines (if mentioned)
+7. **STRATEGIC PLANNING** - Long-term considerations and future planning
 
-8. **NEXT STEPS** - Follow-up actions and future meetings
+8. **ACTION ITEMS** - Specific tasks, responsibilities, and deadlines (if mentioned)
 
-9. **ADDITIONAL NOTES** - Any other relevant information
+9. **NEXT STEPS** - Follow-up actions and future meetings
 
-Format each section with clear headings, bullet points, and detailed explanations. Include specific quotes where relevant to capture the tone and exact concerns raised. Make it comprehensive but well-organized.`;
+10. **ADDITIONAL NOTES** - Any other relevant information
+
+Format each section with clear headings, bullet points, and detailed explanations. Include specific quotes where relevant to capture the tone and exact concerns raised. Make it comprehensive but well-organized. PAY SPECIAL ATTENTION to any discussions about returning to work after absence, phased returns, or modified working arrangements - capture ALL specifics mentioned.`;
 
     console.log('Sending to OpenAI for analysis...');
 
