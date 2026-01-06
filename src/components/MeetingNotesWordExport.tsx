@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
 import { toast } from 'sonner';
 import { extractAttendees } from '@/utils/extractAttendees';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface MeetingData {
   title: string;
@@ -29,6 +30,7 @@ interface MeetingNotesWordExportProps {
 }
 
 const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meetingData }) => {
+  const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [status, setStatus] = useState('');
 
@@ -68,12 +70,16 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
         : extractAttendees(fullContent);
       console.log('🧑‍🤝‍🧑 Extracted attendees for DOCX:', computedAttendees);
       
+      // Get logged-in user's name to replace Facilitator/Unidentified
+      const loggedUserName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+      
       await generateMeetingNotesDocx({
         metadata: {
           title: safeTitle,
           date: meetingData.date,
           duration: meetingData.duration,
           attendees: computedAttendees,
+          loggedUserName: loggedUserName,
         },
         content: fullContent,
         filename,

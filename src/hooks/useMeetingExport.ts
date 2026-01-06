@@ -3,6 +3,7 @@ import { MeetingData, MeetingSettingsState } from "@/types/meetingTypes";
 import jsPDF from "jspdf";
 import { toast } from "sonner";
 import { copyPlainTextToClipboard } from '@/utils/stripMarkdown';
+import { useAuth } from '@/contexts/AuthContext';
 
 // Helper function to render tables in PDF
 const renderTable = (
@@ -50,6 +51,7 @@ const renderTable = (
 };
 
 export const useMeetingExport = (meetingData: MeetingData | null, meetingSettings: MeetingSettingsState) => {
+  const { user } = useAuth();
   const [isExporting, setIsExporting] = useState(false);
 
   const getMeetingDate = () => {
@@ -70,6 +72,9 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
         ? new Date(meetingData.startTime).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
         : undefined;
       
+      // Get logged-in user's name to replace Facilitator/Unidentified
+      const loggedUserName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+      
       await generateMeetingNotesDocx({
         metadata: {
           title,
@@ -78,6 +83,7 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
           duration: meetingData?.duration,
           location: meetingSettings?.location || meetingData?.meetingLocation,
           attendees: meetingSettings?.attendees || meetingData?.attendees?.join(', '),
+          loggedUserName: loggedUserName,
         },
         content,
         filename: `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${getMeetingDate()}.docx`,
