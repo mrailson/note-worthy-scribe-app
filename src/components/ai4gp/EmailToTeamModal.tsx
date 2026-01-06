@@ -91,12 +91,12 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
           return;
         }
 
-        // Fetch profile details for each member
+        // Fetch profile details for each member using user_id (which references auth.users.id)
         const userIds = practiceMembers.map(m => m.user_id);
         const { data: profiles, error: profilesError } = await supabase
           .from('profiles')
-          .select('id, email, full_name')
-          .in('id', userIds);
+          .select('id, user_id, email, full_name')
+          .in('user_id', userIds);
 
         if (profilesError) {
           console.error('Error fetching profiles:', profilesError);
@@ -104,9 +104,9 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
           return;
         }
 
-        // Combine the data
+        // Combine the data - match on user_id field
         const members: TeamMember[] = practiceMembers.map(member => {
-          const profile = profiles?.find(p => p.id === member.user_id);
+          const profile = profiles?.find(p => p.user_id === member.user_id);
           return {
             user_id: member.user_id,
             email: profile?.email || '',
