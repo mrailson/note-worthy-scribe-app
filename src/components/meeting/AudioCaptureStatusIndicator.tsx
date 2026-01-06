@@ -90,13 +90,16 @@ export const AudioCaptureStatusIndicator = ({
         </TooltipContent>
       </Tooltip>
 
-      {/* Voice Detection Indicator - only show if showVoiceIndicator is true */}
-      {audioActivity && showVoiceIndicator && (
-        <Badge variant="outline" className="flex items-center gap-1.5 bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700 animate-fade-in">
-          <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
-          <span className="text-xs text-green-600 dark:text-green-400 font-medium">Voice Detected and Transcribing...</span>
-        </Badge>
-      )}
+      {/* Voice Detection Indicator - always rendered to prevent layout shift, visibility controlled via CSS */}
+      <Badge 
+        variant="outline" 
+        className={`flex items-center gap-1.5 bg-green-50 dark:bg-green-950/30 border-green-300 dark:border-green-700 transition-opacity duration-200 ${
+          audioActivity && showVoiceIndicator ? 'opacity-100' : 'opacity-0 pointer-events-none'
+        }`}
+      >
+        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+        <span className="text-xs text-green-600 dark:text-green-400 font-medium">Voice Detected and Transcribing...</span>
+      </Badge>
 
       {recordingMode === 'mic-and-system' && (
         <Tooltip>

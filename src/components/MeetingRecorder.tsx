@@ -347,8 +347,8 @@ export const MeetingRecorder = ({
   // Transcription watchdog for detecting stalled transcription
   const watchdog = useTranscriptionWatchdog({
     isActive: isRecording,
-    warningThresholdMs: 60000, // 1 minute
-    criticalThresholdMs: 120000, // 2 minutes
+    warningThresholdMs: 120000, // 2 minutes
+    criticalThresholdMs: 240000, // 4 minutes
     onStallDetected: (stalledDurationMs) => {
       console.error(`🚨 Transcription stall detected after ${Math.round(stalledDurationMs / 1000)}s`);
       // Log diagnostic info
