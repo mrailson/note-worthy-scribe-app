@@ -52,7 +52,8 @@ import {
   BookOpen,
   Sparkles,
   Loader2,
-  Headphones
+  Headphones,
+  Copy
 } from "lucide-react";
 import { format } from "date-fns";
 import { showToast } from '@/utils/toastWrapper';
@@ -135,6 +136,10 @@ const ComplaintDetails = () => {
   const [showOutcomeLetter, setShowOutcomeLetter] = useState(false);
   const [outcomeLetterSent, setOutcomeLetterSent] = useState(false);
   const [outcomeLetterSentAt, setOutcomeLetterSentAt] = useState<string | null>(null);
+  const [isEditingOutcomeLetter, setIsEditingOutcomeLetter] = useState(false);
+  const [editedOutcomeLetterContent, setEditedOutcomeLetterContent] = useState("");
+  const [outcomeEditorMode, setOutcomeEditorMode] = useState<'split' | 'edit' | 'preview'>('split');
+  const [hasUnsavedOutcomeChanges, setHasUnsavedOutcomeChanges] = useState(false);
   const [showAiAnalysisModal, setShowAiAnalysisModal] = useState(false);
   const [editingOutcome, setEditingOutcome] = useState(false);
   const [acknowledgementLetter, setAcknowledgementLetter] = useState("");
@@ -815,18 +820,22 @@ const ComplaintDetails = () => {
 
 
   const handleSaveOutcomeLetter = async () => {
-    if (!existingOutcome) return;
-
+    if (!complaint || !editedOutcomeLetterContent.trim()) return;
+    
     setSubmitting(true);
     try {
       const { error } = await supabase
         .from('complaint_outcomes')
-        .update({ outcome_letter: outcomeLetter })
-        .eq('id', existingOutcome.id);
+        .update({ 
+          outcome_letter: editedOutcomeLetterContent
+        })
+        .eq('complaint_id', complaint.id);
 
       if (error) throw error;
 
-      setEditingOutcome(false);
+      setOutcomeLetter(editedOutcomeLetterContent);
+      setIsEditingOutcomeLetter(false);
+      setHasUnsavedOutcomeChanges(false);
       showToast.success("Outcome letter updated successfully", { section: 'complaints' });
     } catch (error) {
       console.error('Error saving outcome letter:', error);
@@ -2685,103 +2694,225 @@ const ComplaintDetails = () => {
               )}
 
               {/* Outcome Letter Dialog */}
-              <Dialog open={showOutcomeLetter} onOpenChange={setShowOutcomeLetter}>
-                <DialogContent className="max-w-6xl max-h-[98vh] overflow-hidden">
-                  <DialogHeader>
+              <Dialog 
+                open={showOutcomeLetter} 
+                onOpenChange={(open) => {
+                  if (!open && hasUnsavedOutcomeChanges) {
+                    if (window.confirm('You have unsaved changes. Are you sure you want to close?')) {
+                      setIsEditingOutcomeLetter(false);
+                      setHasUnsavedOutcomeChanges(false);
+                      setEditedOutcomeLetterContent(outcomeLetter);
+                      setShowOutcomeLetter(false);
+                    }
+                  } else {
+                    if (!open) {
+                      setIsEditingOutcomeLetter(false);
+                    }
+                    setShowOutcomeLetter(open);
+                  }
+                }}
+              >
+                <DialogContent className="max-w-6xl max-h-[98vh] overflow-hidden p-0 flex flex-col">
+                  <DialogHeader className="px-6 pt-6 pb-2">
                     <DialogTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
                       Outcome Letter - {complaint?.reference_number}
                       <span className="text-sm font-normal text-muted-foreground ml-2">
-                        Final outcome letter for this complaint
+                        {isEditingOutcomeLetter ? 'Edit mode' : 'Final outcome letter for this complaint'}
                       </span>
                     </DialogTitle>
                   </DialogHeader>
                   
-                  <div className="flex flex-col gap-4 max-h-[82vh]">
-                    <div className="flex-1 overflow-y-auto relative">
-                      {isRegeneratingOutcome && (
-                        <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg animate-fade-in">
-                          <div className="text-center space-y-3">
-                            <div className="relative">
-                              <RefreshCw className="h-12 w-12 text-primary animate-spin mx-auto" />
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div className="h-8 w-8 rounded-full border-2 border-primary/30 animate-ping" />
-                              </div>
-                            </div>
-                            <div className="space-y-1">
-                              <p className="text-sm font-medium">Regenerating outcome letter...</p>
-                              <p className="text-xs text-muted-foreground">Please wait while AI creates a new version</p>
+                  {/* Action bar */}
+                  <div className="flex items-center justify-between px-6 py-2 border-b bg-muted/30">
+                    {isEditingOutcomeLetter ? (
+                      <>
+                        <div className="flex items-center gap-1 bg-background rounded-md p-1 border">
+                          <Button
+                            variant={outcomeEditorMode === 'edit' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setOutcomeEditorMode('edit')}
+                          >
+                            Edit
+                          </Button>
+                          <Button
+                            variant={outcomeEditorMode === 'split' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setOutcomeEditorMode('split')}
+                          >
+                            Split
+                          </Button>
+                          <Button
+                            variant={outcomeEditorMode === 'preview' ? 'secondary' : 'ghost'}
+                            size="sm"
+                            onClick={() => setOutcomeEditorMode('preview')}
+                          >
+                            Preview
+                          </Button>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (hasUnsavedOutcomeChanges) {
+                                if (window.confirm('Discard changes?')) {
+                                  setEditedOutcomeLetterContent(outcomeLetter);
+                                  setIsEditingOutcomeLetter(false);
+                                  setHasUnsavedOutcomeChanges(false);
+                                }
+                              } else {
+                                setIsEditingOutcomeLetter(false);
+                              }
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleSaveOutcomeLetter}
+                            disabled={submitting || !hasUnsavedOutcomeChanges}
+                          >
+                            {submitting ? (
+                              <>
+                                <RefreshCw className="h-4 w-4 mr-1 animate-spin" />
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="h-4 w-4 mr-1" />
+                                Save Letter
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-2">
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setEmailToPatient(!!complaint?.patient_contact_email);
+                              setBccToUser(false);
+                              setManualToEmails('');
+                              setManualCcEmails('');
+                              setShowOutcomeEmailDialog(true);
+                            }}
+                            disabled={isSendingOutcomeEmail}
+                          >
+                            <Mail className="h-4 w-4 mr-1" />
+                            Email
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={async () => {
+                              try {
+                                const doc = await createLetterDocument(
+                                  outcomeLetter,
+                                  'outcome',
+                                  complaint?.reference_number || 'OUTCOME'
+                                );
+                                const blob = await Packer.toBlob(doc);
+                                const url = URL.createObjectURL(blob);
+                                const a = document.createElement('a');
+                                a.href = url;
+                                a.download = `Outcome_Letter_${complaint?.reference_number || 'OUTCOME'}.docx`;
+                                a.click();
+                                URL.revokeObjectURL(url);
+                                showToast.success('Outcome letter downloaded', { section: 'complaints' });
+                              } catch (error) {
+                                console.error('Error downloading outcome letter:', error);
+                                showToast.error('Failed to download outcome letter', { section: 'complaints' });
+                              }
+                            }}
+                          >
+                            <Download className="h-4 w-4 mr-1" />
+                            Download
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowOutcomeAIEdit(true)}
+                          >
+                            <Brain className="h-4 w-4 mr-1" />
+                            AI Edit
+                          </Button>
+                          <Button 
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              navigator.clipboard.writeText(outcomeLetter);
+                              showToast.success('Letter copied to clipboard', { section: 'complaints' });
+                            }}
+                          >
+                            <Copy className="h-4 w-4 mr-1" />
+                            Copy
+                          </Button>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => {
+                            setEditedOutcomeLetterContent(outcomeLetter);
+                            setIsEditingOutcomeLetter(true);
+                            setHasUnsavedOutcomeChanges(false);
+                          }}
+                        >
+                          <Edit className="h-4 w-4 mr-1" />
+                          Edit Letter
+                        </Button>
+                      </>
+                    )}
+                  </div>
+                  
+                  {/* Content area */}
+                  <div className="flex-1 overflow-hidden px-6 pb-6 pt-4">
+                    {isRegeneratingOutcome && (
+                      <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg animate-fade-in">
+                        <div className="text-center space-y-3">
+                          <div className="relative">
+                            <RefreshCw className="h-12 w-12 text-primary animate-spin mx-auto" />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <div className="h-8 w-8 rounded-full border-2 border-primary/30 animate-ping" />
                             </div>
                           </div>
+                          <div className="space-y-1">
+                            <p className="text-sm font-medium">Regenerating outcome letter...</p>
+                            <p className="text-xs text-muted-foreground">Please wait while AI creates a new version</p>
+                          </div>
                         </div>
-                      )}
-                      <div className={`bg-gray-50 p-2 rounded-lg transition-opacity duration-300 ${isRegeneratingOutcome ? 'opacity-30' : 'opacity-100'}`}>
-                        <FormattedLetterContent content={outcomeLetter} />
                       </div>
-                    </div>
+                    )}
                     
-                    <div className="flex justify-between gap-2">
-                      <Button variant="outline" onClick={() => setShowOutcomeLetter(false)}>
-                        Close
-                      </Button>
-                      <div className="flex gap-2">
-                        <Button 
-                          variant="outline"
-                          onClick={() => {
-                            setEmailToPatient(!!complaint?.patient_contact_email);
-                            setBccToUser(false);
-                            setManualToEmails('');
-                            setManualCcEmails('');
-                            setShowOutcomeEmailDialog(true);
-                          }}
-                          disabled={isSendingOutcomeEmail}
-                        >
-                          <Mail className="h-4 w-4 mr-1" />
-                          Email
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          onClick={async () => {
-                            try {
-                              const doc = await createLetterDocument(
-                                outcomeLetter,
-                                'outcome',
-                                complaint?.reference_number || 'OUTCOME'
-                              );
-                              const blob = await Packer.toBlob(doc);
-                              const url = URL.createObjectURL(blob);
-                              const a = document.createElement('a');
-                              a.href = url;
-                              a.download = `Outcome_Letter_${complaint?.reference_number || 'OUTCOME'}.docx`;
-                              a.click();
-                              URL.revokeObjectURL(url);
-                              showToast.success('Outcome letter downloaded', { section: 'complaints' });
-                            } catch (error) {
-                              console.error('Error downloading outcome letter:', error);
-                              showToast.error('Failed to download outcome letter', { section: 'complaints' });
-                            }
-                          }}
-                        >
-                          <Download className="h-4 w-4 mr-1" />
-                          Download
-                        </Button>
-                        <Button 
-                          variant="outline"
-                          onClick={() => {
-                            setShowOutcomeAIEdit(true);
-                          }}
-                        >
-                          <Brain className="h-4 w-4 mr-1" />
-                          AI Edit
-                        </Button>
-                        <Button onClick={() => {
-                          navigator.clipboard.writeText(outcomeLetter);
-                          showToast.success('Letter copied to clipboard', { section: 'complaints' });
-                        }}>
-                          Copy to Clipboard
-                        </Button>
+                    {isEditingOutcomeLetter ? (
+                      <div className={`h-full ${outcomeEditorMode === 'split' ? 'grid grid-cols-2 gap-4' : ''}`}>
+                        {(outcomeEditorMode === 'edit' || outcomeEditorMode === 'split') && (
+                          <div className={`${outcomeEditorMode === 'split' ? 'overflow-y-auto' : 'h-full'}`}>
+                            <RichTextEditor
+                              content={editedOutcomeLetterContent}
+                              onChange={(newContent) => {
+                                setEditedOutcomeLetterContent(newContent);
+                                setHasUnsavedOutcomeChanges(true);
+                              }}
+                              className="min-h-[60vh]"
+                            />
+                          </div>
+                        )}
+                        {(outcomeEditorMode === 'preview' || outcomeEditorMode === 'split') && (
+                          <div className={`overflow-y-auto bg-gray-50 rounded-lg p-4 ${outcomeEditorMode === 'preview' ? 'h-full' : ''}`}>
+                            <FormattedLetterContent content={editedOutcomeLetterContent} />
+                          </div>
+                        )}
                       </div>
-                    </div>
+                    ) : (
+                      <div className={`h-full overflow-y-auto transition-opacity duration-300 ${isRegeneratingOutcome ? 'opacity-30' : 'opacity-100'}`}>
+                        <div className="bg-gray-50 p-4 rounded-lg">
+                          <FormattedLetterContent content={outcomeLetter} />
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </DialogContent>
               </Dialog>
