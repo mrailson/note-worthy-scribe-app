@@ -2868,7 +2868,7 @@ const ComplaintDetails = () => {
                   </div>
                   
                   {/* Content area */}
-                  <div className="flex-1 overflow-hidden px-6 pb-6 pt-4">
+                  <div className="flex-1 min-h-0 overflow-hidden px-6 pb-6 pt-4">
                     {isRegeneratingOutcome && (
                       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg animate-fade-in">
                         <div className="text-center space-y-3">
@@ -2889,7 +2889,7 @@ const ComplaintDetails = () => {
                     {isEditingOutcomeLetter ? (
                       <div className={`h-full ${outcomeEditorMode === 'split' ? 'grid grid-cols-2 gap-4' : ''}`}>
                         {(outcomeEditorMode === 'edit' || outcomeEditorMode === 'split') && (
-                          <div className={`${outcomeEditorMode === 'split' ? 'overflow-y-auto' : 'h-full'}`}>
+                          <div className="h-full overflow-y-auto">
                             <RichTextEditor
                               content={editedOutcomeLetterContent}
                               onChange={(newContent) => {
@@ -2901,7 +2901,7 @@ const ComplaintDetails = () => {
                           </div>
                         )}
                         {(outcomeEditorMode === 'preview' || outcomeEditorMode === 'split') && (
-                          <div className={`overflow-y-auto bg-gray-50 rounded-lg p-4 ${outcomeEditorMode === 'preview' ? 'h-full' : ''}`}>
+                          <div className="h-full overflow-y-auto bg-gray-50 rounded-lg p-4">
                             <FormattedLetterContent content={editedOutcomeLetterContent} />
                           </div>
                         )}
