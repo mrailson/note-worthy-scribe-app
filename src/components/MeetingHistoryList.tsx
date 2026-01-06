@@ -993,12 +993,29 @@ export const MeetingHistoryList = ({
         content: extractCleanContent(file.content || '')
       }));
       
+      // Check if any files have empty content after cleaning (e.g., failed OCR)
+      const emptyFiles = cleanedFiles.filter(f => !f.content || f.content.trim() === '');
+      if (emptyFiles.length > 0 && emptyFiles.length === cleanedFiles.length) {
+        toast.error('Could not extract text from the uploaded image(s). Please try a clearer image or paste the text directly.');
+        return;
+      } else if (emptyFiles.length > 0) {
+        toast.warning(`${emptyFiles.length} file(s) had no extractable text and were skipped.`);
+      }
+      
+      // Filter out empty files
+      const validFiles = cleanedFiles.filter(f => f.content && f.content.trim() !== '');
+      
+      if (validFiles.length === 0) {
+        toast.error('No text content could be extracted from the uploaded files.');
+        return;
+      }
+      
       // Format the context content
       const formattedContext = contextTypes.includes('additional-transcript')
-        ? cleanedFiles.map(f => f.content).join('\n\n')
+        ? validFiles.map(f => f.content).join('\n\n')
         : formatTranscriptContext(
             contextTypes.filter(t => t !== 'additional-transcript') as Array<'agenda' | 'attendees' | 'presentation' | 'other'>,
-            cleanedFiles,
+            validFiles,
             customLabel
           );
       
