@@ -58,7 +58,7 @@ export const stripTranscriptSection = (content: string): string => {
 
 // Parse content and convert to docx elements
 export const parseContentToDocxElements = async (content: string) => {
-  const { Paragraph, TextRun, Table, TableRow, TableCell, WidthType, HeadingLevel, BorderStyle } = await import("docx");
+  const { Paragraph, TextRun, Table, TableRow, TableCell, WidthType, HeadingLevel, BorderStyle, TableLayoutType } = await import("docx");
   
   const elements: any[] = [];
   const lines = content.split('\n');
@@ -80,12 +80,31 @@ export const parseContentToDocxElements = async (content: string) => {
     // Check for markdown tables
     if (line.startsWith('|')) {
       const tableLines: string[] = [];
-      while (i < lines.length && lines[i].trim().startsWith('|')) {
+
+      const isSeparatorRow = (row: string) => {
+        const cells = row
+          .split('|')
+          .map(c => c.trim())
+          .filter(Boolean);
+        return cells.length > 0 && cells.every(c => /^:?-{3,}:?$/.test(c));
+      };
+
+      // NOTE: meeting notes often contain blank lines between table rows.
+      // We treat blank lines as part of the same table block so Word output stays as one table.
+      while (i < lines.length) {
         const trimmedLine = lines[i].trim();
-        // Skip separator lines
-        if (!/^\|[\s\-:]+\|/.test(trimmedLine)) {
+
+        if (!trimmedLine) {
+          i++;
+          continue;
+        }
+
+        if (!trimmedLine.startsWith('|')) break;
+
+        if (!isSeparatorRow(trimmedLine)) {
           tableLines.push(trimmedLine);
         }
+
         i++;
       }
       
