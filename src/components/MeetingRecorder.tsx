@@ -55,7 +55,8 @@ import { TabAudioGuidanceDialog } from "@/components/meeting/TabAudioGuidanceDia
 import { AudioCaptureStatusIndicator } from "@/components/meeting/AudioCaptureStatusIndicator";
 import { QuickRecordQRLink } from "@/components/meeting/QuickRecordQRLink";
 import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscriptImportModal";
-
+import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
+import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
 
 import { NotewellAIAnimation } from "@/components/NotewellAIAnimation";
 
@@ -343,6 +344,25 @@ export const MeetingRecorder = ({
   const [systemAudioCaptured, setSystemAudioCaptured] = useState(false);
   const [audioActivity, setAudioActivity] = useState(false);
   
+  // Transcription watchdog for detecting stalled transcription
+  const watchdog = useTranscriptionWatchdog({
+    isActive: isRecording,
+    warningThresholdMs: 60000, // 1 minute
+    criticalThresholdMs: 120000, // 2 minutes
+    onStallDetected: (stalledDurationMs) => {
+      console.error(`🚨 Transcription stall detected after ${Math.round(stalledDurationMs / 1000)}s`);
+      // Log diagnostic info
+      console.log('📊 Stall diagnostics:', {
+        isRecordingRef: isRecordingRef.current,
+        chunkSaveStatusesCount: chunkSaveStatuses.length,
+        transcriptLength: transcript.length,
+        wordCount
+      });
+    },
+    onStallRecovered: () => {
+      console.log('✅ Transcription recovered from stall');
+    }
+  });
   
   // Meeting settings - use from useMeetingData hook
   const {
@@ -1369,6 +1389,9 @@ export const MeetingRecorder = ({
             duration: 2000
           });
           
+          // Notify watchdog that a chunk was successfully processed
+          watchdog.reportChunkProcessed();
+          
           console.log(`✅ Chunk ${chunkId} processed and UI updated successfully`);
         } else {
           console.log(`⏭️ Chunk ${chunkId} was silent or unclear`);
@@ -1678,17 +1701,24 @@ export const MeetingRecorder = ({
     }
   };
 
-  // Handle visibility changes to maintain wake lock during recording
+  // Handle visibility changes to maintain wake lock and check transcription health during recording
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && isRecording) {
         requestWakeLock();
+        
+        // Check if transcription may have stalled while tab was in background
+        const possibleStall = watchdog.checkOnVisibilityRestore();
+        if (possibleStall) {
+          console.warn('🐕 Tab restored - checking transcription health after background period');
+          // The watchdog will show appropriate warnings via its internal state
+        }
       }
     };
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [isRecording]);
+  }, [isRecording, watchdog]);
 
   // Auto-save every 15 seconds for drafts, 30 seconds while recording
   useEffect(() => {
@@ -2138,7 +2168,8 @@ export const MeetingRecorder = ({
       handleStatusChange,
       meetingSettings, // Pass meeting settings for confidence gating
       meetingId,
-      (hasActivity: boolean) => setAudioActivity(hasActivity) // Callback for audio activity
+      (hasActivity: boolean) => setAudioActivity(hasActivity), // Callback for audio activity
+      () => watchdog.reportChunkProcessed() // Callback when chunk is processed
     );
 
     await transcriber.startTranscription();
@@ -5044,14 +5075,24 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                         </div>
                       
                        {/* Audio Capture Status Indicator */}
-                       <AudioCaptureStatusIndicator
-                         micCaptured={micCaptured}
-                         systemAudioCaptured={systemAudioCaptured}
-                         recordingMode={recordingMode}
-                         isRecording={isRecording}
-                         audioActivity={audioActivity}
-                        />
-                        
+                       <div className="flex items-center gap-3 flex-wrap">
+                         <AudioCaptureStatusIndicator
+                           micCaptured={micCaptured}
+                           systemAudioCaptured={systemAudioCaptured}
+                           recordingMode={recordingMode}
+                           isRecording={isRecording}
+                           audioActivity={audioActivity}
+                         />
+                         
+                         {/* Transcription Health Indicator */}
+                         <TranscriptionHealthIndicator
+                           healthStatus={watchdog.healthStatus}
+                           timeSinceLastChunk={watchdog.timeSinceLastChunk}
+                           totalChunks={watchdog.totalChunks}
+                           actualChunksPerMinute={watchdog.actualChunksPerMinute}
+                           isVisible={isRecording}
+                         />
+                       </div>
                         {/* Ticker tape for live transcription - Hidden on Edge */}
                       {!/Edg/.test(navigator.userAgent) && (
                         <div className={`transition-all duration-500 ${tickerEnabled ? (showTicker ? 'opacity-100 animate-fade-in' : 'hidden') : 'hidden'}`}>
