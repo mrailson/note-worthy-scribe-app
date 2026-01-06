@@ -15,11 +15,11 @@ import { useMeetingExport } from '@/hooks/useMeetingExport';
 import { useToast } from '@/hooks/use-toast';
 import { MeetingData } from '@/types/meetingTypes';
 import { supabase } from '@/integrations/supabase/client';
-import { Document, Packer, Paragraph, TextRun, AlignmentType } from 'docx';
-import { saveAs } from 'file-saver';
 import { EditMeetingModal } from './EditMeetingModal';
 import { recoverStuckMeeting } from '@/utils/meetingRecovery';
 import { useRecording } from '@/contexts/RecordingContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { extractAttendees } from '@/utils/extractAttendees';
 
 interface MeetingsDropdownProps {
   meetings: any[];
@@ -37,6 +37,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const { toast } = useToast();
   const { setRecordingState } = useRecording();
+  const { user } = useAuth();
 
   const mockMeetingSettings = {
     title: '',
@@ -51,165 +52,7 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
 
   const { copyToClipboard } = useMeetingExport(null, mockMeetingSettings);
 
-  const generateAdvancedWordDocument = async (content: string, title: string) => {
-    try {
-      console.log('🔍 Generating full-featured Word document with formatting!');
-      toast({ title: 'Generating Word document...', description: 'Please wait while we format your document.' });
-      
-      const stripHtmlAndFormat = (htmlContent: string) => {
-        if (!htmlContent) return [];
-        
-        let cleanText = htmlContent
-          .replace(/<br\s*\/?>/gi, '\n')
-          .replace(/<\/p>/gi, '\n\n')
-          .replace(/<p[^>]*>/gi, '')
-          .replace(/<[^>]*>/g, '')
-          .replace(/&nbsp;/g, ' ')
-          .replace(/&amp;/g, '&')
-          .replace(/&lt;/g, '<')
-          .replace(/&gt;/g, '>')
-          .replace(/&quot;/g, '"')
-          .replace(/&#39;/g, "'")
-          .replace(/&apos;/g, "'")
-          .replace(/[ \t]+/g, ' ')
-          .replace(/\n[ \t]+/g, '\n')
-          .replace(/[ \t]+\n/g, '\n')
-          .trim();
-
-        const paragraphs = [];
-        const lines = cleanText.split('\n');
-        
-        for (let i = 0; i < lines.length; i++) {
-          const line = lines[i].trim();
-          
-          if (!line) {
-            paragraphs.push(new Paragraph({
-              children: [new TextRun({ text: "", size: 12 })],
-              spacing: { after: 120 }
-            }));
-            continue;
-          }
-          
-          const isEmojiHeader = /^[1-9]️⃣/.test(line);
-          const isNumberedSection = /^##?\s*\d+\.?\s/.test(line);
-          const isMainHeader = /^#\s/.test(line) || (line.includes('MEETING') && line.length < 100);
-          const isBulletPoint = /^[-•*]\s/.test(line);
-          const isHeader = isEmojiHeader || isNumberedSection || isMainHeader;
-          
-          let displayText = line;
-          
-          displayText = displayText.replace(/^#+\s*/, '');
-          displayText = displayText.replace(/\*\*([^*]+)\*\*/g, '$1');
-          displayText = displayText.replace(/\*([^*]+)\*/g, '$1');
-          
-          if (isBulletPoint) {
-            const bulletText = displayText.replace(/^[-•*]\s*/, '');
-            paragraphs.push(new Paragraph({
-              children: [
-                new TextRun({ text: "• ", size: 22 }),
-                new TextRun({ text: bulletText, size: 22 })
-              ],
-              spacing: { after: 100 },
-              indent: { left: 360 }
-            }));
-          } else if (isHeader) {
-            paragraphs.push(new Paragraph({
-              children: [new TextRun({
-                text: displayText,
-                bold: true,
-                size: isMainHeader ? 24 : 22,
-                color: "1f2937"
-              })],
-              spacing: { 
-                before: 200,
-                after: 120
-              }
-            }));
-          } else {
-            paragraphs.push(new Paragraph({
-              children: [new TextRun({
-                text: displayText,
-                size: 22
-              })],
-              spacing: { after: 120 }
-            }));
-          }
-        }
-        
-        return paragraphs;
-      };
-      
-      const doc = new Document({
-        sections: [{
-          properties: {
-            page: {
-              margin: {
-                top: 1440,    // 1 inch
-                right: 1440,
-                bottom: 1440,
-                left: 1440,
-              },
-            },
-          },
-          children: [
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: title,
-                  bold: true,
-                  size: 36,
-                  color: "1f2937"
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { after: 480 }
-            }),
-            
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: "Date: ",
-                  bold: true,
-                  size: 24,
-                  color: "1f2937"
-                }),
-                new TextRun({
-                  text: new Date().toLocaleDateString(),
-                  size: 24,
-                  color: "374151"
-                }),
-              ],
-              spacing: { after: 360 }
-            }),
-            
-            ...stripHtmlAndFormat(content),
-            
-            new Paragraph({
-              children: [
-                new TextRun({
-                  text: `Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}`,
-                  italics: true,
-                  size: 18,
-                  color: "6b7280"
-                }),
-              ],
-              alignment: AlignmentType.CENTER,
-              spacing: { before: 480 }
-            }),
-          ],
-        }],
-      });
-      
-      console.log('🔍 Document created, converting to blob...');
-      const blob = await Packer.toBlob(doc);
-      saveAs(blob, `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString()}.docx`);
-      toast({ title: 'Success!', description: 'Word document downloaded successfully!' });
-      
-    } catch (error) {
-      console.error('Word generation error:', error);
-      toast({ title: 'Error', description: 'Failed to generate Word document', variant: 'destructive' });
-    }
-  };
+  // Use the shared generateMeetingNotesDocx utility for Word export
 
   const handleAction = async (actionType: string, meeting: any, event: React.MouseEvent) => {
     event.preventDefault();
@@ -225,10 +68,11 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           window.location.reload();
         }
       } else if (actionType === 'word') {
+        toast({ title: 'Generating Word document...', description: 'Please wait while we format your document.' });
+        
         let notesContent = '';
-        let notesTitle = '';
 
-        const { data: summaryData, error: summaryError } = await supabase
+        const { data: summaryData } = await supabase
           .from('meeting_summaries')
           .select('summary')
           .eq('meeting_id', meeting.id)
@@ -238,9 +82,8 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
 
         if (summaryData?.summary) {
           notesContent = summaryData.summary;
-          notesTitle = 'Meeting Summary';
         } else {
-          const { data: autoNotesData, error: autoNotesError } = await supabase
+          const { data: autoNotesData } = await supabase
             .from('meeting_auto_notes')
             .select('generated_notes')
             .eq('meeting_id', meeting.id)
@@ -250,7 +93,6 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
 
           if (autoNotesData?.generated_notes) {
             notesContent = autoNotesData.generated_notes;
-            notesTitle = 'Generated Meeting Notes';
           }
         }
 
@@ -263,7 +105,30 @@ export const MeetingsDropdown: React.FC<MeetingsDropdownProps> = ({
           return;
         }
 
-        await generateAdvancedWordDocument(notesContent, `${meeting.title || 'Meeting'} - ${notesTitle}`);
+        // Use the shared generateMeetingNotesDocx utility (same as MeetingHistoryList)
+        const { generateMeetingNotesDocx } = await import('@/utils/generateMeetingNotesDocx');
+        
+        const safeTitle = (meeting.title || 'Meeting Notes').replace(/\*\*/g, '').replace(/\*/g, '').trim();
+        const filename = `${safeTitle.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${new Date().toLocaleDateString('en-GB').replace(/\//g, '-')}.docx`;
+        
+        // Extract attendees from content
+        const computedAttendees = extractAttendees(notesContent);
+        
+        // Get logged-in user's name
+        const loggedUserName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || '';
+        
+        await generateMeetingNotesDocx({
+          metadata: {
+            title: safeTitle,
+            date: meeting.start_time ? format(new Date(meeting.start_time), 'd MMMM yyyy') : new Date().toLocaleDateString('en-GB'),
+            duration: meeting.duration_minutes ? `${meeting.duration_minutes} minutes` : undefined,
+            attendees: computedAttendees,
+            loggedUserName: loggedUserName,
+          },
+          content: notesContent,
+          filename,
+        });
+        
         toast({
           title: "Word Document Generated",
           description: "Meeting notes have been downloaded as a Word document.",
