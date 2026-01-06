@@ -54,31 +54,30 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
 
       setIsLoading(true);
       try {
-        // First get the current user's practice_id
-        const { data: userRole, error: roleError } = await supabase
+        // Get current user's practice_id (user can have multiple roles/rows)
+        const { data: userRoles, error: roleError } = await supabase
           .from('user_roles')
           .select('practice_id')
-          .eq('user_id', user.id)
-          .maybeSingle();
+          .eq('user_id', user.id);
 
         if (roleError) {
-          console.error('Error fetching user role:', roleError);
+          console.error('Error fetching user roles:', roleError);
           setTeamMembers([]);
           return;
         }
 
-        if (!userRole?.practice_id) {
+        const practiceId = userRoles?.find(r => r.practice_id)?.practice_id;
+
+        if (!practiceId) {
           console.log('User not assigned to a practice');
           setTeamMembers([]);
           return;
         }
-
         // Fetch all users in the same practice
         const { data: practiceMembers, error: membersError } = await supabase
           .from('user_roles')
           .select('user_id, practice_role')
-          .eq('practice_id', userRole.practice_id)
-          .neq('user_id', user.id); // Exclude current user
+          .eq('practice_id', practiceId);
 
         if (membersError) {
           console.error('Error fetching practice members:', membersError);
