@@ -2712,7 +2712,7 @@ const ComplaintDetails = () => {
                   }
                 }}
               >
-                <DialogContent className="max-w-6xl max-h-[98vh] overflow-hidden p-0 flex flex-col">
+                <DialogContent className="max-w-6xl h-[95vh] min-h-0 overflow-hidden !p-0 !flex flex-col !gap-0">
                   <DialogHeader className="px-6 pt-6 pb-2">
                     <DialogTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5" />
@@ -2868,7 +2868,7 @@ const ComplaintDetails = () => {
                   </div>
                   
                   {/* Content area */}
-                  <div className="flex-1 min-h-0 overflow-hidden px-6 pb-6 pt-4">
+                  <div className="flex-1 min-h-0 overflow-hidden relative px-6 pb-6 pt-4">
                     {isRegeneratingOutcome && (
                       <div className="absolute inset-0 bg-background/80 backdrop-blur-sm flex items-center justify-center z-10 rounded-lg animate-fade-in">
                         <div className="text-center space-y-3">
