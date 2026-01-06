@@ -2,7 +2,7 @@ import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState } f
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
-import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, X } from 'lucide-react';
+import { SendHorizontal, Paperclip, Mic, MicOff, Stethoscope, Languages, Plus, MessageSquareMore, X, Upload } from 'lucide-react';
 import { FileUploadArea } from './FileUploadArea';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { UploadedFile } from '@/types/ai4gp';
@@ -11,7 +11,6 @@ import { EnhancedBrowserMic, EnhancedBrowserMicRef } from './EnhancedBrowserMic'
 import { useToast } from '@/hooks/use-toast';
 import { FileProcessingProgress } from './FileProcessingProgress';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
-
 interface InputAreaProps {
   input: string;
   setInput: (input: string) => void;
@@ -49,6 +48,7 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   } = useEnhancedFileProcessing();
   const [browserTranscript, setBrowserTranscript] = useState('');
   const [showDocumentTranslate, setShowDocumentTranslate] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
 
   useImperativeHandle(ref, () => ({
@@ -157,6 +157,68 @@ ${pastedText.trim()}
     }
   };
 
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.dataTransfer.types.includes('Files')) {
+      setIsDragging(true);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // Only set isDragging to false if we're leaving the container entirely
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX;
+    const y = e.clientY;
+    if (x < rect.left || x > rect.right || y < rect.top || y > rect.bottom) {
+      setIsDragging(false);
+    }
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (!files || files.length === 0) return;
+
+    // Add loading placeholders immediately
+    const loadingFiles: UploadedFile[] = Array.from(files).map(file => ({
+      name: file.name,
+      type: file.type,
+      content: '',
+      size: file.size,
+      isLoading: true
+    }));
+    setUploadedFiles(prev => [...prev, ...loadingFiles]);
+
+    toast({
+      title: `${files.length} file${files.length > 1 ? 's' : ''} added`,
+      description: "Processing files for analysis...",
+    });
+
+    try {
+      const processedFiles = await processFilesWithValidation(files);
+      // Replace loading files with processed ones
+      setUploadedFiles(prev => {
+        const withoutLoading = prev.filter(f => !loadingFiles.some(lf => lf.name === f.name && f.isLoading));
+        return [...withoutLoading, ...processedFiles];
+      });
+    } catch (error) {
+      console.error('Error processing dropped files:', error);
+      // Remove failed loading files
+      setUploadedFiles(prev => prev.filter(f => !loadingFiles.some(lf => lf.name === f.name && f.isLoading)));
+      toast({
+        title: "Error processing files",
+        description: error instanceof Error ? error.message : "Failed to process dropped files",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       {uploadedFiles.length > 0 && (
@@ -165,7 +227,22 @@ ${pastedText.trim()}
           isProcessing={isFileProcessing}
         />
       )}
-      <div className="p-3 space-y-3 bg-accent rounded-xl">
+      <div 
+        className="p-3 space-y-3 bg-accent rounded-xl relative"
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+      >
+        {/* Drag and drop overlay */}
+        {isDragging && (
+          <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-xl flex items-center justify-center z-50 backdrop-blur-sm">
+            <div className="text-center">
+              <Upload className="w-12 h-12 mx-auto text-primary mb-2" />
+              <p className="text-primary font-medium text-lg">Drop files here</p>
+              <p className="text-sm text-muted-foreground">PDF, Word, Excel, Images, Text, Audio</p>
+            </div>
+          </div>
+        )}
       <FileUploadArea 
         uploadedFiles={uploadedFiles}
         onRemoveFile={handleRemoveFile}
