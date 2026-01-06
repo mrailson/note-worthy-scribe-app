@@ -2587,7 +2587,7 @@ const ComplaintDetails = () => {
                           onCheckedChange={(checked) => handleToggleOutcomeLetterSent(checked as boolean)}
                         />
                         <Label htmlFor="outcome-letter-sent" className="text-sm font-medium text-green-800 cursor-pointer">
-                          Medical Indemnity Provider Consulted as Needed and Outcome letter/email sent to patient
+                          Outcome letter/email sent to patient
                         </Label>
                         {outcomeLetterSentAt && (
                           <span className="text-xs text-green-600 ml-auto">
