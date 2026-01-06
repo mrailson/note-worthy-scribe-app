@@ -243,6 +243,8 @@ const ComplaintDetails = () => {
         .from('complaint_outcomes')
         .select('*')
         .eq('complaint_id', complaintId)
+        .order('created_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (outcomeData) {
