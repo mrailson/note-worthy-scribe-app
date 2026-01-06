@@ -5,6 +5,8 @@ import { supabase } from '@/integrations/supabase/client';
 
 interface FormattedLetterContentProps {
   content: string;
+  practiceId?: string | null;
+  signatoryUserId?: string | null;
 }
 
 interface PracticeDetails {
@@ -15,46 +17,115 @@ interface PracticeDetails {
   practice_name: string | null;
 }
 
-export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ content }) => {
+interface SignatoryProfile {
+  full_name: string | null;
+  title: string | null;
+  email: string | null;
+}
+
+export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({
+  content,
+  practiceId = null,
+  signatoryUserId = null,
+}) => {
   const [practiceLogoUrl, setPracticeLogoUrl] = useState<string | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
-  
+  const [signatoryProfile, setSignatoryProfile] = useState<SignatoryProfile | null>(null);
+
   // Extract practice logo URL from HTML comment if present
   const logoUrlMatch = content.match(/<!--\s*logo_url:\s*(https?:\/\/[^\s\n]+|\/[^\s\n]+)\s*-->/);
   const embeddedLogoUrl = logoUrlMatch ? logoUrlMatch[1] : null;
-  
-  // Fetch practice details including logo, phone, and email
+
+  // Fetch practice details (logo/phone/email) and signatory details
   useEffect(() => {
-    const fetchPracticeDetails = async () => {
+    const fetchLetterDetails = async () => {
       try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (!user) return;
-        
-        const { data: practiceData } = await supabase
-          .from('practice_details')
-          .select('logo_url, practice_logo_url, phone, email, practice_name')
-          .eq('user_id', user.id)
-          .single();
-          
-        if (practiceData) {
-          setPracticeDetails(practiceData);
-          // Use embedded logo URL or fetch from practice details
-          const logoUrl = embeddedLogoUrl || practiceData.practice_logo_url || practiceData.logo_url;
+
+        // Practice details
+        let resolvedPractice: PracticeDetails | null = null;
+
+        // 1) If a specific practice_details id is provided, try that first
+        if (practiceId) {
+          const { data, error } = await supabase
+            .from('practice_details')
+            .select('logo_url, practice_logo_url, phone, email, practice_name')
+            .eq('id', practiceId)
+            .maybeSingle();
+
+          if (error) {
+            console.error('Error fetching practice details by practiceId:', error);
+          }
+          resolvedPractice = (data as PracticeDetails | null) ?? null;
+        }
+
+        // 2) Otherwise (or if not found), use the user's default practice details
+        if (!resolvedPractice) {
+          const { data, error } = await supabase
+            .from('practice_details')
+            .select('logo_url, practice_logo_url, phone, email, practice_name')
+            .eq('user_id', user.id)
+            .eq('is_default', true)
+            .maybeSingle();
+
+          if (error) {
+            console.error('Error fetching default practice details:', error);
+          }
+
+          resolvedPractice = (data as PracticeDetails | null) ?? null;
+        }
+
+        // 3) Final fallback: most recently updated practice details row
+        if (!resolvedPractice) {
+          const { data, error } = await supabase
+            .from('practice_details')
+            .select('logo_url, practice_logo_url, phone, email, practice_name')
+            .eq('user_id', user.id)
+            .order('updated_at', { ascending: false })
+            .limit(1);
+
+          if (error) {
+            console.error('Error fetching practice details fallback:', error);
+          }
+
+          resolvedPractice = Array.isArray(data) ? (data[0] as PracticeDetails) : null;
+        }
+
+        if (resolvedPractice) {
+          setPracticeDetails(resolvedPractice);
+          const logoUrl = embeddedLogoUrl || resolvedPractice.practice_logo_url || resolvedPractice.logo_url;
           setPracticeLogoUrl(logoUrl);
         } else if (embeddedLogoUrl) {
           setPracticeLogoUrl(embeddedLogoUrl);
         }
-      } catch (error) {
-        console.error('Error fetching practice details:', error);
-        // Still set the embedded logo if fetch fails
-        if (embeddedLogoUrl) {
-          setPracticeLogoUrl(embeddedLogoUrl);
+
+        // Signatory profile (e.g. the person who decided the outcome)
+        if (signatoryUserId) {
+          const { data, error } = await supabase
+            .from('profiles')
+            .select('full_name, title, email')
+            .eq('user_id', signatoryUserId)
+            .maybeSingle();
+
+          if (error) {
+            console.error('Error fetching signatory profile:', error);
+          }
+
+          setSignatoryProfile((data as SignatoryProfile | null) ?? null);
+        } else {
+          setSignatoryProfile(null);
         }
+      } catch (error) {
+        console.error('Error fetching letter details:', error);
+        if (embeddedLogoUrl) setPracticeLogoUrl(embeddedLogoUrl);
       }
     };
-    
-    fetchPracticeDetails();
-  }, [embeddedLogoUrl]);
+
+    fetchLetterDetails();
+  }, [embeddedLogoUrl, practiceId, signatoryUserId]);
   
   // Replace placeholder text with actual practice details
   const replacePlaceholders = (text: string): string => {
@@ -160,7 +231,7 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
           <img 
             src={practiceLogoUrl}
             alt="Practice Logo" 
-            className="h-16 w-auto mx-auto object-contain"
+            className="h-12 w-auto mx-auto object-contain"
           />
         </div>
       )}
@@ -267,10 +338,15 @@ export const FormattedLetterContent: React.FC<FormattedLetterContentProps> = ({ 
                 
                 // Handle signature name (usually in italics or bold)
                 if (trimmedLine.includes('*') || index === 1) {
+                  const resolvedName =
+                    signatoryProfile?.full_name && (index === 1 || /complaints team/i.test(trimmedLine))
+                      ? signatoryProfile.full_name
+                      : trimmedLine.replace(/\*/g, '');
+
                   return (
                     <div key={index} className="mt-6">
                       <p className="text-xl font-bold text-blue-800 mb-1">
-                        {trimmedLine.replace(/\*/g, '')}
+                        {resolvedName}
                       </p>
                     </div>
                   );

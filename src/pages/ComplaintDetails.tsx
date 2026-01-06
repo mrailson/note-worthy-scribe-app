@@ -2902,14 +2902,20 @@ const ComplaintDetails = () => {
                         )}
                         {(outcomeEditorMode === 'preview' || outcomeEditorMode === 'split') && (
                           <div className="h-full overflow-y-auto bg-gray-50 rounded-lg p-4">
-                            <FormattedLetterContent content={editedOutcomeLetterContent} />
+                            <FormattedLetterContent
+                              content={editedOutcomeLetterContent}
+                              signatoryUserId={existingOutcome?.decided_by}
+                            />
                           </div>
                         )}
                       </div>
                     ) : (
                       <div className={`h-full overflow-y-auto transition-opacity duration-300 ${isRegeneratingOutcome ? 'opacity-30' : 'opacity-100'}`}>
                         <div className="bg-gray-50 p-4 rounded-lg">
-                          <FormattedLetterContent content={outcomeLetter} />
+                          <FormattedLetterContent
+                            content={outcomeLetter}
+                            signatoryUserId={existingOutcome?.decided_by}
+                          />
                         </div>
                       </div>
                     )}
