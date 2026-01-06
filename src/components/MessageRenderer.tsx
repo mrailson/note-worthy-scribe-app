@@ -11,6 +11,7 @@ import {
   Copy, 
   Bot, 
   User,
+  Users,
   FileText,
   List,
   CheckSquare,
@@ -44,6 +45,7 @@ import QuickActionButtons from '@/components/QuickActionButtons';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { EmailCompositionModal } from '@/components/EmailCompositionModal';
+import { EmailToTeamModal } from '@/components/ai4gp/EmailToTeamModal';
 import { ClinicalVerificationModal } from '@/components/ClinicalVerificationModal';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger, DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger, DropdownMenuSubContent } from '@/components/ui/dropdown-menu';
 import { quickPickConfig } from '@/constants/quickPickConfig';
@@ -87,6 +89,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
   const [showFullContent, setShowFullContent] = useState(true);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
+  const [isTeamEmailModalOpen, setIsTeamEmailModalOpen] = useState(false);
   const [isVerificationModalOpen, setIsVerificationModalOpen] = useState(false);
   const [isVerifying, setIsVerifying] = useState(false);
   const [showAutoEmailModal, setShowAutoEmailModal] = useState(false);
@@ -267,6 +270,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
 
   const handleEmailToOthers = () => {
     setIsEmailModalOpen(true);
+  };
+
+  const handleEmailToTeam = () => {
+    setIsTeamEmailModalOpen(true);
   };
 
   const handleClinicalVerify = async () => {
@@ -962,6 +969,10 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                           <Mail className="h-4 w-4 mr-2" />
                           Email to patient/others
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={handleEmailToTeam}>
+                          <Users className="h-4 w-4 mr-2" />
+                          Email to team members
+                        </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
 
@@ -1075,6 +1086,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
         defaultSubject="AI Generated Content"
       />
 
+      {/* Email to Team Modal */}
+      <EmailToTeamModal
+        isOpen={isTeamEmailModalOpen}
+        onClose={() => setIsTeamEmailModalOpen(false)}
+        messageContent={message.content}
+        senderName={user?.email || 'Team Member'}
+      />
       {/* Clinical Verification Modal */}
       {(message.clinicalVerification || verificationData) && (
         <ClinicalVerificationModal
