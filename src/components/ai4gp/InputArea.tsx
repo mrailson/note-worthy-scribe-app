@@ -235,7 +235,7 @@ ${pastedText.trim()}
       >
         {/* Drag and drop overlay */}
         {isDragging && (
-          <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-xl flex items-center justify-center z-50 backdrop-blur-sm">
+          <div className="absolute inset-0 bg-primary/10 border-2 border-dashed border-primary rounded-xl flex items-center justify-center z-50 backdrop-blur-sm pointer-events-none">
             <div className="text-center">
               <Upload className="w-12 h-12 mx-auto text-primary mb-2" />
               <p className="text-primary font-medium text-lg">Drop files here</p>
