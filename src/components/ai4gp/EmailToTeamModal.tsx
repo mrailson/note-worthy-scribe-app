@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -13,12 +13,16 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Loader2, Users, Search, Sparkles, FileText } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Mail, Loader2, Users, Search, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
 import { stripMarkdown } from '@/utils/stripMarkdown';
+
+// Text to strip from content
+const CONTENT_PREFIX_TO_REMOVE = "Thank you for using our AI consultation service. Here is the information generated for you:";
 
 interface TeamMember {
   user_id: string;
@@ -46,10 +50,21 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
   const [subject, setSubject] = useState('');
   const [isGeneratingSubject, setIsGeneratingSubject] = useState(false);
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [showAdditionalNotes, setShowAdditionalNotes] = useState(false);
   const [includeWordDoc, setIncludeWordDoc] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Clean content: strip markdown and remove boilerplate prefix
+  const cleanedContent = useMemo(() => {
+    let content = stripMarkdown(messageContent);
+    // Remove the boilerplate prefix if present
+    if (content.startsWith(CONTENT_PREFIX_TO_REMOVE)) {
+      content = content.slice(CONTENT_PREFIX_TO_REMOVE.length).trim();
+    }
+    return content;
+  }, [messageContent]);
 
   // Generate AI subject when modal opens
   useEffect(() => {
@@ -59,8 +74,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
       setIsGeneratingSubject(true);
       try {
         // Use a simple extraction approach - take first meaningful line or generate summary
-        const plainContent = stripMarkdown(messageContent);
-        const lines = plainContent.split('\n').filter(l => l.trim().length > 10);
+        const lines = cleanedContent.split('\n').filter(l => l.trim().length > 10);
         
         if (lines.length > 0) {
           // Take first meaningful line and truncate
@@ -81,9 +95,9 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
     };
 
     generateSubject();
-  }, [isOpen, messageContent]);
+  }, [isOpen, cleanedContent]);
 
-  // Get clean content for email (strip markdown)
+  // Get clean content for email
 
   // Fetch team members from the same practice
   useEffect(() => {
@@ -201,14 +215,11 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
 
     setIsSending(true);
     try {
-      // Strip markdown from content for cleaner email
-      const cleanContent = stripMarkdown(messageContent);
-      
       const { data, error } = await supabase.functions.invoke('send-chat-email', {
         body: {
           recipientEmails: selectedEmails,
           subject,
-          chatContent: cleanContent,
+          chatContent: cleanedContent,
           senderName,
           additionalNotes: additionalNotes.trim() || undefined,
           includeWordDoc,
@@ -235,6 +246,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
     setSelectedMembers([]);
     setSubject('');
     setAdditionalNotes('');
+    setShowAdditionalNotes(false);
     setIncludeWordDoc(true);
     setSearchQuery('');
     onClose();
@@ -258,7 +270,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[550px]">
+      <DialogContent className="sm:max-w-[550px] max-w-[90vw] max-h-[90vh] overflow-hidden resize" style={{ resize: 'both', minWidth: '400px', minHeight: '500px' }}>
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="w-5 h-5" />
@@ -266,6 +278,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
           </DialogTitle>
         </DialogHeader>
 
+        <ScrollArea className="flex-1 pr-2">
         <div className="space-y-4 py-4">
           {/* Team member selection */}
           <div className="space-y-2">
@@ -367,27 +380,35 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
             />
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="notes">Additional Notes (optional)</Label>
-            <Textarea
-              id="notes"
-              value={additionalNotes}
-              onChange={(e) => setAdditionalNotes(e.target.value)}
-              placeholder="Add any context or notes for the recipients..."
-              className="min-h-[60px]"
-            />
-          </div>
+          <Collapsible open={showAdditionalNotes} onOpenChange={setShowAdditionalNotes}>
+            <CollapsibleTrigger asChild>
+              <Button variant="ghost" className="w-full justify-between p-2 h-auto">
+                <span className="text-sm font-medium">Additional Notes (optional)</span>
+                {showAdditionalNotes ? (
+                  <ChevronDown className="h-4 w-4" />
+                ) : (
+                  <ChevronRight className="h-4 w-4" />
+                )}
+              </Button>
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-2">
+              <Textarea
+                id="notes"
+                value={additionalNotes}
+                onChange={(e) => setAdditionalNotes(e.target.value)}
+                placeholder="Add any context or notes for the recipients..."
+                className="min-h-[60px]"
+              />
+            </CollapsibleContent>
+          </Collapsible>
 
           <div className="space-y-2">
             <Label>Content Preview</Label>
-            <div className="bg-muted/50 p-3 rounded-md max-h-[100px] overflow-y-auto text-sm text-muted-foreground whitespace-pre-wrap">
-              {(() => {
-                const cleanContent = stripMarkdown(messageContent);
-                return cleanContent.length > 300 
-                  ? cleanContent.substring(0, 300) + '...' 
-                  : cleanContent || 'No content to preview';
-              })()}
-            </div>
+            <ScrollArea className="h-[200px] bg-muted/50 p-3 rounded-md">
+              <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+                {cleanedContent || 'No content to preview'}
+              </div>
+            </ScrollArea>
           </div>
 
           {/* Word Doc attachment toggle */}
@@ -405,6 +426,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
             />
           </div>
         </div>
+        </ScrollArea>
 
         <DialogFooter>
           <Button variant="outline" onClick={handleClose} disabled={isSending}>
