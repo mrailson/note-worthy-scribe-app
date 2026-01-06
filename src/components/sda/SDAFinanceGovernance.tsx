@@ -78,7 +78,10 @@ const practiceInsuranceChecklist = [
     { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
   ]},
   { practice: "The Parks Medical Practice", insurances: [{ confirmed: false, amount: "Pending", type: "Public" }] },
-  { practice: "Bugbrooke Medical Practice", insurances: [{ confirmed: true, amount: "£5m", type: "Public" }] },
+  { practice: "Bugbrooke Medical Practice", insurances: [
+    { confirmed: true, amount: "£5m", type: "Public" },
+    { confirmed: true, amount: "£5m", type: "Employers" },
+  ]},
 ];
 
 export const SDAFinanceGovernance = () => {
