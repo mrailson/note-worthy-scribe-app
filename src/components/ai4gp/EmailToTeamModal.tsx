@@ -13,7 +13,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Mail, Loader2, Users, Search, Sparkles } from 'lucide-react';
+import { Mail, Loader2, Users, Search, Sparkles, FileText } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { useAuth } from '@/contexts/AuthContext';
@@ -45,6 +46,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
   const [subject, setSubject] = useState('');
   const [isGeneratingSubject, setIsGeneratingSubject] = useState(false);
   const [additionalNotes, setAdditionalNotes] = useState('');
+  const [includeWordDoc, setIncludeWordDoc] = useState(true);
   const [isSending, setIsSending] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
@@ -209,6 +211,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
           chatContent: cleanContent,
           senderName,
           additionalNotes: additionalNotes.trim() || undefined,
+          includeWordDoc,
         },
       });
 
@@ -232,6 +235,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
     setSelectedMembers([]);
     setSubject('');
     setAdditionalNotes('');
+    setIncludeWordDoc(true);
     setSearchQuery('');
     onClose();
   };
@@ -384,6 +388,21 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
                   : cleanContent || 'No content to preview';
               })()}
             </div>
+          </div>
+
+          {/* Word Doc attachment toggle */}
+          <div className="flex items-center justify-between p-3 bg-muted/30 rounded-md">
+            <div className="flex items-center gap-2">
+              <FileText className="w-4 h-4 text-muted-foreground" />
+              <Label htmlFor="include-word-doc" className="cursor-pointer">
+                Include Word document attachment
+              </Label>
+            </div>
+            <Switch
+              id="include-word-doc"
+              checked={includeWordDoc}
+              onCheckedChange={setIncludeWordDoc}
+            />
           </div>
         </div>
 
