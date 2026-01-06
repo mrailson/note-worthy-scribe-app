@@ -350,6 +350,15 @@ const formatLetterContent = (letterContent: string): Paragraph[] => {
   // Remove any other HTML tags
   cleanedContent = cleanedContent.replace(/<[^>]+>/g, '');
   
+  // Decode HTML entities (e.g., &amp; -> &, &lt; -> <, &gt; -> >)
+  cleanedContent = cleanedContent
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&nbsp;/g, ' ');
+  
   // Remove markdown image syntax: ![alt](url)
   cleanedContent = cleanedContent.replace(/!\[.*?\]\(.*?\)/g, '');
   
