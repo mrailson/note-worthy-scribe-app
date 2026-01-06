@@ -17,7 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from "docx";
 import { FormattedLetterContent } from '@/components/FormattedLetterContent';
 import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
-import { createLetterDocument } from '@/utils/letterFormatter';
+import { createLetterDocument, fetchLetterDetails } from '@/utils/letterFormatter';
 
 interface InvestigationDecisionProps {
   complaintId: string;
@@ -723,8 +723,17 @@ export function InvestigationDecision({ complaintId, disabled = false }: Investi
       const referenceNumber = complaint?.reference_number || complaintId;
       console.log('Using reference number:', referenceNumber);
       
+      // Fetch signatory and practice details for proper name/contact display
+      const letterDetails = await fetchLetterDetails(existingOutcome?.decided_by);
+      
       // Use the proper letter formatting function that handles logos
-      const doc = await createLetterDocument(outcomeLetter, 'outcome', referenceNumber);
+      const doc = await createLetterDocument(
+        outcomeLetter, 
+        'outcome', 
+        referenceNumber,
+        letterDetails.signatoryName,
+        letterDetails.practiceDetails
+      );
       console.log('Document structure created successfully with logo support');
       
       const buffer = await Packer.toBlob(doc);

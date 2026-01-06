@@ -488,14 +488,19 @@ export function InvestigationDecisionAndLearning({ complaintId, disabled = false
       console.log('Letter content preview:', outcomeLetter.substring(0, 100) + '...');
       
       // Use the proper letter formatter that handles markdown
-      const { createLetterDocument } = await import('@/utils/letterFormatter');
+      const { createLetterDocument, fetchLetterDetails } = await import('@/utils/letterFormatter');
       const { Packer } = await import('docx');
+      
+      // Fetch signatory and practice details
+      const letterDetails = await fetchLetterDetails();
       
       console.log('Creating document with proper markdown formatting...');
       const doc = await createLetterDocument(
         outcomeLetter, 
         'outcome', 
-        complaintReferenceNumber || `COMP${complaintId.substring(0, 8)}`
+        complaintReferenceNumber || `COMP${complaintId.substring(0, 8)}`,
+        letterDetails.signatoryName,
+        letterDetails.practiceDetails
       );
 
       console.log('Document structure created successfully');
