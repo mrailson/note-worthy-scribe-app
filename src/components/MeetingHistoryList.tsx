@@ -42,6 +42,7 @@ import {
 import { TranscriptContextDialog } from "@/components/meeting/TranscriptContextDialog";
 import { UploadedFile } from '@/types/ai4gp';
 import { formatTranscriptContext, extractCleanContent } from '@/utils/meeting/formatTranscriptContext';
+import { parseAttendeesFromText } from '@/utils/meeting/parseAttendeesFromText';
 import { ShareMeetingDialog } from "@/components/ShareMeetingDialog";
 import { SharedMeetingBadge } from "@/components/SharedMeetingBadge";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -1008,6 +1009,87 @@ export const MeetingHistoryList = ({
       if (validFiles.length === 0) {
         toast.error('No text content could be extracted from the uploaded files.');
         return;
+      }
+      
+      // If "attendees" is selected, parse and add attendees to the meeting's attendee list
+      if (contextTypes.includes('attendees')) {
+        const allContent = validFiles.map(f => f.content).join('\n');
+        const parsedAttendees = parseAttendeesFromText(allContent);
+        
+        if (parsedAttendees.length > 0) {
+          console.log('📋 Parsed attendees from context:', parsedAttendees);
+          
+          // Get user's practice ID
+          const { data: userData } = await supabase.auth.getUser();
+          if (userData?.user) {
+            const { data: userRoles } = await supabase
+              .rpc('get_user_roles', { _user_id: userData.user.id });
+            
+            const practiceId = userRoles?.[0]?.practice_id;
+            
+            // For each parsed attendee, create if not exists and link to meeting
+            for (const attendee of parsedAttendees) {
+              try {
+                // Check if attendee already exists for this user (by name)
+                const { data: existingAttendee } = await supabase
+                  .from('attendees')
+                  .select('id')
+                  .eq('user_id', userData.user.id)
+                  .ilike('name', attendee.name)
+                  .maybeSingle();
+                
+                let attendeeId: string;
+                
+                if (existingAttendee) {
+                  attendeeId = existingAttendee.id;
+                } else {
+                  // Create new attendee
+                  const { data: newAttendee, error: createError } = await supabase
+                    .from('attendees')
+                    .insert({
+                      user_id: userData.user.id,
+                      practice_id: practiceId,
+                      name: attendee.name,
+                      organization: attendee.organization || null,
+                      role: attendee.role || null,
+                    })
+                    .select('id')
+                    .single();
+                  
+                  if (createError) {
+                    console.warn('Failed to create attendee:', attendee.name, createError);
+                    continue;
+                  }
+                  attendeeId = newAttendee.id;
+                }
+                
+                // Check if already linked to this meeting
+                const { data: existingLink } = await supabase
+                  .from('meeting_attendees')
+                  .select('id')
+                  .eq('meeting_id', meetingId)
+                  .eq('attendee_id', attendeeId)
+                  .maybeSingle();
+                
+                if (!existingLink) {
+                  // Link attendee to meeting
+                  await supabase
+                    .from('meeting_attendees')
+                    .insert({
+                      meeting_id: meetingId,
+                      attendee_id: attendeeId
+                    });
+                }
+              } catch (attendeeError) {
+                console.warn('Error processing attendee:', attendee.name, attendeeError);
+              }
+            }
+            
+            toast.success(`Added ${parsedAttendees.length} attendee(s) to the meeting`);
+          }
+        } else {
+          toast.warning('No attendee names could be extracted from the content');
+        }
       }
       
       // Format the context content
