@@ -2053,6 +2053,9 @@ export const MeetingRecorder = ({
     
     setTestTranscripts(prev => [...prev.slice(-9), data.text]);
     
+    // Notify watchdog that a chunk was successfully processed
+    watchdog.reportChunkProcessed();
+    
     handleTranscript(transcriptData);
   };
 
