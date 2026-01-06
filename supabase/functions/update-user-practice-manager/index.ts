@@ -22,6 +22,7 @@ interface UpdateUserRequest {
     shared_drive_access?: boolean;
     mic_test_service_access?: boolean;
     api_testing_service_access?: boolean;
+    fridge_monitoring_access?: boolean;
   };
 }
 
@@ -107,16 +108,17 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("User not found in your practice");
     }
 
-    // Validate role is allowed for practice managers
-    if (role) {
-      const allowedRoles = ['user'];
-      if (!allowedRoles.includes(role)) {
-        throw new Error(`Practice managers can only assign these roles: ${allowedRoles.join(', ')}`);
-      }
-
+    // Validate role changes - only if role is actually being changed
+    if (role && role !== userInPractice.role) {
       // Prevent elevation to higher privileges
       if (role === 'practice_manager' || role === 'system_admin') {
         throw new Error("Cannot elevate user to practice manager or system admin role");
+      }
+      
+      // Only allow setting to practice_user role
+      const allowedRoles = ['practice_user', 'user'];
+      if (!allowedRoles.includes(role)) {
+        throw new Error(`Practice managers can only assign these roles: ${allowedRoles.join(', ')}`);
       }
     }
 
@@ -145,6 +147,7 @@ const handler = async (req: Request): Promise<Response> => {
       if (module_access.shared_drive_access !== undefined) roleUpdate.shared_drive_access = module_access.shared_drive_access;
       if (module_access.mic_test_service_access !== undefined) roleUpdate.mic_test_service_access = module_access.mic_test_service_access;
       if (module_access.api_testing_service_access !== undefined) roleUpdate.api_testing_service_access = module_access.api_testing_service_access;
+      if (module_access.fridge_monitoring_access !== undefined) roleUpdate.fridge_monitoring_access = module_access.fridge_monitoring_access;
     }
 
     if (Object.keys(roleUpdate).length > 0) {

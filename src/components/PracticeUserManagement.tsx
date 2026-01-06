@@ -252,26 +252,33 @@ export const PracticeUserManagement = () => {
     try {
       setLoading(true);
       
+      // Only send role if it's actually being changed
+      const roleChanged = userFormData.role !== editingUser.role;
+      
       const { data, error } = await supabase.functions.invoke('update-user-practice-manager', {
         body: {
           user_id: editingUser.user_id,
           full_name: userFormData.full_name,
-          role: userFormData.role,
+          ...(roleChanged && { role: userFormData.role }),
           practice_role: userFormData.practice_role,
           module_access: userFormData.module_access
         }
       });
 
-      if (error) throw error;
+      if (error) {
+        // Try to extract the actual error message from the response
+        const errorMsg = error.message || 'Failed to update user';
+        throw new Error(errorMsg);
+      }
 
-      if (data.success) {
+      if (data?.success) {
         toast.success(data.message);
         loadPracticeUsers();
         setShowUserModal(false);
         resetForm();
         setEditingUser(null);
       } else {
-        throw new Error(data.error || 'Failed to update user');
+        throw new Error(data?.error || 'Failed to update user');
       }
     } catch (error: any) {
       console.error('Error updating user:', error);
