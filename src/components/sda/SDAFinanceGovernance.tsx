@@ -21,7 +21,9 @@ import {
   Clock,
   MapPin,
   Download,
-  FileText
+  FileText,
+  Lightbulb,
+  Truck
 } from "lucide-react";
 
 const seniorLeadership = [
@@ -389,6 +391,47 @@ export const SDAFinanceGovernance = () => {
                 <p className="text-3xl font-bold text-cyan-600">16%</p>
                 <p className="text-lg font-semibold text-cyan-600">£374,400</p>
                 <p className="text-sm text-slate-600 mt-1">Innovation Pathways</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Innovation Component */}
+        <Card className="bg-white border-0 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+              <Lightbulb className="w-5 h-5 text-amber-500" />
+              Innovation Component (£306k Budget)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="border border-slate-200 rounded-lg p-4">
+                <h4 className="font-semibold text-slate-900 mb-3">"Hot Clinics" Programme</h4>
+                <ul className="space-y-2">
+                  <li className="flex items-center gap-2 text-sm text-slate-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#005EB8]"></span>
+                    Paediatric Sprains (10-14 yrs)
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#005EB8]"></span>
+                    COPD Remote Monitoring
+                  </li>
+                  <li className="flex items-center gap-2 text-sm text-slate-600">
+                    <span className="w-1.5 h-1.5 rounded-full bg-[#005EB8]"></span>
+                    Frailty GPwSI Strategy
+                  </li>
+                </ul>
+              </div>
+
+              <div className="border border-slate-200 rounded-lg p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Truck className="w-4 h-4 text-[#005EB8]" />
+                  <h4 className="font-semibold text-slate-900">Mobile Outreach Van</h4>
+                </div>
+                <p className="text-sm text-slate-600 italic">
+                  "Following the University of Huddersfield model, a mobile clinic van will support hard-to-reach rural residents in South Northants."
+                </p>
               </div>
             </div>
           </CardContent>

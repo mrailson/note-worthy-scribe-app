@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Users, Lightbulb, Truck, Heart, FileText, AlertCircle, Briefcase, Download, ExternalLink, ClipboardCheck, UserCheck } from "lucide-react";
+import { Users, FileText, AlertCircle, Briefcase, Download, ExternalLink, ClipboardCheck, UserCheck } from "lucide-react";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Button } from "@/components/ui/button";
 import { ACPRecruitmentPanel } from "./recruitment/ACPRecruitmentPanel";
@@ -287,82 +287,42 @@ export const SDAWorkforceInnovation = () => {
       </CollapsibleCard>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Workforce Requirements */}
-        <CollapsibleCard
-          title="Workforce Requirements"
-          icon={<Users className="w-5 h-5" />}
-          badge={<Badge className="bg-[#005EB8]">WTE</Badge>}
-          defaultOpen={false}
-        >
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-blue-50 rounded-xl p-4 text-center">
-                <p className="text-4xl font-bold text-[#005EB8]">8.5</p>
-                <p className="font-semibold text-slate-900 mt-1">GP WTE Sessions</p>
-                <p className="text-sm text-slate-500">Assumes 12 appointments per session.</p>
-                <button 
-                  onClick={() => document.getElementById('job-adverts-section')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="inline-flex items-center gap-1 mt-2 text-sm text-[#005EB8] hover:underline cursor-pointer"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  NHS Jobs
-                </button>
-              </div>
-              <div className="bg-cyan-50 rounded-xl p-4 text-center">
-                <p className="text-4xl font-bold text-cyan-600">6.9</p>
-                <p className="font-semibold text-slate-900 mt-1">ACP WTE Sessions</p>
-                <p className="text-sm text-slate-500">Advanced Clinical Practitioners (Prescribing).</p>
-                <button 
-                  onClick={() => document.getElementById('job-adverts-section')?.scrollIntoView({ behavior: 'smooth' })}
-                  className="inline-flex items-center gap-1 mt-2 text-sm text-cyan-600 hover:underline cursor-pointer"
-                >
-                  <ExternalLink className="w-3 h-3" />
-                  NHS Jobs
-                </button>
-              </div>
+      {/* Workforce Requirements */}
+      <CollapsibleCard
+        title="Workforce Requirements"
+        icon={<Users className="w-5 h-5" />}
+        badge={<Badge className="bg-[#005EB8]">WTE</Badge>}
+        defaultOpen={false}
+      >
+        <div className="space-y-6">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-blue-50 rounded-xl p-4 text-center">
+              <p className="text-4xl font-bold text-[#005EB8]">8.5</p>
+              <p className="font-semibold text-slate-900 mt-1">GP WTE Sessions</p>
+              <p className="text-sm text-slate-500">Assumes 12 appointments per session.</p>
+              <button 
+                onClick={() => document.getElementById('job-adverts-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center gap-1 mt-2 text-sm text-[#005EB8] hover:underline cursor-pointer"
+              >
+                <ExternalLink className="w-3 h-3" />
+                NHS Jobs
+              </button>
             </div>
-
-          </div>
-        </CollapsibleCard>
-
-        {/* Innovation Component */}
-        <CollapsibleCard
-          title="Innovation Component (£306k Budget)"
-          icon={<Lightbulb className="w-5 h-5 text-amber-500" />}
-          defaultOpen={false}
-        >
-          <div className="space-y-4">
-            <div className="border border-slate-200 rounded-lg p-4">
-              <h4 className="font-semibold text-slate-900 mb-3">"Hot Clinics" Programme</h4>
-              <ul className="space-y-2">
-                <li className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#005EB8]"></span>
-                  Paediatric Sprains (10-14 yrs)
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#005EB8]"></span>
-                  COPD Remote Monitoring
-                </li>
-                <li className="flex items-center gap-2 text-sm text-slate-600">
-                  <span className="w-1.5 h-1.5 rounded-full bg-[#005EB8]"></span>
-                  Frailty GPwSI Strategy
-                </li>
-              </ul>
-            </div>
-
-            <div className="border border-slate-200 rounded-lg p-4">
-              <div className="flex items-center gap-2 mb-2">
-                <Truck className="w-4 h-4 text-[#005EB8]" />
-                <h4 className="font-semibold text-slate-900">Mobile Outreach Van</h4>
-              </div>
-              <p className="text-sm text-slate-600 italic">
-                "Following the University of Huddersfield model, a mobile clinic van will support hard-to-reach rural residents in South Northants."
-              </p>
+            <div className="bg-cyan-50 rounded-xl p-4 text-center">
+              <p className="text-4xl font-bold text-cyan-600">6.9</p>
+              <p className="font-semibold text-slate-900 mt-1">ACP WTE Sessions</p>
+              <p className="text-sm text-slate-500">Advanced Clinical Practitioners (Prescribing).</p>
+              <button 
+                onClick={() => document.getElementById('job-adverts-section')?.scrollIntoView({ behavior: 'smooth' })}
+                className="inline-flex items-center gap-1 mt-2 text-sm text-cyan-600 hover:underline cursor-pointer"
+              >
+                <ExternalLink className="w-3 h-3" />
+                NHS Jobs
+              </button>
             </div>
           </div>
-        </CollapsibleCard>
-      </div>
+        </div>
+      </CollapsibleCard>
 
     </div>
   );
