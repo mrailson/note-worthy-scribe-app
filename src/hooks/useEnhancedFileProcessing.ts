@@ -74,7 +74,7 @@ export const useEnhancedFileProcessing = () => {
         estimatedComplexity: files.length > 3 ? 'high' : files.length > 1 ? 'medium' : 'low'
       });
 
-      const filePromises = Array.from(files).map(async (file, index) => {
+      const filePromises = Array.from(files).map(async (file) => {
         // Validate file type
         if (!FileProcessorManager.isSupported(file.name)) {
           throw new Error(`Unsupported file type: ${file.name}. Supported: Word, Excel, PDF, Text, Images`);
@@ -90,10 +90,10 @@ export const useEnhancedFileProcessing = () => {
           console.warn(`File ${processedFile.name} has issues:`, validation.issues);
         }
 
-        // Update stats
+        // Update stats - increment counter atomically
         setProcessingStats(prev => ({
           ...prev,
-          processedFiles: index + 1,
+          processedFiles: prev.processedFiles + 1,
           hasNumericalData: prev.hasNumericalData || validation.hasNumericalData
         }));
 
