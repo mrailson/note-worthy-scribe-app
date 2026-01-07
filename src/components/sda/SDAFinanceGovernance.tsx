@@ -550,6 +550,13 @@ export const SDAFinanceGovernance = () => {
                 );
               })}
             </div>
+            
+            {/* Indemnity Coverage Explanation */}
+            <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-slate-700 leading-relaxed">
+                <span className="font-semibold">Clinical negligence</span> liabilities arising from NHS-commissioned SDA services are covered under the NHS Clinical Negligence Scheme for General Practice (CNSGP), which provides uncapped indemnity and therefore exceeds the £10m requirement. <span className="font-semibold">Professional negligence</span> and medico-legal liabilities are covered through Medical Defence Union (MDU) membership held by the practice clinicians, which exceeds the £5m requirement.
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>
