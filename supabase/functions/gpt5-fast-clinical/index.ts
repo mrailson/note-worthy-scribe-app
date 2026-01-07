@@ -62,33 +62,84 @@ function splitTextIntoChunks(text: string, maxChunkTokens: number = 30000): stri
   return chunks;
 }
 
-// Extract document content from messages
-function extractDocumentContent(messages: any[]): { userQuery: string; documentContent: string; hasLargeDoc: boolean } {
+// Extract document content from messages - handles various content formats
+function extractDocumentContent(messages: any[]): { userQuery: string; documentContent: string; hasLargeDoc: boolean; originalMessages: any[] } {
   let documentContent = '';
   let userQuery = '';
+  
+  // Common file/document markers
+  const fileMarkers = [
+    '📄 File:', '--- Document Content ---', 'File content:', 
+    '```', '---\n', 'Content:\n', '[Document:', '<document>'
+  ];
   
   for (const msg of messages) {
     if (msg.role === 'user') {
       const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
       
-      // Check for file content markers
-      if (content.includes('📄 File:') || content.includes('--- Document Content ---')) {
-        // Extract just the user's question (before file content)
-        const parts = content.split(/📄 File:|--- Document Content ---/);
-        userQuery = parts[0].trim() || userQuery;
-        documentContent += content.substring(parts[0].length);
+      // Check if this message contains file content
+      const hasFileMarker = fileMarkers.some(marker => content.includes(marker));
+      
+      if (hasFileMarker) {
+        // Try to extract the user query (usually at the start before document)
+        // Look for common patterns where query comes before document
+        const queryPatterns = [
+          /^(.*?)(?:📄 File:|--- Document Content ---|File content:|```)/is,
+          /^(.*?)(?:\n{2,})/is // Query followed by blank lines then content
+        ];
+        
+        for (const pattern of queryPatterns) {
+          const match = content.match(pattern);
+          if (match && match[1]?.trim()) {
+            userQuery = match[1].trim();
+            break;
+          }
+        }
+        
+        // If no query extracted, use a generic one
+        if (!userQuery) {
+          userQuery = "Please summarise and analyse this document.";
+        }
+        
+        documentContent += content;
       } else {
+        // This is likely a pure user query
         userQuery = content;
       }
     }
   }
   
+  // If still no document content identified but total content is large,
+  // treat the entire last user message as the document
+  if (!documentContent && messages.length > 0) {
+    const lastUserMsg = messages.filter(m => m.role === 'user').pop();
+    if (lastUserMsg) {
+      const content = typeof lastUserMsg.content === 'string' ? lastUserMsg.content : JSON.stringify(lastUserMsg.content);
+      const contentTokens = estimateTokens(content);
+      
+      // If last message is very large, it's probably a document
+      if (contentTokens > 50000) {
+        console.log(`[gpt5-fast-clinical] Large message detected (${contentTokens} tokens), treating as document`);
+        documentContent = content;
+        
+        // Try to extract query from first 500 chars
+        const firstPart = content.substring(0, 500);
+        const sentenceEnd = firstPart.search(/[.!?]\s/);
+        if (sentenceEnd > 20) {
+          userQuery = content.substring(0, sentenceEnd + 1).trim();
+        } else {
+          userQuery = "Please summarise and analyse this document.";
+        }
+      }
+    }
+  }
+  
   const docTokens = estimateTokens(documentContent);
-  const hasLargeDoc = docTokens > MAX_CONTEXT_TOKENS;
+  const hasLargeDoc = docTokens > 50000; // More aggressive threshold
   
-  console.log(`[gpt5-fast-clinical] Document tokens: ${docTokens}, hasLargeDoc: ${hasLargeDoc}`);
+  console.log(`[gpt5-fast-clinical] Document tokens: ${docTokens}, hasLargeDoc: ${hasLargeDoc}, userQuery: "${userQuery.substring(0, 50)}..."`);
   
-  return { userQuery, documentContent, hasLargeDoc };
+  return { userQuery, documentContent, hasLargeDoc, originalMessages: messages };
 }
 
 // Summarise a chunk of document
@@ -251,15 +302,23 @@ serve(async (req) => {
   const totalTokens = calculateMessageTokens(messages);
   console.log(`[gpt5-fast-clinical] Total message tokens: ${totalTokens}`);
   
-  if (totalTokens > MAX_CONTEXT_TOKENS) {
+  if (totalTokens > MAX_CONTEXT_TOKENS || totalTokens > 100000) {
     console.log('[gpt5-fast-clinical] Large document detected, applying chunking strategy...');
     
     try {
-      const { userQuery, documentContent, hasLargeDoc } = extractDocumentContent(messages);
+      const { userQuery, documentContent, hasLargeDoc, originalMessages } = extractDocumentContent(messages);
       
-      if (hasLargeDoc && documentContent) {
+      // If we detected a large document OR total tokens exceed limit, process it
+      if (hasLargeDoc || totalTokens > MAX_CONTEXT_TOKENS) {
+        const contentToProcess = documentContent || 
+          (typeof messages[messages.length - 1]?.content === 'string' 
+            ? messages[messages.length - 1].content 
+            : JSON.stringify(messages[messages.length - 1]?.content || ''));
+        
+        console.log(`[gpt5-fast-clinical] Processing content of ${estimateTokens(contentToProcess)} tokens`);
+        
         // Process the large document
-        const condensedSummary = await processLargeDocument(userQuery, documentContent);
+        const condensedSummary = await processLargeDocument(userQuery, contentToProcess);
         
         // Replace messages with condensed version
         messages = [
