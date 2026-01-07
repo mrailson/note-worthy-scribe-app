@@ -18,7 +18,8 @@ import {
   ChevronRight,
   PanelLeftClose,
   PanelLeft,
-  Activity
+  Activity,
+  Camera
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -90,6 +91,7 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
     { icon: Newspaper, label: 'GP News', action: onShowNews },
     { icon: Activity, label: 'BP Average Service', action: onShowBPCalculator },
     { icon: Languages, label: 'Translation', action: onShowTranslation },
+    { icon: Camera, label: 'LG Capture', action: () => navigate('/lg-capture') },
     { icon: ImageIcon, label: 'QR Code Generator', action: onShowQRCodeGenerator },
   ];
 
