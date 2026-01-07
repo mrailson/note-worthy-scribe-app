@@ -492,26 +492,41 @@ export const SDAFinanceGovernance = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {practiceInsuranceChecklist.map((practice, index) => {
                 const allConfirmed = practice.insurances.every(ins => ins.confirmed);
+                
+                const formatBadgeText = (type: string, amount: string) => {
+                  const shortType = type
+                    .replace('Prof/MDU', 'MDU')
+                    .replace('Clinical/CNSGP', 'CNSGP')
+                    .replace('Prof Negligence', 'Prof Neg');
+                  const shortAmount = amount === 'No Limit' ? '∞' : amount;
+                  return `${shortType} ${shortAmount}`;
+                };
+
                 return (
-                  <div key={index} className="flex items-center gap-3 p-3 bg-slate-50 rounded-lg border border-slate-200">
-                    <Checkbox id={`insurance-${index}`} checked={allConfirmed} disabled />
-                    <label htmlFor={`insurance-${index}`} className={`text-sm cursor-pointer flex-shrink-0 ${allConfirmed ? 'text-slate-700' : 'text-amber-600'}`}>
-                      {practice.practice}
-                    </label>
-                    <div className="flex flex-wrap gap-1 ml-auto">
+                  <div key={index} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Checkbox id={`insurance-${index}`} checked={allConfirmed} disabled />
+                      <label 
+                        htmlFor={`insurance-${index}`} 
+                        className={`text-sm font-medium ${allConfirmed ? 'text-slate-700' : 'text-amber-600'}`}
+                      >
+                        {practice.practice}
+                      </label>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 ml-6">
                       {practice.insurances.map((ins, insIndex) => {
                         const isAmber = !ins.confirmed || (ins.type === "Public" && ins.amount !== "£10m");
                         return (
                           <Badge 
                             key={insIndex}
                             variant="outline" 
-                            className={`text-xs ${
+                            className={`text-[10px] px-1.5 py-0.5 font-medium ${
                               isAmber 
-                                ? 'text-amber-600 border-amber-600 bg-amber-50' 
-                                : 'text-green-600 border-green-600 bg-green-50'
+                                ? 'text-amber-700 border-amber-400 bg-amber-50' 
+                                : 'text-green-700 border-green-400 bg-green-50'
                             }`}
                           >
-                            {ins.type}: {ins.amount}
+                            {formatBadgeText(ins.type, ins.amount)}
                           </Badge>
                         );
                       })}
