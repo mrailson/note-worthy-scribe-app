@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { medicalTermCorrector } from "@/utils/MedicalTermCorrector";
+import { userNameCorrections } from "@/utils/UserNameCorrections";
 import { ChangePreviewItem } from "./ChangePreviewItem";
 import { CorrectionManager } from "./CorrectionManager";
 import { 
@@ -173,12 +174,13 @@ export default function EnhancedFindReplacePanel({
     if (!findInput.trim() || !replaceWith.trim()) return;
 
     try {
-      await medicalTermCorrector.addCorrection(findInput.trim(), replaceWith.trim());
-      await medicalTermCorrector.refreshCorrections();
+      // Save to user's personal name corrections (persists to database)
+      await userNameCorrections.addCorrection(findInput.trim(), replaceWith.trim());
+      await userNameCorrections.loadCorrections(); // Refresh cache
       
       toast({ 
         title: "Correction Saved", 
-        description: "This correction will be applied automatically in future." 
+        description: "This correction will be applied automatically to future meetings." 
       });
     } catch (error) {
       toast({ 
