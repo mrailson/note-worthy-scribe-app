@@ -798,6 +798,21 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     }
   }, [input, messages, uploadedFiles, buildSystemPrompt, verificationLevel, useOpenAI]);
 
+  // Sanitise messages to strip file content before saving to database
+  const sanitiseMessagesForStorage = (messagesData: Message[]): Message[] => {
+    return messagesData.map(msg => ({
+      ...msg,
+      files: msg.files?.map(file => ({
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        content: '', // Strip content for storage - prevents database bloat
+        isLoading: false,
+        metadata: file.metadata
+      }))
+    }));
+  };
+
   const saveSearchAutomatically = async (messagesData: Message[]) => {
     if (!user || messagesData.length < 2) return; // Need at least user + assistant message
 
@@ -806,6 +821,9 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       currentSearchId,
       userId: user.id
     });
+
+    // Sanitise messages to remove file content before saving
+    const sanitisedMessages = sanitiseMessagesForStorage(messagesData);
 
     try {
       // If we have a current search ID, update it instead of creating a new one
@@ -821,7 +839,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         const { error } = await supabase
           .from('ai_4_pm_searches')
           .update({
-            messages: messagesData as any,
+            messages: sanitisedMessages as any,
             brief_overview: overview,
             updated_at: new Date().toISOString()
           })
@@ -862,7 +880,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           user_id: user.id,
           title,
           brief_overview: overview,
-          messages: messagesData as any
+          messages: sanitisedMessages as any
         })
         .select()
         .single();
