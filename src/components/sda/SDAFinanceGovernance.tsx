@@ -68,7 +68,10 @@ const insuranceRequirements = [
 
 const practiceInsuranceChecklist = [
   { practice: "Towcester Medical Centre", insurances: [{ confirmed: true, amount: "£10m", type: "Public" }] },
-  { practice: "Brook Health Centre", insurances: [{ confirmed: true, amount: "£10m", type: "Public" }] },
+  { practice: "Brook Health Centre", insurances: [
+    { confirmed: true, amount: "£10m", type: "Public" },
+    { confirmed: true, amount: "£5m", type: "Employers" },
+  ]},
   { practice: "Brackley Medical Centre", insurances: [{ confirmed: true, amount: "£5m", type: "Public" }] },
   { practice: "Springfield Surgery", insurances: [{ confirmed: true, amount: "£5m", type: "Public" }] },
   { practice: "Denton Village Surgery", insurances: [
@@ -83,6 +86,12 @@ const practiceInsuranceChecklist = [
     { confirmed: true, amount: "£5m", type: "Employers" },
     { confirmed: true, amount: "No Limit", type: "Prof/MDU" },
     { confirmed: true, amount: "No Limit", type: "Clinical/CNSGP" },
+  ]},
+  { practice: "Principal Medical Limited (PML)", insurances: [
+    { confirmed: true, amount: "£10m", type: "Public" },
+    { confirmed: true, amount: "£10m", type: "Employers" },
+    { confirmed: true, amount: "£10m", type: "Prof Negligence" },
+    { confirmed: true, amount: "CNSGP", type: "Clinical" },
   ]},
 ];
 
