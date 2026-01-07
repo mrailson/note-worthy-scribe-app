@@ -3371,8 +3371,25 @@ ${transcriptToUse}`;
                                 {/* 20px spacer */}
                                 <div className="w-5" />
 
-                                {/* Group 2: Edit and Copy icons */}
+                                {/* Group 2: Find/Replace, Edit and Copy icons */}
                                 <div className="flex items-center gap-2">
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Button
+                                          onClick={() => setShowFindReplace(!showFindReplace)}
+                                          variant={showFindReplace ? "default" : "outline"}
+                                          size="icon"
+                                        >
+                                          <Search className="h-4 w-4" />
+                                        </Button>
+                                      </TooltipTrigger>
+                                      <TooltipContent>
+                                        <p>Find & Replace</p>
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+
                                   <TooltipProvider>
                                     <Tooltip>
                                       <TooltipTrigger asChild>
