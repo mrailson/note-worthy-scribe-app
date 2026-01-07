@@ -23,10 +23,44 @@ interface BoardDecision {
   notPreferred?: string;
 }
 
-// January 2026 Decision Pipeline - Pending items carried forward
+// January 2026 Decision Pipeline - Ordered by priority (at-risk → decision-required → pending-review)
 const januaryDecisions: BoardDecision[] = [
+  // AT-RISK - Critical timeline concerns
   { 
     id: 1, 
+    title: "Practice Contract Signing", 
+    desc: "All practice partners to sign amended GMS/ES contract before ICB deadline.",
+    status: "at-risk",
+    note: "Dr Ellis: 'virtually impossible' to receive MOUs, get legal advice and obtain partner signatures before ICB proposed deadline.",
+    targetDate: "ICB deadline TBC"
+  },
+  // DECISION REQUIRED - Blocking other workstreams
+  { 
+    id: 2, 
+    title: "SNO-Practice MOU Agreement", 
+    desc: "MOU between PML and each individual practice must be agreed before legal review can proceed.",
+    status: "decision-required",
+    note: "Agenda Item #1 for 13 Jan 2026 Board. Practice partners expressing significant concern. Legal advice on GMS/ES only proceeding now.",
+    targetDate: "13th January 2026"
+  },
+  { 
+    id: 3, 
+    title: "Host Organisation", 
+    desc: "Determine whether PML or individual practice will host employed staff.",
+    status: "decision-required",
+    options: ["PML", "Practice"],
+    note: "Critical decision required for recruitment to proceed"
+  },
+  // PENDING REVIEW - In order of project dependency
+  { 
+    id: 4, 
+    title: "Hub & Spoke Model", 
+    desc: "Finalise the estates model for hub and spoke locations.",
+    status: "pending-review",
+    note: "Hub and spoke sessions ongoing – required for equipment procurement"
+  },
+  { 
+    id: 5, 
     title: "Brook Hub/Spoke Status", 
     desc: "Designation for April go-live – Brook practice currently reviewing capacity.",
     status: "pending-review",
@@ -35,78 +69,47 @@ const januaryDecisions: BoardDecision[] = [
     targetDate: "27th January 2026"
   },
   { 
-    id: 2, 
-    title: "Innovation Pilots", 
-    desc: "Agreement on specific Part B clinics (Frailty/COPD).",
-    status: "pending-review",
-    note: "Carried forward – Part B options and outcomes still under consideration"
-  },
-  { 
-    id: 3, 
-    title: "Insurance Approach", 
-    desc: "How practices obtain insurance for the programme.",
-    status: "pending-review",
-    note: "Carried forward – Amanda Taylor verifying insurance amounts with each practice"
-  },
-  { 
-    id: 4, 
-    title: "Recruitment Panels", 
-    desc: "Establishing the JD and Interview groups.",
-    status: "pending-review",
-    note: "Carried forward – Malcolm arranging recruitment panel with PML",
-    targetDate: "27th January 2026"
-  },
-  { 
-    id: 5, 
-    title: "Host Organisation", 
-    desc: "Determine whether PML or individual practice will host employed staff.",
-    status: "decision-required",
-    options: ["PML", "Practice"],
-    note: "NEW – Critical decision required for recruitment to proceed"
-  },
-  { 
     id: 6, 
-    title: "Hub & Spoke Model", 
-    desc: "Finalise the estates model for hub and spoke locations.",
-    status: "pending-review",
-    note: "Hub and spoke sessions ongoing – required for equipment procurement"
-  },
-  { 
-    id: 7, 
     title: "Equipment Procurement", 
     desc: "Agree equipment inventory and costings for clinical/non-clinical items.",
     status: "pending-review",
     note: "Dependent on Hub/Spoke model agreement"
   },
   { 
-    id: 8, 
+    id: 7, 
     title: "Digital Access (ICE/SystmOne)", 
     desc: "Confirm ICE ordering access and SystmOne slot type configuration.",
     status: "pending-review",
     note: "ICB digital team engagement ongoing"
   },
   { 
-    id: 9, 
-    title: "SNO-Practice MOU Agreement", 
-    desc: "MOU between PML and each individual practice must be agreed before legal review can proceed.",
-    status: "decision-required",
-    note: "Agenda Item #1 for 13 Jan 2026 Board. Practice partners expressing significant concern. Legal advice on GMS/ES only proceeding now.",
-    targetDate: "13th January 2026"
-  },
-  { 
-    id: 10, 
+    id: 8, 
     title: "GMS/ES Contract Legal Review", 
     desc: "Legal advice on GMS/ES contract variation (proceeding separately from MOU).",
     status: "pending-review",
     note: "Considered a normal recognised contract variation with lower legal concern. Separate from MOU legal review."
   },
   { 
+    id: 9, 
+    title: "Recruitment Panels", 
+    desc: "Establishing the JD and Interview groups.",
+    status: "pending-review",
+    note: "Malcolm arranging recruitment panel with PML",
+    targetDate: "27th January 2026"
+  },
+  { 
+    id: 10, 
+    title: "Insurance Approach", 
+    desc: "How practices obtain insurance for the programme.",
+    status: "pending-review",
+    note: "Amanda Taylor verifying insurance amounts with each practice"
+  },
+  { 
     id: 11, 
-    title: "Practice Contract Signing", 
-    desc: "All practice partners to sign amended GMS/ES contract before ICB deadline.",
-    status: "at-risk",
-    note: "Dr Ellis: 'virtually impossible' to receive MOUs, get legal advice and obtain partner signatures before ICB proposed deadline.",
-    targetDate: "ICB deadline TBC"
+    title: "Innovation Pilots", 
+    desc: "Agreement on specific Part B clinics (Frailty/COPD).",
+    status: "pending-review",
+    note: "Part B options and outcomes still under consideration"
   },
 ];
 
