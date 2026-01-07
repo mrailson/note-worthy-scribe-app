@@ -1,11 +1,27 @@
+import { userNameCorrections } from "@/utils/UserNameCorrections";
+
 export class RealtimeTranscriptCleaner {
   private previousTranscripts: string[] = [];
   private cleaningBuffer: string[] = [];
   private lastCleanTime = Date.now();
+  private correctionsLoaded = false;
   
   constructor(
     private onCleanedTranscript: (cleaned: string, context: string) => void
-  ) {}
+  ) {
+    // Load user's saved name corrections on init
+    this.loadUserCorrections();
+  }
+
+  private async loadUserCorrections() {
+    try {
+      await userNameCorrections.loadCorrections();
+      this.correctionsLoaded = true;
+      console.log('User name corrections loaded for real-time cleaning');
+    } catch (error) {
+      console.warn('Could not load user name corrections:', error);
+    }
+  }
 
   addTranscript(newTranscript: string) {
     console.log('Adding transcript for real-time cleaning:', newTranscript);
@@ -60,8 +76,11 @@ export class RealtimeTranscriptCleaner {
   }
 
   private async deepCleanWithContext(text: string, context: string): Promise<string> {
-    // First apply local medical corrections
-    let cleaned = this.applyMedicalCorrections(text);
+    // First apply user's saved name corrections
+    let cleaned = userNameCorrections.applyCorrections(text);
+    
+    // Then apply local medical corrections
+    cleaned = this.applyMedicalCorrections(cleaned);
     
     // Then use AI cleaning with context if available
     try {
@@ -240,5 +259,10 @@ export class RealtimeTranscriptCleaner {
     if (this.cleaningBuffer.length > 0) {
       this.processWithContext();
     }
+  }
+
+  // Allow manual refresh of corrections (e.g., after user adds new ones)
+  async refreshCorrections() {
+    await this.loadUserCorrections();
   }
 }
