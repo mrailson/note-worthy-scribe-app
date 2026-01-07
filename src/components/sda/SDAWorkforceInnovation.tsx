@@ -93,20 +93,10 @@ export const SDAWorkforceInnovation = () => {
       {/* PRIORITY SECTION: Candidate Assessments */}
       <div className="space-y-4">
         <div className="flex items-center gap-3 mb-2">
-          <div className="h-8 w-1.5 bg-gradient-to-b from-teal-500 to-blue-500 rounded-full" />
+          <div className="h-8 w-1.5 bg-gradient-to-b from-blue-500 to-teal-500 rounded-full" />
           <h2 className="text-lg font-semibold text-slate-800">Candidate Assessments - Action Required</h2>
         </div>
         
-        {/* ACP Recruitment - Candidate Assessment */}
-        <CollapsibleCard
-          title="ACP Recruitment - Candidate Assessment"
-          icon={<ClipboardCheck className="w-5 h-5" />}
-          badge={<Badge className="bg-teal-500">9 Applicants</Badge>}
-          defaultOpen={false}
-        >
-          <ACPRecruitmentPanel />
-        </CollapsibleCard>
-
         {/* GP Recruitment - Candidate Assessment */}
         <CollapsibleCard
           title="GP Recruitment - Candidate Assessment"
@@ -115,6 +105,16 @@ export const SDAWorkforceInnovation = () => {
           defaultOpen={false}
         >
           <GPRecruitmentPanel />
+        </CollapsibleCard>
+
+        {/* ACP Recruitment - Candidate Assessment */}
+        <CollapsibleCard
+          title="ACP Recruitment - Candidate Assessment"
+          icon={<ClipboardCheck className="w-5 h-5" />}
+          badge={<Badge className="bg-teal-500">9 Applicants</Badge>}
+          defaultOpen={false}
+        >
+          <ACPRecruitmentPanel />
         </CollapsibleCard>
       </div>
 
