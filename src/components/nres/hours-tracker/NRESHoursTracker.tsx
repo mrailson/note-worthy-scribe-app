@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { Separator } from '@/components/ui/separator';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { HoursSettings } from './HoursSettings';
 import { HoursEntryForm } from './HoursEntryForm';
 import { HoursEntriesTable } from './HoursEntriesTable';
@@ -10,9 +12,10 @@ import { AdminClaimsReport } from './AdminClaimsReport';
 import { useNRESUserSettings } from '@/hooks/useNRESUserSettings';
 import { useNRESHoursTracker } from '@/hooks/useNRESHoursTracker';
 import { useNRESExpenses } from '@/hooks/useNRESExpenses';
-import { Loader2 } from 'lucide-react';
+import { Loader2, ChevronDown, ChevronRight, Receipt } from 'lucide-react';
 
 export function NRESHoursTracker() {
+  const [expensesOpen, setExpensesOpen] = useState(false);
   const { 
     hourlyRate, 
     hasRateSet, 
@@ -93,18 +96,25 @@ export function NRESHoursTracker() {
       <Separator />
 
       {/* Expenses Section */}
-      <div className="space-y-4">
-        <h3 className="text-lg font-semibold">Expenses</h3>
-        <ExpenseEntryForm
-          saving={savingExpense}
-          onSubmit={addExpense}
-        />
-        <ExpensesTable
-          expenses={expenses}
-          loading={loadingExpenses}
-          onDelete={deleteExpense}
-        />
-      </div>
+      <Collapsible open={expensesOpen} onOpenChange={setExpensesOpen}>
+        <CollapsibleTrigger className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+          {expensesOpen ? <ChevronDown className="w-5 h-5" /> : <ChevronRight className="w-5 h-5" />}
+          <Receipt className="w-5 h-5 text-amber-600" />
+          <h3 className="text-lg font-semibold">Expenses</h3>
+          <span className="text-sm text-muted-foreground">({expenses.length} items)</span>
+        </CollapsibleTrigger>
+        <CollapsibleContent className="space-y-4 mt-4">
+          <ExpenseEntryForm
+            saving={savingExpense}
+            onSubmit={addExpense}
+          />
+          <ExpensesTable
+            expenses={expenses}
+            loading={loadingExpenses}
+            onDelete={deleteExpense}
+          />
+        </CollapsibleContent>
+      </Collapsible>
 
       <Separator />
 
