@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
-import { Send, Loader2, Bot, User, MessageCircle, Download, Save, History, Trash2, ChevronDown, ChevronUp, X } from 'lucide-react';
+import { Send, Loader2, Bot, User, MessageCircle, Download, Save, History, Trash2, ChevronDown, ChevronUp, X, Mail } from 'lucide-react';
+import { useAutoEmail } from '@/hooks/useAutoEmail';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
@@ -32,6 +33,7 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const micRef = useRef<EnhancedBrowserMicRef>(null);
   const { sessions, loading: historyLoading, saveSession, deleteSession } = useMeetingQAHistory(meetingId);
+  const { sendEmailAutomatically, isSending: isEmailSending } = useAutoEmail();
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -123,6 +125,18 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
     await saveSession(title, messages);
   };
 
+  const handleEmailChat = async () => {
+    if (messages.length === 0) return;
+    
+    const content = messages.map(m => 
+      `**${m.role === 'user' ? 'Question' : 'Answer'}:**\n\n${m.content}`
+    ).join('\n\n---\n\n');
+    
+    const header = `# Meeting Q&A Chat\n\n**Meeting:** ${meetingTitle}\n\n---\n\n`;
+    
+    await sendEmailAutomatically(header + content, `Meeting Q&A - ${meetingTitle}`);
+  };
+
   const handleLoadSession = (sessionMessages: Message[]) => {
     setMessages(sessionMessages);
     setHistoryOpen(false);
@@ -164,6 +178,19 @@ export const MeetingQAPanel = ({ meetingId, meetingTitle }: MeetingQAPanelProps)
                     title="Save chat"
                   >
                     <Save className="h-4 w-4" />
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    onClick={handleEmailChat}
+                    disabled={isEmailSending}
+                    title="Email to me"
+                  >
+                    {isEmailSending ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Mail className="h-4 w-4" />
+                    )}
                   </Button>
                   <Button 
                     variant="ghost" 
