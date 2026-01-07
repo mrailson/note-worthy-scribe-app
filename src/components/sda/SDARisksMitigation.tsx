@@ -698,7 +698,7 @@ export const SDARisksMitigation = () => {
                         bg: 'bg-gradient-to-br from-slate-50 to-slate-100',
                         border: 'border-slate-200',
                         badge: 'bg-slate-100 text-slate-600 border-slate-300',
-                        badgeText: 'Low Priority',
+                        badgeText: 'Pending Review',
                         numberBg: 'bg-slate-400'
                       }
                     };
