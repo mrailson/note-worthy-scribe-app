@@ -271,7 +271,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                            className="cursor-pointer py-3"
                          >
                            <Users className="h-4 w-4 mr-2" />
-                           Organisation Management
+                           My Team/Users Management
                          </DropdownMenuItem>
                        )}
 
@@ -443,11 +443,11 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        <DropdownMenuItem 
                          onClick={() => navigate('/practice-admin')}
                          className="cursor-pointer py-3"
-                       >
-                         <Users className="h-4 w-4 mr-2" />
-                         Organisation Management
-                       </DropdownMenuItem>
-                     )}
+                        >
+                          <Users className="h-4 w-4 mr-2" />
+                          My Team/Users Management
+                        </DropdownMenuItem>
+                      )}
                    
                    {/* System Admin Menu */}
                    {isSystemAdmin && (
@@ -674,10 +674,10 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                {!isOakLaneNonAdmin && (isPracticeManager || isPcnManager || isSystemAdmin) && (
                                  <DrawerClose asChild>
                                    <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/practice-admin')}>
-                                     <Users className="h-4 w-4 mr-2" />
-                                     Organisation Management
-                                   </Button>
-                                 </DrawerClose>
+                                      <Users className="h-4 w-4 mr-2" />
+                                      My Team/Users Management
+                                    </Button>
+                                  </DrawerClose>
                                )}
                                 
                                 {/* NRES Dashboard - Always visible */}
