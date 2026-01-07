@@ -385,13 +385,22 @@ const handler = async (req: Request): Promise<Response> => {
       // Convert to base64 for attachment
       const base64Content = btoa(String.fromCharCode(...wordDocBuffer));
       
+      // Create a descriptive filename from the subject (sanitise for filename)
+      const sanitisedSubject = subject
+        .replace(/[^a-zA-Z0-9\s-]/g, '') // Remove special chars
+        .replace(/\s+/g, '-') // Replace spaces with hyphens
+        .substring(0, 50) // Limit length
+        .replace(/-+$/, ''); // Remove trailing hyphens
+      
+      const filename = sanitisedSubject ? `${sanitisedSubject}.docx` : 'AI4PM-Chat-Summary.docx';
+      
       emailOptions.attachments = [
         {
-          filename: "AI4PM-Chat-Summary.docx",
+          filename: filename,
           content: base64Content,
         },
       ];
-      console.log("Word document attached");
+      console.log("Word document attached:", filename);
     }
 
     const emailResponse = await resend.emails.send(emailOptions);
