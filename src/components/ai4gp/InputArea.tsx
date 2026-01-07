@@ -235,11 +235,6 @@ ${pastedText.trim()}
     }));
     setUploadedFiles(prev => [...prev, ...loadingFiles]);
 
-    toast({
-      title: `${files.length} file${files.length > 1 ? 's' : ''} added`,
-      description: "Processing files for analysis...",
-    });
-
     try {
       const processedFiles = await processFilesWithValidation(files);
       // Replace loading files with processed ones
