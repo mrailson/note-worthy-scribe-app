@@ -438,17 +438,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                        </DropdownMenuItem>
                      )}
                      
-                     {/* Hide Manage Attendees for Oak Lane non-admin users */}
-                     {!isOakLaneNonAdmin && (
-                       <DropdownMenuItem 
-                         onClick={() => navigate('/attendees')}
-                         className="cursor-pointer py-3"
-                       >
-                         <Users className="h-4 w-4 mr-2" />
-                         Manage Meeting Attendees/Templates
-                       </DropdownMenuItem>
-                     )}
-                     
                      {/* Show Organisation Management for practice_manager, pcn_manager, or system admin */}
                      {!isOakLaneNonAdmin && (isPracticeManager || isPcnManager || isSystemAdmin) && (
                        <DropdownMenuItem 
@@ -690,18 +679,8 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                    </Button>
                                  </DrawerClose>
                                )}
-                               
-                               {/* Hide Manage Attendees for Oak Lane non-admin users */}
-                               {!isOakLaneNonAdmin && (
-                                 <DrawerClose asChild>
-                                   <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/attendees')}>
-                                      <Users className="h-4 w-4 mr-2" />
-                                      Manage Meeting Attendees/Templates
-                                   </Button>
-                                 </DrawerClose>
-                               )}
-                               
-                               {/* NRES Dashboard - Always visible */}
+                                
+                                {/* NRES Dashboard - Always visible */}
                                <DrawerClose asChild>
                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/NRESDashboard')}>
                                    <LayoutDashboard className="h-4 w-4 mr-2" />

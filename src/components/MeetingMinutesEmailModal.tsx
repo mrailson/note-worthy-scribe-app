@@ -5,9 +5,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Mail, Send, X, Users } from "lucide-react";
+import { Mail, Send, X, Users, List, ChevronDown } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useDistributionLists } from "@/hooks/useDistributionLists";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface MeetingMinutesEmailModalProps {
   isOpen: boolean;
@@ -44,6 +51,29 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
   const [body, setBody] = useState("");
   const [sending, setSending] = useState(false);
   const [freshNotes, setFreshNotes] = useState<string>("");
+  
+  const { distributionLists, getEmailsFromList } = useDistributionLists();
+
+  const handleSelectDistributionList = async (listId: string, listName: string) => {
+    const emails = getEmailsFromList(listId);
+    if (emails.length === 0) {
+      toast.error("No members with email addresses in this distribution list");
+      return;
+    }
+    
+    // Add emails to CC field, avoiding duplicates
+    const existingEmails = ccRaw.split(/[,;\s]+/).map(s => s.trim().toLowerCase()).filter(Boolean);
+    const newEmails = emails.filter(e => !existingEmails.includes(e.toLowerCase()) && e.toLowerCase() !== toEmail.toLowerCase());
+    
+    if (newEmails.length === 0) {
+      toast.info("All members from this list are already added");
+      return;
+    }
+    
+    const updatedCc = ccRaw ? `${ccRaw}, ${newEmails.join(', ')}` : newEmails.join(', ');
+    setCcRaw(updatedCc);
+    toast.success(`Added ${newEmails.length} recipients from "${listName}"`);
+  };
 
   // Fetch fresh notes from database when modal opens to ensure we have the latest tone-audited version
   React.useEffect(() => {
@@ -191,7 +221,32 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="cc">Add Meeting Participants (comma separated)</Label>
+            <div className="flex items-center justify-between">
+              <Label htmlFor="cc">Add Meeting Participants (comma separated)</Label>
+              {distributionLists.length > 0 && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="outline" size="sm" className="h-7 text-xs">
+                      <List className="h-3 w-3 mr-1" />
+                      Distribution Lists
+                      <ChevronDown className="h-3 w-3 ml-1" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="z-[200]">
+                    {distributionLists.map((list) => (
+                      <DropdownMenuItem
+                        key={list.id}
+                        onClick={() => handleSelectDistributionList(list.id, list.name)}
+                        className="cursor-pointer"
+                      >
+                        <Users className="h-4 w-4 mr-2" />
+                        {list.name}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
             <Input
               id="cc"
               value={ccRaw}
