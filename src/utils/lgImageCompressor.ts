@@ -36,8 +36,8 @@ export const COMPRESSION_LEVELS: Record<CompressionLevel, CompressionSettings> =
   10: { maxWidth: 9999, quality: 0.92, label: 'Original', description: 'Best quality (no resize)', estimatedSize: '~300-800 KB/page', preserveOriginalSize: true },
 };
 
-// Default tuned for balance (smaller files, still readable for clinical documents)
-export const DEFAULT_COMPRESSION_LEVEL: CompressionLevel = 4;
+// Default tuned for demo quality (high readability for clinical documents)
+export const DEFAULT_COMPRESSION_LEVEL: CompressionLevel = 9;
 
 // Skip compression if file is already under this threshold (KB)
 export const SKIP_COMPRESSION_THRESHOLD_KB = 60;
