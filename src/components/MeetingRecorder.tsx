@@ -55,6 +55,7 @@ import { TabAudioGuidanceDialog } from "@/components/meeting/TabAudioGuidanceDia
 import { AudioCaptureStatusIndicator } from "@/components/meeting/AudioCaptureStatusIndicator";
 import { QuickRecordQRLink } from "@/components/meeting/QuickRecordQRLink";
 import { TeamsTranscriptImportModal } from "@/components/meeting/TeamsTranscriptImportModal";
+import { MultiAudioImport } from "@/components/meeting/MultiAudioImport";
 import { useTranscriptionWatchdog } from "@/hooks/useTranscriptionWatchdog";
 import { TranscriptionHealthIndicator } from "@/components/meeting/TranscriptionHealthIndicator";
 
@@ -332,6 +333,7 @@ export const MeetingRecorder = ({
   // Import dialog state
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [teamsImportOpen, setTeamsImportOpen] = useState(false);
+  const [audioImportOpen, setAudioImportOpen] = useState(false);
   
   // Recording context state
   const [showContextDialog, setShowContextDialog] = useState(false);
@@ -5118,16 +5120,30 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                           </div>
                         )}
                         
-                        <div className="flex items-center justify-center gap-4">
-                          <Button
-                           onClick={startRecording}
-                           size="lg"
-                           className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
-                         >
-                           <Mic className="h-5 w-5 mr-2" />
-                           Start Recording
-                         </Button>
-                         <QuickRecordQRLink />
+                        <div className="flex flex-col items-center gap-4">
+                          <div className="flex items-center justify-center gap-4">
+                            <Button
+                             onClick={startRecording}
+                             size="lg"
+                             className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/90 hover:to-primary text-white shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 px-8 py-4 text-base font-semibold rounded-lg"
+                           >
+                             <Mic className="h-5 w-5 mr-2" />
+                             Start Recording
+                           </Button>
+                           <QuickRecordQRLink />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm text-muted-foreground">or</span>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setAudioImportOpen(true)}
+                              className="text-sm"
+                            >
+                              <Upload className="h-4 w-4 mr-2" />
+                              Import Audio File(s)
+                            </Button>
+                          </div>
                         </div>
                      </div>
                    ) : (
@@ -5847,6 +5863,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                         <DropdownMenuItem onClick={() => setTeamsImportOpen(true)}>
                           <Video className="h-4 w-4 mr-2" />Load Teams Transcript
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setAudioImportOpen(true)}>
+                          <Upload className="h-4 w-4 mr-2" />Import Audio Recording(s)
+                        </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => setImportDialogOpen(true)}>
                           <Sparkles className="h-4 w-4 mr-2" />Demonstration Meeting
                         </DropdownMenuItem>
@@ -6195,6 +6214,12 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
       <TeamsTranscriptImportModal
         open={teamsImportOpen}
         onOpenChange={setTeamsImportOpen}
+      />
+      
+      {/* Multi-Audio Import Modal */}
+      <MultiAudioImport
+        open={audioImportOpen}
+        onOpenChange={setAudioImportOpen}
       />
       
       {/* Deepgram transcription removed - backup transcription service disabled */}
