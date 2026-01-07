@@ -71,7 +71,7 @@ const januaryDecisions: BoardDecision[] = [
     title: "GMS/ES Contract Legal Review", 
     desc: "Legal advice on GMS/ES contract variation (proceeding separately from MOU).",
     status: "pending-review",
-    note: "Considered a normal recognised contract variation with lower legal concern. Separate from MOU legal review."
+    note: "Considered a normal recognised contract variation with lower legal concern. Separate from SNO MOU to Practice legal review."
   },
   { 
     id: 7, 
