@@ -264,16 +264,6 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                          </DropdownMenuItem>
                        )}
 
-                       {/* Organisation Management (practice/PCN/LMC/ICB/Neighbourhood admins) */}
-                       {!isOakLaneNonAdmin && (isPracticeManager || isPcnManager || isSystemAdmin) && (
-                         <DropdownMenuItem 
-                           onClick={() => navigate('/practice-admin')}
-                           className="cursor-pointer py-3"
-                         >
-                           <Users className="h-4 w-4 mr-2" />
-                           My Team/Users Management
-                         </DropdownMenuItem>
-                       )}
 
                        {hasModuleAccess('shared_drive_access') && isServiceVisible('shared_drive') && (
                           <DropdownMenuItem 
