@@ -96,10 +96,10 @@ const handler = async (req: Request): Promise<Response> => {
     // Generate a secure random password (user won't see this, they'll get a reset link)
     const generatedPassword = generateSecurePassword();
 
-    // Validate role is allowed for practice managers
-    const allowedRoles = ['user'];
-    if (!allowedRoles.includes(role)) {
-      throw new Error(`Practice managers can only assign these roles: ${allowedRoles.join(', ')}`);
+    // Validate role is allowed for practice managers (everything except super_admin)
+    const blockedRoles = ['super_admin', 'admin'];
+    if (blockedRoles.includes(role.toLowerCase())) {
+      throw new Error(`Practice managers cannot assign admin-level roles`);
     }
 
     // Check if user already exists and their practice assignment
