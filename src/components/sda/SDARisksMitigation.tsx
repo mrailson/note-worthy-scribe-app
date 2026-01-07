@@ -32,7 +32,7 @@ const januaryDecisions: BoardDecision[] = [
     status: "pending-review",
     options: ["Hub", "Spoke"],
     note: "Carried forward from Dec 2025 – awaiting Brook capacity review",
-    targetDate: "January 2026"
+    targetDate: "27th January 2026"
   },
   { 
     id: 2, 
@@ -54,7 +54,7 @@ const januaryDecisions: BoardDecision[] = [
     desc: "Establishing the JD and Interview groups.",
     status: "pending-review",
     note: "Carried forward – Malcolm arranging recruitment panel with PML",
-    targetDate: "January 2026"
+    targetDate: "27th January 2026"
   },
   { 
     id: 5, 
