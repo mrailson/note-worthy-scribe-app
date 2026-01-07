@@ -11,6 +11,13 @@ export interface FileProcessingStats {
   estimatedComplexity: 'low' | 'medium' | 'high';
 }
 
+// File upload limits
+export const FILE_LIMITS = {
+  MAX_FILES: 10,
+  MAX_FILE_SIZE_MB: 15,
+  MAX_FILE_SIZE_BYTES: 15 * 1024 * 1024,
+};
+
 export const useEnhancedFileProcessing = () => {
   const [processingStats, setProcessingStats] = useState<FileProcessingStats>({
     totalFiles: 0,
@@ -52,6 +59,11 @@ export const useEnhancedFileProcessing = () => {
     setIsProcessing(true);
     
     try {
+      // Validate file count limit
+      if (files.length > FILE_LIMITS.MAX_FILES) {
+        throw new Error(`Maximum ${FILE_LIMITS.MAX_FILES} files allowed per upload. You selected ${files.length}.`);
+      }
+      
       const totalSize = Array.from(files).reduce((sum, file) => sum + file.size, 0);
       
       setProcessingStats({

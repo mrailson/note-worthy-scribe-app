@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { detectDevice } from '@/utils/DeviceDetection';
+import { FileQuickActions } from './FileQuickActions';
 
 // Role-based placeholder tips
 const CLINICAL_TIPS = [
@@ -236,10 +237,15 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
       >
         <div className="p-3">
           {uploadedFiles.length > 0 && (
-            <div className="mb-2">
+            <div className="mb-2 space-y-2">
               <FileUploadArea 
                 uploadedFiles={uploadedFiles}
                 onRemoveFile={handleRemoveFile}
+              />
+              <FileQuickActions
+                uploadedFiles={uploadedFiles}
+                onSelectAction={(prompt) => setInput(prompt)}
+                disabled={isLoading}
               />
             </div>
           )}
@@ -342,6 +348,12 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
           <FileUploadArea 
             uploadedFiles={uploadedFiles}
             onRemoveFile={handleRemoveFile}
+          />
+          
+          <FileQuickActions
+            uploadedFiles={uploadedFiles}
+            onSelectAction={(prompt) => setInput(prompt)}
+            disabled={isLoading}
           />
           
           {/* Clinical Query Toggle */}

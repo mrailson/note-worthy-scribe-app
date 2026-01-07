@@ -11,6 +11,7 @@ import { EnhancedBrowserMic, EnhancedBrowserMicRef } from './EnhancedBrowserMic'
 import { useToast } from '@/hooks/use-toast';
 import { FileProcessingProgress } from './FileProcessingProgress';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
+import { FileQuickActions } from './FileQuickActions';
 
 // Role-based placeholder tips
 const CLINICAL_TIPS = [
@@ -254,6 +255,11 @@ ${pastedText.trim()}
     }
   };
 
+  const handleQuickAction = (prompt: string) => {
+    setInput(prompt);
+    textareaRef.current?.focus();
+  };
+
   return (
     <>
       {uploadedFiles.length > 0 && (
@@ -281,6 +287,12 @@ ${pastedText.trim()}
       <FileUploadArea 
         uploadedFiles={uploadedFiles}
         onRemoveFile={handleRemoveFile}
+      />
+      
+      <FileQuickActions
+        uploadedFiles={uploadedFiles}
+        onSelectAction={handleQuickAction}
+        disabled={isLoading}
       />
       
       <div className="flex gap-3">
