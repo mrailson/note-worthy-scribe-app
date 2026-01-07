@@ -322,7 +322,7 @@ export function AdminClaimsReport() {
                                 <h4 className="text-sm font-semibold">Entry Details</h4>
                                 <div className="text-xs space-y-1">
                                   {claim.entries
-                                    .sort((a, b) => b.work_date.localeCompare(a.work_date))
+                                    .sort((a, b) => a.work_date.localeCompare(b.work_date))
                                     .map((entry) => (
                                       <div key={entry.id} className="flex justify-between items-start py-1 border-b border-border/50 last:border-0">
                                         <div className="flex-1 min-w-0 mr-2">
