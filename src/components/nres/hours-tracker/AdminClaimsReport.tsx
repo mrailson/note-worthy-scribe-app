@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { HoverCard, HoverCardContent, HoverCardTrigger } from '@/components/ui/hover-card';
 import { ChevronDown, ChevronRight, Users, Download, Loader2, Calendar } from 'lucide-react';
 import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
@@ -18,6 +19,7 @@ interface UserClaim {
   total_hours: number;
   total_amount: number;
   entry_count: number;
+  entries: AllEntry[];
 }
 
 interface AllEntry {
@@ -141,6 +143,7 @@ export function AdminClaimsReport() {
         existing.total_hours += Number(entry.duration_hours);
         existing.total_amount += amount;
         existing.entry_count += 1;
+        existing.entries.push(entry);
       } else {
         userMap.set(userId, {
           user_id: userId,
@@ -148,7 +151,8 @@ export function AdminClaimsReport() {
           practice_name: profile.practice_name,
           total_hours: Number(entry.duration_hours),
           total_amount: amount,
-          entry_count: 1
+          entry_count: 1,
+          entries: [entry]
         });
       }
     });
@@ -307,7 +311,36 @@ export function AdminClaimsReport() {
                         <TableCell className="font-medium">{claim.user_name}</TableCell>
                         <TableCell className="text-muted-foreground">{claim.practice_name}</TableCell>
                         <TableCell className="text-center">
-                          <Badge variant="secondary">{claim.entry_count}</Badge>
+                          <HoverCard>
+                            <HoverCardTrigger asChild>
+                              <Badge variant="secondary" className="cursor-pointer hover:bg-secondary/80">
+                                {claim.entry_count}
+                              </Badge>
+                            </HoverCardTrigger>
+                            <HoverCardContent className="w-80 max-h-64 overflow-y-auto" align="start">
+                              <div className="space-y-2">
+                                <h4 className="text-sm font-semibold">Entry Details</h4>
+                                <div className="text-xs space-y-1">
+                                  {claim.entries
+                                    .sort((a, b) => b.work_date.localeCompare(a.work_date))
+                                    .map((entry) => (
+                                      <div key={entry.id} className="flex justify-between items-start py-1 border-b border-border/50 last:border-0">
+                                        <div>
+                                          <span className="font-medium">{format(parseISO(entry.work_date), 'dd/MM/yyyy')}</span>
+                                          <span className="text-muted-foreground ml-2">
+                                            {entry.start_time.substring(0, 5)} - {entry.end_time.substring(0, 5)}
+                                          </span>
+                                          {entry.activity_type && (
+                                            <div className="text-muted-foreground">{entry.activity_type}</div>
+                                          )}
+                                        </div>
+                                        <span className="font-medium">{Number(entry.duration_hours).toFixed(2)} hrs</span>
+                                      </div>
+                                    ))}
+                                </div>
+                              </div>
+                            </HoverCardContent>
+                          </HoverCard>
                         </TableCell>
                         <TableCell className="text-right">{claim.total_hours.toFixed(2)} hrs</TableCell>
                         <TableCell className="text-right font-medium">£{claim.total_amount.toFixed(2)}</TableCell>
