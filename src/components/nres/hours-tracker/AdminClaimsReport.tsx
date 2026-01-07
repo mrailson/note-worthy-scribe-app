@@ -6,8 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { ChevronDown, ChevronRight, Users, Download, Loader2 } from 'lucide-react';
-import { format, startOfMonth, endOfMonth, parseISO, isWithinInterval } from 'date-fns';
+import { ChevronDown, ChevronRight, Users, Download, Loader2, Calendar } from 'lucide-react';
+import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval } from 'date-fns';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -208,6 +208,47 @@ export function AdminClaimsReport() {
         </CollapsibleTrigger>
         <CollapsibleContent>
           <CardContent className="space-y-4">
+            {/* Quick Date Filters */}
+            <div className="flex flex-wrap gap-2 mb-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setStartDate(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
+                  setEndDate(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
+                }}
+                className="text-xs"
+              >
+                <Calendar className="w-3 h-3 mr-1" />
+                This Month
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  const lastMonth = subMonths(new Date(), 1);
+                  setStartDate(format(startOfMonth(lastMonth), 'yyyy-MM-dd'));
+                  setEndDate(format(endOfMonth(lastMonth), 'yyyy-MM-dd'));
+                }}
+                className="text-xs"
+              >
+                <Calendar className="w-3 h-3 mr-1" />
+                Last Month
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  setStartDate('2020-01-01');
+                  setEndDate(format(new Date(), 'yyyy-MM-dd'));
+                }}
+                className="text-xs"
+              >
+                <Calendar className="w-3 h-3 mr-1" />
+                All Time
+              </Button>
+            </div>
+
             {/* Date Range Selection */}
             <div className="flex flex-wrap gap-4 items-end">
               <div>
