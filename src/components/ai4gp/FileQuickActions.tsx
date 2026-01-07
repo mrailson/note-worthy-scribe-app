@@ -59,7 +59,7 @@ const AUDIO_ACTIONS = [
     id: 'audio-report',
     label: 'Audio Report',
     icon: FileAudio,
-    prompt: 'Create a detailed report on this audio including: any dates/times mentioned, estimated duration, full transcription, key topics discussed, participants (if identifiable), any action items mentioned, and a brief summary',
+    prompt: 'Create a detailed report on this audio including: any dates/times mentioned, estimated duration, key topics discussed, participants (if identifiable), any action items mentioned, and a brief summary. Then provide the full transcription with proper punctuation and well-spaced paragraphs for readability.',
     minFiles: 1,
   },
   {
