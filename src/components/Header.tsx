@@ -445,7 +445,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                          className="cursor-pointer py-3"
                        >
                          <Users className="h-4 w-4 mr-2" />
-                         Manage Attendees
+                         Manage Meeting Attendees/Templates
                        </DropdownMenuItem>
                      )}
                      
@@ -695,8 +695,8 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                {!isOakLaneNonAdmin && (
                                  <DrawerClose asChild>
                                    <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/attendees')}>
-                                     <Users className="h-4 w-4 mr-2" />
-                                     Manage Attendees
+                                      <Users className="h-4 w-4 mr-2" />
+                                      Manage Meeting Attendees/Templates
                                    </Button>
                                  </DrawerClose>
                                )}
