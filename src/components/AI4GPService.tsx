@@ -825,6 +825,7 @@ const AI4GPService = () => {
                         isClinical={isClinical}
                         setIsClinical={setIsClinical}
                         onNewChat={handleNewSearch}
+                        userRole={practiceContext?.userRole}
                       />
                     </div>
                   )}
@@ -848,6 +849,7 @@ const AI4GPService = () => {
           isLoading={isLoading}
           isClinical={isClinical}
           setIsClinical={setIsClinical}
+          userRole={practiceContext?.userRole}
         />
       )}
 

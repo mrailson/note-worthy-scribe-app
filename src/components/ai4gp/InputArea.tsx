@@ -1,4 +1,4 @@
-import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState } from 'react';
+import React, { useRef, forwardRef, useImperativeHandle, useEffect, useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -12,6 +12,40 @@ import { useToast } from '@/hooks/use-toast';
 import { FileProcessingProgress } from './FileProcessingProgress';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
 
+// Role-based placeholder tips
+const CLINICAL_TIPS = [
+  "Ask about NICE guidelines, drug interactions, or referral pathways...",
+  "What's the latest guidance on prescribing, clinical protocols, or treatment options...",
+  "Help with clinical letters, patient information leaflets, or treatment plans...",
+  "Check BNF guidance, calculate doses, or review QOF indicators...",
+  "Summarise uploaded documents, draft referrals, or explain conditions...",
+];
+
+const MANAGER_TIPS = [
+  "Ask about HR policies, staff management, or CQC requirements...",
+  "Help with complaint responses, practice policies, or patient communications...",
+  "Draft emails, meeting agendas, or staff announcements...",
+  "Summarise uploaded documents, create action plans, or check regulations...",
+  "Get guidance on contracts, governance, or practice operations...",
+];
+
+const DEFAULT_TIP = "Ask about NHS guidance, policies, documents, or practice operations...";
+
+const getPlaceholderTip = (role?: string): string => {
+  const clinicalRoles = ['gp', 'nurse', 'pharmacist', 'healthcare_assistant'];
+  const managerRoles = ['practice_manager', 'admin_staff', 'pcn_manager', 'icb_user', 'lmc_user'];
+  
+  if (role && clinicalRoles.includes(role)) {
+    return CLINICAL_TIPS[Math.floor(Math.random() * CLINICAL_TIPS.length)];
+  }
+  
+  if (role && managerRoles.includes(role)) {
+    return MANAGER_TIPS[Math.floor(Math.random() * MANAGER_TIPS.length)];
+  }
+  
+  return DEFAULT_TIP;
+};
+
 interface InputAreaProps {
   input: string;
   setInput: (input: string) => void;
@@ -22,6 +56,7 @@ interface InputAreaProps {
   isClinical: boolean;
   setIsClinical: (clinical: boolean) => void;
   onNewChat?: () => void;
+  userRole?: string;
 }
 
 export interface InputAreaRef {
@@ -37,7 +72,8 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   isLoading,
   isClinical,
   setIsClinical,
-  onNewChat
+  onNewChat,
+  userRole
 }, ref) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -51,6 +87,9 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
   const [showDocumentTranslate, setShowDocumentTranslate] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
+  
+  // Memoize placeholder tip so it doesn't change on every render
+  const placeholderTip = useMemo(() => getPlaceholderTip(userRole), [userRole]);
 
   useImperativeHandle(ref, () => ({
     focus: () => {
@@ -257,7 +296,7 @@ ${pastedText.trim()}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
             onPaste={handlePaste}
-            placeholder={isClinical ? "Ask about NHS guidelines, clinical protocols, prescribing, referrals..." : "Ask about NHS guidelines, clinical protocols, prescribing, referrals, or practice management..."}
+            placeholder={placeholderTip}
             className="min-h-[140px] max-h-80 resize-none bg-white border-border pr-28 pl-10 rounded-lg leading-relaxed py-4 ai4gp-text-scaled"
             disabled={isLoading}
             style={{ minHeight: '140px' }}
