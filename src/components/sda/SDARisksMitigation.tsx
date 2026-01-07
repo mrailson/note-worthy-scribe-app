@@ -110,7 +110,7 @@ const januaryDecisions: BoardDecision[] = [
     title: "Insurance Approach", 
     desc: "How practices obtain insurance for the programme.",
     status: "low-priority",
-    note: "Amanda Taylor verifying insurance amounts with each practice"
+    note: "Amanda Taylor verifying insurance amounts with each practice and SNO (PML)"
   },
 ];
 
