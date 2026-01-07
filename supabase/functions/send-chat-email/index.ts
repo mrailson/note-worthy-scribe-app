@@ -24,9 +24,9 @@ async function generateWordDoc(subject: string, chatContent: string, senderName:
   const children: Paragraph[] = [];
 
   // Title
-  children.push(
+    children.push(
     new Paragraph({
-      text: "AI4PM Chat Summary",
+      text: "Notewell AI Chat Summary",
       heading: HeadingLevel.HEADING_1,
     })
   );
@@ -152,7 +152,7 @@ const handler = async (req: Request): Promise<Response> => {
         </head>
         <body>
           <div class="header">
-            <h1>AI4PM Chat Summary</h1>
+            <h1>Notewell AI Chat Summary</h1>
             <div class="from">Shared by ${senderName}</div>
           </div>
           <div class="content">
@@ -161,7 +161,7 @@ const handler = async (req: Request): Promise<Response> => {
             ${includeWordDoc ? `<div class="attachment-note">📎 A Word document version is attached to this email.</div>` : ''}
           </div>
           <div class="footer">
-            <p>This email was sent from AI4PM - AI for Practice Management</p>
+            <p>This email was sent from Notewell AI</p>
           </div>
         </body>
       </html>
