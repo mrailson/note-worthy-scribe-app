@@ -76,9 +76,6 @@ export const useEnhancedFileProcessing = () => {
         
         if (validation.issues.length > 0) {
           console.warn(`File ${processedFile.name} has issues:`, validation.issues);
-          toast.warning(`File ${processedFile.name} processed with warnings`, {
-            description: validation.issues.join('; ')
-          });
         }
 
         // Update stats
@@ -106,17 +103,6 @@ export const useEnhancedFileProcessing = () => {
       });
 
       const processedFiles = await Promise.all(filePromises);
-      
-      const hasAnyNumericalData = processedFiles.some(f => f.metadata?.hasNumericalData);
-      
-      if (hasAnyNumericalData) {
-        toast.success(`${processedFiles.length} file(s) processed successfully`, {
-          description: 'Numerical data detected - calculations will be double-checked'
-        });
-      } else {
-        toast.success(`${processedFiles.length} file(s) processed successfully`);
-      }
-      
       return processedFiles;
       
     } catch (error) {
@@ -146,7 +132,6 @@ export const useEnhancedFileProcessing = () => {
       chunks.push(files.slice(i, i + maxChunkSize));
     }
 
-    toast.info(`Large file set detected - processing in ${chunks.length} chunks for better accuracy`);
     return chunks;
   }, []);
 
