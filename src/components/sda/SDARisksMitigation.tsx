@@ -23,65 +23,99 @@ interface BoardDecision {
   notPreferred?: string;
 }
 
-const decisions: BoardDecision[] = [
+// January 2026 Decision Pipeline - Pending items carried forward
+const januaryDecisions: BoardDecision[] = [
   { 
     id: 1, 
     title: "Brook Hub/Spoke Status", 
     desc: "Designation for April go-live – Brook practice currently reviewing capacity.",
     status: "pending-review",
     options: ["Hub", "Spoke"],
-    note: "To be confirmed by 15th January deadline for next Programme Board meeting",
-    targetDate: "15 January 2025"
+    note: "Carried forward from Dec 2025 – awaiting Brook capacity review",
+    targetDate: "January 2026"
   },
   { 
     id: 2, 
-    title: "ToR Ratification", 
-    desc: "Approval of final Governance framework.",
-    status: "ready",
-    note: "✓ Ratified at Programme Board meeting on 23 December 2024"
-  },
-  { 
-    id: 3, 
     title: "Innovation Pilots", 
     desc: "Agreement on specific Part B clinics (Frailty/COPD).",
     status: "pending-review",
-    note: "Ongoing as of 23 December 2024 – to be discussed at next Programme Board"
+    note: "Carried forward – Part B options and outcomes still under consideration"
   },
   { 
-    id: 4, 
-    title: "Recruitment Model", 
-    desc: "How staff are employed for the SDA programme.",
-    status: "ready",
-    note: "✓ Decision reached – Malcolm to create job adverts for Indeed and NHS Jobs and feedback to Board"
-  },
-  { 
-    id: 5, 
-    title: "Legal Review for LES", 
-    desc: "Whether legal review is required for the LES enhancement to GMS contract.",
-    status: "ready",
-    note: "✓ Actioned – Joining with Wellingborough to Hensons Solicitors via LMC for review of GMS proposed changes. Feedback to Programme Board"
-  },
-  { 
-    id: 6, 
+    id: 3, 
     title: "Insurance Approach", 
     desc: "How practices obtain insurance for the programme.",
     status: "pending-review",
-    note: "Amanda Taylor to contact each practice to verify insurance amounts as requested in contract and identify any shortfalls"
+    note: "Carried forward – Amanda Taylor verifying insurance amounts with each practice"
   },
   { 
-    id: 7, 
-    title: "PPG Protocol", 
-    desc: "Patient Participation Group protocol and nominee numbers per practice.",
-    status: "ready",
-    note: "✓ Process agreed by Board – to be shared with Practice Managers and directly to PPGs for participation in next Board meetings"
-  },
-  { 
-    id: 8, 
+    id: 4, 
     title: "Recruitment Panels", 
     desc: "Establishing the JD and Interview groups.",
     status: "pending-review",
-    note: "Malcolm to reach out to PML to arrange new recruitment panel. Update by 15th January for next Board meeting",
-    targetDate: "15 January 2025"
+    note: "Carried forward – Malcolm arranging recruitment panel with PML",
+    targetDate: "January 2026"
+  },
+  { 
+    id: 5, 
+    title: "Host Organisation", 
+    desc: "Determine whether PML or individual practice will host employed staff.",
+    status: "decision-required",
+    options: ["PML", "Practice"],
+    note: "NEW – Critical decision required for recruitment to proceed"
+  },
+  { 
+    id: 6, 
+    title: "Hub & Spoke Model", 
+    desc: "Finalise the estates model for hub and spoke locations.",
+    status: "pending-review",
+    note: "Hub and spoke sessions ongoing – required for equipment procurement"
+  },
+  { 
+    id: 7, 
+    title: "Equipment Procurement", 
+    desc: "Agree equipment inventory and costings for clinical/non-clinical items.",
+    status: "pending-review",
+    note: "Dependent on Hub/Spoke model agreement"
+  },
+  { 
+    id: 8, 
+    title: "Digital Access (ICE/SystmOne)", 
+    desc: "Confirm ICE ordering access and SystmOne slot type configuration.",
+    status: "pending-review",
+    note: "ICB digital team engagement ongoing"
+  },
+];
+
+// 23 December 2025 Decision Pipeline - Approved items only
+const decemberDecisions: BoardDecision[] = [
+  { 
+    id: 1, 
+    title: "ToR Ratification", 
+    desc: "Approval of final Governance framework.",
+    status: "ready",
+    note: "✓ Ratified at Programme Board meeting on 23 December 2025"
+  },
+  { 
+    id: 2, 
+    title: "Recruitment Model", 
+    desc: "How staff are employed for the SDA programme.",
+    status: "ready",
+    note: "✓ Decision reached – Malcolm to create job adverts for Indeed and NHS Jobs"
+  },
+  { 
+    id: 3, 
+    title: "Legal Review for LES", 
+    desc: "Whether legal review is required for the LES enhancement to GMS contract.",
+    status: "ready",
+    note: "✓ Actioned – Joining with Wellingborough to Hensons Solicitors via LMC for review"
+  },
+  { 
+    id: 4, 
+    title: "PPG Protocol", 
+    desc: "Patient Participation Group protocol and nominee numbers per practice.",
+    status: "ready",
+    note: "✓ Process agreed by Board – to be shared with Practice Managers and PPGs"
   },
 ];
 
@@ -554,27 +588,24 @@ export const SDARisksMitigation = () => {
           </Card>
         </AccordionItem>
 
-        {/* Board Decisions Pipeline */}
-        <AccordionItem value="board-decisions" className="border-0">
+        {/* January 2026 Decision Pipeline */}
+        <AccordionItem value="january-decisions" className="border-0">
           <Card className="bg-white border-0 shadow-sm">
             <AccordionTrigger className="hover:no-underline px-6 py-4 [&[data-state=open]>div>svg.chevron]:rotate-180">
               <div className="flex items-center justify-between w-full pr-4">
                 <div className="flex items-center gap-3">
                   <Users className="w-6 h-6 text-[#005EB8]" />
                   <div className="text-left">
-                    <CardTitle className="text-lg font-semibold text-slate-900">Board Decisions Pipeline: 23 Dec 2025</CardTitle>
-                    <p className="text-sm text-slate-500">Key decisions required at the upcoming Board meeting</p>
+                    <CardTitle className="text-lg font-semibold text-slate-900">Board Decisions Pipeline: January 2026</CardTitle>
+                    <p className="text-sm text-slate-500">Key decisions pending for the January Board meeting</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
                   <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
-                    {decisions.filter(d => d.status === 'decision-required').length} Decision Required
+                    {januaryDecisions.filter(d => d.status === 'decision-required').length} Decision Required
                   </Badge>
                   <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">
-                    {decisions.filter(d => d.status === 'pending-review').length} Pending Review
-                  </Badge>
-                  <Badge variant="outline" className="bg-blue-50 text-[#005EB8] border-[#005EB8]">
-                    {decisions.filter(d => d.status === 'ready').length} Ready
+                    {januaryDecisions.filter(d => d.status === 'pending-review').length} Pending Review
                   </Badge>
                   <ChevronDown className="chevron h-5 w-5 text-slate-500 transition-transform duration-200" />
                 </div>
@@ -583,7 +614,7 @@ export const SDARisksMitigation = () => {
             <AccordionContent>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 pt-4">
-                  {decisions.map((decision) => {
+                  {januaryDecisions.map((decision) => {
                     const statusStyles = {
                       'decision-required': {
                         bg: 'bg-gradient-to-br from-red-50 to-red-100',
@@ -652,6 +683,66 @@ export const SDARisksMitigation = () => {
                             <Clock className="w-3 h-3" />
                             <span>Target: {decision.targetDate}</span>
                           </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </AccordionContent>
+          </Card>
+        </AccordionItem>
+
+        {/* 23 December 2025 Decision Pipeline - Approved Items */}
+        <AccordionItem value="december-decisions" className="border-0">
+          <Card className="bg-white border-0 shadow-sm">
+            <AccordionTrigger className="hover:no-underline px-6 py-4 [&[data-state=open]>div>svg.chevron]:rotate-180">
+              <div className="flex items-center justify-between w-full pr-4">
+                <div className="flex items-center gap-3">
+                  <Users className="w-6 h-6 text-green-600" />
+                  <div className="text-left">
+                    <CardTitle className="text-lg font-semibold text-slate-900">Board Decisions Pipeline: 23 Dec 2025</CardTitle>
+                    <p className="text-sm text-slate-500">Decisions approved at the December Board meeting</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3">
+                  <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                    {decemberDecisions.length} Approved by Board
+                  </Badge>
+                  <ChevronDown className="chevron h-5 w-5 text-slate-500 transition-transform duration-200" />
+                </div>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5 pt-4">
+                  {decemberDecisions.map((decision) => {
+                    const styles = {
+                      bg: 'bg-gradient-to-br from-green-50 to-green-100',
+                      border: 'border-green-200',
+                      badge: 'bg-green-100 text-green-700 border-green-300',
+                      badgeText: 'Approved by Board',
+                      numberBg: 'bg-green-600'
+                    };
+                    
+                    return (
+                      <div 
+                        key={decision.id} 
+                        className={`relative ${styles.bg} rounded-lg p-4 border ${styles.border}`}
+                      >
+                        <div className={`absolute -top-3 -left-3 w-8 h-8 rounded-full ${styles.numberBg} flex items-center justify-center text-white font-bold text-sm`}>
+                          {decision.id}
+                        </div>
+                        <div className="flex justify-end mb-2">
+                          <Badge variant="outline" className={`${styles.badge} text-[10px]`}>
+                            {styles.badgeText}
+                          </Badge>
+                        </div>
+                        <h4 className="font-semibold text-slate-900">{decision.title}</h4>
+                        <p className="text-sm text-slate-600 mt-1">{decision.desc}</p>
+                        
+                        {decision.note && (
+                          <p className="text-[11px] text-green-700 mt-2 italic">{decision.note}</p>
                         )}
                       </div>
                     );
