@@ -46,6 +46,7 @@ export default function EnhancedFindReplacePanel({
   const [showCorrectionManager, setShowCorrectionManager] = useState(false);
   const [preserveCase, setPreserveCase] = useState(true);
   const [wholeWordsOnly, setWholeWordsOnly] = useState(true);
+  const [saveForFuture, setSaveForFuture] = useState(false);
 
   // Real-time scanning as user types
   const scanForChanges = useCallback(() => {
@@ -159,14 +160,29 @@ export default function EnhancedFindReplacePanel({
 
     onApply(updatedText);
     
+    // Save correction for future if checkbox is ticked
+    let savedCorrection = false;
+    if (saveForFuture && findInput.trim() && replaceWith.trim()) {
+      try {
+        await userNameCorrections.addCorrection(findInput.trim(), replaceWith.trim());
+        await userNameCorrections.loadCorrections();
+        savedCorrection = true;
+      } catch (error) {
+        console.error("Failed to save correction:", error);
+      }
+    }
+    
     // Clear after applying
     setPotentialChanges([]);
     setSelectedChanges(new Set());
     setFindInput("");
+    setSaveForFuture(false);
     
     toast({ 
       title: "Changes Applied", 
-      description: `Applied ${selectedChanges.size} changes to the text.` 
+      description: savedCorrection 
+        ? `Applied ${selectedChanges.size} changes and saved correction for future meetings.`
+        : `Applied ${selectedChanges.size} changes to the text.`
     });
   };
 
@@ -238,7 +254,7 @@ export default function EnhancedFindReplacePanel({
         </div>
 
         {/* Options */}
-        <div className="flex items-center gap-4 text-sm">
+        <div className="flex flex-wrap items-center gap-4 text-sm">
           <label className="flex items-center gap-2 cursor-pointer">
             <input
               type="checkbox"
@@ -256,6 +272,15 @@ export default function EnhancedFindReplacePanel({
               className="rounded"
             />
             Whole words only
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={saveForFuture}
+              onChange={(e) => setSaveForFuture(e.target.checked)}
+              className="rounded"
+            />
+            Save for future meetings
           </label>
         </div>
       </div>
@@ -292,7 +317,7 @@ export default function EnhancedFindReplacePanel({
             </div>
           </div>
 
-          <ScrollArea className="max-h-[300px] border rounded-lg">
+          <ScrollArea className="h-[400px] border rounded-lg">
             <div className="p-2 space-y-2">
               {potentialChanges.map((change) => (
                 <ChangePreviewItem
@@ -304,39 +329,32 @@ export default function EnhancedFindReplacePanel({
               ))}
             </div>
           </ScrollArea>
+          {potentialChanges.length > 3 && (
+            <p className="text-xs text-muted-foreground text-center">
+              Scroll to see all {potentialChanges.length} matches
+            </p>
+          )}
 
           {/* Action Buttons */}
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={() => setShowCorrectionManager(true)}
-                variant="outline"
-                size="sm"
-                className="gap-2"
-              >
-                <BookOpen className="h-3 w-3" />
-                Manage Corrections
-              </Button>
-            </div>
+            <Button
+              onClick={() => setShowCorrectionManager(true)}
+              variant="outline"
+              size="sm"
+              className="gap-2"
+            >
+              <BookOpen className="h-3 w-3" />
+              Manage Corrections
+            </Button>
 
-            <div className="flex items-center gap-2">
-              <Button
-                onClick={saveAsCorrection}
-                variant="outline"
-                size="sm"
-                disabled={!findInput.trim() || !replaceWith.trim()}
-              >
-                Save for Future
-              </Button>
-              <Button
-                onClick={applySelectedChanges}
-                disabled={selectedChanges.size === 0}
-                className="gap-2"
-              >
-                <Replace className="h-4 w-4" />
-                Apply {selectedChanges.size > 0 ? `${selectedChanges.size} ` : ''}Changes
-              </Button>
-            </div>
+            <Button
+              onClick={applySelectedChanges}
+              disabled={selectedChanges.size === 0}
+              className="gap-2"
+            >
+              <Replace className="h-4 w-4" />
+              Apply {selectedChanges.size > 0 ? `${selectedChanges.size} ` : ''}Changes
+            </Button>
           </div>
         </div>
       )}
