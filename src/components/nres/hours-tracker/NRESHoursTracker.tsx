@@ -6,6 +6,7 @@ import { ExpenseEntryForm } from './ExpenseEntryForm';
 import { ExpensesTable } from './ExpensesTable';
 import { TrackerSummary } from './TrackerSummary';
 import { TrackerReportModal } from './TrackerReportModal';
+import { AdminClaimsReport } from './AdminClaimsReport';
 import { useNRESUserSettings } from '@/hooks/useNRESUserSettings';
 import { useNRESHoursTracker } from '@/hooks/useNRESHoursTracker';
 import { useNRESExpenses } from '@/hooks/useNRESExpenses';
@@ -104,6 +105,11 @@ export function NRESHoursTracker() {
           onDelete={deleteExpense}
         />
       </div>
+
+      <Separator />
+
+      {/* Admin Report Section - only visible to authorised users */}
+      <AdminClaimsReport />
     </div>
   );
 }
