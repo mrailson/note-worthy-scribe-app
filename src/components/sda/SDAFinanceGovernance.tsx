@@ -530,7 +530,7 @@ export const SDAFinanceGovernance = () => {
                                   : 'text-green-700 border-green-400 bg-green-50'
                             }`}
                           >
-                            {formatBadgeText(ins.type, ins.amount)}
+                            {isPublicNotConfirmed ? 'Public Unconfirmed' : formatBadgeText(ins.type, ins.amount)}
                           </Badge>
                         );
                       })}
@@ -539,7 +539,7 @@ export const SDAFinanceGovernance = () => {
                           variant="outline" 
                           className="text-[10px] px-1.5 py-0.5 font-medium text-red-700 border-red-400 bg-red-50"
                         >
-                          Employers Missing
+                          Employers Unconfirmed
                         </Badge>
                       )}
                     </div>
