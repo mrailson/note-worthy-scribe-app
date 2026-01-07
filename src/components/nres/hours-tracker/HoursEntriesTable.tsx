@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Clock, Loader2, ArrowUp, ArrowDown, ArrowUpDown, Pencil } from 'lucide-react';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Trash2, Clock, Loader2, ArrowUp, ArrowDown, ArrowUpDown, Pencil, ChevronDown, ChevronRight } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import type { NRESHoursEntry } from '@/types/nresHoursTypes';
 import { ACTIVITY_TYPES } from '@/types/nresHoursTypes';
@@ -44,6 +45,7 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [sortField, setSortField] = useState<SortField | null>(null);
   const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+  const [isOpen, setIsOpen] = useState(true);
   
   // Edit state
   const [editingEntry, setEditingEntry] = useState<NRESHoursEntry | null>(null);
@@ -186,128 +188,140 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete, onUp
 
   return (
     <>
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm font-medium">Hours Entries</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2 -ml-2 font-medium hover:bg-transparent"
-                      onClick={() => handleSort('date')}
-                    >
-                      Date
-                      <SortIcon field="date" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>Time</TableHead>
-                  <TableHead>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-8 px-2 -ml-2 font-medium hover:bg-transparent"
-                      onClick={() => handleSort('duration')}
-                    >
-                      Duration
-                      <SortIcon field="duration" />
-                    </Button>
-                  </TableHead>
-                  <TableHead>Activity</TableHead>
-                  <TableHead>Notes</TableHead>
-                  {hourlyRate && (
-                    <TableHead className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-8 px-2 -mr-2 font-medium hover:bg-transparent"
-                        onClick={() => handleSort('amount')}
-                      >
-                        Amount
-                        <SortIcon field="amount" />
-                      </Button>
-                    </TableHead>
-                  )}
-                  <TableHead className="w-[80px]"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {sortedEntries.map((entry) => (
-                  <TableRow key={entry.id}>
-                    <TableCell className="font-medium">
-                      {format(new Date(entry.work_date), 'dd/MM/yyyy')}
-                    </TableCell>
-                    <TableCell>
-                      {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="secondary">
-                        {Number(entry.duration_hours).toFixed(2)} hrs
-                      </Badge>
-                    </TableCell>
-                    <TableCell>{entry.activity_type}</TableCell>
-                    <TableCell className="max-w-[200px] truncate text-muted-foreground">
-                      {entry.description || '-'}
-                    </TableCell>
-                    {hourlyRate && (
-                      <TableCell className="text-right font-medium">
-                        £{(Number(entry.duration_hours) * hourlyRate).toFixed(2)}
-                      </TableCell>
-                    )}
-                    <TableCell>
-                      <div className="flex items-center gap-1">
+      <Collapsible open={isOpen} onOpenChange={setIsOpen}>
+        <Card>
+          <CollapsibleTrigger asChild>
+            <CardHeader className="pb-3 cursor-pointer hover:bg-muted/50 transition-colors">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-medium flex items-center gap-2">
+                  {isOpen ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
+                  Hours Entries
+                  <Badge variant="secondary" className="ml-2">{entries.length}</Badge>
+                </CardTitle>
+              </div>
+            </CardHeader>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>
                         <Button
                           variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => openEditDialog(entry)}
+                          size="sm"
+                          className="h-8 px-2 -ml-2 font-medium hover:bg-transparent"
+                          onClick={() => handleSort('date')}
                         >
-                          <Pencil className="w-4 h-4" />
+                          Date
+                          <SortIcon field="date" />
                         </Button>
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button 
-                              variant="ghost" 
+                      </TableHead>
+                      <TableHead>Time</TableHead>
+                      <TableHead>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-8 px-2 -ml-2 font-medium hover:bg-transparent"
+                          onClick={() => handleSort('duration')}
+                        >
+                          Duration
+                          <SortIcon field="duration" />
+                        </Button>
+                      </TableHead>
+                      <TableHead>Activity</TableHead>
+                      <TableHead>Notes</TableHead>
+                      {hourlyRate && (
+                        <TableHead className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 -mr-2 font-medium hover:bg-transparent"
+                            onClick={() => handleSort('amount')}
+                          >
+                            Amount
+                            <SortIcon field="amount" />
+                          </Button>
+                        </TableHead>
+                      )}
+                      <TableHead className="w-[80px]"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sortedEntries.map((entry) => (
+                      <TableRow key={entry.id}>
+                        <TableCell className="font-medium">
+                          {format(new Date(entry.work_date), 'dd/MM/yyyy')}
+                        </TableCell>
+                        <TableCell>
+                          {formatTime(entry.start_time)} - {formatTime(entry.end_time)}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="secondary">
+                            {Number(entry.duration_hours).toFixed(2)} hrs
+                          </Badge>
+                        </TableCell>
+                        <TableCell>{entry.activity_type}</TableCell>
+                        <TableCell className="max-w-[200px] truncate text-muted-foreground">
+                          {entry.description || '-'}
+                        </TableCell>
+                        {hourlyRate && (
+                          <TableCell className="text-right font-medium">
+                            £{(Number(entry.duration_hours) * hourlyRate).toFixed(2)}
+                          </TableCell>
+                        )}
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive"
-                              disabled={deletingId === entry.id}
+                              className="h-8 w-8"
+                              onClick={() => openEditDialog(entry)}
                             >
-                              {deletingId === entry.id ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
-                              )}
+                              <Pencil className="w-4 h-4" />
                             </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Delete Entry</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Are you sure you want to delete this hours entry? This action cannot be undone.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancel</AlertDialogCancel>
-                              <AlertDialogAction onClick={() => handleDelete(entry.id)}>
-                                Delete
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                            <AlertDialog>
+                              <AlertDialogTrigger asChild>
+                                <Button 
+                                  variant="ghost" 
+                                  size="icon"
+                                  className="h-8 w-8 text-destructive hover:text-destructive"
+                                  disabled={deletingId === entry.id}
+                                >
+                                  {deletingId === entry.id ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <Trash2 className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </AlertDialogTrigger>
+                              <AlertDialogContent>
+                                <AlertDialogHeader>
+                                  <AlertDialogTitle>Delete Entry</AlertDialogTitle>
+                                  <AlertDialogDescription>
+                                    Are you sure you want to delete this hours entry? This action cannot be undone.
+                                  </AlertDialogDescription>
+                                </AlertDialogHeader>
+                                <AlertDialogFooter>
+                                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                                  <AlertDialogAction onClick={() => handleDelete(entry.id)}>
+                                    Delete
+                                  </AlertDialogAction>
+                                </AlertDialogFooter>
+                              </AlertDialogContent>
+                            </AlertDialog>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Edit Dialog */}
       <Dialog open={!!editingEntry} onOpenChange={(open) => !open && closeEditDialog()}>
