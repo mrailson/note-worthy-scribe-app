@@ -10,7 +10,7 @@ import { projectRisks, getRatingFromScore, getRatingBadgeStyles, getRiskTypeBadg
 
 type SortField = 'id' | 'risk' | 'riskType' | 'originalScore' | 'currentScore' | 'category' | 'owner';
 type SortDirection = 'asc' | 'desc';
-type DecisionStatus = 'decision-required' | 'pending-review' | 'ready';
+type DecisionStatus = 'decision-required' | 'pending-review' | 'ready' | 'at-risk';
 
 interface BoardDecision {
   id: number;
@@ -84,6 +84,29 @@ const januaryDecisions: BoardDecision[] = [
     desc: "Confirm ICE ordering access and SystmOne slot type configuration.",
     status: "pending-review",
     note: "ICB digital team engagement ongoing"
+  },
+  { 
+    id: 9, 
+    title: "SNO-Practice MOU Agreement", 
+    desc: "MOU between PML and each individual practice must be agreed before legal review can proceed.",
+    status: "decision-required",
+    note: "Agenda Item #1 for 13 Jan 2026 Board. Practice partners expressing significant concern. Legal advice on GMS/ES only proceeding now.",
+    targetDate: "13th January 2026"
+  },
+  { 
+    id: 10, 
+    title: "GMS/ES Contract Legal Review", 
+    desc: "Legal advice on GMS/ES contract variation (proceeding separately from MOU).",
+    status: "pending-review",
+    note: "Considered a normal recognised contract variation with lower legal concern. Separate from MOU legal review."
+  },
+  { 
+    id: 11, 
+    title: "Practice Contract Signing", 
+    desc: "All practice partners to sign amended GMS/ES contract before ICB deadline.",
+    status: "at-risk",
+    note: "Dr Ellis: 'virtually impossible' to receive MOUs, get legal advice and obtain partner signatures before ICB proposed deadline.",
+    targetDate: "ICB deadline TBC"
   },
 ];
 
@@ -619,6 +642,11 @@ export const SDARisksMitigation = () => {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
+                  {januaryDecisions.filter(d => d.status === 'at-risk').length > 0 && (
+                    <Badge variant="outline" className="bg-red-200 text-red-800 border-red-400">
+                      {januaryDecisions.filter(d => d.status === 'at-risk').length} At Risk
+                    </Badge>
+                  )}
                   <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">
                     {januaryDecisions.filter(d => d.status === 'decision-required').length} Decision Required
                   </Badge>
@@ -654,6 +682,13 @@ export const SDARisksMitigation = () => {
                         badge: 'bg-blue-100 text-blue-700 border-blue-300',
                         badgeText: 'Approved by Board',
                         numberBg: 'bg-[#005EB8]'
+                      },
+                      'at-risk': {
+                        bg: 'bg-gradient-to-br from-rose-100 to-red-200',
+                        border: 'border-red-400',
+                        badge: 'bg-red-200 text-red-800 border-red-400',
+                        badgeText: 'At Risk',
+                        numberBg: 'bg-red-700'
                       }
                     };
                     const styles = statusStyles[decision.status];
