@@ -83,34 +83,23 @@ export function AdminClaimsReport() {
         }
       });
 
-      // Get unique user IDs
-      const userIds = [...new Set(entriesData?.map(e => e.user_id) || [])];
+      // Fetch all users with their practice assignments using the RPC function
+      const { data: usersWithPractices } = await supabase
+        .rpc('get_users_with_practices');
 
-      // Fetch user profiles with names
-      const { data: profilesData } = await supabase
-        .from('profiles')
-        .select('id, full_name, email')
-        .in('id', userIds);
-
-      // Fetch practice details for each user (using user_id in practice_details)
-      const { data: practiceData } = await supabase
-        .from('practice_details')
-        .select('user_id, practice_name')
-        .in('user_id', userIds)
-        .eq('is_default', true);
-
-      const practiceMap: Record<string, string> = {};
-      practiceData?.forEach(p => {
-        practiceMap[p.user_id] = p.practice_name;
-      });
-
+      // Build profile map from users with practices
       const profileMap: Record<string, { name: string; practice_name: string }> = {};
-      profilesData?.forEach(p => {
-        profileMap[p.id] = {
-          name: p.full_name || p.email || p.id.substring(0, 8) + '...',
-          practice_name: practiceMap[p.id] || 'Not Set'
-        };
-      });
+      
+      if (usersWithPractices) {
+        usersWithPractices.forEach((u) => {
+          const assignments = u.practice_assignments as Array<{ practice_name: string }> | null;
+          const practiceName = assignments?.[0]?.practice_name || 'Not Set';
+          profileMap[u.user_id] = {
+            name: u.full_name || u.email || u.user_id.substring(0, 8) + '...',
+            practice_name: practiceName
+          };
+        });
+      }
 
       setEntries(entriesData || []);
       setUserSettings(settingsMap);
