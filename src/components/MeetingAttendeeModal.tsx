@@ -8,10 +8,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Users, Plus, Edit, Trash2, Check, Search } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Users, Plus, Edit, Trash2, Check, Search, Globe, Building2, Info, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { showToast } from "@/utils/toastWrapper";
+import { DistributionListManager } from "@/components/DistributionListManager";
 
 interface Attendee {
   id: string;
@@ -21,6 +24,7 @@ interface Attendee {
   organization?: string;
   organization_type?: 'practice' | 'neighbourhood_pcn' | 'icb' | 'lmc' | 'nhse' | 'other';
   role?: string;
+  scope?: 'global' | 'local';
 }
 
 interface AttendeeTemplate {
@@ -45,6 +49,8 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSaving, setIsSaving] = useState(false);
   const [attendeeTemplates, setAttendeeTemplates] = useState<AttendeeTemplate[]>([]);
+  const [userPracticeIds, setUserPracticeIds] = useState<string[]>([]);
+  const [hasManagerAccess, setHasManagerAccess] = useState(false);
   
   // Add/Edit attendee form state
   const [isAddingAttendee, setIsAddingAttendee] = useState(false);
@@ -55,7 +61,8 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     title: 'Dr',
     organization: '',
     organization_type: 'practice' as 'practice' | 'neighbourhood_pcn' | 'icb' | 'lmc' | 'nhse' | 'other',
-    role: ''
+    role: '',
+    scope: 'local' as 'global' | 'local'
   });
 
   // Autocomplete state
@@ -99,29 +106,50 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
 
   useEffect(() => {
     if (isOpen && user) {
+      checkUserAccess();
+    }
+  }, [isOpen, user]);
+
+  useEffect(() => {
+    if (userPracticeIds.length > 0) {
       fetchAttendees();
       fetchMeetingAttendees();
       fetchAttendeeTemplates();
     }
-  }, [isOpen, user, meetingId]);
+  }, [userPracticeIds, meetingId]);
 
-  const fetchAttendees = async () => {
-    if (!user) return;
+  const checkUserAccess = async () => {
+    if (!user?.id) return;
 
     try {
-      // Get user's practice IDs
       const { data: userRoles } = await supabase
         .rpc('get_user_roles', { _user_id: user.id });
       
-      if (!userRoles || userRoles.length === 0) return;
+      if (userRoles && userRoles.length > 0) {
+        const practiceIds = userRoles.map((role: any) => role.practice_id).filter(Boolean);
+        setUserPracticeIds(practiceIds);
+        
+        const hasAccess = userRoles.some((role: any) => 
+          role.role === 'practice_manager' || 
+          role.role === 'system_admin' ||
+          role.role === 'pcn_manager'
+        );
+        setHasManagerAccess(hasAccess);
+      }
+    } catch (error) {
+      console.error('Error checking user access:', error);
+    }
+  };
 
-      const practiceIds = userRoles.map(role => role.practice_id).filter(Boolean);
+  const fetchAttendees = async () => {
+    if (!user || userPracticeIds.length === 0) return;
 
-      // Fetch all attendees for user's practices
+    try {
+      // Fetch attendees: local ones for user's practices OR global ones owned by user
       const { data, error } = await supabase
         .from('attendees')
         .select('*')
-        .in('practice_id', practiceIds)
+        .or(`and(practice_id.in.(${userPracticeIds.join(',')}),scope.eq.local),scope.eq.global`)
         .order('name');
 
       if (error) throw error;
@@ -147,17 +175,9 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
   };
 
   const fetchAttendeeTemplates = async () => {
-    if (!user) return;
+    if (!user || userPracticeIds.length === 0) return;
 
     try {
-      // Get user's practice IDs
-      const { data: userRoles } = await supabase
-        .rpc('get_user_roles', { _user_id: user.id });
-      
-      if (!userRoles || userRoles.length === 0) return;
-
-      const practiceIds = userRoles.map(role => role.practice_id).filter(Boolean);
-
       // Fetch attendee templates for user's practices
       const { data: templates } = await supabase
         .from('attendee_templates')
@@ -167,7 +187,7 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
             attendees (*)
           )
         `)
-        .or(`practice_id.in.(${practiceIds.join(',')})`);
+        .or(`practice_id.in.(${userPracticeIds.join(',')})`);
 
       if (templates) {
         const formattedTemplates = templates.map(template => ({
@@ -274,18 +294,13 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
 
     if (!user) return;
 
+    // Check if user can create global attendees
+    if (formData.scope === 'global' && !hasManagerAccess) {
+      showToast.error('Only Practice Managers can create global attendees');
+      return;
+    }
+
     try {
-      // Get user's practice IDs
-      const { data: userRoles } = await supabase
-        .rpc('get_user_roles', { _user_id: user.id });
-      
-      if (!userRoles || userRoles.length === 0) {
-        showToast.error('No practice assigned to your account');
-        return;
-      }
-
-      const practiceIds = userRoles.map(role => role.practice_id).filter(Boolean);
-
       if (editingAttendeeId) {
         // Update existing
         const { error } = await supabase
@@ -297,25 +312,26 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
             organization: formData.organization || null,
             organization_type: formData.organization_type,
             role: formData.role || null,
+            scope: formData.scope
           })
           .eq('id', editingAttendeeId);
 
         if (error) throw error;
         showToast.success('Attendee updated', { section: 'meeting_manager' });
       } else {
-        // Insert new - always set user_id to current user (who is creating the record)
-        
+        // Insert new
         const { error } = await supabase
           .from('attendees')
           .insert({
             user_id: user.id,
-            practice_id: practiceIds[0],
+            practice_id: userPracticeIds[0] || null,
             name: formData.name,
             email: formData.email || null,
             title: formData.title || null,
             organization: formData.organization || null,
             organization_type: formData.organization_type,
             role: formData.role || null,
+            scope: formData.scope
           });
 
         if (error) throw error;
@@ -339,7 +355,8 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
       title: attendee.title || 'Dr',
       organization: attendee.organization || '',
       organization_type: attendee.organization_type || 'practice',
-      role: attendee.role || ''
+      role: attendee.role || '',
+      scope: attendee.scope || 'local'
     });
     setEditingAttendeeId(attendee.id);
     setIsAddingAttendee(true);
@@ -371,7 +388,8 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
       title: 'Dr',
       organization: '',
       organization_type: 'practice',
-      role: ''
+      role: '',
+      scope: 'local'
     });
     setEditingAttendeeId(null);
     setIsAddingAttendee(false);
@@ -405,8 +423,6 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
           code: p.practice_code || undefined
         })) || [];
       } else if (formData.organization_type === 'neighbourhood_pcn') {
-        // Search for PCNs in gp_practices table (PCNs are also listed there)
-        // or search for existing PCN organizations in attendees table
         const { data: existingPcns, error } = await supabase
           .from('attendees')
           .select('organization')
@@ -416,11 +432,9 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
 
         if (error) throw error;
 
-        // Get unique organization names
         const uniquePcns = [...new Set(existingPcns?.map(p => p.organization).filter(Boolean))];
         suggestions = uniquePcns.map(name => ({ name: name as string }));
       } else {
-        // For ICB, LMC, NHSE, and Other - search existing organizations of that type
         const { data: existingOrgs, error } = await supabase
           .from('attendees')
           .select('organization')
@@ -430,7 +444,6 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
 
         if (error) throw error;
 
-        // Get unique organization names
         const uniqueOrgs = [...new Set(existingOrgs?.map(o => o.organization).filter(Boolean))];
         suggestions = uniqueOrgs.map(name => ({ name: name as string }));
       }
@@ -447,7 +460,6 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     fetchOrgSuggestions(value);
   };
 
-  // Re-fetch suggestions when organization type changes
   const handleOrgTypeChange = (value: any) => {
     setFormData({ ...formData, organization_type: value, organization: '' });
     setOrgSuggestions([]);
@@ -498,6 +510,25 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
     }
   };
 
+  const getScopeBadge = (scope?: string) => {
+    if (scope === 'global') {
+      return {
+        icon: <Globe className="h-3 w-3" />,
+        label: 'Global',
+        className: 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+      };
+    }
+    return {
+      icon: <Building2 className="h-3 w-3" />,
+      label: 'Local',
+      className: 'bg-green-50 text-green-700 dark:bg-green-950 dark:text-green-300'
+    };
+  };
+
+  // Separate attendees by scope for display
+  const globalAttendees = allAttendees.filter(a => a.scope === 'global');
+  const localAttendees = allAttendees.filter(a => a.scope !== 'global');
+
   const filteredAttendees = allAttendees.filter(attendee =>
     attendee.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     attendee.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -518,10 +549,14 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
         </DialogHeader>
 
         <Tabs defaultValue="quick-pick" className="w-full">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="quick-pick">Quick Pick ({selectedAttendeeIds.length})</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
-            <TabsTrigger value="manage">Manage Global List</TabsTrigger>
+            <TabsTrigger value="manage">Manage Attendees</TabsTrigger>
+            <TabsTrigger value="distribution">
+              <Mail className="h-4 w-4 mr-1" />
+              Distribution Lists
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="quick-pick" className="space-y-4">
@@ -539,16 +574,33 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
               </div>
             </div>
 
+            {/* Info about scope */}
+            <Card className="bg-muted/50 border-dashed">
+              <CardContent className="p-3">
+                <div className="flex items-center gap-4 text-xs">
+                  <div className="flex items-center gap-1">
+                    <Globe className="h-3 w-3 text-blue-500" />
+                    <span className="text-muted-foreground">Global = All practices</span>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <Building2 className="h-3 w-3 text-green-500" />
+                    <span className="text-muted-foreground">Local = This practice only</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="space-y-2 max-h-[400px] overflow-y-auto">
               {filteredAttendees.length === 0 ? (
                 <Card>
                   <CardContent className="p-6 text-center text-muted-foreground">
-                    {searchQuery ? 'No attendees found matching your search' : 'No attendees available. Add them in the "Manage Global List" tab.'}
+                    {searchQuery ? 'No attendees found matching your search' : 'No attendees available. Add them in the "Manage Attendees" tab.'}
                   </CardContent>
                 </Card>
               ) : (
                 filteredAttendees.map(attendee => {
                   const orgBadge = getOrgTypeBadge(attendee.organization_type);
+                  const scopeBadge = getScopeBadge(attendee.scope);
                   const isSelected = selectedAttendeeIds.includes(attendee.id);
 
                   return (
@@ -561,10 +613,14 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
                             className="mt-1"
                           />
                           <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
+                            <div className="flex items-center gap-2 mb-1 flex-wrap">
                               <span className="font-semibold truncate">
                                 {attendee.title === 'Dr' ? `${attendee.title} ${attendee.name}` : attendee.name}
                               </span>
+                              <Badge variant="outline" className={`${scopeBadge.className} text-xs shrink-0 gap-1`}>
+                                {scopeBadge.icon}
+                                {scopeBadge.label}
+                              </Badge>
                               <Badge variant="outline" className={`${orgBadge.className} text-xs shrink-0`}>
                                 {orgBadge.icon}
                               </Badge>
@@ -693,6 +749,54 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
             {isAddingAttendee && (
               <Card>
                 <CardContent className="p-4 space-y-3">
+                  {/* Scope Toggle */}
+                  <div className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-2">
+                      {formData.scope === 'global' ? (
+                        <Globe className="h-4 w-4 text-blue-500" />
+                      ) : (
+                        <Building2 className="h-4 w-4 text-green-500" />
+                      )}
+                      <div>
+                        <p className="text-sm font-medium">
+                          {formData.scope === 'global' ? 'Global Attendee' : 'Practice Attendee'}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {formData.scope === 'global' 
+                            ? 'Available across all practices in your organisation' 
+                            : 'Only visible to this practice'}
+                        </p>
+                      </div>
+                    </div>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex items-center gap-2">
+                            {!hasManagerAccess && (
+                              <Info className="h-4 w-4 text-muted-foreground" />
+                            )}
+                            <Switch
+                              checked={formData.scope === 'global'}
+                              onCheckedChange={(checked) => {
+                                if (checked && !hasManagerAccess) {
+                                  showToast.error('Only Practice Managers can create global attendees');
+                                  return;
+                                }
+                                setFormData({ ...formData, scope: checked ? 'global' : 'local' });
+                              }}
+                              disabled={!hasManagerAccess && formData.scope !== 'global'}
+                            />
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          {hasManagerAccess 
+                            ? 'Toggle between global (all practices) and local (this practice only)'
+                            : 'Only Practice Managers can create global attendees'}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <Label htmlFor="title">Title</Label>
@@ -831,55 +935,121 @@ export const MeetingAttendeeModal = ({ isOpen, onClose, meetingId, meetingTitle 
               </Card>
             )}
 
-            <div className="space-y-2 max-h-[400px] overflow-y-auto">
-              {allAttendees.length === 0 ? (
+            {/* Attendees grouped by scope */}
+            <div className="space-y-4 max-h-[400px] overflow-y-auto">
+              {/* Global Attendees */}
+              {globalAttendees.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-blue-600 dark:text-blue-400">
+                    <Globe className="h-4 w-4" />
+                    Global Attendees ({globalAttendees.length})
+                  </div>
+                  {globalAttendees.map(attendee => {
+                    const orgBadge = getOrgTypeBadge(attendee.organization_type);
+
+                    return (
+                      <Card key={attendee.id} className="border-l-4 border-l-blue-500">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold truncate">
+                                  {attendee.title ? `${attendee.title} ${attendee.name}` : attendee.name}
+                                </span>
+                                <Badge variant="outline" className={`${orgBadge.className} text-xs shrink-0`}>
+                                  {orgBadge.icon}
+                                </Badge>
+                              </div>
+                              {attendee.email && (
+                                <div className="text-sm text-muted-foreground truncate">{attendee.email}</div>
+                              )}
+                              {attendee.organization && (
+                                <div className="text-sm text-muted-foreground truncate">{attendee.organization}</div>
+                              )}
+                              {attendee.role && (
+                                <Badge variant="secondary" className="text-xs mt-1">{attendee.role}</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => editAttendee(attendee)} className="h-8 w-8">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => deleteAttendee(attendee.id)} className="h-8 w-8 text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Local Attendees */}
+              {localAttendees.length > 0 && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-sm font-medium text-green-600 dark:text-green-400">
+                    <Building2 className="h-4 w-4" />
+                    Practice Attendees ({localAttendees.length})
+                  </div>
+                  {localAttendees.map(attendee => {
+                    const orgBadge = getOrgTypeBadge(attendee.organization_type);
+
+                    return (
+                      <Card key={attendee.id} className="border-l-4 border-l-green-500">
+                        <CardContent className="p-4">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="font-semibold truncate">
+                                  {attendee.title ? `${attendee.title} ${attendee.name}` : attendee.name}
+                                </span>
+                                <Badge variant="outline" className={`${orgBadge.className} text-xs shrink-0`}>
+                                  {orgBadge.icon}
+                                </Badge>
+                              </div>
+                              {attendee.email && (
+                                <div className="text-sm text-muted-foreground truncate">{attendee.email}</div>
+                              )}
+                              {attendee.organization && (
+                                <div className="text-sm text-muted-foreground truncate">{attendee.organization}</div>
+                              )}
+                              {attendee.role && (
+                                <Badge variant="secondary" className="text-xs mt-1">{attendee.role}</Badge>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <Button variant="ghost" size="icon" onClick={() => editAttendee(attendee)} className="h-8 w-8">
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button variant="ghost" size="icon" onClick={() => deleteAttendee(attendee.id)} className="h-8 w-8 text-destructive hover:text-destructive">
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
+                </div>
+              )}
+
+              {allAttendees.length === 0 && !isAddingAttendee && (
                 <Card>
                   <CardContent className="p-6 text-center text-muted-foreground">
-                    No attendees in the global list yet. Add your first attendee above.
+                    No attendees yet. Add your first attendee above.
                   </CardContent>
                 </Card>
-              ) : (
-                allAttendees.map(attendee => {
-                  const orgBadge = getOrgTypeBadge(attendee.organization_type);
-
-                  return (
-                    <Card key={attendee.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold truncate">
-                                {attendee.title ? `${attendee.title} ${attendee.name}` : attendee.name}
-                              </span>
-                              <Badge variant="outline" className={`${orgBadge.className} text-xs shrink-0`}>
-                                {orgBadge.icon}
-                              </Badge>
-                            </div>
-                            {attendee.email && (
-                              <div className="text-sm text-muted-foreground truncate">{attendee.email}</div>
-                            )}
-                            {attendee.organization && (
-                              <div className="text-sm text-muted-foreground truncate">{attendee.organization}</div>
-                            )}
-                            {attendee.role && (
-                              <Badge variant="secondary" className="text-xs mt-1">{attendee.role}</Badge>
-                            )}
-                          </div>
-                          <div className="flex gap-1 shrink-0">
-                            <Button variant="outline" size="sm" onClick={() => editAttendee(attendee)}>
-                              <Edit className="h-3 w-3" />
-                            </Button>
-                            <Button variant="destructive" size="sm" onClick={() => deleteAttendee(attendee.id)}>
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })
               )}
             </div>
+          </TabsContent>
+
+          <TabsContent value="distribution" className="space-y-4">
+            <DistributionListManager 
+              attendees={allAttendees} 
+              practiceId={userPracticeIds[0]}
+            />
           </TabsContent>
         </Tabs>
       </DialogContent>
