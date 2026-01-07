@@ -10,7 +10,7 @@ import { projectRisks, getRatingFromScore, getRatingBadgeStyles, getRiskTypeBadg
 
 type SortField = 'id' | 'risk' | 'riskType' | 'originalScore' | 'currentScore' | 'category' | 'owner';
 type SortDirection = 'asc' | 'desc';
-type DecisionStatus = 'decision-required' | 'pending-review' | 'ready' | 'at-risk';
+type DecisionStatus = 'decision-required' | 'pending-review' | 'ready' | 'at-risk' | 'low-priority';
 
 interface BoardDecision {
   id: number;
@@ -23,7 +23,7 @@ interface BoardDecision {
   notPreferred?: string;
 }
 
-// January 2026 Decision Pipeline - Ordered by priority (at-risk → decision-required → pending-review)
+// January 2026 Decision Pipeline - Ordered by priority (at-risk → decision-required → pending-review → low-priority)
 const januaryDecisions: BoardDecision[] = [
   // AT-RISK - Critical timeline concerns
   { 
@@ -61,55 +61,56 @@ const januaryDecisions: BoardDecision[] = [
   },
   { 
     id: 5, 
-    title: "Brook Hub/Spoke Status", 
-    desc: "Designation for April go-live – Brook practice currently reviewing capacity.",
-    status: "pending-review",
-    options: ["Hub", "Spoke"],
-    note: "Carried forward from Dec 2025 – awaiting Brook capacity review",
-    targetDate: "27th January 2026"
-  },
-  { 
-    id: 6, 
-    title: "Equipment Procurement", 
-    desc: "Agree equipment inventory and costings for clinical/non-clinical items.",
-    status: "pending-review",
-    note: "Dependent on Hub/Spoke model agreement"
-  },
-  { 
-    id: 7, 
     title: "Digital Access (ICE/SystmOne)", 
     desc: "Confirm ICE ordering access and SystmOne slot type configuration.",
     status: "pending-review",
     note: "ICB digital team engagement ongoing"
   },
   { 
-    id: 8, 
+    id: 6, 
     title: "GMS/ES Contract Legal Review", 
     desc: "Legal advice on GMS/ES contract variation (proceeding separately from MOU).",
     status: "pending-review",
     note: "Considered a normal recognised contract variation with lower legal concern. Separate from MOU legal review."
   },
   { 
-    id: 9, 
-    title: "Recruitment Panels", 
-    desc: "Establishing the JD and Interview groups.",
-    status: "pending-review",
-    note: "Malcolm arranging recruitment panel with PML",
-    targetDate: "27th January 2026"
-  },
-  { 
-    id: 10, 
-    title: "Insurance Approach", 
-    desc: "How practices obtain insurance for the programme.",
-    status: "pending-review",
-    note: "Amanda Taylor verifying insurance amounts with each practice"
-  },
-  { 
-    id: 11, 
+    id: 7, 
     title: "Innovation Pilots", 
     desc: "Agreement on specific Part B clinics (Frailty/COPD).",
     status: "pending-review",
     note: "Part B options and outcomes still under consideration"
+  },
+  // LOW PRIORITY - Can progress in parallel / less urgent
+  { 
+    id: 8, 
+    title: "Brook Hub/Spoke Status", 
+    desc: "Designation for April go-live – Brook practice currently reviewing capacity.",
+    status: "low-priority",
+    options: ["Hub", "Spoke"],
+    note: "Awaiting Brook capacity review",
+    targetDate: "27th January 2026"
+  },
+  { 
+    id: 9, 
+    title: "Equipment Procurement", 
+    desc: "Agree equipment inventory and costings for clinical/non-clinical items.",
+    status: "low-priority",
+    note: "Dependent on Hub/Spoke model agreement"
+  },
+  { 
+    id: 10, 
+    title: "Recruitment Panels", 
+    desc: "Establishing the JD and Interview groups.",
+    status: "low-priority",
+    note: "Malcolm arranging recruitment panel with PML",
+    targetDate: "27th January 2026"
+  },
+  { 
+    id: 11, 
+    title: "Insurance Approach", 
+    desc: "How practices obtain insurance for the programme.",
+    status: "low-priority",
+    note: "Amanda Taylor verifying insurance amounts with each practice"
   },
 ];
 
@@ -692,6 +693,13 @@ export const SDARisksMitigation = () => {
                         badge: 'bg-red-200 text-red-800 border-red-400',
                         badgeText: 'At Risk',
                         numberBg: 'bg-red-700'
+                      },
+                      'low-priority': {
+                        bg: 'bg-gradient-to-br from-slate-50 to-slate-100',
+                        border: 'border-slate-200',
+                        badge: 'bg-slate-100 text-slate-600 border-slate-300',
+                        badgeText: 'Low Priority',
+                        numberBg: 'bg-slate-400'
                       }
                     };
                     const styles = statusStyles[decision.status];
