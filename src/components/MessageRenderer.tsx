@@ -53,7 +53,7 @@ import { handlers } from '@/utils/quickPickHandlers';
 import { QuickPickContext, QuickPickItem } from '@/types/quickPick';
 import { CustomAIPromptModal } from '@/components/CustomAIPromptModal';
 import { CustomFindReplaceModal } from '@/components/CustomFindReplaceModal';
-import { stripMarkdown, copyPlainTextToClipboard } from '@/utils/stripMarkdown';
+import { stripMarkdown, copyPlainTextToClipboard, copyRichTextToClipboard } from '@/utils/stripMarkdown';
 import { Message, UploadedFile } from '@/types/ai4gp';
 // Calculation validation imports removed per user request
 
@@ -220,9 +220,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   
   const displayContent = message.content;
 
-  const copyMessage = () => {
-    navigator.clipboard.writeText(message.content);
-    toast.success('Message copied to clipboard');
+  const copyMessage = async () => {
+    const success = await copyRichTextToClipboard(message.content);
+    if (success) {
+      toast.success('Copied with formatting - paste into email to preserve layout');
+    } else {
+      toast.error('Failed to copy to clipboard');
+    }
   };
 
   const scrollToTop = () => {
