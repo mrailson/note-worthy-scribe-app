@@ -684,32 +684,26 @@ const AI4GPService = () => {
                       deviceInfo.isIPhone ? "p-4 pb-24" : "p-3 sm:p-6"
                     )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className="w-full max-w-2xl mx-auto space-y-4">
-                        {/* iPhone: Show quick tips and suggested searches */}
+                        {/* iPhone: Compact welcome with horizontal scrollable suggestions */}
                         {deviceInfo.isIPhone ? (
-                          <div className="space-y-4">
-                            <div className="bg-muted/50 rounded-lg p-4 space-y-2">
-                              <h3 className="font-medium text-sm text-foreground">Quick Tips</h3>
-                              <ul className="text-xs text-muted-foreground space-y-1.5">
-                                <li>• Ask clinical questions for evidence-based guidance</li>
-                                <li>• Use voice input by tapping the microphone</li>
-                                <li>• Upload documents for AI-powered analysis</li>
-                                <li>• Check history to revisit past searches</li>
-                              </ul>
-                            </div>
+                          <div className="space-y-4 text-center">
+                            <p className="text-sm text-muted-foreground">
+                              Ask anything — clinical queries, practice questions, or upload files for analysis
+                            </p>
                             
-                            <div className="space-y-2">
-                              <p className="text-xs text-muted-foreground text-center">Try these searches:</p>
-                              <div className="flex flex-col gap-2">
+                            {/* Horizontal scrollable suggestion chips */}
+                            <div className="overflow-x-auto pb-2 -mx-4 px-4">
+                              <div className="flex gap-2 w-max">
                                 {[
-                                  "Latest NICE guidance on hypertension",
-                                  "Red flag symptoms for headache",
-                                  "CQC inspection preparation tips",
-                                  "QOF targets for diabetes management"
+                                  "NICE hypertension",
+                                  "Red flags headache",
+                                  "CQC prep",
+                                  "QOF diabetes"
                                 ].map((query, index) => (
                                   <button
                                     key={index}
                                     onClick={() => setInput(query)}
-                                    className="w-full text-left px-3 py-2.5 text-sm bg-background border border-border rounded-lg hover:bg-muted transition-colors min-h-[44px]"
+                                    className="px-3 py-1.5 text-xs bg-muted hover:bg-muted/80 rounded-full whitespace-nowrap transition-colors"
                                   >
                                     {query}
                                   </button>
