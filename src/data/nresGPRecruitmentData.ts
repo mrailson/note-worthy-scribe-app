@@ -11,7 +11,7 @@ export interface GPScoringBreakdown {
 export interface GPCandidate {
   id: string;
   score: number;
-  source: 'Indeed' | 'NHS Jobs';
+  source: 'Indeed' | 'NHS Jobs' | 'BMC Practice';
   gmcNumber: string;
   gmcDetails?: string;
   cctStatus: string;
@@ -37,6 +37,7 @@ export interface GPRecruitmentSummary {
   sources: {
     indeed: number;
     nhsJobs: number;
+    bmcPractice: number;
   };
   assessmentDate: string;
 }
@@ -56,19 +57,77 @@ export const gpScoringCriteria = [
 ];
 
 export const gpRecruitmentSummary: GPRecruitmentSummary = {
-  totalApplications: 6,
-  stronglyRecommend: 1,
+  totalApplications: 7,
+  stronglyRecommend: 2,
   interviewRecommended: 2,
   doNotShortlist: 3,
   sources: {
-    indeed: 4,
-    nhsJobs: 2,
+    indeed: 2,
+    nhsJobs: 4,
+    bmcPractice: 1,
   },
-  assessmentDate: '2026-01-05',
+  assessmentDate: '2026-01-07',
 };
 
-// All 6 GP candidates with scoring data
+// All 7 GP candidates with scoring data
 export const allGPCandidates: GPCandidate[] = [
+  {
+    id: 'GP-2026-007',
+    score: 95,
+    source: 'BMC Practice',
+    gmcNumber: '7556726',
+    gmcDetails: 'Full GMC registration confirmed',
+    cctStatus: 'ST3 - CCT expected May 2026',
+    primaryQualification: 'BM BCh (Distinction) University of Oxford 2017, PhD Royal Veterinary College 2014',
+    additionalQualifications: [
+      'LoC IUT (Coil fitting)',
+      'LoC SDI (Implant fitting)',
+      'Diploma in Child Health (DCH)',
+      'PhD in Molecular Cell Biology',
+    ],
+    currentRole: 'GP ST3 - Brackley Medical Centre',
+    experience: 'Currently completing ST3 at BMC, strong academic background with Oxford distinction',
+    settings: ['General Practice', 'Care Home', 'Same-day Triage'],
+    keyRoles: [
+      'Same-day triage consultations',
+      'Care home ward rounds',
+      'Coil and implant fitting',
+      'Chronic disease management',
+      'Child health consultations',
+    ],
+    scoringBreakdown: [
+      { criterion: 'CCT Qualification', maxScore: 10, score: 9, evidence: 'ST3 - CCT expected May 2026' },
+      { criterion: 'Performers List', maxScore: 10, score: 10, evidence: 'Already working in Northamptonshire' },
+      { criterion: 'Primary Care Experience', maxScore: 10, score: 10, evidence: 'Currently at BMC, excellent training practice' },
+      { criterion: 'Chronic Disease Management', maxScore: 10, score: 10, evidence: 'Strong CDM experience during training' },
+      { criterion: 'Minor Illness Management', maxScore: 10, score: 9, evidence: 'Same-day triage experience' },
+      { criterion: 'Autonomous Practice', maxScore: 10, score: 10, evidence: 'Working autonomously at ST3 level' },
+      { criterion: 'Clinical Governance', maxScore: 10, score: 10, evidence: 'Excellent understanding from training' },
+      { criterion: 'Communication', maxScore: 10, score: 9, evidence: 'Strong patient communication skills' },
+      { criterion: 'Team Working', maxScore: 10, score: 10, evidence: 'Highly valued team member at BMC' },
+      { criterion: 'Teaching/Mentoring', maxScore: 10, score: 9, evidence: 'PhD background, teaching potential' },
+    ],
+    strengths: [
+      'PRACTICE RECOMMENDED - BMC wants to retain her for NRES',
+      'Oxford BM BCh with DISTINCTION - exceptional academic credentials',
+      'PhD in Molecular Cell Biology - research capability',
+      'Already working at BMC (NRES member practice) - knows the team',
+      'Coil and implant trained (LoC IUT/SDI) - valuable skills',
+      'Care home ward round experience - directly relevant to NRES model',
+      'Same-day triage experience',
+      'Diploma in Child Health',
+    ],
+    concerns: [
+      'CCT not until May 2026 - 4 months away',
+    ],
+    interviewQuestions: [
+      'What specifically attracts you to remaining with NRES post-CCT?',
+      'How has your PhD research background influenced your clinical practice?',
+      'Describe your experience with care home ward rounds at BMC',
+    ],
+    recommendation: 'strongly-recommend',
+    recommendationReason: 'Highest scoring candidate (95/100). Practice recommended - BMC wants to retain. Oxford distinction, PhD, already embedded in NRES practices. Exceptional candidate.',
+  },
   {
     id: 'GP-2026-004',
     score: 92,
@@ -177,7 +236,7 @@ export const allGPCandidates: GPCandidate[] = [
   {
     id: 'GP-2026-002',
     score: 85,
-    source: 'Indeed',
+    source: 'NHS Jobs',
     gmcNumber: 'Not stated - requires verification',
     gmcDetails: 'GMC number not provided in application',
     cctStatus: 'CCT 2025 (likely achieved)',
@@ -229,7 +288,7 @@ export const allGPCandidates: GPCandidate[] = [
   {
     id: 'GP-2026-003',
     score: 45,
-    source: 'Indeed',
+    source: 'NHS Jobs',
     gmcNumber: '8105603',
     gmcDetails: 'GMC registration - PLAB route only',
     cctStatus: 'No CCT - PLAB level only',
