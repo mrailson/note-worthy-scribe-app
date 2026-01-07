@@ -681,11 +681,11 @@ const AI4GPService = () => {
                     /* Welcome Screen - Compact, mobile-optimized */
                     <div className={cn(
                       "flex-1 overflow-y-auto space-y-3 sm:space-y-4",
-                      deviceInfo.isIPhone ? "p-4 pb-24" : "p-3 sm:p-6"
+                      isMobile ? "p-4 pb-24" : "p-3 sm:p-6"
                     )} style={{ WebkitOverflowScrolling: 'touch' }}>
                       <div className="w-full max-w-2xl mx-auto space-y-4">
-                        {/* iPhone: Compact welcome with horizontal scrollable suggestions */}
-                        {deviceInfo.isIPhone ? (
+                        {/* Mobile: Compact welcome with horizontal scrollable suggestions */}
+                        {isMobile ? (
                           <div className="space-y-4 text-center">
                             <p className="text-sm text-muted-foreground">
                               Ask anything — clinical queries, practice questions, or upload files for analysis
