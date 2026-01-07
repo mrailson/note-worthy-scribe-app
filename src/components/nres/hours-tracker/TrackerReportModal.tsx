@@ -80,7 +80,9 @@ export function TrackerReportModal({ entries, expenses, hourlyRate }: TrackerRep
     lines.push('');
     lines.push(`GRAND TOTAL,£${filteredData.grandTotal.toFixed(2)}`);
 
-    const blob = new Blob([lines.join('\n')], { type: 'text/csv' });
+    // Add UTF-8 BOM for proper encoding in Excel
+    const BOM = '\uFEFF';
+    const blob = new Blob([BOM + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
