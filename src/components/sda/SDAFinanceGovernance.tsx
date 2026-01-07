@@ -144,7 +144,7 @@ export const SDAFinanceGovernance = () => {
         <CardContent className="space-y-4">
           <div className="bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-4">
             <h3 className="font-semibold text-lg text-[#005EB8] mb-2">
-              Same Day Access Innovator – Rural South and East Programme Board
+              Same Day Access Innovator – Rural East and South Programme Board
             </h3>
             <p className="text-sm text-slate-600 mb-3">
               Part of Northamptonshire ICB New Models of Care programme, helping patients stay well for longer 
