@@ -5063,6 +5063,25 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
+                {/* Import Audio Icon - Top Right */}
+                <div className="flex justify-end mb-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setAudioImportOpen(true)}
+                        className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
+                      >
+                        <Upload className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="left" className="max-w-xs">
+                      <p className="font-medium">Import Audio Files</p>
+                      <p className="text-xs text-muted-foreground">Upload pre-recorded audio files (MP3, WAV, M4A) to transcribe instead of recording live</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
                 <div className="text-center space-y-4">
                    {!isRecording ? (
                        <div className="space-y-4">
@@ -5131,18 +5150,6 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                              Start Recording
                            </Button>
                            <QuickRecordQRLink />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <span className="text-sm text-muted-foreground">or</span>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => setAudioImportOpen(true)}
-                              className="text-sm"
-                            >
-                              <Upload className="h-4 w-4 mr-2" />
-                              Import Audio File(s)
-                            </Button>
                           </div>
                         </div>
                      </div>
