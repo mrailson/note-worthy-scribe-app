@@ -23,7 +23,7 @@ const QUICK_PICK_MESSAGES = [
   {
     id: 'results',
     label: 'Test Results',
-    message: 'I hope this message finds you well. Your recent test results are now available, and I wanted to share the findings with you:'
+    message: 'Your recent test results are now available. Please find the findings below:'
   },
   {
     id: 'referral',
@@ -38,7 +38,7 @@ const QUICK_PICK_MESSAGES = [
   {
     id: 'followup',
     label: 'Follow-up Care',
-    message: 'I hope you are feeling better since our last appointment. As requested, here is the follow-up information:'
+    message: 'Following our recent appointment, here is the follow-up information you requested:'
   },
   {
     id: 'treatment',
