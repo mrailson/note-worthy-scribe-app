@@ -844,6 +844,7 @@ const AI4GPService = () => {
           isClinical={isClinical}
           setIsClinical={setIsClinical}
           userRole={practiceContext?.userRole}
+          isMobileView={isMobile}
         />
       )}
 

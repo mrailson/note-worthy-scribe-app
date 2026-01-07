@@ -58,6 +58,7 @@ interface FloatingMobileInputProps {
   isClinical: boolean;
   setIsClinical: (clinical: boolean) => void;
   userRole?: string;
+  isMobileView?: boolean;
 }
 
 export interface FloatingMobileInputRef {
@@ -73,7 +74,8 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   isLoading,
   isClinical,
   setIsClinical,
-  userRole
+  userRole,
+  isMobileView
 }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -225,7 +227,10 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   };
 
   // Simple ChatGPT-like interface for mobile devices (iPhone and Android)
-  if (device.isMobile) {
+  // Use isMobileView prop (screen-width based) as primary check, fallback to device detection
+  const shouldShowMobileUI = isMobileView ?? device.isMobile;
+  
+  if (shouldShowMobileUI) {
     return (
       <div 
         ref={containerRef}
