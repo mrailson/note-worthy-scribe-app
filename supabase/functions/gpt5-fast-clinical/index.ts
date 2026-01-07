@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std/http/server.ts";
 
-// Force redeploy to pick up updated OPENAI_API_KEY - v4 with web search
+// Force redeploy to pick up updated OPENAI_API_KEY - v5 with document chunking
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 const OPENAI_ORG = Deno.env.get("OPENAI_ORG") ?? "";
 const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
@@ -13,6 +13,10 @@ const cors = {
 
 const SMALL_SYS = "NHS GP assistant. Use BNF/NICE/MHRA/NHS.uk/Green Book/ICB only. Concise UK GP bullets.";
 
+// Token limits
+const MAX_CONTEXT_TOKENS = 120000; // Leave buffer for system prompt and response
+const CHARS_PER_TOKEN = 4; // Rough estimate
+
 // Keywords that indicate a need for real-time/current information
 const REALTIME_INDICATORS = [
   'latest', 'current', 'today', 'this week', 'this month', 'recent', 'new',
@@ -21,6 +25,133 @@ const REALTIME_INDICATORS = [
   'gp news', 'nhs news', 'nice update', 'nice guidance', 'latest guidance',
   'contract', 'pay', 'bma', 'strike', 'industrial action', 'changes to'
 ];
+
+// Estimate tokens from text
+function estimateTokens(text: string): number {
+  return Math.ceil(text.length / CHARS_PER_TOKEN);
+}
+
+// Calculate total tokens in messages
+function calculateMessageTokens(messages: any[]): number {
+  return messages.reduce((total, msg) => {
+    const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+    return total + estimateTokens(content);
+  }, 0);
+}
+
+// Split text into chunks at sentence boundaries
+function splitTextIntoChunks(text: string, maxChunkTokens: number = 30000): string[] {
+  const chunks: string[] = [];
+  const sentences = text.split(/(?<=[.!?])\s+/);
+  let currentChunk = '';
+  
+  for (const sentence of sentences) {
+    const potentialChunk = currentChunk + (currentChunk ? ' ' : '') + sentence;
+    if (estimateTokens(potentialChunk) > maxChunkTokens && currentChunk) {
+      chunks.push(currentChunk);
+      currentChunk = sentence;
+    } else {
+      currentChunk = potentialChunk;
+    }
+  }
+  
+  if (currentChunk) {
+    chunks.push(currentChunk);
+  }
+  
+  return chunks;
+}
+
+// Extract document content from messages
+function extractDocumentContent(messages: any[]): { userQuery: string; documentContent: string; hasLargeDoc: boolean } {
+  let documentContent = '';
+  let userQuery = '';
+  
+  for (const msg of messages) {
+    if (msg.role === 'user') {
+      const content = typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content);
+      
+      // Check for file content markers
+      if (content.includes('📄 File:') || content.includes('--- Document Content ---')) {
+        // Extract just the user's question (before file content)
+        const parts = content.split(/📄 File:|--- Document Content ---/);
+        userQuery = parts[0].trim() || userQuery;
+        documentContent += content.substring(parts[0].length);
+      } else {
+        userQuery = content;
+      }
+    }
+  }
+  
+  const docTokens = estimateTokens(documentContent);
+  const hasLargeDoc = docTokens > MAX_CONTEXT_TOKENS;
+  
+  console.log(`[gpt5-fast-clinical] Document tokens: ${docTokens}, hasLargeDoc: ${hasLargeDoc}`);
+  
+  return { userQuery, documentContent, hasLargeDoc };
+}
+
+// Summarise a chunk of document
+async function summariseChunk(chunk: string, chunkIndex: number, totalChunks: number, userQuery: string): Promise<string> {
+  const systemPrompt = `You are a document summariser. Summarise the following section (part ${chunkIndex + 1} of ${totalChunks}) of a larger document.
+Focus on key points relevant to this query: "${userQuery}"
+Be comprehensive but concise. Preserve all important details, dates, figures, and requirements.`;
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${OPENAI_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: chunk }
+      ],
+      max_tokens: 2000,
+      temperature: 0.2
+    })
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    console.error(`[gpt5-fast-clinical] Chunk ${chunkIndex + 1} summarisation failed:`, error);
+    throw new Error(`Chunk summarisation failed: ${error}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+// Process large documents by chunking and summarising
+async function processLargeDocument(userQuery: string, documentContent: string): Promise<string> {
+  console.log('[gpt5-fast-clinical] Processing large document with chunking...');
+  
+  const chunks = splitTextIntoChunks(documentContent, 30000);
+  console.log(`[gpt5-fast-clinical] Split into ${chunks.length} chunks`);
+  
+  // Summarise chunks in parallel (max 3 at a time to avoid rate limits)
+  const summaries: string[] = [];
+  const batchSize = 3;
+  
+  for (let i = 0; i < chunks.length; i += batchSize) {
+    const batch = chunks.slice(i, i + batchSize);
+    const batchPromises = batch.map((chunk, idx) => 
+      summariseChunk(chunk, i + idx, chunks.length, userQuery)
+    );
+    
+    const batchResults = await Promise.all(batchPromises);
+    summaries.push(...batchResults);
+    console.log(`[gpt5-fast-clinical] Processed chunks ${i + 1} to ${Math.min(i + batchSize, chunks.length)}`);
+  }
+  
+  // Combine summaries
+  const combinedSummary = summaries.map((s, i) => `## Section ${i + 1}\n${s}`).join('\n\n');
+  console.log(`[gpt5-fast-clinical] Combined ${summaries.length} chunk summaries, total tokens: ${estimateTokens(combinedSummary)}`);
+  
+  return combinedSummary;
+}
 
 // Check if query needs real-time information
 function needsWebSearch(messages: any[]): { needed: boolean; query: string } {
@@ -114,7 +245,37 @@ serve(async (req) => {
     return sseError("Bad JSON in request body.", 400);
   }
 
-  const { messages = [], model, systemPrompt, max_tokens } = body;
+  let { messages = [], model, systemPrompt, max_tokens } = body;
+  
+  // Check if we have a large document that needs chunking
+  const totalTokens = calculateMessageTokens(messages);
+  console.log(`[gpt5-fast-clinical] Total message tokens: ${totalTokens}`);
+  
+  if (totalTokens > MAX_CONTEXT_TOKENS) {
+    console.log('[gpt5-fast-clinical] Large document detected, applying chunking strategy...');
+    
+    try {
+      const { userQuery, documentContent, hasLargeDoc } = extractDocumentContent(messages);
+      
+      if (hasLargeDoc && documentContent) {
+        // Process the large document
+        const condensedSummary = await processLargeDocument(userQuery, documentContent);
+        
+        // Replace messages with condensed version
+        messages = [
+          {
+            role: 'user',
+            content: `${userQuery}\n\n--- Condensed Document Summary ---\n${condensedSummary}\n\nPlease provide a comprehensive response based on this summarised document content.`
+          }
+        ];
+        
+        console.log(`[gpt5-fast-clinical] Condensed to ${calculateMessageTokens(messages)} tokens`);
+      }
+    } catch (error) {
+      console.error('[gpt5-fast-clinical] Document chunking failed:', error);
+      return sseError("Document too large to process. Please try with a smaller document or specific sections.", 400);
+    }
+  }
   
   // Check if web search is needed
   const { needed: needsSearch, query: searchQuery } = needsWebSearch(messages);
