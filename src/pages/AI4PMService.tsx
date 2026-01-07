@@ -162,13 +162,26 @@ const AI4PMService = () => {
   const voiceChatRef = useRef<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const lastMessageContentRef = useRef<string>('');
   
   const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    requestAnimationFrame(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    });
   };
 
+  // Scroll when messages array changes or loading state changes
   useEffect(() => {
     scrollToBottom();
+  }, [messages, isLoading]);
+
+  // Scroll when last message content changes (for streaming/rendering)
+  useEffect(() => {
+    const lastMessage = messages[messages.length - 1];
+    if (lastMessage && lastMessage.content !== lastMessageContentRef.current) {
+      lastMessageContentRef.current = lastMessage.content;
+      scrollToBottom();
+    }
   }, [messages]);
 
   // Load search history and practice context on component mount
