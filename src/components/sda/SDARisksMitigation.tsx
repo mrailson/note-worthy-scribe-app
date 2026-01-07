@@ -136,7 +136,7 @@ const lesAwarenessPoints = [
     keyPoints: "All payments go to PML at £26.33/patient/month; practices do not retain funds directly.",
     icbClarification: "Payments made monthly in arrears based on list size, like any other Enhanced Service payment.",
     status: "confirmed",
-    outstandingQuestion: "Practices must agree funding distribution with PML. SNO-to-Practice MOU recommended but not yet drafted."
+    outstandingQuestion: "SNO-to-Practice MOU must be agreed between SNO and practices before legal review. Legal advice on GMS/ES only proceeding now. MOU is priority agenda item for 13 Jan 2026 Board."
   },
   {
     id: 3,
@@ -213,7 +213,8 @@ const lesAwarenessPoints = [
 ];
 
 const outstandingQuestions = [
-  "SNO MOU between PML and practices – template/draft still to be shared",
+  "SNO MOU between PML and practices – must be agreed before legal review can proceed (Priority Agenda Item #1 for 13 Jan 2026)",
+  "Has ICB provided the optional MOU template to the SNO? If not, how to progress?",
   "Clarity on who can serve notice and when (practices vs ICB during pilot period)",
   "Detail on how Part B threshold measurements will work in practice",
   "Specific KPI definitions and clinical coding requirements",
@@ -533,6 +534,23 @@ export const SDARisksMitigation = () => {
                     <strong> Wellingborough Neighbourhood</strong> and are obtaining <strong>legal advice</strong> as 
                     part of the due diligence for this pilot project.
                   </p>
+                </div>
+                
+                {/* MOU Priority Update - 7 Jan 2026 */}
+                <div className="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200">
+                  <div className="flex items-center gap-2 mb-3">
+                    <AlertCircle className="w-5 h-5 text-amber-600" />
+                    <h4 className="font-semibold text-amber-900">MOU Priority Update (7 Jan 2026)</h4>
+                  </div>
+                  <p className="text-sm text-amber-800 leading-relaxed mb-2">
+                    Following discussions between Dr Simon Ellis, Mike Smeeton, Michael Chapman, Colin Smith, and the Wellingborough GP lead:
+                  </p>
+                  <ul className="text-sm text-amber-800 space-y-1 ml-4 list-disc">
+                    <li><strong>Legal advice</strong> is proceeding on the <strong>GMS/ES contract variation only</strong> for now.</li>
+                    <li>The <strong>MOU between SNO and practices</strong> must be agreed between SNO and practices first – it cannot be sent for legal review until this is done.</li>
+                    <li>This is now <strong>Agenda Item #1</strong> for the Neighbourhood Board Meeting on <strong>13 Jan 2026</strong>.</li>
+                    <li>The ES specification requires each GP practice to have a neighbourhood MOU with the SNO. The ICB may provide an optional template, but practices/neighbourhoods can use their own with commissioner approval.</li>
+                  </ul>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-4">
