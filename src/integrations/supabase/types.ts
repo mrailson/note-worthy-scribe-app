@@ -224,6 +224,7 @@ export type Database = {
           organization_type: string | null
           practice_id: string | null
           role: string | null
+          scope: string | null
           title: string | null
           updated_at: string
           user_id: string
@@ -238,6 +239,7 @@ export type Database = {
           organization_type?: string | null
           practice_id?: string | null
           role?: string | null
+          scope?: string | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -252,6 +254,7 @@ export type Database = {
           organization_type?: string | null
           practice_id?: string | null
           role?: string | null
+          scope?: string | null
           title?: string | null
           updated_at?: string
           user_id?: string
@@ -2797,6 +2800,83 @@ export type Database = {
           word_count?: number | null
         }
         Relationships: []
+      }
+      distribution_list_members: {
+        Row: {
+          attendee_id: string
+          created_at: string | null
+          id: string
+          list_id: string
+        }
+        Insert: {
+          attendee_id: string
+          created_at?: string | null
+          id?: string
+          list_id: string
+        }
+        Update: {
+          attendee_id?: string
+          created_at?: string | null
+          id?: string
+          list_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_list_members_attendee_id_fkey"
+            columns: ["attendee_id"]
+            isOneToOne: false
+            referencedRelation: "attendees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "distribution_list_members_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "distribution_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      distribution_lists: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          name: string
+          practice_id: string | null
+          scope: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name: string
+          practice_id?: string | null
+          scope?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          name?: string
+          practice_id?: string | null
+          scope?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "distribution_lists_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practice_details"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       document_qa_sessions: {
         Row: {
