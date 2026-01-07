@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Trash2, Clock, Loader2 } from 'lucide-react';
-import { format } from 'date-fns';
+import { Trash2, Clock, Loader2, ArrowUp, ArrowDown, ArrowUpDown } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
 import type { NRESHoursEntry } from '@/types/nresHoursTypes';
 import {
   AlertDialog,
@@ -25,8 +25,56 @@ interface HoursEntriesTableProps {
   onDelete: (id: string) => Promise<void>;
 }
 
+type SortField = 'date' | 'duration' | 'amount';
+type SortDirection = 'asc' | 'desc' | null;
+
 export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete }: HoursEntriesTableProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [sortField, setSortField] = useState<SortField | null>(null);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(null);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      // Cycle through: asc -> desc -> null
+      if (sortDirection === 'asc') {
+        setSortDirection('desc');
+      } else if (sortDirection === 'desc') {
+        setSortDirection(null);
+        setSortField(null);
+      } else {
+        setSortDirection('asc');
+      }
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedEntries = useMemo(() => {
+    if (!sortField || !sortDirection) {
+      return entries;
+    }
+
+    return [...entries].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case 'date':
+          comparison = parseISO(a.work_date).getTime() - parseISO(b.work_date).getTime();
+          break;
+        case 'duration':
+          comparison = Number(a.duration_hours) - Number(b.duration_hours);
+          break;
+        case 'amount':
+          const amountA = hourlyRate ? Number(a.duration_hours) * hourlyRate : 0;
+          const amountB = hourlyRate ? Number(b.duration_hours) * hourlyRate : 0;
+          comparison = amountA - amountB;
+          break;
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [entries, sortField, sortDirection, hourlyRate]);
 
   const handleDelete = async (id: string) => {
     setDeletingId(id);
@@ -37,6 +85,16 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete }: Ho
   const formatTime = (time: string) => {
     // time is in HH:mm:ss format, show only HH:mm
     return time.substring(0, 5);
+  };
+
+  const SortIcon = ({ field }: { field: SortField }) => {
+    if (sortField !== field) {
+      return <ArrowUpDown className="w-3 h-3 ml-1 opacity-50" />;
+    }
+    if (sortDirection === 'asc') {
+      return <ArrowUp className="w-3 h-3 ml-1" />;
+    }
+    return <ArrowDown className="w-3 h-3 ml-1" />;
   };
 
   if (loading) {
@@ -70,17 +128,49 @@ export function HoursEntriesTable({ entries, hourlyRate, loading, onDelete }: Ho
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Date</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 -ml-2 font-medium hover:bg-transparent"
+                    onClick={() => handleSort('date')}
+                  >
+                    Date
+                    <SortIcon field="date" />
+                  </Button>
+                </TableHead>
                 <TableHead>Time</TableHead>
-                <TableHead>Duration</TableHead>
+                <TableHead>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 px-2 -ml-2 font-medium hover:bg-transparent"
+                    onClick={() => handleSort('duration')}
+                  >
+                    Duration
+                    <SortIcon field="duration" />
+                  </Button>
+                </TableHead>
                 <TableHead>Activity</TableHead>
                 <TableHead>Notes</TableHead>
-                {hourlyRate && <TableHead className="text-right">Amount</TableHead>}
+                {hourlyRate && (
+                  <TableHead className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 px-2 -mr-2 font-medium hover:bg-transparent"
+                      onClick={() => handleSort('amount')}
+                    >
+                      Amount
+                      <SortIcon field="amount" />
+                    </Button>
+                  </TableHead>
+                )}
                 <TableHead className="w-[50px]"></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {entries.map((entry) => (
+              {sortedEntries.map((entry) => (
                 <TableRow key={entry.id}>
                   <TableCell className="font-medium">
                     {format(new Date(entry.work_date), 'dd/MM/yyyy')}
