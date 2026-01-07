@@ -354,12 +354,20 @@ export const SDAEvidenceLibrary = () => {
       </div>
 
       {/* VCSE Infrastructure Partners Meetings Section */}
-      <div className="space-y-3">
-        <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
-          <Heart className="w-5 h-5 text-pink-500" />
-          VCSE Infrastructure Partners Meetings
-        </h3>
-        <div className="flex flex-wrap gap-2 mb-2">
+      <Collapsible defaultOpen={true}>
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors text-left">
+              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                <Heart className="w-5 h-5 text-pink-500" />
+                VCSE Infrastructure Partners Meetings
+              </h3>
+              <ChevronRight className="w-5 h-5 text-slate-400 transition-transform data-[state=open]:rotate-90" />
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-4 pb-4 space-y-3">
+              <div className="flex flex-wrap gap-2 mb-2">
           {[
             "Aspire Northants",
             "Black Communities Together",
@@ -459,7 +467,10 @@ export const SDAEvidenceLibrary = () => {
             </CollapsibleContent>
           </Card>
         </Collapsible>
-      </div>
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
 
       {/* Quick Stats */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
