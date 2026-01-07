@@ -72,6 +72,7 @@ import PptxGenJS from 'pptxgenjs';
 import PMGenieVoiceAgent from '@/components/PMGenieVoiceAgent';
 import { RealtimeChat } from '@/utils/RealtimeAudio';
 import NewsPanel from '@/components/NewsPanel';
+import { prepareMessagesForAPI, getMemoryStats } from '@/utils/conversationMemory';
 
 // Helper function to get file type icon
 const getFileTypeIcon = (fileName: string, fileType?: string) => {
@@ -539,11 +540,25 @@ Format your responses clearly with headings and bullet points where appropriate 
     setIsLoading(true);
 
     try {
+      // Prepare optimised messages using conversation memory management
+      const allMessages = [...messages, userMessage];
+      const optimisedMessages = prepareMessagesForAPI(
+        allMessages.map(msg => ({
+          ...msg,
+          timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp)
+        })),
+        buildSystemPrompt(),
+        30000 // Max tokens for conversation history
+      );
+      
+      // Log memory stats
+      const memoryStats = getMemoryStats(allMessages);
+      console.log('🧠 AI4PM Memory status:', memoryStats);
+      
       const response = await supabase.functions.invoke('ai-4-pm-chat', {
         body: {
-          messages: [...messages, userMessage],
+          messages: optimisedMessages,
           model,
-          systemPrompt: buildSystemPrompt(),
           files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
           enableWebSearch: includeLatestWeb
         }
