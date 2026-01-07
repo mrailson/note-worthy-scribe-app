@@ -83,7 +83,7 @@ const SDADashboard = () => {
               className="flex items-center gap-2 data-[state=active]:bg-[#005EB8] data-[state=active]:text-white px-4 py-2.5 rounded-lg transition-all"
             >
               <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Workforce & Innovation</span>
+              <span className="hidden sm:inline">Workforce</span>
               <span className="sm:hidden">Workforce</span>
             </TabsTrigger>
             <TabsTrigger 
