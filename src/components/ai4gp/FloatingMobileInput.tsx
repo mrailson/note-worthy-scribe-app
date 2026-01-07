@@ -224,8 +224,8 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
     }
   };
 
-  // Simple ChatGPT-like interface for iPhone - always show, no expand/collapse
-  if (device.isIPhone) {
+  // Simple ChatGPT-like interface for mobile devices (iPhone and Android)
+  if (device.isMobile) {
     return (
       <div 
         ref={containerRef}
