@@ -1,6 +1,16 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
-import { Document, Packer, Paragraph, TextRun, HeadingLevel, Table, TableRow, TableCell, WidthType, BorderStyle } from "npm:docx@8.5.0";
+import {
+  Document,
+  Packer,
+  Paragraph,
+  TextRun,
+  HeadingLevel,
+  Table,
+  TableRow,
+  TableCell,
+  WidthType,
+} from "npm:docx@8.5.0";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -19,161 +29,284 @@ interface ChatEmailRequest {
   includeWordDoc?: boolean;
 }
 
-// Convert markdown content to HTML with proper table support
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
+
+function formatInlineMarkdownToHtml(text: string): string {
+  // Escape first, then re-introduce a small set of safe tags.
+  let out = escapeHtml(text);
+  out = out.replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>");
+  out = out.replace(/`([^`]+)`/g, "<code>$1</code>");
+  out = out.replace(/\*([^*]+)\*/g, "<em>$1</em>");
+  return out;
+}
+
+// Render markdown-ish content to HTML for email (headings, lists, tables, bold/italic).
 function markdownToHtml(content: string): string {
-  const lines = content.split('\n');
-  let html = '';
+  const lines = content.split("\n");
+  let html = "";
+
   let inTable = false;
   let tableRows: string[][] = [];
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    // Check if this is a table row (contains pipes)
-    if (line.startsWith('|') && line.endsWith('|')) {
-      // Skip separator rows (contain only dashes and pipes)
-      if (line.match(/^\|[\s\-:|]+\|$/)) {
+
+  let inUl = false;
+  let inOl = false;
+
+  const closeLists = () => {
+    if (inUl) {
+      html += "</ul>";
+      inUl = false;
+    }
+    if (inOl) {
+      html += "</ol>";
+      inOl = false;
+    }
+  };
+
+  const closeTable = () => {
+    if (inTable) {
+      html += renderHtmlTable(tableRows);
+      inTable = false;
+      tableRows = [];
+    }
+  };
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\r/g, "");
+    const trimmed = line.trim();
+
+    // Table row detection
+    if (trimmed.startsWith("|") && trimmed.endsWith("|")) {
+      closeLists();
+
+      // Skip separator rows
+      if (trimmed.match(/^\|[\s\-:|]+\|$/)) {
         continue;
       }
-      
+
       if (!inTable) {
         inTable = true;
         tableRows = [];
       }
-      
-      // Parse table cells
-      const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
+
+      const cells = trimmed
+        .split("|")
+        .slice(1, -1)
+        .map((cell) => cell.trim());
       tableRows.push(cells);
-    } else {
-      // If we were in a table, close it
-      if (inTable) {
-        html += renderHtmlTable(tableRows);
-        inTable = false;
-        tableRows = [];
-      }
-      
-      // Handle regular content
-      if (line === '') {
-        html += '<br>';
-      } else {
-        // Convert markdown bold (**text**) to HTML
-        let processedLine = line.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-        // Convert markdown italic (*text*) to HTML
-        processedLine = processedLine.replace(/\*([^*]+)\*/g, '<em>$1</em>');
-        // Escape HTML entities
-        processedLine = processedLine.replace(/</g, '&lt;').replace(/>/g, '&gt;')
-          .replace(/&lt;strong&gt;/g, '<strong>')
-          .replace(/&lt;\/strong&gt;/g, '</strong>')
-          .replace(/&lt;em&gt;/g, '<em>')
-          .replace(/&lt;\/em&gt;/g, '</em>');
-        
-        html += processedLine + '<br>';
-      }
+      continue;
     }
+
+    // Not a table row
+    closeTable();
+
+    if (!trimmed) {
+      closeLists();
+      html += "<br>";
+      continue;
+    }
+
+    // Headings (# .. ####)
+    const headingMatch = trimmed.match(/^(#{1,4})\s+(.+)$/);
+    if (headingMatch) {
+      closeLists();
+      const level = headingMatch[1].length;
+      // Start at h2 because the email has its own H1 in the header.
+      const tag = `h${Math.min(level + 1, 6)}`;
+      html += `<${tag} style="margin: 16px 0 8px 0;">${formatInlineMarkdownToHtml(
+        headingMatch[2]
+      )}</${tag}>`;
+      continue;
+    }
+
+    // Unordered list
+    const ulMatch = trimmed.match(/^[-*•]\s+(.+)$/);
+    if (ulMatch) {
+      if (!inUl) {
+        closeLists();
+        html += '<ul style="margin: 12px 0; padding-left: 22px;">';
+        inUl = true;
+      }
+      html += `<li style="margin: 4px 0;">${formatInlineMarkdownToHtml(
+        ulMatch[1]
+      )}</li>`;
+      continue;
+    }
+
+    // Ordered list (1. Item)
+    const olMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+    if (olMatch) {
+      if (!inOl) {
+        closeLists();
+        html += '<ol style="margin: 12px 0; padding-left: 22px;">';
+        inOl = true;
+      }
+      html += `<li style="margin: 4px 0;">${formatInlineMarkdownToHtml(
+        olMatch[1]
+      )}</li>`;
+      continue;
+    }
+
+    // Normal paragraph
+    closeLists();
+    html += `<p style="margin: 10px 0;">${formatInlineMarkdownToHtml(
+      trimmed
+    )}</p>`;
   }
-  
-  // Close any remaining table
-  if (inTable) {
-    html += renderHtmlTable(tableRows);
-  }
-  
+
+  closeTable();
+  closeLists();
   return html;
 }
 
-// Render an HTML table from rows
 function renderHtmlTable(rows: string[][]): string {
-  if (rows.length === 0) return '';
-  
-  let tableHtml = `
-    <table style="border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px;">
-  `;
-  
+  if (rows.length === 0) return "";
+
+  let tableHtml =
+    '<table style="border-collapse: collapse; width: 100%; margin: 16px 0; font-size: 14px;">';
+
   rows.forEach((row, index) => {
     const isHeader = index === 0;
-    const bgColor = isHeader ? '#f3f4f6' : (index % 2 === 0 ? '#ffffff' : '#f9fafb');
-    
-    tableHtml += '<tr>';
-    row.forEach(cell => {
-      const tag = isHeader ? 'th' : 'td';
-      const fontWeight = isHeader ? 'font-weight: 600;' : '';
-      tableHtml += `<${tag} style="border: 1px solid #d1d5db; padding: 10px 12px; text-align: left; ${fontWeight} background-color: ${bgColor};">${escapeHtml(cell)}</${tag}>`;
+    const bgColor = isHeader
+      ? "#f3f4f6"
+      : index % 2 === 0
+      ? "#ffffff"
+      : "#f9fafb";
+
+    tableHtml += "<tr>";
+    row.forEach((cell) => {
+      const tag = isHeader ? "th" : "td";
+      const fontWeight = isHeader ? "font-weight: 600;" : "";
+      tableHtml += `<${tag} style="border: 1px solid #d1d5db; padding: 10px 12px; text-align: left; ${fontWeight} background-color: ${bgColor};">${escapeHtml(
+        cell
+      )}</${tag}>`;
     });
-    tableHtml += '</tr>';
+    tableHtml += "</tr>";
   });
-  
-  tableHtml += '</table>';
+
+  tableHtml += "</table>";
   return tableHtml;
 }
 
-// Escape HTML entities
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+function makeDocxFilenameFromSubject(subject: string): string {
+  const raw = (subject || "").replace(/[\r\n]+/g, " ").trim();
+  const cleaned = raw
+    // Remove filename-forbidden characters
+    .replace(/[\\/?:%*|\"<>]/g, "")
+    // Collapse whitespace
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const base = cleaned.substring(0, 80).trim();
+  return base ? `${base}.docx` : "AI4PM-Chat-Summary.docx";
 }
 
-// Parse markdown content for tables and regular text for Word doc
-function parseContentForWord(content: string): { type: 'text' | 'table'; data: string | string[][] }[] {
-  const lines = content.split('\n');
-  const sections: { type: 'text' | 'table'; data: string | string[][] }[] = [];
-  let currentText = '';
+function parseInlineMarkdownToRuns(text: string): TextRun[] {
+  const runs: TextRun[] = [];
+  const input = text ?? "";
+
+  const tokenRegex = /(\*\*[^*]+\*\*|\*[^*]+\*|`[^`]+`)/g;
+  let lastIndex = 0;
+
+  for (const match of input.matchAll(tokenRegex)) {
+    const index = match.index ?? 0;
+    if (index > lastIndex) {
+      const plain = input.slice(lastIndex, index);
+      if (plain) runs.push(new TextRun({ text: plain }));
+    }
+
+    const token = match[0];
+    if (token.startsWith("**") && token.endsWith("**")) {
+      runs.push(new TextRun({ text: token.slice(2, -2), bold: true }));
+    } else if (token.startsWith("*") && token.endsWith("*")) {
+      runs.push(new TextRun({ text: token.slice(1, -1), italics: true }));
+    } else if (token.startsWith("`") && token.endsWith("`")) {
+      runs.push(
+        new TextRun({
+          text: token.slice(1, -1),
+          font: "Consolas",
+        })
+      );
+    } else {
+      runs.push(new TextRun({ text: token }));
+    }
+
+    lastIndex = index + token.length;
+  }
+
+  if (lastIndex < input.length) {
+    const plain = input.slice(lastIndex);
+    if (plain) runs.push(new TextRun({ text: plain }));
+  }
+
+  if (runs.length === 0) {
+    runs.push(new TextRun({ text: input }));
+  }
+
+  return runs;
+}
+
+// Split markdown into text + table chunks (keeps tables intact).
+function parseContentForWord(
+  content: string
+): { type: "text" | "table"; data: string | string[][] }[] {
+  const lines = content.split("\n");
+  const sections: { type: "text" | "table"; data: string | string[][] }[] = [];
+  let currentText = "";
   let inTable = false;
   let tableRows: string[][] = [];
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
-    
-    // Check if this is a table row
-    if (line.startsWith('|') && line.endsWith('|')) {
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\r/g, "").trim();
+
+    if (line.startsWith("|") && line.endsWith("|")) {
       // Skip separator rows
       if (line.match(/^\|[\s\-:|]+\|$/)) {
         continue;
       }
-      
+
       if (!inTable) {
-        // Save any accumulated text
         if (currentText.trim()) {
-          sections.push({ type: 'text', data: currentText.trim() });
-          currentText = '';
+          sections.push({ type: "text", data: currentText.trim() });
+          currentText = "";
         }
         inTable = true;
         tableRows = [];
       }
-      
-      // Parse table cells
-      const cells = line.split('|').slice(1, -1).map(cell => cell.trim());
+
+      const cells = line
+        .split("|")
+        .slice(1, -1)
+        .map((cell) => cell.trim());
       tableRows.push(cells);
-    } else {
-      // If we were in a table, save it
-      if (inTable) {
-        sections.push({ type: 'table', data: tableRows });
-        inTable = false;
-        tableRows = [];
-      }
-      
-      currentText += line + '\n';
+      continue;
     }
+
+    if (inTable) {
+      sections.push({ type: "table", data: tableRows });
+      inTable = false;
+      tableRows = [];
+    }
+
+    currentText += rawLine.replace(/\r/g, "") + "\n";
   }
-  
-  // Save remaining content
-  if (inTable) {
-    sections.push({ type: 'table', data: tableRows });
-  }
-  if (currentText.trim()) {
-    sections.push({ type: 'text', data: currentText.trim() });
-  }
-  
+
+  if (inTable) sections.push({ type: "table", data: tableRows });
+  if (currentText.trim()) sections.push({ type: "text", data: currentText.trim() });
+
   return sections;
 }
 
-// Create a Word table from rows
 function createWordTable(rows: string[][]): Table {
   const tableRows = rows.map((row, rowIndex) => {
     return new TableRow({
-      children: row.map(cell => {
+      children: row.map((cell) => {
         return new TableCell({
           children: [
             new Paragraph({
@@ -187,7 +320,12 @@ function createWordTable(rows: string[][]): Table {
             }),
           ],
           shading: {
-            fill: rowIndex === 0 ? 'E5E7EB' : (rowIndex % 2 === 0 ? 'FFFFFF' : 'F9FAFB'),
+            fill:
+              rowIndex === 0
+                ? "E5E7EB"
+                : rowIndex % 2 === 0
+                ? "FFFFFF"
+                : "F9FAFB",
           },
         });
       }),
@@ -203,15 +341,96 @@ function createWordTable(rows: string[][]): Table {
   });
 }
 
-// Generate a Word document from the chat content with proper table support
-async function generateWordDoc(subject: string, chatContent: string, senderName: string, additionalNotes?: string): Promise<Uint8Array> {
+function appendMarkdownText(children: (Paragraph | Table)[], textBlock: string) {
+  const lines = textBlock.split("\n");
+
+  for (const rawLine of lines) {
+    const line = rawLine.replace(/\r/g, "");
+    const trimmed = line.trim();
+
+    if (!trimmed) {
+      children.push(new Paragraph({ text: " ", spacing: { after: 120 } }));
+      continue;
+    }
+
+    const headingMatch = trimmed.match(/^(#{1,4})\s+(.+)$/);
+    if (headingMatch) {
+      const level = headingMatch[1].length;
+      const heading =
+        level === 1
+          ? HeadingLevel.HEADING_2
+          : level === 2
+          ? HeadingLevel.HEADING_3
+          : level === 3
+          ? HeadingLevel.HEADING_4
+          : HeadingLevel.HEADING_5;
+
+      children.push(
+        new Paragraph({
+          heading,
+          children: parseInlineMarkdownToRuns(headingMatch[2]),
+          spacing: { before: 180, after: 120 },
+        })
+      );
+      continue;
+    }
+
+    const bulletMatch = trimmed.match(/^[-*•]\s+(.+)$/);
+    if (bulletMatch) {
+      children.push(
+        new Paragraph({
+          bullet: { level: 0 },
+          children: parseInlineMarkdownToRuns(bulletMatch[1]),
+          spacing: { after: 80 },
+        })
+      );
+      continue;
+    }
+
+    const orderedMatch = trimmed.match(/^\d+\.\s+(.+)$/);
+    if (orderedMatch) {
+      // Keep simple and reliable: render the number as text.
+      children.push(
+        new Paragraph({
+          children: parseInlineMarkdownToRuns(trimmed),
+          spacing: { after: 80 },
+        })
+      );
+      continue;
+    }
+
+    children.push(
+      new Paragraph({
+        children: parseInlineMarkdownToRuns(trimmed),
+        spacing: { after: 120 },
+      })
+    );
+  }
+}
+
+function uint8ToBase64(bytes: Uint8Array): string {
+  let binary = "";
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+async function generateWordDoc(
+  subject: string,
+  chatContent: string,
+  senderName: string,
+  additionalNotes?: string
+): Promise<Uint8Array> {
   const children: (Paragraph | Table)[] = [];
 
-  // Title
+  // Title: use the email subject so the document matches what the recipient expects.
   children.push(
     new Paragraph({
-      text: "Notewell AI Chat Summary",
+      text: subject?.trim() || "Notewell AI Chat Summary",
       heading: HeadingLevel.HEADING_1,
+      spacing: { after: 240 },
     })
   );
 
@@ -242,57 +461,40 @@ async function generateWordDoc(subject: string, chatContent: string, senderName:
     new Paragraph({
       text: "Content",
       heading: HeadingLevel.HEADING_2,
-      spacing: { before: 200 },
+      spacing: { before: 200, after: 120 },
     })
   );
 
   // Parse content for tables and text
   const contentSections = parseContentForWord(chatContent);
-  
+
   for (const section of contentSections) {
-    if (section.type === 'table') {
+    if (section.type === "table") {
       children.push(createWordTable(section.data as string[][]));
-      // Add spacing after table
-      children.push(new Paragraph({ text: '', spacing: { after: 200 } }));
+      children.push(new Paragraph({ text: " ", spacing: { after: 200 } }));
     } else {
-      const textLines = (section.data as string).split('\n');
-      for (const line of textLines) {
-        children.push(
-          new Paragraph({
-            text: line || ' ',
-            spacing: { after: 100 },
-          })
-        );
-      }
+      appendMarkdownText(children, section.data as string);
     }
   }
 
   // Additional notes if present
-  if (additionalNotes) {
+  if (additionalNotes?.trim()) {
     children.push(
       new Paragraph({
         text: "Additional Notes",
         heading: HeadingLevel.HEADING_2,
-        spacing: { before: 400 },
+        spacing: { before: 400, after: 120 },
       })
     );
 
-    const notesLines = additionalNotes.split('\n');
-    for (const line of notesLines) {
-      children.push(
-        new Paragraph({
-          text: line || ' ',
-          spacing: { after: 100 },
-        })
-      );
-    }
+    appendMarkdownText(children, additionalNotes);
   }
 
   const doc = new Document({
     sections: [
       {
         properties: {},
-        children: children,
+        children,
       },
     ],
   });
@@ -310,7 +512,14 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { recipientEmails, subject, chatContent, senderName, additionalNotes, includeWordDoc = false }: ChatEmailRequest = await req.json();
+    const {
+      recipientEmails,
+      subject,
+      chatContent,
+      senderName,
+      additionalNotes,
+      includeWordDoc = false,
+    }: ChatEmailRequest = await req.json();
 
     console.log("Sending email to:", recipientEmails);
     console.log("Subject:", subject);
@@ -324,11 +533,10 @@ const handler = async (req: Request): Promise<Response> => {
       throw new Error("No chat content provided");
     }
 
-    // Convert markdown content to proper HTML
+    // Convert markdown content to HTML for email
     const formattedContent = markdownToHtml(chatContent);
-    const formattedNotes = additionalNotes ? markdownToHtml(additionalNotes) : '';
+    const formattedNotes = additionalNotes ? markdownToHtml(additionalNotes) : "";
 
-    // Build the email HTML
     const html = `
       <!DOCTYPE html>
       <html>
@@ -346,6 +554,7 @@ const handler = async (req: Request): Promise<Response> => {
             .attachment-note { margin-top: 16px; padding: 12px; background: #e0f2fe; border-radius: 6px; border-left: 4px solid #0284c7; font-size: 13px; }
             h1 { margin: 0; font-size: 20px; }
             .from { margin-top: 8px; font-size: 14px; opacity: 0.9; }
+            code { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace; background: #f3f4f6; padding: 0 4px; border-radius: 4px; }
             table { border-collapse: collapse; width: 100%; margin: 16px 0; }
             th, td { border: 1px solid #d1d5db; padding: 10px 12px; text-align: left; }
             th { background-color: #f3f4f6; font-weight: 600; }
@@ -359,8 +568,8 @@ const handler = async (req: Request): Promise<Response> => {
           </div>
           <div class="content">
             <div class="chat-content">${formattedContent}</div>
-            ${additionalNotes ? `<div class="notes"><strong>Additional Notes:</strong><br>${formattedNotes}</div>` : ''}
-            ${includeWordDoc ? `<div class="attachment-note">📎 A Word document version is attached to this email.</div>` : ''}
+            ${additionalNotes ? `<div class="notes"><strong>Additional Notes:</strong><br>${formattedNotes}</div>` : ""}
+            ${includeWordDoc ? `<div class="attachment-note">📎 A Word document version is attached to this email.</div>` : ""}
           </div>
           <div class="footer">
             <p>This email was sent from Notewell AI</p>
@@ -369,34 +578,28 @@ const handler = async (req: Request): Promise<Response> => {
       </html>
     `;
 
-    // Prepare email options
     const emailOptions: any = {
-      from: "\"Notewell AI\" <noreply@bluepcn.co.uk>",
+      from: '"Notewell AI" <noreply@bluepcn.co.uk>',
       to: recipientEmails,
       subject: subject,
       html: html,
     };
 
-    // Generate and attach Word document if requested
     if (includeWordDoc) {
-      console.log("Generating Word document with table support...");
-      const wordDocBuffer = await generateWordDoc(subject, chatContent, senderName, additionalNotes);
-      
-      // Convert to base64 for attachment
-      const base64Content = btoa(String.fromCharCode(...wordDocBuffer));
-      
-      // Create a descriptive filename from the subject (sanitise for filename)
-      const sanitisedSubject = subject
-        .replace(/[^a-zA-Z0-9\s-]/g, '') // Remove special chars
-        .replace(/\s+/g, '-') // Replace spaces with hyphens
-        .substring(0, 50) // Limit length
-        .replace(/-+$/, ''); // Remove trailing hyphens
-      
-      const filename = sanitisedSubject ? `${sanitisedSubject}.docx` : 'AI4PM-Chat-Summary.docx';
-      
+      console.log("Generating Word document with improved formatting...");
+      const wordDocBuffer = await generateWordDoc(
+        subject,
+        chatContent,
+        senderName,
+        additionalNotes
+      );
+
+      const base64Content = uint8ToBase64(wordDocBuffer);
+      const filename = makeDocxFilenameFromSubject(subject);
+
       emailOptions.attachments = [
         {
-          filename: filename,
+          filename,
           content: base64Content,
         },
       ];
@@ -404,7 +607,6 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     const emailResponse = await resend.emails.send(emailOptions);
-
     console.log("Email sent successfully:", emailResponse);
 
     return new Response(JSON.stringify({ success: true, data: emailResponse }), {
@@ -416,13 +618,10 @@ const handler = async (req: Request): Promise<Response> => {
     });
   } catch (error: any) {
     console.error("Error in send-chat-email function:", error);
-    return new Response(
-      JSON.stringify({ success: false, error: error.message }),
-      {
-        status: 500,
-        headers: { "Content-Type": "application/json", ...corsHeaders },
-      }
-    );
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json", ...corsHeaders },
+    });
   }
 };
 

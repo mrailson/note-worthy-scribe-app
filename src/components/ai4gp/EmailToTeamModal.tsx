@@ -57,22 +57,27 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [editableContent, setEditableContent] = useState('');
 
-  // Clean content: strip markdown and remove boilerplate prefix
-  const cleanedContent = useMemo(() => {
-    let content = stripMarkdown(messageContent);
-    // Remove the boilerplate prefix if present
+  // Prepare content:
+  // - keep markdown for email/Word formatting
+  // - also keep a plain-text version for subject generation
+  const cleanedMarkdownContent = useMemo(() => {
+    let content = messageContent || '';
     if (content.startsWith(CONTENT_PREFIX_TO_REMOVE)) {
       content = content.slice(CONTENT_PREFIX_TO_REMOVE.length).trim();
     }
     return content;
   }, [messageContent]);
 
-  // Initialize editable content when cleaned content changes
+  const cleanedPlainText = useMemo(() => {
+    return stripMarkdown(cleanedMarkdownContent);
+  }, [cleanedMarkdownContent]);
+
+  // Initialise editable content when modal opens
   useEffect(() => {
-    if (isOpen && cleanedContent && !editableContent) {
-      setEditableContent(cleanedContent);
+    if (isOpen && cleanedMarkdownContent && !editableContent) {
+      setEditableContent(cleanedMarkdownContent);
     }
-  }, [isOpen, cleanedContent]);
+  }, [isOpen, cleanedMarkdownContent]);
 
   // Generate AI subject when modal opens
   useEffect(() => {
@@ -82,7 +87,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
       setIsGeneratingSubject(true);
       try {
         // Use a simple extraction approach - take first meaningful line or generate summary
-        const lines = cleanedContent.split('\n').filter(l => l.trim().length > 10);
+        const lines = cleanedPlainText.split('\n').filter(l => l.trim().length > 10);
         
         if (lines.length > 0) {
           // Take first meaningful line and truncate
@@ -103,7 +108,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
     };
 
     generateSubject();
-  }, [isOpen, cleanedContent]);
+  }, [isOpen, cleanedPlainText]);
 
   // Get clean content for email
 
