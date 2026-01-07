@@ -325,7 +325,7 @@ export function AdminClaimsReport() {
                                     .sort((a, b) => b.work_date.localeCompare(a.work_date))
                                     .map((entry) => (
                                       <div key={entry.id} className="flex justify-between items-start py-1 border-b border-border/50 last:border-0">
-                                        <div>
+                                        <div className="flex-1 min-w-0 mr-2">
                                           <span className="font-medium">{format(parseISO(entry.work_date), 'dd/MM/yyyy')}</span>
                                           <span className="text-muted-foreground ml-2">
                                             {entry.start_time.substring(0, 5)} - {entry.end_time.substring(0, 5)}
@@ -333,8 +333,11 @@ export function AdminClaimsReport() {
                                           {entry.activity_type && (
                                             <div className="text-muted-foreground">{entry.activity_type}</div>
                                           )}
+                                          {entry.description && (
+                                            <div className="text-muted-foreground italic truncate">{entry.description}</div>
+                                          )}
                                         </div>
-                                        <span className="font-medium">{Number(entry.duration_hours).toFixed(2)} hrs</span>
+                                        <span className="font-medium whitespace-nowrap">{Number(entry.duration_hours).toFixed(2)} hrs</span>
                                       </div>
                                     ))}
                                 </div>
