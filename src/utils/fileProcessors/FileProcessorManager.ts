@@ -3,6 +3,7 @@ import { ExcelProcessor } from './ExcelProcessor';
 import { PDFProcessor } from './PDFProcessor';
 import { ImageProcessor } from './ImageProcessor';
 import { TextProcessor } from './TextProcessor';
+import { AudioProcessor } from './AudioProcessor';
 
 export interface ProcessedFile {
   name: string;
@@ -10,7 +11,7 @@ export interface ProcessedFile {
   content: string;
   size: number;
   isLoading: false;
-  processedType: 'text' | 'image' | 'pdf' | 'word' | 'excel' | 'unknown';
+  processedType: 'text' | 'image' | 'pdf' | 'word' | 'excel' | 'audio' | 'unknown';
 }
 
 export class FileProcessorManager {
@@ -42,7 +43,15 @@ export class FileProcessorManager {
     '.svg': 'image',
     '.bmp': 'image',
     '.tiff': 'image',
-    '.tif': 'image'
+    '.tif': 'image',
+    
+    // Audio files
+    '.mp3': 'audio',
+    '.wav': 'audio',
+    '.m4a': 'audio',
+    '.ogg': 'audio',
+    '.flac': 'audio',
+    '.aac': 'audio'
   };
 
   static getFileType(fileName: string): string {
@@ -84,6 +93,10 @@ export class FileProcessorManager {
           
         case 'image':
           content = await ImageProcessor.processImage(file);
+          break;
+          
+        case 'audio':
+          content = await AudioProcessor.transcribeAudio(file);
           break;
           
         case 'text':
