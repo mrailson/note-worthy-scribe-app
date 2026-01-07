@@ -7648,6 +7648,36 @@ export type Database = {
         }
         Relationships: []
       }
+      user_name_corrections: {
+        Row: {
+          correct_spelling: string
+          created_at: string
+          id: string
+          incorrect_spelling: string
+          is_active: boolean
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          correct_spelling: string
+          created_at?: string
+          id?: string
+          incorrect_spelling: string
+          is_active?: boolean
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          correct_spelling?: string
+          created_at?: string
+          id?: string
+          incorrect_spelling?: string
+          is_active?: boolean
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           api_testing_service_access: boolean | null
