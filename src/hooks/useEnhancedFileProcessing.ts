@@ -13,7 +13,7 @@ export interface FileProcessingStats {
 
 // File upload limits
 export const FILE_LIMITS = {
-  MAX_FILES: 10,
+  MAX_FILES: 20,
   MAX_FILE_SIZE_MB: 15,
   MAX_FILE_SIZE_BYTES: 15 * 1024 * 1024,
 };
