@@ -829,7 +829,7 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="flex flex-wrap gap-1">
-                  {['PDF', 'Word (.docx)', 'RTF', 'Text (.txt)', 'Email (.eml)'].map(format => (
+                  {['PDF', 'Word (.doc/.docx)', 'RTF', 'Text (.txt)', 'Email (.eml)'].map(format => (
                     <Badge key={format} variant="outline" className="text-xs">
                       {format}
                     </Badge>
