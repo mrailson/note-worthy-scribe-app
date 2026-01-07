@@ -13,7 +13,8 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface UserClaim {
   user_id: string;
-  email: string;
+  user_name: string;
+  practice_name: string;
   total_hours: number;
   total_amount: number;
   entry_count: number;
@@ -42,7 +43,7 @@ export function AdminClaimsReport() {
   const [loading, setLoading] = useState(false);
   const [entries, setEntries] = useState<AllEntry[]>([]);
   const [userSettings, setUserSettings] = useState<Record<string, number>>({});
-  const [userEmails, setUserEmails] = useState<Record<string, string>>({});
+  const [userProfiles, setUserProfiles] = useState<Record<string, { name: string; practice_name: string }>>({});
   const [startDate, setStartDate] = useState(format(startOfMonth(new Date()), 'yyyy-MM-dd'));
   const [endDate, setEndDate] = useState(format(endOfMonth(new Date()), 'yyyy-MM-dd'));
 
@@ -85,22 +86,35 @@ export function AdminClaimsReport() {
       // Get unique user IDs
       const userIds = [...new Set(entriesData?.map(e => e.user_id) || [])];
 
-      // Fetch user emails from profiles or auth
+      // Fetch user profiles with names
       const { data: profilesData } = await supabase
         .from('profiles')
-        .select('id, email')
+        .select('id, full_name, email')
         .in('id', userIds);
 
-      const emailMap: Record<string, string> = {};
+      // Fetch practice details for each user (using user_id in practice_details)
+      const { data: practiceData } = await supabase
+        .from('practice_details')
+        .select('user_id, practice_name')
+        .in('user_id', userIds)
+        .eq('is_default', true);
+
+      const practiceMap: Record<string, string> = {};
+      practiceData?.forEach(p => {
+        practiceMap[p.user_id] = p.practice_name;
+      });
+
+      const profileMap: Record<string, { name: string; practice_name: string }> = {};
       profilesData?.forEach(p => {
-        if (p.email) {
-          emailMap[p.id] = p.email;
-        }
+        profileMap[p.id] = {
+          name: p.full_name || p.email || p.id.substring(0, 8) + '...',
+          practice_name: practiceMap[p.id] || 'Not Set'
+        };
       });
 
       setEntries(entriesData || []);
       setUserSettings(settingsMap);
-      setUserEmails(emailMap);
+      setUserProfiles(profileMap);
     } catch (error) {
       console.error('Error fetching admin data:', error);
     } finally {
@@ -131,6 +145,7 @@ export function AdminClaimsReport() {
       const userId = entry.user_id;
       const hourlyRate = userSettings[userId] || 50; // Default £50/hr
       const amount = Number(entry.duration_hours) * hourlyRate;
+      const profile = userProfiles[userId] || { name: userId.substring(0, 8) + '...', practice_name: 'Unknown' };
 
       if (userMap.has(userId)) {
         const existing = userMap.get(userId)!;
@@ -140,7 +155,8 @@ export function AdminClaimsReport() {
       } else {
         userMap.set(userId, {
           user_id: userId,
-          email: userEmails[userId] || userId.substring(0, 8) + '...',
+          user_name: profile.name,
+          practice_name: profile.practice_name,
           total_hours: Number(entry.duration_hours),
           total_amount: amount,
           entry_count: 1
@@ -149,7 +165,7 @@ export function AdminClaimsReport() {
     });
 
     return Array.from(userMap.values()).sort((a, b) => b.total_amount - a.total_amount);
-  }, [entries, userSettings, userEmails, startDate, endDate]);
+  }, [entries, userSettings, userProfiles, startDate, endDate]);
 
   const grandTotalHours = userClaims.reduce((sum, u) => sum + u.total_hours, 0);
   const grandTotalAmount = userClaims.reduce((sum, u) => sum + u.total_amount, 0);
@@ -161,11 +177,11 @@ export function AdminClaimsReport() {
       `Period: ${format(parseISO(startDate), 'dd/MM/yyyy')} to ${format(parseISO(endDate), 'dd/MM/yyyy')}`,
       `Generated: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
       '',
-      'User,Entries,Total Hours,Total Amount'
+      'User Name,Practice,Entries,Total Hours,Total Amount'
     ];
 
     userClaims.forEach(claim => {
-      lines.push(`${claim.email},${claim.entry_count},${claim.total_hours.toFixed(2)},£${claim.total_amount.toFixed(2)}`);
+      lines.push(`"${claim.user_name}","${claim.practice_name}",${claim.entry_count},${claim.total_hours.toFixed(2)},£${claim.total_amount.toFixed(2)}`);
     });
 
     lines.push('');
@@ -248,7 +264,8 @@ export function AdminClaimsReport() {
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>User</TableHead>
+                      <TableHead>User Name</TableHead>
+                      <TableHead>Practice</TableHead>
                       <TableHead className="text-center">Entries</TableHead>
                       <TableHead className="text-right">Total Hours</TableHead>
                       <TableHead className="text-right">Total Amount</TableHead>
@@ -257,7 +274,8 @@ export function AdminClaimsReport() {
                   <TableBody>
                     {userClaims.map((claim) => (
                       <TableRow key={claim.user_id}>
-                        <TableCell className="font-medium">{claim.email}</TableCell>
+                        <TableCell className="font-medium">{claim.user_name}</TableCell>
+                        <TableCell className="text-muted-foreground">{claim.practice_name}</TableCell>
                         <TableCell className="text-center">
                           <Badge variant="secondary">{claim.entry_count}</Badge>
                         </TableCell>
@@ -267,6 +285,7 @@ export function AdminClaimsReport() {
                     ))}
                     <TableRow className="font-bold bg-muted">
                       <TableCell>GRAND TOTAL</TableCell>
+                      <TableCell></TableCell>
                       <TableCell className="text-center">
                         <Badge>{userClaims.reduce((s, u) => s + u.entry_count, 0)}</Badge>
                       </TableCell>
