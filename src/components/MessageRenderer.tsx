@@ -36,7 +36,10 @@ import {
   Palette,
   Volume2,
   VolumeX,
-  Search
+  Search,
+  FileType,
+  Type,
+  Hash
 } from 'lucide-react';
 import PolicyBadge from '@/components/PolicyBadge';
 import PolicyBanner from '@/components/PolicyBanner';
@@ -220,11 +223,29 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   
   const displayContent = message.content;
 
-  const copyMessage = async () => {
+  const copyMessageFormatted = async () => {
     const success = await copyRichTextToClipboard(message.content);
     if (success) {
-      toast.success('Copied with formatting - paste into email to preserve layout');
+      toast.success('Copied with formatting');
     } else {
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
+  const copyMessagePlain = async () => {
+    const success = await copyPlainTextToClipboard(message.content);
+    if (success) {
+      toast.success('Copied as plain text');
+    } else {
+      toast.error('Failed to copy to clipboard');
+    }
+  };
+
+  const copyMessageMarkdown = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      toast.success('Copied as markdown');
+    } catch (error) {
       toast.error('Failed to copy to clipboard');
     }
   };
@@ -1002,16 +1023,34 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                       </Button>
                     )}
 
-                    {/* Copy button */}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={copyMessage}
-                      className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
-                      title="Copy message to clipboard"
-                    >
-                      <Copy className="h-3 w-3" />
-                    </Button>
+                    {/* Copy dropdown */}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-muted-foreground hover:text-foreground"
+                          title="Copy options"
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-56">
+                        <DropdownMenuItem onClick={copyMessageFormatted}>
+                          <FileType className="h-4 w-4 mr-2" />
+                          Copy with Formatting
+                          <span className="ml-auto text-xs text-muted-foreground">for emails</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={copyMessagePlain}>
+                          <Type className="h-4 w-4 mr-2" />
+                          Copy Plain Text
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={copyMessageMarkdown}>
+                          <Hash className="h-4 w-4 mr-2" />
+                          Copy as Markdown
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
 
                     {/* Quick Pick (QP) dropdown - only show in regular chat */}
                     {!isModal && onQuickResponse && (
@@ -1064,17 +1103,35 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                   </>
                 )}
                 
-                {/* Copy button for user messages - only in regular chat */}
+                {/* Copy dropdown for user messages - only in regular chat */}
                 {!isModal && message.role === 'user' && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={copyMessage}
-                    className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-primary-foreground/70 hover:text-primary-foreground"
-                    title="Copy message to clipboard"
-                  >
-                    <Copy className="h-3 w-3" />
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-6 w-6 p-0 opacity-70 hover:opacity-100 text-primary-foreground/70 hover:text-primary-foreground"
+                        title="Copy options"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="w-56">
+                      <DropdownMenuItem onClick={copyMessageFormatted}>
+                        <FileType className="h-4 w-4 mr-2" />
+                        Copy with Formatting
+                        <span className="ml-auto text-xs text-muted-foreground">for emails</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={copyMessagePlain}>
+                        <Type className="h-4 w-4 mr-2" />
+                        Copy Plain Text
+                      </DropdownMenuItem>
+                      <DropdownMenuItem onClick={copyMessageMarkdown}>
+                        <Hash className="h-4 w-4 mr-2" />
+                        Copy as Markdown
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
             </div>
