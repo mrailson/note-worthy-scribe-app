@@ -102,7 +102,7 @@ const januaryDecisions: BoardDecision[] = [
     title: "Recruitment Panels", 
     desc: "Establishing the JD and Interview groups.",
     status: "low-priority",
-    note: "Malcolm arranging recruitment panel with PML",
+    note: "PML Meeting 8/1/26 to review Workforce to include Panel etc",
     targetDate: "27th January 2026"
   },
   { 
