@@ -530,6 +530,14 @@ export const SDAFinanceGovernance = () => {
                           </Badge>
                         );
                       })}
+                      {!practice.insurances.some(ins => ins.type === "Employers") && (
+                        <Badge 
+                          variant="outline" 
+                          className="text-[10px] px-1.5 py-0.5 font-medium text-red-700 border-red-400 bg-red-50"
+                        >
+                          Employers Missing
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 );
