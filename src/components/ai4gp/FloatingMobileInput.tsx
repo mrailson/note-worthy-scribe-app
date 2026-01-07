@@ -1,4 +1,4 @@
-import React, { useState, useRef, forwardRef, useImperativeHandle, useEffect } from 'react';
+import React, { useState, useRef, forwardRef, useImperativeHandle, useEffect, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Switch } from '@/components/ui/switch';
@@ -12,6 +12,40 @@ import { cn } from '@/lib/utils';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { detectDevice } from '@/utils/DeviceDetection';
 
+// Role-based placeholder tips
+const CLINICAL_TIPS = [
+  "Ask about NICE guidelines, drug interactions, or referral pathways...",
+  "What's the latest guidance on prescribing, clinical protocols, or treatment options...",
+  "Help with clinical letters, patient information leaflets, or treatment plans...",
+  "Check BNF guidance, calculate doses, or review QOF indicators...",
+  "Summarise uploaded documents, draft referrals, or explain conditions...",
+];
+
+const MANAGER_TIPS = [
+  "Ask about HR policies, staff management, or CQC requirements...",
+  "Help with complaint responses, practice policies, or patient communications...",
+  "Draft emails, meeting agendas, or staff announcements...",
+  "Summarise uploaded documents, create action plans, or check regulations...",
+  "Get guidance on contracts, governance, or practice operations...",
+];
+
+const DEFAULT_TIP = "Ask about NHS guidance, policies, documents, or practice operations...";
+
+const getPlaceholderTip = (role?: string): string => {
+  const clinicalRoles = ['gp', 'nurse', 'pharmacist', 'healthcare_assistant'];
+  const managerRoles = ['practice_manager', 'admin_staff', 'pcn_manager', 'icb_user', 'lmc_user'];
+  
+  if (role && clinicalRoles.includes(role)) {
+    return CLINICAL_TIPS[Math.floor(Math.random() * CLINICAL_TIPS.length)];
+  }
+  
+  if (role && managerRoles.includes(role)) {
+    return MANAGER_TIPS[Math.floor(Math.random() * MANAGER_TIPS.length)];
+  }
+  
+  return DEFAULT_TIP;
+};
+
 interface FloatingMobileInputProps {
   input: string;
   setInput: (input: string) => void;
@@ -21,6 +55,7 @@ interface FloatingMobileInputProps {
   isLoading: boolean;
   isClinical: boolean;
   setIsClinical: (clinical: boolean) => void;
+  userRole?: string;
 }
 
 export interface FloatingMobileInputRef {
@@ -35,7 +70,8 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   onSend,
   isLoading,
   isClinical,
-  setIsClinical
+  setIsClinical,
+  userRole
 }, ref) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [keyboardHeight, setKeyboardHeight] = useState(0);
@@ -48,6 +84,9 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   const { toast } = useToast();
   const deviceInfo = useDeviceInfo();
   const device = detectDevice();
+  
+  // Memoize placeholder tip so it doesn't change on every render
+  const placeholderTip = useMemo(() => getPlaceholderTip(userRole), [userRole]);
 
   // iPhone keyboard handling
   useEffect(() => {
@@ -321,15 +360,15 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
           {/* Input area */}
           <div className="space-y-3">
             <div className="relative">
-              <Textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                placeholder="Ask about NHS guidelines, clinical protocols, prescribing, referrals..."
-                className="min-h-[100px] max-h-32 resize-none pr-44 bg-background border-border text-base mobile-touch-target"
-                disabled={isLoading}
-              />
+            <Textarea
+              ref={textareaRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={placeholderTip}
+              className="min-h-[100px] max-h-32 resize-none pr-44 bg-background border-border text-base mobile-touch-target"
+              disabled={isLoading}
+            />
               
               <input
                 ref={fileInputRef}
