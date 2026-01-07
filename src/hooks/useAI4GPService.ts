@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { Message, UploadedFile, SearchHistory } from '@/types/ai4gp';
 import { useDisplayPreferences } from './useDisplayPreferences';
+import { prepareMessagesForAPI, getMemoryStats } from '@/utils/conversationMemory';
 
 export const useAI4GPService = () => {
   const { user } = useAuth();
@@ -453,23 +454,25 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel);
       console.log('📄 Final system prompt (first 500 chars):', systemPrompt.substring(0, 500));
       
-      // Prepare messages for API
-      const messagesForAPI = newMessages.map(msg => {
-        let content = msg.content;
-        
-        // Add file contents to the message if present
-        if (msg.files && msg.files.length > 0) {
-          const fileContents = msg.files.map(file => 
-            `\n\n--- File: ${file.name} ---\n${file.content}\n--- End of ${file.name} ---`
-          ).join('');
-          content += fileContents;
-        }
-        
-        return {
-          role: msg.role,
-          content: content
-        };
-      });
+      // Prepare optimised messages for API using conversation memory management
+      // This automatically handles token limits, summarises older messages, and deduplicates file content
+      const messagesForAPI = prepareMessagesForAPI(
+        newMessages.map(msg => ({
+          ...msg,
+          timestamp: msg.timestamp instanceof Date ? msg.timestamp : new Date(msg.timestamp)
+        })),
+        systemPrompt,
+        30000 // Max tokens for conversation history
+      );
+      
+      // Log memory stats
+      const memoryStats = getMemoryStats(newMessages);
+      console.log('🧠 Memory status:', memoryStats);
+      
+      // Warn user if approaching limits
+      if (memoryStats.recommendation && memoryStats.tokenPercentage >= 70) {
+        console.warn('⚠️ Memory warning:', memoryStats.recommendation);
+      }
 
       // For GPT-5 queries, prefer the fast clinical function (works better and more reliable)
       if (modelToUse === 'gpt-5-2025-08-07' || modelToUse === 'gpt-5') {
@@ -495,7 +498,16 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             ));
           };
           
-          const result = await handleGPT5FastClinical(messagesForAPI, systemPrompt, streamHandler);
+          // The messagesForAPI already includes system prompt as first message
+          // Extract the system prompt and non-system messages for the API
+          const systemMessage = messagesForAPI.find(m => m.role === 'system');
+          const nonSystemMessages = messagesForAPI.filter(m => m.role !== 'system');
+          
+          const result = await handleGPT5FastClinical(
+            nonSystemMessages as { role: 'user' | 'assistant' | 'system'; content: string }[], 
+            systemMessage?.content || systemPrompt, 
+            streamHandler
+          );
           
           const endTime = Date.now();
           const responseTime = endTime - startTime;
@@ -540,10 +552,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           ));
           
           // Fall back to ChatGPT 4o instead of failing completely
+          // The messagesForAPI already contains the system message from prepareMessagesForAPI
           const chatgptRequestBody = {
             messages: messagesForAPI,
             model: 'gpt-4o',
-            systemPrompt: systemPrompt,
             files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
             verificationLevel: verificationLevel
           };
@@ -602,10 +614,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       }
 
       // For non-GPT-5 models, use the ai-4-pm-chat function
+      // The messagesForAPI already contains the system message from prepareMessagesForAPI
       const requestBody = {
         messages: messagesForAPI,
         model: modelToUse,
-        systemPrompt: systemPrompt,
         files: uploadedFiles.length > 0 ? uploadedFiles : undefined,
         verificationLevel: verificationLevel
       };
