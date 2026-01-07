@@ -48,7 +48,7 @@ const januaryDecisions: BoardDecision[] = [
     title: "Host Organisation", 
     desc: "Determine whether PML or individual practice will host employed staff.",
     status: "decision-required",
-    options: ["PML", "Practice"],
+    options: ["PML", "Practice", "Neighbourhood"],
     note: "Critical decision required for recruitment to proceed"
   },
   // PENDING REVIEW - In order of project dependency
