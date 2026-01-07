@@ -30,7 +30,6 @@ export const useFileUpload = () => {
       });
 
       const processedFiles = await Promise.all(filePromises);
-      toast.success(`${processedFiles.length} file(s) processed successfully`);
       return processedFiles;
       
     } catch (error) {
