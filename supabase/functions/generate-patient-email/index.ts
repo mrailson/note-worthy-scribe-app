@@ -105,7 +105,22 @@ Do NOT include:
 - Any signatures or closing statements
 - Contact details
 
-Start directly with the consultation summary content. Write in clear, patient-friendly language and include:
+CRITICAL - NEVER start with these clichéd phrases:
+- "I hope you are well" / "I hope this finds you well" / "I hope this email finds you well"
+- "I trust this email finds you well" / "I trust you are well"
+- "Thank you for attending" / "Thank you for coming in today"
+- "It was a pleasure to see you" / "It was lovely to meet you"
+- "Following our consultation today..." (too generic)
+- Any variation of the above
+
+INSTEAD, start DIRECTLY with specific consultation content:
+- "During your consultation, we discussed..."
+- "Your [blood pressure/symptoms/results] showed..."
+- "We reviewed your [condition/medication/health concern]..."
+- "Based on our discussion about [specific topic]..."
+- Jump straight into the relevant findings or summary
+
+Write in clear, patient-friendly language and include:
 1. A summary of what was discussed during the consultation
 2. Any findings or diagnoses in simple terms
 3. The agreed treatment plan or recommendations
@@ -159,7 +174,7 @@ Provide only the main body content without any headers, greetings, or signatures
       year: 'numeric'
     });
 
-    // Clean up any residual content from AI response
+    // Clean up any residual content from AI response - remove clichéd openings
     let cleanedContent = generatedContent
       .replace(/^Subject:.*$/gm, '') // Remove any subject lines
       .replace(/^Dear (Patient|Mrs\.?|Mr\.?|Ms\.?).*$/gm, '') // Remove any greetings
@@ -168,7 +183,12 @@ Provide only the main body content without any headers, greetings, or signatures
       .replace(/Sincerely,[\s\S]*$/i, '') // Remove any "Sincerely" and everything after
       .replace(/\[Your Name\]/g, '') // Remove placeholder names
       .replace(/\[Your Position\]/g, '') // Remove placeholder positions
-      .replace(/I hope this email finds you.*?\./g, '') // Remove generic opening statements
+      // Remove clichéd opening statements
+      .replace(/^I hope (you are well|this finds you|this email finds you|all is well).*?\./gi, '')
+      .replace(/^I trust (this email finds you|you are).*?\./gi, '')
+      .replace(/^Thank you for (attending|coming in|your visit).*?\./gi, '')
+      .replace(/^It was (a pleasure|lovely|great) to (see|meet).*?\./gi, '')
+      .replace(/^Following (our|your) (recent )?consultation.*?\./gi, '')
       .replace(/^[\s\n]*/, '') // Remove leading whitespace/newlines
       .trim();
 
