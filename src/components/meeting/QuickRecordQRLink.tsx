@@ -81,14 +81,14 @@ export const QuickRecordQRLink = () => {
             size="sm"
             onClick={handleShowQr}
             disabled={loading || !activeToken}
-            className="text-muted-foreground hover:text-primary"
+            className="h-8 w-8 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10 transition-colors"
           >
-            <Smartphone className="h-4 w-4 mr-1" />
-            <span className="text-xs">Use iPhone</span>
+            <Smartphone className="h-4 w-4" />
           </Button>
         </TooltipTrigger>
-        <TooltipContent>
-          <p>Show QR code to switch to your iPhone</p>
+        <TooltipContent side="bottom" align="end" className="max-w-xs">
+          <p className="font-medium">Use Smartphone</p>
+          <p className="text-xs text-muted-foreground">Scan a QR code to record meetings on your phone instead of this computer</p>
         </TooltipContent>
       </Tooltip>
 
@@ -97,7 +97,7 @@ export const QuickRecordQRLink = () => {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <QrCode className="h-5 w-5" />
-              Switch to iPhone
+              Switch to Smartphone
             </DialogTitle>
           </DialogHeader>
           

@@ -5063,8 +5063,9 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
             {/* Compact Recording Controls */}
             <Card className="shadow-lg">
               <CardContent className="pt-4 pb-4">
-                {/* Import Audio Icon - Top Right */}
-                <div className="flex justify-end mb-2">
+                {/* Import Audio & Smartphone Icons - Top Right */}
+                <div className="flex justify-end gap-1 mb-2">
+                  <QuickRecordQRLink />
                   <Tooltip>
                     <TooltipTrigger asChild>
                       <Button
@@ -5148,8 +5149,7 @@ ${meetingType === 'face-to-face' && meetingLocation ? `Location: ${meetingLocati
                            >
                              <Mic className="h-5 w-5 mr-2" />
                              Start Recording
-                           </Button>
-                           <QuickRecordQRLink />
+                            </Button>
                           </div>
                         </div>
                      </div>
