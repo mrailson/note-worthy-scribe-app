@@ -41,7 +41,7 @@ const practiceSummary = [
   { practice: "Springfield", totalSessions: 10, listSize: 12649, role: "SPOKE", system: "EMIS" },
   { practice: "Towcester MC", totalSessions: 17, listSize: 11439, role: "SPOKE", system: "EMIS" },
   { practice: "Bugbrooke", totalSessions: 10, listSize: 10773, role: "SPOKE", system: "SystmOne" },
-  { practice: "Brook Health", totalSessions: 10, listSize: 8983, role: "TBC", system: "SystmOne", note: "Non-GMS rent required, likely Spoke" },
+  { practice: "Brook Health", totalSessions: 10, listSize: 8983, role: "TBC", system: "SystmOne", note: "Awaiting NHFT meeting (15 Jan) - will report to board" },
   { practice: "Denton Village", totalSessions: 3, listSize: 6277, role: "SPOKE", system: "SystmOne", note: "Tue/Fri full day, Thu PM" },
 ];
 
@@ -820,6 +820,36 @@ export const SDAEstatesCapacity = () => {
           <p className="text-sm text-amber-800">
             <strong>Note:</strong> 1 session = 12 × 15 min appointments (F2F and Virtual). Initially 15 mins for virtual appointments but the board may change to 10 mins at a later date.
           </p>
+        </div>
+      </CollapsibleCard>
+
+      {/* Hub Location Status */}
+      <CollapsibleCard
+        title="Hub Location Status"
+        icon={<Building2 className="w-5 h-5" />}
+        badge={<span className="text-xs text-slate-500 font-normal">Updated: 7 Jan 2026</span>}
+      >
+        <div className="space-y-3">
+          <div className="flex items-center gap-3">
+            <Badge className="bg-green-100 text-green-800 border-green-300">Confirmed</Badge>
+            <span className="font-medium text-slate-900">Brackley Medical Centre</span>
+            <span className="text-slate-600 text-sm">- Hub Location</span>
+          </div>
+          <div className="flex items-center gap-3">
+            <Badge className="bg-green-100 text-green-800 border-green-300">Confirmed</Badge>
+            <span className="font-medium text-slate-900">The Parks</span>
+            <span className="text-slate-600 text-sm">- Hub Location</span>
+          </div>
+          <div className="flex flex-col gap-1">
+            <div className="flex items-center gap-3">
+              <Badge className="bg-amber-100 text-amber-800 border-amber-300">Pending</Badge>
+              <span className="font-medium text-slate-900">Brook Health Centre</span>
+              <span className="text-slate-600 text-sm">- Awaiting Confirmation (by 15 Jan 2026)</span>
+            </div>
+            <p className="text-sm text-slate-600 ml-[88px]">
+              Meeting with NHFT (current occupants of first floor) scheduled. Will report back to board following meeting.
+            </p>
+          </div>
         </div>
       </CollapsibleCard>
 
