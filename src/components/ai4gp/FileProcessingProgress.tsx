@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
-import { FileText, Calculator, AlertTriangle } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { FileProcessingStats } from '@/hooks/useEnhancedFileProcessing';
 
 interface FileProcessingProgressProps {
@@ -43,38 +43,9 @@ export const FileProcessingProgress: React.FC<FileProcessingProgressProps> = ({
           <Progress value={progress} className="h-2" />
         )}
 
-        <div className="flex flex-wrap gap-2 text-xs">
-          <Badge variant="outline" className="text-xs">
-            {(stats.totalSize / 1024 / 1024).toFixed(1)} MB total
-          </Badge>
-          
-          <Badge 
-            variant="outline" 
-            className={`text-xs ${
-              stats.estimatedComplexity === 'high' ? 'bg-red-100 text-red-700 border-red-300' :
-              stats.estimatedComplexity === 'medium' ? 'bg-yellow-100 text-yellow-700 border-yellow-300' :
-              'bg-green-100 text-green-700 border-green-300'
-            }`}
-          >
-            {stats.estimatedComplexity} complexity
-          </Badge>
-
-          {stats.hasNumericalData && (
-            <Badge variant="outline" className="text-xs bg-orange-100 text-orange-700 border-orange-300">
-              <Calculator className="w-3 h-3 mr-1" />
-              Numerical data detected
-            </Badge>
-          )}
+        <div className="text-xs text-muted-foreground">
+          {(stats.totalSize / 1024 / 1024).toFixed(1)} MB total
         </div>
-
-        {stats.hasNumericalData && isComplete && (
-          <div className="text-xs text-orange-600 p-2 bg-orange-100 rounded flex items-start gap-2">
-            <AlertTriangle className="w-3 h-3 mt-0.5 flex-shrink-0" />
-            <span>
-              Files contain numerical data. Calculations will be automatically verified for accuracy.
-            </span>
-          </div>
-        )}
       </CardContent>
     </Card>
   );
