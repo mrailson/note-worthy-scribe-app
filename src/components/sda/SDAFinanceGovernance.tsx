@@ -515,14 +515,15 @@ export const SDAFinanceGovernance = () => {
                     </div>
                     <div className="flex flex-wrap gap-1.5 ml-6">
                       {practice.insurances.map((ins, insIndex) => {
-                        const isPublicPending = ins.type === "Public" && (!ins.confirmed || ins.amount !== "£10m");
-                        const isAmber = !ins.confirmed && ins.type !== "Public";
+                        const isPublicNotConfirmed = ins.type === "Public" && !ins.confirmed;
+                        const isPublicLowAmount = ins.type === "Public" && ins.confirmed && ins.amount !== "£10m";
+                        const isAmber = (!ins.confirmed && ins.type !== "Public") || isPublicLowAmount;
                         return (
                           <Badge 
                             key={insIndex}
                             variant="outline" 
                             className={`text-[10px] px-1.5 py-0.5 font-medium ${
-                              isPublicPending
+                              isPublicNotConfirmed
                                 ? 'text-red-700 border-red-400 bg-red-50'
                                 : isAmber 
                                   ? 'text-amber-700 border-amber-400 bg-amber-50' 
