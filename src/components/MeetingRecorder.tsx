@@ -581,9 +581,17 @@ export const MeetingRecorder = ({
     }
   }, [autoStart, isRecording, user]);
 
+  // Track if continuation toast has been shown to prevent loops
+  const continuationToastShownRef = useRef<string | null>(null);
+
   // Handle continuation mode setup
   useEffect(() => {
     if (forceRecorderTab && continueMeetingId) {
+      // Only show toast once per meeting ID
+      if (continuationToastShownRef.current === continueMeetingId) {
+        return;
+      }
+      
       console.log('🔄 Setting up continuation mode for meeting:', continueMeetingId);
       
       // Switch to recorder tab
@@ -600,6 +608,9 @@ export const MeetingRecorder = ({
       if (existingDuration > 0) {
         sessionStorage.setItem('continuationDuration', existingDuration.toString());
       }
+      
+      // Mark toast as shown for this meeting
+      continuationToastShownRef.current = continueMeetingId;
       
       showToast.info(`Ready to continue "${initialSettings?.title || 'meeting'}". Press record to add more.`, { 
         section: 'meeting_manager',
