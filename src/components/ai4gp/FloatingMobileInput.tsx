@@ -12,6 +12,7 @@ import { cn } from '@/lib/utils';
 import { useDeviceInfo } from '@/hooks/use-mobile';
 import { detectDevice } from '@/utils/DeviceDetection';
 import { FileQuickActions } from './FileQuickActions';
+import { MobileQuickActionsDrawer } from './MobileQuickActionsDrawer';
 
 // Role-based placeholder tips
 const CLINICAL_TIPS = [
@@ -246,6 +247,16 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
                 uploadedFiles={uploadedFiles}
                 onSelectAction={(prompt) => setInput(prompt)}
                 disabled={isLoading}
+              />
+            </div>
+          )}
+          
+          {/* Quick Actions trigger - only show when no files uploaded */}
+          {uploadedFiles.length === 0 && (
+            <div className="flex justify-start mb-2">
+              <MobileQuickActionsDrawer 
+                onSelectAction={(prompt) => setInput(prompt)}
+                isPracticeManager={userRole === 'practice_manager' || userRole === 'admin_staff'}
               />
             </div>
           )}
