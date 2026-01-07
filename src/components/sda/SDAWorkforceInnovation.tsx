@@ -90,6 +90,44 @@ const getTypeColor = (type: string) => {
 export const SDAWorkforceInnovation = () => {
   return (
     <div className="space-y-6">
+      {/* PRIORITY SECTION: Candidate Assessments */}
+      <div className="space-y-4">
+        <div className="flex items-center gap-3 mb-2">
+          <div className="h-8 w-1.5 bg-gradient-to-b from-teal-500 to-blue-500 rounded-full" />
+          <h2 className="text-lg font-semibold text-slate-800">Candidate Assessments - Action Required</h2>
+        </div>
+        
+        {/* ACP Recruitment - Candidate Assessment */}
+        <CollapsibleCard
+          title="ACP Recruitment - Candidate Assessment"
+          icon={<ClipboardCheck className="w-5 h-5" />}
+          badge={<Badge className="bg-teal-500">9 Applicants</Badge>}
+          defaultOpen={false}
+        >
+          <ACPRecruitmentPanel />
+        </CollapsibleCard>
+
+        {/* GP Recruitment - Candidate Assessment */}
+        <CollapsibleCard
+          title="GP Recruitment - Candidate Assessment"
+          icon={<UserCheck className="w-5 h-5" />}
+          badge={<Badge className="bg-blue-500">7 Applicants</Badge>}
+          defaultOpen={false}
+        >
+          <GPRecruitmentPanel />
+        </CollapsibleCard>
+      </div>
+
+      {/* Divider */}
+      <div className="relative py-4">
+        <div className="absolute inset-0 flex items-center" aria-hidden="true">
+          <div className="w-full border-t border-slate-200" />
+        </div>
+        <div className="relative flex justify-center">
+          <span className="bg-background px-4 text-sm text-muted-foreground">Supporting Resources</span>
+        </div>
+      </div>
+
       {/* Job Description Templates */}
       <CollapsibleCard
         title="Job Description Templates"
@@ -248,26 +286,6 @@ export const SDAWorkforceInnovation = () => {
         </div>
       </CollapsibleCard>
       </div>
-
-      {/* ACP Recruitment - Candidate Assessment */}
-      <CollapsibleCard
-        title="ACP Recruitment - Candidate Assessment"
-        icon={<ClipboardCheck className="w-5 h-5" />}
-        badge={<Badge className="bg-teal-500">9 Applicants</Badge>}
-        defaultOpen={false}
-      >
-        <ACPRecruitmentPanel />
-      </CollapsibleCard>
-
-      {/* GP Recruitment - Candidate Assessment */}
-      <CollapsibleCard
-        title="GP Recruitment - Candidate Assessment"
-        icon={<UserCheck className="w-5 h-5" />}
-        badge={<Badge className="bg-blue-500">6 Applicants</Badge>}
-        defaultOpen={false}
-      >
-        <GPRecruitmentPanel />
-      </CollapsibleCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Workforce Requirements */}
