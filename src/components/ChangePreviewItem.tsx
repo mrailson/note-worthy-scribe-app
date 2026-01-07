@@ -55,64 +55,54 @@ export function ChangePreviewItem({
   };
 
   return (
-    <Card className={`p-3 border transition-all ${
+    <Card className={`p-2 border transition-all ${
       selected 
         ? 'border-primary bg-primary/5 shadow-sm' 
         : 'border-border hover:border-muted-foreground/50'
     }`}>
-      <div className="flex items-start gap-3">
+      <div className="flex items-center gap-2">
         {/* Selection Checkbox */}
-        <div className="flex items-center pt-1">
-          <input
-            type="checkbox"
-            checked={selected}
-            onChange={(e) => onSelectionChange(e.target.checked)}
-            className="rounded border-border focus:ring-2 focus:ring-primary"
-          />
-        </div>
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={(e) => onSelectionChange(e.target.checked)}
+          className="rounded border-border focus:ring-2 focus:ring-primary shrink-0"
+        />
 
         {/* Change Details */}
-        <div className="flex-1 space-y-2">
+        <div className="flex-1 min-w-0 space-y-1">
           {/* Replacement Preview */}
-          <div className="flex items-center gap-2 font-mono text-sm">
-            <span className="px-2 py-1 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded border">
+          <div className="flex items-center gap-1.5 font-mono text-xs">
+            <span className="px-1.5 py-0.5 bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 rounded border truncate max-w-[120px]">
               {change.originalText}
             </span>
-            <ArrowRight className="h-3 w-3 text-muted-foreground" />
-            <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded border">
+            <ArrowRight className="h-3 w-3 text-muted-foreground shrink-0" />
+            <span className="px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 rounded border truncate max-w-[120px]">
               {change.replacementText}
             </span>
+            <div className="flex items-center gap-1 ml-auto shrink-0">
+              <Badge 
+                variant={getConfidenceBadgeVariant(change.confidence)}
+                className="text-[10px] px-1.5 py-0"
+              >
+                {change.confidence}
+              </Badge>
+            </div>
           </div>
 
-          {/* Context */}
-          <div className="text-xs text-muted-foreground font-mono leading-relaxed p-2 bg-muted/30 rounded border">
+          {/* Context - single line truncated */}
+          <div className="text-[10px] text-muted-foreground font-mono truncate px-1.5 py-0.5 bg-muted/30 rounded">
             ...{highlightContext(change.context, change.originalText)}...
-          </div>
-
-          {/* Badges */}
-          <div className="flex items-center gap-2">
-            <Badge 
-              variant={getConfidenceBadgeVariant(change.confidence)}
-              className="text-xs"
-            >
-              {change.confidence} confidence
-            </Badge>
-            <Badge 
-              variant={getMatchTypeBadgeVariant(change.matchType)}
-              className="text-xs"
-            >
-              {change.matchType} match
-            </Badge>
           </div>
         </div>
 
         {/* Quick Actions */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 shrink-0">
           <Button
             onClick={() => onSelectionChange(true)}
             variant={selected ? "default" : "outline"}
             size="sm"
-            className="h-8 w-8 p-0"
+            className="h-6 w-6 p-0"
           >
             <Check className="h-3 w-3" />
           </Button>
@@ -120,7 +110,7 @@ export function ChangePreviewItem({
             onClick={() => onSelectionChange(false)}
             variant={selected ? "outline" : "default"}
             size="sm"
-            className="h-8 w-8 p-0"
+            className="h-6 w-6 p-0"
           >
             <X className="h-3 w-3" />
           </Button>
