@@ -485,9 +485,12 @@ export const SDAFinanceGovernance = () => {
           <div>
             <div className="flex items-center justify-between mb-3">
               <h4 className="font-semibold text-slate-900">Practice Confirmation Checklist</h4>
-              <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
-                Amanda Taylor checking
-              </Badge>
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-slate-500">Updated: 7 Jan 2026</span>
+                <Badge variant="outline" className="text-amber-600 border-amber-300 bg-amber-50">
+                  Amanda Taylor checking
+                </Badge>
+              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {practiceInsuranceChecklist.map((practice, index) => {
