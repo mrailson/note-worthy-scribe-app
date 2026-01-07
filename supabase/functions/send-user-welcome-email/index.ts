@@ -396,7 +396,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Send email via Resend
     const { data: emailResult, error } = await resend.emails.send({
-      from: "GP Notewell AI <noreply@bluepcn.co.uk>",
+      from: "\"Notewell AI\" <noreply@bluepcn.co.uk>",
       to: [recipientEmail],
       subject: subject,
       html: htmlContent,
