@@ -72,10 +72,6 @@ const GPTranslationService: React.FC = () => {
     try {
       await startListening();
       setIsSessionActive(true);
-      toast({
-        title: 'Session Started',
-        description: `Translation session active for ${ELEVENLABS_LANGUAGES.find(l => l.code === selectedLanguage)?.name || selectedLanguage}`,
-      });
     } catch (error) {
       toast({
         title: 'Failed to Start',
@@ -89,29 +85,17 @@ const GPTranslationService: React.FC = () => {
     stopListening();
     stopAudio();
     setIsSessionActive(false);
-    toast({
-      title: 'Session Ended',
-      description: 'Translation session has been stopped.',
-    });
-  }, [stopListening, stopAudio, toast]);
+  }, [stopListening, stopAudio]);
 
   const handleNewSession = useCallback(() => {
     clearConversation();
     setSelectedLanguage('');
     setSpeakerMode('gp');
-    toast({
-      title: 'New Session',
-      description: 'Ready to start a new translation session.',
-    });
-  }, [clearConversation, toast]);
+  }, [clearConversation]);
 
   const handleExport = useCallback(async () => {
     try {
       await exportConversation();
-      toast({
-        title: 'Export Complete',
-        description: 'Conversation exported successfully.',
-      });
     } catch (error) {
       toast({
         title: 'Export Failed',

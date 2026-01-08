@@ -89,30 +89,17 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const generateSpeech = useCallback(async (text: string, languageCode: string): Promise<string | null> => {
     try {
       const langConfig = getLanguageByCode(languageCode) || getLanguageByCode('en');
-      
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gp-translation-tts`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY,
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({ 
-            text, 
-            languageCode,
-            voiceId: langConfig?.voiceId
-          }),
-        }
-      );
 
-      if (!response.ok) {
-        throw new Error('TTS request failed');
-      }
+      const { data, error } = await supabase.functions.invoke('gp-translation-tts', {
+        body: {
+          text,
+          languageCode,
+          voiceId: langConfig?.voiceId,
+        },
+      });
 
-      const data = await response.json();
-      return data.audioContent;
+      if (error) throw error;
+      return data?.audioContent ?? null;
     } catch (err) {
       console.error('TTS error:', err);
       return null;
