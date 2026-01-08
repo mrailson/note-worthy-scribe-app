@@ -715,6 +715,12 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                     Executive Overview
                                   </Button>
                                 </DrawerClose>
+                                <DrawerClose asChild>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/gp-translation')}>
+                                    <Languages className="h-4 w-4 mr-2" />
+                                    GP Translation
+                                  </Button>
+                                </DrawerClose>
                               </CollapsibleContent>
                             </Collapsible>
                           )}
