@@ -37,10 +37,10 @@ serve(async (req) => {
       infographic: 'informative visual summary with icons and key points',
       calendar: 'calendar or schedule grid layout',
       poster: 'professional notice or poster',
-      general: 'professional visual representation'
+      general: 'image or visual'
     };
 
-    const imagePrompt = `Create a professional NHS-style ${typeDescriptions[requestType] || 'visual'}.
+    const imagePrompt = `Create a professional ${typeDescriptions[requestType] || 'visual'}.
 
 Context from conversation:
 ${conversationContext}
@@ -48,14 +48,19 @@ ${conversationContext}
 User request: ${prompt}
 
 Design requirements:
-- Professional healthcare aesthetic suitable for NHS settings
-- Use NHS blue (#005EB8) as the primary accent colour
-- Clear, readable typography with good hierarchy
-- High contrast for accessibility (WCAG compliant)
+- Professional, clean design with good visual hierarchy
+- Clear, readable typography
+- High contrast for accessibility
+- Appropriate colour scheme based on the content and context
 - Clean, modern design with appropriate white space
 - If showing data, use clear charts with proper labels
 - If showing schedules, use organised grid layouts
-- Avoid cluttered designs - prioritise clarity`;
+- Avoid cluttered designs - prioritise clarity
+
+Content guidelines:
+- Keep all content professional and workplace-appropriate
+- No explicit, offensive, or inappropriate imagery
+- Suitable for a professional office environment`;
 
     console.log('🖼️ Generating image with Lovable AI Gateway...');
 
