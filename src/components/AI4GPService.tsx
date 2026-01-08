@@ -28,7 +28,6 @@ import { BPCalculatorPanel } from '@/components/ai4gp/BPCalculatorPanel';
 import ImageCreate from '@/pages/ImageCreate';
 import PracticeImageMaker from '@/pages/PracticeImageMaker';
 import { QuickImageModal } from '@/components/QuickImageModal';
-import { QRCodeGeneratorModal } from '@/components/QRCodeGeneratorModal';
 import { AIModelVerificationChart } from '@/components/AIModelVerificationChart';
 import { MeetingsDropdown } from '@/components/ai4gp/MeetingsDropdown';
 import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModal';
@@ -111,7 +110,6 @@ const AI4GPService = () => {
   const [showImageCreate, setShowImageCreate] = useState(false);
   const [showImageService, setShowImageService] = useState(false);
   const [showQuickImageModal, setShowQuickImageModal] = useState(false);
-  const [showQRCodeGeneratorModal, setShowQRCodeGeneratorModal] = useState(false);
   const [showVerificationChart, setShowVerificationChart] = useState(false);
   const [showDocumentTranslate, setShowDocumentTranslate] = useState(false);
   const [previewMeetingId, setPreviewMeetingId] = useState<string | null>(null);
@@ -377,7 +375,6 @@ const AI4GPService = () => {
           onShowTranslation={() => setShowTranslation(!showTranslation)}
           onShowQuickImageModal={() => setShowQuickImageModal(true)}
           onShowImageService={() => setShowImageService(!showImageService)}
-          onShowQRCodeGenerator={() => setShowQRCodeGeneratorModal(true)}
           onShowDocumentTranslate={() => setShowDocumentTranslate(true)}
           onShowUserGuide={() => setShowUserGuide(true)}
           onShowAllQuickActions={() => setShowAllQuickActions(true)}
@@ -537,10 +534,6 @@ const AI4GPService = () => {
                              <DropdownMenuItem onClick={() => setShowImageService(!showImageService)}>
                                <Palette className="w-4 h-4 mr-2" />
                                Practice Image Maker
-                             </DropdownMenuItem>
-                             <DropdownMenuItem onClick={() => setShowQRCodeGeneratorModal(true)}>
-                               <ImageIcon className="w-4 h-4 mr-2" />
-                               QR Code Generator
                              </DropdownMenuItem>
                            </DropdownMenuSubContent>
                          </DropdownMenuSub>
@@ -921,12 +914,6 @@ const AI4GPService = () => {
       <QuickImageModal 
         open={showQuickImageModal} 
         onOpenChange={setShowQuickImageModal} 
-      />
-
-      {/* QR Code Generator Modal */}
-      <QRCodeGeneratorModal
-        open={showQRCodeGeneratorModal}
-        onOpenChange={setShowQRCodeGeneratorModal}
       />
 
       {/* Document Translation Modal */}
