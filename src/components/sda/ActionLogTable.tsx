@@ -1,6 +1,4 @@
 import { useState, useMemo } from "react";
-import { Badge } from "@/components/ui/badge";
-import { ActionLogItem } from "@/data/nresBoardActionsData";
 import {
   Table,
   TableBody,
@@ -9,13 +7,23 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { ChevronUp, ChevronDown, ArrowUpDown, ArrowUp, ArrowDown, FileSpreadsheet } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
+import * as XLSX from "xlsx-js-style";
+import { ActionLogItem } from "@/data/nresBoardActionsData";
+
+interface ActionLogMetadata {
+  sourceMeeting: string;
+  nextMeeting: string;
+}
 
 interface ActionLogTableProps {
   actions: ActionLogItem[];
+  metadata?: ActionLogMetadata;
 }
 
 type SortField = "actionId" | "dateRaised" | "owner" | "dueDate" | "priority" | "status";
@@ -59,7 +67,7 @@ const parseDate = (dateStr: string): Date => {
   return new Date(year, month - 1, day);
 };
 
-export const ActionLogTable = ({ actions }: ActionLogTableProps) => {
+export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
   const [sort, setSort] = useState<SortState>({ field: null, direction: null });
   const [showOpenOnly, setShowOpenOnly] = useState(false);
 
@@ -109,6 +117,99 @@ export const ActionLogTable = ({ actions }: ActionLogTableProps) => {
 
   const openCount = actions.filter(a => a.status === 'Open').length;
 
+  const exportToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    const rows: any[][] = [];
+    
+    // Title rows
+    rows.push(["NRES Programme Board - Action Log"]);
+    rows.push(["Rural East & South Neighbourhood Access Service"]);
+    rows.push([]);
+    
+    // Headers
+    rows.push(["Action ID", "Date Raised", "Action Description", "Owner", "Due Date", "Priority", "Status", "Notes/Update"]);
+    
+    // Data rows
+    filteredAndSortedActions.forEach(action => {
+      rows.push([
+        action.actionId,
+        action.dateRaised,
+        action.description,
+        action.owner,
+        action.dueDate,
+        action.priority,
+        action.status,
+        action.notes || ""
+      ]);
+    });
+    
+    // Legend
+    rows.push([]);
+    rows.push(["Priority:", "High", "Medium", "Low", "", "Status:", "Open", "Closed"]);
+    
+    // Source and next meeting
+    if (metadata) {
+      rows.push([]);
+      rows.push([`Source Meeting: ${metadata.sourceMeeting}`]);
+      rows.push([`Next Meeting: ${metadata.nextMeeting}`]);
+    }
+    
+    const ws = XLSX.utils.aoa_to_sheet(rows);
+    
+    // Column widths
+    ws['!cols'] = [
+      { wch: 12 }, { wch: 12 }, { wch: 50 }, { wch: 20 },
+      { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 40 }
+    ];
+    
+    // Merge title cells
+    ws['!merges'] = [
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }
+    ];
+    
+    // Style header row
+    const headerStyle = {
+      font: { bold: true },
+      fill: { fgColor: { rgb: "E0E0E0" } },
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
+      }
+    };
+    
+    const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    cols.forEach(col => {
+      const cell = ws[`${col}4`];
+      if (cell) cell.s = headerStyle;
+    });
+    
+    // Style data cells
+    const dataStyle = {
+      border: {
+        top: { style: "thin", color: { rgb: "000000" } },
+        bottom: { style: "thin", color: { rgb: "000000" } },
+        left: { style: "thin", color: { rgb: "000000" } },
+        right: { style: "thin", color: { rgb: "000000" } }
+      },
+      alignment: { wrapText: true, vertical: 'top' }
+    };
+    
+    for (let i = 0; i < filteredAndSortedActions.length; i++) {
+      const rowNum = 5 + i;
+      cols.forEach(col => {
+        const cell = ws[`${col}${rowNum}`];
+        if (cell) cell.s = dataStyle;
+      });
+    }
+    
+    XLSX.utils.book_append_sheet(wb, ws, "Action Log");
+    const dateStr = format(new Date(), "yyyy-MM-dd");
+    XLSX.writeFile(wb, `NRES_Programme_Board_Action_Log_${dateStr}.xlsx`);
+  };
+
   return (
     <div className="space-y-3">
       {/* Controls Row */}
@@ -123,9 +224,20 @@ export const ActionLogTable = ({ actions }: ActionLogTableProps) => {
             Open Action Items ({openCount})
           </Label>
         </div>
-        <span className="text-xs text-slate-500">
-          Last updated: {format(new Date(), "d MMMM yyyy")}
-        </span>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={exportToExcel}
+            className="flex items-center gap-1.5 text-slate-600 hover:text-slate-900"
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            <span className="hidden sm:inline">Export</span>
+          </Button>
+          <span className="text-xs text-slate-500">
+            Last updated: {format(new Date(), "d MMMM yyyy")}
+          </span>
+        </div>
       </div>
 
       {/* Table */}
