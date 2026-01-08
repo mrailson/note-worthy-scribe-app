@@ -40,27 +40,23 @@ serve(async (req) => {
       general: 'image or visual'
     };
 
-    const imagePrompt = `Create a professional ${typeDescriptions[requestType] || 'visual'}.
+    // Focus purely on the user's request - ignore conversation context to avoid unwanted themes
+    const imagePrompt = `${prompt}
 
-Context from conversation:
-${conversationContext}
+Style: ${typeDescriptions[requestType] || 'visual'}
 
-User request: ${prompt}
-
-Design requirements:
+Requirements:
+- Follow the user's request exactly as specified
 - Professional, clean design with good visual hierarchy
-- Clear, readable typography
+- Clear, readable typography if text is needed
 - High contrast for accessibility
-- Appropriate colour scheme based on the content and context
-- Clean, modern design with appropriate white space
-- If showing data, use clear charts with proper labels
-- If showing schedules, use organised grid layouts
-- Avoid cluttered designs - prioritise clarity
+- Do NOT add any healthcare, NHS, or medical branding unless explicitly requested
+- Do NOT add charts, schedules, or data visualisations unless explicitly requested
+- Keep the image focused on what the user asked for
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
-- No explicit, offensive, or inappropriate imagery
-- Suitable for a professional office environment`;
+- No explicit, offensive, or inappropriate imagery`;
 
     console.log('🖼️ Generating image with Lovable AI Gateway...');
 
