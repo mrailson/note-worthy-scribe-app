@@ -1,5 +1,5 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Download, Folder, FolderOpen, ChevronRight, Calendar, FileSpreadsheet, File, Heart, Play, Pause, Headphones, ClipboardList } from "lucide-react";
+import { FileText, Download, Folder, FolderOpen, ChevronRight, Calendar, FileSpreadsheet, File, Heart, Play, Pause, Headphones, ClipboardList, Users } from "lucide-react";
 import { ActionLogTable } from "./ActionLogTable";
 import { actionLogData, actionLogMetadata } from "@/data/nresBoardActionsData";
 import { Button } from "@/components/ui/button";
@@ -7,6 +7,8 @@ import { useState, useRef } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
+import { useNRESUserAccess } from "@/hooks/useNRESUserAccess";
+import { NRESUserAccessModal } from "./NRESUserAccessModal";
 
 type DocumentType = "presentation" | "document" | "legal" | "finance" | "analysis" | "spreadsheet" | "agenda" | "minutes" | "draft-minutes";
 
@@ -120,6 +122,10 @@ export const SDAEvidenceLibrary = () => {
   const [openProgrammeMeetings, setOpenProgrammeMeetings] = useState<number[]>([23]);
   const [openTaskFinishMeetings, setOpenTaskFinishMeetings] = useState<number[]>([]);
   const [openVcseMeetings, setOpenVcseMeetings] = useState<number[]>([1]);
+  const [showUserAccessModal, setShowUserAccessModal] = useState(false);
+  
+  // NRES user access data
+  const { data: nresUsers = [], isLoading: isLoadingUsers } = useNRESUserAccess();
   
   // Audio player state
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -503,7 +509,7 @@ export const SDAEvidenceLibrary = () => {
       </Collapsible>
 
       {/* Quick Stats */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mt-8">
         <Card className="bg-[#005EB8]/10 border-0">
           <CardContent className="p-4 text-center">
             <p className="text-3xl font-bold text-[#005EB8]">{allMeetings.length}</p>
@@ -528,7 +534,30 @@ export const SDAEvidenceLibrary = () => {
             <p className="text-sm text-slate-600">Minutes</p>
           </CardContent>
         </Card>
+        <Card 
+          className="bg-emerald-50 border-0 cursor-pointer hover:bg-emerald-100 transition-colors group"
+          onClick={() => setShowUserAccessModal(true)}
+        >
+          <CardContent className="p-4 text-center">
+            <div className="flex items-center justify-center gap-2">
+              <Users className="w-5 h-5 text-emerald-600" />
+              <p className="text-3xl font-bold text-emerald-700">
+                {isLoadingUsers ? "..." : nresUsers.length}
+              </p>
+            </div>
+            <p className="text-sm text-slate-600">NRES Users</p>
+            <p className="text-xs text-emerald-600 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              Click to view list →
+            </p>
+          </CardContent>
+        </Card>
       </div>
+
+      {/* User Access Modal */}
+      <NRESUserAccessModal 
+        open={showUserAccessModal} 
+        onOpenChange={setShowUserAccessModal} 
+      />
     </div>
   );
 };
