@@ -1,6 +1,6 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
-import { Volume2, Download, Play, Pause, RotateCcw } from 'lucide-react';
+import { Volume2, Download, Play, Pause, RotateCcw, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { GeneratedAudio } from '@/types/ai4gp';
 
@@ -13,25 +13,57 @@ export const VoiceAudioPlayer: React.FC<VoiceAudioPlayerProps> = ({ audio }) => 
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const audioUrl = `data:audio/mpeg;base64,${audio.audioContent}`;
+  // Convert base64 to blob URL on mount for reliable playback
+  useEffect(() => {
+    try {
+      const byteCharacters = atob(audio.audioContent);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      setAudioUrl(url);
+      console.log('🎵 Audio blob URL created, size:', blob.size, 'bytes');
+      
+      return () => {
+        URL.revokeObjectURL(url);
+      };
+    } catch (err) {
+      console.error('Failed to process audio:', err);
+      setError('Failed to load audio');
+      setIsLoading(false);
+    }
+  }, [audio.audioContent]);
 
-  const handlePlayPause = () => {
-    if (audioRef.current) {
+  const handlePlayPause = async () => {
+    if (!audioRef.current) return;
+    
+    try {
       if (isPlaying) {
         audioRef.current.pause();
       } else {
-        audioRef.current.play();
+        await audioRef.current.play();
       }
-      setIsPlaying(!isPlaying);
+    } catch (err) {
+      console.error('Playback error:', err);
+      toast.error('Failed to play audio');
     }
   };
 
-  const handleRestart = () => {
-    if (audioRef.current) {
+  const handleRestart = async () => {
+    if (!audioRef.current) return;
+    
+    try {
       audioRef.current.currentTime = 0;
-      audioRef.current.play();
-      setIsPlaying(true);
+      await audioRef.current.play();
+    } catch (err) {
+      console.error('Restart error:', err);
     }
   };
 
@@ -43,8 +75,22 @@ export const VoiceAudioPlayer: React.FC<VoiceAudioPlayerProps> = ({ audio }) => 
 
   const handleLoadedMetadata = () => {
     if (audioRef.current) {
-      setDuration(audioRef.current.duration);
+      const dur = audioRef.current.duration;
+      console.log('🎵 Audio loaded, duration:', dur);
+      setDuration(dur);
+      setIsLoading(false);
     }
+  };
+
+  const handleCanPlay = () => {
+    console.log('🎵 Audio can play');
+    setIsLoading(false);
+  };
+
+  const handleError = (e: React.SyntheticEvent<HTMLAudioElement, Event>) => {
+    console.error('🎵 Audio error:', e);
+    setError('Failed to load audio');
+    setIsLoading(false);
   };
 
   const handleEnded = () => {
@@ -54,7 +100,6 @@ export const VoiceAudioPlayer: React.FC<VoiceAudioPlayerProps> = ({ audio }) => 
 
   const handleDownload = () => {
     try {
-      // Convert base64 to blob
       const byteCharacters = atob(audio.audioContent);
       const byteNumbers = new Array(byteCharacters.length);
       for (let i = 0; i < byteCharacters.length; i++) {
@@ -63,7 +108,6 @@ export const VoiceAudioPlayer: React.FC<VoiceAudioPlayerProps> = ({ audio }) => 
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: 'audio/mpeg' });
       
-      // Create download link
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -74,19 +118,28 @@ export const VoiceAudioPlayer: React.FC<VoiceAudioPlayerProps> = ({ audio }) => 
       URL.revokeObjectURL(url);
       
       toast.success('Audio file downloaded!');
-    } catch (error) {
-      console.error('Download failed:', error);
+    } catch (err) {
+      console.error('Download failed:', err);
       toast.error('Failed to download audio file');
     }
   };
 
   const formatTime = (seconds: number) => {
+    if (!isFinite(seconds) || isNaN(seconds)) return '0:00';
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
   const progressPercentage = duration > 0 ? (currentTime / duration) * 100 : 0;
+
+  if (error) {
+    return (
+      <div className="mt-4 p-4 bg-destructive/10 rounded-lg border border-destructive/50">
+        <p className="text-sm text-destructive">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="mt-4 p-4 bg-muted/30 rounded-lg border border-border/50">
@@ -102,15 +155,20 @@ export const VoiceAudioPlayer: React.FC<VoiceAudioPlayerProps> = ({ audio }) => 
         </div>
       </div>
       
-      <audio
-        ref={audioRef}
-        src={audioUrl}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleLoadedMetadata}
-        onEnded={handleEnded}
-        onPlay={() => setIsPlaying(true)}
-        onPause={() => setIsPlaying(false)}
-      />
+      {audioUrl && (
+        <audio
+          ref={audioRef}
+          src={audioUrl}
+          preload="auto"
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleLoadedMetadata}
+          onCanPlay={handleCanPlay}
+          onEnded={handleEnded}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onError={handleError}
+        />
+      )}
       
       {/* Progress bar */}
       <div className="w-full h-2 bg-muted rounded-full mb-3 overflow-hidden">
@@ -132,9 +190,15 @@ export const VoiceAudioPlayer: React.FC<VoiceAudioPlayerProps> = ({ audio }) => 
           variant="outline"
           size="sm"
           onClick={handlePlayPause}
+          disabled={isLoading || !audioUrl}
           className="flex items-center gap-2"
         >
-          {isPlaying ? (
+          {isLoading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading
+            </>
+          ) : isPlaying ? (
             <>
               <Pause className="h-4 w-4" />
               Pause
@@ -151,6 +215,7 @@ export const VoiceAudioPlayer: React.FC<VoiceAudioPlayerProps> = ({ audio }) => 
           variant="ghost"
           size="sm"
           onClick={handleRestart}
+          disabled={isLoading || !audioUrl}
           title="Restart"
         >
           <RotateCcw className="h-4 w-4" />
