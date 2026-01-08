@@ -216,8 +216,8 @@ export function CandidateFeedbackModal({
           </div>
 
           {/* Team Feedback Section */}
-          <div className="flex-1 overflow-hidden flex flex-col min-h-0 bg-slate-50 dark:bg-slate-900/50">
-            <div className="px-6 py-4 border-b bg-white dark:bg-slate-950">
+          <div className="flex-1 overflow-hidden flex flex-col min-h-[200px] bg-slate-50 dark:bg-slate-900/50">
+            <div className="px-6 py-3 border-b bg-white dark:bg-slate-950">
               <div className="flex items-center gap-2">
                 <User className="w-4 h-4 text-muted-foreground" />
                 <p className="text-sm font-semibold">
@@ -228,7 +228,7 @@ export function CandidateFeedbackModal({
                 </Badge>
               </div>
             </div>
-            <ScrollArea className="flex-1 px-6 py-4">
+            <ScrollArea className="flex-1 min-h-[150px] px-6 py-3">
               <div className="space-y-3">
                 {feedback.length === 0 ? (
                   <div className="text-center py-8">
