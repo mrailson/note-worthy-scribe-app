@@ -502,11 +502,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             body: {
               prompt: messageToUse,
               conversationContext,
-              practiceContext: imageDetection.requestType === 'logo' ? {
+              practiceContext: {
                 practiceName: practiceContext?.practiceName,
                 pcnName: practiceContext?.pcnName,
                 organisationType: practiceContext?.organisationType
-              } : undefined,
+              },
               requestType: imageDetection.requestType
             }
           });
