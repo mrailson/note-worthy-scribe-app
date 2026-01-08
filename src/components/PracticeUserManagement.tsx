@@ -775,7 +775,7 @@ export const PracticeUserManagement = () => {
                     </Label>
                   </div>
                   <p className="text-xs text-muted-foreground mt-1 ml-10">
-                    Grants access to the NRES (Network Research Ethics Service) Dashboard
+                    Grants access to the NRES New Models Pilot Dashboard
                   </p>
                 </div>
               )}
