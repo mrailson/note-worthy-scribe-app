@@ -58,6 +58,7 @@ import { CustomAIPromptModal } from '@/components/CustomAIPromptModal';
 import { CustomFindReplaceModal } from '@/components/CustomFindReplaceModal';
 import { stripMarkdown, copyPlainTextToClipboard, copyRichTextToClipboard } from '@/utils/stripMarkdown';
 import { Message, UploadedFile } from '@/types/ai4gp';
+import { LeaveCalendarDownloadButton } from '@/components/ai4gp/LeaveCalendarDownloadButton';
 // Calculation validation imports removed per user request
 
 interface MessageRendererProps {
@@ -923,6 +924,13 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
               content={message.content}
               onQuickResponse={onQuickResponse}
             />
+          )}
+
+          {/* Leave Calendar Download Button - shows when leave data detected */}
+          {message.role === 'assistant' && !isModal && !message.isStreaming && (
+            <div className="mt-2">
+              <LeaveCalendarDownloadButton content={message.content} />
+            </div>
           )}
 
           {/* Message footer - always show action buttons in modal */}
