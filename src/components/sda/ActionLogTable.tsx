@@ -121,13 +121,111 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
     const wb = XLSX.utils.book_new();
     const rows: any[][] = [];
     
-    // Title rows
-    rows.push(["NRES Programme Board - Action Log"]);
-    rows.push(["Rural East & South Neighbourhood Access Service"]);
+    // Style definitions
+    const titleStyle = {
+      font: { bold: true, sz: 16, name: 'Calibri', color: { rgb: "1E3A5F" } },
+      alignment: { horizontal: 'left', vertical: 'center' }
+    };
+    
+    const subtitleStyle = {
+      font: { bold: true, sz: 12, name: 'Calibri', color: { rgb: "2E5B8C" } },
+      alignment: { horizontal: 'left', vertical: 'center' }
+    };
+
+    const brandingStyle = {
+      font: { bold: true, sz: 11, name: 'Calibri', color: { rgb: "FFFFFF" } },
+      fill: { fgColor: { rgb: "1E3A5F" } },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    };
+
+    const headerStyle = {
+      font: { bold: true, sz: 10, name: 'Calibri' },
+      fill: { fgColor: { rgb: "D9E2EC" } },
+      border: {
+        top: { style: 'thin', color: { rgb: "000000" } },
+        bottom: { style: 'thin', color: { rgb: "000000" } },
+        left: { style: 'thin', color: { rgb: "000000" } },
+        right: { style: 'thin', color: { rgb: "000000" } }
+      },
+      alignment: { horizontal: 'center', vertical: 'center', wrapText: true }
+    };
+
+    const cellStyle = {
+      font: { sz: 10, name: 'Calibri' },
+      border: {
+        top: { style: 'thin', color: { rgb: "000000" } },
+        bottom: { style: 'thin', color: { rgb: "000000" } },
+        left: { style: 'thin', color: { rgb: "000000" } },
+        right: { style: 'thin', color: { rgb: "000000" } }
+      },
+      alignment: { vertical: 'center', wrapText: true }
+    };
+
+    // Priority colour styles
+    const priorityStyles: Record<string, any> = {
+      High: { ...cellStyle, fill: { fgColor: { rgb: "FF6B6B" } }, font: { sz: 10, name: 'Calibri', bold: true, color: { rgb: "FFFFFF" } }, alignment: { horizontal: 'center', vertical: 'center' } },
+      Medium: { ...cellStyle, fill: { fgColor: { rgb: "FFB84D" } }, font: { sz: 10, name: 'Calibri', bold: true }, alignment: { horizontal: 'center', vertical: 'center' } },
+      Low: { ...cellStyle, fill: { fgColor: { rgb: "90EE90" } }, font: { sz: 10, name: 'Calibri', bold: true }, alignment: { horizontal: 'center', vertical: 'center' } }
+    };
+
+    // Status colour styles
+    const statusStyles: Record<string, any> = {
+      Open: { ...cellStyle, fill: { fgColor: { rgb: "ADD8E6" } }, font: { sz: 10, name: 'Calibri', bold: true }, alignment: { horizontal: 'center', vertical: 'center' } },
+      Closed: { ...cellStyle, fill: { fgColor: { rgb: "B8B8B8" } }, font: { sz: 10, name: 'Calibri', bold: true }, alignment: { horizontal: 'center', vertical: 'center' } }
+    };
+
+    // Legend styles
+    const legendLabelStyle = {
+      font: { bold: true, sz: 10, name: 'Calibri' },
+      alignment: { horizontal: 'right', vertical: 'center' }
+    };
+
+    const legendHighStyle = {
+      font: { bold: true, sz: 10, name: 'Calibri', color: { rgb: "FFFFFF" } },
+      fill: { fgColor: { rgb: "FF6B6B" } },
+      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    };
+
+    const legendMediumStyle = {
+      font: { bold: true, sz: 10, name: 'Calibri' },
+      fill: { fgColor: { rgb: "FFB84D" } },
+      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    };
+
+    const legendLowStyle = {
+      font: { bold: true, sz: 10, name: 'Calibri' },
+      fill: { fgColor: { rgb: "90EE90" } },
+      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    };
+
+    const legendOpenStyle = {
+      font: { bold: true, sz: 10, name: 'Calibri' },
+      fill: { fgColor: { rgb: "ADD8E6" } },
+      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    };
+
+    const legendClosedStyle = {
+      font: { bold: true, sz: 10, name: 'Calibri' },
+      fill: { fgColor: { rgb: "B8B8B8" } },
+      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
+      alignment: { horizontal: 'center', vertical: 'center' }
+    };
+
+    // Row 1: Branding and Title
+    rows.push(['NRES', '', '', 'NRES Programme Board - Action Log', '', '', '', 'DocMed']);
+    
+    // Row 2: Subtitle
+    rows.push(['', '', '', 'Rural East & South Neighbourhood Access Service', '', '', '', '']);
+    
+    // Row 3: Empty spacer
     rows.push([]);
     
-    // Headers
-    rows.push(["Action ID", "Date Raised", "Action Description", "Owner", "Due Date", "Priority", "Status", "Notes/Update"]);
+    // Row 4: Headers
+    rows.push(['Action ID', 'Date Raised', 'Action Description', 'Owner', 'Due Date', 'Priority', 'Status', 'Notes/Update']);
     
     // Data rows
     filteredAndSortedActions.forEach(action => {
@@ -143,9 +241,11 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
       ]);
     });
     
-    // Legend
+    // Empty row before legend
     rows.push([]);
-    rows.push(["Priority:", "High", "Medium", "Low", "", "Status:", "Open", "Closed"]);
+    
+    // Legend row
+    rows.push(['', 'Priority:', 'High', 'Medium', 'Low', '', 'Status:', 'Open', 'Closed']);
     
     // Source and next meeting
     if (metadata) {
@@ -159,51 +259,67 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
     // Column widths
     ws['!cols'] = [
       { wch: 12 }, { wch: 12 }, { wch: 50 }, { wch: 20 },
-      { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 40 }
+      { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 40 }, { wch: 10 }
     ];
     
-    // Merge title cells
+    // Merge cells for title and subtitle
     ws['!merges'] = [
-      { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },
-      { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } }
+      { s: { r: 0, c: 3 }, e: { r: 0, c: 6 } },  // Title merge
+      { s: { r: 1, c: 3 }, e: { r: 1, c: 6 } },  // Subtitle merge
     ];
     
-    // Style header row
-    const headerStyle = {
-      font: { bold: true },
-      fill: { fgColor: { rgb: "E0E0E0" } },
-      border: {
-        top: { style: "thin", color: { rgb: "000000" } },
-        bottom: { style: "thin", color: { rgb: "000000" } },
-        left: { style: "thin", color: { rgb: "000000" } },
-        right: { style: "thin", color: { rgb: "000000" } }
-      }
-    };
+    // Set row heights
+    ws['!rows'] = [
+      { hpt: 30 },  // Title row
+      { hpt: 22 },  // Subtitle row
+      { hpt: 15 },  // Spacer
+      { hpt: 25 },  // Header row
+    ];
     
-    const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
-    cols.forEach(col => {
+    const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
+    
+    // Apply branding and title styles
+    if (ws['A1']) ws['A1'].s = brandingStyle;
+    if (ws['H1']) ws['H1'].s = brandingStyle;
+    if (ws['D1']) ws['D1'].s = titleStyle;
+    if (ws['D2']) ws['D2'].s = subtitleStyle;
+    
+    // Apply header styles
+    cols.slice(0, 8).forEach(col => {
       const cell = ws[`${col}4`];
       if (cell) cell.s = headerStyle;
     });
     
-    // Style data cells
-    const dataStyle = {
-      border: {
-        top: { style: "thin", color: { rgb: "000000" } },
-        bottom: { style: "thin", color: { rgb: "000000" } },
-        left: { style: "thin", color: { rgb: "000000" } },
-        right: { style: "thin", color: { rgb: "000000" } }
-      },
-      alignment: { wrapText: true, vertical: 'top' }
-    };
-    
+    // Apply data row styles with colour-coded Priority and Status
     for (let i = 0; i < filteredAndSortedActions.length; i++) {
       const rowNum = 5 + i;
-      cols.forEach(col => {
+      const action = filteredAndSortedActions[i];
+      
+      cols.slice(0, 8).forEach(col => {
         const cell = ws[`${col}${rowNum}`];
-        if (cell) cell.s = dataStyle;
+        if (cell) {
+          if (col === 'F') {
+            // Priority column - colour coded
+            cell.s = priorityStyles[action.priority] || cellStyle;
+          } else if (col === 'G') {
+            // Status column - colour coded
+            cell.s = statusStyles[action.status] || cellStyle;
+          } else {
+            cell.s = cellStyle;
+          }
+        }
       });
     }
+    
+    // Apply legend styles
+    const legendRowNum = 5 + filteredAndSortedActions.length + 1;
+    if (ws[`B${legendRowNum}`]) ws[`B${legendRowNum}`].s = legendLabelStyle;
+    if (ws[`C${legendRowNum}`]) ws[`C${legendRowNum}`].s = legendHighStyle;
+    if (ws[`D${legendRowNum}`]) ws[`D${legendRowNum}`].s = legendMediumStyle;
+    if (ws[`E${legendRowNum}`]) ws[`E${legendRowNum}`].s = legendLowStyle;
+    if (ws[`G${legendRowNum}`]) ws[`G${legendRowNum}`].s = legendLabelStyle;
+    if (ws[`H${legendRowNum}`]) ws[`H${legendRowNum}`].s = legendOpenStyle;
+    if (ws[`I${legendRowNum}`]) ws[`I${legendRowNum}`].s = legendClosedStyle;
     
     XLSX.utils.book_append_sheet(wb, ws, "Action Log");
     const dateStr = format(new Date(), "yyyy-MM-dd");
