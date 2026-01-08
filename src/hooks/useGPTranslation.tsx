@@ -47,6 +47,14 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const recognitionRef = useRef<WebSpeechRecognition | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioQueueRef = useRef<{ text: string; languageCode: string }[]>([]);
+  const volumeRef = useRef(volume);
+  const isMutedRef = useRef(isMuted);
+
+  // Keep refs in sync with values
+  useEffect(() => {
+    volumeRef.current = volume;
+    isMutedRef.current = isMuted;
+  }, [volume, isMuted]);
   const isPlayingRef = useRef(false);
 
   // Initialize speech recognition
@@ -115,7 +123,8 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
         const audio = new Audio(audioUrl);
         audioRef.current = audio;
         
-        audio.volume = isMuted ? 0 : volume;
+        // Use refs to get current values
+        audio.volume = isMutedRef.current ? 0 : volumeRef.current;
         
         audio.onended = () => {
           setIsSpeaking(false);
@@ -123,18 +132,24 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
         };
         
         audio.onerror = (e) => {
+          console.error('Audio playback error:', e);
           setIsSpeaking(false);
           reject(e);
         };
         
         setIsSpeaking(true);
-        audio.play();
+        audio.play().catch((e) => {
+          console.error('Audio play() failed:', e);
+          setIsSpeaking(false);
+          reject(e);
+        });
       } catch (err) {
+        console.error('Audio setup error:', err);
         setIsSpeaking(false);
         reject(err);
       }
     });
-  }, [volume, isMuted]);
+  }, []);
 
   // Process audio queue
   const processAudioQueue = useCallback(async () => {
@@ -303,13 +318,25 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
 
   // Play audio for a specific text
   const playAudio = useCallback(async (text: string, languageCode: string) => {
-    if (isMuted) return;
-    
-    const audioContent = await generateSpeech(text, languageCode);
-    if (audioContent) {
-      await playAudioFromBase64(audioContent);
+    if (isMutedRef.current) {
+      console.log('Audio muted, skipping playback');
+      return;
     }
-  }, [generateSpeech, playAudioFromBase64, isMuted]);
+    
+    try {
+      setIsSpeaking(true);
+      const audioContent = await generateSpeech(text, languageCode);
+      if (audioContent) {
+        await playAudioFromBase64(audioContent);
+      } else {
+        setIsSpeaking(false);
+        onError?.('Could not generate audio');
+      }
+    } catch (err) {
+      console.error('Play audio error:', err);
+      setIsSpeaking(false);
+    }
+  }, [generateSpeech, playAudioFromBase64, onError]);
 
   // Stop audio
   const stopAudio = useCallback(() => {
