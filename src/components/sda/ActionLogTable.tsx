@@ -175,46 +175,6 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
       Closed: { ...cellStyle, fill: { fgColor: { rgb: "B8B8B8" } }, font: { sz: 10, name: 'Calibri', bold: true }, alignment: { horizontal: 'center', vertical: 'center' } }
     };
 
-    // Legend styles
-    const legendLabelStyle = {
-      font: { bold: true, sz: 10, name: 'Calibri' },
-      alignment: { horizontal: 'right', vertical: 'center' }
-    };
-
-    const legendHighStyle = {
-      font: { bold: true, sz: 10, name: 'Calibri', color: { rgb: "FFFFFF" } },
-      fill: { fgColor: { rgb: "FF6B6B" } },
-      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
-      alignment: { horizontal: 'center', vertical: 'center' }
-    };
-
-    const legendMediumStyle = {
-      font: { bold: true, sz: 10, name: 'Calibri' },
-      fill: { fgColor: { rgb: "FFB84D" } },
-      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
-      alignment: { horizontal: 'center', vertical: 'center' }
-    };
-
-    const legendLowStyle = {
-      font: { bold: true, sz: 10, name: 'Calibri' },
-      fill: { fgColor: { rgb: "90EE90" } },
-      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
-      alignment: { horizontal: 'center', vertical: 'center' }
-    };
-
-    const legendOpenStyle = {
-      font: { bold: true, sz: 10, name: 'Calibri' },
-      fill: { fgColor: { rgb: "ADD8E6" } },
-      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
-      alignment: { horizontal: 'center', vertical: 'center' }
-    };
-
-    const legendClosedStyle = {
-      font: { bold: true, sz: 10, name: 'Calibri' },
-      fill: { fgColor: { rgb: "B8B8B8" } },
-      border: { top: { style: 'thin' }, bottom: { style: 'thin' }, left: { style: 'thin' }, right: { style: 'thin' } },
-      alignment: { horizontal: 'center', vertical: 'center' }
-    };
 
     // Row 1: Title
     rows.push(['NRES Programme Board - Action Log']);
@@ -245,11 +205,6 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
       ]);
     });
     
-    // Empty row before legend
-    rows.push([]);
-    
-    // Legend row
-    rows.push(['', 'Priority:', 'High', 'Medium', 'Low', '', 'Status:', 'Open', 'Closed']);
     
     // Source and next meeting
     if (metadata) {
@@ -316,15 +271,6 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
       });
     }
     
-    // Apply legend styles (now offset by 1 row)
-    const legendRowNum = 6 + filteredAndSortedActions.length + 1;
-    if (ws[`B${legendRowNum}`]) ws[`B${legendRowNum}`].s = legendLabelStyle;
-    if (ws[`C${legendRowNum}`]) ws[`C${legendRowNum}`].s = legendHighStyle;
-    if (ws[`D${legendRowNum}`]) ws[`D${legendRowNum}`].s = legendMediumStyle;
-    if (ws[`E${legendRowNum}`]) ws[`E${legendRowNum}`].s = legendLowStyle;
-    if (ws[`G${legendRowNum}`]) ws[`G${legendRowNum}`].s = legendLabelStyle;
-    if (ws[`H${legendRowNum}`]) ws[`H${legendRowNum}`].s = legendOpenStyle;
-    if (ws[`I${legendRowNum}`]) ws[`I${legendRowNum}`].s = legendClosedStyle;
     
     XLSX.utils.book_append_sheet(wb, ws, "Action Log");
     const dateStr = format(new Date(), "yyyy-MM-dd");
