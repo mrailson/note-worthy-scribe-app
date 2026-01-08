@@ -344,7 +344,7 @@ export const SDAEvidenceLibrary = () => {
       </div>
 
       {/* Programme Board Action Log Section */}
-      <Collapsible defaultOpen={true}>
+      <Collapsible defaultOpen={false}>
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <CollapsibleTrigger asChild>
             <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors text-left">
