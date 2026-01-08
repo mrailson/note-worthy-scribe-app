@@ -59,7 +59,7 @@ import { CustomFindReplaceModal } from '@/components/CustomFindReplaceModal';
 import { stripMarkdown, copyPlainTextToClipboard, copyRichTextToClipboard } from '@/utils/stripMarkdown';
 import { Message, UploadedFile } from '@/types/ai4gp';
 import { LeaveCalendarDownloadButton } from '@/components/ai4gp/LeaveCalendarDownloadButton';
-// Calculation validation imports removed per user request
+import { VoiceAudioPlayer } from '@/components/ai4gp/VoiceAudioPlayer';
 
 interface MessageRendererProps {
   message: Message;
@@ -931,6 +931,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             <div className="mt-2">
               <LeaveCalendarDownloadButton content={message.content} />
             </div>
+          )}
+
+          {/* Voice Audio Player - shows when audio was generated */}
+          {message.role === 'assistant' && !isModal && !message.isStreaming && message.generatedAudio && (
+            <VoiceAudioPlayer audio={message.generatedAudio} />
           )}
 
           {/* Message footer - always show action buttons in modal */}

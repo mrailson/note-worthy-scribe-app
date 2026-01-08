@@ -6,6 +6,8 @@ import { Message, UploadedFile, SearchHistory, GeneratedImage } from '@/types/ai
 import { useDisplayPreferences } from './useDisplayPreferences';
 import { prepareMessagesForAPI, getMemoryStats } from '@/utils/conversationMemory';
 import { detectImageRequest, extractImageContext, isReferringToPreviousContent } from '@/utils/imageRequestDetection';
+import { detectVoiceRequest } from '@/utils/voiceRequestDetection';
+import { VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
 
 export const useAI4GPService = () => {
   const { user } = useAuth();
@@ -545,6 +547,107 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           
           // Fall back to regular AI response with explanation
           const fallbackMessage = `I wasn't able to generate an image for that request. ${imageError.message || 'Please try again with a different description.'}\n\nWould you like me to describe the information in text format instead, or would you like to try a different image request?`;
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { ...msg, content: fallbackMessage, isStreaming: false }
+              : msg
+          ));
+          
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      // Check if this is a voice file generation request
+      const voiceDetection = detectVoiceRequest(messageToUse, previousMessagesForDetection);
+      
+      if (voiceDetection.isVoiceRequest && voiceDetection.confidence !== 'low' && voiceDetection.textToSpeak) {
+        console.log('🎤 Voice request detected:', voiceDetection);
+        
+        // Update message to show audio generation in progress
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: '🎤 Generating voice file...', isStreaming: true }
+            : msg
+        ));
+        
+        try {
+          // Get user's voice preference from localStorage
+          const storedVoice = localStorage.getItem('audioVoiceSelection') || 'elevenlabs-alice';
+          let voiceKey: VoiceOption = 'alice';
+          
+          // Find matching voice
+          for (const [key, config] of Object.entries(VOICE_OPTIONS)) {
+            if (storedVoice === config.id || storedVoice.includes(config.voiceId)) {
+              voiceKey = key as VoiceOption;
+              break;
+            }
+          }
+          
+          const voiceConfig = VOICE_OPTIONS[voiceKey];
+          
+          // Truncate text if too long (ElevenLabs has limits)
+          const maxChars = 4500;
+          let textToSpeak = voiceDetection.textToSpeak;
+          const wasTruncated = textToSpeak.length > maxChars;
+          if (wasTruncated) {
+            textToSpeak = textToSpeak.substring(0, maxChars) + '...';
+          }
+          
+          const { data, error } = await supabase.functions.invoke('elevenlabs-tts', {
+            body: {
+              text: textToSpeak,
+              voiceId: voiceConfig.voiceId
+            }
+          });
+          
+          if (error) {
+            console.error('Voice generation error:', error);
+            throw new Error(error.message || 'Voice generation failed');
+          }
+          
+          if (!data?.audioContent) {
+            throw new Error('No audio content received');
+          }
+          
+          const endTime = Date.now();
+          const responseTime = endTime - startTime;
+          
+          // Create message with generated audio
+          const audioMessage: Message = {
+            ...assistantMessage,
+            content: `✅ Voice file generated successfully using **${voiceConfig.name}** voice.${wasTruncated ? '\n\n⚠️ Note: The text was truncated due to length limits.' : ''}\n\nYou can play the audio below or download it as an MP3 file.`,
+            isStreaming: false,
+            responseTime,
+            model: 'ElevenLabs TTS',
+            generatedAudio: {
+              audioContent: data.audioContent,
+              voiceName: voiceConfig.name,
+              voiceId: voiceConfig.voiceId,
+              textLength: textToSpeak.length
+            }
+          };
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId ? audioMessage : msg
+          ));
+          
+          // Auto-save the search
+          setTimeout(async () => {
+            const finalMessages = [...newMessages, audioMessage];
+            await saveSearchAutomatically(finalMessages);
+          }, 100);
+          
+          setIsLoading(false);
+          toast.success('Voice file generated successfully!');
+          return;
+          
+        } catch (voiceError: any) {
+          console.error('Voice generation failed:', voiceError);
+          
+          // Fall back to regular AI response with explanation
+          const fallbackMessage = `I wasn't able to generate a voice file for that content. ${voiceError.message || 'Please try again.'}\n\nWould you like me to try again, or is there something else I can help you with?`;
           
           setMessages(prev => prev.map(msg => 
             msg.id === assistantMessageId 
