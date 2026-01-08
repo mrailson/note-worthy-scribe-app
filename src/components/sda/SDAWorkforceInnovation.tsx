@@ -300,25 +300,29 @@ export const SDAWorkforceInnovation = () => {
               <p className="text-4xl font-bold text-[#005EB8]">8.5</p>
               <p className="font-semibold text-slate-900 mt-1">GP WTE Sessions</p>
               <p className="text-sm text-slate-500">Assumes 12 appointments per session.</p>
-              <button 
-                onClick={() => document.getElementById('job-adverts-section')?.scrollIntoView({ behavior: 'smooth' })}
+              <a 
+                href="https://www.jobs.nhs.uk/candidate/search/results?keyword=GP&location=Northamptonshire"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 mt-2 text-sm text-[#005EB8] hover:underline cursor-pointer"
               >
                 <ExternalLink className="w-3 h-3" />
                 NHS Jobs
-              </button>
+              </a>
             </div>
             <div className="bg-cyan-50 rounded-xl p-4 text-center">
               <p className="text-4xl font-bold text-cyan-600">6.9</p>
               <p className="font-semibold text-slate-900 mt-1">ACP WTE Sessions</p>
               <p className="text-sm text-slate-500">Advanced Clinical Practitioners (Prescribing).</p>
-              <button 
-                onClick={() => document.getElementById('job-adverts-section')?.scrollIntoView({ behavior: 'smooth' })}
+              <a 
+                href="https://www.jobs.nhs.uk/candidate/search/results?keyword=Advanced%20Clinical%20Practitioner&location=Northamptonshire"
+                target="_blank"
+                rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 mt-2 text-sm text-cyan-600 hover:underline cursor-pointer"
               >
                 <ExternalLink className="w-3 h-3" />
                 NHS Jobs
-              </button>
+              </a>
             </div>
           </div>
         </div>

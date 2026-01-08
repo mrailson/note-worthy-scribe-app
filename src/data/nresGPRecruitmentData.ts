@@ -313,7 +313,7 @@ export const allGPCandidates: GPCandidate[] = [
       { criterion: 'Clinical Governance', maxScore: 10, score: 2, evidence: 'Limited UK governance understanding' },
       { criterion: 'Communication', maxScore: 10, score: 5, evidence: 'Unknown - not assessed in UK setting' },
       { criterion: 'Team Working', maxScore: 10, score: 5, evidence: 'Unknown - limited UK experience' },
-      { criterion: 'Teaching/Mentoring', maxScore: 10, score: 25, evidence: 'N/A' },
+      { criterion: 'Teaching/Mentoring', maxScore: 10, score: 5, evidence: 'N/A' },
     ],
     strengths: [
       'GMC registered via PLAB route',
