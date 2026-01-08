@@ -54,9 +54,28 @@ serve(async (req) => {
       throw new Error('Text is required');
     }
 
+    // Language-specific filler patterns for server-side cleanup
+    const languageFillers: Record<string, RegExp> = {
+      en: /\b(um|uh|er|erm|ah|like,?\s|you know,?\s)\b/gi,
+      pl: /\b(no|znaczy|wiesz|tego|jakby|um|uh|er)\b/gi,
+      ro: /\b(deci|adică|păi|știi|um|uh|er)\b/gi,
+      ar: /(يعني|شو|هيك|آآ|إيه|um|uh|er)/gi,
+      hi: /(मतलब|वो|अच्छा|हाँ|um|uh|er)/gi,
+      ur: /(یعنی|وہ|اچھا|ہاں|um|uh|er)/gi,
+      es: /\b(pues|o sea|bueno|este|eh|um|uh|er)\b/gi,
+      pt: /\b(tipo|né|então|bem|um|uh|er)\b/gi,
+      fr: /\b(euh|ben|donc|quoi|um|uh|er)\b/gi,
+      de: /\b(also|ähm|halt|um|uh|er)\b/gi,
+      it: /\b(allora|cioè|praticamente|um|uh|er)\b/gi,
+      zh: /(那个|就是|然后|嗯|这个)/gi,
+      ru: /\b(ну|вот|как бы|это|um|uh|er)\b/gi,
+      tr: /\b(şey|yani|işte|hani|um|uh|er)\b/gi,
+    };
+
     // Server-side text cleanup as safety net for natural TTS
+    const fillerPattern = languageFillers[languageCode] || languageFillers['en'];
     const cleanedText = text
-      .replace(/\b(um|uh|er|erm|ah)\b/gi, '')
+      .replace(fillerPattern, '')
       .replace(/\.{2,}/g, ',')
       .replace(/\s{2,}/g, ' ')
       .trim();
