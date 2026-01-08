@@ -41,6 +41,7 @@ interface PracticeUser {
   mic_test_service_access: boolean;
   api_testing_service_access: boolean;
   fridge_monitoring_access: boolean;
+  nres_access?: boolean;
 }
 
 const practiceRoles = [
@@ -71,6 +72,8 @@ export const PracticeUserManagement = () => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [practiceInfo, setPracticeInfo] = useState<any>(null);
   const [isNonPracticeOrg, setIsNonPracticeOrg] = useState(false);
+  const [currentUserHasNRES, setCurrentUserHasNRES] = useState(false);
+  const [editingUserNRESAccess, setEditingUserNRESAccess] = useState(false);
   
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -98,8 +101,24 @@ export const PracticeUserManagement = () => {
     if (user) {
       loadPracticeInfo();
       loadPracticeUsers();
+      checkCurrentUserNRESAccess();
     }
   }, [user]);
+
+  const checkCurrentUserNRESAccess = async () => {
+    if (!user?.id) return;
+    
+    const { data, error } = await supabase
+      .from('user_service_activations')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('service', 'nres')
+      .maybeSingle();
+    
+    if (!error && data) {
+      setCurrentUserHasNRES(true);
+    }
+  };
 
   // Auto-refresh when practice assignment changes
   useEffect(() => {
@@ -160,9 +179,21 @@ export const PracticeUserManagement = () => {
         .rpc('get_practice_users', { p_practice_id: practiceInfo.id });
 
       if (error) throw error;
-      setUsers(data?.map(user => ({
+      
+      // Fetch NRES access for all users
+      const userIds = data?.map((u: any) => u.user_id) || [];
+      const { data: nresActivations } = await supabase
+        .from('user_service_activations')
+        .select('user_id')
+        .eq('service', 'nres')
+        .in('user_id', userIds);
+      
+      const nresUserIds = new Set(nresActivations?.map(a => a.user_id) || []);
+      
+      setUsers(data?.map((user: any) => ({
         ...user,
-        fridge_monitoring_access: user.fridge_monitoring_access ?? false
+        fridge_monitoring_access: user.fridge_monitoring_access ?? false,
+        nres_access: nresUserIds.has(user.user_id)
       })) || []);
     } catch (error) {
       console.error('Error loading practice users:', error);
@@ -323,6 +354,7 @@ export const PracticeUserManagement = () => {
 
   const openEditModal = (user: PracticeUser) => {
     setEditingUser(user);
+    setEditingUserNRESAccess(user.nres_access || false);
     setUserFormData({
       email: user.email,
       full_name: user.full_name,
@@ -342,6 +374,41 @@ export const PracticeUserManagement = () => {
       }
     });
     setShowUserModal(true);
+  };
+
+  const handleNRESAccessChange = async (checked: boolean) => {
+    if (!editingUser) return;
+    
+    try {
+      if (checked) {
+        // Grant NRES access
+        const { error } = await supabase
+          .from('user_service_activations')
+          .insert({
+            user_id: editingUser.user_id,
+            service: 'nres',
+            activated_by: user?.id,
+            activated_at: new Date().toISOString()
+          });
+        
+        if (error) throw error;
+      } else {
+        // Revoke NRES access
+        const { error } = await supabase
+          .from('user_service_activations')
+          .delete()
+          .eq('user_id', editingUser.user_id)
+          .eq('service', 'nres');
+        
+        if (error) throw error;
+      }
+      
+      setEditingUserNRESAccess(checked);
+      toast.success(checked ? 'NRES access granted' : 'NRES access revoked');
+    } catch (error) {
+      console.error('Error updating NRES access:', error);
+      toast.error('Failed to update NRES access');
+    }
   };
 
   const resetForm = () => {
@@ -364,6 +431,7 @@ export const PracticeUserManagement = () => {
       }
     });
     setSendWelcomeEmail(true);
+    setEditingUserNRESAccess(false);
   };
 
   const filteredUsers = users.filter(user =>
@@ -479,6 +547,7 @@ export const PracticeUserManagement = () => {
                             {user.cqc_compliance_access && <Badge variant="outline" className="text-xs">CQC</Badge>}
                             {user.shared_drive_access && <Badge variant="outline" className="text-xs">Drive</Badge>}
                             {user.fridge_monitoring_access && <Badge variant="outline" className="text-xs">Fridge Monitor</Badge>}
+                            {user.nres_access && <Badge variant="outline" className="text-xs bg-blue-50 text-blue-700 border-blue-200">NRES</Badge>}
                           </div>
                         </TableCell>
                         <TableCell>
@@ -691,6 +760,25 @@ export const PracticeUserManagement = () => {
                   </Label>
                 </div>
               </div>
+              
+              {/* NRES Access - Only visible if current user has NRES access and editing */}
+              {currentUserHasNRES && editingUser && (
+                <div className="pt-3 mt-3 border-t border-border">
+                  <div className="flex items-center space-x-2">
+                    <Switch
+                      id="nres_access"
+                      checked={editingUserNRESAccess}
+                      onCheckedChange={handleNRESAccessChange}
+                    />
+                    <Label htmlFor="nres_access" className="text-sm font-medium">
+                      NRES Dashboard
+                    </Label>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1 ml-10">
+                    Grants access to the NRES (Network Research Ethics Service) Dashboard
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Send Welcome Email - Only for new users */}
