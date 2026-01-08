@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import QRCode from "https://esm.sh/qrcode@1.5.4";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -14,6 +15,32 @@ interface ImageGenerationRequest {
     organisationType?: string;
   };
   requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'general';
+}
+
+// Extract URL or text content from QR code request
+function extractQRContent(prompt: string): string {
+  // Try to find a URL in the prompt
+  const urlMatch = prompt.match(/https?:\/\/[^\s]+/i);
+  if (urlMatch) {
+    return urlMatch[0];
+  }
+  
+  // Try to find content after common phrases
+  const patterns = [
+    /qr\s*code\s*(?:to|for|with|containing|linking\s*to)[:\s]*(.+)/i,
+    /create\s*(?:a\s*)?qr\s*code[:\s]*(.+)/i,
+    /generate\s*(?:a\s*)?qr\s*code[:\s]*(.+)/i,
+  ];
+  
+  for (const pattern of patterns) {
+    const match = prompt.match(pattern);
+    if (match && match[1]) {
+      return match[1].trim();
+    }
+  }
+  
+  // Fall back to the entire prompt if nothing specific found
+  return prompt;
 }
 
 serve(async (req) => {
@@ -35,7 +62,46 @@ serve(async (req) => {
       contextLength: conversationContext?.length || 0
     });
 
-    // Build comprehensive prompt for the Gemini image model
+    // Handle QR code generation separately using the qrcode library
+    if (requestType === 'qrcode') {
+      console.log('📱 Generating QR code with qrcode library...');
+      
+      const qrContent = extractQRContent(prompt);
+      console.log('QR content extracted:', qrContent.substring(0, 100));
+      
+      try {
+        // Generate QR code as data URL
+        const qrDataUrl = await QRCode.toDataURL(qrContent, {
+          width: 400,
+          margin: 2,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          },
+          errorCorrectionLevel: 'M'
+        });
+        
+        console.log('✅ QR code generated successfully');
+        
+        return new Response(JSON.stringify({
+          success: true,
+          image: {
+            url: qrDataUrl,
+            alt: 'QR code',
+            prompt: `QR code for: ${qrContent.substring(0, 100)}`,
+            requestType: 'qrcode'
+          },
+          textResponse: `I've created a QR code that links to: ${qrContent}\n\nYou can download it using the button below the image. The QR code is scannable with any smartphone camera or QR reader app.`
+        }), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } catch (qrError) {
+        console.error('QR code generation error:', qrError);
+        throw new Error(`Failed to generate QR code: ${qrError.message}`);
+      }
+    }
+
+    // Build comprehensive prompt for the Gemini image model (non-QR requests)
     const typeDescriptions: Record<string, string> = {
       chart: 'data visualisation chart with clear labels and legends',
       diagram: 'process flow diagram or structural diagram',
@@ -43,7 +109,6 @@ serve(async (req) => {
       calendar: 'calendar or schedule grid layout',
       poster: 'professional notice or poster',
       logo: 'professional logo or brand mark',
-      qrcode: 'QR code (Quick Response code)',
       general: 'image or visual'
     };
 
@@ -65,23 +130,6 @@ Logo Design Requirements:
 - Modern, trustworthy aesthetic
 - Use simple shapes and clean lines
 - Maximum 2-3 colours
-
-Content guidelines:
-- Keep all content professional and workplace-appropriate
-- No explicit, offensive, or inappropriate imagery`;
-    } else if (requestType === 'qrcode') {
-      // QR code-specific prompt
-      imagePrompt = `${prompt}
-
-Style: QR code (Quick Response code)
-
-QR Code Requirements:
-- Generate a clear, scannable QR code
-- High contrast black modules on white background
-- Adequate quiet zone (white border) around the code
-- Clean, sharp edges for reliable scanning
-- Standard square QR code format
-- If the request includes a URL or text, encode that content into the QR code
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
@@ -173,7 +221,6 @@ Content guidelines:
       calendar: 'Schedule or calendar visualisation',
       poster: 'Professional poster or notice',
       logo: 'Professional logo',
-      qrcode: 'QR code',
       general: 'Visual representation'
     };
 
