@@ -388,10 +388,16 @@ export const PracticeUserManagement = () => {
             user_id: editingUser.user_id,
             service: 'nres',
             activated_by: user?.id,
-            activated_at: new Date().toISOString()
+            activated_at: new Date().toISOString(),
           });
-        
-        if (error) throw error;
+
+        if (error) {
+          const msg = (error as any)?.message as string | undefined;
+          const code = (error as any)?.code as string | undefined;
+          const isDuplicate =
+            code === '23505' || msg?.includes('user_service_activations_user_id_service_key');
+          if (!isDuplicate) throw error;
+        }
       } else {
         // Revoke NRES access
         const { error } = await supabase
@@ -399,7 +405,7 @@ export const PracticeUserManagement = () => {
           .delete()
           .eq('user_id', editingUser.user_id)
           .eq('service', 'nres');
-        
+
         if (error) throw error;
       }
       
