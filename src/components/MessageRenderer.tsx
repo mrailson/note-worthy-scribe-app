@@ -815,6 +815,71 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             </div>
           )}
           
+          {/* Generated images */}
+          {message.generatedImages && message.generatedImages.length > 0 && (
+            <div className="mt-4 space-y-4">
+              {message.generatedImages.map((image, index) => (
+                <div key={index} className="rounded-lg overflow-hidden border border-border bg-card">
+                  <img 
+                    src={image.url} 
+                    alt={image.alt || 'Generated image'}
+                    className="w-full max-w-2xl mx-auto"
+                    loading="lazy"
+                  />
+                  <div className="p-3 border-t border-border bg-muted/30">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="text-xs text-muted-foreground">
+                        {image.alt || 'Generated visual'}
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            // Download image
+                            const link = document.createElement('a');
+                            link.href = image.url;
+                            link.download = `ai4gp-image-${Date.now()}.png`;
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                            toast.success('Image downloaded');
+                          }}
+                        >
+                          <Download className="h-3 w-3 mr-1" />
+                          Download
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 text-xs"
+                          onClick={() => {
+                            // Copy image to clipboard
+                            fetch(image.url)
+                              .then(res => res.blob())
+                              .then(blob => {
+                                navigator.clipboard.write([
+                                  new ClipboardItem({ 'image/png': blob })
+                                ]).then(() => {
+                                  toast.success('Image copied to clipboard');
+                                }).catch(() => {
+                                  toast.error('Failed to copy image');
+                                });
+                              });
+                          }}
+                        >
+                          <Copy className="h-3 w-3 mr-1" />
+                          Copy
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
   {/* Clinical verification badge */}
           {/* Clinical verification display - removed from here since it's now inline with footer */}
           
