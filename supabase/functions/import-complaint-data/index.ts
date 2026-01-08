@@ -114,44 +114,98 @@ serve(async (req) => {
           const imageData = await imageAnalysisResponse.json();
           fileText = imageData.choices[0].message.content;
           
+        } else if (fileType.includes('pdf') || fileName.endsWith('.pdf')) {
+          // Handle PDF files with OCR using OpenAI Vision
+          console.log(`Processing PDF file: ${fileItem.name}, size: ${fileItem.size} bytes`);
+          const arrayBuffer = await fileItem.arrayBuffer();
+          const bytes = new Uint8Array(arrayBuffer);
+          
+          // Convert to base64 in chunks to avoid stack overflow
+          let base64 = '';
+          const chunkSize = 8192;
+          for (let i = 0; i < bytes.length; i += chunkSize) {
+            const chunk = bytes.subarray(i, i + chunkSize);
+            base64 += String.fromCharCode.apply(null, Array.from(chunk));
+          }
+          base64 = btoa(base64);
+          
+          console.log(`PDF base64 length: ${base64.length}`);
+          
+          // Use OpenAI Vision with file input for PDF
+          const pdfAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${openaiApiKey}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              model: 'gpt-4.1-2025-04-14',
+              messages: [
+                {
+                  role: 'user',
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'Please extract all text content from this PDF document. This appears to be a medical complaint or correspondence. Extract all visible text accurately, maintaining paragraph structure. Include all patient details, dates, and complaint information.'
+                    },
+                    {
+                      type: 'file',
+                      file: {
+                        filename: fileItem.name,
+                        file_data: `data:application/pdf;base64,${base64}`
+                      }
+                    }
+                  ]
+                }
+              ],
+              max_tokens: 4000
+            }),
+          });
+
+          if (!pdfAnalysisResponse.ok) {
+            const errorData = await pdfAnalysisResponse.json();
+            console.error('PDF OCR error:', JSON.stringify(errorData));
+            throw new Error(`Failed to extract text from PDF: ${fileItem.name}. ${errorData.error?.message || 'Unknown error'}`);
+          }
+
+          const pdfData = await pdfAnalysisResponse.json();
+          fileText = pdfData.choices[0].message.content;
+          console.log(`Successfully extracted ${fileText.length} characters from PDF ${fileItem.name}`);
+          
         } else if (fileType.includes('msword') || fileType.includes('wordprocessingml') || fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-          // Handle Word documents using Deno-compatible text extraction
+          // Handle Word documents - try XML extraction first, fall back to OCR if needed
+          console.log(`Processing Word file: ${fileItem.name}, size: ${fileItem.size} bytes`);
           const arrayBuffer = await fileItem.arrayBuffer();
           const buffer = new Uint8Array(arrayBuffer);
           
-          // Extract text from DOCX (which is a ZIP with XML files)
+          // Try to extract text from DOCX (which is a ZIP with XML files)
           const decoder = new TextDecoder('utf-8', { fatal: false });
           const text = decoder.decode(buffer);
           
-          // Improved XML text extraction for DOCX
           // Look for text within <w:t> tags (Word text elements)
           const wordTextMatches = text.match(/<w:t[^>]*>([^<]+)<\/w:t>/g);
-          const paragraphMatches = text.match(/>([^<]{3,})</g); // Backup: get text between tags (min 3 chars)
+          const paragraphMatches = text.match(/>([^<]{3,})</g);
           
           let extractedParts: string[] = [];
           
           if (wordTextMatches && wordTextMatches.length > 0) {
-            // Extract from proper Word text tags
             extractedParts = wordTextMatches.map(match => {
               const textMatch = match.match(/<w:t[^>]*>([^<]+)<\/w:t>/);
               return textMatch ? textMatch[1] : '';
             }).filter(t => t.trim().length > 0);
           } else if (paragraphMatches && paragraphMatches.length > 0) {
-            // Fallback to paragraph extraction
             extractedParts = paragraphMatches
               .map(match => match.slice(1, -1).trim())
               .filter(text => {
-                // Filter out XML tags and attributes
                 return text.length > 2 && 
                        !text.startsWith('<?') && 
                        !text.startsWith('<!') &&
-                       !/^[a-z]+:/.test(text) && // Remove namespace prefixes
-                       !/^(xmlns|mc:|w:|r:)/.test(text); // Remove XML attributes
+                       !/^[a-z]+:/.test(text) &&
+                       !/^(xmlns|mc:|w:|r:)/.test(text);
               });
           }
           
           if (extractedParts.length > 0) {
-            // Join with spaces and clean up
             fileText = extractedParts
               .join(' ')
               .replace(/\s+/g, ' ')
@@ -162,14 +216,68 @@ serve(async (req) => {
               .replace(/&#\d+;/g, ' ')
               .trim();
             
-            console.log(`Successfully extracted ${fileText.length} characters from ${fileItem.name}`);
-          } else {
-            throw new Error(`No text content found in ${fileItem.name}`);
+            console.log(`XML extraction got ${fileText.length} characters from ${fileItem.name}`);
           }
+          
+          // If XML extraction failed or got very little text, use OCR as fallback
+          if (!fileText || fileText.length < 50) {
+            console.log(`XML extraction insufficient (${fileText?.length || 0} chars), falling back to OCR for ${fileItem.name}`);
+            
+            // Convert to base64 for OCR
+            let base64 = '';
+            const chunkSize = 8192;
+            for (let i = 0; i < buffer.length; i += chunkSize) {
+              const chunk = buffer.subarray(i, i + chunkSize);
+              base64 += String.fromCharCode.apply(null, Array.from(chunk));
+            }
+            base64 = btoa(base64);
+            
+            const docAnalysisResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${openaiApiKey}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                model: 'gpt-4.1-2025-04-14',
+                messages: [
+                  {
+                    role: 'user',
+                    content: [
+                      {
+                        type: 'text',
+                        text: 'Please extract all text content from this Word document. This appears to be a medical complaint or correspondence. Extract all visible text accurately.'
+                      },
+                      {
+                        type: 'file',
+                        file: {
+                          filename: fileItem.name,
+                          file_data: `data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,${base64}`
+                        }
+                      }
+                    ]
+                  }
+                ],
+                max_tokens: 4000
+              }),
+            });
+
+            if (!docAnalysisResponse.ok) {
+              const errorData = await docAnalysisResponse.json();
+              console.error('Word OCR error:', JSON.stringify(errorData));
+              throw new Error(`Failed to extract text from Word document: ${fileItem.name}. ${errorData.error?.message || 'Unknown error'}`);
+            }
+
+            const docData = await docAnalysisResponse.json();
+            fileText = docData.choices[0].message.content;
+            console.log(`OCR extracted ${fileText.length} characters from ${fileItem.name}`);
+          }
+          
         } else if (fileType.includes('text/') || fileName.endsWith('.txt') || fileName.endsWith('.eml')) {
           // Handle text files and emails
           fileText = await fileItem.text();
         } else {
+          console.error(`Unsupported file type: ${fileType} for file ${fileItem.name}`);
           throw new Error(`Unsupported file type: ${fileType} for file ${fileItem.name}. Please use PDF, Word, image, or text files.`);
         }
         
