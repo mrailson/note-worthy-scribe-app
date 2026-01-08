@@ -54,10 +54,17 @@ serve(async (req) => {
       throw new Error('Text is required');
     }
 
+    // Server-side text cleanup as safety net for natural TTS
+    const cleanedText = text
+      .replace(/\b(um|uh|er|erm|ah)\b/gi, '')
+      .replace(/\.{2,}/g, ',')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+
     // Determine the best voice for the language
     const voiceId = requestedVoiceId || VOICE_MAP[languageCode] || VOICE_MAP['en'];
 
-    console.log(`Generating TTS for language: ${languageCode}, voice: ${voiceId}, text length: ${text.length}`);
+    console.log(`Generating TTS for language: ${languageCode}, voice: ${voiceId}, text length: ${cleanedText.length}`);
 
     // Call ElevenLabs TTS API with multilingual model
     const response = await fetch(
@@ -69,13 +76,14 @@ serve(async (req) => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text,
+          text: cleanedText,
           model_id: 'eleven_multilingual_v2',
           voice_settings: {
-            stability: 0.5,
+            stability: 0.65,        // Increased for more consistent delivery
             similarity_boost: 0.75,
-            style: 0.3,
+            style: 0.4,             // Slightly higher for natural expression
             use_speaker_boost: true,
+            speed: 1.0,             // Explicit speed control
           },
         }),
       }
