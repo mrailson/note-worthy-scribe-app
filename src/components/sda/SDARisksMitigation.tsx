@@ -41,7 +41,7 @@ const januaryDecisions: BoardDecision[] = [
     title: "SNO-Practice MOU Agreement", 
     desc: "MOU between PML and each individual practice must be agreed before legal review can complete.",
     status: "decision-required",
-    note: "Review with PB - 13 Jan 2026. Practice partners expressing significant concern. Legal advice on GMS/ES only proceeding pending MOU from SNO/PML.",
+    note: "Review with PB - 13 Jan 2026. Legal advice on GMS/ES only (pending MOU from SNO/Practices)",
     targetDate: "13th January 2026"
   },
   { 
