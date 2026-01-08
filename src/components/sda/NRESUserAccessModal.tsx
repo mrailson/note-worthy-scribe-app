@@ -15,15 +15,24 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Download, Users, Building2, Mail } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Search, Download, Users, Building2, Mail, ArrowUpDown, Info } from "lucide-react";
 import { useNRESUserAccess } from "@/hooks/useNRESUserAccess";
 import { format } from "date-fns";
-import { Badge } from "@/components/ui/badge";
 
 interface NRESUserAccessModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
+
+type SortField = "full_name" | "practice_name";
+type SortDirection = "asc" | "desc";
 
 export const NRESUserAccessModal = ({
   open,
@@ -31,31 +40,63 @@ export const NRESUserAccessModal = ({
 }: NRESUserAccessModalProps) => {
   const { data: users = [], isLoading } = useNRESUserAccess();
   const [searchTerm, setSearchTerm] = useState("");
+  const [organisationFilter, setOrganisationFilter] = useState<string>("all");
+  const [sortField, setSortField] = useState<SortField>("practice_name");
+  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
-  const filteredUsers = useMemo(() => {
-    if (!searchTerm.trim()) return users;
-    const term = searchTerm.toLowerCase();
-    return users.filter(
-      (user) =>
-        user.full_name?.toLowerCase().includes(term) ||
-        user.email?.toLowerCase().includes(term) ||
-        user.practice_name?.toLowerCase().includes(term)
-    );
-  }, [users, searchTerm]);
-
-  // Group users by practice for summary
-  const practiceGroups = useMemo(() => {
-    const groups: Record<string, number> = {};
+  // Get unique organisations for filter
+  const organisations = useMemo(() => {
+    const orgs = new Set<string>();
     users.forEach((user) => {
-      const practice = user.practice_name || "Unassigned";
-      groups[practice] = (groups[practice] || 0) + 1;
+      if (user.practice_name) {
+        orgs.add(user.practice_name);
+      }
     });
-    return Object.entries(groups).sort((a, b) => b[1] - a[1]);
+    return Array.from(orgs).sort();
   }, [users]);
+
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortDirection("asc");
+    }
+  };
+
+  const filteredAndSortedUsers = useMemo(() => {
+    let result = [...users];
+
+    // Apply organisation filter
+    if (organisationFilter !== "all") {
+      result = result.filter((user) => user.practice_name === organisationFilter);
+    }
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      result = result.filter(
+        (user) =>
+          user.full_name?.toLowerCase().includes(term) ||
+          user.email?.toLowerCase().includes(term) ||
+          user.practice_name?.toLowerCase().includes(term)
+      );
+    }
+
+    // Apply sorting
+    result.sort((a, b) => {
+      const aValue = (sortField === "full_name" ? a.full_name : a.practice_name) || "";
+      const bValue = (sortField === "full_name" ? b.full_name : b.practice_name) || "";
+      const comparison = aValue.localeCompare(bValue);
+      return sortDirection === "asc" ? comparison : -comparison;
+    });
+
+    return result;
+  }, [users, searchTerm, organisationFilter, sortField, sortDirection]);
 
   const handleExportCSV = () => {
     const headers = ["Name", "Email", "Organisation", "Access Granted"];
-    const rows = filteredUsers.map((user) => [
+    const rows = filteredAndSortedUsers.map((user) => [
       user.full_name || "-",
       user.email || "-",
       user.practice_name || "-",
@@ -74,6 +115,18 @@ export const NRESUserAccessModal = ({
     link.click();
   };
 
+  const SortableHeader = ({ field, children }: { field: SortField; children: React.ReactNode }) => (
+    <TableHead
+      className="font-semibold cursor-pointer hover:bg-slate-100 transition-colors select-none"
+      onClick={() => handleSort(field)}
+    >
+      <div className="flex items-center gap-1">
+        {children}
+        <ArrowUpDown className={`w-3.5 h-3.5 ${sortField === field ? "text-[#005EB8]" : "text-slate-400"}`} />
+      </div>
+    </TableHead>
+  );
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[85vh] flex flex-col">
@@ -84,17 +137,42 @@ export const NRESUserAccessModal = ({
           </DialogTitle>
         </DialogHeader>
 
-        {/* Search and Actions */}
+        {/* Explainer */}
+        <div className="flex items-start gap-2 p-3 bg-blue-50 rounded-lg border border-blue-100 text-sm text-slate-600">
+          <Info className="w-4 h-4 text-[#005EB8] mt-0.5 shrink-0" />
+          <p>
+            To request access for additional users, your Practice Manager can grant it from Notewell, or contact{" "}
+            <a href="mailto:malcolm.railson@nhs.net" className="text-[#005EB8] hover:underline font-medium">
+              malcolm.railson@nhs.net
+            </a>
+          </p>
+        </div>
+
+        {/* Search, Filter and Actions */}
         <div className="flex items-center gap-3 mt-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
             <Input
-              placeholder="Search by name, email or organisation..."
+              placeholder="Search by name or email..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9"
             />
           </div>
+          <Select value={organisationFilter} onValueChange={setOrganisationFilter}>
+            <SelectTrigger className="w-[200px]">
+              <Building2 className="w-4 h-4 mr-2 text-slate-400" />
+              <SelectValue placeholder="All Organisations" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Organisations</SelectItem>
+              {organisations.map((org) => (
+                <SelectItem key={org} value={org}>
+                  {org}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
           <Button
             variant="outline"
             size="sm"
@@ -106,33 +184,14 @@ export const NRESUserAccessModal = ({
           </Button>
         </div>
 
-        {/* Practice Summary Chips */}
-        <div className="flex flex-wrap gap-2 mt-2">
-          {practiceGroups.slice(0, 6).map(([practice, count]) => (
-            <Badge
-              key={practice}
-              variant="secondary"
-              className="bg-slate-100 text-slate-700 hover:bg-slate-200"
-            >
-              <Building2 className="w-3 h-3 mr-1" />
-              {practice}: {count}
-            </Badge>
-          ))}
-          {practiceGroups.length > 6 && (
-            <Badge variant="secondary" className="bg-slate-100 text-slate-500">
-              +{practiceGroups.length - 6} more
-            </Badge>
-          )}
-        </div>
-
         {/* Users Table */}
         <div className="flex-1 overflow-auto mt-4 border rounded-lg">
           <Table>
             <TableHeader>
               <TableRow className="bg-slate-50">
-                <TableHead className="font-semibold">Name</TableHead>
+                <SortableHeader field="full_name">Name</SortableHeader>
                 <TableHead className="font-semibold">Email</TableHead>
-                <TableHead className="font-semibold">Organisation</TableHead>
+                <SortableHeader field="practice_name">Organisation</SortableHeader>
                 <TableHead className="font-semibold text-right">
                   Access Granted
                 </TableHead>
@@ -148,17 +207,17 @@ export const NRESUserAccessModal = ({
                     Loading users...
                   </TableCell>
                 </TableRow>
-              ) : filteredUsers.length === 0 ? (
+              ) : filteredAndSortedUsers.length === 0 ? (
                 <TableRow>
                   <TableCell
                     colSpan={4}
                     className="text-center py-8 text-slate-500"
                   >
-                    {searchTerm ? "No users match your search" : "No users found"}
+                    {searchTerm || organisationFilter !== "all" ? "No users match your filters" : "No users found"}
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredUsers.map((user) => (
+                filteredAndSortedUsers.map((user) => (
                   <TableRow key={user.user_id} className="hover:bg-slate-50">
                     <TableCell className="font-medium">
                       {user.full_name || (
@@ -198,8 +257,7 @@ export const NRESUserAccessModal = ({
         {/* Footer */}
         <div className="flex items-center justify-between pt-3 border-t mt-2 text-sm text-slate-500">
           <span>
-            Showing {filteredUsers.length} of {users.length} users with NRES
-            access
+            Showing {filteredAndSortedUsers.length} of {users.length} users with NRES access
           </span>
           <span className="text-xs">
             Data refreshes automatically
