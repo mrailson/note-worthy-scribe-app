@@ -29,10 +29,10 @@ const januaryDecisions: BoardDecision[] = [
   // AT-RISK - Critical timeline concerns
   { 
     id: 1, 
-    title: "Practice Contract Signing", 
-    desc: "All practice partners to sign amended GMS/ES contract before ICB deadline.",
+    title: "GMS/ES Contract & Legal Review", 
+    desc: "All practice partners to sign amended GMS/ES contract. Legal advice on contract variation proceeding via Hempsons.",
     status: "at-risk",
-    note: "Dr Ellis: 'virtually impossible' to receive MOUs, get legal advice and obtain partner signatures before ICB proposed deadline.",
+    note: "GMS contract currently under review by Hempsons. Dr Ellis: 'virtually impossible' to receive MOUs, get legal advice and obtain partner signatures before ICB proposed deadline.",
     targetDate: "ICB deadline TBC"
   },
   // DECISION REQUIRED - Blocking other workstreams
@@ -46,11 +46,12 @@ const januaryDecisions: BoardDecision[] = [
   },
   { 
     id: 3, 
-    title: "Host Organisation", 
-    desc: "Determine whether PML or individual practice will host employed staff.",
+    title: "Host Organisation & Recruitment", 
+    desc: "Determine whether PML or individual practice will host employed staff. Interview panels being established.",
     status: "decision-required",
     options: ["PML", "Practice", "Neighbourhood"],
-    note: "Critical decision required for recruitment to proceed"
+    note: "Job adverts closing 20th January 2026. Interviews scheduled 27th January 2026. Panel to include clinical and managerial representation.",
+    targetDate: "27th January 2026"
   },
   // PENDING REVIEW - In order of project dependency
   { 
@@ -69,13 +70,6 @@ const januaryDecisions: BoardDecision[] = [
   },
   { 
     id: 6, 
-    title: "GMS/ES Contract Legal Review", 
-    desc: "Legal advice on GMS/ES contract variation (proceeding separately from MOU).",
-    status: "pending-review",
-    note: "Considered a normal recognised contract variation with lower legal concern. Separate from SNO MOU to Practice legal review."
-  },
-  { 
-    id: 7, 
     title: "Innovation Pilots", 
     desc: "Agreement on specific Part B clinics (Frailty/COPD).",
     status: "pending-review",
@@ -83,31 +77,23 @@ const januaryDecisions: BoardDecision[] = [
   },
   // LOW PRIORITY - Can progress in parallel / less urgent
   { 
-    id: 8, 
+    id: 7, 
     title: "Brook Hub/Spoke Status", 
     desc: "Designation for April go-live – Brook practice currently reviewing capacity.",
     status: "low-priority",
     options: ["Hub", "Spoke"],
-    note: "Awaiting Brook capacity review",
-    targetDate: "27th January 2026"
+    note: "Meeting scheduled 13th January to finalise Brook participation",
+    targetDate: "15th January 2026"
   },
   { 
-    id: 9, 
+    id: 8, 
     title: "Equipment Procurement", 
     desc: "Agree equipment inventory and costings for clinical/non-clinical items.",
     status: "low-priority",
     note: "Dependent on Hub/Spoke model agreement"
   },
   { 
-    id: 10, 
-    title: "Recruitment Panels", 
-    desc: "Establishing the JD and Interview groups.",
-    status: "low-priority",
-    note: "PML Meeting 8/1/26 to review Workforce to include Panel etc",
-    targetDate: "27th January 2026"
-  },
-  { 
-    id: 11, 
+    id: 9, 
     title: "Insurance Approach", 
     desc: "How practices obtain insurance for the programme.",
     status: "low-priority",
