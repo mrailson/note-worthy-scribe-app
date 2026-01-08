@@ -1,5 +1,7 @@
 import { Card, CardContent } from "@/components/ui/card";
-import { FileText, Download, Folder, FolderOpen, ChevronRight, Calendar, FileSpreadsheet, File, Heart, Play, Pause, Headphones } from "lucide-react";
+import { FileText, Download, Folder, FolderOpen, ChevronRight, Calendar, FileSpreadsheet, File, Heart, Play, Pause, Headphones, ClipboardList } from "lucide-react";
+import { ActionLogTable } from "./ActionLogTable";
+import { actionLogData, actionLogMetadata } from "@/data/nresBoardActionsData";
 import { Button } from "@/components/ui/button";
 import { useState, useRef } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -334,6 +336,34 @@ export const SDAEvidenceLibrary = () => {
           Supporting documentation and evidence for the SDA Programme
         </p>
       </div>
+
+      {/* Programme Board Action Log Section */}
+      <Collapsible defaultOpen={true}>
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <CollapsibleTrigger asChild>
+            <button className="w-full flex items-center justify-between p-4 hover:bg-slate-50 transition-colors text-left">
+              <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
+                <ClipboardList className="w-5 h-5 text-[#005EB8]" />
+                Programme Board Action Log
+              </h3>
+              <div className="flex items-center gap-2">
+                <Badge className="bg-blue-100 text-blue-700 hover:bg-blue-100">
+                  {actionLogData.filter(a => a.status === 'Open').length} Open
+                </Badge>
+                <ChevronRight className="w-5 h-5 text-slate-400 transition-transform data-[state=open]:rotate-90" />
+              </div>
+            </button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <div className="px-4 pb-4 space-y-3">
+              <ActionLogTable actions={actionLogData} />
+              <p className="text-xs text-slate-500 pt-2 border-t border-slate-100">
+                Source: {actionLogMetadata.sourceMeeting} • Next Meeting: {actionLogMetadata.nextMeeting}
+              </p>
+            </div>
+          </CollapsibleContent>
+        </div>
+      </Collapsible>
 
       {/* Programme Board Meetings Section */}
       <div className="space-y-3">
