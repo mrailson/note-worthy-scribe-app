@@ -9,7 +9,7 @@ const corsHeaders = {
 // ElevenLabs multilingual voice mapping
 const VOICE_MAP: Record<string, string> = {
   // Default voices by language for best results
-  'en': 'EXAVITQu4vr4xnSDxMaL', // Sarah - warm professional
+  'en': 'onwK4e9ZLuTAKqWW03F9', // Daniel - British male
   'pl': 'XrExE9yKIg1WjnnlVkGX', // Matilda
   'ro': 'FGY2WhTYpPnrIDTdsKH5', // Laura
   'ar': 'nPczCjzI2devNBz1zQrb', // Brian

@@ -33,7 +33,7 @@ export const ELEVENLABS_VOICES = {
 // Priority 1-3: Most common in UK healthcare settings
 export const ELEVENLABS_LANGUAGES: ElevenLabsLanguage[] = [
   // Priority 1: English (default GP language)
-  { code: 'en', name: 'English', flag: '🇬🇧', voiceId: ELEVENLABS_VOICES.sarah.id, voiceName: 'Sarah', priority: 1 },
+  { code: 'en', name: 'English', flag: '🇬🇧', voiceId: ELEVENLABS_VOICES.daniel.id, voiceName: 'Daniel', priority: 1 },
   
   // Priority 2: Most common in UK GP practices (Eastern European)
   { code: 'pl', name: 'Polish', flag: '🇵🇱', voiceId: ELEVENLABS_VOICES.matilda.id, voiceName: 'Matilda', priority: 2, nativeName: 'Polski' },
