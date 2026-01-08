@@ -120,6 +120,8 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
     const rows: any[][] = [];
+    const today = new Date();
+    const lastUpdatedStr = format(today, "d MMMM yyyy 'at' HH:mm");
     
     // Style definitions
     const titleStyle = {
@@ -132,10 +134,9 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
       alignment: { horizontal: 'left', vertical: 'center' }
     };
 
-    const brandingStyle = {
-      font: { bold: true, sz: 11, name: 'Calibri', color: { rgb: "FFFFFF" } },
-      fill: { fgColor: { rgb: "1E3A5F" } },
-      alignment: { horizontal: 'center', vertical: 'center' }
+    const lastUpdatedStyle = {
+      font: { italic: true, sz: 10, name: 'Calibri', color: { rgb: "666666" } },
+      alignment: { horizontal: 'left', vertical: 'center' }
     };
 
     const headerStyle = {
@@ -215,16 +216,19 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
       alignment: { horizontal: 'center', vertical: 'center' }
     };
 
-    // Row 1: Branding and Title
-    rows.push(['NRES', '', '', 'NRES Programme Board - Action Log', '', '', '', 'DocMed']);
+    // Row 1: Title
+    rows.push(['NRES Programme Board - Action Log']);
     
     // Row 2: Subtitle
-    rows.push(['', '', '', 'Rural East & South Neighbourhood Access Service', '', '', '', '']);
+    rows.push(['Rural East & South Neighbourhood Access Service']);
     
-    // Row 3: Empty spacer
+    // Row 3: Last Updated
+    rows.push([`Last Updated: ${lastUpdatedStr}`]);
+    
+    // Row 4: Empty spacer
     rows.push([]);
     
-    // Row 4: Headers
+    // Row 5: Headers
     rows.push(['Action ID', 'Date Raised', 'Action Description', 'Owner', 'Due Date', 'Priority', 'Status', 'Notes/Update']);
     
     // Data rows
@@ -264,35 +268,36 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
     
     // Merge cells for title and subtitle
     ws['!merges'] = [
-      { s: { r: 0, c: 3 }, e: { r: 0, c: 6 } },  // Title merge
-      { s: { r: 1, c: 3 }, e: { r: 1, c: 6 } },  // Subtitle merge
+      { s: { r: 0, c: 0 }, e: { r: 0, c: 7 } },  // Title merge
+      { s: { r: 1, c: 0 }, e: { r: 1, c: 7 } },  // Subtitle merge
+      { s: { r: 2, c: 0 }, e: { r: 2, c: 7 } },  // Last Updated merge
     ];
     
     // Set row heights
     ws['!rows'] = [
       { hpt: 30 },  // Title row
       { hpt: 22 },  // Subtitle row
+      { hpt: 18 },  // Last Updated row
       { hpt: 15 },  // Spacer
       { hpt: 25 },  // Header row
     ];
     
     const cols = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I'];
     
-    // Apply branding and title styles
-    if (ws['A1']) ws['A1'].s = brandingStyle;
-    if (ws['H1']) ws['H1'].s = brandingStyle;
-    if (ws['D1']) ws['D1'].s = titleStyle;
-    if (ws['D2']) ws['D2'].s = subtitleStyle;
+    // Apply title and subtitle styles
+    if (ws['A1']) ws['A1'].s = titleStyle;
+    if (ws['A2']) ws['A2'].s = subtitleStyle;
+    if (ws['A3']) ws['A3'].s = lastUpdatedStyle;
     
-    // Apply header styles
+    // Apply header styles (now row 5)
     cols.slice(0, 8).forEach(col => {
-      const cell = ws[`${col}4`];
+      const cell = ws[`${col}5`];
       if (cell) cell.s = headerStyle;
     });
     
-    // Apply data row styles with colour-coded Priority and Status
+    // Apply data row styles with colour-coded Priority and Status (now starting row 6)
     for (let i = 0; i < filteredAndSortedActions.length; i++) {
-      const rowNum = 5 + i;
+      const rowNum = 6 + i;
       const action = filteredAndSortedActions[i];
       
       cols.slice(0, 8).forEach(col => {
@@ -311,8 +316,8 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
       });
     }
     
-    // Apply legend styles
-    const legendRowNum = 5 + filteredAndSortedActions.length + 1;
+    // Apply legend styles (now offset by 1 row)
+    const legendRowNum = 6 + filteredAndSortedActions.length + 1;
     if (ws[`B${legendRowNum}`]) ws[`B${legendRowNum}`].s = legendLabelStyle;
     if (ws[`C${legendRowNum}`]) ws[`C${legendRowNum}`].s = legendHighStyle;
     if (ws[`D${legendRowNum}`]) ws[`D${legendRowNum}`].s = legendMediumStyle;
