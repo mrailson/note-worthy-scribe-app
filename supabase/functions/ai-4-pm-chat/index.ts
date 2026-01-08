@@ -78,6 +78,29 @@ function cleanBNFOutput(output: string): string {
   return addNorthantsFormularyLink(cleaned);
 }
 
+// Remove clichéd email greetings from AI responses - these are frowned upon in professional NHS correspondence
+function removeClichedGreetings(output: string): string {
+  return output
+    // Remove common clichéd opening phrases at the start of the response
+    .replace(/^I hope (you are|you're|this finds you|this email finds you|this message finds you|all is) (well|good|doing well|in good health)\.?\s*/gi, '')
+    .replace(/^I trust (this email finds you|this message finds you|you are|you're) (well|in good health|doing well)\.?\s*/gi, '')
+    .replace(/^Thank you for (your email|contacting us|reaching out|getting in touch)\.?\s*/gi, '')
+    .replace(/^Many thanks for your (email|message|enquiry|query)\.?\s*/gi, '')
+    .replace(/^Hope you're having a (good|great|lovely|wonderful) day\.?\s*/gi, '')
+    .replace(/^Hope all is well\.?\s*/gi, '')
+    .replace(/^Good (morning|afternoon|evening)\.?\s*/gi, '')
+    .replace(/^I hope this (email|message) finds you well\.?\s*/gi, '')
+    .replace(/^I hope you are doing well\.?\s*/gi, '')
+    .replace(/^I hope you're doing well\.?\s*/gi, '')
+    .replace(/^I hope you are well\.?\s*/gi, '')
+    .replace(/^I hope you're well\.?\s*/gi, '')
+    // Handle variations after greetings like "Hi [Name]," or "Dear [Name],"
+    .replace(/^(Hi|Hello|Dear)\s+[\w\s]+,?\s*\n+I hope (you are|you're|this finds you) (well|doing well)\.?\s*/gim, '$1 ')
+    // Clean up any resulting double line breaks or excess whitespace
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -1619,6 +1642,9 @@ serve(async (req) => {
     console.error('ERROR: Empty response from model, this should not happen');
     response = 'I apologize, but I encountered an issue generating a response. Please try again.';
   }
+  
+  // Apply clichéd greeting removal as final post-processing safety net
+  response = removeClichedGreetings(response);
 
     return new Response(
       JSON.stringify({ response }),
