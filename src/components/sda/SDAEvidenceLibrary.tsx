@@ -84,6 +84,12 @@ const vcseMeetings: Meeting[] = [
     date: "22 December 2025",
     location: "Virtual Meeting",
     documents: []
+  },
+  {
+    id: 2,
+    date: "19 January 2026",
+    location: "Riverside, Islington Road, Towcester (NN12 6AU)",
+    documents: []
   }
 ];
 
@@ -121,7 +127,7 @@ const handleDownload = (filePath?: string) => {
 export const SDAEvidenceLibrary = () => {
   const [openProgrammeMeetings, setOpenProgrammeMeetings] = useState<number[]>([23]);
   const [openTaskFinishMeetings, setOpenTaskFinishMeetings] = useState<number[]>([]);
-  const [openVcseMeetings, setOpenVcseMeetings] = useState<number[]>([1]);
+  const [openVcseMeetings, setOpenVcseMeetings] = useState<number[]>([1, 2]);
   const [showUserAccessModal, setShowUserAccessModal] = useState(false);
   
   // NRES user access data
@@ -447,6 +453,82 @@ export const SDAEvidenceLibrary = () => {
 
                 <p className="text-xs text-slate-500">
                   Attendees: Mark Graham (PML), Amanda Taylor, Maureen Green (PML), Ellie, Russ, Helen
+                </p>
+              </div>
+            </CollapsibleContent>
+          </Card>
+        </Collapsible>
+
+        {/* VCSE Meeting - 19 Jan 2026 - Riverside Towcester */}
+        <Collapsible open={openVcseMeetings.includes(2)} onOpenChange={() => toggleVcseMeeting(2)}>
+          <Card className="bg-white border-0 shadow-sm overflow-hidden mt-3">
+            <CollapsibleTrigger asChild>
+              <button className="w-full p-4 flex items-center gap-3 hover:bg-slate-50 transition-colors text-left">
+                <div className="w-10 h-10 rounded-lg bg-pink-100 flex items-center justify-center">
+                  {openVcseMeetings.includes(2) ? (
+                    <FolderOpen className="w-5 h-5 text-pink-600" />
+                  ) : (
+                    <Folder className="w-5 h-5 text-pink-600" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold text-slate-900">19 January 2026 - Riverside, Towcester</p>
+                  <p className="text-sm text-slate-500">Site Visit - Helen Barrett (SNVB)</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                    Planned
+                  </Badge>
+                  <ChevronRight className={`w-4 h-4 text-slate-400 transition-transform ${openVcseMeetings.includes(2) ? 'rotate-90' : ''}`} />
+                </div>
+              </button>
+            </CollapsibleTrigger>
+            
+            <CollapsibleContent>
+              <div className="px-4 pb-4 pt-2 border-t border-slate-100 space-y-4">
+                <div className="bg-blue-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-blue-900 mb-2">Meeting Details</h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-blue-800">
+                    <div>
+                      <p><strong>Date:</strong> Monday 19th January 2026</p>
+                      <p><strong>Time:</strong> 10:00 - 11:00</p>
+                      <p><strong>Location:</strong> Islington Road, Towcester, NN12 6AU</p>
+                    </div>
+                    <div>
+                      <p><strong>Host:</strong> Helen Barrett</p>
+                      <p><strong>Organisation:</strong> South Northants Volunteer Bureau (SNVB)</p>
+                      <p><strong>Contact:</strong> 07881 272248</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="bg-slate-50 rounded-lg p-4">
+                  <h4 className="font-semibold text-slate-900 text-sm mb-2">Purpose</h4>
+                  <p className="text-sm text-slate-700">
+                    Discuss potential Neighbourhood options and explore collaboration opportunities with Riverside and the wider VCSE sector in South Northamptonshire.
+                  </p>
+                </div>
+
+                <div className="bg-pink-50 rounded-lg p-4 border border-pink-200">
+                  <h4 className="font-semibold text-pink-900 text-sm mb-2">Attendees</h4>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge variant="outline" className="bg-white text-pink-700 border-pink-200">
+                      Helen Barrett (SNVB) - Required
+                    </Badge>
+                    <Badge variant="outline" className="bg-white text-slate-600 border-slate-200">
+                      Amanda Taylor (Brackley Medical Centre)
+                    </Badge>
+                    <Badge variant="outline" className="bg-white text-slate-600 border-slate-200">
+                      Mark Gray (PML)
+                    </Badge>
+                    <Badge variant="outline" className="bg-white text-slate-600 border-slate-200">
+                      Maureen Green (PML)
+                    </Badge>
+                  </div>
+                </div>
+
+                <p className="text-xs text-slate-500">
+                  Response: 2 accepted, 1 tentatively accepted, 0 declined
                 </p>
               </div>
             </CollapsibleContent>
