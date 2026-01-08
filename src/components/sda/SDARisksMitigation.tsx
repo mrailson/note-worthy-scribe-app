@@ -6,7 +6,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { AlertTriangle, Shield, Scale, Users, PoundSterling, UserCheck, Building2, Laptop, Handshake, FileText, ClipboardCheck, ShieldCheck, FileCheck, Calendar, Target, Pill, DoorOpen, RefreshCw, ShieldAlert, Database, Banknote, HelpCircle, CheckCircle2, AlertCircle, ChevronDown, TrendingDown, TrendingUp, Minus, ArrowUpDown, ArrowUp, ArrowDown, Clock, Gavel, UserPlus, ShieldCheck as InsuranceIcon, UsersRound } from "lucide-react";
 import { RiskAssessmentGuidance } from "./risk-register/RiskAssessmentGuidance";
 import { RiskMatrixHeatmap } from "./risk-register/RiskMatrixHeatmap";
-import { projectRisks, getRatingFromScore, getRatingBadgeStyles, getRiskTypeBadgeStyles, getRiskTypeLabel, ProjectRisk } from "./risk-register/projectRisksData";
+import { projectRisks, getRatingFromScore, getRatingBadgeStyles, getRiskTypeBadgeStyles, getRiskTypeLabel, ProjectRisk, AssuranceItem } from "./risk-register/projectRisksData";
+import { Checkbox } from "@/components/ui/checkbox";
 
 type SortField = 'id' | 'risk' | 'riskType' | 'originalScore' | 'currentScore' | 'category' | 'owner';
 type SortDirection = 'asc' | 'desc';
@@ -383,7 +384,7 @@ export const SDARisksMitigation = () => {
                 {/* Risk Table */}
                 <div className="overflow-x-auto">
                   <Table>
-                    <TableHeader>
+                    <TableHeader className="sticky top-0 z-10 bg-slate-50">
                       <TableRow className="bg-slate-50">
                         <TableHead 
                           className="w-[40px] font-semibold text-xs cursor-pointer hover:bg-slate-100"
@@ -430,7 +431,7 @@ export const SDARisksMitigation = () => {
                           <div className="flex items-center">Owner {getSortIcon('owner')}</div>
                         </TableHead>
                         <TableHead className="font-semibold text-xs">Last<br/>Reviewed</TableHead>
-                        <TableHead className="font-semibold text-xs min-w-[150px]">Assurance Indicators</TableHead>
+                        <TableHead className="font-semibold text-xs min-w-[180px]">Assurance Indicators<br/><span className="text-[10px] font-normal text-slate-500">(Progress Tracking)</span></TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -479,7 +480,26 @@ export const SDARisksMitigation = () => {
                             <TableCell className="text-[11px] text-slate-600">{risk.mitigation}</TableCell>
                             <TableCell className="text-xs font-medium text-slate-700">{risk.owner}</TableCell>
                             <TableCell className="text-xs text-slate-500">{risk.lastReviewed}</TableCell>
-                            <TableCell className="text-[11px] text-slate-600">{risk.assuranceIndicators}</TableCell>
+                            <TableCell className="text-[11px]">
+                              <div className="space-y-1.5">
+                                {risk.assuranceIndicators.map((indicator) => (
+                                  <div key={indicator.id} className="flex items-start gap-2">
+                                    <Checkbox 
+                                      id={`indicator-${risk.id}-${indicator.id}`}
+                                      checked={indicator.completed}
+                                      className="mt-0.5 h-3.5 w-3.5"
+                                      disabled
+                                    />
+                                    <label 
+                                      htmlFor={`indicator-${risk.id}-${indicator.id}`}
+                                      className={`text-[11px] leading-tight ${indicator.completed ? 'text-green-700 line-through' : 'text-slate-600'}`}
+                                    >
+                                      {indicator.text}
+                                    </label>
+                                  </div>
+                                ))}
+                              </div>
+                            </TableCell>
                           </TableRow>
                         );
                       })}
