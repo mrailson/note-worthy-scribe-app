@@ -97,8 +97,8 @@ export function useVoicePreference() {
     if (stored === 'elevenlabs-will' || stored?.includes('bIHbv24MWmeRgasZH58o')) {
       return 'will';
     }
-    // Default to Alice
-    return 'alice';
+    // Default to Lily
+    return 'lily';
   });
 
   const setVoicePreference = (voice: VoiceOption) => {
