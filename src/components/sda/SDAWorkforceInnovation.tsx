@@ -301,7 +301,7 @@ export const SDAWorkforceInnovation = () => {
               <p className="font-semibold text-slate-900 mt-1">GP WTE Sessions</p>
               <p className="text-sm text-slate-500">Assumes 12 appointments per session.</p>
               <a 
-                href="https://www.jobs.nhs.uk/candidate/search/results?keyword=GP&location=Northamptonshire"
+                href="https://www.jobs.nhs.uk/candidate/search/results?keyword=GP&location=Brackley&distance=5"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 mt-2 text-sm text-[#005EB8] hover:underline cursor-pointer"
@@ -315,7 +315,7 @@ export const SDAWorkforceInnovation = () => {
               <p className="font-semibold text-slate-900 mt-1">ACP WTE Sessions</p>
               <p className="text-sm text-slate-500">Advanced Clinical Practitioners (Prescribing).</p>
               <a 
-                href="https://www.jobs.nhs.uk/candidate/search/results?keyword=Advanced%20Clinical%20Practitioner&location=Northamptonshire"
+                href="https://www.jobs.nhs.uk/candidate/search/results?keyword=Advanced%20Clinical%20Practitioner&location=Brackley&distance=5"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 mt-2 text-sm text-cyan-600 hover:underline cursor-pointer"

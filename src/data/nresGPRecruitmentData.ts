@@ -287,7 +287,7 @@ export const allGPCandidates: GPCandidate[] = [
   },
   {
     id: 'GP-2026-003',
-    score: 45,
+    score: 25,
     source: 'NHS Jobs',
     gmcNumber: '8105603',
     gmcDetails: 'GMC registration - PLAB route only',
