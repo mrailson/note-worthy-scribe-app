@@ -31,10 +31,10 @@ const seniorLeadership = [
   { name: "Maureen Green", role: "Programme Director", organisation: "Director of Community Services, PML", isVoting: false, icon: Building2 },
   { name: "Dr Simon Ellis", role: "Clinical Lead", organisation: "GP", isVoting: true, icon: Stethoscope },
   { name: "Dr Muhammed Chisti", role: "Supporting Clinical Lead", organisation: "GP", isVoting: true, icon: Stethoscope },
-  { name: "Amanda Taylor", role: "Managerial Lead", organisation: "PML", isVoting: false, icon: UserCog },
-  { name: "Lucy Hibberd", role: "Supporting Managerial Lead", organisation: "PML", isVoting: false, icon: UserCog },
-  { name: "Malcolm Railson", role: "Digital & Estates Lead", organisation: "PML", isVoting: false, icon: Monitor },
-  { name: "Alex Whitehead", role: "Supporting Digital & Estates Lead", organisation: "PML", isVoting: false, icon: Monitor },
+  { name: "Amanda Taylor", role: "Managerial Lead", organisation: "NRES", isVoting: false, icon: UserCog },
+  { name: "Lucy Hibberd", role: "Supporting Managerial Lead", organisation: "NRES", isVoting: false, icon: UserCog },
+  { name: "Malcolm Railson", role: "Digital & Estates Lead", organisation: "NRES", isVoting: false, icon: Monitor },
+  { name: "Alex Whitehead", role: "Supporting Digital & Estates Lead", organisation: "NRES", isVoting: false, icon: Monitor },
 ];
 
 const nonVotingMembers = [
