@@ -5,8 +5,9 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Brain, Clock, Save, Loader2, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Settings } from 'lucide-react';
+import { Brain, Clock, Save, Loader2, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Settings, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { VoicePreviewDemo } from './VoicePreviewDemo';
 
 interface SettingsModalProps {
   open: boolean;
@@ -435,6 +436,25 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   will be automatically deleted daily at 02:00
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          {/* Voice Settings */}
+          <Card className="border-orange-200 bg-gradient-to-r from-background to-orange-50">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <Volume2 className="h-4 w-4 text-orange-600" />
+                Voice Settings
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <VoicePreviewDemo 
+                onSelectVoice={(voiceId, voiceName) => {
+                  // Store the selected voice
+                  localStorage.setItem('audioVoiceSelection', voiceId);
+                  localStorage.setItem('audioVoiceName', voiceName);
+                }}
+              />
             </CardContent>
           </Card>
 
