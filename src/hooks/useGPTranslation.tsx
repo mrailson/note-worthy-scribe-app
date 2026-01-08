@@ -46,16 +46,17 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   
   const recognitionRef = useRef<WebSpeechRecognition | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const audioObjectUrlRef = useRef<string | null>(null);
   const audioQueueRef = useRef<{ text: string; languageCode: string }[]>([]);
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
+  const isPlayingRef = useRef(false);
 
   // Keep refs in sync with values
   useEffect(() => {
     volumeRef.current = volume;
     isMutedRef.current = isMuted;
   }, [volume, isMuted]);
-  const isPlayingRef = useRef(false);
 
   // Initialize speech recognition
   const initSpeechRecognition = useCallback((): WebSpeechRecognition | null => {
@@ -119,26 +120,52 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const playAudioFromBase64 = useCallback(async (base64Audio: string): Promise<void> => {
     return new Promise((resolve, reject) => {
       try {
-        const audioUrl = `data:audio/mpeg;base64,${base64Audio}`;
-        const audio = new Audio(audioUrl);
+        // Clean up any previous object URL
+        if (audioObjectUrlRef.current) {
+          URL.revokeObjectURL(audioObjectUrlRef.current);
+          audioObjectUrlRef.current = null;
+        }
+
+        // Convert base64 to a blob URL (avoids CSP issues with data: URIs)
+        const binaryString = atob(base64Audio);
+        const bytes = new Uint8Array(binaryString.length);
+        for (let i = 0; i < binaryString.length; i++) {
+          bytes[i] = binaryString.charCodeAt(i);
+        }
+
+        const blob = new Blob([bytes], { type: 'audio/mpeg' });
+        const url = URL.createObjectURL(blob);
+        audioObjectUrlRef.current = url;
+
+        const cleanup = () => {
+          if (audioObjectUrlRef.current === url) {
+            audioObjectUrlRef.current = null;
+          }
+          URL.revokeObjectURL(url);
+        };
+
+        const audio = new Audio(url);
         audioRef.current = audio;
-        
-        // Use refs to get current values
-        audio.volume = isMutedRef.current ? 0 : volumeRef.current;
-        
+
+        const volumeValue = Math.max(0, Math.min(1, isMutedRef.current ? 0 : volumeRef.current));
+        audio.volume = volumeValue;
+
         audio.onended = () => {
+          cleanup();
           setIsSpeaking(false);
           resolve();
         };
-        
+
         audio.onerror = (e) => {
+          cleanup();
           console.error('Audio playback error:', e);
           setIsSpeaking(false);
           reject(e);
         };
-        
+
         setIsSpeaking(true);
         audio.play().catch((e) => {
+          cleanup();
           console.error('Audio play() failed:', e);
           setIsSpeaking(false);
           reject(e);
@@ -154,21 +181,21 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   // Process audio queue
   const processAudioQueue = useCallback(async () => {
     if (isPlayingRef.current || audioQueueRef.current.length === 0) return;
-    
+
     isPlayingRef.current = true;
-    
+
     while (audioQueueRef.current.length > 0) {
       const item = audioQueueRef.current.shift();
-      if (item && !isMuted) {
+      if (item && !isMutedRef.current) {
         const audioContent = await generateSpeech(item.text, item.languageCode);
         if (audioContent) {
           await playAudioFromBase64(audioContent);
         }
       }
     }
-    
+
     isPlayingRef.current = false;
-  }, [generateSpeech, playAudioFromBase64, isMuted]);
+  }, [generateSpeech, playAudioFromBase64]);
 
   // Add to audio queue
   const queueAudio = useCallback((text: string, languageCode: string) => {
@@ -322,7 +349,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
       console.log('Audio muted, skipping playback');
       return;
     }
-    
+
     try {
       setIsSpeaking(true);
       const audioContent = await generateSpeech(text, languageCode);
@@ -335,6 +362,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     } catch (err) {
       console.error('Play audio error:', err);
       setIsSpeaking(false);
+      onError?.('Audio playback failed. Please check your browser audio permissions.');
     }
   }, [generateSpeech, playAudioFromBase64, onError]);
 
@@ -343,6 +371,10 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current = null;
+    }
+    if (audioObjectUrlRef.current) {
+      URL.revokeObjectURL(audioObjectUrlRef.current);
+      audioObjectUrlRef.current = null;
     }
     audioQueueRef.current = [];
     setIsSpeaking(false);
