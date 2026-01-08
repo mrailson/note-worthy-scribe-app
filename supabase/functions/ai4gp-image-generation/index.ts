@@ -13,7 +13,7 @@ interface ImageGenerationRequest {
     pcnName?: string;
     organisationType?: string;
   };
-  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'general';
+  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'general';
 }
 
 serve(async (req) => {
@@ -43,6 +43,7 @@ serve(async (req) => {
       calendar: 'calendar or schedule grid layout',
       poster: 'professional notice or poster',
       logo: 'professional logo or brand mark',
+      qrcode: 'QR code (Quick Response code)',
       general: 'image or visual'
     };
 
@@ -50,12 +51,8 @@ serve(async (req) => {
     let imagePrompt: string;
     
     if (requestType === 'logo') {
-      // Logo-specific prompt with practice context
-      const practiceInfo = practiceContext?.practiceName 
-        ? `for "${practiceContext.practiceName}"${practiceContext.pcnName ? ` (part of ${practiceContext.pcnName})` : ''}${practiceContext.organisationType ? ` - ${practiceContext.organisationType}` : ''}`
-        : '';
-      
-      imagePrompt = `${prompt}${practiceInfo ? ` ${practiceInfo}` : ''}
+      // Logo-specific prompt
+      imagePrompt = `${prompt}
 
 Style: Professional logo or brand mark
 
@@ -68,6 +65,23 @@ Logo Design Requirements:
 - Modern, trustworthy aesthetic
 - Use simple shapes and clean lines
 - Maximum 2-3 colours
+
+Content guidelines:
+- Keep all content professional and workplace-appropriate
+- No explicit, offensive, or inappropriate imagery`;
+    } else if (requestType === 'qrcode') {
+      // QR code-specific prompt
+      imagePrompt = `${prompt}
+
+Style: QR code (Quick Response code)
+
+QR Code Requirements:
+- Generate a clear, scannable QR code
+- High contrast black modules on white background
+- Adequate quiet zone (white border) around the code
+- Clean, sharp edges for reliable scanning
+- Standard square QR code format
+- If the request includes a URL or text, encode that content into the QR code
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
@@ -159,6 +173,7 @@ Content guidelines:
       calendar: 'Schedule or calendar visualisation',
       poster: 'Professional poster or notice',
       logo: 'Professional logo',
+      qrcode: 'QR code',
       general: 'Visual representation'
     };
 
