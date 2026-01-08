@@ -2,9 +2,10 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Message, UploadedFile, SearchHistory } from '@/types/ai4gp';
+import { Message, UploadedFile, SearchHistory, GeneratedImage } from '@/types/ai4gp';
 import { useDisplayPreferences } from './useDisplayPreferences';
 import { prepareMessagesForAPI, getMemoryStats } from '@/utils/conversationMemory';
+import { detectImageRequest, extractImageContext, isReferringToPreviousContent } from '@/utils/imageRequestDetection';
 
 export const useAI4GPService = () => {
   const { user } = useAuth();
@@ -472,6 +473,92 @@ Always provide evidence-based, clinically appropriate advice that follows curren
 
     try {
       const startTime = Date.now();
+      
+      // Check if this is an image generation request
+      const imageDetection = detectImageRequest(messageToUse);
+      
+      if (imageDetection.isImageRequest && imageDetection.confidence !== 'low') {
+        console.log('🎨 Image request detected:', imageDetection);
+        
+        // Extract context from previous messages if referring to previous content
+        let conversationContext = '';
+        if (isReferringToPreviousContent(messageToUse)) {
+          conversationContext = extractImageContext(
+            messageToUse,
+            messages.map(m => ({ role: m.role, content: m.content }))
+          );
+        } else {
+          conversationContext = messageToUse;
+        }
+        
+        // Update message to show image generation in progress
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: '🎨 Generating visual representation...', isStreaming: true }
+            : msg
+        ));
+        
+        try {
+          const { data, error } = await supabase.functions.invoke('ai4gp-image-generation', {
+            body: {
+              prompt: messageToUse,
+              conversationContext,
+              requestType: imageDetection.requestType
+            }
+          });
+          
+          if (error) {
+            console.error('Image generation error:', error);
+            throw new Error(error.message || 'Image generation failed');
+          }
+          
+          if (!data.success) {
+            throw new Error(data.error || 'Image generation failed');
+          }
+          
+          const endTime = Date.now();
+          const responseTime = endTime - startTime;
+          
+          // Create message with generated image
+          const imageMessage: Message = {
+            ...assistantMessage,
+            content: data.textResponse,
+            isStreaming: false,
+            responseTime,
+            model: 'DALL-E 3',
+            generatedImages: [data.image as GeneratedImage]
+          };
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId ? imageMessage : msg
+          ));
+          
+          // Auto-save the search
+          setTimeout(async () => {
+            const finalMessages = [...newMessages, imageMessage];
+            await saveSearchAutomatically(finalMessages);
+          }, 100);
+          
+          setIsLoading(false);
+          toast.success('Image generated successfully!');
+          return;
+          
+        } catch (imageError: any) {
+          console.error('Image generation failed:', imageError);
+          
+          // Fall back to regular AI response with explanation
+          const fallbackMessage = `I wasn't able to generate an image for that request. ${imageError.message || 'Please try again with a different description.'}\n\nWould you like me to describe the information in text format instead, or would you like to try a different image request?`;
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { ...msg, content: fallbackMessage, isStreaming: false }
+              : msg
+          ));
+          
+          setIsLoading(false);
+          return;
+        }
+      }
       const systemPrompt = buildSystemPrompt(practiceContext, uploadedFiles, verificationLevel);
       console.log('📄 Final system prompt (first 500 chars):', systemPrompt.substring(0, 500));
       
