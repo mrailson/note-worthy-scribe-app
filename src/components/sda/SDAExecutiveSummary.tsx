@@ -29,6 +29,7 @@ export const SDAExecutiveSummary = () => {
   const [chartsOpen, setChartsOpen] = useState(false);
   const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
   const [actionLogOpen, setActionLogOpen] = useState(true);
+  const [metricsOpen, setMetricsOpen] = useState(true);
 
   return (
     <div className="space-y-6">
@@ -38,84 +39,108 @@ export const SDAExecutiveSummary = () => {
         <p className="text-slate-600">Northamptonshire Rural East & South Neighbourhood</p>
       </div>
 
-      {/* Key Metrics Row */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-slate-500 font-medium">Patient List Size</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">88,938</p>
-                <p className="text-sm text-slate-600 mt-1">7 Practice Partners Across Neighbourhood</p>
+      {/* Collapsible Key Metrics Row */}
+      <Collapsible open={metricsOpen} onOpenChange={setMetricsOpen}>
+        <Card className="bg-white border-0 shadow-sm">
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="w-full flex items-center justify-between p-4 hover:bg-slate-50"
+            >
+              <div className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5 text-[#005EB8]" />
+                <span className="font-semibold text-slate-900">Key Programme Metrics</span>
               </div>
-              <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
-                <Users className="w-6 h-6 text-[#005EB8]" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+              {metricsOpen ? (
+                <ChevronUp className="h-5 w-5 text-slate-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-slate-500" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent className="pt-0">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm text-slate-500 font-medium">Patient List Size</p>
+                        <p className="text-3xl font-bold text-slate-900 mt-1">88,938</p>
+                        <p className="text-sm text-slate-600 mt-1">7 Practice Partners Across Neighbourhood</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center">
+                        <Users className="w-6 h-6 text-[#005EB8]" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-slate-500 font-medium">Annual Capacity</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">73,775</p>
-                <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
-                  50% Remote Assumption
-                </span>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-cyan-50 flex items-center justify-center">
-                <Calendar className="w-6 h-6 text-cyan-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm text-slate-500 font-medium">Annual Capacity</p>
+                        <p className="text-3xl font-bold text-slate-900 mt-1">73,775</p>
+                        <span className="inline-block mt-1 px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-medium rounded-full">
+                          50% Remote Assumption
+                        </span>
+                      </div>
+                      <div className="w-12 h-12 rounded-xl bg-cyan-50 flex items-center justify-center">
+                        <Calendar className="w-6 h-6 text-cyan-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-sm text-slate-500 font-medium">Contract Value</p>
-                <p className="text-3xl font-bold text-slate-900 mt-1">£2.34m</p>
-                <p className="text-sm text-slate-600 mt-1">Equates to £26.33 per patient</p>
-              </div>
-              <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
-                <PoundSterling className="w-6 h-6 text-green-600" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+                <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm text-slate-500 font-medium">Contract Value</p>
+                        <p className="text-3xl font-bold text-slate-900 mt-1">£2.34m</p>
+                        <p className="text-sm text-slate-600 mt-1">Equates to £26.33 per patient</p>
+                      </div>
+                      <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
+                        <PoundSterling className="w-6 h-6 text-green-600" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
 
-        <div className="flex flex-col gap-4">
-          <div className="flex justify-center items-center gap-4">
-            <img 
-              src={NRESLogo} 
-              alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
-              className="h-28 w-auto object-contain"
-            />
-            <img 
-              src={DocMedLogo} 
-              alt="DocMed Northamptonshire - PML" 
-              className="h-20 w-auto object-contain"
-            />
-          </div>
-          <Card className="bg-white border-0 shadow-sm hover:shadow-md transition-shadow">
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm text-slate-500 font-medium">Governance Status</p>
-                  <p className="text-3xl font-bold text-green-600 mt-1">SIGNED</p>
-                  <p className="text-sm text-slate-600 mt-1">Data Sharing Agreement Complete</p>
-                </div>
-                <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
-                  <FileCheck className="w-6 h-6 text-green-600" />
+                <div className="flex flex-col gap-4">
+                  <div className="flex justify-center items-center gap-4">
+                    <img 
+                      src={NRESLogo} 
+                      alt="NRES - Northamptonshire Rural East and South Neighbourhood" 
+                      className="h-28 w-auto object-contain"
+                    />
+                    <img 
+                      src={DocMedLogo} 
+                      alt="DocMed Northamptonshire - PML" 
+                      className="h-20 w-auto object-contain"
+                    />
+                  </div>
+                  <Card className="bg-slate-50 border-0 shadow-sm hover:shadow-md transition-shadow">
+                    <CardContent className="p-6">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <p className="text-sm text-slate-500 font-medium">Governance Status</p>
+                          <p className="text-3xl font-bold text-green-600 mt-1">SIGNED</p>
+                          <p className="text-sm text-slate-600 mt-1">Data Sharing Agreement Complete</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-xl bg-green-50 flex items-center justify-center">
+                          <FileCheck className="w-6 h-6 text-green-600" />
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
               </div>
             </CardContent>
-          </Card>
-        </div>
-      </div>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
 
       {/* Collapsible Charts Section */}
       <Collapsible open={chartsOpen} onOpenChange={setChartsOpen}>
