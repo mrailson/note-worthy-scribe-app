@@ -30,7 +30,7 @@ const januaryDecisions: BoardDecision[] = [
   { 
     id: 1, 
     title: "GMS/ES Contract & Legal Review", 
-    desc: "All practice partners to sign amended GMS/ES contract. Legal advice underway pending Item 2 MOU",
+    desc: "All practices to sign amended GMS/ES contract. Legal advice underway pending Item 2 MOU",
     status: "at-risk",
     note: "GMS contract currently under review for legal advice and obtain partner signatures before ICB proposed deadline. (Item 2 is a dependency)",
     targetDate: "ICB deadline TBC"
