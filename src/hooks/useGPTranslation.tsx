@@ -2,13 +2,9 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLanguageByCode } from '@/constants/elevenLabsLanguages';
 
-// Extend Window interface for Speech Recognition
-declare global {
-  interface Window {
-    SpeechRecognition: typeof SpeechRecognition;
-    webkitSpeechRecognition: typeof SpeechRecognition;
-  }
-}
+// Use any for Web Speech API to avoid type conflicts with global declarations
+type WebSpeechRecognition = any;
+export interface ConversationEntry {
   id: string;
   speaker: 'gp' | 'patient';
   originalText: string;
@@ -47,20 +43,21 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const [conversation, setConversation] = useState<ConversationEntry[]>([]);
   const [currentTranscript, setCurrentTranscript] = useState('');
   
-  const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const recognitionRef = useRef<WebSpeechRecognition | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioQueueRef = useRef<{ text: string; languageCode: string }[]>([]);
   const isPlayingRef = useRef(false);
 
   // Initialize speech recognition
-  const initSpeechRecognition = useCallback(() => {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+  const initSpeechRecognition = useCallback((): WebSpeechRecognition | null => {
+    const SpeechRecognitionAPI = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    
+    if (!SpeechRecognitionAPI) {
       onError?.('Speech recognition is not supported in this browser. Please use Chrome.');
       return null;
     }
 
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    const recognition = new SpeechRecognition();
+    const recognition = new SpeechRecognitionAPI();
     
     recognition.continuous = true;
     recognition.interimResults = true;
