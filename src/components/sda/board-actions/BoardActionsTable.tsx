@@ -434,7 +434,7 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
       <div className="text-center py-8 text-muted-foreground space-y-3">
         <p>No project timeline entries yet. Click "Add Action" to create one.</p>
         <div className="text-xs text-slate-500 border-t border-slate-100 pt-3 mt-3">
-          <p className="font-medium text-slate-600">This section is being developed by:</p>
+          <p className="font-medium text-slate-600">This section is being developed with:</p>
           <p>Anshal Pratyush, Principal Medical Limited (PML)</p>
           <p>
             <a href="mailto:a.pratyush@nhs.net" className="text-[#005EB8] hover:underline">a.pratyush@nhs.net</a>
