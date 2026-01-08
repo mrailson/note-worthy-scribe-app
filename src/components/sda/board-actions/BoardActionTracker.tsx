@@ -79,7 +79,7 @@ export const BoardActionTracker = () => {
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
         <div className="flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-[#005EB8]" />
-          <CardTitle className="text-lg font-semibold">NRES New Models Pilot - Action Tracker</CardTitle>
+          <CardTitle className="text-lg font-semibold">NRES New Models Pilot Schedule</CardTitle>
         </div>
         <Button onClick={() => setFormOpen(true)} size="sm" className="gap-2">
           <Plus className="h-4 w-4" />
