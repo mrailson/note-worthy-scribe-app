@@ -1,4 +1,3 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 const corsHeaders = {
@@ -13,15 +12,14 @@ interface ImageGenerationRequest {
 }
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-    if (!openAIApiKey) {
-      throw new Error('OPENAI_API_KEY is not configured');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
+      throw new Error('LOVABLE_API_KEY is not configured');
     }
 
     const { prompt, conversationContext, requestType } = await req.json() as ImageGenerationRequest;
@@ -32,115 +30,93 @@ serve(async (req) => {
       contextLength: conversationContext?.length || 0
     });
 
-    // First, use GPT to generate an optimised DALL-E prompt based on the conversation
-    const systemPrompt = `You are an expert at creating image generation prompts for DALL-E.
-Your task is to create a clear, detailed prompt that will generate a professional, NHS-appropriate visual.
+    // Build comprehensive prompt for the Gemini image model
+    const typeDescriptions: Record<string, string> = {
+      chart: 'data visualisation chart with clear labels and legends',
+      diagram: 'process flow diagram or structural diagram',
+      infographic: 'informative visual summary with icons and key points',
+      calendar: 'calendar or schedule grid layout',
+      poster: 'professional notice or poster',
+      general: 'professional visual representation'
+    };
 
-Guidelines:
-- Create clean, professional visuals suitable for healthcare settings
-- Use clear, readable typography for any text elements
-- Prefer infographic-style layouts for data
-- Use NHS blue (#005EB8) as a primary accent colour where appropriate
-- Ensure high contrast and accessibility
-- For calendars/schedules: create clear grid layouts with readable text
-- For charts: use clean, modern chart styles
-- For posters: use professional healthcare poster layouts
-- For diagrams: use clear flow arrows and organised layouts
+    const imagePrompt = `Create a professional NHS-style ${typeDescriptions[requestType] || 'visual'}.
 
-Based on the conversation context and user request, generate a single, detailed DALL-E prompt.
-Output ONLY the prompt, nothing else.`;
-
-    const userPromptForGPT = `User request: "${prompt}"
-
-Conversation context:
+Context from conversation:
 ${conversationContext}
 
-Request type: ${requestType}
+User request: ${prompt}
 
-Generate a detailed DALL-E prompt to visualise this information in a professional, NHS-appropriate style.`;
+Design requirements:
+- Professional healthcare aesthetic suitable for NHS settings
+- Use NHS blue (#005EB8) as the primary accent colour
+- Clear, readable typography with good hierarchy
+- High contrast for accessibility (WCAG compliant)
+- Clean, modern design with appropriate white space
+- If showing data, use clear charts with proper labels
+- If showing schedules, use organised grid layouts
+- Avoid cluttered designs - prioritise clarity`;
 
-    console.log('🤖 Generating optimised DALL-E prompt...');
+    console.log('🖼️ Generating image with Lovable AI Gateway...');
 
-    // Generate optimised prompt using GPT
-    const gptResponse = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Call Lovable AI Gateway with Gemini image model
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
+        'Authorization': `Bearer ${lovableApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'gpt-4o-mini',
+        model: 'google/gemini-2.5-flash-image-preview',
         messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userPromptForGPT }
+          { role: 'user', content: imagePrompt }
         ],
-        max_tokens: 500,
-        temperature: 0.7
+        modalities: ['image', 'text']
       }),
     });
 
-    if (!gptResponse.ok) {
-      const errorText = await gptResponse.text();
-      console.error('GPT prompt generation error:', errorText);
-      throw new Error(`Failed to generate image prompt: ${gptResponse.status}`);
+    // Handle rate limits and payment errors
+    if (response.status === 429) {
+      console.error('Rate limit exceeded');
+      return new Response(JSON.stringify({
+        error: 'Rate limit exceeded. Please try again in a moment.',
+        code: 'RATE_LIMIT',
+        success: false
+      }), { 
+        status: 429, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
-    const gptData = await gptResponse.json();
-    const dallePrompt = gptData.choices[0]?.message?.content?.trim() || prompt;
-
-    console.log('✅ Generated DALL-E prompt:', dallePrompt.substring(0, 200));
-
-    // Now generate the image using DALL-E 3
-    console.log('🖼️ Generating image with DALL-E 3...');
-
-    const imageResponse = await fetch('https://api.openai.com/v1/images/generations', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'dall-e-3',
-        prompt: dallePrompt,
-        n: 1,
-        size: '1024x1024',
-        quality: 'standard',
-        response_format: 'b64_json'
-      }),
-    });
-
-    if (!imageResponse.ok) {
-      const errorText = await imageResponse.text();
-      console.error('DALL-E generation error:', errorText);
-      
-      // Check for content policy violation
-      if (errorText.includes('content_policy_violation')) {
-        return new Response(JSON.stringify({
-          error: 'Image generation was blocked due to content policy. Please try rephrasing your request.',
-          code: 'CONTENT_POLICY'
-        }), {
-          status: 400,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        });
-      }
-      
-      throw new Error(`Image generation failed: ${imageResponse.status}`);
+    if (response.status === 402) {
+      console.error('Payment required');
+      return new Response(JSON.stringify({
+        error: 'Usage limit reached. Please check your Lovable workspace credits.',
+        code: 'PAYMENT_REQUIRED',
+        success: false
+      }), { 
+        status: 402, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      });
     }
 
-    const imageData = await imageResponse.json();
-    const base64Image = imageData.data[0]?.b64_json;
-    const revisedPrompt = imageData.data[0]?.revised_prompt || dallePrompt;
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Lovable AI Gateway error:', response.status, errorText);
+      throw new Error(`Image generation failed: ${response.status}`);
+    }
 
-    if (!base64Image) {
-      throw new Error('No image data received from DALL-E');
+    const data = await response.json();
+    const textContent = data.choices?.[0]?.message?.content || '';
+    const imageUrl = data.choices?.[0]?.message?.images?.[0]?.image_url?.url;
+
+    if (!imageUrl) {
+      console.error('No image in response:', JSON.stringify(data).substring(0, 500));
+      throw new Error('No image was generated. Please try rephrasing your request.');
     }
 
     console.log('✅ Image generated successfully');
 
-    // Generate a description for the image
-    const imageUrl = `data:image/png;base64,${base64Image}`;
-    
-    // Create a brief description based on the request type
     const descriptions: Record<string, string> = {
       chart: 'Data visualisation chart',
       diagram: 'Process or structure diagram',
@@ -157,10 +133,10 @@ Generate a detailed DALL-E prompt to visualise this information in a professiona
       image: {
         url: imageUrl,
         alt: description,
-        prompt: revisedPrompt,
+        prompt: imagePrompt.substring(0, 300),
         requestType
       },
-      textResponse: `I've created a visual representation of the information. Here's what I generated:\n\n**${description}**\n\n_Prompt used: ${revisedPrompt.substring(0, 150)}..._\n\nYou can download this image using the button below the image.`
+      textResponse: textContent || `I've created a ${description.toLowerCase()} based on our conversation. You can download it using the button below the image.`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
