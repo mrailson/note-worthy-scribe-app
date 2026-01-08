@@ -17,8 +17,8 @@ export const actionLogData: ActionLogItem[] = [
     owner: "MJG",
     dueDate: "10/01/2026",
     priority: "High",
-    status: "Open",
-    notes: "Priority review needed before January meeting"
+    status: "Closed",
+    notes: "Completed"
   },
   {
     actionId: "002",
@@ -27,8 +27,8 @@ export const actionLogData: ActionLogItem[] = [
     owner: "MJG",
     dueDate: "31/01/2026",
     priority: "Medium",
-    status: "Open",
-    notes: "To be presented at face-to-face meeting"
+    status: "Closed",
+    notes: "Completed - Funds confirmed with PML"
   },
   {
     actionId: "003",
@@ -37,8 +37,8 @@ export const actionLogData: ActionLogItem[] = [
     owner: "MR",
     dueDate: "31/12/2025",
     priority: "High",
-    status: "Open",
-    notes: "Incorporate feedback from Programme Board"
+    status: "Closed",
+    notes: "Completed"
   },
   {
     actionId: "004",
@@ -47,8 +47,8 @@ export const actionLogData: ActionLogItem[] = [
     owner: "MR",
     dueDate: "24/12/2025",
     priority: "High",
-    status: "Open",
-    notes: "Urgent - target Christmas Eve deadline"
+    status: "Closed",
+    notes: "Completed 23/12/2025 - GP, ANP & ACP adverts on NHS Jobs and Indeed"
   },
   {
     actionId: "005",
@@ -57,8 +57,8 @@ export const actionLogData: ActionLogItem[] = [
     owner: "MR",
     dueDate: "31/01/2026",
     priority: "High",
-    status: "Open",
-    notes: "Advanced Nurse Practitioner recruitment"
+    status: "Closed",
+    notes: "Completed - Included in NHS Jobs and Indeed adverts"
   },
   {
     actionId: "006",
@@ -68,7 +68,7 @@ export const actionLogData: ActionLogItem[] = [
     dueDate: "15/01/2026",
     priority: "High",
     status: "Open",
-    notes: "Critical path dependency"
+    notes: "Pending Brook Health Centre confirmation before 15/01/2026"
   },
   {
     actionId: "007",
@@ -88,7 +88,7 @@ export const actionLogData: ActionLogItem[] = [
     dueDate: "31/01/2026",
     priority: "Medium",
     status: "Open",
-    notes: "Explore options for project coverage"
+    notes: "Pending final confirmation from 2 member practices (as at 07/01/2026)"
   }
 ];
 
