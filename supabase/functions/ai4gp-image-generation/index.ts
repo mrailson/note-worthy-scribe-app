@@ -70,8 +70,9 @@ serve(async (req) => {
       console.log('QR content extracted:', qrContent.substring(0, 100));
       
       try {
-        // Generate QR code as data URL
-        const qrDataUrl = await QRCode.toDataURL(qrContent, {
+        // Generate QR code as SVG string (works in Deno without canvas)
+        const qrSvg = await QRCode.toString(qrContent, {
+          type: 'svg',
           width: 400,
           margin: 2,
           color: {
@@ -80,6 +81,10 @@ serve(async (req) => {
           },
           errorCorrectionLevel: 'M'
         });
+        
+        // Convert SVG to data URL
+        const svgBase64 = btoa(qrSvg);
+        const qrDataUrl = `data:image/svg+xml;base64,${svgBase64}`;
         
         console.log('✅ QR code generated successfully');
         
