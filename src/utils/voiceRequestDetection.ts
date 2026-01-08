@@ -66,7 +66,12 @@ export function detectVoiceRequest(
   for (const pattern of HIGH_CONFIDENCE_PATTERNS) {
     if (pattern.test(message)) {
       console.log('🎤 HIGH confidence voice match:', pattern.toString());
-      const textToSpeak = extractTextForVoice(previousMessages);
+      // First try to extract inline text from the current message
+      let textToSpeak = extractInlineTextForVoice(message);
+      // If no inline text found, fall back to previous assistant messages
+      if (!textToSpeak) {
+        textToSpeak = extractTextForVoice(previousMessages);
+      }
       console.log('🎤 Text to speak length:', textToSpeak.length);
       return {
         isVoiceRequest: true,
@@ -80,7 +85,12 @@ export function detectVoiceRequest(
   for (const pattern of MEDIUM_CONFIDENCE_PATTERNS) {
     if (pattern.test(message)) {
       console.log('🎤 MEDIUM confidence voice match:', pattern.toString());
-      const textToSpeak = extractTextForVoice(previousMessages);
+      // First try to extract inline text from the current message
+      let textToSpeak = extractInlineTextForVoice(message);
+      // If no inline text found, fall back to previous assistant messages
+      if (!textToSpeak) {
+        textToSpeak = extractTextForVoice(previousMessages);
+      }
       console.log('🎤 Text to speak length:', textToSpeak.length);
       return {
         isVoiceRequest: true,
@@ -97,6 +107,38 @@ export function detectVoiceRequest(
     textToSpeak: '',
     confidence: 'low'
   };
+}
+
+/**
+ * Extracts inline text from the user's message when they provide text directly
+ * e.g., "create a voice file from this: Here is some text to speak"
+ */
+export function extractInlineTextForVoice(message: string): string {
+  // Patterns to detect inline text after command phrases
+  const inlinePatterns = [
+    /(?:create|generate|make)\s+(?:a\s+)?(?:voice|audio)\s+file\s+(?:from|of)\s+this\s*:\s*(.+)/is,
+    /(?:create|generate|make)\s+(?:a\s+)?voiceover\s+(?:from|of)\s+this\s*:\s*(.+)/is,
+    /voice\s+file\s+(?:from|of)\s+this\s*:\s*(.+)/is,
+    /audio\s+file\s+(?:from|of)\s+this\s*:\s*(.+)/is,
+    /(?:read|narrate|speak)\s+this\s*:\s*(.+)/is,
+    /text\s+to\s+speech\s*:\s*(.+)/is,
+    /tts\s*:\s*(.+)/is,
+    /convert\s+to\s+(?:speech|audio|voice)\s*:\s*(.+)/is,
+  ];
+  
+  for (const pattern of inlinePatterns) {
+    const match = message.match(pattern);
+    if (match && match[1]) {
+      const extractedText = match[1].trim();
+      // Only return if we have meaningful content (more than a few words)
+      if (extractedText.length > 20) {
+        console.log('🎤 Extracted inline text for voice:', extractedText.substring(0, 100) + '...');
+        return extractedText;
+      }
+    }
+  }
+  
+  return '';
 }
 
 /**
