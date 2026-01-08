@@ -431,8 +431,17 @@ export const BoardActionsTable = ({ actions, onEdit, onDelete }: BoardActionsTab
 
   if (actions.length === 0) {
     return (
-      <div className="text-center py-8 text-muted-foreground">
-        No board actions recorded yet. Click "Add Action" to create one.
+      <div className="text-center py-8 text-muted-foreground space-y-3">
+        <p>No project timeline entries yet. Click "Add Action" to create one.</p>
+        <div className="text-xs text-slate-500 border-t border-slate-100 pt-3 mt-3">
+          <p className="font-medium text-slate-600">This section is being developed by:</p>
+          <p>Anshal Pratyush, Principal Medical Limited (PML)</p>
+          <p>
+            <a href="mailto:a.pratyush@nhs.net" className="text-[#005EB8] hover:underline">a.pratyush@nhs.net</a>
+            {" • "}
+            <a href="tel:07780719767" className="text-[#005EB8] hover:underline">07780 719767</a>
+          </p>
+        </div>
       </div>
     );
   }
