@@ -8,7 +8,12 @@ const corsHeaders = {
 interface ImageGenerationRequest {
   prompt: string;
   conversationContext: string;
-  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'general';
+  practiceContext?: {
+    practiceName?: string;
+    pcnName?: string;
+    organisationType?: string;
+  };
+  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'general';
 }
 
 serve(async (req) => {
@@ -22,7 +27,7 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { prompt, conversationContext, requestType } = await req.json() as ImageGenerationRequest;
+    const { prompt, conversationContext, practiceContext, requestType } = await req.json() as ImageGenerationRequest;
 
     console.log('🎨 AI4GP Image Generation request:', { 
       prompt: prompt.substring(0, 100), 
@@ -37,11 +42,39 @@ serve(async (req) => {
       infographic: 'informative visual summary with icons and key points',
       calendar: 'calendar or schedule grid layout',
       poster: 'professional notice or poster',
+      logo: 'professional logo or brand mark',
       general: 'image or visual'
     };
 
-    // Focus purely on the user's request - ignore conversation context to avoid unwanted themes
-    const imagePrompt = `${prompt}
+    // Build image prompt based on request type
+    let imagePrompt: string;
+    
+    if (requestType === 'logo') {
+      // Logo-specific prompt with practice context
+      const practiceInfo = practiceContext?.practiceName 
+        ? `for "${practiceContext.practiceName}"${practiceContext.pcnName ? ` (part of ${practiceContext.pcnName})` : ''}${practiceContext.organisationType ? ` - ${practiceContext.organisationType}` : ''}`
+        : '';
+      
+      imagePrompt = `${prompt}${practiceInfo ? ` ${practiceInfo}` : ''}
+
+Style: Professional logo or brand mark
+
+Logo Design Requirements:
+- Clean, simple design that works at any size (scalable)
+- Memorable and distinctive
+- Professional appearance suitable for letterheads, signage, and digital use
+- Works well on both light and dark backgrounds
+- No complex gradients or tiny details that won't scale
+- Modern, trustworthy aesthetic
+- Use simple shapes and clean lines
+- Maximum 2-3 colours
+
+Content guidelines:
+- Keep all content professional and workplace-appropriate
+- No explicit, offensive, or inappropriate imagery`;
+    } else {
+      // Standard prompt for other request types
+      imagePrompt = `${prompt}
 
 Style: ${typeDescriptions[requestType] || 'visual'}
 
@@ -57,6 +90,7 @@ Requirements:
 Content guidelines:
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery`;
+    }
 
     console.log('🖼️ Generating image with Lovable AI Gateway...');
 
@@ -124,6 +158,7 @@ Content guidelines:
       infographic: 'Visual information summary',
       calendar: 'Schedule or calendar visualisation',
       poster: 'Professional poster or notice',
+      logo: 'Professional logo',
       general: 'Visual representation'
     };
 

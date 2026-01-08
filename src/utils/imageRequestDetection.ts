@@ -6,7 +6,7 @@
 export interface ImageRequestDetection {
   isImageRequest: boolean;
   imagePrompt: string;
-  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'general';
+  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'general';
   confidence: 'high' | 'medium' | 'low';
 }
 
@@ -21,6 +21,7 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
     'pictorially', 'picture', 'visual representation', 'visualise', 'visualize',
     'create an image', 'generate an image', 'make an image', 'show me visually',
     'create a poster', 'make a poster', 'design a poster', 'generate a poster',
+    'create a logo', 'make a logo', 'design a logo', 'generate a logo', 'logo for',
     'create a diagram', 'make a diagram', 'draw a diagram',
     'create an infographic', 'make an infographic', 'design an infographic',
     'create a chart', 'make a chart', 'generate a chart',
@@ -57,6 +58,7 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
   const infographicKeywords = ['infographic', 'info graphic', 'data graphic', 'visual summary'];
   const calendarKeywords = ['calendar', 'schedule', 'timeline', 'timetable', 'rota', 'leave chart', 'leave calendar'];
   const posterKeywords = ['poster', 'flyer', 'banner', 'sign', 'notice', 'announcement'];
+  const logoKeywords = ['logo', 'brand mark', 'emblem', 'badge', 'practice symbol', 'company logo'];
   
   // Check for high-confidence matches
   const isHighConfidence = highConfidenceKeywords.some(keyword => lowerMessage.includes(keyword));
@@ -136,6 +138,8 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
     requestType = 'calendar';
   } else if (posterKeywords.some(k => lowerMessage.includes(k))) {
     requestType = 'poster';
+  } else if (logoKeywords.some(k => lowerMessage.includes(k))) {
+    requestType = 'logo';
   } else if (previousMessages && previousMessages.length > 0) {
     // Check previous context for request type
     const recentContext = previousMessages.slice(-3).map(m => m.content.toLowerCase()).join(' ');
@@ -149,6 +153,8 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
       requestType = 'poster';
     } else if (infographicKeywords.some(k => recentContext.includes(k))) {
       requestType = 'infographic';
+    } else if (logoKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'logo';
     }
   }
   
