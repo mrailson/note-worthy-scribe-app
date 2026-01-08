@@ -475,21 +475,18 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       const startTime = Date.now();
       
       // Check if this is an image generation request
-      const imageDetection = detectImageRequest(messageToUse);
+      // Pass previous messages for context-aware detection (e.g., "can you do it" follow-ups)
+      const previousMessagesForDetection = messages.map(m => ({ role: m.role, content: m.content }));
+      const imageDetection = detectImageRequest(messageToUse, previousMessagesForDetection);
       
       if (imageDetection.isImageRequest && imageDetection.confidence !== 'low') {
         console.log('🎨 Image request detected:', imageDetection);
         
-        // Extract context from previous messages if referring to previous content
-        let conversationContext = '';
-        if (isReferringToPreviousContent(messageToUse)) {
-          conversationContext = extractImageContext(
-            messageToUse,
-            messages.map(m => ({ role: m.role, content: m.content }))
-          );
-        } else {
-          conversationContext = messageToUse;
-        }
+        // Extract context from previous messages - always include for better image generation
+        const conversationContext = extractImageContext(
+          imageDetection.imagePrompt || messageToUse,
+          messages.map(m => ({ role: m.role, content: m.content }))
+        );
         
         // Update message to show image generation in progress
         setMessages(prev => prev.map(msg => 
