@@ -33,6 +33,11 @@ interface AllEntry {
   description: string | null;
 }
 
+// Format currency with thousand separators
+const formatCurrency = (amount: number): string => {
+  return amount.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
+
 // Authorised admin users
 const ADMIN_EMAILS = [
   'm.green28@nhs.net',
@@ -346,7 +351,7 @@ export function AdminClaimsReport() {
                           </HoverCard>
                         </TableCell>
                         <TableCell className="text-right">{claim.total_hours.toFixed(2)} hrs</TableCell>
-                        <TableCell className="text-right font-medium">£{claim.total_amount.toFixed(2)}</TableCell>
+                        <TableCell className="text-right font-medium">£{formatCurrency(claim.total_amount)}</TableCell>
                       </TableRow>
                     ))}
                     <TableRow className="font-bold bg-muted">
@@ -356,7 +361,7 @@ export function AdminClaimsReport() {
                         <Badge>{userClaims.reduce((s, u) => s + u.entry_count, 0)}</Badge>
                       </TableCell>
                       <TableCell className="text-right">{grandTotalHours.toFixed(2)} hrs</TableCell>
-                      <TableCell className="text-right text-lg">£{grandTotalAmount.toFixed(2)}</TableCell>
+                      <TableCell className="text-right text-lg">£{formatCurrency(grandTotalAmount)}</TableCell>
                     </TableRow>
                   </TableBody>
                 </Table>
