@@ -47,7 +47,7 @@ const januaryDecisions: BoardDecision[] = [
   { 
     id: 3, 
     title: "Host Organisation & Recruitment", 
-    desc: "Determine whether PML or individual practice will host employed staff. Interview panels being established.",
+    desc: "Updates to how NRES will host employed staff. Interview panels being established.",
     status: "decision-required",
     options: ["PML", "Practice", "Neighbourhood"],
     note: "Job adverts closing 20th January 2026. Interviews scheduled 27th January 2026. Panel to include clinical and managerial representation.",
