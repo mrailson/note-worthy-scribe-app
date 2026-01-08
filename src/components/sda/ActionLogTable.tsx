@@ -10,6 +10,9 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import { format } from "date-fns";
 
 interface ActionLogTableProps {
   actions: ActionLogItem[];
@@ -58,6 +61,7 @@ const parseDate = (dateStr: string): Date => {
 
 export const ActionLogTable = ({ actions }: ActionLogTableProps) => {
   const [sort, setSort] = useState<SortState>({ field: null, direction: null });
+  const [showOpenOnly, setShowOpenOnly] = useState(false);
 
   const handleSort = (field: SortField) => {
     setSort((prev) => {
@@ -76,10 +80,12 @@ export const ActionLogTable = ({ actions }: ActionLogTableProps) => {
     return <ArrowDown className="h-3 w-3" />;
   };
 
-  const sortedActions = useMemo(() => {
-    if (!sort.field || !sort.direction) return actions;
+  const filteredAndSortedActions = useMemo(() => {
+    let result = showOpenOnly ? actions.filter(a => a.status === 'Open') : actions;
+    
+    if (!sort.field || !sort.direction) return result;
 
-    return [...actions].sort((a, b) => {
+    return [...result].sort((a, b) => {
       const multiplier = sort.direction === "asc" ? 1 : -1;
 
       switch (sort.field) {
@@ -99,10 +105,31 @@ export const ActionLogTable = ({ actions }: ActionLogTableProps) => {
           return 0;
       }
     });
-  }, [actions, sort]);
+  }, [actions, sort, showOpenOnly]);
+
+  const openCount = actions.filter(a => a.status === 'Open').length;
 
   return (
-    <div className="overflow-x-auto">
+    <div className="space-y-3">
+      {/* Controls Row */}
+      <div className="flex flex-wrap items-center justify-between gap-3 px-1">
+        <div className="flex items-center gap-2">
+          <Switch 
+            id="show-open-only" 
+            checked={showOpenOnly} 
+            onCheckedChange={setShowOpenOnly}
+          />
+          <Label htmlFor="show-open-only" className="text-sm text-slate-600 cursor-pointer">
+            Show open only ({openCount})
+          </Label>
+        </div>
+        <span className="text-xs text-slate-500">
+          Last updated: {format(new Date(), "d MMMM yyyy")}
+        </span>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
       <Table>
         <TableHeader>
           <TableRow className="bg-slate-50">
@@ -163,9 +190,16 @@ export const ActionLogTable = ({ actions }: ActionLogTableProps) => {
             </TableHead>
             <TableHead className="font-semibold text-slate-700 min-w-[150px]">Notes</TableHead>
           </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sortedActions.map((action, index) => (
+          </TableHeader>
+          <TableBody>
+            {filteredAndSortedActions.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={8} className="text-center text-slate-500 py-8">
+                  No open actions
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredAndSortedActions.map((action, index) => (
             <TableRow 
               key={action.actionId}
               className={index % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}
@@ -178,10 +212,12 @@ export const ActionLogTable = ({ actions }: ActionLogTableProps) => {
               <TableCell>{getPriorityBadge(action.priority)}</TableCell>
               <TableCell>{getStatusBadge(action.status)}</TableCell>
               <TableCell className="text-sm text-slate-500">{action.notes}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+              </TableRow>
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 };
