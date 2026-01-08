@@ -497,7 +497,6 @@ export const SDAEvidenceLibrary = () => {
                     <div>
                       <p><strong>Host:</strong> Helen Barrett</p>
                       <p><strong>Organisation:</strong> South Northants Volunteer Bureau (SNVB)</p>
-                      <p><strong>Contact:</strong> 07881 272248</p>
                     </div>
                   </div>
                 </div>
