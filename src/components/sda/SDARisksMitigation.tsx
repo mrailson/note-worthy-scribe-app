@@ -32,7 +32,7 @@ const januaryDecisions: BoardDecision[] = [
     title: "GMS/ES Contract & Legal Review", 
     desc: "All practice partners to sign amended GMS/ES contract. Legal advice on contract variation proceeding via Hempsons.",
     status: "at-risk",
-    note: "GMS contract currently under review by Hempsons. Dr Ellis: 'virtually impossible' to receive MOUs, get legal advice and obtain partner signatures before ICB proposed deadline.",
+    note: "GMS contract currently under review for legal advice and obtain partner signatures before ICB proposed deadline. (Item 2 is a dependency)",
     targetDate: "ICB deadline TBC"
   },
   // DECISION REQUIRED - Blocking other workstreams
