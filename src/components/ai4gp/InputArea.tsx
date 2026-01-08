@@ -165,11 +165,6 @@ ${pastedText.trim()}
       // Add to uploaded files
       setUploadedFiles(prev => [...prev, virtualFile]);
       
-      // Show toast notification
-      toast({
-        title: "Large text converted to file",
-        description: `Text with ${pastedText.length.toLocaleString()} characters converted to file attachment`,
-      });
     }
     // If text is below threshold, allow normal paste behavior
   };
