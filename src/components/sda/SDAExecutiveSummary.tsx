@@ -33,12 +33,6 @@ export const SDAExecutiveSummary = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header with SRO */}
-      <div>
-        <h2 className="text-2xl font-bold text-slate-900">Executive Dashboard</h2>
-        <p className="text-slate-600">Northamptonshire Rural East & South Neighbourhood</p>
-      </div>
-
       {/* Collapsible Key Metrics Row */}
       <Collapsible open={metricsOpen} onOpenChange={setMetricsOpen}>
         <Card className="bg-white border-0 shadow-sm">
