@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
+import { Users, Calendar, PoundSterling, FileCheck, ChevronDown, ChevronUp, BarChart3, ClipboardList } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip } from "recharts";
 import NRESLogo from "@/assets/NRES_Logo.png";
 import DocMedLogo from "@/assets/docmed-logo.png";
 import { BoardActionTracker } from "./board-actions/BoardActionTracker";
+import { ActionLogTable } from "./ActionLogTable";
+import { actionLogData, actionLogMetadata } from "@/data/nresBoardActionsData";
 import { Button } from "@/components/ui/button";
 
 const populationData = [
@@ -25,6 +27,7 @@ const appointmentData = [
 
 export const SDAExecutiveSummary = () => {
   const [chartsOpen, setChartsOpen] = useState(false);
+  const [actionTrackerOpen, setActionTrackerOpen] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -216,8 +219,46 @@ export const SDAExecutiveSummary = () => {
         </Card>
       </Collapsible>
 
-      {/* Board Action Tracker */}
-      <BoardActionTracker />
+      {/* Programme Board Action Log */}
+      <Card className="bg-white border-0 shadow-sm">
+        <CardHeader className="pb-2">
+          <div className="flex items-center gap-2">
+            <ClipboardList className="h-5 w-5 text-[#005EB8]" />
+            <CardTitle className="text-lg font-semibold text-slate-900">Programme Board Action Log</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <ActionLogTable actions={actionLogData} metadata={actionLogMetadata} />
+          <p className="text-xs text-slate-500 pt-2 mt-3 border-t border-slate-100">
+            Source: {actionLogMetadata.sourceMeeting} • Next Meeting: {actionLogMetadata.nextMeeting}
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* Collapsible Board Action Tracker */}
+      <Collapsible open={actionTrackerOpen} onOpenChange={setActionTrackerOpen}>
+        <Card className="bg-white border-0 shadow-sm">
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="w-full flex items-center justify-between p-4 hover:bg-slate-50"
+            >
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-[#005EB8]" />
+                <span className="font-semibold text-slate-900">NRES New Models Pilot - Action Tracker</span>
+              </div>
+              {actionTrackerOpen ? (
+                <ChevronUp className="h-5 w-5 text-slate-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-slate-500" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <BoardActionTracker />
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
     </div>
   );
 };
