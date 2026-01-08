@@ -221,15 +221,15 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
         // GP spoke English -> translate to patient's language
         englishText = text;
         translatedText = await translateText(text, 'en', selectedLanguage);
-        // Clean up text for natural TTS delivery
-        const cleanedTranslation = preprocessTextForTTS(translatedText);
+        // Clean up text for natural TTS delivery with language-specific filler removal
+        const cleanedTranslation = preprocessTextForTTS(translatedText, selectedLanguage);
         queueAudio(cleanedTranslation, selectedLanguage);
       } else {
         // Patient spoke their language -> translate to English
         translatedText = text;
         englishText = await translateText(text, selectedLanguage, 'en');
         // Clean up English text for natural TTS delivery
-        const cleanedEnglish = preprocessTextForTTS(englishText);
+        const cleanedEnglish = preprocessTextForTTS(englishText, 'en');
         // Optionally play English for GP verification (can be toggled)
         // queueAudio(cleanedEnglish, 'en');
       }
