@@ -120,7 +120,7 @@ export const ActionLogTable = ({ actions }: ActionLogTableProps) => {
             onCheckedChange={setShowOpenOnly}
           />
           <Label htmlFor="show-open-only" className="text-sm text-slate-600 cursor-pointer">
-            Show open only ({openCount})
+            Open Action Items ({openCount})
           </Label>
         </div>
         <span className="text-xs text-slate-500">
