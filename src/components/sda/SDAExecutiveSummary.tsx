@@ -142,7 +142,62 @@ export const SDAExecutiveSummary = () => {
         </Card>
       </Collapsible>
 
-      {/* Collapsible Charts Section */}
+      {/* Collapsible Programme Board Action Log */}
+      <Collapsible open={actionLogOpen} onOpenChange={setActionLogOpen}>
+        <Card className="bg-white border-0 shadow-sm">
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="w-full flex items-center justify-between p-4 hover:bg-slate-50"
+            >
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-[#005EB8]" />
+                <span className="font-semibold text-slate-900">Programme Board Action Log</span>
+              </div>
+              {actionLogOpen ? (
+                <ChevronUp className="h-5 w-5 text-slate-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-slate-500" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <CardContent>
+              <ActionLogTable actions={actionLogData} metadata={actionLogMetadata} />
+              <p className="text-xs text-slate-500 pt-2 mt-3 border-t border-slate-100">
+                Source: {actionLogMetadata.sourceMeeting} • Next Meeting: {actionLogMetadata.nextMeeting}
+              </p>
+            </CardContent>
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Collapsible Board Action Tracker */}
+      <Collapsible open={actionTrackerOpen} onOpenChange={setActionTrackerOpen}>
+        <Card className="bg-white border-0 shadow-sm">
+          <CollapsibleTrigger asChild>
+            <Button 
+              variant="ghost" 
+              className="w-full flex items-center justify-between p-4 hover:bg-slate-50"
+            >
+              <div className="flex items-center gap-2">
+                <ClipboardList className="h-5 w-5 text-[#005EB8]" />
+                <span className="font-semibold text-slate-900">Programme Delivery Schedule</span>
+              </div>
+              {actionTrackerOpen ? (
+                <ChevronUp className="h-5 w-5 text-slate-500" />
+              ) : (
+                <ChevronDown className="h-5 w-5 text-slate-500" />
+              )}
+            </Button>
+          </CollapsibleTrigger>
+          <CollapsibleContent>
+            <BoardActionTracker />
+          </CollapsibleContent>
+        </Card>
+      </Collapsible>
+
+      {/* Collapsible Charts Section - Moved to bottom */}
       <Collapsible open={chartsOpen} onOpenChange={setChartsOpen}>
         <Card className="bg-white border-0 shadow-sm">
           <CollapsibleTrigger asChild>
@@ -241,61 +296,6 @@ export const SDAExecutiveSummary = () => {
                 </CardContent>
               </Card>
             </div>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-
-      {/* Collapsible Programme Board Action Log */}
-      <Collapsible open={actionLogOpen} onOpenChange={setActionLogOpen}>
-        <Card className="bg-white border-0 shadow-sm">
-          <CollapsibleTrigger asChild>
-            <Button 
-              variant="ghost" 
-              className="w-full flex items-center justify-between p-4 hover:bg-slate-50"
-            >
-              <div className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-[#005EB8]" />
-                <span className="font-semibold text-slate-900">Programme Board Action Log</span>
-              </div>
-              {actionLogOpen ? (
-                <ChevronUp className="h-5 w-5 text-slate-500" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-slate-500" />
-              )}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <CardContent>
-              <ActionLogTable actions={actionLogData} metadata={actionLogMetadata} />
-              <p className="text-xs text-slate-500 pt-2 mt-3 border-t border-slate-100">
-                Source: {actionLogMetadata.sourceMeeting} • Next Meeting: {actionLogMetadata.nextMeeting}
-              </p>
-            </CardContent>
-          </CollapsibleContent>
-        </Card>
-      </Collapsible>
-
-      {/* Collapsible Board Action Tracker */}
-      <Collapsible open={actionTrackerOpen} onOpenChange={setActionTrackerOpen}>
-        <Card className="bg-white border-0 shadow-sm">
-          <CollapsibleTrigger asChild>
-            <Button 
-              variant="ghost" 
-              className="w-full flex items-center justify-between p-4 hover:bg-slate-50"
-            >
-              <div className="flex items-center gap-2">
-                <ClipboardList className="h-5 w-5 text-[#005EB8]" />
-                <span className="font-semibold text-slate-900">Programme Delivery Schedule</span>
-              </div>
-              {actionTrackerOpen ? (
-                <ChevronUp className="h-5 w-5 text-slate-500" />
-              ) : (
-                <ChevronDown className="h-5 w-5 text-slate-500" />
-              )}
-            </Button>
-          </CollapsibleTrigger>
-          <CollapsibleContent>
-            <BoardActionTracker />
           </CollapsibleContent>
         </Card>
       </Collapsible>
