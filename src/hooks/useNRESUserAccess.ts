@@ -24,11 +24,11 @@ export const useNRESUserAccess = () => {
       // Get unique user IDs
       const userIds = [...new Set(activations.map((a) => a.user_id))];
 
-      // Fetch user profiles
+      // Fetch user profiles (profiles table uses user_id, not id)
       const { data: profiles, error: profilesError } = await supabase
         .from("profiles")
-        .select("id, full_name, email")
-        .in("id", userIds);
+        .select("user_id, full_name, email")
+        .in("user_id", userIds);
 
       if (profilesError) {
         console.error("Error fetching profiles:", profilesError);
@@ -46,7 +46,7 @@ export const useNRESUserAccess = () => {
 
       // Create lookup maps
       const profileMap = new Map(
-        (profiles || []).map((p) => [p.id, p])
+        (profiles || []).map((p) => [p.user_id, p])
       );
       
       const practiceMap = new Map<string, string>();
