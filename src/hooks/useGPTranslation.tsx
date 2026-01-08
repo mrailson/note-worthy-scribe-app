@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { getLanguageByCode, ELEVENLABS_LANGUAGES } from '@/constants/elevenLabsLanguages';
 import { downloadGPTranslationDOCX } from '@/utils/gpTranslationDocxExport';
+import { preprocessTextForTTS } from '@/utils/ttsTextPreprocessor';
 
 // Use any for Web Speech API to avoid type conflicts with global declarations
 type WebSpeechRecognition = any;
@@ -220,14 +221,17 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
         // GP spoke English -> translate to patient's language
         englishText = text;
         translatedText = await translateText(text, 'en', selectedLanguage);
-        // Play translation in patient's language
-        queueAudio(translatedText, selectedLanguage);
+        // Clean up text for natural TTS delivery
+        const cleanedTranslation = preprocessTextForTTS(translatedText);
+        queueAudio(cleanedTranslation, selectedLanguage);
       } else {
         // Patient spoke their language -> translate to English
         translatedText = text;
         englishText = await translateText(text, selectedLanguage, 'en');
+        // Clean up English text for natural TTS delivery
+        const cleanedEnglish = preprocessTextForTTS(englishText);
         // Optionally play English for GP verification (can be toggled)
-        // queueAudio(englishText, 'en');
+        // queueAudio(cleanedEnglish, 'en');
       }
 
       // Auto-detect speaker based on language if enabled
