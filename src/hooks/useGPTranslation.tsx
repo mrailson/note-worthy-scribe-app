@@ -51,6 +51,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
   const isPlayingRef = useRef(false);
+  const isListeningRef = useRef(false);
 
   // Keep refs in sync with values
   useEffect(() => {
@@ -267,20 +268,24 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     try {
       // Request microphone permission
       await navigator.mediaDevices.getUserMedia({ audio: true });
-      
+
       const recognition = initSpeechRecognition();
       if (!recognition) return;
 
+      // Use a ref to avoid stale-closure issues inside recognition callbacks
+      isListeningRef.current = true;
+
       let finalTranscript = '';
-      let silenceTimer: NodeJS.Timeout | null = null;
+      let silenceTimer: ReturnType<typeof setTimeout> | null = null;
 
       recognition.onstart = () => {
+        isListeningRef.current = true;
         setIsListening(true);
       };
 
-      recognition.onresult = (event) => {
+      recognition.onresult = (event: any) => {
         let interimTranscript = '';
-        
+
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
@@ -294,7 +299,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
 
         // Reset silence timer
         if (silenceTimer) clearTimeout(silenceTimer);
-        
+
         // If we have final results, wait for silence then process
         if (finalTranscript.trim()) {
           silenceTimer = setTimeout(() => {
@@ -306,21 +311,34 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
         }
       };
 
-      recognition.onerror = (event) => {
+      recognition.onerror = (event: any) => {
         console.error('Speech recognition error:', event.error);
-        if (event.error !== 'no-speech') {
-          onError?.(`Speech recognition error: ${event.error}`);
+
+        // Benign errors we can safely ignore (Chrome emits these during restarts)
+        if (event.error === 'aborted' || event.error === 'no-speech') return;
+
+        // Permission / service errors: stop trying to restart
+        if (event.error === 'not-allowed' || event.error === 'service-not-allowed') {
+          isListeningRef.current = false;
+          setIsListening(false);
         }
+
+        onError?.(`Speech recognition error: ${event.error}`);
       };
 
       recognition.onend = () => {
-        // Restart if still supposed to be listening
-        if (isListening && recognitionRef.current) {
-          try {
-            recognitionRef.current.start();
-          } catch (e) {
-            // Ignore - might already be running
-          }
+        // Chrome often ends recognition after an utterance even in continuous mode.
+        // If the user hasn't stopped listening, restart after a short delay.
+        if (isListeningRef.current && recognitionRef.current === recognition) {
+          window.setTimeout(() => {
+            try {
+              recognition.start();
+            } catch {
+              // Ignore - may already be restarting
+            }
+          }, 250);
+        } else {
+          setIsListening(false);
         }
       };
 
@@ -328,13 +346,16 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
       recognition.start();
     } catch (err) {
       console.error('Failed to start listening:', err);
+      isListeningRef.current = false;
       onError?.('Could not access microphone. Please check permissions.');
       throw err;
     }
-  }, [initSpeechRecognition, isListening, processCompletedSpeech, onError]);
+  }, [initSpeechRecognition, processCompletedSpeech, onError]);
 
   // Stop listening
   const stopListening = useCallback(() => {
+    isListeningRef.current = false;
+
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
