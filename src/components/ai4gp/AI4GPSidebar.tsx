@@ -11,7 +11,6 @@ import {
   TestTube,
   Zap,
   Palette,
-  ImageIcon,
   Languages,
   BookOpen,
   ChevronLeft,
@@ -50,7 +49,6 @@ interface AI4GPSidebarProps {
   onShowTranslation: () => void;
   onShowQuickImageModal: () => void;
   onShowImageService: () => void;
-  onShowQRCodeGenerator: () => void;
   onShowDocumentTranslate: () => void;
   onShowUserGuide: () => void;
   onShowAllQuickActions: () => void;
@@ -71,7 +69,6 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
   onShowTranslation,
   onShowQuickImageModal,
   onShowImageService,
-  onShowQRCodeGenerator,
   onShowDocumentTranslate,
   onShowUserGuide,
   onShowAllQuickActions,
@@ -92,7 +89,6 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
     { icon: Activity, label: 'BP Average Service', action: onShowBPCalculator },
     { icon: Languages, label: 'Translation', action: onShowTranslation },
     { icon: Camera, label: 'LG Capture', action: () => navigate('/lg-capture') },
-    { icon: ImageIcon, label: 'QR Code Generator', action: onShowQRCodeGenerator },
   ];
 
   const SidebarButton = ({ icon: Icon, label, action, className }: { 
