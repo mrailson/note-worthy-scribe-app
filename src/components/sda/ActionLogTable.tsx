@@ -33,6 +33,7 @@ const ownerDetails: Record<string, { name: string; title: string }> = {
 interface ActionLogMetadata {
   sourceMeeting: string;
   nextMeeting: string;
+  lastUpdated?: string;
 }
 
 interface ActionLogTableProps {
@@ -134,8 +135,18 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
   const exportToExcel = () => {
     const wb = XLSX.utils.book_new();
     const rows: any[][] = [];
-    const today = new Date();
-    const lastUpdatedStr = format(today, "d MMMM yyyy 'at' HH:mm");
+    
+    // Use the metadata lastUpdated if available, otherwise use current date
+    let lastUpdatedStr: string;
+    if (metadata?.lastUpdated) {
+      // Parse DD/MM/YYYY HH:mm format
+      const [datePart, timePart] = metadata.lastUpdated.split(' ');
+      const [day, month, year] = datePart.split('/');
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      lastUpdatedStr = format(date, "d MMMM yyyy") + ` at ${timePart || '00:00'}`;
+    } else {
+      lastUpdatedStr = format(new Date(), "d MMMM yyyy 'at' HH:mm");
+    }
     
     // Style definitions
     const titleStyle = {
