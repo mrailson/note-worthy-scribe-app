@@ -245,7 +245,7 @@ export const SDAExecutiveSummary = () => {
             >
               <div className="flex items-center gap-2">
                 <ClipboardList className="h-5 w-5 text-[#005EB8]" />
-                <span className="font-semibold text-slate-900">Project Plan - GANTT</span>
+                <span className="font-semibold text-slate-900">Programme Delivery Schedule</span>
               </div>
               {actionTrackerOpen ? (
                 <ChevronUp className="h-5 w-5 text-slate-500" />
