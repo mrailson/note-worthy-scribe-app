@@ -15,6 +15,20 @@ import { Label } from "@/components/ui/label";
 import { format } from "date-fns";
 import * as XLSX from "xlsx-js-style";
 import { ActionLogItem } from "@/data/nresBoardActionsData";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+
+// Owner lookup with full name and job title
+const ownerDetails: Record<string, { name: string; title: string }> = {
+  MJG: { name: "Maureen Green", title: "PML Programme Director" },
+  MR: { name: "Malcolm Railson", title: "NRES Neighbourhood Manager" },
+  AT: { name: "Amanda Taylor", title: "NRES Managerial Lead" },
+  TBC: { name: "To Be Confirmed", title: "" },
+};
 
 interface ActionLogMetadata {
   sourceMeeting: string;
@@ -278,6 +292,7 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
   };
 
   return (
+    <TooltipProvider>
     <div className="space-y-3">
       {/* Controls Row */}
       <div className="flex flex-wrap items-center justify-between gap-3 px-1">
@@ -386,7 +401,27 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
               <TableCell className="font-mono text-sm text-slate-600">{action.actionId}</TableCell>
               <TableCell className="text-sm text-slate-600 whitespace-nowrap">{action.dateRaised}</TableCell>
               <TableCell className="text-sm text-slate-900">{action.description}</TableCell>
-              <TableCell className="text-sm font-medium text-slate-700">{action.owner}</TableCell>
+              <TableCell className="text-sm font-medium text-slate-700">
+                {ownerDetails[action.owner] ? (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="cursor-help underline decoration-dotted underline-offset-2">
+                        {action.owner}
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="max-w-xs">
+                      <div className="text-sm">
+                        <p className="font-semibold">{ownerDetails[action.owner].name}</p>
+                        {ownerDetails[action.owner].title && (
+                          <p className="text-muted-foreground">{ownerDetails[action.owner].title}</p>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                ) : (
+                  action.owner
+                )}
+              </TableCell>
               <TableCell className="text-sm text-slate-600 whitespace-nowrap">{action.dueDate}</TableCell>
               <TableCell>{getPriorityBadge(action.priority)}</TableCell>
               <TableCell>{getStatusBadge(action.status)}</TableCell>
@@ -398,5 +433,6 @@ export const ActionLogTable = ({ actions, metadata }: ActionLogTableProps) => {
         </Table>
       </div>
     </div>
+    </TooltipProvider>
   );
 };
