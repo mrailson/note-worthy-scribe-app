@@ -647,7 +647,10 @@ export const SDARisksMitigation = () => {
                 <div className="flex items-center gap-3">
                   <Users className="w-6 h-6 text-[#005EB8]" />
                   <div className="text-left">
-                    <CardTitle className="text-lg font-semibold text-slate-900">Board Decisions Pipeline: January 2026</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <CardTitle className="text-lg font-semibold text-slate-900">Board Decisions Pipeline: January 2026</CardTitle>
+                      <Badge variant="outline" className="bg-slate-100 text-slate-600 border-slate-300 text-xs">Draft Only - Subject to change</Badge>
+                    </div>
                     <p className="text-sm text-slate-500">Key decisions pending for the January Board meeting</p>
                   </div>
                 </div>
