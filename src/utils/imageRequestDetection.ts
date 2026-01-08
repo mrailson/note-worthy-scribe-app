@@ -28,7 +28,10 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
     'illustrate this', 'draw this', 'image of', 'picture of',
     'as an image', 'as a picture', 'turn into image', 'turn into a picture',
     'make it visual', 'make this visual', 'show as image', 'display as image',
-    'create leave calendar image', 'generate leave calendar', 'leave calendar picture'
+    'create leave calendar image', 'generate leave calendar', 'leave calendar picture',
+    'as a visual', 'in picture form', 'in image form', 'in visual form',
+    'create a picture', 'make a picture', 'show pictorially', 'display pictorially',
+    'convert to image', 'convert to picture', 'turn this into', 'make this into an image'
   ];
   
   // Medium-confidence keywords (need more context)
@@ -67,7 +70,7 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
     const isFollowUp = followUpImagePhrases.some(phrase => lowerMessage.includes(phrase));
     
     if (isFollowUp) {
-      // Check if previous AI response mentioned it can't create images
+      // Check if previous AI response mentioned it can't create images or suggested external tools
       const lastAssistantMessage = [...previousMessages].reverse().find(m => m.role === 'assistant');
       if (lastAssistantMessage) {
         const assistantContent = lastAssistantMessage.content.toLowerCase();
@@ -79,7 +82,13 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
           assistantContent.includes("can't generate image") ||
           assistantContent.includes("cannot generate image") ||
           assistantContent.includes("unable to create image") ||
-          assistantContent.includes("unable to generate image");
+          assistantContent.includes("unable to generate image") ||
+          assistantContent.includes("graphic design tool") ||
+          assistantContent.includes("canva") ||
+          assistantContent.includes("microsoft word") ||
+          assistantContent.includes("powerpoint") ||
+          assistantContent.includes("design tool") ||
+          assistantContent.includes("use a tool");
         
         if (mentionedImageLimitation) {
           isFollowUpToImageRequest = true;
