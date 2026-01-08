@@ -581,7 +581,7 @@ export const SDARisksMitigation = () => {
                   <ul className="text-sm text-amber-800 space-y-1 ml-4 list-disc">
                     <li><strong>Legal advice</strong> is proceeding on the <strong>GMS/ES contract variation only</strong> for now.</li>
                     <li>The <strong>MOU between SNO and practices</strong> must be agreed between SNO and practices first – it cannot be sent for legal review until this is done.</li>
-                    <li>This is now <strong>Agenda Item #1</strong> for the Neighbourhood Board Meeting on <strong>13 Jan 2026</strong>.</li>
+                    <li><strong>Dr Ellis</strong> has requested that this is the first Agenda Item for the Neighbourhood Board Meeting on <strong>13 Jan 2026</strong>.</li>
                     <li>The ES specification requires each GP practice to have a neighbourhood MOU with the SNO. The ICB may provide an optional template, but practices/neighbourhoods can use their own with commissioner approval.</li>
                   </ul>
                 </div>
