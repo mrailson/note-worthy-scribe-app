@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { getLanguageByCode } from '@/constants/elevenLabsLanguages';
+import { getLanguageByCode, ELEVENLABS_LANGUAGES } from '@/constants/elevenLabsLanguages';
+import { downloadGPTranslationDOCX } from '@/utils/gpTranslationDocxExport';
 
 // Use any for Web Speech API to avoid type conflicts with global declarations
 type WebSpeechRecognition = any;
@@ -327,23 +328,40 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     stopAudio();
   }, [stopAudio]);
 
-  // Export conversation
-  const exportConversation = useCallback(async () => {
-    const content = conversation.map(entry => {
-      const time = new Date(entry.timestamp).toLocaleTimeString('en-GB', { 
-        hour: '2-digit', 
-        minute: '2-digit' 
-      });
-      return `[${time}] ${entry.speaker.toUpperCase()}:\nEnglish: ${entry.englishText}\nTranslated: ${entry.translatedText}\n`;
-    }).join('\n---\n\n');
+  // Track session start time
+  const sessionStartRef = useRef<Date>(new Date());
 
-    const blob = new Blob([content], { type: 'text/plain' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `translation-session-${new Date().toISOString().split('T')[0]}.txt`;
-    a.click();
-    URL.revokeObjectURL(url);
+  // Export conversation as formatted Word document
+  const exportConversation = useCallback(async () => {
+    if (conversation.length === 0) return;
+
+    const firstEntry = conversation[0];
+    const langConfig = ELEVENLABS_LANGUAGES.find(l => l.code === firstEntry.languageCode);
+    const gpExchanges = conversation.filter(e => e.speaker === 'gp').length;
+    const patientExchanges = conversation.filter(e => e.speaker === 'patient').length;
+
+    const sessionEnd = new Date();
+    const sessionDurationSeconds = Math.round((sessionEnd.getTime() - sessionStartRef.current.getTime()) / 1000);
+
+    await downloadGPTranslationDOCX(
+      {
+        sessionStart: sessionStartRef.current,
+        sessionEnd,
+        targetLanguageCode: firstEntry.languageCode,
+        targetLanguageName: langConfig?.name || firstEntry.languageCode,
+        totalExchanges: conversation.length,
+        gpExchanges,
+        patientExchanges,
+        sessionDurationSeconds
+      },
+      conversation.map(entry => ({
+        id: entry.id,
+        speaker: entry.speaker,
+        englishText: entry.englishText,
+        translatedText: entry.translatedText,
+        timestamp: entry.timestamp
+      }))
+    );
   }, [conversation]);
 
   // Update recognition language when speaker mode changes
