@@ -14,25 +14,29 @@ const HIGH_CONFIDENCE_PATTERNS = [
   /create\s+(a\s+)?voice\s+file/i,
   /generate\s+(a\s+)?voice\s+file/i,
   /make\s+(a\s+)?voice\s+file/i,
+  /voice\s+file\s+(from|of)\s+(this|that)/i,
   /create\s+(an?\s+)?audio\s+file/i,
   /generate\s+(an?\s+)?audio\s+file/i,
   /make\s+(an?\s+)?audio\s+file/i,
+  /audio\s+file\s+(from|of)\s+(this|that)/i,
   /create\s+(a\s+)?voiceover/i,
   /generate\s+(a\s+)?voiceover/i,
   /make\s+(a\s+)?voiceover/i,
+  /voiceover\s+(from|of)\s+(this|that)/i,
   /voice\s*over\s+(of|from|for)\s+this/i,
   /read\s+(this|that|it)\s+(out\s+)?aloud/i,
   /read\s+(this|that|it)\s+out/i,
   /narrate\s+(this|that|it)/i,
   /convert\s+(this|that|it)?\s*to\s+speech/i,
-  /text\s+to\s+speech\s+(this|that|it)/i,
+  /text\s+to\s+speech/i,
   /tts\s+(this|that|it)/i,
-  /speak\s+(this|that|it)\s+(to\s+me|out|aloud)?/i,
+  /speak\s+(this|that|it)/i,
   /say\s+(this|that|it)\s+(out\s+)?loud/i,
   /audio\s+version\s+(of|from)\s+(this|that)/i,
   /spoken\s+version\s+(of|from)\s+(this|that)/i,
   /turn\s+(this|that|it)\s+into\s+(audio|speech|voice)/i,
   /make\s+(this|that|it)\s+(into\s+)?(audio|speech|a\s+recording)/i,
+  /record\s+(this|that|it)\s+as\s+(audio|voice|speech)/i,
 ];
 
 // Medium-confidence keywords that might indicate voice generation
@@ -44,6 +48,9 @@ const MEDIUM_CONFIDENCE_PATTERNS = [
   /voice\s+recording/i,
   /listen\s+to\s+(this|that)/i,
   /hear\s+(this|that|it)/i,
+  /read\s+this\s+to\s+me/i,
+  /voice\s+file/i,
+  /audio\s+file/i,
 ];
 
 /**
@@ -53,14 +60,17 @@ export function detectVoiceRequest(
   message: string,
   previousMessages: { role: string; content: string }[] = []
 ): VoiceRequestDetection {
-  const normalizedMessage = message.toLowerCase().trim();
+  console.log('🎤 Checking voice request for message:', message);
   
   // Check high confidence patterns
   for (const pattern of HIGH_CONFIDENCE_PATTERNS) {
     if (pattern.test(message)) {
+      console.log('🎤 HIGH confidence voice match:', pattern.toString());
+      const textToSpeak = extractTextForVoice(previousMessages);
+      console.log('🎤 Text to speak length:', textToSpeak.length);
       return {
         isVoiceRequest: true,
-        textToSpeak: extractTextForVoice(previousMessages),
+        textToSpeak,
         confidence: 'high'
       };
     }
@@ -69,13 +79,18 @@ export function detectVoiceRequest(
   // Check medium confidence patterns
   for (const pattern of MEDIUM_CONFIDENCE_PATTERNS) {
     if (pattern.test(message)) {
+      console.log('🎤 MEDIUM confidence voice match:', pattern.toString());
+      const textToSpeak = extractTextForVoice(previousMessages);
+      console.log('🎤 Text to speak length:', textToSpeak.length);
       return {
         isVoiceRequest: true,
-        textToSpeak: extractTextForVoice(previousMessages),
+        textToSpeak,
         confidence: 'medium'
       };
     }
   }
+  
+  console.log('🎤 No voice request detected');
   
   return {
     isVoiceRequest: false,
