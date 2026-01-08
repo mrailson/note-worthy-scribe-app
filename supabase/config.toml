@@ -353,3 +353,6 @@ verify_jwt = false
 
 [functions.ai4gp-image-generation]
 verify_jwt = true
+
+[functions.gp-translation-tts]
+verify_jwt = true

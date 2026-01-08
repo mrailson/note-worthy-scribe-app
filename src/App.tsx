@@ -95,6 +95,7 @@ import LGCaptureBulk from "./pages/LGCaptureBulk";
 import BPCalculator from "./pages/BPCalculator";
 import PublicBPCalculator from "./pages/PublicBPCalculator";
 import QuickRecord from "./pages/QuickRecord";
+import GPTranslationService from "./pages/GPTranslationService";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 
 const App = () => {
@@ -287,6 +288,7 @@ const App = () => {
               <Route path="/lg-capture/bulk" element={<LGUploadQueueProvider><LGCaptureBulk /></LGUploadQueueProvider>} />
               <Route path="/bp-calculator" element={<BPCalculator />} />
               <Route path="/public/bp-calculator" element={<PublicBPCalculator />} />
+              <Route path="/gp-translation" element={<GPTranslationService />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
