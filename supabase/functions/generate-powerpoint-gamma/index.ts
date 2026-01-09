@@ -7,7 +7,7 @@ const corsHeaders = {
 };
 
 const GAMMA_API_KEY = Deno.env.get('GAMMA_API_KEY');
-const GAMMA_API_BASE = 'https://api.gamma.app';
+const GAMMA_API_BASE = 'https://public-api.gamma.app';
 
 interface GammaGenerationRequest {
   topic: string;
@@ -18,17 +18,20 @@ interface GammaGenerationRequest {
   audience?: string;
 }
 
-interface GammaGenerationResponse {
-  id: string;
-  status: 'pending' | 'processing' | 'completed' | 'failed';
-  exportUrl?: string;
+interface GammaCompletedResponse {
+  generationId: string;
+  status: 'pending' | 'completed' | 'failed';
+  gammaUrl?: string;
+  pptxUrl?: string;
+  pdfUrl?: string;
   error?: string;
+  credits?: { deducted: number; remaining: number };
 }
 
 // Poll for generation completion with exponential backoff
-async function pollForCompletion(generationId: string, maxAttempts = 60): Promise<GammaGenerationResponse> {
+async function pollForCompletion(generationId: string, maxAttempts = 60): Promise<GammaCompletedResponse> {
   let attempts = 0;
-  let delay = 2000; // Start with 2 seconds
+  let delay = 5000; // Start with 5 seconds as recommended by Gamma
   
   while (attempts < maxAttempts) {
     console.log(`[Gamma] Polling attempt ${attempts + 1}/${maxAttempts} for generation ${generationId}`);
@@ -37,7 +40,7 @@ async function pollForCompletion(generationId: string, maxAttempts = 60): Promis
       method: 'GET',
       headers: {
         'X-API-KEY': GAMMA_API_KEY!,
-        'Content-Type': 'application/json',
+        'accept': 'application/json',
       },
     });
     
@@ -47,8 +50,8 @@ async function pollForCompletion(generationId: string, maxAttempts = 60): Promis
       throw new Error(`Gamma API poll error: ${response.status}`);
     }
     
-    const data = await response.json();
-    console.log(`[Gamma] Poll response status: ${data.status}`);
+    const data: GammaCompletedResponse = await response.json();
+    console.log(`[Gamma] Poll response status: ${data.status}`, data);
     
     if (data.status === 'completed') {
       return data;
@@ -58,13 +61,12 @@ async function pollForCompletion(generationId: string, maxAttempts = 60): Promis
       throw new Error(data.error || 'Gamma generation failed');
     }
     
-    // Wait before next poll with exponential backoff (max 10 seconds)
+    // Wait before next poll (5 second intervals as recommended)
     await new Promise(resolve => setTimeout(resolve, delay));
-    delay = Math.min(delay * 1.2, 10000);
     attempts++;
   }
   
-  throw new Error('Gamma generation timed out');
+  throw new Error('Gamma generation timed out after 5 minutes');
 }
 
 serve(async (req) => {
@@ -99,53 +101,50 @@ serve(async (req) => {
     }
 
     // Build additional instructions
-    let additionalInstructions = `
-- Use British English spelling and terminology throughout
-- Target audience: ${audience}
-- Create exactly ${slideCount} slides
-- Use professional, clean design
-- Include data visualisations where appropriate
-- Each slide should have a clear, actionable message
-`;
+    let additionalInstructions = `Use British English spelling and terminology throughout. Target audience: ${audience}. Use professional, clean design. Include data visualisations where appropriate. Each slide should have a clear, actionable message.`;
 
     if (customInstructions) {
-      additionalInstructions += `\n- Additional requirements: ${customInstructions}`;
+      additionalInstructions += ` Additional requirements: ${customInstructions}`;
     }
 
     // NHS/Healthcare specific instructions based on presentation type
     if (presentationType.toLowerCase().includes('nhs') || 
         presentationType.toLowerCase().includes('healthcare') ||
         presentationType.toLowerCase().includes('clinical')) {
-      additionalInstructions += `
-- Follow NHS branding guidelines where appropriate
-- Use healthcare-appropriate terminology
-- Ensure accessibility compliance
-- Include relevant NHS/healthcare context
-`;
+      additionalInstructions += ` Follow NHS branding guidelines where appropriate. Use healthcare-appropriate terminology. Ensure accessibility compliance.`;
     }
 
-    console.log('[Gamma] Initiating generation request...');
+    console.log('[Gamma] Initiating generation request to:', `${GAMMA_API_BASE}/v1.0/generations`);
 
     // Step 1: Create generation request
+    const requestPayload = {
+      inputText,
+      textMode: 'generate',
+      format: 'presentation',
+      numCards: slideCount,
+      exportAs: 'pptx',
+      additionalInstructions: additionalInstructions.trim(),
+      textOptions: {
+        language: 'en',
+        audience,
+        tone: 'professional',
+        amount: 'medium',
+      },
+      imageOptions: {
+        source: 'aiGenerated',
+        style: 'photorealistic',
+      },
+    };
+
+    console.log('[Gamma] Request payload:', JSON.stringify(requestPayload, null, 2));
+
     const createResponse = await fetch(`${GAMMA_API_BASE}/v1.0/generations`, {
       method: 'POST',
       headers: {
         'X-API-KEY': GAMMA_API_KEY,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        inputText,
-        textMode: 'generate',
-        format: 'presentation',
-        numCards: slideCount,
-        exportAs: 'pptx',
-        additionalInstructions: additionalInstructions.trim(),
-        textOptions: {
-          language: 'en',
-          audience,
-          tone: 'professional',
-        },
-      }),
+      body: JSON.stringify(requestPayload),
     });
 
     if (!createResponse.ok) {
@@ -155,44 +154,52 @@ serve(async (req) => {
     }
 
     const createData = await createResponse.json();
-    const generationId = createData.id;
+    const generationId = createData.generationId;
     
+    if (!generationId) {
+      console.error('[Gamma] No generationId in response:', createData);
+      throw new Error('No generation ID received from Gamma');
+    }
+
     console.log(`[Gamma] Generation started with ID: ${generationId}`);
 
     // Step 2: Poll for completion
     const completedGeneration = await pollForCompletion(generationId);
     
-    if (!completedGeneration.exportUrl) {
-      throw new Error('No export URL in completed generation');
-    }
+    console.log(`[Gamma] Generation completed:`, completedGeneration);
 
-    console.log(`[Gamma] Generation completed. Downloading PPTX from: ${completedGeneration.exportUrl}`);
-
-    // Step 3: Download the PPTX file
-    const pptxResponse = await fetch(completedGeneration.exportUrl);
+    // Step 3: Download the PPTX file if URL provided
+    let pptxBase64 = '';
     
-    if (!pptxResponse.ok) {
-      throw new Error(`Failed to download PPTX: ${pptxResponse.status}`);
-    }
+    if (completedGeneration.pptxUrl) {
+      console.log(`[Gamma] Downloading PPTX from: ${completedGeneration.pptxUrl}`);
+      
+      const pptxResponse = await fetch(completedGeneration.pptxUrl);
+      
+      if (!pptxResponse.ok) {
+        throw new Error(`Failed to download PPTX: ${pptxResponse.status}`);
+      }
 
-    const pptxBuffer = await pptxResponse.arrayBuffer();
-    const pptxBytes = new Uint8Array(pptxBuffer);
-    
-    // Convert to base64 in chunks to avoid memory issues
-    const chunkSize = 8192;
-    let base64 = '';
-    for (let i = 0; i < pptxBytes.length; i += chunkSize) {
-      const chunk = pptxBytes.slice(i, Math.min(i + chunkSize, pptxBytes.length));
-      base64 += String.fromCharCode.apply(null, Array.from(chunk));
-    }
-    const pptxBase64 = btoa(base64);
+      const pptxBuffer = await pptxResponse.arrayBuffer();
+      const pptxBytes = new Uint8Array(pptxBuffer);
+      
+      // Convert to base64 in chunks to avoid memory issues
+      const chunkSize = 8192;
+      let base64Str = '';
+      for (let i = 0; i < pptxBytes.length; i += chunkSize) {
+        const chunk = pptxBytes.slice(i, Math.min(i + chunkSize, pptxBytes.length));
+        base64Str += String.fromCharCode.apply(null, Array.from(chunk));
+      }
+      pptxBase64 = btoa(base64Str);
 
-    console.log(`[Gamma] PPTX downloaded and converted to base64 (${pptxBase64.length} chars)`);
+      console.log(`[Gamma] PPTX downloaded and converted to base64 (${pptxBase64.length} chars)`);
+    }
 
     return new Response(
       JSON.stringify({
         success: true,
         pptxBase64,
+        gammaUrl: completedGeneration.gammaUrl,
         title: topic,
         slideCount,
         presentationType,
