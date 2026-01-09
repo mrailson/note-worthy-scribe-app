@@ -14,7 +14,10 @@ Deno.serve(async (req) => {
   try {
     // Get the authorization header
     const authHeader = req.headers.get('Authorization');
+    console.log('Auth header present:', !!authHeader);
+    
     if (!authHeader) {
+      console.log('No authorization header found');
       return new Response(
         JSON.stringify({ error: 'Missing authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -26,24 +29,41 @@ Deno.serve(async (req) => {
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    const userClient = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
+    // Use service role client to verify the JWT token
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false
+      }
     });
 
-    // Get the current user
-    const { data: { user: currentUser }, error: userError } = await userClient.auth.getUser();
+    // Extract the token from the header
+    const token = authHeader.replace('Bearer ', '');
+    
+    // Verify the token and get user
+    const { data: { user: currentUser }, error: userError } = await adminClient.auth.getUser(token);
+    
+    console.log('User lookup result:', { 
+      hasUser: !!currentUser, 
+      userId: currentUser?.id,
+      error: userError?.message 
+    });
+    
     if (userError || !currentUser) {
+      console.log('User verification failed:', userError?.message);
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Check if current user is a system admin
-    const { data: adminCheck, error: adminError } = await userClient.rpc('has_role', {
+    // Check if current user is a system admin using the admin client
+    const { data: adminCheck, error: adminError } = await adminClient.rpc('has_role', {
       _user_id: currentUser.id,
       _role: 'system_admin'
     });
+
+    console.log('Admin check result:', { adminCheck, error: adminError?.message });
 
     if (adminError || !adminCheck) {
       return new Response(
@@ -55,20 +75,14 @@ Deno.serve(async (req) => {
     // Parse the request body
     const { targetUserId, redirectTo } = await req.json();
     
+    console.log('Request body:', { targetUserId, redirectTo });
+    
     if (!targetUserId) {
       return new Response(
         JSON.stringify({ error: 'Target user ID is required' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
-
-    // Create admin client with service role key
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
 
     // Get the target user's email
     const { data: targetUser, error: targetUserError } = await adminClient.auth.admin.getUserById(targetUserId);
