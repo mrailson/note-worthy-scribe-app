@@ -13,11 +13,13 @@ export interface GeneratedAudio {
 }
 
 export interface GeneratedPresentation {
-  pptxBase64: string;
+  downloadUrl?: string; // Direct download URL from Gamma (preferred)
+  pptxBase64?: string; // Legacy base64 encoded file (fallback)
   title: string;
   slideCount: number;
   presentationType: string;
   sourceFiles?: string[]; // Names of files used
+  gammaUrl?: string; // Link to view/edit in Gamma
 }
 
 export interface Message {

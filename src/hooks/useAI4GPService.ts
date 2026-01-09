@@ -743,7 +743,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             throw new Error(gammaError.message || 'Failed to generate presentation');
           }
           
-          if (!gammaResponse?.success || !gammaResponse?.pptxBase64) {
+          if (!gammaResponse?.success || (!gammaResponse?.downloadUrl && !gammaResponse?.pptxBase64)) {
             console.error('Invalid Gamma response:', gammaResponse);
             throw new Error(gammaResponse?.error || 'No presentation data received');
           }
@@ -753,19 +753,21 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           const endTime = Date.now();
           const responseTime = endTime - startTime;
           
-          // Create the presentation object
+          // Create the presentation object - prefer downloadUrl over pptxBase64
           const generatedPresentation: GeneratedPresentation = {
-            pptxBase64: gammaResponse.pptxBase64,
+            downloadUrl: gammaResponse.downloadUrl,
+            pptxBase64: gammaResponse.pptxBase64, // Legacy fallback
             title: gammaResponse.title || pptDetection.topic,
             slideCount: gammaResponse.slideCount || pptDetection.slideCount || 10,
             presentationType: getPresentationTypeDisplayName(pptDetection.presentationType),
-            sourceFiles: uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name) : undefined
+            sourceFiles: uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name) : undefined,
+            gammaUrl: gammaResponse.gammaUrl
           };
           
           // Create message with generated presentation
           const pptMessage: Message = {
             ...assistantMessage,
-            content: `✅ **Professional PowerPoint Generated!**\n\n**Title:** ${generatedPresentation.title}\n**Type:** ${generatedPresentation.presentationType}\n**Slides:** ${generatedPresentation.slideCount}\n${uploadedFiles.length > 0 ? `\n**Source Materials:** ${uploadedFiles.map(f => f.name).join(', ')}` : ''}\n\n*Powered by Gamma AI for professional-grade design.*\n\nYour presentation is ready to download below.`,
+            content: `✅ **Professional PowerPoint Generated!**\n\n**Title:** ${generatedPresentation.title}\n**Type:** ${generatedPresentation.presentationType}\n**Slides:** ${generatedPresentation.slideCount}\n${uploadedFiles.length > 0 ? `\n**Source Materials:** ${uploadedFiles.map(f => f.name).join(', ')}` : ''}${gammaResponse.gammaUrl ? `\n\n[View in Gamma](${gammaResponse.gammaUrl})` : ''}\n\n*Powered by Gamma AI for professional-grade design.*\n\nYour presentation is ready to download below.`,
             isStreaming: false,
             responseTime,
             model: 'Gamma AI',

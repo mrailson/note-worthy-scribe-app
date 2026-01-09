@@ -241,44 +241,21 @@ serve(async (req) => {
     
     console.log(`[Gamma] Generation completed:`, completedGeneration);
 
-    // Step 3: Download the PPTX file if URL provided (Gamma uses exportUrl)
-    let pptxBase64 = '';
+    // Step 3: Return the download URL directly instead of downloading and converting to base64
+    // This avoids memory issues with large files (Gamma can generate 70MB+ presentations)
     const downloadUrl = completedGeneration.exportUrl || completedGeneration.pptxUrl;
     
-    if (downloadUrl) {
-      console.log(`[Gamma] Downloading PPTX from: ${downloadUrl}`);
-      
-      const pptxResponse = await fetch(downloadUrl);
-      
-      if (!pptxResponse.ok) {
-        console.error(`[Gamma] PPTX download failed: ${pptxResponse.status}`);
-        throw new Error(`Failed to download PPTX: ${pptxResponse.status}`);
-      }
-
-      const pptxBuffer = await pptxResponse.arrayBuffer();
-      const pptxBytes = new Uint8Array(pptxBuffer);
-      
-      console.log(`[Gamma] Downloaded ${pptxBytes.length} bytes`);
-      
-      // Convert to base64 in chunks to avoid memory issues
-      const chunkSize = 8192;
-      let base64Str = '';
-      for (let i = 0; i < pptxBytes.length; i += chunkSize) {
-        const chunk = pptxBytes.slice(i, Math.min(i + chunkSize, pptxBytes.length));
-        base64Str += String.fromCharCode.apply(null, Array.from(chunk));
-      }
-      pptxBase64 = btoa(base64Str);
-
-      console.log(`[Gamma] PPTX converted to base64 (${pptxBase64.length} chars)`);
-    } else {
+    if (!downloadUrl) {
       console.error('[Gamma] No download URL in response:', completedGeneration);
       throw new Error('No PPTX download URL received from Gamma');
     }
 
+    console.log(`[Gamma] Returning direct download URL: ${downloadUrl}`);
+
     return new Response(
       JSON.stringify({
         success: true,
-        pptxBase64,
+        downloadUrl, // Direct Gamma URL - client will download from here
         gammaUrl: completedGeneration.gammaUrl,
         title: topic,
         slideCount,
