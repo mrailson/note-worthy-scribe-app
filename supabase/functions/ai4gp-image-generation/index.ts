@@ -195,8 +195,35 @@ CRITICAL TEXT ACCURACY - MUST FOLLOW:
 Content guidelines:
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery`;
+    } else if (['chart', 'diagram', 'poster'].includes(requestType) && documentContent) {
+      // Visual types WITH document content - generate visual FROM the document
+      imagePrompt = `Create a professional ${typeDescriptions[requestType]} that visualises the following content.
+
+SOURCE CONTENT TO VISUALISE:
+${documentContent.substring(0, 6000)}
+
+USER REQUEST:
+${prompt}
+
+DESIGN REQUIREMENTS:
+- Create an ACTUAL visual ${requestType} image, NOT a text description
+- Extract and display the key information from the source content
+- Professional colour scheme (blues, teals, clean modern palette)
+- Clear headings and logical organisation
+- High contrast for accessibility and readability
+- Make it easy to understand at a glance
+
+CRITICAL TEXT ACCURACY - MUST FOLLOW:
+- DOUBLE-CHECK ALL SPELLING before rendering ANY text
+- Keep text MINIMAL - prefer icons and visuals over words
+- VERIFY every single word is spelled correctly
+- Use proper capitalisation throughout
+
+Content guidelines:
+- Keep all content professional and workplace-appropriate
+- No explicit, offensive, or inappropriate imagery`;
     } else {
-      // Standard prompt for other request types
+      // Standard prompt for other request types without document content
       imagePrompt = `${prompt}
 
 Style: ${typeDescriptions[requestType] || 'visual'}

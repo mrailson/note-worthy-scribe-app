@@ -129,38 +129,49 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
   // Determine request type from current message or previous context
   let requestType: ImageRequestDetection['requestType'] = 'general';
   
-  // Check current message first
-  if (chartKeywords.some(k => lowerMessage.includes(k))) {
-    requestType = 'chart';
-  } else if (diagramKeywords.some(k => lowerMessage.includes(k))) {
-    requestType = 'diagram';
-  } else if (infographicKeywords.some(k => lowerMessage.includes(k))) {
-    requestType = 'infographic';
-  } else if (calendarKeywords.some(k => lowerMessage.includes(k))) {
-    requestType = 'calendar';
-  } else if (posterKeywords.some(k => lowerMessage.includes(k))) {
-    requestType = 'poster';
-  } else if (logoKeywords.some(k => lowerMessage.includes(k))) {
-    requestType = 'logo';
-  } else if (qrcodeKeywords.some(k => lowerMessage.includes(k))) {
+  // Check current message FIRST with priority - explicit mentions always win
+  // Priority order: More specific types (infographic, qrcode, logo) checked before generic (chart)
+  const hasExplicitInfographic = infographicKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitQRCode = qrcodeKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitLogo = logoKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitPoster = posterKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitCalendar = calendarKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitDiagram = diagramKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitChart = chartKeywords.some(k => lowerMessage.includes(k));
+  
+  // Prioritise explicit type mentions in the current message
+  if (hasExplicitQRCode) {
     requestType = 'qrcode';
+  } else if (hasExplicitLogo) {
+    requestType = 'logo';
+  } else if (hasExplicitInfographic) {
+    requestType = 'infographic';
+  } else if (hasExplicitPoster) {
+    requestType = 'poster';
+  } else if (hasExplicitCalendar) {
+    requestType = 'calendar';
+  } else if (hasExplicitDiagram) {
+    requestType = 'diagram';
+  } else if (hasExplicitChart) {
+    requestType = 'chart';
   } else if (previousMessages && previousMessages.length > 0) {
-    // Check previous context for request type
+    // Only check previous context if current message has no explicit type
+    // Use same priority order for consistency
     const recentContext = previousMessages.slice(-3).map(m => m.content.toLowerCase()).join(' ');
-    if (chartKeywords.some(k => recentContext.includes(k))) {
-      requestType = 'chart';
-    } else if (diagramKeywords.some(k => recentContext.includes(k))) {
-      requestType = 'diagram';
-    } else if (calendarKeywords.some(k => recentContext.includes(k))) {
-      requestType = 'calendar';
-    } else if (posterKeywords.some(k => recentContext.includes(k))) {
-      requestType = 'poster';
-    } else if (infographicKeywords.some(k => recentContext.includes(k))) {
-      requestType = 'infographic';
+    if (qrcodeKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'qrcode';
     } else if (logoKeywords.some(k => recentContext.includes(k))) {
       requestType = 'logo';
-    } else if (qrcodeKeywords.some(k => recentContext.includes(k))) {
-      requestType = 'qrcode';
+    } else if (infographicKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'infographic';
+    } else if (posterKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'poster';
+    } else if (calendarKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'calendar';
+    } else if (diagramKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'diagram';
+    } else if (chartKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'chart';
     }
   }
   

@@ -497,7 +497,14 @@ Always provide evidence-based, clinically appropriate advice that follows curren
                                    (!hasDocumentFiles || isVisualFromDocRequest);
       
       if (shouldGenerateImage) {
-        console.log('🎨 Image request detected:', imageDetection, { isVisualFromDocRequest, hasDocumentFiles });
+        console.log('🎨 Image request detected:', { 
+          originalMessage: messageToUse.substring(0, 100),
+          requestType: imageDetection.requestType,
+          confidence: imageDetection.confidence,
+          isVisualFromDocRequest, 
+          hasDocumentFiles,
+          documentFilesCount: uploadedFiles.length
+        });
         
         // Extract context from previous messages - always include for better image generation
         const conversationContext = extractImageContext(
