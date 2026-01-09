@@ -17,6 +17,7 @@ interface UserTemplatePreference {
 interface GenerationResult {
   success: boolean;
   downloadUrl?: string;
+  gammaUrl?: string;
   title?: string;
   error?: string;
 }
@@ -215,31 +216,51 @@ export const useGammaPowerPoint = () => {
 
       const presentationTitle = data.title || topic;
       
-      // Store in Supabase Storage to avoid bloating the messages JSON
-      if (storeInCloud && user) {
-        const downloadUrl = await uploadToStorage(data.pptxBase64, presentationTitle);
+      // Handle direct download URL from Gamma (preferred - avoids memory limits)
+      if (data.downloadUrl) {
+        console.log('[Gamma Hook] Using direct download URL from Gamma');
+        downloadFromUrl(data.downloadUrl, presentationTitle);
+        toast.success('Professional presentation downloaded!');
         
-        if (downloadUrl) {
-          // Trigger download from cloud URL
-          downloadFromUrl(downloadUrl, presentationTitle);
-          toast.success('Professional presentation downloaded!');
-          
-          return {
-            success: true,
-            downloadUrl,
-            title: presentationTitle
-          };
-        }
+        return {
+          success: true,
+          downloadUrl: data.downloadUrl,
+          gammaUrl: data.gammaUrl,
+          title: presentationTitle
+        };
       }
       
-      // Fallback: Direct download without cloud storage
-      downloadBase64AsPptx(data.pptxBase64, presentationTitle);
-      toast.success('Professional presentation downloaded!');
+      // Legacy fallback: Handle base64 response (for backwards compatibility)
+      if (data.pptxBase64) {
+        console.log('[Gamma Hook] Using legacy base64 response');
+        
+        // Store in Supabase Storage to avoid bloating the messages JSON
+        if (storeInCloud && user) {
+          const cloudUrl = await uploadToStorage(data.pptxBase64, presentationTitle);
+          
+          if (cloudUrl) {
+            downloadFromUrl(cloudUrl, presentationTitle);
+            toast.success('Professional presentation downloaded!');
+            
+            return {
+              success: true,
+              downloadUrl: cloudUrl,
+              title: presentationTitle
+            };
+          }
+        }
+        
+        // Direct download without cloud storage
+        downloadBase64AsPptx(data.pptxBase64, presentationTitle);
+        toast.success('Professional presentation downloaded!');
+        
+        return {
+          success: true,
+          title: presentationTitle
+        };
+      }
       
-      return {
-        success: true,
-        title: presentationTitle
-      };
+      throw new Error('No download URL or file data received from Gamma');
     } catch (error) {
       console.error('Gamma generation failed:', error);
       toast.error('Gamma generation failed, using local generator...');

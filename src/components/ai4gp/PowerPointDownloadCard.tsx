@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Download, Presentation, FileText, Loader2 } from 'lucide-react';
+import { Download, Presentation, FileText, Loader2, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import { GeneratedPresentation } from '@/types/ai4gp';
 
@@ -16,28 +16,51 @@ export const PowerPointDownloadCard: React.FC<PowerPointDownloadCardProps> = ({ 
   const handleDownload = async () => {
     setIsDownloading(true);
     try {
-      // Convert base64 to blob
-      const byteCharacters = atob(presentation.pptxBase64);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      const fileName = `${presentation.title.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_')}.pptx`;
+      
+      // Prefer direct download URL from Gamma (avoids memory issues with large files)
+      if (presentation.downloadUrl) {
+        console.log('[PowerPointDownloadCard] Using direct download URL');
+        const a = document.createElement('a');
+        a.href = presentation.downloadUrl;
+        a.download = fileName;
+        a.target = '_blank'; // Open in new tab as fallback
+        a.rel = 'noopener noreferrer';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        toast.success('PowerPoint downloaded successfully!');
+        return;
       }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { 
-        type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
-      });
       
-      // Create download link
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `${presentation.title.replace(/[^a-zA-Z0-9\s-]/g, '').replace(/\s+/g, '_')}.pptx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
+      // Legacy fallback: Convert base64 to blob
+      if (presentation.pptxBase64) {
+        console.log('[PowerPointDownloadCard] Using legacy base64 data');
+        const byteCharacters = atob(presentation.pptxBase64);
+        const byteNumbers = new Array(byteCharacters.length);
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i);
+        }
+        const byteArray = new Uint8Array(byteNumbers);
+        const blob = new Blob([byteArray], { 
+          type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
+        });
+        
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        toast.success('PowerPoint downloaded successfully!');
+        return;
+      }
       
-      toast.success('PowerPoint downloaded successfully!');
+      throw new Error('No download data available');
     } catch (error) {
       console.error('Download error:', error);
       toast.error('Failed to download PowerPoint');
@@ -85,23 +108,42 @@ export const PowerPointDownloadCard: React.FC<PowerPointDownloadCardProps> = ({ 
           </div>
         )}
         
-        <Button 
-          onClick={handleDownload} 
-          disabled={isDownloading}
-          className="w-full gap-2"
-        >
-          {isDownloading ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Preparing download...
-            </>
-          ) : (
-            <>
-              <Download className="h-4 w-4" />
-              Download PowerPoint
-            </>
+        <div className="flex flex-col gap-2">
+          <Button 
+            onClick={handleDownload} 
+            disabled={isDownloading}
+            className="w-full gap-2"
+          >
+            {isDownloading ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Preparing download...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4" />
+                Download PowerPoint
+              </>
+            )}
+          </Button>
+          
+          {presentation.gammaUrl && (
+            <Button 
+              variant="outline"
+              className="w-full gap-2"
+              asChild
+            >
+              <a 
+                href={presentation.gammaUrl} 
+                target="_blank" 
+                rel="noopener noreferrer"
+              >
+                <ExternalLink className="h-4 w-4" />
+                View &amp; Edit in Gamma
+              </a>
+            </Button>
           )}
-        </Button>
+        </div>
       </CardContent>
     </Card>
   );
