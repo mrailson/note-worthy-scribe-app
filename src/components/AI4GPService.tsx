@@ -48,7 +48,8 @@ import { useUserProfile } from '@/hooks/useUserProfile';
 
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { generateWordDocument, generatePowerPoint } from '@/utils/documentGenerators';
+import { generateWordDocument } from '@/utils/documentGenerators';
+import { useGammaPowerPoint } from '@/hooks/useGammaPowerPoint';
 import { Message } from '@/types/ai4gp';
 import { useQueryClient } from '@tanstack/react-query';
 import { MeetingData } from '@/types/meetingTypes';
@@ -64,6 +65,7 @@ const AI4GPService = () => {
   const deviceInfo = useDeviceInfo();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { generateWithGamma } = useGammaPowerPoint();
   
   // Disclaimer management
   const { showDisclaimer, disclaimerCollapsed, updateCollapsedPreference, loading: disclaimerLoading, hideDisclaimer } = useAI4GPDisclaimer();
@@ -822,7 +824,7 @@ const AI4GPService = () => {
                         expandedMessage={expandedMessage}
                         setExpandedMessage={setExpandedMessage}
                         onExportWord={generateWordDocument}
-                        onExportPowerPoint={generatePowerPoint}
+                        onExportPowerPoint={generateWithGamma}
                         showResponseMetrics={showResponseMetrics}
                         showRenderTimes={showRenderTimes}
                         showAIService={showAIService}
@@ -901,7 +903,7 @@ const AI4GPService = () => {
                   message={expandedMessage}
                   onExpandMessage={() => {}}
                   onExportWord={generateWordDocument}
-                  onExportPowerPoint={generatePowerPoint}
+                  onExportPowerPoint={generateWithGamma}
                   isModal={true} // Hide avatar and scroll arrow in modal
                   onCloseModal={() => setExpandedMessage(null)} // Close modal function
                   showResponseMetrics={showResponseMetrics}
