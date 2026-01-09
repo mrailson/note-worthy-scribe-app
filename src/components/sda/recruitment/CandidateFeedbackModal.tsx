@@ -27,6 +27,7 @@ interface CandidateFeedbackModalProps {
   isSubmitting: boolean;
   onSubmit: (agrees: boolean, comment?: string) => Promise<boolean>;
   onDelete: () => Promise<boolean>;
+  canSubmitFeedback?: boolean;
 }
 
 export function CandidateFeedbackModal({
@@ -41,6 +42,7 @@ export function CandidateFeedbackModal({
   isSubmitting,
   onSubmit,
   onDelete,
+  canSubmitFeedback = true,
 }: CandidateFeedbackModalProps) {
   const { user } = useAuth();
   const [agrees, setAgrees] = useState<boolean | null>(null);
@@ -135,85 +137,93 @@ export function CandidateFeedbackModal({
             )}
           </div>
 
-          {/* User's Feedback Form */}
-          <div className="px-6 py-5 space-y-4 border-b bg-white dark:bg-slate-950">
-            <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
-              Do you agree with this assessment?
-            </p>
-            <div className="flex gap-3">
-              <Button
-                variant={agrees === true ? 'default' : 'outline'}
-                size="lg"
-                className={cn(
-                  'flex-1 gap-2 h-12 text-base transition-all duration-200',
-                  agrees === true 
-                    ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-500/25 border-0' 
-                    : 'hover:border-green-300 hover:bg-green-50 dark:hover:bg-green-950/30'
-                )}
-                onClick={() => setAgrees(true)}
-              >
-                <ThumbsUp className="w-5 h-5" />
-                I Agree
-              </Button>
-              <Button
-                variant={agrees === false ? 'default' : 'outline'}
-                size="lg"
-                className={cn(
-                  'flex-1 gap-2 h-12 text-base transition-all duration-200',
-                  agrees === false 
-                    ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg shadow-red-500/25 border-0' 
-                    : 'hover:border-red-300 hover:bg-red-50 dark:hover:bg-red-950/30'
-                )}
-                onClick={() => setAgrees(false)}
-              >
-                <ThumbsDown className="w-5 h-5" />
-                I Disagree
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-muted-foreground">
-                Add a comment (optional):
-              </label>
-              <Textarea
-                value={comment}
-                onChange={(e) => setComment(e.target.value)}
-                placeholder="Share your thoughts on this candidate..."
-                rows={3}
-                className="resize-none border-slate-200 dark:border-slate-800 focus:border-[#005EB8] focus:ring-[#005EB8]/20"
-              />
-            </div>
-
-            <div className="flex gap-3 pt-2">
-              <Button
-                onClick={handleSubmit}
-                disabled={agrees === null || isSubmitting}
-                size="lg"
-                className="flex-1 h-12 bg-gradient-to-r from-[#005EB8] to-[#0077CC] hover:from-[#004C99] hover:to-[#0066B3] shadow-lg shadow-blue-500/25 text-base font-semibold"
-              >
-                {isSubmitting ? (
-                  <>
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                    Submitting...
-                  </>
-                ) : userFeedback ? (
-                  'Update Feedback'
-                ) : (
-                  'Submit Feedback'
-                )}
-              </Button>
-              {userFeedback && (
+          {/* User's Feedback Form - Hidden for ICB members */}
+          {canSubmitFeedback ? (
+            <div className="px-6 py-5 space-y-4 border-b bg-white dark:bg-slate-950">
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">
+                Do you agree with this assessment?
+              </p>
+              <div className="flex gap-3">
                 <Button
-                  variant="outline"
+                  variant={agrees === true ? 'default' : 'outline'}
                   size="lg"
-                  onClick={handleDelete}
-                  className="h-12 px-4 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                  className={cn(
+                    'flex-1 gap-2 h-12 text-base transition-all duration-200',
+                    agrees === true 
+                      ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-lg shadow-green-500/25 border-0' 
+                      : 'hover:border-green-300 hover:bg-green-50 dark:hover:bg-green-950/30'
+                  )}
+                  onClick={() => setAgrees(true)}
                 >
-                  <Trash2 className="w-5 h-5" />
+                  <ThumbsUp className="w-5 h-5" />
+                  I Agree
                 </Button>
-              )}
+                <Button
+                  variant={agrees === false ? 'default' : 'outline'}
+                  size="lg"
+                  className={cn(
+                    'flex-1 gap-2 h-12 text-base transition-all duration-200',
+                    agrees === false 
+                      ? 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-700 hover:to-rose-700 shadow-lg shadow-red-500/25 border-0' 
+                      : 'hover:border-red-300 hover:bg-red-50 dark:hover:bg-red-950/30'
+                  )}
+                  onClick={() => setAgrees(false)}
+                >
+                  <ThumbsDown className="w-5 h-5" />
+                  I Disagree
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-muted-foreground">
+                  Add a comment (optional):
+                </label>
+                <Textarea
+                  value={comment}
+                  onChange={(e) => setComment(e.target.value)}
+                  placeholder="Share your thoughts on this candidate..."
+                  rows={3}
+                  className="resize-none border-slate-200 dark:border-slate-800 focus:border-[#005EB8] focus:ring-[#005EB8]/20"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  onClick={handleSubmit}
+                  disabled={agrees === null || isSubmitting}
+                  size="lg"
+                  className="flex-1 h-12 bg-gradient-to-r from-[#005EB8] to-[#0077CC] hover:from-[#004C99] hover:to-[#0066B3] shadow-lg shadow-blue-500/25 text-base font-semibold"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : userFeedback ? (
+                    'Update Feedback'
+                  ) : (
+                    'Submit Feedback'
+                  )}
+                </Button>
+                {userFeedback && (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    onClick={handleDelete}
+                    className="h-12 px-4 text-destructive hover:text-destructive hover:bg-destructive/10 border-destructive/30"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </Button>
+                )}
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="px-6 py-4 border-b bg-slate-50 dark:bg-slate-900">
+              <p className="text-sm text-muted-foreground text-center">
+                ICB members can view feedback but cannot submit their own assessments.
+              </p>
+            </div>
+          )}
 
           {/* Team Feedback Section */}
           <div className="flex-1 overflow-hidden flex flex-col min-h-[200px] bg-slate-50 dark:bg-slate-900/50">
