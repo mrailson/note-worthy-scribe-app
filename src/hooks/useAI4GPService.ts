@@ -474,15 +474,19 @@ Always provide evidence-based, clinically appropriate advice that follows curren
     const messagesWithStreaming = [...newMessages, assistantMessage];
     setMessages(messagesWithStreaming);
 
+    // Track if files were attached before they're cleared
+    const hadFilesAttached = userMessage.files && userMessage.files.length > 0;
+    
     try {
       const startTime = Date.now();
       
       // Check if this is an image generation request
+      // IMPORTANT: Skip image generation if files are attached - user wants to analyse documents, not generate images
       // Pass previous messages for context-aware detection (e.g., "can you do it" follow-ups)
       const previousMessagesForDetection = messages.map(m => ({ role: m.role, content: m.content }));
       const imageDetection = detectImageRequest(messageToUse, previousMessagesForDetection);
       
-      if (imageDetection.isImageRequest && imageDetection.confidence !== 'low') {
+      if (imageDetection.isImageRequest && imageDetection.confidence !== 'low' && !hadFilesAttached) {
         console.log('🎨 Image request detected:', imageDetection);
         
         // Extract context from previous messages - always include for better image generation
