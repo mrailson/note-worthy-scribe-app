@@ -202,7 +202,7 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
               className="gap-2"
             >
               <FileDown className="h-4 w-4" />
-              <span className="hidden sm:inline">{phrases.downloadReport}</span>
+              <span className="hidden sm:inline">Download Report</span>
             </Button>
             <Button
               variant="destructive"
@@ -211,7 +211,7 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
               className="gap-2"
             >
               <Square className="h-4 w-4" />
-              <span className="hidden sm:inline">{phrases.endSession}</span>
+              <span className="hidden sm:inline">End Session</span>
             </Button>
           </div>
         </div>
