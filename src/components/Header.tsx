@@ -45,6 +45,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
   const [isPcnManager, setIsPcnManager] = useState(false);
   const [isPracticeManager, setIsPracticeManager] = useState(false);
   const [userDisplayName, setUserDisplayName] = useState<string | null>(null);
+  const [isIcbMember, setIsIcbMember] = useState(false);
   
   const isHomePage = location.pathname === '/';
   const isGPScribePage = location.pathname === '/gp-scribe';
@@ -62,7 +63,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
         // Check shared drive visibility and get display name
         const { data: profileData, error: profileError } = await supabase
           .from('profiles')
-          .select('shared_drive_visible, full_name')
+          .select('shared_drive_visible, full_name, northamptonshire_icb_active')
           .eq('user_id', user.id)
           .single();
 
@@ -72,6 +73,8 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
           }
           // Set display name (prefer full_name, fallback to email)
           setUserDisplayName(profileData.full_name || user.email || null);
+          // Set ICB member status
+          setIsIcbMember(!!profileData.northamptonshire_icb_active);
         } else {
           // Fallback to email if profile not found
           setUserDisplayName(user.email || null);
@@ -290,36 +293,41 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                                   <LayoutDashboard className="h-4 w-4 mr-2" />
                                   SDA Pilot Dashboard
                                 </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem 
-                                  onClick={() => navigate('/nres')}
-                                  className="cursor-pointer py-3"
-                                >
-                                  <Grid3X3 className="h-4 w-4 mr-2" />
-                                  Results Dashboard
-                                </DropdownMenuItem>
-                                <DropdownMenuItem 
-                                  onClick={() => navigate('/nres/complex-care')}
-                                  className="cursor-pointer py-3"
-                                >
-                                  <Users className="h-4 w-4 mr-2" />
-                                  Proactive Complex Care
-                                </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => navigate('/gp-genie')}
-                                className="cursor-pointer py-3"
-                              >
-                                <Mic className="h-4 w-4 mr-2" />
-                                AI Phone Agents
-                              </DropdownMenuItem>
-                              <DropdownMenuItem 
-                                onClick={() => navigate('/nres/comms-strategy')}
-                                className="cursor-pointer py-3"
-                              >
-                                <MessageSquare className="h-4 w-4 mr-2" />
-                                Comms Strategy
-                              </DropdownMenuItem>
-                            </DropdownMenuSubContent>
+                                {/* Hide other NRES options for ICB members */}
+                                {!isIcbMember && (
+                                  <>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem 
+                                      onClick={() => navigate('/nres')}
+                                      className="cursor-pointer py-3"
+                                    >
+                                      <Grid3X3 className="h-4 w-4 mr-2" />
+                                      Results Dashboard
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => navigate('/nres/complex-care')}
+                                      className="cursor-pointer py-3"
+                                    >
+                                      <Users className="h-4 w-4 mr-2" />
+                                      Proactive Complex Care
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => navigate('/gp-genie')}
+                                      className="cursor-pointer py-3"
+                                    >
+                                      <Mic className="h-4 w-4 mr-2" />
+                                      AI Phone Agents
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem 
+                                      onClick={() => navigate('/nres/comms-strategy')}
+                                      className="cursor-pointer py-3"
+                                    >
+                                      <MessageSquare className="h-4 w-4 mr-2" />
+                                      Comms Strategy
+                                    </DropdownMenuItem>
+                                  </>
+                                )}
+                              </DropdownMenuSubContent>
                           </DropdownMenuSub>
                           )}
                          
