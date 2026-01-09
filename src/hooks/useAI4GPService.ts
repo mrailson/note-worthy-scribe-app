@@ -689,8 +689,17 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       // Check if this is a PowerPoint generation request
       const pptDetection = detectPowerPointRequest(messageToUse, previousMessagesForDetection, uploadedFiles);
       
+      // Debug logging for topic extraction
+      console.log('📊 PowerPoint detection result:', {
+        originalMessage: messageToUse.substring(0, 100),
+        isPowerPointRequest: pptDetection.isPowerPointRequest,
+        extractedTopic: pptDetection.topic,
+        confidence: pptDetection.confidence,
+        presentationType: pptDetection.presentationType
+      });
+      
       if (pptDetection.isPowerPointRequest && pptDetection.confidence !== 'low') {
-        console.log('📊 PowerPoint request detected:', pptDetection);
+        console.log('📊 PowerPoint request detected, proceeding with generation');
         
         // Update message to show generation in progress
         setMessages(prev => prev.map(msg => 
