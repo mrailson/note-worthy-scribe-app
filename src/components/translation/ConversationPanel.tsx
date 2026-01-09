@@ -1,10 +1,14 @@
 import React, { useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { TranslationEntry } from '@/components/translation/TranslationEntry';
 import { ConversationEntry as ConversationEntryType } from '@/hooks/useGPTranslation';
-import { Mic, Languages } from 'lucide-react';
+import { Mic, Languages, Monitor, Maximize2 } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+
+export type ViewMode = 'standard' | 'patient';
 
 interface ConversationPanelProps {
   conversation: ConversationEntryType[];
@@ -16,6 +20,8 @@ interface ConversationPanelProps {
   onPlayAudio: (text: string, languageCode: string) => void;
   isProcessing: boolean;
   isSpeaking: boolean;
+  viewMode?: ViewMode;
+  onViewModeChange?: (mode: ViewMode) => void;
 }
 
 export const ConversationPanel: React.FC<ConversationPanelProps> = ({
@@ -27,7 +33,9 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
   selectedLanguageFlag,
   onPlayAudio,
   isProcessing,
-  isSpeaking
+  isSpeaking,
+  viewMode = 'standard',
+  onViewModeChange,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -44,10 +52,45 @@ export const ConversationPanel: React.FC<ConversationPanelProps> = ({
     <Card className="h-[calc(100vh-200px)] flex flex-col">
       <CardHeader className="flex-shrink-0 pb-3">
         <div className="flex items-center justify-between">
-          <CardTitle className="flex items-center gap-2">
-            <Languages className="h-5 w-5" />
-            Conversation
-          </CardTitle>
+          <div className="flex items-center gap-3">
+            <CardTitle className="flex items-center gap-2">
+              <Languages className="h-5 w-5" />
+              Conversation
+            </CardTitle>
+            
+            {/* View mode toggle */}
+            {onViewModeChange && (
+              <div className="flex items-center gap-1 border rounded-md p-0.5">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={viewMode === 'standard' ? 'secondary' : 'ghost'}
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => onViewModeChange('standard')}
+                    >
+                      <Monitor className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Standard View</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant={viewMode === 'patient' ? 'secondary' : 'ghost'}
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={() => onViewModeChange('patient')}
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Patient View (Fullscreen)</TooltipContent>
+                </Tooltip>
+              </div>
+            )}
+          </div>
+          
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="gap-1">
               🇬🇧 English
