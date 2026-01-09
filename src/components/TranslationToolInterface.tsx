@@ -54,6 +54,7 @@ import {
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import TranslationHistory from './TranslationHistory';
 import { TranslationHistorySidebar } from './TranslationHistorySidebar';
 import { HistoricalTranslationView } from './HistoricalTranslationView';

@@ -18,7 +18,7 @@ import {
 } from 'lucide-react';
 import { ImageTranslationModal } from '@/components/ImageTranslationModal';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface TranslationResult {
   originalText: string;
@@ -60,12 +60,12 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select a valid image file');
+      showToast.error('Please select a valid image file', { section: 'translation' });
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast.error('Image size must be less than 10MB');
+      showToast.error('Image size must be less than 10MB', { section: 'translation' });
       return;
     }
 
@@ -74,7 +74,7 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
 
   const processDocument = async () => {
     if (!selectedImage) {
-      toast.error('Please select an image first');
+      showToast.error('Please select an image first', { section: 'translation' });
       return;
     }
 
@@ -94,18 +94,18 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
 
         if (error) {
           console.error('Document translation error:', error);
-          toast.error('Failed to process document');
+          showToast.error('Failed to process document', { section: 'translation' });
           return;
         }
 
         setResult(data as TranslationResult);
-        toast.success('Document processed successfully');
+        showToast.success('Document processed successfully', { section: 'translation' });
       };
 
       reader.readAsDataURL(selectedImage);
     } catch (error) {
       console.error('Error processing document:', error);
-      toast.error('Failed to process document');
+      showToast.error('Failed to process document', { section: 'translation' });
     } finally {
       setIsProcessing(false);
     }
@@ -115,10 +115,10 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success('Text copied to clipboard');
+      showToast.success('Text copied to clipboard', { section: 'translation' });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy text');
+      showToast.error('Failed to copy text', { section: 'translation' });
     }
   };
 
@@ -129,7 +129,7 @@ export const ImageTranslationCard = ({ resetTrigger }: ImageTranslationCardProps
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
-    toast.success('Image translation cleared');
+    showToast.success('Image translation cleared', { section: 'translation' });
   };
 
   // Handle external reset trigger
