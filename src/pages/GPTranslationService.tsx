@@ -161,6 +161,7 @@ const GPTranslationService: React.FC = () => {
           isListening={isListening}
           isProcessing={isProcessing}
           isSpeaking={isSpeaking}
+          currentTranscript={currentTranscript}
           isMuted={isMuted}
           volume={volume}
           onMuteToggle={() => setIsMuted(!isMuted)}
