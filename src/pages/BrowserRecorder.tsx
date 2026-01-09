@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Mic, MicOff, ArrowLeft, Loader2, Activity, Volume2, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { BrowserSpeechTranscriber, TranscriptData } from '@/utils/BrowserSpeechTranscriber';
@@ -88,7 +88,7 @@ const BrowserRecorder = () => {
   // Handle transcription errors
   const handleError = (error: string) => {
     console.error('Browser transcription error:', error);
-    toast.error(`Transcription error: ${error}`);
+    showToast.error(`Transcription error: ${error}`, { section: 'meeting_manager' });
     setStatus(`Error: ${error}`);
   };
   
@@ -150,7 +150,7 @@ const BrowserRecorder = () => {
       return data.id;
     } catch (error) {
       console.error('Error creating meeting:', error);
-      toast.error('Failed to create meeting record');
+      showToast.error('Failed to create meeting record', { section: 'meeting_manager' });
       return null;
     }
   };
@@ -187,11 +187,11 @@ const BrowserRecorder = () => {
       
       setIsRecording(true);
       setIsLoading(false);
-      toast.success('Browser recording started');
+      showToast.success('Browser recording started', { section: 'meeting_manager' });
       
     } catch (error) {
       console.error('Failed to start recording:', error);
-      toast.error('Failed to start browser recording');
+      showToast.error('Failed to start browser recording', { section: 'meeting_manager' });
       setIsLoading(false);
       setStatus('Failed to connect');
     }
@@ -248,7 +248,7 @@ const BrowserRecorder = () => {
 
             if (error) {
               console.error('Error inserting transcript:', error);
-              toast.error(`Failed to save transcript: ${error.message}`);
+              showToast.error(`Failed to save transcript: ${error.message}`, { section: 'meeting_manager' });
             } else {
               console.log('Transcript inserted successfully:', data);
               
@@ -261,33 +261,33 @@ const BrowserRecorder = () => {
               
               if (verifyError) {
                 console.error('Error verifying transcript:', verifyError);
-                toast.warning('Transcript may not have been saved properly');
+                showToast.warning('Transcript may not have been saved properly', { section: 'meeting_manager' });
               } else if (verifyData && verifyData.length > 0) {
                 console.log('Transcript verified successfully:', verifyData[0]);
-                toast.success('Transcript saved and verified');
+                showToast.success('Transcript saved and verified', { section: 'meeting_manager' });
               } else {
                 console.warn('Transcript not found after insert');
-                toast.warning('Transcript may not have been saved');
+                showToast.warning('Transcript may not have been saved', { section: 'meeting_manager' });
               }
             }
           } catch (error) {
             console.error('Exception during transcript insert:', error);
-            toast.error('Failed to save transcript due to unexpected error');
+            showToast.error('Failed to save transcript due to unexpected error', { section: 'meeting_manager' });
           }
         } else {
           console.log('No transcript content to save');
-          toast.info('No transcript content was recorded');
+          showToast.info('No transcript content was recorded', { section: 'meeting_manager' });
         }
       }
       
       setIsRecording(false);
       setIsLoading(false);
       setStatus('Completed');
-      toast.success('Recording saved successfully');
+      showToast.success('Recording saved successfully', { section: 'meeting_manager' });
       
     } catch (error) {
       console.error('Error stopping recording:', error);
-      toast.error('Error stopping recording');
+      showToast.error('Error stopping recording', { section: 'meeting_manager' });
       setIsLoading(false);
     }
   };

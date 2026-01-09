@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Thermometer, Refrigerator, AlertCircle, CheckCircle, X } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { addDays, getDay, format } from 'date-fns';
 
 interface Fridge {
@@ -40,7 +40,7 @@ export const FridgeTemperatureEntry = () => {
   useEffect(() => {
     // Skip access check for public QR code access
     if (!isPublicAccess && !hasModuleAccess('fridge_monitoring_access')) {
-      toast.error('You do not have access to fridge monitoring');
+      showToast.error('You do not have access to fridge monitoring', { section: 'system' });
       navigate('/');
       return;
     }
@@ -82,9 +82,9 @@ export const FridgeTemperatureEntry = () => {
           .single();
         
         if (inactiveFridge && !inactiveFridge.is_active) {
-          toast.error(`Fridge "${inactiveFridge.fridge_name}" is inactive`);
+          showToast.error(`Fridge "${inactiveFridge.fridge_name}" is inactive`, { section: 'system' });
         } else {
-          toast.error(`Fridge not found. The QR code may be outdated. ID: ${id}`);
+          showToast.error(`Fridge not found. The QR code may be outdated. ID: ${id}`, { section: 'system' });
         }
         throw error;
       }
@@ -101,23 +101,23 @@ export const FridgeTemperatureEntry = () => {
     console.log('🟡 Form submitted!');
     
     if (!fridge || !temperature) {
-      toast.error('Please enter a temperature value');
+      showToast.error('Please enter a temperature value', { section: 'system' });
       return;
     }
 
     if (!initials.trim()) {
-      toast.error('Please enter your initials');
+      showToast.error('Please enter your initials', { section: 'system' });
       return;
     }
 
     if (initials.trim().length > 2) {
-      toast.error('Initials must be 2 characters or less');
+      showToast.error('Initials must be 2 characters or less', { section: 'system' });
       return;
     }
 
     const tempValue = parseFloat(temperature);
     if (isNaN(tempValue)) {
-      toast.error('Please enter a valid temperature');
+      showToast.error('Please enter a valid temperature', { section: 'system' });
       return;
     }
 
@@ -173,7 +173,7 @@ export const FridgeTemperatureEntry = () => {
       
     } catch (error) {
       console.error('💥 Catch block error:', error);
-      toast.error(`Error: ${error instanceof Error ? error.message : 'Failed to record temperature'}`);
+      showToast.error(`Error: ${error instanceof Error ? error.message : 'Failed to record temperature'}`, { section: 'system' });
     } finally {
       console.log('🔄 Finally block - resetting submitting state');
       setSubmitting(false);

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -36,7 +36,7 @@ export const useMeetingTemplates = () => {
       setTemplates(data || []);
     } catch (error) {
       console.error('Error fetching templates:', error);
-      toast.error('Failed to load templates');
+      showToast.error('Failed to load templates', { section: 'meeting_manager' });
     } finally {
       setIsLoading(false);
     }
@@ -79,11 +79,11 @@ export const useMeetingTemplates = () => {
       if (error) throw error;
 
       setTemplates(prev => [data, ...prev]);
-      toast.success('Template uploaded successfully');
+      showToast.success('Template uploaded successfully', { section: 'meeting_manager' });
       return data;
     } catch (error) {
       console.error('Error uploading template:', error);
-      toast.error('Failed to upload template');
+      showToast.error('Failed to upload template', { section: 'meeting_manager' });
       return null;
     } finally {
       setIsUploading(false);
@@ -111,10 +111,10 @@ export const useMeetingTemplates = () => {
       if (error) throw error;
 
       setTemplates(prev => prev.filter(t => t.id !== templateId));
-      toast.success('Template deleted successfully');
+      showToast.success('Template deleted successfully', { section: 'meeting_manager' });
     } catch (error) {
       console.error('Error deleting template:', error);
-      toast.error('Failed to delete template');
+      showToast.error('Failed to delete template', { section: 'meeting_manager' });
     }
   }, [user]);
 
@@ -136,7 +136,7 @@ export const useMeetingTemplates = () => {
       URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Error downloading template:', error);
-      toast.error('Failed to download template');
+      showToast.error('Failed to download template', { section: 'meeting_manager' });
     }
   }, []);
 

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { SearchHistory, Message } from '@/types/ai4gp';
 
 export const useSearchHistory = () => {
@@ -61,13 +61,13 @@ export const useSearchHistory = () => {
       setSearchHistory(prev => prev.filter(item => item.is_protected));
       
       if (protectedCount > 0) {
-        toast.success(`Search history cleared. ${protectedCount} protected item${protectedCount > 1 ? 's' : ''} preserved.`);
+        showToast.success(`Search history cleared. ${protectedCount} protected item${protectedCount > 1 ? 's' : ''} preserved.`, { section: 'ai4gp' });
       } else {
-        toast.success('All search history cleared');
+        showToast.success('All search history cleared', { section: 'ai4gp' });
       }
     } catch (error) {
       console.error('Error clearing all history:', error);
-      toast.error('Failed to clear history');
+      showToast.error('Failed to clear history', { section: 'ai4gp' });
     }
   };
 
@@ -77,7 +77,7 @@ export const useSearchHistory = () => {
     // Check if search is protected
     const searchItem = searchHistory.find(item => item.id === searchId);
     if (searchItem?.is_protected) {
-      toast.error('Cannot delete protected search. Remove protection first.');
+      showToast.error('Cannot delete protected search. Remove protection first.', { section: 'ai4gp' });
       return;
     }
     
@@ -93,10 +93,10 @@ export const useSearchHistory = () => {
       // Remove from local state
       setSearchHistory(prev => prev.filter(item => item.id !== searchId));
       
-      toast.success('Search deleted');
+      showToast.success('Search deleted', { section: 'ai4gp' });
     } catch (error) {
       console.error('Error deleting search:', error);
-      toast.error('Failed to delete search');
+      showToast.error('Failed to delete search', { section: 'ai4gp' });
     }
   };
 
@@ -136,10 +136,10 @@ export const useSearchHistory = () => {
         )
       );
       
-      toast.success(newFlaggedState ? 'Search flagged' : 'Flag removed');
+      showToast.success(newFlaggedState ? 'Search flagged' : 'Flag removed', { section: 'ai4gp' });
     } catch (error) {
       console.error('Error toggling search flag:', error);
-      toast.error('Failed to update flag');
+      showToast.error('Failed to update flag', { section: 'ai4gp' });
     }
   };
 
@@ -169,10 +169,10 @@ export const useSearchHistory = () => {
         )
       );
       
-      toast.success(newProtectedState ? 'Search protected' : 'Protection removed');
+      showToast.success(newProtectedState ? 'Search protected' : 'Protection removed', { section: 'ai4gp' });
     } catch (error) {
       console.error('Error toggling search protection:', error);
-      toast.error('Failed to update protection');
+      showToast.error('Failed to update protection', { section: 'ai4gp' });
     }
   };
 

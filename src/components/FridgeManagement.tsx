@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Refrigerator, Plus, QrCode, AlertTriangle, Settings, Thermometer, CheckCircle, XCircle, User, Pencil, Download, Wifi, WifiOff } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import QRCode from 'qrcode-svg';
 import { Document, Paragraph, TextRun, Table as DocxTable, TableCell as DocxTableCell, TableRow as DocxTableRow, Packer, WidthType, AlignmentType, BorderStyle } from 'docx';
 import { saveAs } from 'file-saver';
@@ -152,7 +152,7 @@ export const FridgeManagement = () => {
       console.log('Fridges loaded with latest readings:', fridgesWithAlerts);
     } catch (error) {
       console.error('Error loading fridges:', error);
-      toast.error('Failed to load fridges');
+      showToast.error('Failed to load fridges', { section: 'system' });
     } finally {
       setLoading(false);
     }
@@ -204,7 +204,7 @@ export const FridgeManagement = () => {
       setTemperatureHistory(formattedData);
     } catch (error) {
       console.error('Error loading temperature history:', error);
-      toast.error('Failed to load temperature history');
+      showToast.error('Failed to load temperature history', { section: 'system' });
     } finally {
       setHistoryLoading(false);
     }
@@ -234,17 +234,17 @@ export const FridgeManagement = () => {
         }
       }
 
-      toast.success('All QR codes updated to current domain');
+      showToast.success('All QR codes updated to current domain', { section: 'system' });
       loadFridges(); // Reload to show updated data
     } catch (error) {
       console.error('Error updating QR codes:', error);
-      toast.error('Failed to update QR codes');
+      showToast.error('Failed to update QR codes', { section: 'system' });
     }
   };
 
   const handleCreateFridge = async () => {
     if (!user) {
-      toast.error('User not authenticated');
+      showToast.error('User not authenticated', { section: 'system' });
       return;
     }
 
@@ -253,11 +253,11 @@ export const FridgeManagement = () => {
     try {
       // Validate form data
       if (!formData.fridge_name.trim()) {
-        toast.error('Fridge name is required');
+        showToast.error('Fridge name is required', { section: 'system' });
         return;
       }
       if (!formData.location.trim()) {
-        toast.error('Location is required');
+        showToast.error('Location is required', { section: 'system' });
         return;
       }
 
@@ -271,7 +271,7 @@ export const FridgeManagement = () => {
       console.log('Practice data:', practiceData, 'Error:', practiceError);
 
       if (practiceError || !practiceData || practiceData.length === 0) {
-        toast.error('No practice found for user. Please contact your administrator.');
+        showToast.error('No practice found for user. Please contact your administrator.', { section: 'system' });
         return;
       }
 
@@ -302,7 +302,7 @@ export const FridgeManagement = () => {
       }
 
       console.log('Fridge created successfully');
-      toast.success('Fridge created successfully');
+      showToast.success('Fridge created successfully', { section: 'system' });
       setIsCreateModalOpen(false);
       setFormData({
         fridge_name: '',
@@ -313,7 +313,7 @@ export const FridgeManagement = () => {
       loadFridges();
     } catch (error) {
       console.error('Error creating fridge:', error);
-      toast.error(`Failed to create fridge: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      showToast.error(`Failed to create fridge: ${error instanceof Error ? error.message : 'Unknown error'}`, { section: 'system' });
     }
   };
 
@@ -363,11 +363,11 @@ export const FridgeManagement = () => {
 
     try {
       if (!editFormData.fridge_name.trim()) {
-        toast.error('Fridge name is required');
+        showToast.error('Fridge name is required', { section: 'system' });
         return;
       }
       if (!editFormData.location.trim()) {
-        toast.error('Location is required');
+        showToast.error('Location is required', { section: 'system' });
         return;
       }
 
@@ -381,19 +381,19 @@ export const FridgeManagement = () => {
 
       if (error) throw error;
 
-      toast.success('Fridge updated successfully');
+      showToast.success('Fridge updated successfully', { section: 'system' });
       setEditFridge(null);
       setEditFormData({ fridge_name: '', location: '' });
       loadFridges();
     } catch (error) {
       console.error('Error updating fridge:', error);
-      toast.error('Failed to update fridge');
+      showToast.error('Failed to update fridge', { section: 'system' });
     }
   };
 
   const toggleFridgeStatus = async (fridge: Fridge, newStatus: boolean) => {
     if (!user) {
-      toast.error('User not authenticated');
+      showToast.error('User not authenticated', { section: 'system' });
       return;
     }
 
@@ -419,17 +419,17 @@ export const FridgeManagement = () => {
 
       if (logError) throw logError;
 
-      toast.success(`Fridge is now ${newStatus ? 'online' : 'offline'}`);
+      showToast.success(`Fridge is now ${newStatus ? 'online' : 'offline'}`, { section: 'system' });
       loadFridges();
     } catch (error) {
       console.error('Error toggling fridge status:', error);
-      toast.error('Failed to update fridge status');
+      showToast.error('Failed to update fridge status', { section: 'system' });
     }
   };
 
   const downloadTemperatureHistoryAsWord = async (fridge: Fridge) => {
     if (temperatureHistory.length === 0) {
-      toast.error('No temperature readings to export');
+      showToast.error('No temperature readings to export', { section: 'system' });
       return;
     }
 
@@ -555,10 +555,10 @@ export const FridgeManagement = () => {
       const fileName = `${fridge.fridge_name.replace(/[^a-z0-9]/gi, '_')}_Temperature_Log_${format(new Date(), 'dd-MM-yyyy')}.docx`;
       saveAs(blob, fileName);
       
-      toast.success('Temperature log downloaded successfully');
+      showToast.success('Temperature log downloaded successfully', { section: 'system' });
     } catch (error) {
       console.error('Error generating Word document:', error);
-      toast.error('Failed to generate document');
+      showToast.error('Failed to generate document', { section: 'system' });
     }
   };
 

@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Label } from '@/components/ui/label';
-import { useToast } from '@/hooks/use-toast';
+import { showShadcnToast } from '@/utils/toastWrapper';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSecurityValidation } from '@/hooks/useSecurityValidation';
 import { supabase } from '@/integrations/supabase/client';
@@ -13,7 +13,6 @@ import { Shield, ArrowLeft, Mail, Lock, User, Eye, EyeOff } from 'lucide-react';
 
 export default function Auth() {
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { user } = useAuth();
   const { validateInput, validateEmail, checkRateLimit } = useSecurityValidation();
   const [isLoading, setIsLoading] = useState(false);
@@ -51,17 +50,19 @@ export default function Auth() {
           
           if (error) {
             console.error('Magic link session error:', error);
-            toast({
+            showShadcnToast({
               title: "Login Failed",
               description: "The magic link has expired or is invalid. Please request a new one.",
               variant: "destructive",
+              section: 'security',
             });
           } else {
             // Clear the hash from URL and redirect
             window.history.replaceState(null, '', window.location.pathname);
-            toast({
+            showShadcnToast({
               title: "Welcome!",
               description: "You have successfully logged in.",
+              section: 'security',
             });
             navigate('/');
             return;
@@ -78,7 +79,7 @@ export default function Auth() {
     };
     
     handleMagicLink();
-  }, [user, navigate, toast]);
+  }, [user, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,16 +123,18 @@ export default function Auth() {
         });
 
         if (error.message.includes('Invalid login credentials')) {
-          toast({
+          showShadcnToast({
             title: "Login Failed",
             description: "Invalid email or password. Please check your credentials and try again.",
             variant: "destructive",
+            section: 'security',
           });
         } else {
-          toast({
+          showShadcnToast({
             title: "Login Failed",
             description: error.message,
             variant: "destructive",
+            section: 'security',
           });
         }
       } else {
@@ -150,17 +153,19 @@ export default function Auth() {
           }
         });
 
-        toast({
+        showShadcnToast({
           title: "Welcome back!",
           description: "You have successfully logged in.",
+          section: 'security',
         });
         navigate('/');
       }
     } catch (error) {
-      toast({
+      showShadcnToast({
         title: "Login Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        section: 'security',
       });
     } finally {
       setIsLoading(false);
@@ -185,19 +190,21 @@ export default function Auth() {
     }
     
     if (signupForm.password !== signupForm.confirmPassword) {
-      toast({
+      showShadcnToast({
         title: "Password Mismatch",
         description: "Passwords do not match. Please check and try again.",
         variant: "destructive",
+        section: 'security',
       });
       return;
     }
 
     if (signupForm.password.length < 8) {
-      toast({
+      showShadcnToast({
         title: "Password Too Short",
         description: "Password must be at least 8 characters long and contain uppercase, lowercase, numbers, and symbols.",
         variant: "destructive",
+        section: 'security',
       });
       return;
     }
@@ -230,16 +237,18 @@ export default function Auth() {
         });
 
         if (error.message.includes('User already registered')) {
-          toast({
+          showShadcnToast({
             title: "Account Exists",
             description: "An account with this email already exists. Please try logging in instead.",
             variant: "destructive",
+            section: 'security',
           });
         } else {
-          toast({
+          showShadcnToast({
             title: "Registration Failed",
             description: error.message,
             variant: "destructive",
+            section: 'security',
           });
         }
       } else {
@@ -255,18 +264,20 @@ export default function Auth() {
           }
         });
 
-        toast({
+        showShadcnToast({
           title: "Registration Successful!",
           description: "Please check your email for a confirmation link to complete your registration.",
+          section: 'security',
         });
         // Clear the form
         setSignupForm({ email: '', password: '', confirmPassword: '' });
       }
     } catch (error) {
-      toast({
+      showShadcnToast({
         title: "Registration Error",
         description: "An unexpected error occurred. Please try again.",
         variant: "destructive",
+        section: 'security',
       });
     } finally {
       setIsLoading(false);
