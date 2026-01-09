@@ -67,8 +67,8 @@ const programmeBoardMeetings: Meeting[] = [
   }
 ];
 
-// Task & Finish Meetings with their documents
-const taskFinishMeetings: Meeting[] = [
+// Workgroup Meetings with their documents
+const workgroupMeetings: Meeting[] = [
   {
     id: 1,
     date: "Coming Soon",
@@ -126,7 +126,7 @@ const handleDownload = (filePath?: string) => {
 
 export const SDAEvidenceLibrary = () => {
   const [openProgrammeMeetings, setOpenProgrammeMeetings] = useState<number[]>([23]);
-  const [openTaskFinishMeetings, setOpenTaskFinishMeetings] = useState<number[]>([]);
+  const [openWorkgroupMeetings, setOpenWorkgroupMeetings] = useState<number[]>([]);
   const [openVcseMeetings, setOpenVcseMeetings] = useState<number[]>([1, 2]);
   const [showUserAccessModal, setShowUserAccessModal] = useState(false);
   
@@ -188,8 +188,8 @@ export const SDAEvidenceLibrary = () => {
     );
   };
 
-  const toggleTaskFinishMeeting = (meetingId: number) => {
-    setOpenTaskFinishMeetings(prev => 
+  const toggleWorkgroupMeeting = (meetingId: number) => {
+    setOpenWorkgroupMeetings(prev => 
       prev.includes(meetingId) 
         ? prev.filter(id => id !== meetingId)
         : [...prev, meetingId]
@@ -204,7 +204,7 @@ export const SDAEvidenceLibrary = () => {
     );
   };
 
-  const allMeetings = [...programmeBoardMeetings, ...taskFinishMeetings, ...vcseMeetings];
+  const allMeetings = [...programmeBoardMeetings, ...workgroupMeetings, ...vcseMeetings];
   const totalMeetingDocs = allMeetings.reduce((sum, m) => sum + m.documents.length, 0);
 
   const renderMeetingList = (
@@ -335,13 +335,13 @@ export const SDAEvidenceLibrary = () => {
         {renderMeetingList(programmeBoardMeetings, openProgrammeMeetings, toggleProgrammeMeeting, 'pb')}
       </div>
 
-      {/* Task & Finish Meetings Section */}
+      {/* Workgroup Meetings Section */}
       <div className="space-y-3">
         <h3 className="text-lg font-semibold text-slate-800 flex items-center gap-2">
           <Calendar className="w-5 h-5 text-emerald-600" />
-          Task & Finish Meetings
+          Workgroup Meetings
         </h3>
-        {renderMeetingList(taskFinishMeetings, openTaskFinishMeetings, toggleTaskFinishMeeting, 'tf')}
+        {renderMeetingList(workgroupMeetings, openWorkgroupMeetings, toggleWorkgroupMeeting, 'wg')}
       </div>
 
       {/* VCSE Infrastructure Partners Meetings Section */}
@@ -388,7 +388,7 @@ export const SDAEvidenceLibrary = () => {
                 </div>
                 <div className="flex-1">
                   <p className="font-semibold text-slate-900">22 December 2025 - Virtual Meeting</p>
-                  <p className="text-sm text-slate-500">Task & Finish Meeting</p>
+                  <p className="text-sm text-slate-500">Workgroup Meeting</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
