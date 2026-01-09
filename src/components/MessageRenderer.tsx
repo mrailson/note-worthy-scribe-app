@@ -1164,12 +1164,6 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             <Presentation className="h-4 w-4 mr-2" />
                             Download as PowerPoint Presentation
                           </DropdownMenuItem>
-                          {onExportPowerPointWithVoiceover && (
-                            <DropdownMenuItem onClick={handleExportPowerPointWithVoiceover}>
-                              <Volume2 className="h-4 w-4 mr-2" />
-                              Full PowerPoint with Voiceover
-                            </DropdownMenuItem>
-                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
