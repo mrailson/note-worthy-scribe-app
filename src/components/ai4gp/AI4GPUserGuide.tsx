@@ -40,7 +40,12 @@ import {
   NotebookPen,
   Search,
   Scale,
-  UserCheck
+  UserCheck,
+  Camera,
+  Download,
+  Play,
+  Palette,
+  Heart
 } from 'lucide-react';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
@@ -125,6 +130,14 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
                 <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
                 <span>Use the <strong>sidebar</strong> for quick access to tools, history, and recent meetings</span>
               </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <span>Generate <strong>AI images</strong>, <strong>QR codes</strong>, and <strong>voice files</strong> using the sidebar quick actions</span>
+              </li>
+              <li className="flex items-start gap-2">
+                <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                <span><strong>Download</strong> generated audio files as MP3s for offline use</span>
+              </li>
             </ul>
           </div>
         </div>
@@ -202,10 +215,10 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
-                <Zap className="w-4 h-4 text-yellow-600" />
+                <ImageIcon className="w-4 h-4 text-yellow-600" />
                 <div>
                   <strong className="text-sm">Quick Image</strong>
-                  <p className="text-xs text-gray-600">Generate AI images quickly</p>
+                  <p className="text-xs text-gray-600">Generate AI images with practice templates</p>
                 </div>
               </div>
               <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
@@ -213,6 +226,27 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
                 <div>
                   <strong className="text-sm">QR Code Generator</strong>
                   <p className="text-xs text-gray-600">Create QR codes with optional logo</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                <Heart className="w-4 h-4 text-red-600" />
+                <div>
+                  <strong className="text-sm">BP Average Service</strong>
+                  <p className="text-xs text-gray-600">Calculate blood pressure averages from readings</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                <Camera className="w-4 h-4 text-indigo-600" />
+                <div>
+                  <strong className="text-sm">LG Capture</strong>
+                  <p className="text-xs text-gray-600">Capture Lloyd George records and prescriptions</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded">
+                <Volume2 className="w-4 h-4 text-orange-600" />
+                <div>
+                  <strong className="text-sm">Audio Overview</strong>
+                  <p className="text-xs text-gray-600">Generate audio briefings from meetings</p>
                 </div>
               </div>
             </div>
@@ -798,6 +832,433 @@ export const AI4GPUserGuide = ({ isOpen, onClose }: AI4GPUserGuideProps) => {
                 <span>Chain multiple enhancements for complex formatting</span>
               </div>
             </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'image-generation',
+      title: 'Image Generation',
+      icon: <ImageIcon className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-pink-50 to-rose-50 p-4 rounded-lg border border-pink-200">
+            <h4 className="font-semibold text-pink-900 mb-2 flex items-center gap-2">
+              <ImageIcon className="w-4 h-4" />
+              AI Image Creation
+            </h4>
+            <p className="text-pink-800 text-sm">
+              Generate professional images for practice communications, social media, posters, and patient materials using AI.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">How to Access</h4>
+            <div className="grid md:grid-cols-2 gap-3">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                <ImageIcon className="w-5 h-5 text-pink-600" />
+                <div>
+                  <strong className="text-sm">Sidebar → Quick Image</strong>
+                  <p className="text-xs text-gray-600">Click Quick Image in the sidebar Quick Actions</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+                <Zap className="w-5 h-5 text-yellow-600" />
+                <div>
+                  <strong className="text-sm">+ Menu → Images</strong>
+                  <p className="text-xs text-gray-600">Use the attachment menu and select Images</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Practice Quick Picks</h4>
+            <p className="text-sm text-gray-600 mb-3">Pre-built templates for common practice needs:</p>
+            <div className="grid md:grid-cols-2 gap-2">
+              {[
+                { name: 'DNA Reminder Poster', desc: 'Did Not Attend appointment reminders' },
+                { name: 'Flu Campaign Social Media', desc: 'Seasonal flu vaccination promotion' },
+                { name: 'Opening Hours Notice', desc: 'Display practice opening times' },
+                { name: 'Staff Appreciation Post', desc: 'Celebrate team achievements' },
+                { name: 'Service Update Announcement', desc: 'New services or changes' },
+                { name: 'Health Awareness Campaign', desc: 'Public health messaging' }
+              ].map((template, i) => (
+                <div key={i} className="flex items-start gap-2 p-2 bg-pink-50 rounded border border-pink-200">
+                  <Sparkles className="w-4 h-4 text-pink-600 mt-0.5 flex-shrink-0" />
+                  <div>
+                    <strong className="text-xs text-pink-900">{template.name}</strong>
+                    <p className="text-xs text-pink-700">{template.desc}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Style Options</h4>
+            <div className="flex flex-wrap gap-1">
+              {[
+                'Photographic', 'Cartoon', 'Oil Painting', 'Watercolour', 
+                'Digital Art', 'Pencil Sketch', 'Minimalist', 'Vintage', 'Infographic'
+              ].map(style => (
+                <Badge key={style} variant="outline" className="text-xs">
+                  <Palette className="w-3 h-3 mr-1" />
+                  {style}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <h5 className="font-semibold text-blue-800 mb-2 flex items-center gap-2">
+                <Mic className="w-4 h-4" />
+                Voice Input
+              </h5>
+              <p className="text-sm text-blue-700">
+                Use the microphone button to describe your image using voice instead of typing.
+              </p>
+            </div>
+
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+              <h5 className="font-semibold text-purple-800 mb-2 flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Practice Details
+              </h5>
+              <p className="text-sm text-purple-700">
+                Toggle to automatically include your practice name and contact information in generated images.
+              </p>
+            </div>
+          </div>
+
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h5 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Saving & Downloading
+            </h5>
+            <ul className="text-sm text-green-700 space-y-1">
+              <li>• Click <strong>Download</strong> to save images as PNG files</li>
+              <li>• Images are saved to your <strong>Image Gallery</strong> for later use</li>
+              <li>• Re-use previously generated images from the gallery</li>
+            </ul>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'qr-codes',
+      title: 'QR Code Generator',
+      icon: <QrCode className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-gray-50 to-slate-50 p-4 rounded-lg border border-gray-300">
+            <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
+              <QrCode className="w-4 h-4" />
+              QR Code Creation
+            </h4>
+            <p className="text-gray-700 text-sm">
+              Generate QR codes for websites, appointment links, patient information, and more. Optional logo embedding available.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">How to Access</h4>
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+              <QrCode className="w-5 h-5 text-gray-700" />
+              <div>
+                <strong className="text-sm">Sidebar → QR Code Generator</strong>
+                <p className="text-xs text-gray-600">Click "QR Code Generator" in the Quick Actions section</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-semibold">Creating a QR Code</h4>
+            <div className="space-y-3">
+              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded">
+                <div className="bg-gray-200 rounded-full p-1 mt-0.5">
+                  <span className="text-gray-800 font-bold text-xs">1</span>
+                </div>
+                <div>
+                  <strong className="text-sm">Enter URL</strong>
+                  <p className="text-xs text-gray-600 mt-1">Enter the full URL including http:// or https://</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded">
+                <div className="bg-gray-200 rounded-full p-1 mt-0.5">
+                  <span className="text-gray-800 font-bold text-xs">2</span>
+                </div>
+                <div>
+                  <strong className="text-sm">Choose Size</strong>
+                  <p className="text-xs text-gray-600 mt-1">Select 256×256, 512×512, or 1024×1024 pixels</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded">
+                <div className="bg-gray-200 rounded-full p-1 mt-0.5">
+                  <span className="text-gray-800 font-bold text-xs">3</span>
+                </div>
+                <div>
+                  <strong className="text-sm">Add Logo (Optional)</strong>
+                  <p className="text-xs text-gray-600 mt-1">Toggle to include a custom logo in the centre</p>
+                </div>
+              </div>
+
+              <div className="flex items-start gap-3 p-3 bg-gray-50 rounded">
+                <div className="bg-gray-200 rounded-full p-1 mt-0.5">
+                  <span className="text-gray-800 font-bold text-xs">4</span>
+                </div>
+                <div>
+                  <strong className="text-sm">Generate & Download</strong>
+                  <p className="text-xs text-gray-600 mt-1">Click Generate, then download as PNG</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <h5 className="font-semibold text-amber-800 mb-2 flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Error Correction Levels
+            </h5>
+            <div className="grid grid-cols-2 gap-2 text-xs text-amber-700">
+              <div><strong>Low (7%)</strong> - Smallest QR code</div>
+              <div><strong>Medium (15%)</strong> - Balanced</div>
+              <div><strong>Quartile (25%)</strong> - Better with logos</div>
+              <div><strong>High (30%)</strong> - Best for printing</div>
+            </div>
+            <p className="text-xs text-amber-600 mt-2">
+              Higher error correction allows more of the QR code to be obscured (e.g., by a logo) whilst remaining scannable.
+            </p>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h5 className="font-semibold text-blue-800 mb-2">Common Uses</h5>
+            <div className="flex flex-wrap gap-1">
+              {[
+                'Practice website', 'Online booking', 'Patient portal', 'NHS App', 
+                'Feedback forms', 'Patient leaflets', 'Prescription info', 'Event registration'
+              ].map(use => (
+                <Badge key={use} variant="secondary" className="text-xs">{use}</Badge>
+              ))}
+            </div>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'voice-files',
+      title: 'Voice File Generation',
+      icon: <Volume2 className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-orange-50 to-amber-50 p-4 rounded-lg border border-orange-200">
+            <h4 className="font-semibold text-orange-900 mb-2 flex items-center gap-2">
+              <Volume2 className="w-4 h-4" />
+              Audio Generation & Download
+            </h4>
+            <p className="text-orange-800 text-sm">
+              Generate voice audio files from text content, meeting summaries, and briefings. Download as MP3 for offline listening.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Audio Features</h4>
+            <div className="grid md:grid-cols-2 gap-4">
+              <Card className="border-orange-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-orange-800 flex items-center gap-2 text-base">
+                    <NotebookPen className="w-4 h-4" />
+                    Meeting Audio Overviews
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-gray-700">
+                  <p className="mb-2">Generate spoken briefings from meeting transcripts:</p>
+                  <ol className="text-xs space-y-1 text-gray-600">
+                    <li>1. Open any meeting from Recent Meetings</li>
+                    <li>2. Click "Generate Audio Overview"</li>
+                    <li>3. Choose voice and duration</li>
+                    <li>4. Download MP3 for playback</li>
+                  </ol>
+                </CardContent>
+              </Card>
+
+              <Card className="border-purple-200">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-purple-800 flex items-center gap-2 text-base">
+                    <Volume2 className="w-4 h-4" />
+                    Audio Overview Studio
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="text-sm text-gray-700">
+                  <p className="mb-2">Create custom audio from any text:</p>
+                  <ol className="text-xs space-y-1 text-gray-600">
+                    <li>1. Navigate to Audio Overview Studio</li>
+                    <li>2. Paste or upload content</li>
+                    <li>3. Select voice and style</li>
+                    <li>4. Generate and download audio</li>
+                  </ol>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Voice Selection</h4>
+            <p className="text-sm text-gray-600 mb-3">Choose from a variety of British and American voices:</p>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+              {[
+                { name: 'Alice', accent: 'British Female' },
+                { name: 'Lily', accent: 'British Female' },
+                { name: 'George', accent: 'British Male' },
+                { name: 'Brian', accent: 'American Male' },
+                { name: 'Matilda', accent: 'American Female' },
+                { name: 'Will', accent: 'American Male' },
+                { name: 'Charlotte', accent: 'British Female' },
+                { name: 'Daniel', accent: 'British Male' }
+              ].map(voice => (
+                <div key={voice.name} className="p-2 bg-orange-50 rounded border border-orange-200 text-center">
+                  <strong className="text-xs text-orange-900">{voice.name}</strong>
+                  <p className="text-xs text-orange-700">{voice.accent}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <h5 className="font-semibold text-blue-800 mb-3 flex items-center gap-2">
+              <Play className="w-4 h-4" />
+              Audio Player Controls
+            </h5>
+            <p className="text-sm text-blue-700 mb-2">
+              When audio is generated, a player appears with these controls:
+            </p>
+            <ul className="text-xs space-y-1 text-blue-600">
+              <li>• <strong>Play/Pause</strong> - Start or pause playback</li>
+              <li>• <strong>Progress Bar</strong> - Scrub through the audio</li>
+              <li>• <strong>Restart</strong> - Return to the beginning</li>
+              <li>• <strong>Download</strong> - Save as MP3 file</li>
+              <li>• <strong>Speed Control</strong> - Adjust playback speed</li>
+            </ul>
+          </div>
+
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+            <h5 className="font-semibold text-green-800 mb-2 flex items-center gap-2">
+              <Download className="w-4 h-4" />
+              Downloading Audio Files
+            </h5>
+            <ul className="text-sm text-green-700 space-y-1">
+              <li>• Click the <strong>Download</strong> button on any audio player</li>
+              <li>• Files are saved as high-quality <strong>MP3</strong> format</li>
+              <li>• Perfect for listening during commutes or offline</li>
+              <li>• Share audio briefings with colleagues</li>
+            </ul>
+          </div>
+        </div>
+      )
+    },
+    {
+      id: 'lg-capture',
+      title: 'LG Capture Service',
+      icon: <Camera className="w-4 h-4" />,
+      content: (
+        <div className="space-y-6">
+          <div className="bg-gradient-to-r from-indigo-50 to-violet-50 p-4 rounded-lg border border-indigo-200">
+            <h4 className="font-semibold text-indigo-900 mb-2 flex items-center gap-2">
+              <Camera className="w-4 h-4" />
+              Lloyd George Capture
+            </h4>
+            <p className="text-indigo-800 text-sm">
+              Capture and process Lloyd George records, prescriptions, and medical documents using your device camera or file upload.
+            </p>
+          </div>
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">How to Access</h4>
+            <div className="flex items-center gap-3 p-3 bg-gray-50 rounded border">
+              <Camera className="w-5 h-5 text-indigo-600" />
+              <div>
+                <strong className="text-sm">Sidebar → LG Capture</strong>
+                <p className="text-xs text-gray-600">Click "LG Capture" in the Quick Actions section</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-4">
+            <Card className="border-blue-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-blue-800 flex items-center gap-2 text-base">
+                  <Camera className="w-4 h-4" />
+                  Camera Capture
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-700">
+                <p className="mb-2">Use your device camera to photograph documents:</p>
+                <ul className="text-xs space-y-1 text-gray-600">
+                  <li>• Position document in frame</li>
+                  <li>• Ensure good lighting</li>
+                  <li>• Capture automatically processes</li>
+                  <li>• OCR extracts text content</li>
+                </ul>
+              </CardContent>
+            </Card>
+
+            <Card className="border-green-200">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-green-800 flex items-center gap-2 text-base">
+                  <Upload className="w-4 h-4" />
+                  File Upload
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="text-sm text-gray-700">
+                <p className="mb-2">Upload existing digital files:</p>
+                <ul className="text-xs space-y-1 text-gray-600">
+                  <li>• PDF documents</li>
+                  <li>• Scanned images (JPG, PNG)</li>
+                  <li>• Multiple files at once</li>
+                  <li>• Drag and drop supported</li>
+                </ul>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="space-y-3">
+            <h4 className="font-semibold">Document Types</h4>
+            <div className="flex flex-wrap gap-1">
+              {[
+                'Lloyd George Records', 'Prescriptions', 'Referral Letters', 
+                'Test Results', 'Hospital Discharge', 'GP Letters', 
+                'Consent Forms', 'Medical Certificates'
+              ].map(type => (
+                <Badge key={type} variant="outline" className="text-xs">
+                  <FileText className="w-3 h-3 mr-1" />
+                  {type}
+                </Badge>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+            <h5 className="font-semibold text-amber-800 mb-2 flex items-center gap-2">
+              <Info className="w-4 h-4" />
+              Patient Information
+            </h5>
+            <p className="text-sm text-amber-700">
+              Link captures to patient records by entering patient details. This helps organise documents and enables searching by patient.
+            </p>
+          </div>
+
+          <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+            <h5 className="font-semibold text-purple-800 mb-2">Processing Pipeline</h5>
+            <ol className="text-sm text-purple-700 space-y-1">
+              <li>1. <strong>Capture/Upload</strong> - Document is received</li>
+              <li>2. <strong>OCR Processing</strong> - Text is extracted automatically</li>
+              <li>3. <strong>Document Classification</strong> - Type is identified</li>
+              <li>4. <strong>Review</strong> - View extracted content and edit if needed</li>
+              <li>5. <strong>Storage</strong> - Saved to recent captures for access</li>
+            </ol>
           </div>
         </div>
       )
