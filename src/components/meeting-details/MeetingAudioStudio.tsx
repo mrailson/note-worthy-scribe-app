@@ -8,7 +8,7 @@ import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { PronunciationDialog } from '../notebook/PronunciationDialog';
 import { 
   loadPronunciationLibrary, 
@@ -114,13 +114,13 @@ export const MeetingAudioStudio = ({
         setOriginalText(data.narrativeText);
         setEditedText(data.narrativeText);
         setScriptGenerated(true);
-        toast.success('Script generated successfully');
+        showToast.success('Script generated successfully', { section: 'meeting_manager' });
       } else {
         throw new Error('No script text returned');
       }
     } catch (error: any) {
       console.error('Script generation error:', error);
-      toast.error(error.message || 'Failed to generate script');
+      showToast.error(error.message || 'Failed to generate script', { section: 'meeting_manager' });
     } finally {
       setIsGeneratingScript(false);
     }
@@ -161,16 +161,16 @@ export const MeetingAudioStudio = ({
         setPreviewBarUrl(data.audioUrl);
 
         if (appliedCount > 0) {
-          toast.success(`Preview ready with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`);
+          showToast.success(`Preview ready with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`, { section: 'meeting_manager' });
         } else {
-          toast.success('Preview ready');
+          showToast.success('Preview ready', { section: 'meeting_manager' });
         }
       } else {
         throw new Error('No audio URL returned');
       }
     } catch (error: any) {
       console.error('Preview generation error:', error);
-      toast.error(error.message || 'Failed to generate preview');
+      showToast.error(error.message || 'Failed to generate preview', { section: 'meeting_manager' });
     } finally {
       setIsGeneratingPreview(null);
     }
@@ -207,9 +207,9 @@ export const MeetingAudioStudio = ({
         setAudioUrl(data.audioUrl);
         setAudioDuration(data.duration || null);
         if (appliedCount > 0) {
-          toast.success(`Audio generated with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`);
+          showToast.success(`Audio generated with ${appliedCount} pronunciation rule${appliedCount > 1 ? 's' : ''}`, { section: 'meeting_manager' });
         } else {
-          toast.success('Full audio generated successfully');
+          showToast.success('Full audio generated successfully', { section: 'meeting_manager' });
         }
         onAudioGenerated?.();
       } else {
@@ -217,7 +217,7 @@ export const MeetingAudioStudio = ({
       }
     } catch (error: any) {
       console.error('Audio generation error:', error);
-      toast.error(error.message || 'Failed to generate audio');
+      showToast.error(error.message || 'Failed to generate audio', { section: 'meeting_manager' });
     } finally {
       setIsGeneratingAudio(false);
     }
@@ -226,7 +226,7 @@ export const MeetingAudioStudio = ({
   const handleResetScript = () => {
     setEditedText(originalText);
     setIsEditing(false);
-    toast.success('Script reset to original');
+    showToast.success('Script reset to original', { section: 'meeting_manager' });
   };
 
   const handleStartOver = () => {
@@ -237,7 +237,7 @@ export const MeetingAudioStudio = ({
     setVoicePreviews({});
     setPreviewBarUrl(null);
     setPreviewBarVoiceId(null);
-    toast.success('Ready to generate new script');
+    showToast.success('Ready to generate new script', { section: 'meeting_manager' });
   };
 
   const handleDownload = () => {
@@ -249,7 +249,7 @@ export const MeetingAudioStudio = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    toast.success('Audio downloaded');
+    showToast.success('Audio downloaded', { section: 'meeting_manager' });
   };
 
   const handleAddPronunciation = (rule: Omit<PronunciationRule, 'id' | 'createdAt'>) => {
@@ -260,7 +260,7 @@ export const MeetingAudioStudio = ({
   const handleRemovePronunciation = (id: string) => {
     const updatedRules = removePronunciationRule(id);
     setPronunciationRules(updatedRules);
-    toast.success('Pronunciation rule removed');
+    showToast.success('Pronunciation rule removed', { section: 'meeting_manager' });
   };
 
   const handleTestPronunciation = async (rule: PronunciationRule) => {
@@ -284,13 +284,13 @@ export const MeetingAudioStudio = ({
 
       if (data.audioUrl) {
         setPronunciationTestUrl(data.audioUrl);
-        toast.success('Test audio ready');
+        showToast.success('Test audio ready', { section: 'meeting_manager' });
       } else {
         throw new Error('No audio URL returned');
       }
     } catch (error: any) {
       console.error('Pronunciation test error:', error);
-      toast.error(error.message || 'Failed to generate test audio');
+      showToast.error(error.message || 'Failed to generate test audio', { section: 'meeting_manager' });
     } finally {
       setTestingPronunciation(null);
     }
@@ -298,12 +298,12 @@ export const MeetingAudioStudio = ({
 
   const handleCopyScript = () => {
     navigator.clipboard.writeText(editedText);
-    toast.success('Script copied to clipboard');
+    showToast.success('Script copied to clipboard', { section: 'meeting_manager' });
   };
 
   const handleSendToEmail = async () => {
     if (!user?.email || !audioUrl) {
-      toast.error('Missing user email or audio URL');
+      showToast.error('Missing user email or audio URL', { section: 'meeting_manager' });
       return;
     }
     
@@ -320,10 +320,10 @@ export const MeetingAudioStudio = ({
       
       if (error) throw error;
       
-      toast.success('Audio summary sent to your email');
+      showToast.success('Audio summary sent to your email', { section: 'meeting_manager' });
     } catch (error: any) {
       console.error('Email send error:', error);
-      toast.error(error.message || 'Failed to send email');
+      showToast.error(error.message || 'Failed to send email', { section: 'meeting_manager' });
     } finally {
       setIsSendingEmail(false);
     }

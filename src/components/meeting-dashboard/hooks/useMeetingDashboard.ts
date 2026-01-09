@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { toast } from "sonner";
+import { showToast } from '@/utils/toastWrapper';
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -108,7 +108,7 @@ export const useMeetingDashboard = () => {
       }
     } catch (error) {
       console.error("Failed to process chunks:", error);
-      toast.error("Failed to process transcript chunks");
+      showToast.error("Failed to process transcript chunks", { section: 'meeting_manager' });
     }
   }, [meetingMetadata]);
 

@@ -16,7 +16,7 @@ import {
   BookOpen,
   Palette
 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 const categoryIcons = {
   format: FileText,
@@ -61,7 +61,7 @@ export const MeetingTemplatesTab: React.FC = () => {
     const fileExt = '.' + file.name.split('.').pop()?.toLowerCase();
     
     if (!allowedTypes.includes(fileExt)) {
-      toast.error('Please upload .txt, .docx, .pdf, .json, or .md files only');
+      showToast.error('Please upload .txt, .docx, .pdf, .json, or .md files only', { section: 'meeting_manager' });
       return;
     }
 
@@ -75,7 +75,7 @@ export const MeetingTemplatesTab: React.FC = () => {
       setPreviewContent(content);
       setPreviewTemplate(template);
     } else {
-      toast.info('Preview is only available for text and JSON files');
+      showToast.info('Preview is only available for text and JSON files', { section: 'meeting_manager' });
     }
   };
 

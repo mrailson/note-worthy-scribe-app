@@ -6,7 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Progress } from '@/components/ui/progress';
 import { FileText, FileAudio, Upload, Clipboard, Trash2, Loader2, CheckCircle2, AlertCircle, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { AudioImport } from '@/components/gpscribe/AudioImport';
 import { useMeetingImporter } from '@/hooks/useMeetingImporter';
 import { FileImporter } from '@/utils/FileImporter';
@@ -34,14 +34,14 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
     try {
       const text = await navigator.clipboard.readText();
       if (!text.trim()) {
-        toast.error('No text found in clipboard');
+        showToast.error('No text found in clipboard', { section: 'meeting_manager' });
         return;
       }
       setImportText(text);
-      toast.success('Text pasted from clipboard');
+      showToast.success('Text pasted from clipboard', { section: 'meeting_manager' });
     } catch (error) {
       console.error('Failed to read clipboard:', error);
-      toast.error('Failed to read clipboard. Please paste manually.');
+      showToast.error('Failed to read clipboard. Please paste manually.', { section: 'meeting_manager' });
     }
   };
 
@@ -51,35 +51,35 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
 
     // Check file size (1MB limit)
     if (file.size > 1024 * 1024) {
-      toast.error('File too large. Maximum size is 1MB.');
+      showToast.error('File too large. Maximum size is 1MB.', { section: 'meeting_manager' });
       return;
     }
 
     try {
-      toast.info('Processing file...');
+      showToast.info('Processing file...', { section: 'meeting_manager' });
       
       // Use FileImporter for Word/PDF files, or direct read for text
       if (file.name.endsWith('.docx') || file.name.endsWith('.doc') || file.name.endsWith('.pdf')) {
         const result = await FileImporter.importTranscriptFile(file);
         setImportText(result.content);
-        toast.success(`Loaded ${result.wordCount} words from ${file.name}`);
+        showToast.success(`Loaded ${result.wordCount} words from ${file.name}`, { section: 'meeting_manager' });
       } else if (file.type.startsWith('text/') || file.name.endsWith('.txt')) {
         const reader = new FileReader();
         reader.onload = (e) => {
           const text = e.target?.result as string;
           if (text) {
             setImportText(text);
-            toast.success(`Loaded text from ${file.name}`);
+            showToast.success(`Loaded text from ${file.name}`, { section: 'meeting_manager' });
           }
         };
-        reader.onerror = () => toast.error('Failed to read file');
+        reader.onerror = () => showToast.error('Failed to read file', { section: 'meeting_manager' });
         reader.readAsText(file);
       } else {
-        toast.error('Unsupported file type. Please upload .txt, .doc, .docx, or .pdf files');
+        showToast.error('Unsupported file type. Please upload .txt, .doc, .docx, or .pdf files', { section: 'meeting_manager' });
       }
     } catch (error) {
       console.error('File upload error:', error);
-      toast.error('Failed to process file');
+      showToast.error('Failed to process file', { section: 'meeting_manager' });
     }
     
     event.target.value = '';
@@ -87,7 +87,7 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
 
   const handleImportTranscript = async () => {
     if (!importText.trim()) {
-      toast.error('No text to import');
+      showToast.error('No text to import', { section: 'meeting_manager' });
       return;
     }
 
@@ -103,11 +103,11 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
     try {
       const meetingId = await importMeeting(meetingData);
       setImportText('');
-      toast.success('Meeting created and notes are being generated');
+      showToast.success('Meeting created and notes are being generated', { section: 'meeting_manager' });
       onMeetingCreated?.(meetingId);
     } catch (error) {
       console.error('Import failed:', error);
-      toast.error('Failed to import meeting');
+      showToast.error('Failed to import meeting', { section: 'meeting_manager' });
     }
   };
 
@@ -123,11 +123,11 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
 
     try {
       const meetingId = await importMeeting(meetingData);
-      toast.success('Audio imported and notes are being generated');
+      showToast.success('Audio imported and notes are being generated', { section: 'meeting_manager' });
       onMeetingCreated?.(meetingId);
     } catch (error) {
       console.error('Audio import failed:', error);
-      toast.error('Failed to import audio');
+      showToast.error('Failed to import audio', { section: 'meeting_manager' });
     }
   };
 
@@ -145,11 +145,11 @@ export const MeetingImporter: React.FC<MeetingImporterProps> = ({
 
     try {
       const meetingId = await importMeeting(meetingData);
-      toast.success(`Demo meeting "${demo.title}" loaded successfully!`);
+      showToast.success(`Demo meeting "${demo.title}" loaded successfully!`, { section: 'meeting_manager' });
       onMeetingCreated?.(meetingId);
     } catch (error) {
       console.error('Demo import failed:', error);
-      toast.error('Failed to load demo meeting');
+      showToast.error('Failed to load demo meeting', { section: 'meeting_manager' });
     }
   };
 

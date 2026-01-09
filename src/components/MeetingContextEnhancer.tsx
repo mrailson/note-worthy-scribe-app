@@ -24,7 +24,7 @@ import {
 } from "lucide-react";
 import { SpeechToText } from "@/components/SpeechToText";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { showToast } from '@/utils/toastWrapper';
 import { SimpleFileUpload } from "@/components/SimpleFileUpload";
 import { useFileUpload } from "@/hooks/useFileUpload";
 import { FileUploadArea } from "@/components/ai4gp/FileUploadArea";
@@ -118,7 +118,7 @@ export function MeetingContextEnhancer({
         setMeetingLocation(text);
         break;
     }
-    toast.success("Speech added successfully");
+    showToast.success("Speech added successfully", { section: 'meeting_manager' });
   };
 
   const handleAgendaUpload = async (files: File[]) => {
@@ -248,10 +248,10 @@ export function MeetingContextEnhancer({
 
       if (error) throw error;
       
-      toast.success("Notes regeneration started with updated context");
+      showToast.success("Notes regeneration started with updated context", { section: 'meeting_manager' });
     } catch (error) {
       console.error('Error regenerating notes:', error);
-      toast.error('Failed to regenerate notes with context');
+      showToast.error('Failed to regenerate notes with context', { section: 'meeting_manager' });
     }
   };
 

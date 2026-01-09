@@ -4,13 +4,13 @@ import { MeetingConfiguration } from "../MeetingConfiguration";
 import { MeetingImporter } from "../MeetingImporter";
 import { useDashboard } from "../utils/DashboardContext";
 import { Settings, Upload } from "lucide-react";
-import { toast } from "sonner";
+import { showToast } from '@/utils/toastWrapper';
 
 export const MeetingSetupTab = () => {
   const { meetingConfig, updateMeetingConfig } = useDashboard();
 
   const handleMeetingCreated = (meetingId: string) => {
-    toast.success(`Meeting created successfully! ID: ${meetingId}`);
+    showToast.success(`Meeting created successfully! ID: ${meetingId}`, { section: 'meeting_manager' });
     // Could navigate to the meeting or refresh history here
   };
 
