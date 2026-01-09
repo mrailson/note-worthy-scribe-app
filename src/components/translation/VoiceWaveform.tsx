@@ -19,14 +19,14 @@ export const VoiceWaveform: React.FC<VoiceWaveformProps> = ({
   ];
 
   return (
-    <div className={cn('flex items-center gap-0.5 h-4', className)}>
+    <div className={cn('flex items-center gap-0.5 h-4 shrink-0', className)}>
       {bars.map((bar, i) => (
         <div
           key={i}
           className={cn(
-            'w-1 rounded-full bg-primary/70 transition-all',
-            isActive ? 'animate-voice-wave' : bar.height,
-            !isActive && 'opacity-40'
+            'w-1 rounded-full bg-current transition-all',
+            isActive ? 'animate-voice-wave opacity-90' : bar.height,
+            !isActive && 'opacity-60'
           )}
           style={{
             animationDelay: isActive ? bar.delay : '0ms',
