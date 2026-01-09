@@ -179,6 +179,7 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
         onSilenceThresholdChange={onSilenceThresholdChange}
         onManualSend={onManualSend}
         isListening={isListening}
+        isVoiceActive={isListening && !!currentTranscript && !isProcessing && !isSpeaking}
         isMuted={isMuted}
         onMuteToggle={onMuteToggle}
         volume={volume}
