@@ -6,6 +6,44 @@ import { preprocessTextForTTS } from '@/utils/ttsTextPreprocessor';
 
 // Use any for Web Speech API to avoid type conflicts with global declarations
 type WebSpeechRecognition = any;
+
+const SPEECH_RECOGNITION_LOCALES: Record<string, string> = {
+  en: 'en-GB',
+  fr: 'fr-FR',
+  es: 'es-ES',
+  pt: 'pt-PT',
+  de: 'de-DE',
+  it: 'it-IT',
+  nl: 'nl-NL',
+  pl: 'pl-PL',
+  ro: 'ro-RO',
+  ar: 'ar-SA',
+  hi: 'hi-IN',
+  ur: 'ur-PK',
+  pa: 'pa-IN',
+  bn: 'bn-BD',
+  tr: 'tr-TR',
+  fa: 'fa-IR',
+  he: 'he-IL',
+  sv: 'sv-SE',
+  no: 'no-NO',
+  da: 'da-DK',
+  fi: 'fi-FI',
+  ru: 'ru-RU',
+  uk: 'uk-UA',
+  zh: 'zh-CN',
+  ja: 'ja-JP',
+  ko: 'ko-KR',
+  vi: 'vi-VN',
+  th: 'th-TH',
+  id: 'id-ID',
+  ms: 'ms-MY',
+  tl: 'fil-PH',
+};
+
+const toSpeechRecognitionLocale = (languageCode: string) =>
+  SPEECH_RECOGNITION_LOCALES[languageCode] ?? languageCode;
+
 export interface ConversationEntry {
   id: string;
   speaker: 'gp' | 'patient';
@@ -76,7 +114,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     recognition.maxAlternatives = 1;
     
     // Set language based on speaker mode
-    recognition.lang = speakerMode === 'gp' ? 'en-GB' : selectedLanguage;
+    recognition.lang = speakerMode === 'gp' ? 'en-GB' : toSpeechRecognitionLocale(selectedLanguage);
     
     return recognition;
   }, [speakerMode, selectedLanguage, onError]);
@@ -96,6 +134,29 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
       return text;
     }
   }, [onError]);
+
+  // Translate and let Google auto-detect the source language
+  const translateTextAutoDetect = useCallback(
+    async (text: string, toLang: string): Promise<{ translatedText: string; detectedSourceLanguage?: string }> => {
+      try {
+        const { data, error } = await supabase.functions.invoke('translate-text', {
+          body: { text, targetLanguage: toLang },
+        });
+
+        if (error) throw error;
+
+        return {
+          translatedText: data.translatedText || text,
+          detectedSourceLanguage: data.sourceLanguage,
+        };
+      } catch (err) {
+        console.error('Auto-detect translation error:', err);
+        onError?.('Translation failed. Please try again.');
+        return { translatedText: text };
+      }
+    },
+    [onError]
+  );
 
   // Generate speech using ElevenLabs
   const generateSpeech = useCallback(async (text: string, languageCode: string): Promise<string | null> => {
@@ -215,9 +276,40 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     try {
       let englishText: string;
       let translatedText: string;
-      let detectedSpeaker = speakerMode;
+      let detectedSpeaker: 'gp' | 'patient' = speakerMode;
 
-      if (speakerMode === 'gp') {
+      if (autoDetect) {
+        // Detect source language by translating to English WITHOUT providing a source.
+        const autoEnglish = await translateTextAutoDetect(text, 'en');
+        const detectedLang = autoEnglish.detectedSourceLanguage?.toLowerCase();
+
+        if (detectedLang === 'en') {
+          detectedSpeaker = 'gp';
+        } else if (detectedLang) {
+          detectedSpeaker = 'patient';
+        }
+
+        if (detectedSpeaker !== speakerMode) {
+          onSpeakerDetected?.(detectedSpeaker);
+        }
+
+        if (detectedSpeaker === 'gp') {
+          // GP spoke English -> translate to patient's language
+          englishText = text;
+          translatedText = await translateText(text, 'en', selectedLanguage);
+          // Clean up text for natural TTS delivery with language-specific filler removal
+          const cleanedTranslation = preprocessTextForTTS(translatedText, selectedLanguage);
+          queueAudio(cleanedTranslation, selectedLanguage);
+        } else {
+          // Patient spoke (detected) -> translate to English
+          translatedText = text;
+          englishText = autoEnglish.translatedText || text;
+          // Clean up English text for natural TTS delivery
+          const cleanedEnglish = preprocessTextForTTS(englishText, 'en');
+          // Optionally play English for GP verification (can be toggled)
+          // queueAudio(cleanedEnglish, 'en');
+        }
+      } else if (speakerMode === 'gp') {
         // GP spoke English -> translate to patient's language
         englishText = text;
         translatedText = await translateText(text, 'en', selectedLanguage);
@@ -232,19 +324,6 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
         const cleanedEnglish = preprocessTextForTTS(englishText, 'en');
         // Optionally play English for GP verification (can be toggled)
         // queueAudio(cleanedEnglish, 'en');
-      }
-
-      // Auto-detect speaker based on language if enabled
-      if (autoDetect) {
-        // Simple heuristic: if text contains mostly non-ASCII, likely patient
-        const nonAsciiRatio = (text.match(/[^\x00-\x7F]/g) || []).length / text.length;
-        if (nonAsciiRatio > 0.3 && speakerMode === 'gp') {
-          detectedSpeaker = 'patient';
-          onSpeakerDetected?.('patient');
-        } else if (nonAsciiRatio < 0.1 && speakerMode === 'patient') {
-          detectedSpeaker = 'gp';
-          onSpeakerDetected?.('gp');
-        }
       }
 
       const entry: ConversationEntry = {
@@ -265,7 +344,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     } finally {
       setIsProcessing(false);
     }
-  }, [speakerMode, selectedLanguage, translateText, queueAudio, autoDetect, onSpeakerDetected, onError]);
+  }, [speakerMode, selectedLanguage, translateText, translateTextAutoDetect, queueAudio, autoDetect, onSpeakerDetected, onError]);
 
   // Start listening
   const startListening = useCallback(async () => {
@@ -451,7 +530,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   // Update recognition language when speaker mode changes
   useEffect(() => {
     if (recognitionRef.current && isListening) {
-      recognitionRef.current.lang = speakerMode === 'gp' ? 'en-GB' : selectedLanguage;
+      recognitionRef.current.lang = speakerMode === 'gp' ? 'en-GB' : toSpeechRecognitionLocale(selectedLanguage);
     }
   }, [speakerMode, selectedLanguage, isListening]);
 
