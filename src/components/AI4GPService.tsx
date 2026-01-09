@@ -18,6 +18,7 @@ import { FloatingMobileInput, FloatingMobileInputRef } from '@/components/ai4gp/
 
 import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
+import { PMHomeScreen } from '@/components/ai4gp/PMHomeScreen';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { MicroBanner, ShortCard, CollapsibleShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
@@ -776,15 +777,23 @@ const AI4GPService = () => {
                               </div>
                             )}
                             
-                            <QuickActionsPanel
-                              showAllQuickActions={showAllQuickActions}
-                              setShowAllQuickActions={setShowAllQuickActions}
-                              setInput={setInput}
-                              selectedRole={selectedRole}
-                              onInsertIntoChat={setInput}
-                              onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
-                              onOpenDocumentTranslate={() => setShowDocumentTranslate(true)}
-                            />
+                            {/* Show PMHomeScreen for Practice Managers, QuickActionsPanel for GP */}
+                            {selectedRole === 'practice-manager' ? (
+                              <PMHomeScreen
+                                setInput={setInput}
+                                focusInput={() => inputRef.current?.focus()}
+                              />
+                            ) : (
+                              <QuickActionsPanel
+                                showAllQuickActions={showAllQuickActions}
+                                setShowAllQuickActions={setShowAllQuickActions}
+                                setInput={setInput}
+                                selectedRole={selectedRole}
+                                onInsertIntoChat={setInput}
+                                onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
+                                onOpenDocumentTranslate={() => setShowDocumentTranslate(true)}
+                              />
+                            )}
                             
                             {/* Collapsible Short Card Disclaimer - Only show for GP role and if user hasn't logged in for a week */}
                             {selectedRole === 'gp' && shouldShowDisclaimer() && (
