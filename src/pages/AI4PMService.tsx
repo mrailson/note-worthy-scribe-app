@@ -407,31 +407,23 @@ const AI4PMService = () => {
 
   const loadSearchHistoryList = async () => {
     try {
+      // LAZY LOAD: Only fetch metadata, NOT messages (which can be huge with base64 images/presentations)
+      // This prevents browser crashes from loading 100MB+ of data
       const { data, error } = await supabase
         .from('ai_4_pm_searches')
-        .select('*')
+        .select('id, title, brief_overview, created_at, updated_at, is_protected, is_flagged')
+        .order('is_protected', { ascending: false })
+        .order('is_flagged', { ascending: false })
         .order('created_at', { ascending: false })
-        .limit(20);
+        .limit(50);
 
       if (error) throw error;
       
-      // Remove duplicates based on exact content match
-      const uniqueSearches = (data || []).reduce((acc: any[], current: any) => {
-        const isDuplicate = acc.some(existing => 
-          existing.title === current.title && 
-          JSON.stringify(existing.messages) === JSON.stringify(current.messages)
-        );
-        if (!isDuplicate) {
-          acc.push(current);
-        }
-        return acc;
-      }, []);
-
-      setSearchHistory(uniqueSearches.map(item => ({
+      setSearchHistory((data || []).map(item => ({
         id: item.id,
         title: item.title,
         brief_overview: item.brief_overview || undefined,
-        messages: (item.messages as any) || [],
+        messages: [], // Messages loaded on-demand when user clicks
         created_at: item.created_at,
         updated_at: item.updated_at
       })));
@@ -972,9 +964,13 @@ VARY your opening style using approaches like:
 
   const loadPreviousSearch = async (searchId: string) => {
     try {
+      // Show loading state
+      setIsLoading(true);
+      
+      // Fetch full messages on-demand (not pre-loaded in history list)
       const { data, error } = await supabase
         .from('ai_4_pm_searches')
-        .select('*')
+        .select('messages')
         .eq('id', searchId)
         .single();
 
@@ -987,7 +983,10 @@ VARY your opening style using approaches like:
           role: msg.role || 'user',
           content: msg.content || '',
           timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
-          files: msg.files || undefined
+          files: msg.files || undefined,
+          generatedImages: msg.generatedImages || undefined,
+          generatedAudio: msg.generatedAudio || undefined,
+          generatedPresentation: msg.generatedPresentation || undefined
         })) : [];
       
       setMessages(messagesData);
@@ -995,6 +994,8 @@ VARY your opening style using approaches like:
       setActiveTab('ai-service');
     } catch (error) {
       console.error('Error loading search:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 

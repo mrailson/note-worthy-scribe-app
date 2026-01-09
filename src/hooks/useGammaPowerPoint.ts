@@ -14,6 +14,13 @@ interface UserTemplatePreference {
   accentColor?: string;
 }
 
+interface GenerationResult {
+  success: boolean;
+  downloadUrl?: string;
+  title?: string;
+  error?: string;
+}
+
 const NHS_THEME_COLORS: Record<string, { primaryColor: string; secondaryColor: string; accentColor: string }> = {
   'nhs-professional': { primaryColor: '#005EB8', secondaryColor: '#003087', accentColor: '#41B6E6' },
   'nhs-modern': { primaryColor: '#003087', secondaryColor: '#005EB8', accentColor: '#00A499' },
@@ -65,17 +72,61 @@ export const useGammaPowerPoint = () => {
     fetchPreferences();
   }, [user]);
 
-  const downloadBase64AsPptx = (base64: string, title: string) => {
+  // Convert base64 to Blob
+  const base64ToBlob = (base64: string, contentType: string): Blob => {
     const byteCharacters = atob(base64);
     const byteNumbers = new Array(byteCharacters.length);
     for (let i = 0; i < byteCharacters.length; i++) {
       byteNumbers[i] = byteCharacters.charCodeAt(i);
     }
     const byteArray = new Uint8Array(byteNumbers);
-    const blob = new Blob([byteArray], { 
-      type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation' 
-    });
+    return new Blob([byteArray], { type: contentType });
+  };
+
+  // Upload presentation to Supabase Storage and return public URL
+  const uploadToStorage = async (base64: string, title: string): Promise<string | null> => {
+    if (!user) return null;
     
+    try {
+      const blob = base64ToBlob(base64, 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
+      const sanitizedTitle = title.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 50).trim();
+      const fileName = `${user.id}/presentations/${Date.now()}-${sanitizedTitle}.pptx`;
+      
+      const { data, error } = await supabase.storage
+        .from('ai4pm-assets')
+        .upload(fileName, blob, {
+          contentType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+          upsert: false
+        });
+
+      if (error) {
+        console.error('Storage upload error:', error);
+        return null;
+      }
+
+      // Get public URL
+      const { data: urlData } = supabase.storage
+        .from('ai4pm-assets')
+        .getPublicUrl(fileName);
+
+      return urlData?.publicUrl || null;
+    } catch (error) {
+      console.error('Error uploading to storage:', error);
+      return null;
+    }
+  };
+
+  const downloadFromUrl = (url: string, title: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${title.replace(/[^a-zA-Z0-9\s]/g, '').substring(0, 50)}.pptx`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const downloadBase64AsPptx = (base64: string, title: string) => {
+    const blob = base64ToBlob(base64, 'application/vnd.openxmlformats-officedocument.presentationml.presentation');
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -97,10 +148,10 @@ export const useGammaPowerPoint = () => {
     return { topic, supportingContent };
   };
 
-  const generateWithGamma = async (content: string, title?: string) => {
+  const generateWithGamma = async (content: string, title?: string, storeInCloud = true): Promise<GenerationResult> => {
     if (!content?.trim()) {
       toast.error('No content to generate presentation from');
-      return;
+      return { success: false, error: 'No content provided' };
     }
 
     setIsGenerating(true);
@@ -162,10 +213,33 @@ export const useGammaPowerPoint = () => {
         throw new Error(data?.error || 'Generation failed');
       }
 
-      // Download the PPTX
-      downloadBase64AsPptx(data.pptxBase64, data.title || topic);
+      const presentationTitle = data.title || topic;
       
+      // Store in Supabase Storage to avoid bloating the messages JSON
+      if (storeInCloud && user) {
+        const downloadUrl = await uploadToStorage(data.pptxBase64, presentationTitle);
+        
+        if (downloadUrl) {
+          // Trigger download from cloud URL
+          downloadFromUrl(downloadUrl, presentationTitle);
+          toast.success('Professional presentation downloaded!');
+          
+          return {
+            success: true,
+            downloadUrl,
+            title: presentationTitle
+          };
+        }
+      }
+      
+      // Fallback: Direct download without cloud storage
+      downloadBase64AsPptx(data.pptxBase64, presentationTitle);
       toast.success('Professional presentation downloaded!');
+      
+      return {
+        success: true,
+        title: presentationTitle
+      };
     } catch (error) {
       console.error('Gamma generation failed:', error);
       toast.error('Gamma generation failed, using local generator...');
@@ -175,14 +249,23 @@ export const useGammaPowerPoint = () => {
         const { generatePowerPoint } = await import('@/utils/documentGenerators');
         await generatePowerPoint(content, title);
         toast.success('Presentation downloaded (local fallback)');
+        return { success: true, title: title || 'Presentation' };
       } catch (fallbackError) {
         console.error('Fallback generation also failed:', fallbackError);
         toast.error('Failed to generate presentation');
+        return { success: false, error: 'Generation failed' };
       }
     } finally {
       setIsGenerating(false);
     }
   };
 
-  return { generateWithGamma, isGenerating, templatePreference, brandingPreference };
+  return { 
+    generateWithGamma, 
+    isGenerating, 
+    templatePreference, 
+    brandingPreference,
+    uploadToStorage,
+    downloadFromUrl 
+  };
 };
