@@ -5,6 +5,9 @@ import { TurnIndicator, TurnState } from './TurnIndicator';
 import { TeleprompterDisplay, TextSize } from './TeleprompterDisplay';
 import { PatientQuickSettings } from './PatientQuickSettings';
 import { PauseOverlay } from './PauseOverlay';
+import { Button } from '@/components/ui/button';
+import { Square, FileDown } from 'lucide-react';
+import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 
 interface PatientFocusedViewProps {
   conversation: ConversationEntry[];
@@ -25,6 +28,8 @@ interface PatientFocusedViewProps {
   onPause: () => void;
   onResume: () => void;
   onClose: () => void;
+  onEndSession: () => void;
+  onExport: () => void;
   className?: string;
 }
 
@@ -47,12 +52,16 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
   onPause,
   onResume,
   onClose,
+  onEndSession,
+  onExport,
   className,
 }) => {
   const [isPaused, setIsPaused] = useState(false);
   const [textSize, setTextSize] = useState<TextSize>('large');
   const [resumeCountdown, setResumeCountdown] = useState<number | null>(null);
   const [consentConfirmed, setConsentConfirmed] = useState(false);
+
+  const phrases = getPatientViewPhrases(selectedLanguage);
 
   // Determine turn state
   const getTurnState = (): TurnState => {
@@ -172,15 +181,39 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
         />
       </div>
 
-      {/* Minimal English bar at bottom */}
+      {/* Bottom bar with English transcript and End Session */}
       <div className="absolute bottom-0 left-0 right-0 px-6 py-4 bg-muted/50 border-t">
-        <div className="flex items-center gap-3 max-w-4xl mx-auto">
-          <span className="text-sm font-medium text-muted-foreground">
-            🇬🇧 English:
-          </span>
-          <span className="text-sm text-foreground/80 truncate">
-            {latestEnglishText || 'Waiting for conversation...'}
-          </span>
+        <div className="flex items-center justify-between max-w-6xl mx-auto">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <span className="text-sm font-medium text-muted-foreground shrink-0">
+              🇬🇧 English:
+            </span>
+            <span className="text-sm text-foreground/80 truncate">
+              {latestEnglishText || 'Waiting for conversation...'}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2 ml-4 shrink-0">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={onExport}
+              disabled={conversation.length === 0}
+              className="gap-2"
+            >
+              <FileDown className="h-4 w-4" />
+              <span className="hidden sm:inline">{phrases.downloadReport}</span>
+            </Button>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={onEndSession}
+              className="gap-2"
+            >
+              <Square className="h-4 w-4" />
+              <span className="hidden sm:inline">{phrases.endSession}</span>
+            </Button>
+          </div>
         </div>
       </div>
     </div>

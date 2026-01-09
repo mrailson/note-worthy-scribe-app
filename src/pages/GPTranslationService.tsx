@@ -158,6 +158,8 @@ const GPTranslationService: React.FC = () => {
           onPause={handlePatientViewPause}
           onResume={handlePatientViewResume}
           onClose={handleClosePatientView}
+          onEndSession={handleEndSession}
+          onExport={handleExport}
         />
       )}
 
