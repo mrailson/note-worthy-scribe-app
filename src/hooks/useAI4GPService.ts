@@ -675,110 +675,53 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         // Update message to show generation in progress
         setMessages(prev => prev.map(msg => 
           msg.id === assistantMessageId 
-            ? { ...msg, content: '📊 Generating PowerPoint presentation...', isStreaming: true }
+            ? { ...msg, content: '📊 Generating professional presentation with Gamma AI...\n\nThis may take 30-60 seconds for best quality.', isStreaming: true }
             : msg
         ));
         
         try {
-          // Prepare source content from uploaded files
-          const sourceFileContents = uploadedFiles.map(file => ({
-            name: file.name,
-            type: file.type,
-            content: file.content.substring(0, 50000) // Limit content size
-          }));
+          // Prepare supporting content from uploaded files
+          let supportingContent = '';
+          if (uploadedFiles.length > 0) {
+            supportingContent = uploadedFiles.map(file => {
+              // Limit each file content and format nicely
+              const truncatedContent = file.content.substring(0, 15000);
+              return `### ${file.name}\n${truncatedContent}`;
+            }).join('\n\n---\n\n');
+          }
           
-          // Step 1: Generate presentation content using Claude
-          const { data: contentResponse, error: contentError } = await supabase.functions.invoke('generate-powerpoint', {
+          // Call Gamma API edge function
+          const { data: gammaResponse, error: gammaError } = await supabase.functions.invoke('generate-powerpoint-gamma', {
             body: {
               topic: pptDetection.topic,
               presentationType: getPresentationTypeDisplayName(pptDetection.presentationType),
-              slideCount: pptDetection.slideCount || 8,
-              supportingFiles: sourceFileContents.length > 0 ? sourceFileContents : undefined,
+              slideCount: pptDetection.slideCount || 10,
+              supportingContent: supportingContent || undefined,
               customInstructions: pptDetection.customInstructions,
-              complexityLevel: 'professional'
+              audience: 'NHS healthcare professionals and primary care staff'
             }
           });
           
-          if (contentError) {
-            console.error('Presentation content generation error:', contentError);
-            throw new Error(contentError.message || 'Failed to generate presentation content');
+          if (gammaError) {
+            console.error('Gamma API error:', gammaError);
+            throw new Error(gammaError.message || 'Failed to generate presentation');
           }
           
-          // The response structure is { presentation: {...}, metadata: {...} }
-          const presentationContent = contentResponse?.presentation;
-          
-          if (!presentationContent?.slides) {
-            console.error('Invalid presentation response:', contentResponse);
-            throw new Error('No presentation content received');
+          if (!gammaResponse?.success || !gammaResponse?.pptxBase64) {
+            console.error('Invalid Gamma response:', gammaResponse);
+            throw new Error(gammaResponse?.error || 'No presentation data received');
           }
           
-          console.log('📊 Presentation content generated:', presentationContent.title, presentationContent.slides.length, 'slides');
-          
-          // Update message to show PPTX generation in progress
-          setMessages(prev => prev.map(msg => 
-            msg.id === assistantMessageId 
-              ? { ...msg, content: '📊 Creating PowerPoint file...', isStreaming: true }
-              : msg
-          ));
-          
-          // Step 2: Convert JSON content to PPTX file
-          // The json-to-pptx function expects jsonData as a JSON string with { meta: { title }, slides: [...] }
-          const pptxPayload = {
-            meta: { title: presentationContent.title },
-            slides: presentationContent.slides
-          };
-          
-          const { data: pptxData, error: pptxError } = await supabase.functions.invoke('json-to-pptx', {
-            body: {
-              jsonData: JSON.stringify(pptxPayload)
-            }
-          });
-          
-          if (pptxError) {
-            console.error('PPTX generation error:', pptxError);
-            throw new Error(pptxError.message || 'Failed to create PowerPoint file');
-          }
-          
-          // The json-to-pptx function returns binary data (ArrayBuffer/Blob)
-          // We need to convert it to base64 for storage in the message
-          // Use chunked approach to handle large binary data properly
-          const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
-            const bytes = new Uint8Array(buffer);
-            const chunkSize = 8192;
-            let result = '';
-            for (let i = 0; i < bytes.length; i += chunkSize) {
-              const chunk = bytes.slice(i, i + chunkSize);
-              result += String.fromCharCode.apply(null, Array.from(chunk));
-            }
-            return btoa(result);
-          };
-          
-          let pptxBase64: string;
-          
-          if (pptxData instanceof ArrayBuffer) {
-            pptxBase64 = arrayBufferToBase64(pptxData);
-          } else if (pptxData instanceof Blob) {
-            const arrayBuffer = await pptxData.arrayBuffer();
-            pptxBase64 = arrayBufferToBase64(arrayBuffer);
-          } else if (typeof pptxData === 'string') {
-            pptxBase64 = pptxData;
-          } else {
-            console.error('Unexpected pptxData type:', typeof pptxData, pptxData);
-            throw new Error('Unexpected response format from PowerPoint generator');
-          }
-          
-          if (!pptxBase64) {
-            throw new Error('No PowerPoint file generated');
-          }
+          console.log('📊 Gamma presentation generated successfully');
           
           const endTime = Date.now();
           const responseTime = endTime - startTime;
           
           // Create the presentation object
           const generatedPresentation: GeneratedPresentation = {
-            pptxBase64,
-            title: presentationContent.title || pptDetection.topic,
-            slideCount: presentationContent.slides.length,
+            pptxBase64: gammaResponse.pptxBase64,
+            title: gammaResponse.title || pptDetection.topic,
+            slideCount: gammaResponse.slideCount || pptDetection.slideCount || 10,
             presentationType: getPresentationTypeDisplayName(pptDetection.presentationType),
             sourceFiles: uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name) : undefined
           };
@@ -786,10 +729,10 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           // Create message with generated presentation
           const pptMessage: Message = {
             ...assistantMessage,
-            content: `✅ **PowerPoint Generated Successfully!**\n\n**Title:** ${generatedPresentation.title}\n**Type:** ${generatedPresentation.presentationType}\n**Slides:** ${generatedPresentation.slideCount}\n${uploadedFiles.length > 0 ? `\n**Source Materials:** ${uploadedFiles.map(f => f.name).join(', ')}` : ''}\n\nYour presentation is ready to download below.`,
+            content: `✅ **Professional PowerPoint Generated!**\n\n**Title:** ${generatedPresentation.title}\n**Type:** ${generatedPresentation.presentationType}\n**Slides:** ${generatedPresentation.slideCount}\n${uploadedFiles.length > 0 ? `\n**Source Materials:** ${uploadedFiles.map(f => f.name).join(', ')}` : ''}\n\n*Powered by Gamma AI for professional-grade design.*\n\nYour presentation is ready to download below.`,
             isStreaming: false,
             responseTime,
-            model: 'Claude + PptxGenJS',
+            model: 'Gamma AI',
             generatedPresentation
           };
           
@@ -804,7 +747,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           }, 100);
           
           setIsLoading(false);
-          toast.success('PowerPoint generated successfully!');
+          toast.success('Professional PowerPoint generated successfully!');
           return;
           
         } catch (pptError: any) {
