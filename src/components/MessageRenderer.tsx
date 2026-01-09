@@ -60,6 +60,7 @@ import { stripMarkdown, copyPlainTextToClipboard, copyRichTextToClipboard } from
 import { Message, UploadedFile } from '@/types/ai4gp';
 import { LeaveCalendarDownloadButton } from '@/components/ai4gp/LeaveCalendarDownloadButton';
 import { VoiceAudioPlayer } from '@/components/ai4gp/VoiceAudioPlayer';
+import { PowerPointDownloadCard } from '@/components/ai4gp/PowerPointDownloadCard';
 
 interface MessageRendererProps {
   message: Message;
@@ -1053,6 +1054,11 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
             <VoiceAudioPlayer audio={message.generatedAudio} />
           )}
 
+          {/* PowerPoint Download Card - shows when presentation was generated */}
+          {message.role === 'assistant' && !isModal && !message.isStreaming && message.generatedPresentation && (
+            <PowerPointDownloadCard presentation={message.generatedPresentation} />
+          )}
+
           {/* Message footer - always show action buttons in modal */}
           {(!isModal || (isModal && message.role === 'assistant')) && (
             <div className={`${isModal ? 'fixed bottom-4 left-4 right-4 bg-background/95 backdrop-blur-sm border rounded-lg p-3 shadow-lg z-50' : 'flex items-center justify-between mt-3 pt-3 border-t border-border/20'}`}>
@@ -1382,6 +1388,7 @@ export default React.memo(MessageRenderer, (prevProps, nextProps) => {
     prevProps.message.id === nextProps.message.id &&
     prevProps.message.content === nextProps.message.content &&
     prevProps.message.isStreaming === nextProps.message.isStreaming &&
+    prevProps.message.generatedPresentation === nextProps.message.generatedPresentation &&
     prevProps.showResponseMetrics === nextProps.showResponseMetrics &&
     prevProps.showRenderTimes === nextProps.showRenderTimes &&
     prevProps.showAIService === nextProps.showAIService &&
