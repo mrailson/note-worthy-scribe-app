@@ -356,3 +356,6 @@ verify_jwt = true
 
 [functions.gp-translation-tts]
 verify_jwt = false
+
+[functions.generate-powerpoint-gamma]
+verify_jwt = true
