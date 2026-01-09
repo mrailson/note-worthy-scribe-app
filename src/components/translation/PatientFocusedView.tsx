@@ -3,10 +3,8 @@ import { cn } from '@/lib/utils';
 import { ConversationEntry } from '@/hooks/useGPTranslation';
 import { TurnIndicator, TurnState } from './TurnIndicator';
 import { TeleprompterDisplay, TextSize } from './TeleprompterDisplay';
-import { PatientQuickSettings } from './PatientQuickSettings';
+import { UnifiedControlBar } from './UnifiedControlBar';
 import { PauseOverlay } from './PauseOverlay';
-import { Button } from '@/components/ui/button';
-import { Square, FileDown } from 'lucide-react';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 
 
@@ -132,6 +130,7 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
   const handleDirectResume = useCallback(() => {
     setResumeCountdown(3);
   }, []);
+
   // Get the latest English text for the bottom bar
   const latestEntry = conversation[conversation.length - 1];
   const latestEnglishText = latestEntry?.englishText || '';
@@ -143,32 +142,8 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
         className
       )}
     >
-      {/* Quick settings bar */}
-      <PatientQuickSettings
-        isPaused={isPaused}
-        onPauseToggle={handlePauseToggle}
-        isMuted={isMuted}
-        onMuteToggle={onMuteToggle}
-        volume={volume}
-        onVolumeChange={onVolumeChange}
-        textSize={textSize}
-        onTextSizeChange={setTextSize}
-        onReplayLast={handleReplayLast}
-        onClose={onClose}
-        canReplay={!!lastEntry}
-        speakerMode={speakerMode}
-        onSpeakerModeChange={onSpeakerModeChange}
-        selectedLanguage={selectedLanguage}
-        onLanguageChange={onLanguageChange}
-        isVoiceActive={isListening && !!currentTranscript && !isProcessing && !isSpeaking}
-        silenceThreshold={silenceThreshold}
-        onSilenceThresholdChange={onSilenceThresholdChange}
-        onManualSend={onManualSend}
-        isListening={isListening}
-      />
-
       {/* Main content area with turn indicator */}
-      <div className="flex-1 relative overflow-hidden mt-20 mb-16">
+      <div className="flex-1 relative overflow-hidden mb-28">
         {/* Turn indicator overlay */}
         <TurnIndicator
           turnState={turnState}
@@ -192,41 +167,29 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
         />
       </div>
 
-      {/* Bottom bar with English transcript and End Session */}
-      <div className="absolute bottom-0 left-0 right-0 px-6 py-4 bg-muted/50 border-t">
-        <div className="flex items-center justify-between max-w-6xl mx-auto">
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <span className="text-sm font-medium text-muted-foreground shrink-0">
-              🇬🇧 English:
-            </span>
-            <span className="text-sm text-foreground/80 truncate">
-              {latestEnglishText || 'Waiting for conversation...'}
-            </span>
-          </div>
-          
-          <div className="flex items-center gap-2 ml-4 shrink-0">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onExport}
-              disabled={conversation.length === 0}
-              className="gap-2"
-            >
-              <FileDown className="h-4 w-4" />
-              <span className="hidden sm:inline">Download Report</span>
-            </Button>
-            <Button
-              variant="destructive"
-              size="sm"
-              onClick={onEndSession}
-              className="gap-2"
-            >
-              <Square className="h-4 w-4" />
-              <span className="hidden sm:inline">End Session</span>
-            </Button>
-          </div>
-        </div>
-      </div>
+      {/* Unified Control Bar */}
+      <UnifiedControlBar
+        selectedLanguage={selectedLanguage}
+        onLanguageChange={onLanguageChange}
+        speakerMode={speakerMode}
+        onSpeakerModeChange={onSpeakerModeChange}
+        isPaused={isPaused}
+        onPauseToggle={handlePauseToggle}
+        silenceThreshold={silenceThreshold}
+        onSilenceThresholdChange={onSilenceThresholdChange}
+        onManualSend={onManualSend}
+        isListening={isListening}
+        isMuted={isMuted}
+        onMuteToggle={onMuteToggle}
+        volume={volume}
+        onVolumeChange={onVolumeChange}
+        textSize={textSize}
+        onTextSizeChange={setTextSize}
+        onReplayLast={handleReplayLast}
+        latestEnglishText={latestEnglishText}
+        onExport={onExport}
+        onEndSession={onEndSession}
+      />
     </div>
   );
 };
