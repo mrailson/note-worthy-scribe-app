@@ -55,11 +55,13 @@ import {
   Plug,
   Play,
   Square,
-  Loader2
+  Loader2,
+  Presentation
 } from 'lucide-react';
 import { PlaudIntegrationSettings } from '@/components/settings/PlaudIntegrationSettings';
 import { ServiceVisibilitySettings } from '@/components/settings/ServiceVisibilitySettings';
 import { QuickRecordSettings } from '@/components/settings/QuickRecordSettings';
+import { PresentationTemplateSettings } from '@/components/settings/PresentationTemplateSettings';
 import { useToast } from '@/hooks/use-toast';
 import { useToastPreferences } from '@/hooks/useToastPreferences';
 import { useVoicePreference, VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
@@ -651,7 +653,7 @@ export default function Settings() {
 
           {/* Settings Tabs */}
           <Tabs defaultValue="general" className="space-y-4 sm:space-y-6">
-            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-6' : 'grid-cols-5'} overflow-x-auto`}>
+            <TabsList className={`grid w-full ${isAdmin ? 'grid-cols-7' : 'grid-cols-6'} overflow-x-auto`}>
               <TabsTrigger value="general" className="flex items-center gap-2 mobile-touch-target">
                 <SettingsIcon className="h-4 w-4" />
                 <span className="hidden sm:inline">General</span>
@@ -659,6 +661,10 @@ export default function Settings() {
               <TabsTrigger value="integrations" className="flex items-center gap-2 mobile-touch-target">
                 <Plug className="h-4 w-4" />
                 <span className="hidden sm:inline">Integrations</span>
+              </TabsTrigger>
+              <TabsTrigger value="presentations" className="flex items-center gap-2 mobile-touch-target">
+                <Presentation className="h-4 w-4" />
+                <span className="hidden sm:inline">Presentations</span>
               </TabsTrigger>
               {isAdmin && (
                 <TabsTrigger value="practices" className="flex items-center gap-2 mobile-touch-target">
@@ -1009,6 +1015,11 @@ export default function Settings() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            {/* Presentations Tab */}
+            <TabsContent value="presentations" className="space-y-6">
+              <PresentationTemplateSettings />
             </TabsContent>
 
 

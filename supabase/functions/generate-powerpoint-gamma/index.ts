@@ -16,6 +16,7 @@ interface GammaGenerationRequest {
   supportingContent?: string;
   customInstructions?: string;
   audience?: string;
+  themeId?: string;
 }
 
 interface GammaCompletedResponse {
@@ -88,7 +89,8 @@ serve(async (req) => {
       slideCount = 10,
       supportingContent,
       customInstructions,
-      audience = 'healthcare professionals'
+      audience = 'healthcare professionals',
+      themeId
     } = requestBody;
 
     console.log(`[Gamma] Starting generation for topic: "${topic}"`);
@@ -118,7 +120,7 @@ serve(async (req) => {
     console.log('[Gamma] Initiating generation request to:', `${GAMMA_API_BASE}/v1.0/generations`);
 
     // Step 1: Create generation request
-    const requestPayload = {
+    const requestPayload: Record<string, any> = {
       inputText,
       textMode: 'generate',
       format: 'presentation',
@@ -136,6 +138,12 @@ serve(async (req) => {
         style: 'photorealistic',
       },
     };
+
+    // Include theme ID if provided
+    if (themeId) {
+      requestPayload.themeId = themeId;
+      console.log(`[Gamma] Using theme ID: ${themeId}`);
+    }
 
     console.log('[Gamma] Request payload:', JSON.stringify(requestPayload, null, 2));
 
