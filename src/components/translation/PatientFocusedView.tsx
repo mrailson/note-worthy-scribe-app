@@ -86,12 +86,6 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
   // Get the last entry for replay
   const lastEntry = conversation[conversation.length - 1];
 
-  // Calculate if text is too long to show turn indicator (hide when > 200 chars)
-  const latestTranslatedText = lastEntry?.speaker === 'gp' 
-    ? lastEntry?.translatedText 
-    : lastEntry?.englishText;
-  const showTurnIndicator = !latestTranslatedText || latestTranslatedText.length < 200;
-
   // Handle pause toggle
   const handlePauseToggle = useCallback(() => {
     if (isPaused) {
@@ -176,13 +170,11 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
 
       {/* Main content area with turn indicator */}
       <div className="flex-1 relative overflow-hidden mt-20 mb-16">
-        {/* Turn indicator overlay - hidden when text is long */}
-        {showTurnIndicator && (
-          <TurnIndicator
-            turnState={turnState}
-            languageCode={selectedLanguage}
-          />
-        )}
+        {/* Turn indicator overlay */}
+        <TurnIndicator
+          turnState={turnState}
+          languageCode={selectedLanguage}
+        />
 
         {/* Teleprompter display */}
         <TeleprompterDisplay
