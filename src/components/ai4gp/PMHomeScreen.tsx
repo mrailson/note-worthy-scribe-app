@@ -159,7 +159,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
 
         {/* Compact Cards Grid - Full Width */}
         <TooltipProvider delayDuration={200}>
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-w-2xl mx-auto">
             {useCases.map((useCase) => {
               const Icon = useCase.icon;
               return (
