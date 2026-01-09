@@ -172,7 +172,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
                         "bg-card border border-border rounded-lg",
                         "hover:border-primary/50 hover:bg-accent/50",
                         "transition-all duration-150",
-                        "text-left"
+                        "text-left min-w-0 overflow-hidden"
                       )}
                     >
                       {/* Compact Icon */}
@@ -185,7 +185,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
                       </div>
 
                       {/* Short Title */}
-                      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors whitespace-nowrap">
+                      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate">
                         {useCase.shortTitle}
                       </span>
                     </button>
