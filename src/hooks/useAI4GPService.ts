@@ -739,29 +739,28 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             throw new Error(pptxError.message || 'Failed to create PowerPoint file');
           }
           
-          // The json-to-pptx function returns binary data (ArrayBuffer)
+          // The json-to-pptx function returns binary data (ArrayBuffer/Blob)
           // We need to convert it to base64 for storage in the message
+          // Use chunked approach to handle large binary data properly
+          const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+            const bytes = new Uint8Array(buffer);
+            const chunkSize = 8192;
+            let result = '';
+            for (let i = 0; i < bytes.length; i += chunkSize) {
+              const chunk = bytes.slice(i, i + chunkSize);
+              result += String.fromCharCode.apply(null, Array.from(chunk));
+            }
+            return btoa(result);
+          };
+          
           let pptxBase64: string;
           
           if (pptxData instanceof ArrayBuffer) {
-            // Direct ArrayBuffer response
-            const bytes = new Uint8Array(pptxData);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            pptxBase64 = btoa(binary);
+            pptxBase64 = arrayBufferToBase64(pptxData);
           } else if (pptxData instanceof Blob) {
-            // Blob response
             const arrayBuffer = await pptxData.arrayBuffer();
-            const bytes = new Uint8Array(arrayBuffer);
-            let binary = '';
-            for (let i = 0; i < bytes.byteLength; i++) {
-              binary += String.fromCharCode(bytes[i]);
-            }
-            pptxBase64 = btoa(binary);
+            pptxBase64 = arrayBufferToBase64(arrayBuffer);
           } else if (typeof pptxData === 'string') {
-            // Already base64 string
             pptxBase64 = pptxData;
           } else {
             console.error('Unexpected pptxData type:', typeof pptxData, pptxData);
