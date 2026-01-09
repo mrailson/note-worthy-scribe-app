@@ -91,7 +91,7 @@ const GPCandidateDetailCard = ({ candidate }: { candidate: GPCandidate }) => {
             <Award className="w-4 h-4" />
             <span className="text-xs font-medium">GMC Registration</span>
           </div>
-          <p className="font-semibold text-sm">{candidate.gmcNumber}</p>
+          <p className="font-semibold text-sm text-green-700">✓ Confirmed</p>
           {candidate.gmcDetails && (
             <p className="text-xs text-slate-500">{candidate.gmcDetails}</p>
           )}
@@ -428,8 +428,8 @@ export const GPRecruitmentPanel = () => {
                           {candidate.score}/100
                         </span>
                         {getRecommendationBadge(candidate.recommendation)}
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                          GMC: {candidate.gmcNumber}
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          GMC Confirmed
                         </Badge>
                       <span className="text-sm text-slate-600 ml-auto mr-4">{candidate.currentRole}</span>
                       <CandidateFeedbackButton
@@ -470,8 +470,8 @@ export const GPRecruitmentPanel = () => {
                           {candidate.score}/100
                         </span>
                         {getRecommendationBadge(candidate.recommendation)}
-                        <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
-                          GMC: {candidate.gmcNumber}
+                        <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                          GMC Confirmed
                         </Badge>
                       <span className="text-sm text-slate-600 ml-auto mr-4">{candidate.currentRole}</span>
                       <CandidateFeedbackButton
@@ -531,7 +531,7 @@ export const GPRecruitmentPanel = () => {
                               {candidate.score}/100
                             </span>
                           </TableCell>
-                          <TableCell className="text-sm">{candidate.gmcNumber}</TableCell>
+                          <TableCell className="text-sm text-green-700">✓ Confirmed</TableCell>
                           <TableCell className="text-sm text-red-700">{candidate.recommendationReason}</TableCell>
                           <TableCell>
                             <CandidateFeedbackButton
