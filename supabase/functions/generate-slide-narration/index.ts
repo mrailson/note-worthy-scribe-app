@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { encode as base64Encode } from "https://deno.land/std@0.168.0/encoding/base64.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,18 +14,27 @@ serve(async (req) => {
   try {
     const { slideNumber, slideContent, speakerNotes, voiceId } = await req.json();
 
+    console.log(`[Narration] Generating audio for slide ${slideNumber}, voice: ${voiceId}`);
+    console.log(`[Narration] Script length: ${speakerNotes?.length || 0} characters`);
+
     if (!speakerNotes || !speakerNotes.trim()) {
       throw new Error('Speaker notes are required for narration');
     }
 
     // Get ElevenLabs API key
-    const elevenLabsKey = Deno.env.get('ELEVEN_LABS_API_KEY');
+    const elevenLabsKey = Deno.env.get('ELEVEN_LABS_API_KEY') || Deno.env.get('ELEVENLABS_API_KEY');
     if (!elevenLabsKey) {
+      console.error('[Narration] ElevenLabs API key not configured');
       throw new Error('ElevenLabs API key not configured');
     }
 
+    // Use default voice if not provided (George - British Male)
+    const selectedVoiceId = voiceId || 'JBFqnCBsd6RMkjVDRZzb';
+
+    console.log(`[Narration] Calling ElevenLabs API for slide ${slideNumber}...`);
+
     // Generate audio using ElevenLabs
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${selectedVoiceId}?output_format=mp3_44100_128`, {
       method: 'POST',
       headers: {
         'Accept': 'audio/mpeg',
@@ -45,20 +55,17 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('ElevenLabs API error:', response.status, errorText);
-      throw new Error(`ElevenLabs API error: ${response.status}`);
+      console.error(`[Narration] ElevenLabs API error for slide ${slideNumber}:`, response.status, errorText);
+      throw new Error(`ElevenLabs API error: ${response.status} - ${errorText}`);
     }
 
-    // Convert audio to base64 in chunks to avoid stack overflow
+    console.log(`[Narration] Audio generated successfully for slide ${slideNumber}`);
+
+    // Convert audio to base64 using proper Deno encoding
     const audioBuffer = await response.arrayBuffer();
-    const uint8Array = new Uint8Array(audioBuffer);
-    const chunkSize = 8192;
-    let base64Audio = '';
-    
-    for (let i = 0; i < uint8Array.length; i += chunkSize) {
-      const chunk = uint8Array.slice(i, i + chunkSize);
-      base64Audio += btoa(String.fromCharCode(...chunk));
-    }
+    const base64Audio = base64Encode(audioBuffer);
+
+    console.log(`[Narration] Audio encoded for slide ${slideNumber}, size: ${base64Audio.length} chars`);
 
     return new Response(
       JSON.stringify({
@@ -72,7 +79,7 @@ serve(async (req) => {
       }
     );
   } catch (error: any) {
-    console.error('Error in generate-slide-narration:', error);
+    console.error('[Narration] Error:', error.message);
     return new Response(
       JSON.stringify({ error: error.message || 'Failed to generate narration' }),
       {
