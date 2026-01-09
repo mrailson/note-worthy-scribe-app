@@ -48,8 +48,8 @@ const useCases: UseCase[] = [
   },
   {
     id: 'image',
-    title: 'Create an Image',
-    shortTitle: 'Create Image',
+    title: 'Create an image',
+    shortTitle: 'Image',
     description: 'Generate posters, social graphics, and patient notices',
     icon: ImageIcon,
     gradient: 'from-purple-500 to-purple-600',
@@ -58,7 +58,7 @@ const useCases: UseCase[] = [
   {
     id: 'voice',
     title: 'Generate Voice Audio',
-    shortTitle: 'Voice Audio',
+    shortTitle: 'Voice',
     description: 'Turn any script into a downloadable MP3',
     icon: Volume2,
     gradient: 'from-green-500 to-green-600',
@@ -67,7 +67,7 @@ const useCases: UseCase[] = [
   {
     id: 'meeting',
     title: 'Meeting Notes from Audio',
-    shortTitle: 'Meeting Notes',
+    shortTitle: 'Meeting',
     description: 'Transcribe recordings into structured meeting notes',
     icon: Mic,
     gradient: 'from-orange-500 to-orange-600',
@@ -76,34 +76,16 @@ const useCases: UseCase[] = [
   {
     id: 'response',
     title: 'Draft a Response',
-    shortTitle: 'Draft Response',
+    shortTitle: 'Draft',
     description: 'Create complaint responses, letters, and emails',
     icon: MessageSquare,
     gradient: 'from-red-500 to-red-600',
     prompt: 'Help me draft a professional NHS response. Include appropriate letterhead using my practice details. The situation is:',
   },
   {
-    id: 'qrcode',
-    title: 'Create a QR Code',
-    shortTitle: 'QR Code',
-    description: 'Generate QR codes for any link or resource',
-    icon: QrCode,
-    gradient: 'from-teal-500 to-teal-600',
-    prompt: 'Generate a QR code for the following URL:',
-  },
-  {
-    id: 'translate',
-    title: 'Translate a Document',
-    shortTitle: 'Translate',
-    description: 'Translate patient information into 50+ languages',
-    icon: Languages,
-    gradient: 'from-indigo-500 to-indigo-600',
-    prompt: 'Translate the following document/text into [specify language]. Maintain formatting and professional tone:\n\n',
-  },
-  {
     id: 'presentation',
     title: 'Create a Presentation',
-    shortTitle: 'Presentation',
+    shortTitle: 'Slides',
     description: 'Build PowerPoint slides for meetings',
     icon: Presentation,
     gradient: 'from-amber-500 to-amber-600',
@@ -112,7 +94,7 @@ const useCases: UseCase[] = [
   {
     id: 'search',
     title: 'Search NHS Guidance',
-    shortTitle: 'NHS Search',
+    shortTitle: 'Search',
     description: 'Find PCN DES specs, contracts, CQC requirements',
     icon: Search,
     gradient: 'from-cyan-500 to-cyan-600',
@@ -121,7 +103,7 @@ const useCases: UseCase[] = [
   {
     id: 'anything',
     title: 'Ask Anything',
-    shortTitle: 'Ask Anything',
+    shortTitle: 'Ask AI',
     description: 'Get AI assistance with any practice question',
     icon: Sparkles,
     gradient: 'from-primary to-primary/80',
@@ -129,7 +111,6 @@ const useCases: UseCase[] = [
     focusOnly: true,
   },
 ];
-
 export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput }) => {
   const { practiceContext, practiceDetails } = usePracticeContext();
 
@@ -204,7 +185,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
                       </div>
 
                       {/* Short Title */}
-                      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate min-w-0">
+                      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors whitespace-nowrap">
                         {useCase.shortTitle}
                       </span>
                     </button>
