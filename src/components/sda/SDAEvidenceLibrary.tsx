@@ -526,9 +526,6 @@ export const SDAEvidenceLibrary = () => {
                   </div>
                 </div>
 
-                <p className="text-xs text-slate-500">
-                  Response: 2 accepted, 1 tentatively accepted, 0 declined
-                </p>
               </div>
             </CollapsibleContent>
           </Card>
