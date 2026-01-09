@@ -24,6 +24,7 @@ import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { MicroBanner, ShortCard, CollapsibleShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
 import { AI4GPSidebar } from '@/components/ai4gp/AI4GPSidebar';
+import { RoleToggle } from '@/components/ai4gp/RoleToggle';
 
 import NewsPanel from '@/components/NewsPanel';
 import { BPCalculatorPanel } from '@/components/ai4gp/BPCalculatorPanel';
@@ -724,33 +725,13 @@ const AI4GPService = () => {
                               Get started with these common queries:
                             </p>
                             
-                            {/* Role Selection - Desktop only */}
+                            {/* Role Selection Toggle */}
                             {!shouldHideGPClinical && (
-                              <div className="flex justify-center">
-                                <div className="flex bg-muted rounded-lg p-1">
-                                  <button
-                                    onClick={() => setSelectedRole('gp')}
-                                    className={cn(
-                                      "flex-1 rounded-md transition-all px-3 py-1.5 text-xs sm:text-sm",
-                                      selectedRole === 'gp'
-                                        ? 'bg-background text-foreground shadow-sm font-bold'
-                                        : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
-                                    )}
-                                  >
-                                    For GP/Clinical
-                                  </button>
-                                  <button
-                                    onClick={() => setSelectedRole('practice-manager')}
-                                    className={cn(
-                                      "flex-1 rounded-md transition-all px-3 py-1.5 text-xs sm:text-sm",
-                                      selectedRole === 'practice-manager'
-                                        ? 'bg-background text-foreground shadow-sm font-bold'
-                                        : 'text-muted-foreground/60 hover:text-muted-foreground hover:font-medium'
-                                    )}
-                                  >
-                                    For Practice Managers
-                                  </button>
-                                </div>
+                              <div className="flex justify-center mb-2">
+                                <RoleToggle
+                                  selectedRole={selectedRole}
+                                  onRoleChange={setSelectedRole}
+                                />
                               </div>
                             )}
                             
