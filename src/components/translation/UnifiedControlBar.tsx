@@ -34,6 +34,9 @@ interface UnifiedControlBarProps {
   
   // Manual send
   onManualSend: () => void;
+  
+  // Voice activity
+  isVoiceActive: boolean;
   isListening: boolean;
   
   // Volume
@@ -68,6 +71,7 @@ export const UnifiedControlBar: React.FC<UnifiedControlBarProps> = ({
   onSilenceThresholdChange,
   onManualSend,
   isListening,
+  isVoiceActive,
   isMuted,
   onMuteToggle,
   volume,
@@ -107,23 +111,63 @@ export const UnifiedControlBar: React.FC<UnifiedControlBarProps> = ({
           />
         </div>
 
-        {/* Speaker Mode Toggle */}
-        <div className="flex items-center bg-muted rounded-lg p-0.5">
+        {/* Speaker Mode Toggle with Waveform */}
+        <div className="flex items-center bg-muted rounded-lg p-0.5 gap-0.5">
           <Button
             variant={speakerMode === 'gp' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onSpeakerModeChange('gp')}
-            className="h-8 px-3 text-xs font-medium"
+            className="h-8 px-3 text-xs font-medium relative overflow-hidden"
           >
             <span className="hidden sm:inline mr-1">🩺</span> GP
+            {speakerMode === 'gp' && isListening && (
+              <span className="ml-1.5 flex items-center gap-0.5">
+                {isVoiceActive ? (
+                  // Active waveform animation
+                  <>
+                    <span className="w-0.5 h-3 bg-primary-foreground rounded-full animate-pulse" style={{ animationDuration: '0.3s' }} />
+                    <span className="w-0.5 h-4 bg-primary-foreground rounded-full animate-pulse" style={{ animationDuration: '0.2s', animationDelay: '0.1s' }} />
+                    <span className="w-0.5 h-2 bg-primary-foreground rounded-full animate-pulse" style={{ animationDuration: '0.4s', animationDelay: '0.05s' }} />
+                    <span className="w-0.5 h-3.5 bg-primary-foreground rounded-full animate-pulse" style={{ animationDuration: '0.25s', animationDelay: '0.15s' }} />
+                  </>
+                ) : (
+                  // Idle listening indicator (small static bars)
+                  <>
+                    <span className="w-0.5 h-1.5 bg-primary-foreground/50 rounded-full" />
+                    <span className="w-0.5 h-1.5 bg-primary-foreground/50 rounded-full" />
+                    <span className="w-0.5 h-1.5 bg-primary-foreground/50 rounded-full" />
+                  </>
+                )}
+              </span>
+            )}
           </Button>
           <Button
             variant={speakerMode === 'patient' ? 'default' : 'ghost'}
             size="sm"
             onClick={() => onSpeakerModeChange('patient')}
-            className="h-8 px-3 text-xs font-medium"
+            className="h-8 px-3 text-xs font-medium relative overflow-hidden"
           >
             <span className="hidden sm:inline mr-1">👤</span> Patient
+            {speakerMode === 'patient' && isListening && (
+              <span className="ml-1.5 flex items-center gap-0.5">
+                {isVoiceActive ? (
+                  // Active waveform animation
+                  <>
+                    <span className="w-0.5 h-3 bg-primary-foreground rounded-full animate-pulse" style={{ animationDuration: '0.3s' }} />
+                    <span className="w-0.5 h-4 bg-primary-foreground rounded-full animate-pulse" style={{ animationDuration: '0.2s', animationDelay: '0.1s' }} />
+                    <span className="w-0.5 h-2 bg-primary-foreground rounded-full animate-pulse" style={{ animationDuration: '0.4s', animationDelay: '0.05s' }} />
+                    <span className="w-0.5 h-3.5 bg-primary-foreground rounded-full animate-pulse" style={{ animationDuration: '0.25s', animationDelay: '0.15s' }} />
+                  </>
+                ) : (
+                  // Idle listening indicator
+                  <>
+                    <span className="w-0.5 h-1.5 bg-primary-foreground/50 rounded-full" />
+                    <span className="w-0.5 h-1.5 bg-primary-foreground/50 rounded-full" />
+                    <span className="w-0.5 h-1.5 bg-primary-foreground/50 rounded-full" />
+                  </>
+                )}
+              </span>
+            )}
           </Button>
         </div>
 
