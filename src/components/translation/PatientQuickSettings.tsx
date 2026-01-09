@@ -20,9 +20,11 @@ import {
   RotateCcw,
   User,
   Users,
+  Mic,
 } from 'lucide-react';
 import { TextSize } from './TeleprompterDisplay';
 import { getSortedLanguages } from '@/constants/elevenLabsLanguages';
+import { VoiceWaveform } from './VoiceWaveform';
 
 interface PatientQuickSettingsProps {
   isPaused: boolean;
@@ -40,6 +42,7 @@ interface PatientQuickSettingsProps {
   onSpeakerModeChange: (mode: 'gp' | 'patient') => void;
   selectedLanguage: string;
   onLanguageChange: (language: string) => void;
+  isVoiceActive: boolean;
   className?: string;
 }
 
@@ -61,6 +64,7 @@ export const PatientQuickSettings: React.FC<PatientQuickSettingsProps> = ({
   onSpeakerModeChange,
   selectedLanguage,
   onLanguageChange,
+  isVoiceActive,
   className,
 }) => {
   const currentSizeIndex = TEXT_SIZE_ORDER.indexOf(textSize);
@@ -125,7 +129,8 @@ export const PatientQuickSettings: React.FC<PatientQuickSettingsProps> = ({
             onClick={() => onSpeakerModeChange('gp')}
             className="gap-2"
           >
-            <User className="h-4 w-4" />
+            <Mic className="h-4 w-4" />
+            {speakerMode === 'gp' && <VoiceWaveform isActive={isVoiceActive} />}
             GP
           </Button>
           <Button
@@ -134,7 +139,8 @@ export const PatientQuickSettings: React.FC<PatientQuickSettingsProps> = ({
             onClick={() => onSpeakerModeChange('patient')}
             className="gap-2"
           >
-            <Users className="h-4 w-4" />
+            <Mic className="h-4 w-4" />
+            {speakerMode === 'patient' && <VoiceWaveform isActive={isVoiceActive} />}
             Patient
           </Button>
         </div>
