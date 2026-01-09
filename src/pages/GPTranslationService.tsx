@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { ArrowLeft, Mic, MicOff, Volume2, VolumeX, Play, Square, RotateCcw, FileDown, Settings2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { Header } from '@/components/Header';
 import { LanguageSelector } from '@/components/translation/LanguageSelector';
 import { SpeakerModeToggle } from '@/components/translation/SpeakerModeToggle';
 import { ConversationPanel, ViewMode } from '@/components/translation/ConversationPanel';
@@ -182,6 +183,7 @@ const GPTranslationService: React.FC = () => {
       )}
 
       <div className="min-h-screen bg-background">
+        <Header />
         {/* Header */}
         <div className="border-b bg-card">
           <div className="container mx-auto px-4 py-4">
