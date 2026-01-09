@@ -9,6 +9,21 @@ const corsHeaders = {
 const GAMMA_API_KEY = Deno.env.get('GAMMA_API_KEY');
 const GAMMA_API_BASE = 'https://public-api.gamma.app';
 
+interface BrandingOptions {
+  logoUrl?: string;
+  logoPosition?: 'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft';
+  showCardNumbers?: boolean;
+  cardNumberPosition?: 'topRight' | 'topLeft' | 'bottomRight' | 'bottomLeft';
+  dimensions?: 'fluid' | 'standard' | 'wide';
+}
+
+interface LocalThemeStyle {
+  primaryColor: string;
+  secondaryColor: string;
+  accentColor: string;
+  themeName: string;
+}
+
 interface GammaGenerationRequest {
   topic: string;
   presentationType?: string;
@@ -17,6 +32,9 @@ interface GammaGenerationRequest {
   customInstructions?: string;
   audience?: string;
   themeId?: string;
+  themeSource?: 'gamma' | 'local';
+  localThemeStyle?: LocalThemeStyle;
+  branding?: BrandingOptions;
 }
 
 interface GammaCompletedResponse {
@@ -90,7 +108,10 @@ serve(async (req) => {
       supportingContent,
       customInstructions,
       audience = 'healthcare professionals',
-      themeId
+      themeId,
+      themeSource,
+      localThemeStyle,
+      branding
     } = requestBody;
 
     console.log(`[Gamma] Starting generation for topic: "${topic}"`);
@@ -117,6 +138,23 @@ serve(async (req) => {
       additionalInstructions += ` Follow NHS branding guidelines where appropriate. Use healthcare-appropriate terminology. Ensure accessibility compliance.`;
     }
 
+    // Add local theme styling instructions if using a local theme
+    if (themeSource === 'local' && localThemeStyle) {
+      additionalInstructions += ` IMPORTANT COLOUR SCHEME: Use these exact colours throughout the presentation - Primary: ${localThemeStyle.primaryColor}, Secondary: ${localThemeStyle.secondaryColor}, Accent: ${localThemeStyle.accentColor}. Theme style: ${localThemeStyle.themeName}. Apply consistent branding with these colours on headings, backgrounds, and key visual elements.`;
+      console.log(`[Gamma] Applying local theme styling: ${localThemeStyle.themeName}`);
+    }
+
+    // Add branding instructions if provided
+    if (branding) {
+      if (branding.logoUrl) {
+        additionalInstructions += ` Include organisation logo positioned at ${branding.logoPosition || 'top right'} on each slide.`;
+      }
+      if (branding.showCardNumbers !== false) {
+        additionalInstructions += ` Show slide numbers at ${branding.cardNumberPosition || 'bottom right'}.`;
+      }
+      console.log(`[Gamma] Branding options applied:`, branding);
+    }
+
     console.log('[Gamma] Initiating generation request to:', `${GAMMA_API_BASE}/v1.0/generations`);
 
     // Step 1: Create generation request
@@ -139,10 +177,27 @@ serve(async (req) => {
       },
     };
 
-    // Include theme ID if provided
-    if (themeId) {
+    // Include theme ID if provided (only for Gamma-sourced themes)
+    if (themeId && themeSource === 'gamma') {
       requestPayload.themeId = themeId;
-      console.log(`[Gamma] Using theme ID: ${themeId}`);
+      console.log(`[Gamma] Using Gamma theme ID: ${themeId}`);
+    }
+
+    // Add cardOptions for branding if provided
+    if (branding) {
+      requestPayload.cardOptions = {
+        headerFooter: {
+          showHeader: !!branding.logoUrl,
+          showFooter: branding.showCardNumbers !== false,
+          headerPosition: branding.logoPosition || 'topRight',
+          footerPosition: branding.cardNumberPosition || 'bottomRight',
+        }
+      };
+      
+      // Set dimensions if specified
+      if (branding.dimensions && branding.dimensions !== 'fluid') {
+        requestPayload.dimensions = branding.dimensions === 'wide' ? '16:9' : '4:3';
+      }
     }
 
     console.log('[Gamma] Request payload:', JSON.stringify(requestPayload, null, 2));

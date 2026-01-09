@@ -16,6 +16,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { PresentationBrandingSettings } from './PresentationBrandingSettings';
 
 interface Theme {
   id: string;
@@ -319,6 +320,11 @@ export function PresentationTemplateSettings() {
                   <ExternalLink className="h-3 w-3" />
                 </a>
               )}
+            </div>
+
+            {/* Branding Settings */}
+            <div className="pt-6">
+              <PresentationBrandingSettings />
             </div>
           </div>
         )}

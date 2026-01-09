@@ -118,11 +118,13 @@ serve(async (req) => {
       );
     }
 
-    const gammaThemes = await response.json();
-    console.log(`[Gamma Themes] Retrieved ${gammaThemes.length || 0} themes from Gamma`);
+    const gammaResponse = await response.json();
+    // Gamma API returns paginated response: { data: [...], hasMore: boolean, nextCursor?: string }
+    const gammaThemes = gammaResponse.data || gammaResponse || [];
+    console.log(`[Gamma Themes] Retrieved ${Array.isArray(gammaThemes) ? gammaThemes.length : 0} themes from Gamma`);
 
     // Transform Gamma themes to our format
-    const formattedThemes = (gammaThemes || []).map((theme: any) => ({
+    const formattedThemes = (Array.isArray(gammaThemes) ? gammaThemes : []).map((theme: any) => ({
       id: theme.themeId || theme.id,
       name: theme.name || 'Untitled Theme',
       description: theme.description || '',

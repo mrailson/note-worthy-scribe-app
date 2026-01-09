@@ -3,45 +3,66 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { stripMarkdown } from '@/utils/stripMarkdown';
 import { useAuth } from '@/contexts/AuthContext';
+import type { BrandingPreference } from '@/components/settings/PresentationBrandingSettings';
 
 interface UserTemplatePreference {
   themeId: string;
   themeName: string;
   source: 'gamma' | 'local';
+  primaryColor?: string;
+  secondaryColor?: string;
+  accentColor?: string;
 }
+
+const NHS_THEME_COLORS: Record<string, { primaryColor: string; secondaryColor: string; accentColor: string }> = {
+  'nhs-professional': { primaryColor: '#005EB8', secondaryColor: '#003087', accentColor: '#41B6E6' },
+  'nhs-modern': { primaryColor: '#003087', secondaryColor: '#005EB8', accentColor: '#00A499' },
+  'clinical-clean': { primaryColor: '#2D3748', secondaryColor: '#4A5568', accentColor: '#38A169' },
+  'educational-bright': { primaryColor: '#2B6CB0', secondaryColor: '#3182CE', accentColor: '#ED8936' },
+  'executive-dark': { primaryColor: '#1A202C', secondaryColor: '#2D3748', accentColor: '#805AD5' },
+};
 
 export const useGammaPowerPoint = () => {
   const { user } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [templatePreference, setTemplatePreference] = useState<UserTemplatePreference | null>(null);
+  const [brandingPreference, setBrandingPreference] = useState<BrandingPreference | null>(null);
 
-  // Fetch user's template preference on mount
+  // Fetch user's preferences on mount
   useEffect(() => {
-    const fetchPreference = async () => {
+    const fetchPreferences = async () => {
       if (!user) return;
 
       try {
-        const { data, error } = await supabase
-          .from('user_settings')
-          .select('setting_value')
-          .eq('user_id', user.id)
-          .eq('setting_key', 'presentation_template')
-          .single();
+        // Fetch both template and branding preferences in parallel
+        const [templateResult, brandingResult] = await Promise.all([
+          supabase
+            .from('user_settings')
+            .select('setting_value')
+            .eq('user_id', user.id)
+            .eq('setting_key', 'presentation_template')
+            .single(),
+          supabase
+            .from('user_settings')
+            .select('setting_value')
+            .eq('user_id', user.id)
+            .eq('setting_key', 'presentation_branding')
+            .single()
+        ]);
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Error fetching template preference:', error);
-          return;
+        if (templateResult.data?.setting_value) {
+          setTemplatePreference(templateResult.data.setting_value as unknown as UserTemplatePreference);
         }
 
-        if (data?.setting_value) {
-          setTemplatePreference(data.setting_value as unknown as UserTemplatePreference);
+        if (brandingResult.data?.setting_value) {
+          setBrandingPreference(brandingResult.data.setting_value as unknown as BrandingPreference);
         }
       } catch (error) {
-        console.error('Error fetching template preference:', error);
+        console.error('Error fetching preferences:', error);
       }
     };
 
-    fetchPreference();
+    fetchPreferences();
   }, [user]);
 
   const downloadBase64AsPptx = (base64: string, title: string) => {
@@ -87,7 +108,7 @@ export const useGammaPowerPoint = () => {
     try {
       const { topic, supportingContent } = prepareContentForGamma(content, title);
 
-      const requestBody: any = {
+      const requestBody: Record<string, unknown> = {
         topic,
         supportingContent,
         slideCount: 10,
@@ -95,10 +116,39 @@ export const useGammaPowerPoint = () => {
         audience: 'healthcare professionals'
       };
 
-      // Include theme ID if user has a preference and it's from Gamma
-      if (templatePreference?.themeId && templatePreference?.source === 'gamma') {
-        requestBody.themeId = templatePreference.themeId;
+      // Include theme settings
+      if (templatePreference) {
+        requestBody.themeSource = templatePreference.source;
+        
+        if (templatePreference.source === 'gamma') {
+          // Gamma theme - pass the theme ID directly
+          requestBody.themeId = templatePreference.themeId;
+        } else if (templatePreference.source === 'local') {
+          // Local theme - pass styling instructions
+          const colors = NHS_THEME_COLORS[templatePreference.themeId];
+          if (colors) {
+            requestBody.localThemeStyle = {
+              primaryColor: colors.primaryColor,
+              secondaryColor: colors.secondaryColor,
+              accentColor: colors.accentColor,
+              themeName: templatePreference.themeName
+            };
+          }
+        }
       }
+
+      // Include branding options if set
+      if (brandingPreference) {
+        requestBody.branding = {
+          logoUrl: brandingPreference.logoUrl,
+          logoPosition: brandingPreference.logoPosition,
+          showCardNumbers: brandingPreference.showCardNumbers,
+          cardNumberPosition: brandingPreference.cardNumberPosition,
+          dimensions: brandingPreference.dimensions
+        };
+      }
+
+      console.log('[Gamma Hook] Request body:', requestBody);
 
       const { data, error } = await supabase.functions.invoke('generate-powerpoint-gamma', {
         body: requestBody
@@ -134,5 +184,5 @@ export const useGammaPowerPoint = () => {
     }
   };
 
-  return { generateWithGamma, isGenerating, templatePreference };
+  return { generateWithGamma, isGenerating, templatePreference, brandingPreference };
 };
