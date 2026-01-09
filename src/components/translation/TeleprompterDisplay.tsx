@@ -16,11 +16,14 @@ interface TeleprompterDisplayProps {
   className?: string;
 }
 
-const TEXT_SIZE_CLASSES: Record<TextSize, { latest: string; previous: string }> = {
-  normal: { latest: 'text-3xl', previous: 'text-lg' },
-  large: { latest: 'text-5xl', previous: 'text-xl' },
-  xlarge: { latest: 'text-7xl', previous: 'text-2xl' },
+const TEXT_SIZE_CLASSES: Record<TextSize, { latest: string; previous: string; compact: string }> = {
+  normal: { latest: 'text-3xl', previous: 'text-lg', compact: 'text-xl' },
+  large: { latest: 'text-5xl', previous: 'text-xl', compact: 'text-2xl' },
+  xlarge: { latest: 'text-7xl', previous: 'text-2xl', compact: 'text-3xl' },
 };
+
+// Character threshold for switching to compact text size
+const LONG_TEXT_THRESHOLD = 350;
 
 export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
   conversation,
@@ -96,19 +99,25 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
     >
 
       {/* Latest entry - prominent */}
-      {latestEntry && (
-        <div className="w-full max-w-4xl text-center animate-fade-in">
-          <p
-            className={cn(
-              sizeClasses.latest,
-              'font-semibold leading-tight',
-              latestEntry.speaker === 'gp' ? 'text-primary' : 'text-foreground'
-            )}
-          >
-            {getDisplayText(latestEntry)}
-          </p>
-        </div>
-      )}
+      {latestEntry && (() => {
+        const displayText = getDisplayText(latestEntry);
+        const isLongText = displayText.length > LONG_TEXT_THRESHOLD;
+        const textSizeClass = isLongText ? sizeClasses.compact : sizeClasses.latest;
+        
+        return (
+          <div className="w-full max-w-4xl text-center animate-fade-in">
+            <p
+              className={cn(
+                textSizeClass,
+                'font-semibold leading-tight',
+                latestEntry.speaker === 'gp' ? 'text-primary' : 'text-foreground'
+              )}
+            >
+              {displayText}
+            </p>
+          </div>
+        );
+      })()}
     </div>
   );
 };
