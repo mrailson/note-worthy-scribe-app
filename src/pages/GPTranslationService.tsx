@@ -11,8 +11,9 @@ import { ArrowLeft, Mic, MicOff, Volume2, VolumeX, Play, Square, RotateCcw, File
 import { useNavigate } from 'react-router-dom';
 import { LanguageSelector } from '@/components/translation/LanguageSelector';
 import { SpeakerModeToggle } from '@/components/translation/SpeakerModeToggle';
-import { ConversationPanel } from '@/components/translation/ConversationPanel';
+import { ConversationPanel, ViewMode } from '@/components/translation/ConversationPanel';
 import { AudioControls } from '@/components/translation/AudioControls';
+import { PatientFocusedView } from '@/components/translation/PatientFocusedView';
 import { useGPTranslation, ConversationEntry } from '@/hooks/useGPTranslation';
 import { ELEVENLABS_LANGUAGES } from '@/constants/elevenLabsLanguages';
 
@@ -26,6 +27,7 @@ const GPTranslationService: React.FC = () => {
   const [autoDetect, setAutoDetect] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.8);
+  const [viewMode, setViewMode] = useState<ViewMode>('standard');
   
   const {
     isListening,
@@ -105,160 +107,212 @@ const GPTranslationService: React.FC = () => {
     }
   }, [exportConversation, toast]);
 
+  // Handle pause for patient view
+  const handlePatientViewPause = useCallback(() => {
+    stopListening();
+    stopAudio();
+  }, [stopListening, stopAudio]);
+
+  // Handle resume for patient view
+  const handlePatientViewResume = useCallback(async () => {
+    if (isSessionActive) {
+      try {
+        await startListening();
+      } catch (error) {
+        toast({
+          title: 'Failed to Resume',
+          description: 'Could not resume listening. Please try again.',
+          variant: 'destructive'
+        });
+      }
+    }
+  }, [isSessionActive, startListening, toast]);
+
+  // Handle close patient view
+  const handleClosePatientView = useCallback(() => {
+    setViewMode('standard');
+  }, []);
+
   const selectedLangData = ELEVENLABS_LANGUAGES.find(l => l.code === selectedLanguage);
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <div className="border-b bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => navigate('/ai4gp')}
-              >
-                <ArrowLeft className="h-5 w-5" />
-              </Button>
-              <div>
-                <h1 className="text-2xl font-bold text-foreground">GP-Patient Translation</h1>
-                <p className="text-sm text-muted-foreground">Real-time two-way translation service</p>
+    <>
+      {/* Patient Focused View (fullscreen overlay) */}
+      {viewMode === 'patient' && (
+        <PatientFocusedView
+          conversation={conversation}
+          speakerMode={speakerMode}
+          selectedLanguage={selectedLanguage}
+          selectedLanguageName={selectedLangData?.name || ''}
+          selectedLanguageFlag={selectedLangData?.flag || ''}
+          isListening={isListening}
+          isProcessing={isProcessing}
+          isSpeaking={isSpeaking}
+          isMuted={isMuted}
+          volume={volume}
+          onMuteToggle={() => setIsMuted(!isMuted)}
+          onVolumeChange={setVolume}
+          onPlayAudio={playAudio}
+          onPause={handlePatientViewPause}
+          onResume={handlePatientViewResume}
+          onClose={handleClosePatientView}
+        />
+      )}
+
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <div className="border-b bg-card">
+          <div className="container mx-auto px-4 py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <Button 
+                  variant="ghost" 
+                  size="icon"
+                  onClick={() => navigate('/ai4gp')}
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                </Button>
+                <div>
+                  <h1 className="text-2xl font-bold text-foreground">GP-Patient Translation</h1>
+                  <p className="text-sm text-muted-foreground">Real-time two-way translation service</p>
+                </div>
+              </div>
+              
+              <div className="flex items-center gap-3">
+                {isSessionActive && (
+                  <Badge 
+                    variant={isListening ? 'default' : 'secondary'}
+                    className="animate-pulse"
+                  >
+                    {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Ready'}
+                  </Badge>
+                )}
+                
+                {!isSessionActive ? (
+                  <Button onClick={handleStartSession} disabled={!selectedLanguage}>
+                    <Play className="h-4 w-4 mr-2" />
+                    Start Session
+                  </Button>
+                ) : (
+                  <Button onClick={handleEndSession} variant="destructive">
+                    <Square className="h-4 w-4 mr-2" />
+                    End Session
+                  </Button>
+                )}
               </div>
             </div>
-            
-            <div className="flex items-center gap-3">
-              {isSessionActive && (
-                <Badge 
-                  variant={isListening ? 'default' : 'secondary'}
-                  className="animate-pulse"
-                >
-                  {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Ready'}
-                </Badge>
-              )}
-              
-              {!isSessionActive ? (
-                <Button onClick={handleStartSession} disabled={!selectedLanguage}>
-                  <Play className="h-4 w-4 mr-2" />
-                  Start Session
-                </Button>
-              ) : (
-                <Button onClick={handleEndSession} variant="destructive">
-                  <Square className="h-4 w-4 mr-2" />
-                  End Session
-                </Button>
-              )}
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="container mx-auto px-4 py-6">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Panel - Controls */}
+            <div className="lg:col-span-3 space-y-4">
+              {/* Language Selection */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Patient Language</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <LanguageSelector
+                    value={selectedLanguage}
+                    onChange={setSelectedLanguage}
+                    disabled={isSessionActive}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Speaker Mode */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Speaker Mode</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <SpeakerModeToggle
+                    mode={speakerMode}
+                    onModeChange={setSpeakerMode}
+                    disabled={!isSessionActive}
+                    isListening={isListening}
+                  />
+                  
+                  <Separator />
+                  
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="auto-detect" className="text-sm">
+                      Auto-detect speaker
+                    </Label>
+                    <Switch
+                      id="auto-detect"
+                      checked={autoDetect}
+                      onCheckedChange={setAutoDetect}
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Audio Controls */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg">Audio Settings</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <AudioControls
+                    volume={volume}
+                    onVolumeChange={setVolume}
+                    isMuted={isMuted}
+                    onMuteToggle={() => setIsMuted(!isMuted)}
+                    isSpeaking={isSpeaking}
+                    onStopAudio={stopAudio}
+                  />
+                </CardContent>
+              </Card>
+
+              {/* Session Actions */}
+              <Card>
+                <CardContent className="pt-4 space-y-2">
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleNewSession}
+                    disabled={isSessionActive}
+                  >
+                    <RotateCcw className="h-4 w-4 mr-2" />
+                    New Session
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={handleExport}
+                    disabled={conversation.length === 0}
+                  >
+                    <FileDown className="h-4 w-4 mr-2" />
+                    Export Conversation
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Right Panel - Conversation */}
+            <div className="lg:col-span-9">
+              <ConversationPanel
+                conversation={conversation}
+                currentTranscript={currentTranscript}
+                speakerMode={speakerMode}
+                selectedLanguage={selectedLanguage}
+                selectedLanguageName={selectedLangData?.name || ''}
+                selectedLanguageFlag={selectedLangData?.flag || ''}
+                onPlayAudio={playAudio}
+                isProcessing={isProcessing}
+                isSpeaking={isSpeaking}
+                viewMode={viewMode}
+                onViewModeChange={setViewMode}
+              />
             </div>
           </div>
         </div>
       </div>
-
-      {/* Main Content */}
-      <div className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left Panel - Controls */}
-          <div className="lg:col-span-3 space-y-4">
-            {/* Language Selection */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Patient Language</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <LanguageSelector
-                  value={selectedLanguage}
-                  onChange={setSelectedLanguage}
-                  disabled={isSessionActive}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Speaker Mode */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Speaker Mode</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <SpeakerModeToggle
-                  mode={speakerMode}
-                  onModeChange={setSpeakerMode}
-                  disabled={!isSessionActive}
-                  isListening={isListening}
-                />
-                
-                <Separator />
-                
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="auto-detect" className="text-sm">
-                    Auto-detect speaker
-                  </Label>
-                  <Switch
-                    id="auto-detect"
-                    checked={autoDetect}
-                    onCheckedChange={setAutoDetect}
-                  />
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Audio Controls */}
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-lg">Audio Settings</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <AudioControls
-                  volume={volume}
-                  onVolumeChange={setVolume}
-                  isMuted={isMuted}
-                  onMuteToggle={() => setIsMuted(!isMuted)}
-                  isSpeaking={isSpeaking}
-                  onStopAudio={stopAudio}
-                />
-              </CardContent>
-            </Card>
-
-            {/* Session Actions */}
-            <Card>
-              <CardContent className="pt-4 space-y-2">
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleNewSession}
-                  disabled={isSessionActive}
-                >
-                  <RotateCcw className="h-4 w-4 mr-2" />
-                  New Session
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full"
-                  onClick={handleExport}
-                  disabled={conversation.length === 0}
-                >
-                  <FileDown className="h-4 w-4 mr-2" />
-                  Export Conversation
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Right Panel - Conversation */}
-          <div className="lg:col-span-9">
-            <ConversationPanel
-              conversation={conversation}
-              currentTranscript={currentTranscript}
-              speakerMode={speakerMode}
-              selectedLanguage={selectedLanguage}
-              selectedLanguageName={selectedLangData?.name || ''}
-              selectedLanguageFlag={selectedLangData?.flag || ''}
-              onPlayAudio={playAudio}
-              isProcessing={isProcessing}
-              isSpeaking={isSpeaking}
-            />
-          </div>
-        </div>
-      </div>
-    </div>
+    </>
   );
 };
 
