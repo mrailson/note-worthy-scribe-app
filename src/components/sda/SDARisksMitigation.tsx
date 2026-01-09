@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { usePracticeContext } from "@/hooks/usePracticeContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -249,6 +250,12 @@ const riskSummary = {
 export const SDARisksMitigation = () => {
   const [sortField, setSortField] = useState<SortField>('currentScore');
   const [sortDirection, setSortDirection] = useState<SortDirection>('desc');
+  const { practiceContext } = usePracticeContext();
+  
+  // Only show LES Contract card to Member Practices (not PML/ICB users)
+  const isMemberPractice = !practiceContext.organisationType || 
+    practiceContext.organisationType === 'GP Practice' || 
+    practiceContext.organisationType === 'Practice';
 
   const getScoreChangeIndicator = (original: number, current: number) => {
     if (current < original) return <TrendingDown className="w-3 h-3 text-green-600" />;
@@ -532,7 +539,8 @@ export const SDARisksMitigation = () => {
           </Card>
         </AccordionItem>
         
-        {/* LES Contract: Top 10 Practice Awareness Points */}
+        {/* LES Contract: Top 10 Practice Awareness Points - Only visible to Member Practices */}
+        {isMemberPractice && (
         <AccordionItem value="les-contract" className="border-0">
           <Card className="bg-white border-0 shadow-sm border-t-4 border-t-[#005EB8]">
             <AccordionTrigger className="hover:no-underline px-6 py-4 [&[data-state=open]>div>svg.chevron]:rotate-180">
@@ -638,6 +646,7 @@ export const SDARisksMitigation = () => {
             </AccordionContent>
           </Card>
         </AccordionItem>
+        )}
 
         {/* January 2026 Decision Pipeline */}
         <AccordionItem value="january-decisions" className="border-0">
