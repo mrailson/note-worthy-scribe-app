@@ -380,7 +380,8 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
           }
         }
 
-        setCurrentTranscript(interimTranscript || finalTranscript);
+        // Only show interim transcript (active speech), not final
+        setCurrentTranscript(interimTranscript);
 
         // Reset silence timer
         if (silenceTimer) clearTimeout(silenceTimer);
@@ -391,6 +392,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
             if (finalTranscript.trim()) {
               processCompletedSpeech(finalTranscript.trim());
               finalTranscript = '';
+              setCurrentTranscript(''); // Clear after processing
             }
           }, 1500); // 1.5 second silence threshold
         }
