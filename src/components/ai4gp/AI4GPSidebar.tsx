@@ -97,6 +97,12 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
     action: () => void;
     className?: string;
   }) => {
+    const handleClick = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      action();
+    };
+
     if (isCollapsed) {
       return (
         <TooltipProvider delayDuration={0}>
@@ -105,13 +111,14 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={action}
-                className={cn("w-10 h-10 p-0 justify-center", className)}
+                onClick={handleClick}
+                onPointerDown={(e) => e.stopPropagation()}
+                className={cn("w-10 h-10 p-0 justify-center cursor-pointer", className)}
               >
-                <Icon className="w-4 h-4" />
+                <Icon className="w-4 h-4 pointer-events-none" />
               </Button>
             </TooltipTrigger>
-            <TooltipContent side="right">
+            <TooltipContent side="right" className="pointer-events-none">
               <p>{label}</p>
             </TooltipContent>
           </Tooltip>
@@ -123,11 +130,11 @@ export const AI4GPSidebar: React.FC<AI4GPSidebarProps> = ({
       <Button
         variant="ghost"
         size="sm"
-        onClick={action}
-        className={cn("w-full justify-start gap-2 h-9", className)}
+        onClick={handleClick}
+        className={cn("w-full justify-start gap-2 h-9 cursor-pointer", className)}
       >
-        <Icon className="w-4 h-4 flex-shrink-0" />
-        <span className="truncate">{label}</span>
+        <Icon className="w-4 h-4 flex-shrink-0 pointer-events-none" />
+        <span className="truncate pointer-events-none">{label}</span>
       </Button>
     );
   };
