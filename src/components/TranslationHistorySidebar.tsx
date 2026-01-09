@@ -506,8 +506,8 @@ export const TranslationHistorySidebar: React.FC<TranslationHistorySidebarProps>
                             console.log('🔗 CLICK: Button clicked for session:', session.id);
                             console.log('🔗 CLICK: Session title:', session.session_title);
                             console.log('🔗 CLICK: Total translations:', session.total_translations);
-                            console.log('🔗 CLICK: Navigating to:', `/translation-tool/${session.id}`);
-                            navigate(`/translation-tool/${session.id}`);
+                            console.log('🔗 CLICK: Navigating to:', `/gp-translation/${session.id}`);
+                            navigate(`/gp-translation/${session.id}`);
                           }}
                           className="h-6 px-2 text-xs flex-1"
                         >

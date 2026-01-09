@@ -179,7 +179,7 @@ const App = () => {
                   <SharedDrive />
                 </ProtectedRoute>
               } />
-              <Route path="/translation-tool" element={<TranslationTool />} />
+              <Route path="/gp-translation" element={<TranslationTool />} />
               <Route path="/mobile-translate" element={<MobileTranslation />} />
               <Route path="/patient-language" element={<PatientLanguageSelection />} />
               <Route path="/gp-genie" element={<GPGenie />} />

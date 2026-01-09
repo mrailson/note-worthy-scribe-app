@@ -350,7 +350,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               if (isMobileScreen || isMobileUserAgent) {
                                 navigate('/mobile-translate');
                               } else {
-                                navigate('/translation-tool');
+                                navigate('/gp-translation');
                               }
                             }}
                             className="cursor-pointer py-3"
