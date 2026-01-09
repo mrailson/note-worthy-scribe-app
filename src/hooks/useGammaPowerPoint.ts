@@ -45,7 +45,6 @@ export const useGammaPowerPoint = () => {
     }
 
     setIsGenerating(true);
-    toast.loading('Creating professional presentation with Gamma AI...', { id: 'gamma-pptx' });
 
     try {
       const { topic, supportingContent } = prepareContentForGamma(content, title);
@@ -71,10 +70,10 @@ export const useGammaPowerPoint = () => {
       // Download the PPTX
       downloadBase64AsPptx(data.pptxBase64, data.title || topic);
       
-      toast.success('Professional presentation downloaded!', { id: 'gamma-pptx' });
+      toast.success('Professional presentation downloaded!');
     } catch (error) {
       console.error('Gamma generation failed:', error);
-      toast.error('Gamma generation failed, using local generator...', { id: 'gamma-pptx' });
+      toast.error('Gamma generation failed, using local generator...');
       
       // Fallback to local generation
       try {
