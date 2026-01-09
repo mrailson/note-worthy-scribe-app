@@ -25,7 +25,8 @@ export const VoiceWaveform: React.FC<VoiceWaveformProps> = ({
           key={i}
           className={cn(
             'w-1 rounded-full bg-primary/70 transition-all',
-            isActive ? 'animate-voice-wave' : 'h-1'
+            isActive ? 'animate-voice-wave' : bar.height,
+            !isActive && 'opacity-40'
           )}
           style={{
             animationDelay: isActive ? bar.delay : '0ms',
