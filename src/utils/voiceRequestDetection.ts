@@ -14,16 +14,16 @@ const HIGH_CONFIDENCE_PATTERNS = [
   /create\s+(a\s+)?voice\s+file/i,
   /generate\s+(a\s+)?voice\s+file/i,
   /make\s+(a\s+)?voice\s+file/i,
-  /voice\s+file\s+(from|of)\s+(this|that)/i,
+  /voice\s+file\s+(from|of)\s+(this|that|the\s+following)/i,
   /create\s+(an?\s+)?audio\s+file/i,
   /generate\s+(an?\s+)?audio\s+file/i,
   /make\s+(an?\s+)?audio\s+file/i,
-  /audio\s+file\s+(from|of)\s+(this|that)/i,
+  /audio\s+file\s+(from|of)\s+(this|that|the\s+following)/i,
   /create\s+(a\s+)?voiceover/i,
   /generate\s+(a\s+)?voiceover/i,
   /make\s+(a\s+)?voiceover/i,
-  /voiceover\s+(from|of)\s+(this|that)/i,
-  /voice\s*over\s+(of|from|for)\s+this/i,
+  /voiceover\s+(from|of)\s+(this|that|the\s+following)/i,
+  /voice\s*over\s+(of|from|for)\s+(this|the\s+following)/i,
   /read\s+(this|that|it)\s+(out\s+)?aloud/i,
   /read\s+(this|that|it)\s+out/i,
   /narrate\s+(this|that|it)/i,
@@ -37,6 +37,13 @@ const HIGH_CONFIDENCE_PATTERNS = [
   /turn\s+(this|that|it)\s+into\s+(audio|speech|voice)/i,
   /make\s+(this|that|it)\s+(into\s+)?(audio|speech|a\s+recording)/i,
   /record\s+(this|that|it)\s+as\s+(audio|voice|speech)/i,
+  // Catch "from the following script" patterns
+  /audio\s+file\s+from\s+the\s+following\s+script/i,
+  /voice\s+file\s+from\s+the\s+following\s+script/i,
+  /create\s+an?\s+audio\s+file\s+from\s+the\s+following/i,
+  /generate\s+an?\s+audio\s+file\s+from\s+the\s+following/i,
+  // Catch "Use a ... voice:" pattern which indicates inline script
+  /use\s+a\s+(?:clear|professional|british)[\s,]+(?:voice|accent)/i,
 ];
 
 // Medium-confidence keywords that might indicate voice generation
@@ -116,14 +123,18 @@ export function detectVoiceRequest(
 export function extractInlineTextForVoice(message: string): string {
   // Patterns to detect inline text after command phrases
   const inlinePatterns = [
-    /(?:create|generate|make)\s+(?:a\s+)?(?:voice|audio)\s+file\s+(?:from|of)\s+this\s*:\s*(.+)/is,
-    /(?:create|generate|make)\s+(?:a\s+)?voiceover\s+(?:from|of)\s+this\s*:\s*(.+)/is,
-    /voice\s+file\s+(?:from|of)\s+this\s*:\s*(.+)/is,
-    /audio\s+file\s+(?:from|of)\s+this\s*:\s*(.+)/is,
-    /(?:read|narrate|speak)\s+this\s*:\s*(.+)/is,
-    /text\s+to\s+speech\s*:\s*(.+)/is,
-    /tts\s*:\s*(.+)/is,
-    /convert\s+to\s+(?:speech|audio|voice)\s*:\s*(.+)/is,
+    // Match "Use a clear, professional British voice: [script]" - most specific first
+    /use\s+a\s+(?:clear[\s,]+)?(?:professional[\s,]+)?(?:british[\s,]+)?voice\s*:\s*(.+)/is,
+    /(?:british|professional|clear)\s+voice\s*:\s*(.+)/is,
+    // General audio/voice file patterns
+    /(?:create|generate|make)\s+(?:a\s+)?(?:voice|audio)\s+file\s+(?:from|of)\s+(?:this|the\s+following(?:\s+script)?)\s*[:\.\-]?\s*(.+)/is,
+    /(?:create|generate|make)\s+(?:a\s+)?voiceover\s+(?:from|of)\s+(?:this|the\s+following(?:\s+script)?)\s*[:\.\-]?\s*(.+)/is,
+    /voice\s+file\s+(?:from|of)\s+(?:this|the\s+following(?:\s+script)?)\s*[:\.\-]?\s*(.+)/is,
+    /audio\s+file\s+(?:from|of|for)\s+(?:this|the\s+following(?:\s+script)?)\s*[:\.\-]?\s*(.+)/is,
+    /(?:read|narrate|speak)\s+(?:this|the\s+following)\s*[:\.\-]?\s*(.+)/is,
+    /text\s+to\s+speech\s*[:\.\-]?\s*(.+)/is,
+    /tts\s*[:\.\-]?\s*(.+)/is,
+    /convert\s+to\s+(?:speech|audio|voice)\s*[:\.\-]?\s*(.+)/is,
   ];
   
   for (const pattern of inlinePatterns) {
