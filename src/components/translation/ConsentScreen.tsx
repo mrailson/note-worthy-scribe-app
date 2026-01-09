@@ -60,7 +60,7 @@ export const ConsentScreen: React.FC<ConsentScreenProps> = ({
             className="w-5 h-5 rounded border-2 border-primary text-primary focus:ring-primary"
           />
           <span className="text-sm text-muted-foreground">
-            🇬🇧 Clinician: I confirm the patient has given consent (thumbs up/nod)
+            🇬🇧 Clinician: I confirm the patient has given consent
           </span>
         </label>
       </div>
