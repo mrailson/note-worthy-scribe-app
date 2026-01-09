@@ -688,7 +688,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           }));
           
           // Step 1: Generate presentation content using Claude
-          const { data: presentationContent, error: contentError } = await supabase.functions.invoke('generate-powerpoint', {
+          const { data: contentResponse, error: contentError } = await supabase.functions.invoke('generate-powerpoint', {
             body: {
               topic: pptDetection.topic,
               presentationType: getPresentationTypeDisplayName(pptDetection.presentationType),
@@ -704,7 +704,11 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             throw new Error(contentError.message || 'Failed to generate presentation content');
           }
           
+          // The response structure is { presentation: {...}, metadata: {...} }
+          const presentationContent = contentResponse?.presentation;
+          
           if (!presentationContent?.slides) {
+            console.error('Invalid presentation response:', contentResponse);
             throw new Error('No presentation content received');
           }
           
