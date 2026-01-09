@@ -720,12 +720,6 @@ const AI4GPService = () => {
                           </div>
                         ) : (
                           <>
-                            <p className={cn(
-                              "text-center text-muted-foreground mb-3",
-                              "text-xs sm:text-sm"
-                            )}>
-                              Get started with these common queries:
-                            </p>
                             
                             {/* Role Selection Toggle */}
                             {!shouldHideGPClinical && (
