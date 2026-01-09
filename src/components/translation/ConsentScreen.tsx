@@ -49,7 +49,21 @@ export const ConsentScreen: React.FC<ConsentScreenProps> = ({
       <p className="text-muted-foreground text-2xl md:text-3xl text-center mb-8">
         {phrases.translationWillAppear}
       </p>
-      
+
+      {/* Clinician consent checkbox */}
+      <div className="mb-8 p-4 bg-muted/50 rounded-lg border max-w-md">
+        <label className="flex items-center gap-3 cursor-pointer">
+          <input
+            type="checkbox"
+            checked={consentConfirmed}
+            onChange={(e) => onConsentChange(e.target.checked)}
+            className="w-5 h-5 rounded border-2 border-primary text-primary focus:ring-primary"
+          />
+          <span className="text-sm text-muted-foreground">
+            🇬🇧 Clinician: I confirm the patient has given consent (thumbs up/nod)
+          </span>
+        </label>
+      </div>
 
       {/* Session Controls */}
       <div className="flex items-center gap-4">
