@@ -160,10 +160,6 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
   return (
     <div className="p-3 sm:p-4">
       <div className="space-y-3">
-        {/* Compact Header */}
-        <p className="text-center text-sm text-muted-foreground">
-          What would you like to do today?
-        </p>
 
         {/* Compact Cards Grid - Full Width */}
         <TooltipProvider delayDuration={200}>
