@@ -24,7 +24,7 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Resuming in',
     listening: 'Listening',
     processing: 'Processing',
-    translationWillAppear: 'The translation will appear here in English',
+    translationWillAppear: 'The translation for the patient will appear here',
     consentMessage: 'Please give a thumbs up or nod if you agree to use this translation service',
     standbyMessage: 'The system is on standby. Tap to resume.',
     resume: 'Resume',
