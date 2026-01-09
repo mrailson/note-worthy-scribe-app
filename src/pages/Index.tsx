@@ -15,7 +15,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useMeetingAutoClose } from "@/hooks/useMeetingAutoClose";
 import { useIsMobile, useIsIPhone } from "@/hooks/use-mobile";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import { ImportedTranscript } from "@/utils/FileImporter";
 import { Building2, ExternalLink, MessageSquare, FileText, Play } from "lucide-react";
 const Index = () => {
@@ -62,15 +62,15 @@ const Index = () => {
           
           if (error) {
             console.error('Magic link session error:', error);
-            toast.error('The magic link has expired or is invalid. Please request a new one.');
+            showToast.error('The magic link has expired or is invalid. Please request a new one.', { section: 'security' });
           } else {
             // Clear the hash from URL
             window.history.replaceState(null, '', window.location.pathname);
-            toast.success('Welcome! You have successfully logged in.');
+            showToast.success('Welcome! You have successfully logged in.', { section: 'security' });
           }
         } catch (err) {
           console.error('Magic link error:', err);
-          toast.error('Failed to process magic link. Please try again.');
+          showToast.error('Failed to process magic link. Please try again.', { section: 'security' });
         }
       }
     };
@@ -128,7 +128,7 @@ const Index = () => {
       // Clear the navigation state to prevent re-triggering on refresh
       window.history.replaceState({}, '', '/');
       
-      toast.success(`Continuing "${data.title}". Press the mic button to start recording.`);
+      showToast.success(`Continuing "${data.title}". Press the mic button to start recording.`, { section: 'meeting_manager' });
       
       // Scroll to the recorder section on mobile
       setTimeout(() => {
@@ -245,15 +245,15 @@ const Index = () => {
       if (summary) {
         setCurrentView("summary");
       }
-      toast.success(`Meeting loaded: ${meeting.title}`);
+      showToast.success(`Meeting loaded: ${meeting.title}`, { section: 'meeting_manager' });
     } catch (error: any) {
-      toast.error(`Error loading meeting: ${error.message}`);
+      showToast.error(`Error loading meeting: ${error.message}`, { section: 'meeting_manager' });
     }
   };
   const handleAudioImported = (audioFile: File) => {
     // Handle the imported audio file
     // This could be extended to process the audio file for transcription
-    toast.success(`Audio file imported: ${audioFile.name}`);
+    showToast.success(`Audio file imported: ${audioFile.name}`, { section: 'meeting_manager' });
     console.log("Audio file imported:", audioFile);
   };
   const handleTranscriptImported = (importedTranscript: ImportedTranscript) => {
@@ -266,7 +266,7 @@ const Index = () => {
       setDuration(importedTranscript.duration);
     }
     setImportedTranscript(importedTranscript);
-    toast.success(`Transcript imported successfully! ${importedTranscript.wordCount} words loaded.`);
+    showToast.success(`Transcript imported successfully! ${importedTranscript.wordCount} words loaded.`, { section: 'meeting_manager' });
   };
   const parseDurationToMinutes = (duration: string): number => {
     const [hours, minutes] = duration.split(':').map(Number);

@@ -5,7 +5,7 @@ import { iPhoneWhisperTranscriber, TranscriptData as IPhoneTranscriptData } from
 import { DesktopWhisperTranscriber, TranscriptData as DesktopTranscriptData } from '@/utils/DesktopWhisperTranscriber';
 import { ChromiumMicTranscriber, ChromiumTranscriptData } from '@/utils/ChromiumMicTranscriber';
 import { mergeLive } from "@/utils/TranscriptMerge";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import { bus } from "@/lib/bus";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -329,11 +329,11 @@ export const useGPScribeRecording = () => {
 
       // Show user which pipeline is being used
       if (useChromiumMicPipeline) {
-        toast.info("Using optimized Chromium microphone pipeline");
+        showToast.info("Using optimized Chromium microphone pipeline", { section: 'gpscribe' });
       } else if (isIOS) {
-        toast.info("Using iPhone Whisper pipeline");
+        showToast.info("Using iPhone Whisper pipeline", { section: 'gpscribe' });
       } else {
-        toast.info("Using desktop Whisper pipeline");
+        showToast.info("Using desktop Whisper pipeline", { section: 'gpscribe' });
       }
 
       if (isIOS) {
@@ -350,7 +350,7 @@ export const useGPScribeRecording = () => {
           },
           (error: string) => {
             console.error("iPhone transcriber error:", error);
-            toast.error(`Transcription error: ${error}`);
+            showToast.error(`Transcription error: ${error}`, { section: 'gpscribe' });
             setConnectionStatus("Error");
           },
           (status: string) => {
@@ -375,7 +375,7 @@ export const useGPScribeRecording = () => {
           },
           (error: string) => {
             console.error("Desktop transcriber error:", error);
-            toast.error(`Transcription error: ${error}`);
+            showToast.error(`Transcription error: ${error}`, { section: 'gpscribe' });
             setConnectionStatus("Error");
           },
           (status: string) => {
@@ -400,7 +400,7 @@ export const useGPScribeRecording = () => {
           },
           (error: string) => {
             console.error("Chromium transcriber error:", error);
-            toast.error(`Chromium transcription error: ${error}`);
+            showToast.error(`Chromium transcription error: ${error}`, { section: 'gpscribe' });
             setConnectionStatus("Error");
           },
           (status: string) => {
@@ -425,7 +425,7 @@ export const useGPScribeRecording = () => {
           },
           (error: string) => {
             console.error("Desktop transcriber error:", error);
-            toast.error(`Transcription error: ${error}`);
+            showToast.error(`Transcription error: ${error}`, { section: 'gpscribe' });
             setConnectionStatus("Error");
           },
           (status: string) => {
@@ -438,10 +438,10 @@ export const useGPScribeRecording = () => {
       }
 
       setConnectionStatus("Connected");
-      toast.success("Recording started");
+      showToast.success("Recording started", { section: 'gpscribe' });
     } catch (error) {
       console.error("Failed to start recording:", error);
-      toast.error("Failed to start recording");
+      showToast.error("Failed to start recording", { section: 'gpscribe' });
       setIsRecording(false);
       setConnectionStatus("Disconnected");
     }
@@ -511,7 +511,7 @@ export const useGPScribeRecording = () => {
         chromiumTranscriberRef.current = null;
       }
 
-      toast.success("Recording stopped");
+      showToast.success("Recording stopped", { section: 'gpscribe' });
 
       // Auto-navigate to meeting summary if transcript exists and navigate function provided
       if (navigate && transcript.trim() && wordCount > 10) {
@@ -550,18 +550,18 @@ export const useGPScribeRecording = () => {
             meetingData.generatedNotes = data.meetingMinutes;
           } else {
             console.error('Failed to generate meeting notes:', error || data?.error);
-            toast.warning("Recording saved but notes generation failed - you can generate them manually");
+            showToast.warning("Recording saved but notes generation failed - you can generate them manually", { section: 'gpscribe' });
           }
         } catch (error) {
           console.error('Error generating meeting notes:', error);
-          toast.warning("Recording saved but notes generation failed - you can generate them manually");
+          showToast.warning("Recording saved but notes generation failed - you can generate them manually", { section: 'gpscribe' });
         }
 
         navigate('/meeting-summary', { state: meetingData });
       }
     } catch (error) {
       console.error("Failed to stop recording:", error);
-      toast.error("Failed to stop recording");
+      showToast.error("Failed to stop recording", { section: 'gpscribe' });
     }
   }, [transcript, duration, wordCount]);
 
@@ -571,7 +571,7 @@ export const useGPScribeRecording = () => {
       intervalRef.current = null;
     }
     setIsPaused(true);
-    toast.info("Recording paused");
+    showToast.info("Recording paused", { section: 'gpscribe' });
   }, []);
 
   const resumeRecording = useCallback(() => {
@@ -579,7 +579,7 @@ export const useGPScribeRecording = () => {
       setDuration(prev => prev + 1);
     }, 1000);
     setIsPaused(false);
-    toast.info("Recording resumed");
+    showToast.info("Recording resumed", { section: 'gpscribe' });
   }, []);
 
   const clearTranscript = useCallback(() => {
