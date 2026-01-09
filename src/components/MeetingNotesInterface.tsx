@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Copy, Download, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import ExampleMeetingFlyout from './ExampleMeetingFlyout';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -67,7 +67,7 @@ export default function MeetingNotesInterface() {
 
   const handleGenerate = async () => {
     if (!transcript.trim()) {
-      toast.error('Please provide a meeting transcript');
+      showToast.error('Please provide a meeting transcript', { section: 'meeting_manager' });
       return;
     }
 
@@ -90,11 +90,11 @@ export default function MeetingNotesInterface() {
 
       setGeneratedNotes(data.styles);
       setStyleNames(data.styleNames || {});
-      toast.success('Meeting notes generated successfully');
+      showToast.success('Meeting notes generated successfully', { section: 'meeting_manager' });
     } catch (e: any) {
       console.error('Error generating notes:', e);
       setError(e.message || 'Failed to generate meeting notes');
-      toast.error('Failed to generate meeting notes');
+      showToast.error('Failed to generate meeting notes', { section: 'meeting_manager' });
     } finally {
       setLoading(false);
     }
@@ -103,9 +103,9 @@ export default function MeetingNotesInterface() {
   const handleCopy = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
-      toast.success('Copied to clipboard');
+      showToast.success('Copied to clipboard', { section: 'meeting_manager' });
     } catch (e) {
-      toast.error('Failed to copy to clipboard');
+      showToast.error('Failed to copy to clipboard', { section: 'meeting_manager' });
     }
   };
 
@@ -131,9 +131,9 @@ export default function MeetingNotesInterface() {
       a.remove();
       URL.revokeObjectURL(url);
       
-      toast.success('Document downloaded');
+      showToast.success('Document downloaded', { section: 'meeting_manager' });
     } catch (e: any) {
-      toast.error(`Export failed: ${e.message}`);
+      showToast.error(`Export failed: ${e.message}`, { section: 'meeting_manager' });
     }
   };
 
@@ -144,11 +144,11 @@ export default function MeetingNotesInterface() {
       reader.onload = (e) => {
         const content = e.target?.result as string;
         setTranscript(content);
-        toast.success('File uploaded successfully');
+        showToast.success('File uploaded successfully', { section: 'meeting_manager' });
       };
       reader.readAsText(file);
     } else {
-      toast.error('Please select a text file');
+      showToast.error('Please select a text file', { section: 'meeting_manager' });
     }
   };
 

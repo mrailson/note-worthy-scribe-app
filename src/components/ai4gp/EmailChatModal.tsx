@@ -13,7 +13,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { Mail, X, Plus, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface EmailChatModalProps {
   isOpen: boolean;
@@ -43,12 +43,12 @@ export const EmailChatModal: React.FC<EmailChatModalProps> = ({
     if (!trimmedEmail) return;
     
     if (!isValidEmail(trimmedEmail)) {
-      toast.error('Please enter a valid email address');
+      showToast.error('Please enter a valid email address', { section: 'ai4gp' });
       return;
     }
     
     if (emails.includes(trimmedEmail)) {
-      toast.error('Email already added');
+      showToast.error('Email already added', { section: 'ai4gp' });
       return;
     }
     
@@ -69,12 +69,12 @@ export const EmailChatModal: React.FC<EmailChatModalProps> = ({
 
   const handleSend = async () => {
     if (emails.length === 0) {
-      toast.error('Please add at least one recipient');
+      showToast.error('Please add at least one recipient', { section: 'ai4gp' });
       return;
     }
 
     if (!chatContent.trim()) {
-      toast.error('No chat content to send');
+      showToast.error('No chat content to send', { section: 'ai4gp' });
       return;
     }
 
@@ -93,14 +93,14 @@ export const EmailChatModal: React.FC<EmailChatModalProps> = ({
       if (error) throw error;
 
       if (data?.success) {
-        toast.success(`Email sent to ${emails.length} recipient${emails.length > 1 ? 's' : ''}`);
+        showToast.success(`Email sent to ${emails.length} recipient${emails.length > 1 ? 's' : ''}`, { section: 'ai4gp' });
         handleClose();
       } else {
         throw new Error(data?.error || 'Failed to send email');
       }
     } catch (error: any) {
       console.error('Error sending email:', error);
-      toast.error(error.message || 'Failed to send email');
+      showToast.error(error.message || 'Failed to send email', { section: 'ai4gp' });
     } finally {
       setIsSending(false);
     }

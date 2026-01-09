@@ -4,7 +4,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuGroup, DropdownMenuItem,
 import { CustomAIPromptModal } from "@/components/CustomAIPromptModal";
 import { CustomFindReplaceModal } from "@/components/CustomFindReplaceModal";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { showToast } from '@/utils/toastWrapper';
 import { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } from 'docx';
 import { saveAs } from 'file-saver';
 import jsPDF from 'jspdf';
@@ -44,17 +44,17 @@ export function MeetingModalQuickPick({
   const handleCopy = async () => {
     try {
       await copyPlainTextToClipboard(content);
-      toast.success("Content copied to clipboard");
+      showToast.success("Content copied to clipboard", { section: 'meeting_manager' });
     } catch (error) {
       console.error('Copy failed:', error);
-      toast.error("Failed to copy content");
+      showToast.error("Failed to copy content", { section: 'meeting_manager' });
     }
   };
 
   // Regenerate functionality
   const handleRegenerate = async () => {
     if (!content.trim()) {
-      toast.error("No content to regenerate");
+      showToast.error("No content to regenerate", { section: 'meeting_manager' });
       return;
     }
 
@@ -73,10 +73,10 @@ export function MeetingModalQuickPick({
       if (data.error) throw new Error(data.error);
 
       onContentChange(data.enhancedContent);
-      toast.success("Content regenerated successfully");
+      showToast.success("Content regenerated successfully", { section: 'meeting_manager' });
     } catch (error) {
       console.error('Regeneration error:', error);
-      toast.error(error instanceof Error ? error.message : 'Regeneration failed');
+      showToast.error(error instanceof Error ? error.message : 'Regeneration failed', { section: 'meeting_manager' });
     } finally {
       setIsProcessing(false);
     }
@@ -101,10 +101,10 @@ export function MeetingModalQuickPick({
       const buffer = await Packer.toBuffer(doc);
       const blob = new Blob([new Uint8Array(buffer)], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
       saveAs(blob, `meeting-notes-${Date.now()}.docx`);
-      toast.success("Word document downloaded");
+      showToast.success("Word document downloaded", { section: 'meeting_manager' });
     } catch (error) {
       console.error('Word export failed:', error);
-      toast.error("Failed to export Word document");
+      showToast.error("Failed to export Word document", { section: 'meeting_manager' });
     }
   };
 
@@ -126,10 +126,10 @@ export function MeetingModalQuickPick({
       });
       
       pdf.save(`meeting-notes-${Date.now()}.pdf`);
-      toast.success("PDF downloaded");
+      showToast.success("PDF downloaded", { section: 'meeting_manager' });
     } catch (error) {
       console.error('PDF export failed:', error);
-      toast.error("Failed to export PDF");
+      showToast.error("Failed to export PDF", { section: 'meeting_manager' });
     }
   };
 
@@ -138,10 +138,10 @@ export function MeetingModalQuickPick({
       const cleanContent = stripMarkdown(content);
       const blob = new Blob([cleanContent], { type: 'text/plain;charset=utf-8' });
       saveAs(blob, `meeting-notes-${Date.now()}.txt`);
-      toast.success("Text file downloaded");
+      showToast.success("Text file downloaded", { section: 'meeting_manager' });
     } catch (error) {
       console.error('Text export failed:', error);
-      toast.error("Failed to export text file");
+      showToast.error("Failed to export text file", { section: 'meeting_manager' });
     }
   };
 
@@ -173,14 +173,14 @@ export function MeetingModalQuickPick({
     const result = actions[action]?.();
     if (result) {
       onContentChange(result);
-      toast.success(`Applied ${action.replace('-', ' ')}`);
+      showToast.success(`Applied ${action.replace('-', ' ')}`, { section: 'meeting_manager' });
     }
   };
 
   // AI Enhancement functionality
   const handleAIEnhancement = async (enhanceType: string) => {
     if (!content.trim()) {
-      toast.error("No content to enhance");
+      showToast.error("No content to enhance", { section: 'meeting_manager' });
       return;
     }
 
@@ -209,10 +209,10 @@ export function MeetingModalQuickPick({
       if (data.error) throw new Error(data.error);
 
       onContentChange(data.enhancedContent);
-      toast.success(`Applied ${enhanceType.replace('-', ' ')} enhancement`);
+      showToast.success(`Applied ${enhanceType.replace('-', ' ')} enhancement`, { section: 'meeting_manager' });
     } catch (error) {
       console.error('Enhancement error:', error);
-      toast.error(error instanceof Error ? error.message : 'Enhancement failed');
+      showToast.error(error instanceof Error ? error.message : 'Enhancement failed', { section: 'meeting_manager' });
     } finally {
       setIsProcessing(false);
     }
@@ -221,7 +221,7 @@ export function MeetingModalQuickPick({
   // Custom AI Enhancement
   const handleCustomAISubmit = async (prompt: string) => {
     if (!content.trim() || !prompt.trim()) {
-      toast.error("Please provide content and a custom prompt");
+      showToast.error("Please provide content and a custom prompt", { section: 'meeting_manager' });
       return;
     }
 
@@ -241,11 +241,11 @@ export function MeetingModalQuickPick({
       if (data.error) throw new Error(data.error);
 
       onContentChange(data.enhancedContent);
-      toast.success("Applied custom AI enhancement");
+      showToast.success("Applied custom AI enhancement", { section: 'meeting_manager' });
       setShowCustomAIModal(false);
     } catch (error) {
       console.error('Custom enhancement error:', error);
-      toast.error(error instanceof Error ? error.message : 'Custom enhancement failed');
+      showToast.error(error instanceof Error ? error.message : 'Custom enhancement failed', { section: 'meeting_manager' });
     } finally {
       setIsProcessing(false);
     }
@@ -254,7 +254,7 @@ export function MeetingModalQuickPick({
   // Find and Replace functionality
   const handleFindReplaceSubmit = (findText: string, replaceText: string, options: { caseSensitive: boolean; wholeWords: boolean; }) => {
     if (!findText) {
-      toast.error("Please enter text to find");
+      showToast.error("Please enter text to find", { section: 'meeting_manager' });
       return;
     }
 
@@ -276,14 +276,14 @@ export function MeetingModalQuickPick({
       
       if (matchCount > 0) {
         onContentChange(newContent);
-        toast.success(`Replaced ${matchCount} occurrence${matchCount > 1 ? 's' : ''}`);
+        showToast.success(`Replaced ${matchCount} occurrence${matchCount > 1 ? 's' : ''}`, { section: 'meeting_manager' });
         setShowFindReplaceModal(false);
       } else {
-        toast.info("No matches found");
+        showToast.info("No matches found", { section: 'meeting_manager' });
       }
     } catch (error) {
       console.error('Find and replace failed:', error);
-      toast.error("Find and replace operation failed");
+      showToast.error("Find and replace operation failed", { section: 'meeting_manager' });
     }
   };
 

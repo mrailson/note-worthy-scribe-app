@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { AudioBackupInfo, MeetingData } from "@/types/meetingTypes";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
+import { showToast } from '@/utils/toastWrapper';
 
 export const useMeetingAudio = (meetingData: MeetingData | null) => {
   const { user } = useAuth();
@@ -100,13 +100,13 @@ export const useMeetingAudio = (meetingData: MeetingData | null) => {
       if (error) throw error;
       
       if (data?.success) {
-        toast.success("Meeting successfully reprocessed with full audio!");
+        showToast.success("Meeting successfully reprocessed with full audio!", { section: 'meeting_manager' });
         setTranscriptTruncated(false);
         window.location.reload();
       }
     } catch (error) {
       console.error('Reprocessing error:', error);
-      toast.error("Failed to reprocess meeting");
+      showToast.error("Failed to reprocess meeting", { section: 'meeting_manager' });
       setReprocessStatus("Failed to reprocess");
     } finally {
       setIsReprocessing(false);

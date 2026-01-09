@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { FileText } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { extractAttendees } from '@/utils/extractAttendees';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -41,7 +41,7 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
     try {
       setIsGenerating(true);
       setStatus('Generating...');
-      toast.info('Generating Word document...');
+      showToast.info('Generating Word document...', { section: 'meeting_manager' });
       
       if (!meetingData) {
         throw new Error('No meeting data available');
@@ -86,13 +86,13 @@ const MeetingNotesWordExport: React.FC<MeetingNotesWordExportProps> = ({ meeting
       });
       
       setStatus('Success!');
-      toast.success('Word document downloaded successfully!');
+      showToast.success('Word document downloaded successfully!', { section: 'meeting_manager' });
       console.log('🔍 Full-featured Word document download completed!');
       
     } catch (error: any) {
       console.error('❌ Word generation failed:', error);
       setStatus('Failed!');
-      toast.error('Word generation failed: ' + error.message);
+      showToast.error('Word generation failed: ' + error.message, { section: 'meeting_manager' });
     } finally {
       setIsGenerating(false);
     }

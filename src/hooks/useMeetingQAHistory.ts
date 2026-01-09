@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 export interface MeetingQASession {
   id: string;
@@ -23,7 +23,7 @@ export const useMeetingQAHistory = (meetingId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Please sign in to view chat history');
+        showToast.error('Please sign in to view chat history', { section: 'meeting_manager' });
         return;
       }
 
@@ -39,7 +39,7 @@ export const useMeetingQAHistory = (meetingId: string) => {
       setSessions((data || []) as MeetingQASession[]);
     } catch (error: any) {
       console.error('Error loading Q&A history:', error);
-      toast.error('Failed to load chat history');
+      showToast.error('Failed to load chat history', { section: 'meeting_manager' });
     } finally {
       setLoading(false);
     }
@@ -52,7 +52,7 @@ export const useMeetingQAHistory = (meetingId: string) => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        toast.error('Please sign in to save chat');
+        showToast.error('Please sign in to save chat', { section: 'meeting_manager' });
         return null;
       }
 
@@ -69,12 +69,12 @@ export const useMeetingQAHistory = (meetingId: string) => {
 
       if (error) throw error;
 
-      toast.success('Chat saved successfully');
+      showToast.success('Chat saved successfully', { section: 'meeting_manager' });
       await loadSessions();
       return data;
     } catch (error: any) {
       console.error('Error saving session:', error);
-      toast.error('Failed to save chat');
+      showToast.error('Failed to save chat', { section: 'meeting_manager' });
       return null;
     }
   };
@@ -88,11 +88,11 @@ export const useMeetingQAHistory = (meetingId: string) => {
 
       if (error) throw error;
 
-      toast.success('Chat deleted');
+      showToast.success('Chat deleted', { section: 'meeting_manager' });
       await loadSessions();
     } catch (error: any) {
       console.error('Error deleting session:', error);
-      toast.error('Failed to delete chat');
+      showToast.error('Failed to delete chat', { section: 'meeting_manager' });
     }
   };
 

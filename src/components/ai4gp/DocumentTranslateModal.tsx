@@ -8,7 +8,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Loader2, Camera, FileText, Languages, Copy, Check, ChevronDown, ChevronUp, Maximize, X, Printer, Mail, Download, Sparkles } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
 
@@ -67,12 +67,12 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
+      showToast.error('Please select an image file', { section: 'ai4gp' });
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast.error('Image size must be less than 10MB');
+      showToast.error('Image size must be less than 10MB', { section: 'ai4gp' });
       return;
     }
 
@@ -87,7 +87,7 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
 
   const processDocument = async () => {
     if (!selectedImage) {
-      toast.error('Please select an image first');
+      showToast.error('Please select an image first', { section: 'ai4gp' });
       return;
     }
 
@@ -103,7 +103,7 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
 
       if (error) {
         console.error('OCR processing error:', error);
-        toast.error('Failed to process document');
+        showToast.error('Failed to process document', { section: 'ai4gp' });
         return;
       }
 
@@ -111,13 +111,13 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
       setEditableText(data.originalText);
       
       if (data.originalText) {
-        toast.success('Document processed successfully!');
+        showToast.success('Document processed successfully!', { section: 'ai4gp' });
       } else {
-        toast.warning('No text found in the image');
+        showToast.warning('No text found in the image', { section: 'ai4gp' });
       }
     } catch (error) {
       console.error('Error processing document:', error);
-      toast.error('Failed to process document');
+      showToast.error('Failed to process document', { section: 'ai4gp' });
     } finally {
       setIsProcessing(false);
     }
@@ -127,17 +127,17 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success('Text copied to clipboard');
+      showToast.success('Text copied to clipboard', { section: 'ai4gp' });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy text');
+      showToast.error('Failed to copy text', { section: 'ai4gp' });
     }
   };
 
   const handleInsertTranslation = () => {
     if (result?.translatedText) {
       onInsertToChat(result.translatedText);
-      toast.success('Translation inserted into chat');
+      showToast.success('Translation inserted into chat', { section: 'ai4gp' });
       onClose();
     }
   };
@@ -165,15 +165,15 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
 
       if (error) {
         console.error('AI layout improvement error:', error);
-        toast.error('Failed to improve layout with AI');
+        showToast.error('Failed to improve layout with AI', { section: 'ai4gp' });
         return;
       }
 
       setAiFormattedHtml(data.formattedHtml);
-      toast.success('Layout improved with AI!');
+      showToast.success('Layout improved with AI!', { section: 'ai4gp' });
     } catch (error) {
       console.error('Layout improvement error:', error);
-      toast.error('Failed to improve layout');
+      showToast.error('Failed to improve layout', { section: 'ai4gp' });
     } finally {
       setIsImprovingLayout(false);
     }
@@ -262,10 +262,10 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      toast.success('Word document downloaded!');
+      showToast.success('Word document downloaded!', { section: 'ai4gp' });
     } catch (error) {
       console.error('Word download error:', error);
-      toast.error('Failed to download Word document');
+      showToast.error('Failed to download Word document', { section: 'ai4gp' });
     }
   };
 
@@ -327,7 +327,7 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
 
       if (error) {
         console.error('Email sending error:', error);
-        toast.error('Failed to send email');
+        showToast.error('Failed to send email', { section: 'ai4gp' });
         return;
       }
 
@@ -335,12 +335,12 @@ export const DocumentTranslateModal: React.FC<DocumentTranslateModalProps> = ({
         throw new Error(data?.error || 'Failed to send email via EmailJS');
       }
 
-      toast.success(`Email sent successfully to ${emailAddress}`);
+      showToast.success(`Email sent successfully to ${emailAddress}`, { section: 'ai4gp' });
       setShowEmailDialog(false);
       setEmailAddress('');
     } catch (error) {
       console.error('Email error:', error);
-      toast.error('Failed to send email');
+      showToast.error('Failed to send email', { section: 'ai4gp' });
     } finally {
       setIsSendingEmail(false);
     }

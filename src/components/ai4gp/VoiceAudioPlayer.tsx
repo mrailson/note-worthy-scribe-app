@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Volume2, Download, Play, Pause, RotateCcw, Loader2 } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { GeneratedAudio } from '@/types/ai4gp';
 
 interface VoiceAudioPlayerProps {
@@ -52,7 +52,7 @@ export const VoiceAudioPlayer: React.FC<VoiceAudioPlayerProps> = ({ audio }) => 
       }
     } catch (err) {
       console.error('Playback error:', err);
-      toast.error('Failed to play audio');
+      showToast.error('Failed to play audio', { section: 'ai4gp' });
     }
   };
 
@@ -117,10 +117,10 @@ export const VoiceAudioPlayer: React.FC<VoiceAudioPlayerProps> = ({ audio }) => 
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      toast.success('Audio file downloaded!');
+      showToast.success('Audio file downloaded!', { section: 'ai4gp' });
     } catch (err) {
       console.error('Download failed:', err);
-      toast.error('Failed to download audio file');
+      showToast.error('Failed to download audio file', { section: 'ai4gp' });
     }
   };
 

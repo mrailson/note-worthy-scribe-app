@@ -2,7 +2,7 @@ import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Calendar, Download } from 'lucide-react';
 import { generateLeaveCalendarPdf, detectLeaveCalendarData } from '@/utils/leaveCalendarPdfGenerator';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface LeaveCalendarDownloadButtonProps {
   content: string;
@@ -23,10 +23,10 @@ export const LeaveCalendarDownloadButton: React.FC<LeaveCalendarDownloadButtonPr
   const handleDownload = () => {
     try {
       generateLeaveCalendarPdf(content);
-      toast.success('Leave calendar PDF downloaded');
+      showToast.success('Leave calendar PDF downloaded', { section: 'ai4gp' });
     } catch (error) {
       console.error('PDF generation error:', error);
-      toast.error('Failed to generate PDF. Please try again.');
+      showToast.error('Failed to generate PDF. Please try again.', { section: 'ai4gp' });
     }
   };
   

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { AlertTriangle, RefreshCw, CheckCircle } from 'lucide-react';
 import { manualTriggerAutoNotes } from '@/utils/manualTriggerNotes';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { ManualNoteGenerationButton } from './ManualNoteGenerationButton';
 
 interface StuckMeeting {
@@ -39,20 +39,20 @@ export const MeetingRecoveryHelper = () => {
         .limit(10);
 
       if (error) {
-        toast.error('Failed to find stuck meetings');
+        showToast.error('Failed to find stuck meetings', { section: 'meeting_manager' });
         return;
       }
 
       setStuckMeetings(meetings || []);
       
       if (!meetings || meetings.length === 0) {
-        toast.success('No stuck meetings found! All meetings appear to be processed correctly.');
+        showToast.success('No stuck meetings found! All meetings appear to be processed correctly.', { section: 'meeting_manager' });
       } else {
-        toast.info(`Found ${meetings.length} meetings that may need recovery`);
+        showToast.info(`Found ${meetings.length} meetings that may need recovery`, { section: 'meeting_manager' });
       }
     } catch (error) {
       console.error('Error finding stuck meetings:', error);
-      toast.error('Failed to search for stuck meetings');
+      showToast.error('Failed to search for stuck meetings', { section: 'meeting_manager' });
     } finally {
       setLoading(false);
     }
