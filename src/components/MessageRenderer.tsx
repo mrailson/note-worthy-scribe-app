@@ -839,29 +839,123 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                           className="h-7 text-xs"
                           onClick={async () => {
                             try {
-                              let blobUrl: string;
-                              
-                              // Handle data URLs directly (e.g., QR codes)
-                              if (image.url.startsWith('data:')) {
-                                blobUrl = image.url;
-                              } else {
-                                // Fetch remote images as blob
-                                const response = await fetch(image.url);
-                                const blob = await response.blob();
-                                blobUrl = URL.createObjectURL(blob);
-                              }
-                              
-                              const link = document.createElement('a');
-                              link.href = blobUrl;
-                              link.download = `ai4gp-image-${Date.now()}.png`;
-                              document.body.appendChild(link);
-                              link.click();
-                              document.body.removeChild(link);
-                              
-                              // Only revoke if it was a blob URL
-                              if (!image.url.startsWith('data:')) {
+                              const filenameBase = `ai4gp-image-${Date.now()}`;
+
+                              const getExtensionFromMime = (mime: string) => {
+                                switch (mime) {
+                                  case 'image/png':
+                                    return 'png';
+                                  case 'image/jpeg':
+                                    return 'jpg';
+                                  case 'image/webp':
+                                    return 'webp';
+                                  case 'image/svg+xml':
+                                    return 'svg';
+                                  default:
+                                    return 'png';
+                                }
+                              };
+
+                              const downloadDataUrl = (dataUrl: string, filename: string) => {
+                                const link = document.createElement('a');
+                                link.href = dataUrl;
+                                link.download = filename;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              };
+
+                              const downloadBlob = (blob: Blob, filename: string) => {
+                                const blobUrl = URL.createObjectURL(blob);
+                                const link = document.createElement('a');
+                                link.href = blobUrl;
+                                link.download = filename;
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
                                 URL.revokeObjectURL(blobUrl);
+                              };
+
+                              const dataUrlToBlob = (dataUrl: string) => {
+                                const [header, data] = dataUrl.split(',');
+                                const mimeMatch = header.match(/data:([^;,]+)[;,]/);
+                                const mime = mimeMatch?.[1] ?? 'application/octet-stream';
+                                const isBase64 = header.includes(';base64');
+
+                                const binary = isBase64 ? atob(data) : decodeURIComponent(data);
+                                const bytes = new Uint8Array(binary.length);
+                                for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                                return new Blob([bytes], { type: mime });
+                              };
+
+                              const svgBlobToPngBlob = async (svgBlob: Blob) => {
+                                const svgUrl = URL.createObjectURL(svgBlob);
+                                try {
+                                  const img = await new Promise<HTMLImageElement>((resolve, reject) => {
+                                    const imageEl = new Image();
+                                    imageEl.onload = () => resolve(imageEl);
+                                    imageEl.onerror = reject;
+                                    imageEl.src = svgUrl;
+                                  });
+
+                                  const width = img.naturalWidth || img.width || 512;
+                                  const height = img.naturalHeight || img.height || 512;
+
+                                  const canvas = document.createElement('canvas');
+                                  canvas.width = width;
+                                  canvas.height = height;
+
+                                  const ctx = canvas.getContext('2d');
+                                  if (!ctx) throw new Error('Canvas not available');
+                                  ctx.drawImage(img, 0, 0);
+
+                                  return await new Promise<Blob>((resolve, reject) => {
+                                    canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('PNG conversion failed'))), 'image/png');
+                                  });
+                                } finally {
+                                  URL.revokeObjectURL(svgUrl);
+                                }
+                              };
+
+                              // Handle data URLs (e.g., QR codes)
+                              if (image.url.startsWith('data:')) {
+                                const mimeMatch = image.url.match(/^data:([^;,]+)[;,]/);
+                                const mime = mimeMatch?.[1] ?? 'application/octet-stream';
+
+                                if (mime === 'image/svg+xml') {
+                                  const svgBlob = dataUrlToBlob(image.url);
+                                  try {
+                                    const pngBlob = await svgBlobToPngBlob(svgBlob);
+                                    downloadBlob(pngBlob, `${filenameBase}.png`);
+                                  } catch {
+                                    // Fallback: download as SVG
+                                    downloadDataUrl(image.url, `${filenameBase}.svg`);
+                                  }
+                                } else {
+                                  const ext = getExtensionFromMime(mime);
+                                  downloadDataUrl(image.url, `${filenameBase}.${ext}`);
+                                }
+
+                                toast.success('Image downloaded');
+                                return;
                               }
+
+                              // Handle remote URLs
+                              const response = await fetch(image.url);
+                              const blob = await response.blob();
+
+                              if (blob.type === 'image/svg+xml') {
+                                try {
+                                  const pngBlob = await svgBlobToPngBlob(blob);
+                                  downloadBlob(pngBlob, `${filenameBase}.png`);
+                                } catch {
+                                  downloadBlob(blob, `${filenameBase}.svg`);
+                                }
+                              } else {
+                                const ext = getExtensionFromMime(blob.type);
+                                downloadBlob(blob, `${filenameBase}.${ext}`);
+                              }
+
                               toast.success('Image downloaded');
                             } catch (error) {
                               console.error('Download failed:', error);
