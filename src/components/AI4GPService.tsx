@@ -540,6 +540,10 @@ const AI4GPService = () => {
                            <Plus className="w-4 h-4 mr-2" />
                            New Search
                          </DropdownMenuItem>
+                         <DropdownMenuItem onClick={() => navigate('/gp-translation')}>
+                           <Languages className="w-4 h-4 mr-2" />
+                           Translation Service
+                         </DropdownMenuItem>
                          <DropdownMenuItem onClick={() => navigate('/gp-genie')}>
                            <GenieIcon className="w-4 h-4 mr-2" />
                            GP Genie
