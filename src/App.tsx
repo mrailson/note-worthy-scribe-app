@@ -1,5 +1,5 @@
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { HelmetProvider } from 'react-helmet-async';
 import { SecurityWrapper } from '@/components/SecurityWrapper';
 import { SessionActivityTracker } from '@/components/SessionActivityTracker';
@@ -180,6 +180,7 @@ const App = () => {
                 </ProtectedRoute>
               } />
               <Route path="/gp-translation" element={<TranslationTool />} />
+              <Route path="/translation-tool" element={<Navigate to="/gp-translation" replace />} />
               <Route path="/mobile-translate" element={<MobileTranslation />} />
               <Route path="/patient-language" element={<PatientLanguageSelection />} />
               <Route path="/gp-genie" element={<GPGenie />} />
