@@ -183,21 +183,11 @@ serve(async (req) => {
       console.log(`[Gamma] Using Gamma theme ID: ${themeId}`);
     }
 
-    // Add cardOptions for branding if provided
-    if (branding) {
-      requestPayload.cardOptions = {
-        headerFooter: {
-          showHeader: !!branding.logoUrl,
-          showFooter: branding.showCardNumbers !== false,
-          headerPosition: branding.logoPosition || 'topRight',
-          footerPosition: branding.cardNumberPosition || 'bottomRight',
-        }
-      };
-      
-      // Set dimensions if specified
-      if (branding.dimensions && branding.dimensions !== 'fluid') {
-        requestPayload.dimensions = branding.dimensions === 'wide' ? '16:9' : '4:3';
-      }
+    // Note: Gamma API doesn't support cardOptions.headerFooter - branding is applied via additionalInstructions above
+    // Set dimensions if specified (Gamma may support this at generation level)
+    if (branding?.dimensions && branding.dimensions !== 'fluid') {
+      // Gamma API may not support custom dimensions - this is handled via additionalInstructions
+      console.log(`[Gamma] Requested dimensions: ${branding.dimensions}`);
     }
 
     console.log('[Gamma] Request payload:', JSON.stringify(requestPayload, null, 2));
