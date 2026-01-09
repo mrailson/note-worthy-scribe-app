@@ -96,6 +96,7 @@ import BPCalculator from "./pages/BPCalculator";
 import PublicBPCalculator from "./pages/PublicBPCalculator";
 import QuickRecord from "./pages/QuickRecord";
 import GPTranslationService from "./pages/GPTranslationService";
+import AuthConfirm from "./pages/AuthConfirm";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 
 const App = () => {
@@ -116,6 +117,7 @@ const App = () => {
               <Route path="/" element={<Index />} />
               <Route path="/quick-record" element={<QuickRecord />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/auth-confirm" element={<AuthConfirm />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/executive-overview" element={<ExecutiveOverview />} />
               <Route path="/demos" element={<DemoVideosPage />} />
