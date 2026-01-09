@@ -28,7 +28,7 @@ export const PauseOverlay: React.FC<PauseOverlayProps> = ({
   return (
     <div
       className={cn(
-        'absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-900/80 backdrop-blur-sm transition-opacity duration-300',
+        'absolute inset-0 z-40 flex flex-col items-center justify-center bg-slate-900/95 backdrop-blur-xl transition-opacity duration-300',
         isPaused ? 'opacity-100' : 'opacity-0 pointer-events-none',
         className
       )}
