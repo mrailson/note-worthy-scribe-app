@@ -365,3 +365,6 @@ verify_jwt = true
 
 [functions.generate-pptx-with-audio]
 verify_jwt = true
+
+[functions.fetch-gamma-themes]
+verify_jwt = true
