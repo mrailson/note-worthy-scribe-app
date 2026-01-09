@@ -13,6 +13,12 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface PMHomeScreenProps {
   setInput: (text: string) => void;
@@ -22,6 +28,7 @@ interface PMHomeScreenProps {
 interface UseCase {
   id: string;
   title: string;
+  shortTitle: string;
   description: string;
   icon: React.ElementType;
   gradient: string;
@@ -33,6 +40,7 @@ const useCases: UseCase[] = [
   {
     id: 'summarise',
     title: 'Summarise a Document',
+    shortTitle: 'Summarise',
     description: 'Upload any wordy NHS document and get a concise summary',
     icon: FileText,
     gradient: 'from-blue-500 to-blue-600',
@@ -41,6 +49,7 @@ const useCases: UseCase[] = [
   {
     id: 'image',
     title: 'Create an Image',
+    shortTitle: 'Create Image',
     description: 'Generate posters, social graphics, and patient notices',
     icon: ImageIcon,
     gradient: 'from-purple-500 to-purple-600',
@@ -49,6 +58,7 @@ const useCases: UseCase[] = [
   {
     id: 'voice',
     title: 'Generate Voice Audio',
+    shortTitle: 'Voice Audio',
     description: 'Turn any script into a downloadable MP3',
     icon: Volume2,
     gradient: 'from-green-500 to-green-600',
@@ -57,6 +67,7 @@ const useCases: UseCase[] = [
   {
     id: 'meeting',
     title: 'Meeting Notes from Audio',
+    shortTitle: 'Meeting Notes',
     description: 'Transcribe recordings into structured meeting notes',
     icon: Mic,
     gradient: 'from-orange-500 to-orange-600',
@@ -65,6 +76,7 @@ const useCases: UseCase[] = [
   {
     id: 'response',
     title: 'Draft a Response',
+    shortTitle: 'Draft Response',
     description: 'Create complaint responses, letters, and emails',
     icon: MessageSquare,
     gradient: 'from-red-500 to-red-600',
@@ -73,6 +85,7 @@ const useCases: UseCase[] = [
   {
     id: 'qrcode',
     title: 'Create a QR Code',
+    shortTitle: 'QR Code',
     description: 'Generate QR codes for any link or resource',
     icon: QrCode,
     gradient: 'from-teal-500 to-teal-600',
@@ -81,6 +94,7 @@ const useCases: UseCase[] = [
   {
     id: 'translate',
     title: 'Translate a Document',
+    shortTitle: 'Translate',
     description: 'Translate patient information into 50+ languages',
     icon: Languages,
     gradient: 'from-indigo-500 to-indigo-600',
@@ -89,6 +103,7 @@ const useCases: UseCase[] = [
   {
     id: 'presentation',
     title: 'Create a Presentation',
+    shortTitle: 'Presentation',
     description: 'Build PowerPoint slides for meetings',
     icon: Presentation,
     gradient: 'from-amber-500 to-amber-600',
@@ -97,6 +112,7 @@ const useCases: UseCase[] = [
   {
     id: 'search',
     title: 'Search NHS Guidance',
+    shortTitle: 'NHS Search',
     description: 'Find PCN DES specs, contracts, CQC requirements',
     icon: Search,
     gradient: 'from-cyan-500 to-cyan-600',
@@ -105,6 +121,7 @@ const useCases: UseCase[] = [
   {
     id: 'anything',
     title: 'Ask Anything',
+    shortTitle: 'Ask Anything',
     description: 'Get AI assistance with any practice question',
     icon: Sparkles,
     gradient: 'from-primary to-primary/80',
@@ -160,38 +177,47 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
         </p>
 
         {/* Compact Cards Grid - Full Width */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
-          {useCases.map((useCase) => {
-            const Icon = useCase.icon;
-            return (
-              <button
-                key={useCase.id}
-                onClick={() => handleCardClick(useCase)}
-                className={cn(
-                  "group flex items-center gap-2 p-2.5",
-                  "bg-card border border-border rounded-lg",
-                  "hover:border-primary/50 hover:bg-accent/50",
-                  "transition-all duration-150",
-                  "text-left"
-                )}
-              >
-                {/* Compact Icon */}
-                <div className={cn(
-                  "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
-                  "bg-gradient-to-br",
-                  useCase.gradient
-                )}>
-                  <Icon className="w-4 h-4 text-white" />
-                </div>
+        <TooltipProvider delayDuration={200}>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+            {useCases.map((useCase) => {
+              const Icon = useCase.icon;
+              return (
+                <Tooltip key={useCase.id}>
+                  <TooltipTrigger asChild>
+                    <button
+                      onClick={() => handleCardClick(useCase)}
+                      className={cn(
+                        "group flex items-center gap-2 p-2.5",
+                        "bg-card border border-border rounded-lg",
+                        "hover:border-primary/50 hover:bg-accent/50",
+                        "transition-all duration-150",
+                        "text-left"
+                      )}
+                    >
+                      {/* Compact Icon */}
+                      <div className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                        "bg-gradient-to-br",
+                        useCase.gradient
+                      )}>
+                        <Icon className="w-4 h-4 text-white" />
+                      </div>
 
-                {/* Text - Title only for compact view */}
-                <span className="text-xs font-medium text-foreground truncate group-hover:text-primary transition-colors">
-                  {useCase.title}
-                </span>
-              </button>
-            );
-          })}
-        </div>
+                      {/* Short Title */}
+                      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">
+                        {useCase.shortTitle}
+                      </span>
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" className="max-w-xs">
+                    <p className="font-medium text-sm">{useCase.title}</p>
+                    <p className="text-xs text-muted-foreground">{useCase.description}</p>
+                  </TooltipContent>
+                </Tooltip>
+              );
+            })}
+          </div>
+        </TooltipProvider>
       </div>
     </div>
   );
