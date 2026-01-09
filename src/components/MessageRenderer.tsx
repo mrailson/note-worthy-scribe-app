@@ -67,6 +67,7 @@ interface MessageRendererProps {
   onExpandMessage?: (message: Message) => void;
   onExportWord?: (content: string, title?: string) => void;
   onExportPowerPoint?: (content: string, title?: string) => void;
+  onExportPowerPointWithVoiceover?: (content: string, title?: string) => void;
   isModal?: boolean; // New prop to indicate if rendering in modal
   onCloseModal?: () => void; // New prop to close modal
   showResponseMetrics?: boolean; // New prop to show response metrics
@@ -82,6 +83,7 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   onExpandMessage, 
   onExportWord, 
   onExportPowerPoint,
+  onExportPowerPointWithVoiceover,
   isModal = false,
   onCloseModal,
   showResponseMetrics = false,
@@ -278,6 +280,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
   const handleExportPowerPoint = () => {
     if (onExportPowerPoint) {
       onExportPowerPoint(message.content, 'AI Generated Presentation');
+    }
+  };
+
+  const handleExportPowerPointWithVoiceover = () => {
+    if (onExportPowerPointWithVoiceover) {
+      onExportPowerPointWithVoiceover(message.content, 'AI Generated Presentation');
     }
   };
 
@@ -1156,6 +1164,12 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                             <Presentation className="h-4 w-4 mr-2" />
                             Download as PowerPoint Presentation
                           </DropdownMenuItem>
+                          {onExportPowerPointWithVoiceover && (
+                            <DropdownMenuItem onClick={handleExportPowerPointWithVoiceover}>
+                              <Volume2 className="h-4 w-4 mr-2" />
+                              Full PowerPoint with Voiceover
+                            </DropdownMenuItem>
+                          )}
                         </DropdownMenuContent>
                       </DropdownMenu>
                     )}
