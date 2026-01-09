@@ -6,7 +6,7 @@ interface PowerPointGenerationOverlayProps {
 }
 
 const TIPS = [
-  "Gamma AI is designing your slides...",
+  "Notewell AI is designing your slides...",
   "Adding professional layouts and styling...",
   "Organising content into clear sections...",
   "Creating visual hierarchy for impact...",
@@ -17,14 +17,14 @@ const TIPS = [
 ];
 
 export const PowerPointGenerationOverlay: React.FC<PowerPointGenerationOverlayProps> = ({ isVisible }) => {
-  const [seconds, setSeconds] = useState(60);
+  const [seconds, setSeconds] = useState(90);
   const [currentTipIndex, setCurrentTipIndex] = useState(0);
   const [tipFade, setTipFade] = useState(true);
 
   // Reset timer when overlay becomes visible
   useEffect(() => {
     if (isVisible) {
-      setSeconds(60);
+      setSeconds(90);
       setCurrentTipIndex(0);
     }
   }, [isVisible]);
@@ -57,7 +57,7 @@ export const PowerPointGenerationOverlay: React.FC<PowerPointGenerationOverlayPr
 
   if (!isVisible) return null;
 
-  const progress = ((60 - seconds) / 60) * 100;
+  const progress = ((90 - seconds) / 90) * 100;
   const circumference = 2 * Math.PI * 45;
   const strokeDashoffset = circumference - (progress / 100) * circumference;
 
