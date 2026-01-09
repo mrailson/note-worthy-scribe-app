@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Share2, Mail, Users, Send } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface ShareMeetingDialogProps {
   meetingId: string;
@@ -26,19 +26,19 @@ export function ShareMeetingDialog({ meetingId, meetingTitle, children }: ShareM
 
   const handleShare = async () => {
     if (!email.trim()) {
-      toast.error('Please enter an email address');
+      showToast.error('Please enter an email address', { section: 'meeting_manager' });
       return;
     }
 
     if (!user) {
-      toast.error('You must be logged in to share meetings');
+      showToast.error('You must be logged in to share meetings', { section: 'meeting_manager' });
       return;
     }
 
     // Basic email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-      toast.error('Please enter a valid email address');
+      showToast.error('Please enter a valid email address', { section: 'meeting_manager' });
       return;
     }
 
@@ -57,14 +57,14 @@ export function ShareMeetingDialog({ meetingId, meetingTitle, children }: ShareM
 
       if (error) {
         if (error.code === '23505') { // Unique constraint violation
-          toast.error('This meeting has already been shared with this email address');
+          showToast.error('This meeting has already been shared with this email address', { section: 'meeting_manager' });
         } else {
           throw error;
         }
         return;
       }
 
-      toast.success(`Meeting "${meetingTitle}" shared successfully with ${email}`);
+      showToast.success(`Meeting "${meetingTitle}" shared successfully with ${email}`, { section: 'meeting_manager' });
       
       // Reset form
       setEmail('');
@@ -74,7 +74,7 @@ export function ShareMeetingDialog({ meetingId, meetingTitle, children }: ShareM
       
     } catch (error: any) {
       console.error('Error sharing meeting:', error);
-      toast.error('Failed to share meeting. Please try again.');
+      showToast.error('Failed to share meeting. Please try again.', { section: 'meeting_manager' });
     } finally {
       setIsSharing(false);
     }

@@ -17,7 +17,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Mail, Loader2, Users, Search, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { useAuth } from '@/contexts/AuthContext';
 import { stripMarkdown } from '@/utils/stripMarkdown';
 
@@ -213,7 +213,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
 
   const handleSend = async () => {
     if (selectedMembers.length === 0) {
-      toast.error('Please select at least one team member');
+      showToast.error('Please select at least one team member', { section: 'ai4gp' });
       return;
     }
 
@@ -222,7 +222,7 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
       .map(m => m.email);
 
     if (selectedEmails.length === 0) {
-      toast.error('No valid email addresses found');
+      showToast.error('No valid email addresses found', { section: 'ai4gp' });
       return;
     }
 
@@ -242,14 +242,14 @@ export const EmailToTeamModal: React.FC<EmailToTeamModalProps> = ({
       if (error) throw error;
 
       if (data?.success) {
-        toast.success(`Email sent to ${selectedEmails.length} team member${selectedEmails.length > 1 ? 's' : ''}`);
+        showToast.success(`Email sent to ${selectedEmails.length} team member${selectedEmails.length > 1 ? 's' : ''}`, { section: 'ai4gp' });
         handleClose();
       } else {
         throw new Error(data?.error || 'Failed to send email');
       }
     } catch (error: any) {
       console.error('Error sending email:', error);
-      toast.error(error.message || 'Failed to send email');
+      showToast.error(error.message || 'Failed to send email', { section: 'ai4gp' });
     } finally {
       setIsSending(false);
     }

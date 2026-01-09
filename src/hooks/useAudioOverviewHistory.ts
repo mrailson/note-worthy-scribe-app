@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 export interface AudioSession {
   id: string;
@@ -77,7 +77,7 @@ export function useAudioOverviewHistory() {
       setSessions(processedData);
     } catch (error: any) {
       console.error('Error loading audio sessions:', error);
-      toast.error('Failed to load audio history');
+      showToast.error('Failed to load audio history', { section: 'ai4gp' });
     } finally {
       setLoading(false);
     }
@@ -99,7 +99,7 @@ export function useAudioOverviewHistory() {
   }) => {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
-      toast.error('You must be logged in to save sessions');
+      showToast.error('You must be logged in to save sessions', { section: 'ai4gp' });
       return null;
     }
 
@@ -129,12 +129,12 @@ export function useAudioOverviewHistory() {
 
       if (error) throw error;
 
-      toast.success('Audio session saved to history!');
+      showToast.success('Audio session saved to history!', { section: 'ai4gp' });
       await loadSessions();
       return data;
     } catch (error: any) {
       console.error('Error saving audio session:', error);
-      toast.error('Failed to save audio session');
+      showToast.error('Failed to save audio session', { section: 'ai4gp' });
       return null;
     }
   };
@@ -168,12 +168,12 @@ export function useAudioOverviewHistory() {
 
       if (error) throw error;
 
-      toast.success('Session updated successfully!');
+      showToast.success('Session updated successfully!', { section: 'ai4gp' });
       await loadSessions();
       return data;
     } catch (error: any) {
       console.error('Error updating session:', error);
-      toast.error('Failed to update session');
+      showToast.error('Failed to update session', { section: 'ai4gp' });
       return null;
     }
   };
@@ -191,11 +191,11 @@ export function useAudioOverviewHistory() {
 
       if (error) throw error;
 
-      toast.success('Session deleted');
+      showToast.success('Session deleted', { section: 'ai4gp' });
       await loadSessions();
     } catch (error: any) {
       console.error('Error deleting session:', error);
-      toast.error('Failed to delete session');
+      showToast.error('Failed to delete session', { section: 'ai4gp' });
     }
   };
 
@@ -220,12 +220,12 @@ export function useAudioOverviewHistory() {
       });
 
       if (newSession) {
-        toast.success('Session duplicated! Audio will need to be regenerated.');
+        showToast.success('Session duplicated! Audio will need to be regenerated.', { section: 'ai4gp' });
       }
       return newSession;
     } catch (error: any) {
       console.error('Error duplicating session:', error);
-      toast.error('Failed to duplicate session');
+      showToast.error('Failed to duplicate session', { section: 'ai4gp' });
       return null;
     }
   };
