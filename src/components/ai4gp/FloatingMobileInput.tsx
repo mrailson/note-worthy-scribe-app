@@ -6,6 +6,7 @@ import { Send, Paperclip, Mic, MicOff, Stethoscope, MessageSquare, X, ChevronUp 
 import { FileUploadArea } from './FileUploadArea';
 import { UploadedFile } from '@/types/ai4gp';
 import { useFileUpload } from '@/hooks/useFileUpload';
+import { useEnhancedFileProcessing } from '@/hooks/useEnhancedFileProcessing';
 import { SimpleBrowserMic, SimpleBrowserMicRef } from './SimpleBrowserMic';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
@@ -84,6 +85,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
   const micRef = useRef<SimpleBrowserMicRef>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const { processFiles } = useFileUpload();
+  const { processFilesWithValidation } = useEnhancedFileProcessing();
   const [browserTranscript, setBrowserTranscript] = useState('');
   const { toast } = useToast();
   const deviceInfo = useDeviceInfo();
@@ -171,6 +173,69 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
 
   const handleRemoveFile = (index: number) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // Helper to create FileList from array
+  const createFileList = (files: File[]): FileList => {
+    const dataTransfer = new DataTransfer();
+    files.forEach(file => dataTransfer.items.add(file));
+    return dataTransfer.files;
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    // Check for pasted images first (screenshots)
+    const items = e.clipboardData?.items;
+    if (items) {
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          
+          const file = item.getAsFile();
+          if (file) {
+            // Generate a filename with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const extension = file.type.split('/')[1] || 'png';
+            const renamedFile = new File([file], `Screenshot-${timestamp}.${extension}`, {
+              type: file.type
+            });
+            
+            // Add loading placeholder
+            const loadingFile: UploadedFile = {
+              name: renamedFile.name,
+              type: renamedFile.type,
+              content: '',
+              size: renamedFile.size,
+              isLoading: true
+            };
+            setUploadedFiles(prev => [...prev, loadingFile]);
+            
+            try {
+              const processedFiles = await processFilesWithValidation(
+                createFileList([renamedFile])
+              );
+              // Replace loading file with processed one
+              setUploadedFiles(prev => {
+                const withoutLoading = prev.filter(f => f.name !== loadingFile.name || !f.isLoading);
+                return [...withoutLoading, ...processedFiles];
+              });
+              
+              toast({
+                title: "Screenshot pasted",
+                description: "Image ready for analysis",
+              });
+            } catch (error) {
+              setUploadedFiles(prev => prev.filter(f => f.name !== loadingFile.name || !f.isLoading));
+              toast({
+                title: "Failed to process screenshot",
+                description: error instanceof Error ? error.message : "Unknown error",
+                variant: "destructive",
+              });
+            }
+          }
+          return; // Exit after handling image
+        }
+      }
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -291,6 +356,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               placeholder="Message..."
               className="min-h-[40px] max-h-32 resize-none text-base bg-background"
               disabled={isLoading}
@@ -393,6 +459,7 @@ export const FloatingMobileInput = forwardRef<FloatingMobileInputRef, FloatingMo
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
+              onPaste={handlePaste}
               placeholder={placeholderTip}
               className="min-h-[100px] max-h-32 resize-none pr-44 bg-background border-border text-base mobile-touch-target"
               disabled={isLoading}

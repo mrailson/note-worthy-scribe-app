@@ -141,7 +141,69 @@ export const InputArea = forwardRef<InputAreaRef, InputAreaProps>(({
     setInput(text);
   };
 
-  const handlePaste = (e: React.ClipboardEvent) => {
+  // Helper to create FileList from array
+  const createFileList = (files: File[]): FileList => {
+    const dataTransfer = new DataTransfer();
+    files.forEach(file => dataTransfer.items.add(file));
+    return dataTransfer.files;
+  };
+
+  const handlePaste = async (e: React.ClipboardEvent) => {
+    // Check for pasted images first (screenshots)
+    const items = e.clipboardData?.items;
+    if (items) {
+      for (const item of Array.from(items)) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          
+          const file = item.getAsFile();
+          if (file) {
+            // Generate a filename with timestamp
+            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+            const extension = file.type.split('/')[1] || 'png';
+            const renamedFile = new File([file], `Screenshot-${timestamp}.${extension}`, {
+              type: file.type
+            });
+            
+            // Add loading placeholder
+            const loadingFile: UploadedFile = {
+              name: renamedFile.name,
+              type: renamedFile.type,
+              content: '',
+              size: renamedFile.size,
+              isLoading: true
+            };
+            setUploadedFiles(prev => [...prev, loadingFile]);
+            
+            try {
+              const processedFiles = await processFilesWithValidation(
+                createFileList([renamedFile])
+              );
+              // Replace loading file with processed one
+              setUploadedFiles(prev => {
+                const withoutLoading = prev.filter(f => f.name !== loadingFile.name || !f.isLoading);
+                return [...withoutLoading, ...processedFiles];
+              });
+              
+              toast({
+                title: "Screenshot pasted",
+                description: "Image ready for analysis",
+              });
+            } catch (error) {
+              setUploadedFiles(prev => prev.filter(f => f.name !== loadingFile.name || !f.isLoading));
+              toast({
+                title: "Failed to process screenshot",
+                description: error instanceof Error ? error.message : "Unknown error",
+                variant: "destructive",
+              });
+            }
+          }
+          return; // Exit after handling image
+        }
+      }
+    }
+    
+    // Handle text paste (existing logic)
     const pastedText = e.clipboardData.getData('text');
     const CHARACTER_THRESHOLD = 1500;
     
@@ -164,7 +226,6 @@ ${pastedText.trim()}
       
       // Add to uploaded files
       setUploadedFiles(prev => [...prev, virtualFile]);
-      
     }
     // If text is below threshold, allow normal paste behavior
   };
