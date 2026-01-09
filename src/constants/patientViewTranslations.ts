@@ -8,6 +8,8 @@ export interface PatientViewPhrases {
   resumingIn: string;
   listening: string;
   processing: string;
+  translationWillAppear: string;
+  consentMessage: string;
 }
 
 export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
@@ -18,6 +20,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Resuming in',
     listening: 'Listening',
     processing: 'Processing',
+    translationWillAppear: 'The translation will appear here in English',
+    consentMessage: 'Please give a thumbs up or nod if you agree to use this translation service',
   },
   pl: {
     speakNow: 'Mów teraz',
@@ -26,6 +30,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Wznowienie za',
     listening: 'Słucham',
     processing: 'Przetwarzanie',
+    translationWillAppear: 'Tłumaczenie pojawi się tutaj po polsku',
+    consentMessage: 'Proszę unieść kciuk lub skinąć głową, jeśli zgadzasz się na korzystanie z usługi tłumaczeniowej',
   },
   ro: {
     speakNow: 'Vorbiți acum',
@@ -34,6 +40,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Se reia în',
     listening: 'Ascultare',
     processing: 'Procesare',
+    translationWillAppear: 'Traducerea va apărea aici în română',
+    consentMessage: 'Vă rugăm să ridicați degetul mare sau să încuviințați dacă sunteți de acord să folosiți acest serviciu de traducere',
   },
   ar: {
     speakNow: 'تحدث الآن',
@@ -42,6 +50,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'استئناف في',
     listening: 'جارٍ الاستماع',
     processing: 'جارٍ المعالجة',
+    translationWillAppear: 'ستظهر الترجمة هنا بالعربية',
+    consentMessage: 'يرجى رفع الإبهام أو الإيماء بالموافقة إذا وافقت على استخدام خدمة الترجمة هذه',
   },
   hi: {
     speakNow: 'अभी बोलें',
@@ -50,6 +60,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'में फिर से शुरू',
     listening: 'सुन रहा है',
     processing: 'प्रोसेसिंग',
+    translationWillAppear: 'अनुवाद यहाँ हिंदी में दिखाई देगा',
+    consentMessage: 'कृपया अंगूठा दिखाएं या सिर हिलाएं अगर आप इस अनुवाद सेवा का उपयोग करने के लिए सहमत हैं',
   },
   ur: {
     speakNow: 'اب بولیں',
@@ -58,6 +70,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'میں دوبارہ شروع',
     listening: 'سن رہا ہے',
     processing: 'پروسیسنگ',
+    translationWillAppear: 'ترجمہ یہاں اردو میں ظاہر ہوگا',
+    consentMessage: 'براہ کرم انگوٹھا دکھائیں یا سر ہلائیں اگر آپ اس ترجمے کی خدمت استعمال کرنے پر راضی ہیں',
   },
   pa: {
     speakNow: 'ਹੁਣੇ ਬੋਲੋ',
@@ -66,6 +80,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'ਵਿੱਚ ਦੁਬਾਰਾ ਸ਼ੁਰੂ',
     listening: 'ਸੁਣ ਰਿਹਾ ਹੈ',
     processing: 'ਪ੍ਰੋਸੈਸਿੰਗ',
+    translationWillAppear: 'ਅਨੁਵਾਦ ਇੱਥੇ ਪੰਜਾਬੀ ਵਿੱਚ ਦਿਖਾਈ ਦੇਵੇਗਾ',
+    consentMessage: 'ਕਿਰਪਾ ਕਰਕੇ ਅੰਗੂਠਾ ਦਿਖਾਓ ਜਾਂ ਸਿਰ ਹਿਲਾਓ ਜੇ ਤੁਸੀਂ ਇਸ ਅਨੁਵਾਦ ਸੇਵਾ ਦੀ ਵਰਤੋਂ ਕਰਨ ਲਈ ਸਹਿਮਤ ਹੋ',
   },
   bn: {
     speakNow: 'এখন বলুন',
@@ -74,6 +90,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'পুনরায় শুরু হবে',
     listening: 'শুনছি',
     processing: 'প্রক্রিয়াকরণ',
+    translationWillAppear: 'অনুবাদ এখানে বাংলায় প্রদর্শিত হবে',
+    consentMessage: 'আপনি যদি এই অনুবাদ পরিষেবা ব্যবহার করতে সম্মত হন তাহলে অনুগ্রহ করে থাম্বস আপ দিন বা মাথা নাড়ুন',
   },
   es: {
     speakNow: 'Hable ahora',
@@ -82,6 +100,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Reanudando en',
     listening: 'Escuchando',
     processing: 'Procesando',
+    translationWillAppear: 'La traducción aparecerá aquí en español',
+    consentMessage: 'Por favor, levante el pulgar o asienta con la cabeza si está de acuerdo en usar este servicio de traducción',
   },
   pt: {
     speakNow: 'Fale agora',
@@ -90,6 +110,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Retomando em',
     listening: 'Ouvindo',
     processing: 'Processando',
+    translationWillAppear: 'A tradução aparecerá aqui em português',
+    consentMessage: 'Por favor, levante o polegar ou acene com a cabeça se concordar em usar este serviço de tradução',
   },
   fr: {
     speakNow: 'Parlez maintenant',
@@ -98,6 +120,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Reprise dans',
     listening: 'Écoute',
     processing: 'Traitement',
+    translationWillAppear: 'La traduction apparaîtra ici en français',
+    consentMessage: 'Veuillez lever le pouce ou hocher la tête si vous acceptez d\'utiliser ce service de traduction',
   },
   de: {
     speakNow: 'Sprechen Sie jetzt',
@@ -106,6 +130,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Fortsetzung in',
     listening: 'Hören',
     processing: 'Verarbeitung',
+    translationWillAppear: 'Die Übersetzung erscheint hier auf Deutsch',
+    consentMessage: 'Bitte heben Sie den Daumen oder nicken Sie, wenn Sie der Nutzung dieses Übersetzungsdienstes zustimmen',
   },
   it: {
     speakNow: 'Parla ora',
@@ -114,6 +140,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Ripresa in',
     listening: 'Ascolto',
     processing: 'Elaborazione',
+    translationWillAppear: 'La traduzione apparirà qui in italiano',
+    consentMessage: 'Per favore, alza il pollice o annuisci se accetti di usare questo servizio di traduzione',
   },
   tr: {
     speakNow: 'Şimdi konuşun',
@@ -122,6 +150,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Devam ediliyor',
     listening: 'Dinleniyor',
     processing: 'İşleniyor',
+    translationWillAppear: 'Çeviri burada Türkçe olarak görünecek',
+    consentMessage: 'Bu çeviri hizmetini kullanmayı kabul ediyorsanız lütfen başparmağınızı kaldırın veya başınızı sallayın',
   },
   fa: {
     speakNow: 'اکنون صحبت کنید',
@@ -130,6 +160,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'ادامه در',
     listening: 'در حال گوش دادن',
     processing: 'در حال پردازش',
+    translationWillAppear: 'ترجمه اینجا به فارسی نمایش داده می‌شود',
+    consentMessage: 'لطفاً شست خود را بالا ببرید یا سر تکان دهید اگر با استفاده از این سرویس ترجمه موافق هستید',
   },
   so: {
     speakNow: 'Hadda hadal',
@@ -138,6 +170,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Dib u bilaabid',
     listening: 'Waan dhagaysanayaa',
     processing: 'Waa la habeynayaa',
+    translationWillAppear: 'Turjumaadda ayaa halkan ka muuqan doonta Soomaali',
+    consentMessage: 'Fadlan kor u qaad suulkaaga ama madaxa luli haddii aad ogolaato isticmaalka adeeggan turjumaadda',
   },
   zh: {
     speakNow: '请现在说话',
@@ -146,6 +180,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: '恢复中',
     listening: '正在听',
     processing: '处理中',
+    translationWillAppear: '翻译将在此处以中文显示',
+    consentMessage: '如果您同意使用此翻译服务，请竖起大拇指或点头',
   },
   vi: {
     speakNow: 'Hãy nói ngay',
@@ -154,6 +190,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Tiếp tục trong',
     listening: 'Đang nghe',
     processing: 'Đang xử lý',
+    translationWillAppear: 'Bản dịch sẽ xuất hiện ở đây bằng tiếng Việt',
+    consentMessage: 'Vui lòng giơ ngón tay cái lên hoặc gật đầu nếu bạn đồng ý sử dụng dịch vụ dịch thuật này',
   },
   ru: {
     speakNow: 'Говорите сейчас',
@@ -162,6 +200,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Возобновление через',
     listening: 'Слушаю',
     processing: 'Обработка',
+    translationWillAppear: 'Перевод появится здесь на русском языке',
+    consentMessage: 'Пожалуйста, поднимите большой палец или кивните, если вы согласны использовать этот сервис перевода',
   },
   uk: {
     speakNow: 'Говоріть зараз',
@@ -170,6 +210,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Відновлення через',
     listening: 'Слухаю',
     processing: 'Обробка',
+    translationWillAppear: 'Переклад з\'явиться тут українською мовою',
+    consentMessage: 'Будь ласка, підніміть великий палець або кивніть, якщо ви погоджуєтесь використовувати цю послугу перекладу',
   },
 };
 

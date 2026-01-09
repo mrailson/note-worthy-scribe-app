@@ -1,6 +1,8 @@
 import React, { useRef, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { ConversationEntry } from '@/hooks/useGPTranslation';
+import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
+import { ThumbsUp } from 'lucide-react';
 
 export type TextSize = 'normal' | 'large' | 'xlarge';
 
@@ -8,6 +10,9 @@ interface TeleprompterDisplayProps {
   conversation: ConversationEntry[];
   textSize: TextSize;
   speakerMode: 'gp' | 'patient';
+  languageCode: string;
+  consentConfirmed: boolean;
+  onConsentChange: (confirmed: boolean) => void;
   className?: string;
 }
 
@@ -21,13 +26,18 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
   conversation,
   textSize,
   speakerMode,
+  languageCode,
+  consentConfirmed,
+  onConsentChange,
   className,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Get latest and previous entry only
+  // Get latest entry only
   const latestEntry = conversation[conversation.length - 1];
-  const previousEntry = conversation.length > 1 ? conversation[conversation.length - 2] : null;
+
+  // Get translations for the selected language
+  const phrases = getPatientViewPhrases(languageCode);
 
   // Auto-scroll to latest
   useEffect(() => {
@@ -46,10 +56,32 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
 
   if (conversation.length === 0) {
     return (
-      <div className={cn('flex items-center justify-center h-full', className)}>
-        <p className="text-muted-foreground text-2xl text-center px-8">
-          The translation will appear here when the conversation begins...
+      <div className={cn('flex flex-col items-center justify-center h-full px-8', className)}>
+        {/* Welcome message in patient's language */}
+        <p className="text-muted-foreground text-2xl md:text-3xl text-center mb-8">
+          {phrases.translationWillAppear}
         </p>
+        
+        {/* Consent message in patient's language */}
+        <div className="flex items-center gap-3 text-muted-foreground text-lg md:text-xl text-center mb-8 max-w-2xl">
+          <ThumbsUp className="h-8 w-8 flex-shrink-0 text-primary" />
+          <p>{phrases.consentMessage}</p>
+        </div>
+
+        {/* Clinician consent checkbox */}
+        <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
+          <label className="flex items-center gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={consentConfirmed}
+              onChange={(e) => onConsentChange(e.target.checked)}
+              className="w-5 h-5 rounded border-2 border-primary text-primary focus:ring-primary"
+            />
+            <span className="text-sm text-muted-foreground">
+              🇬🇧 Clinician: I confirm the patient has given consent (thumbs up/nod)
+            </span>
+          </label>
+        </div>
       </div>
     );
   }
