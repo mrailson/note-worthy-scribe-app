@@ -159,6 +159,14 @@ INFOGRAPHIC DESIGN REQUIREMENTS:
 - Use arrows, connectors, or visual flow to show relationships
 - High contrast for accessibility and readability
 
+CRITICAL TEXT ACCURACY - MUST FOLLOW:
+- DOUBLE-CHECK ALL SPELLING before rendering ANY text
+- Keep text MINIMAL - prefer icons and visuals over words
+- Common spelling: "Lifelong" (NOT Lifelone), "Upskill" (NOT upsxill), "Resilience" (NOT Resilence), "Productivity" (NOT Producivity), "Development" (NOT Developement), "Professional" (NOT Proffesional)
+- VERIFY every single word is spelled correctly
+- Use proper capitalisation throughout
+- Use SHORT phrases only - maximum 4-5 words per text element
+
 Content guidelines:
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery`;
@@ -176,6 +184,13 @@ INFOGRAPHIC DESIGN REQUIREMENTS:
 - Make it scannable at a glance
 - Use visual hierarchy to emphasise important information
 - High contrast for accessibility
+
+CRITICAL TEXT ACCURACY - MUST FOLLOW:
+- DOUBLE-CHECK ALL SPELLING before rendering ANY text
+- Keep text MINIMAL - prefer icons and visuals over words
+- VERIFY every single word is spelled correctly
+- Use proper capitalisation throughout
+- Use SHORT phrases only - maximum 4-5 words per text element
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
