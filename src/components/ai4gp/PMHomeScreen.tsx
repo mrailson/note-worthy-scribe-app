@@ -5,11 +5,10 @@ import {
   Volume2, 
   Mic, 
   MessageSquare, 
-  QrCode, 
-  Languages, 
   Presentation, 
   Search, 
-  Sparkles 
+  Sparkles,
+  LayoutPanelTop
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { usePracticeContext } from '@/hooks/usePracticeContext';
@@ -90,6 +89,15 @@ const useCases: UseCase[] = [
     icon: Presentation,
     gradient: 'from-amber-500 to-amber-600',
     prompt: 'Create a PowerPoint presentation on the following topic for my practice:',
+  },
+  {
+    id: 'infographic',
+    title: 'Create an Infographic',
+    shortTitle: 'Infographic',
+    description: 'Transform source material into a visual single-page summary',
+    icon: LayoutPanelTop,
+    gradient: 'from-teal-500 to-teal-600',
+    prompt: 'Create a single-page infographic from the following source material. Include key statistics, main points, and visual hierarchy. Make it clear, engaging, and easy to scan at a glance:\n\n',
   },
   {
     id: 'search',
