@@ -52,8 +52,15 @@ serve(async (req) => {
       );
     }
 
-    const { text, targetLanguage, sourceLanguage = 'en' } = await req.json();
-    console.log('Translation request:', { text: text?.substring(0, 50), targetLanguage, sourceLanguage });
+    const { text, targetLanguage, sourceLanguage } = await req.json();
+    const normalisedSourceLanguage =
+      sourceLanguage && sourceLanguage !== 'auto' ? sourceLanguage : undefined;
+
+    console.log('Translation request:', {
+      text: text?.substring(0, 50),
+      targetLanguage,
+      sourceLanguage: normalisedSourceLanguage ?? '(auto)',
+    });
 
     if (!text || !targetLanguage) {
       return new Response(
@@ -69,19 +76,25 @@ serve(async (req) => {
     console.log('Calling Google Translate API...');
     const apiUrl = `https://translation.googleapis.com/language/translate/v2?key=${GOOGLE_TRANSLATE_API_KEY}`;
     console.log('API URL (without key):', apiUrl.replace(GOOGLE_TRANSLATE_API_KEY, '[REDACTED]'));
-    
+
+    const requestBody: Record<string, unknown> = {
+      q: text,
+      target: targetLanguage,
+      format: 'text',
+      model: 'nmt', // Neural Machine Translation
+    };
+
+    // If source language is not provided, Google will auto-detect.
+    if (normalisedSourceLanguage) {
+      requestBody.source = normalisedSourceLanguage;
+    }
+
     const response = await fetch(apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        q: text,
-        source: sourceLanguage,
-        target: targetLanguage,
-        format: 'text',
-        model: 'nmt' // Neural Machine Translation
-      }),
+      body: JSON.stringify(requestBody),
     });
 
     console.log('Google Translate API response status:', response.status);
@@ -111,10 +124,10 @@ serve(async (req) => {
     const translatedText = data.data.translations[0].translatedText;
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         translatedText,
-        sourceLanguage: data.data.translations[0].detectedSourceLanguage || sourceLanguage,
-        targetLanguage 
+        sourceLanguage: data.data.translations[0].detectedSourceLanguage || normalisedSourceLanguage || 'unknown',
+        targetLanguage,
       }),
       {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
