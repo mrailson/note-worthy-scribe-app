@@ -3,6 +3,12 @@ import { cn } from '@/lib/utils';
 import { ConversationEntry } from '@/hooks/useGPTranslation';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
 import { ThumbsUp } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export type TextSize = 'normal' | 'large' | 'xlarge';
 
@@ -79,24 +85,38 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
       )}
     >
 
-      {/* Latest entry - prominent */}
+      {/* Latest entry - prominent with hover for English */}
       {latestEntry && (() => {
         const displayText = getDisplayText(latestEntry);
+        const englishText = latestEntry.englishText;
         const isLongText = displayText.length > LONG_TEXT_THRESHOLD;
         const textSizeClass = isLongText ? sizeClasses.compact : sizeClasses.latest;
         
         return (
-          <div className="w-full max-w-4xl text-center animate-fade-in">
-            <p
-              className={cn(
-                textSizeClass,
-                'font-semibold leading-tight',
-                latestEntry.speaker === 'gp' ? 'text-primary' : 'text-foreground'
-              )}
-            >
-              {displayText}
-            </p>
-          </div>
+          <TooltipProvider>
+            <Tooltip delayDuration={300}>
+              <TooltipTrigger asChild>
+                <div className="w-full max-w-4xl text-center animate-fade-in cursor-help">
+                  <p
+                    className={cn(
+                      textSizeClass,
+                      'font-semibold leading-tight',
+                      latestEntry.speaker === 'gp' ? 'text-primary' : 'text-foreground'
+                    )}
+                  >
+                    {displayText}
+                  </p>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent 
+                side="bottom" 
+                className="max-w-md text-base p-4 bg-background border shadow-lg"
+              >
+                <p className="text-muted-foreground text-xs mb-1">🇬🇧 English:</p>
+                <p className="text-foreground">{englishText}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         );
       })()}
     </div>
