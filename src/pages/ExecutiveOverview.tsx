@@ -105,7 +105,7 @@ export default function ExecutiveOverview() {
       description: "Real-time translation for patient communications, supporting 50+ languages",
       color: "text-green-600",
       bgColor: "bg-green-50",
-      route: "/translation-tool",
+      route: "/gp-translation",
       metrics: [
         { label: "Languages", value: "50+", description: "Supported" },
         { label: "Translations", value: "Instant", description: "Real-time" },

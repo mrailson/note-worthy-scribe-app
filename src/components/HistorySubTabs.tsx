@@ -170,7 +170,7 @@ export const HistorySubTabs: React.FC<Props> = ({
                       <Button
                         variant="outline"
                         size="sm"
-                        onClick={() => navigate(`/translation-tool/${session.id}`)}
+                        onClick={() => navigate(`/gp-translation/${session.id}`)}
                       >
                         View Session
                       </Button>
