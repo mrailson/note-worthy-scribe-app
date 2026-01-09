@@ -44,6 +44,64 @@ function extractQRContent(prompt: string): string {
   return prompt;
 }
 
+// Extract clean keywords from document content for accurate text rendering
+function extractCleanKeywords(documentContent: string): string[] {
+  const keywords: string[] = [];
+  const lines = documentContent.split('\n');
+  
+  for (const line of lines) {
+    const trimmed = line.trim();
+    // Skip empty lines or very long lines (paragraphs)
+    if (!trimmed || trimmed.length > 80) continue;
+    
+    // Extract capitalised words/phrases (likely headings or proper nouns)
+    const matches = trimmed.match(/[A-Z][A-Za-z]+(?:\s+[A-Za-z]+){0,4}/g);
+    if (matches) {
+      keywords.push(...matches.filter(m => m.length >= 4 && m.length <= 40));
+    }
+  }
+  
+  // Return unique keywords, limited to prevent prompt bloat
+  return [...new Set(keywords)].slice(0, 25);
+}
+
+// Common spelling corrections reference
+const SPELLING_REFERENCE = `
+MANDATORY SPELLING - COPY THESE EXACTLY:
+- "Collaborative" (NOT Collobrative/Collabrative)
+- "Unifying" / "Unified" (NOT Unuifying/Uniified)
+- "Professional" (NOT Proffesional/Profesional)
+- "Development" (NOT Developement/Develoment)
+- "Neighbourhood" (NOT Neighlorhood/Neigbourhood)
+- "Commissioning" (NOT Commisssing/Comissioning)
+- "Representation" (NOT Representatiok/Representaion)
+- "Resilience" (NOT Resilence/Resillience)
+- "Productivity" (NOT Producivity/Productivty)
+- "Organisation" (NOT Organiztion/Organsation)
+- "Fragmented" (NOT Fragenttned/Fragmeneted)
+- "Statutory" (NOT Statuory/Statutary)
+- "Meeting" (NOT Meetion/Meetting)
+- "Directors" (NOT Directons/Direectors)
+- "Executive" (NOT Executve/Excecutive)
+- "Clinical" (NOT Clinial/Clincal)
+- "Practice" (NOT Practise when noun)
+- "Provider" (NOT Providor/Providar)
+- "Services" (NOT Servces/Serivces)
+- "Forum" (NOT Fonum/Fourm)
+`;
+
+// Instructions to minimise text and maximise visuals
+const TEXT_MINIMISATION_INSTRUCTIONS = `
+TEXT MINIMISATION - CRITICAL RULES:
+- Use ICONS, SYMBOLS, and VISUAL ELEMENTS instead of words wherever possible
+- Maximum 3-4 words per label or heading
+- Use arrows, connectors, and visual flow instead of explanatory text
+- Numbers and statistics can be shown - but keep labels short
+- If text is absolutely essential, COPY EXACTLY from the source - never paraphrase
+- Use visual metaphors (icons, charts, symbols, colours) to convey meaning
+- PREFER showing relationships visually rather than describing them in text
+`;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -143,29 +201,31 @@ Content guidelines:
 - No explicit, offensive, or inappropriate imagery`;
     } else if (requestType === 'infographic' && documentContent) {
       // Infographic with document content - generate visual FROM the document
+      // Extract keywords for accurate spelling reference
+      const extractedKeywords = extractCleanKeywords(documentContent);
+      const keywordReference = extractedKeywords.length > 0 
+        ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
+        : '';
+      
       imagePrompt = `Create a professional single-page infographic that visualises the following content.
 
 SOURCE CONTENT TO VISUALISE:
-${documentContent.substring(0, 6000)}
+${documentContent.substring(0, 5000)}
+
+${TEXT_MINIMISATION_INSTRUCTIONS}
+
+${SPELLING_REFERENCE}
+${keywordReference}
 
 INFOGRAPHIC DESIGN REQUIREMENTS:
 - Create an ACTUAL visual infographic image, NOT a text description
-- Extract and display the 5-8 most important key points as visual elements
-- Use icons, simple charts, and visual hierarchy to represent data
+- PRIORITISE icons, symbols, and graphics over text
+- Extract only 4-6 most important points - show them VISUALLY with icons
+- Use colour-coding and visual hierarchy instead of lengthy labels
 - Professional colour scheme (blues, teals, clean modern palette)
-- Clear headings and logical section organisation
-- Make it scannable at a glance - use bullet points and short phrases
-- Include any statistics or numbers prominently
+- If you must use text: maximum 3 words per element, copied exactly from source
 - Use arrows, connectors, or visual flow to show relationships
 - High contrast for accessibility and readability
-
-CRITICAL TEXT ACCURACY - MUST FOLLOW:
-- DOUBLE-CHECK ALL SPELLING before rendering ANY text
-- Keep text MINIMAL - prefer icons and visuals over words
-- Common spelling: "Lifelong" (NOT Lifelone), "Upskill" (NOT upsxill), "Resilience" (NOT Resilence), "Productivity" (NOT Producivity), "Development" (NOT Developement), "Professional" (NOT Proffesional)
-- VERIFY every single word is spelled correctly
-- Use proper capitalisation throughout
-- Use SHORT phrases only - maximum 4-5 words per text element
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
@@ -176,48 +236,49 @@ Content guidelines:
 
 ${prompt}
 
+${TEXT_MINIMISATION_INSTRUCTIONS}
+
+${SPELLING_REFERENCE}
+
 INFOGRAPHIC DESIGN REQUIREMENTS:
 - Create an ACTUAL visual infographic image, NOT a text description
-- Display 5-8 key points as visual elements with icons
+- PRIORITISE icons, symbols, and graphics over text
+- Display 4-6 key points as visual elements with icons
 - Professional colour scheme (blues, teals, clean modern palette)
-- Clear headings and logical section organisation
-- Make it scannable at a glance
-- Use visual hierarchy to emphasise important information
+- Use visual hierarchy and colour-coding to emphasise information
+- If text is needed: maximum 3 words per element
 - High contrast for accessibility
-
-CRITICAL TEXT ACCURACY - MUST FOLLOW:
-- DOUBLE-CHECK ALL SPELLING before rendering ANY text
-- Keep text MINIMAL - prefer icons and visuals over words
-- VERIFY every single word is spelled correctly
-- Use proper capitalisation throughout
-- Use SHORT phrases only - maximum 4-5 words per text element
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery`;
     } else if (['chart', 'diagram', 'poster'].includes(requestType) && documentContent) {
       // Visual types WITH document content - generate visual FROM the document
+      const extractedKeywords = extractCleanKeywords(documentContent);
+      const keywordReference = extractedKeywords.length > 0 
+        ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
+        : '';
+
       imagePrompt = `Create a professional ${typeDescriptions[requestType]} that visualises the following content.
 
 SOURCE CONTENT TO VISUALISE:
-${documentContent.substring(0, 6000)}
+${documentContent.substring(0, 5000)}
 
 USER REQUEST:
 ${prompt}
 
+${TEXT_MINIMISATION_INSTRUCTIONS}
+
+${SPELLING_REFERENCE}
+${keywordReference}
+
 DESIGN REQUIREMENTS:
 - Create an ACTUAL visual ${requestType} image, NOT a text description
-- Extract and display the key information from the source content
+- PRIORITISE visual elements (icons, shapes, arrows) over text
+- Extract key information and show it VISUALLY
 - Professional colour scheme (blues, teals, clean modern palette)
-- Clear headings and logical organisation
+- If text is needed: maximum 3-4 words per element, copied exactly from source
 - High contrast for accessibility and readability
-- Make it easy to understand at a glance
-
-CRITICAL TEXT ACCURACY - MUST FOLLOW:
-- DOUBLE-CHECK ALL SPELLING before rendering ANY text
-- Keep text MINIMAL - prefer icons and visuals over words
-- VERIFY every single word is spelled correctly
-- Use proper capitalisation throughout
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
@@ -314,6 +375,14 @@ Content guidelines:
 
     const description = descriptions[requestType] || 'Generated visual';
 
+    // Build response with appropriate message
+    let responseText = textContent || `I've created a ${description.toLowerCase()} based on your request. You can download it using the button below the image.`;
+    
+    // Add spelling disclaimer for visual types that contain text
+    if (['infographic', 'chart', 'diagram', 'poster'].includes(requestType)) {
+      responseText += `\n\n**Note:** AI-generated images may occasionally contain minor text variations. For documents requiring precise text, consider using the **PowerPoint generator** instead (just ask "create a presentation from this document") where all text is fully editable.`;
+    }
+
     return new Response(JSON.stringify({
       success: true,
       image: {
@@ -322,7 +391,7 @@ Content guidelines:
         prompt: imagePrompt.substring(0, 300),
         requestType
       },
-      textResponse: textContent || `I've created a ${description.toLowerCase()} based on our conversation. You can download it using the button below the image.`
+      textResponse: responseText
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
