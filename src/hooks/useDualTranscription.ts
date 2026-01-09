@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { AssemblyAIRealtimeTranscriber, TranscriptData } from '@/utils/AssemblyAIRealtimeTranscriber';
 import { WhisperTranscriber } from '@/utils/WhisperTranscriber';
-import { useToast } from '@/components/ui/use-toast';
+import { showShadcnToast } from '@/utils/toastWrapper';
 import { mergeLive, LiveChunk } from '@/utils/liveMerge';
 
 export interface DualTranscriptionState {
@@ -23,7 +23,6 @@ export interface DualTranscriptionState {
 }
 
 export const useDualTranscription = (meetingId?: string, sessionId?: string) => {
-  const { toast } = useToast();
   const [currentMeetingId, setCurrentMeetingId] = useState<string | null>(meetingId || null);
   const [state, setState] = useState<DualTranscriptionState>({
     isRecording: false,
@@ -201,10 +200,11 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
           (error: string) => {
             console.error('Assembly AI error:', error);
             updateState({ assemblyStatus: 'error' });
-            toast({
+            showShadcnToast({
               title: "Assembly AI Error",
               description: error,
-              variant: "destructive"
+              variant: "destructive",
+              section: 'meeting_manager'
             });
           },
           (status: string) => {
@@ -252,10 +252,11 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
           (error: string) => {
             console.error('Whisper error:', error);
             updateState({ whisperStatus: 'error' });
-            toast({
+            showShadcnToast({
               title: "Whisper Error", 
               description: error,
-              variant: "destructive"
+              variant: "destructive",
+              section: 'meeting_manager'
             });
           },
           (status: string) => {
@@ -301,21 +302,23 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
         };
       }
 
-      toast({
+      showShadcnToast({
         title: "Dual Transcription Started",
         description: `Recording with ${state.assemblyEnabled ? 'Assembly AI' : ''}${state.assemblyEnabled && state.whisperEnabled ? ' and ' : ''}${state.whisperEnabled ? 'Whisper' : ''}`,
+        section: 'meeting_manager'
       });
 
     } catch (error) {
       console.error('Error starting dual transcription:', error);
       updateState({ isRecording: false });
-      toast({
+      showShadcnToast({
         title: "Error",
         description: "Failed to start transcription services",
-        variant: "destructive"
+        variant: "destructive",
+        section: 'meeting_manager'
       });
     }
-  }, [state.assemblyEnabled, state.whisperEnabled, saveTranscriptChunk, updateState, toast]);
+  }, [state.assemblyEnabled, state.whisperEnabled, saveTranscriptChunk, updateState]);
 
   const stopDualTranscription = useCallback(async () => {
     try {
@@ -358,27 +361,30 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
         }).eq('id', currentMeetingId);
       }
 
-      toast({
+      showShadcnToast({
         title: "Transcription Stopped",
         description: "Both transcription services have been stopped and saved",
+        section: 'meeting_manager'
       });
 
     } catch (error) {
       console.error('Error stopping transcription:', error);
-      toast({
+      showShadcnToast({
         title: "Error",
         description: "Error stopping transcription services",
-        variant: "destructive"
+        variant: "destructive",
+        section: 'meeting_manager'
       });
     }
-  }, [currentMeetingId, state.assemblyTranscript, state.whisperTranscript, state.assemblyConfidence, state.whisperConfidence, state.primarySource, state.assemblyWordCount, state.whisperWordCount, updateState, toast]);
+  }, [currentMeetingId, state.assemblyTranscript, state.whisperTranscript, state.assemblyConfidence, state.whisperConfidence, state.primarySource, state.assemblyWordCount, state.whisperWordCount, updateState]);
 
   const toggleService = useCallback((service: 'assembly' | 'whisper') => {
     if (state.isRecording) {
-      toast({
+      showShadcnToast({
         title: "Cannot Change Services",
         description: "Stop recording before changing transcription services",
-        variant: "destructive"
+        variant: "destructive",
+        section: 'meeting_manager'
       });
       return;
     }
@@ -388,7 +394,7 @@ export const useDualTranscription = (meetingId?: string, sessionId?: string) => 
     } else {
       updateState({ whisperEnabled: !state.whisperEnabled });
     }
-  }, [state.isRecording, state.assemblyEnabled, state.whisperEnabled, updateState, toast]);
+  }, [state.isRecording, state.assemblyEnabled, state.whisperEnabled, updateState]);
 
   const setPrimarySource = useCallback((source: 'assembly' | 'whisper') => {
     updateState({ primarySource: source });

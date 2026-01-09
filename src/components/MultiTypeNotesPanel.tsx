@@ -11,7 +11,7 @@ import { Download, RefreshCw, Sparkles, FileText, Crown, Book, Scroll, Wand2, Mo
 import { useMultiTypeNotes, type MultiTypeNote } from '@/hooks/useMultiTypeNotes';
 import { NoteEnhancementDialog } from './meeting/NoteEnhancementDialog';
 import { EmailMeetingMinutesModal } from './EmailMeetingMinutesModal';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 import { copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 
@@ -133,22 +133,22 @@ export function MultiTypeNotesPanel({ meetingId, meetingTitle }: MultiTypeNotesP
 
       if (error) throw error;
 
-      toast.success('Note updated successfully!');
+      showToast.success('Note updated successfully!', { section: 'meeting_manager' });
       
       // Refresh the notes by triggering a re-fetch
       window.location.reload();
     } catch (error) {
       console.error('Error updating note:', error);
-      toast.error('Failed to update note');
+      showToast.error('Failed to update note', { section: 'meeting_manager' });
     }
   };
 
   const handleCopy = async (note: MultiTypeNote) => {
     const success = await copyPlainTextToClipboard(note.content);
     if (success) {
-      toast.success('Notes copied to clipboard!');
+      showToast.success('Notes copied to clipboard!', { section: 'meeting_manager' });
     } else {
-      toast.error('Failed to copy to clipboard');
+      showToast.error('Failed to copy to clipboard', { section: 'meeting_manager' });
     }
   };
 

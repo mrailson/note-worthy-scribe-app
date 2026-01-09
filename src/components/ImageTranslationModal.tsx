@@ -22,7 +22,7 @@ import {
   Printer
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { useDocumentGeneration } from '@/hooks/useDocumentGeneration';
 import { MedicalTranslationInfo } from './MedicalTranslationInfo';
 import { MedicalTranslationAuditViewer } from './MedicalTranslationAuditViewer';
@@ -120,12 +120,12 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
                       file.name.toLowerCase().endsWith('.txt');
 
     if (!isImage && !isDocument) {
-      toast.error('Please select an image file (JPG, PNG, etc.) or document file (PDF, DOCX, TXT)');
+      showToast.error('Please select an image file (JPG, PNG, etc.) or document file (PDF, DOCX, TXT)', { section: 'translation' });
       return;
     }
 
     if (file.size > 10 * 1024 * 1024) { // 10MB limit
-      toast.error('File size must be less than 10MB');
+      showToast.error('File size must be less than 10MB', { section: 'translation' });
       return;
     }
 
@@ -148,7 +148,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
   const processDocument = async () => {
     if (!selectedImage) {
-      toast.error('Please select a file first');
+      showToast.error('Please select a file first', { section: 'translation' });
       return;
     }
 
@@ -172,17 +172,17 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
             if (error) {
               console.error('Document translation error:', error);
-              toast.error('Failed to process document');
+              showToast.error('Failed to process document', { section: 'translation' });
               return;
             }
 
             setResult(data as TranslationResult);
             console.log('Translation result received:', data);
             console.log('Clinical verification in result:', data.clinicalVerification);
-            toast.success('Document processed successfully');
+            showToast.success('Document processed successfully', { section: 'translation' });
           } catch (error) {
             console.error('Error processing image:', error);
-            toast.error('Failed to process image');
+            showToast.error('Failed to process image', { section: 'translation' });
           } finally {
             setIsProcessing(false);
           }
@@ -199,7 +199,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
         if (error) {
           console.error('Document extraction error:', error);
-          toast.error('Failed to extract text from document');
+          showToast.error('Failed to extract text from document', { section: 'translation' });
           return;
         }
 
@@ -214,20 +214,20 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
           if (translationError) {
             console.error('Text translation error:', translationError);
-            toast.error('Failed to translate document text');
+            showToast.error('Failed to translate document text', { section: 'translation' });
             return;
           }
 
           setResult(translationData as TranslationResult);
           console.log('Translation result received:', translationData);
-          toast.success('Document processed and translated successfully');
+          showToast.success('Document processed and translated successfully', { section: 'translation' });
         } else {
-          toast.error('No text could be extracted from the document');
+          showToast.error('No text could be extracted from the document', { section: 'translation' });
         }
       }
     } catch (error) {
       console.error('Error processing document:', error);
-      toast.error('Failed to process document');
+      showToast.error('Failed to process document', { section: 'translation' });
     } finally {
       if (!selectedImage?.type.startsWith('image/')) {
         setIsProcessing(false);
@@ -239,10 +239,10 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
     try {
       await navigator.clipboard.writeText(text);
       setCopied(true);
-      toast.success('Text copied to clipboard');
+      showToast.success('Text copied to clipboard', { section: 'translation' });
       setTimeout(() => setCopied(false), 2000);
     } catch (error) {
-      toast.error('Failed to copy text');
+      showToast.error('Failed to copy text', { section: 'translation' });
     }
   };
 
@@ -276,19 +276,19 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
 
       if (error) {
         console.error('Text improvement error:', error);
-        toast.error(`Failed to improve text layout: ${error.message}`);
+        showToast.error(`Failed to improve text layout: ${error.message}`, { section: 'translation' });
         return;
       }
 
       if (data?.improvedText) {
         setImprovedText(data.improvedText);
-        toast.success('Text layout improved with AI');
+        showToast.success('Text layout improved with AI', { section: 'translation' });
       } else {
-        toast.error('No improved text received from AI');
+        showToast.error('No improved text received from AI', { section: 'translation' });
       }
     } catch (error) {
       console.error('Error improving text:', error);
-      toast.error(`Failed to improve text layout: ${error.message}`);
+      showToast.error(`Failed to improve text layout: ${error.message}`, { section: 'translation' });
     } finally {
       setIsImprovingText(false);
     }
@@ -324,7 +324,7 @@ export const ImageTranslationModal: React.FC<ImageTranslationModalProps> = ({
   };
 
   const handleEmailRequest = () => {
-    toast.info('Email functionality coming soon!');
+    showToast.info('Email functionality coming soon!', { section: 'translation' });
   };
 
   const DownloadDropdown = ({ text, title = "Translated Document" }: { text: string, title?: string }) => (

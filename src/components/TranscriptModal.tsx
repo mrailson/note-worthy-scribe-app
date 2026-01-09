@@ -3,7 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { FileText, Copy } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface TranscriptEntry {
   id: string;
@@ -43,9 +43,9 @@ export const TranscriptModal: React.FC<TranscriptModalProps> = ({
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(fullTranscript);
-      toast.success('Transcript copied to clipboard');
+      showToast.success('Transcript copied to clipboard', { section: 'meeting_manager' });
     } catch (error) {
-      toast.error('Failed to copy transcript');
+      showToast.error('Failed to copy transcript', { section: 'meeting_manager' });
     }
   };
 
