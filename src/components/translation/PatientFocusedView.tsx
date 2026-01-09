@@ -21,6 +21,7 @@ interface PatientFocusedViewProps {
   isListening: boolean;
   isProcessing: boolean;
   isSpeaking: boolean;
+  currentTranscript: string;
   isMuted: boolean;
   volume: number;
   onMuteToggle: () => void;
@@ -45,6 +46,7 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
   isListening,
   isProcessing,
   isSpeaking,
+  currentTranscript,
   isMuted,
   volume,
   onMuteToggle,
@@ -188,7 +190,7 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
           <div className="flex items-center gap-3 flex-1 min-w-0">
             <span className="text-sm font-medium text-muted-foreground shrink-0 flex items-center gap-2">
               🇬🇧 English:
-              <VoiceWaveform isActive={isListening && !isProcessing && !isSpeaking} />
+              <VoiceWaveform isActive={isListening && !!currentTranscript && !isProcessing && !isSpeaking} />
             </span>
             <span className="text-sm text-foreground/80 truncate">
               {latestEnglishText || 'Waiting for conversation...'}
