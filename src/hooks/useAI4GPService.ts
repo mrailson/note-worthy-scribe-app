@@ -2,11 +2,12 @@ import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { Message, UploadedFile, SearchHistory, GeneratedImage } from '@/types/ai4gp';
+import { Message, UploadedFile, SearchHistory, GeneratedImage, GeneratedPresentation } from '@/types/ai4gp';
 import { useDisplayPreferences } from './useDisplayPreferences';
 import { prepareMessagesForAPI, getMemoryStats } from '@/utils/conversationMemory';
 import { detectImageRequest, extractImageContext, isReferringToPreviousContent } from '@/utils/imageRequestDetection';
 import { detectVoiceRequest } from '@/utils/voiceRequestDetection';
+import { detectPowerPointRequest, getPresentationTypeDisplayName } from '@/utils/powerpointRequestDetection';
 import { VOICE_OPTIONS, VoiceOption } from '@/hooks/useVoicePreference';
 
 export const useAI4GPService = () => {
@@ -653,6 +654,126 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           
           // Fall back to regular AI response with explanation
           const fallbackMessage = `I wasn't able to generate a voice file for that content. ${voiceError.message || 'Please try again.'}\n\nWould you like me to try again, or is there something else I can help you with?`;
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { ...msg, content: fallbackMessage, isStreaming: false }
+              : msg
+          ));
+          
+          setIsLoading(false);
+          return;
+        }
+      }
+      
+      // Check if this is a PowerPoint generation request
+      const pptDetection = detectPowerPointRequest(messageToUse, previousMessagesForDetection, uploadedFiles);
+      
+      if (pptDetection.isPowerPointRequest && pptDetection.confidence !== 'low') {
+        console.log('📊 PowerPoint request detected:', pptDetection);
+        
+        // Update message to show generation in progress
+        setMessages(prev => prev.map(msg => 
+          msg.id === assistantMessageId 
+            ? { ...msg, content: '📊 Generating PowerPoint presentation...', isStreaming: true }
+            : msg
+        ));
+        
+        try {
+          // Prepare source content from uploaded files
+          const sourceFileContents = uploadedFiles.map(file => ({
+            name: file.name,
+            type: file.type,
+            content: file.content.substring(0, 50000) // Limit content size
+          }));
+          
+          // Step 1: Generate presentation content using Claude
+          const { data: presentationContent, error: contentError } = await supabase.functions.invoke('generate-powerpoint', {
+            body: {
+              topic: pptDetection.topic,
+              presentationType: getPresentationTypeDisplayName(pptDetection.presentationType),
+              slideCount: pptDetection.slideCount || 8,
+              supportingFiles: sourceFileContents.length > 0 ? sourceFileContents : undefined,
+              customInstructions: pptDetection.customInstructions,
+              complexityLevel: 'professional'
+            }
+          });
+          
+          if (contentError) {
+            console.error('Presentation content generation error:', contentError);
+            throw new Error(contentError.message || 'Failed to generate presentation content');
+          }
+          
+          if (!presentationContent?.slides) {
+            throw new Error('No presentation content received');
+          }
+          
+          console.log('📊 Presentation content generated:', presentationContent.title, presentationContent.slides.length, 'slides');
+          
+          // Update message to show PPTX generation in progress
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId 
+              ? { ...msg, content: '📊 Creating PowerPoint file...', isStreaming: true }
+              : msg
+          ));
+          
+          // Step 2: Convert JSON content to PPTX file
+          const { data: pptxData, error: pptxError } = await supabase.functions.invoke('json-to-pptx', {
+            body: {
+              presentationContent: presentationContent
+            }
+          });
+          
+          if (pptxError) {
+            console.error('PPTX generation error:', pptxError);
+            throw new Error(pptxError.message || 'Failed to create PowerPoint file');
+          }
+          
+          if (!pptxData?.pptxBase64) {
+            throw new Error('No PowerPoint file generated');
+          }
+          
+          const endTime = Date.now();
+          const responseTime = endTime - startTime;
+          
+          // Create the presentation object
+          const generatedPresentation: GeneratedPresentation = {
+            pptxBase64: pptxData.pptxBase64,
+            title: presentationContent.title || pptDetection.topic,
+            slideCount: presentationContent.slides.length,
+            presentationType: getPresentationTypeDisplayName(pptDetection.presentationType),
+            sourceFiles: uploadedFiles.length > 0 ? uploadedFiles.map(f => f.name) : undefined
+          };
+          
+          // Create message with generated presentation
+          const pptMessage: Message = {
+            ...assistantMessage,
+            content: `✅ **PowerPoint Generated Successfully!**\n\n**Title:** ${generatedPresentation.title}\n**Type:** ${generatedPresentation.presentationType}\n**Slides:** ${generatedPresentation.slideCount}\n${uploadedFiles.length > 0 ? `\n**Source Materials:** ${uploadedFiles.map(f => f.name).join(', ')}` : ''}\n\nYour presentation is ready to download below.`,
+            isStreaming: false,
+            responseTime,
+            model: 'Claude + PptxGenJS',
+            generatedPresentation
+          };
+          
+          setMessages(prev => prev.map(msg => 
+            msg.id === assistantMessageId ? pptMessage : msg
+          ));
+          
+          // Auto-save the search
+          setTimeout(async () => {
+            const finalMessages = [...newMessages, pptMessage];
+            await saveSearchAutomatically(finalMessages);
+          }, 100);
+          
+          setIsLoading(false);
+          toast.success('PowerPoint generated successfully!');
+          return;
+          
+        } catch (pptError: any) {
+          console.error('PowerPoint generation failed:', pptError);
+          
+          // Fall back to regular AI response with explanation
+          const fallbackMessage = `I wasn't able to generate the PowerPoint presentation. ${pptError.message || 'Please try again.'}\n\nWould you like me to try again, or would you prefer the content in a different format?`;
           
           setMessages(prev => prev.map(msg => 
             msg.id === assistantMessageId 
