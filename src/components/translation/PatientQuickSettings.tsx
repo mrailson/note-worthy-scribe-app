@@ -130,7 +130,10 @@ export const PatientQuickSettings: React.FC<PatientQuickSettingsProps> = ({
             className="gap-2"
           >
             <Mic className="h-4 w-4" />
-            {speakerMode === 'gp' && <VoiceWaveform isActive={isVoiceActive} />}
+            <VoiceWaveform
+              isActive={speakerMode === 'gp' && isVoiceActive}
+              className={speakerMode === 'gp' ? 'text-primary-foreground' : 'text-muted-foreground'}
+            />
             GP
           </Button>
           <Button
@@ -140,7 +143,10 @@ export const PatientQuickSettings: React.FC<PatientQuickSettingsProps> = ({
             className="gap-2"
           >
             <Mic className="h-4 w-4" />
-            {speakerMode === 'patient' && <VoiceWaveform isActive={isVoiceActive} />}
+            <VoiceWaveform
+              isActive={speakerMode === 'patient' && isVoiceActive}
+              className={speakerMode === 'patient' ? 'text-primary-foreground' : 'text-muted-foreground'}
+            />
             Patient
           </Button>
         </div>
