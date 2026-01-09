@@ -133,6 +133,17 @@ const GPTranslationService: React.FC = () => {
     setViewMode('standard');
   }, []);
 
+  // Handle end session from patient view (clears everything and returns to home)
+  const handlePatientViewEndSession = useCallback(() => {
+    stopListening();
+    stopAudio();
+    clearConversation();
+    setIsSessionActive(false);
+    setSelectedLanguage('');
+    setSpeakerMode('gp');
+    setViewMode('standard');
+  }, [stopListening, stopAudio, clearConversation]);
+
   const selectedLangData = ELEVENLABS_LANGUAGES.find(l => l.code === selectedLanguage);
 
   return (
@@ -158,7 +169,7 @@ const GPTranslationService: React.FC = () => {
           onPause={handlePatientViewPause}
           onResume={handlePatientViewResume}
           onClose={handleClosePatientView}
-          onEndSession={handleEndSession}
+          onEndSession={handlePatientViewEndSession}
           onExport={handleExport}
         />
       )}
