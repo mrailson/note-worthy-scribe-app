@@ -8,6 +8,7 @@ import { PauseOverlay } from './PauseOverlay';
 import { Button } from '@/components/ui/button';
 import { Square, FileDown } from 'lucide-react';
 import { getPatientViewPhrases } from '@/constants/patientViewTranslations';
+import { VoiceWaveform } from './VoiceWaveform';
 
 interface PatientFocusedViewProps {
   conversation: ConversationEntry[];
@@ -185,8 +186,9 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
       <div className="absolute bottom-0 left-0 right-0 px-6 py-4 bg-muted/50 border-t">
         <div className="flex items-center justify-between max-w-6xl mx-auto">
           <div className="flex items-center gap-3 flex-1 min-w-0">
-            <span className="text-sm font-medium text-muted-foreground shrink-0">
+            <span className="text-sm font-medium text-muted-foreground shrink-0 flex items-center gap-2">
               🇬🇧 English:
+              <VoiceWaveform isActive={isListening && !isProcessing && !isSpeaking} />
             </span>
             <span className="text-sm text-foreground/80 truncate">
               {latestEnglishText || 'Waiting for conversation...'}
