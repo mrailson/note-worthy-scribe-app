@@ -14,36 +14,48 @@ serve(async (req) => {
 
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!
+    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     
     // Get user from auth header
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
-      throw new Error('No authorization header provided')
+      return new Response(
+        JSON.stringify({ 
+          error: 'No authorization header provided',
+          sessions: [],
+          totalCount: 0,
+          hasMore: false
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
-    // Create client with user's JWT (this will respect RLS)
-    const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: authHeader,
-        },
-      },
-    })
+    // Extract token from Bearer header
+    const token = authHeader.replace('Bearer ', '')
+    
+    // Create admin client to verify JWT and get user
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey)
+    
+    // Get user from JWT
+    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
 
-    // Verify user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-
-    if (authError) {
+    if (authError || !user) {
       console.error('Auth error:', authError)
-      throw new Error(`Authentication failed: ${authError.message}`)
-    }
-
-    if (!user) {
-      throw new Error('User not authenticated')
+      return new Response(
+        JSON.stringify({ 
+          error: 'Authentication failed',
+          sessions: [],
+          totalCount: 0,
+          hasMore: false
+        }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
     }
 
     console.log('User authenticated:', user.id)
+    
+    // Create client with service role for database queries (we'll filter by user_id manually)
+    const supabase = supabaseAdmin
 
     // Parse request body or use URL params
     const body = req.method === 'POST' ? await req.json() : {}
@@ -72,7 +84,7 @@ serve(async (req) => {
         is_protected,
         is_active
       `)
-      // RLS will automatically filter by user_id
+      .eq('user_id', user.id) // Filter by authenticated user
       .order('created_at', { ascending: false })
 
     // Apply filters
@@ -103,7 +115,7 @@ serve(async (req) => {
     let countQuery = supabase
       .from('translation_sessions')
       .select('id', { count: 'exact', head: true })
-      // RLS will automatically filter by user_id
+      .eq('user_id', user.id) // Filter by authenticated user
 
     if (flaggedOnly) {
       countQuery = countQuery.eq('is_flagged', true)
