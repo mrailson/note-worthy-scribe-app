@@ -11,6 +11,7 @@ import { PowerPointGenerator } from '@/components/PowerPointGenerator';
 import { QRCodeGeneratorModal } from '@/components/QRCodeGeneratorModal';
 import { AudioUploadModal } from '@/components/AudioUploadModal';
 import { TeamsTranscriptImportModal } from '@/components/meeting/TeamsTranscriptImportModal';
+import { QuickImageModal } from '@/components/QuickImageModal';
 import { useNavigate } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 
@@ -45,6 +46,7 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
   const [isQRCodeGeneratorOpen, setIsQRCodeGeneratorOpen] = useState(false);
   const [isAudioUploadOpen, setIsAudioUploadOpen] = useState(false);
   const [isTeamsImportOpen, setIsTeamsImportOpen] = useState(false);
+  const [isQuickImageOpen, setIsQuickImageOpen] = useState(false);
   
   // Force cache refresh - removed ConsultationCheckerModal completely
   console.log('QuickActionsPanel rendered - cache refresh');
@@ -221,6 +223,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                 setIsAudioUploadOpen(true);
               } else if (action.action === 'open-teams-import') {
                 setIsTeamsImportOpen(true);
+              } else if (action.action === 'open-quick-image-modal') {
+                setIsQuickImageOpen(true);
               } else if (!action.submenu) {
                 setInput(enhancePromptWithPracticeInfo(action.prompt, action.label));
               }
@@ -292,6 +296,8 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
                               setIsAudioUploadOpen(true);
                             } else if (subItem.action === 'open-teams-import') {
                               setIsTeamsImportOpen(true);
+                            } else if (subItem.action === 'open-quick-image-modal') {
+                              setIsQuickImageOpen(true);
                             } else {
                             setInput(enhancePromptWithPracticeInfo(subItem.prompt, subItem.label));
                           }
@@ -384,6 +390,12 @@ export const QuickActionsPanel: React.FC<QuickActionsPanelProps> = ({
       <TeamsTranscriptImportModal
         open={isTeamsImportOpen}
         onOpenChange={setIsTeamsImportOpen}
+      />
+      
+      {/* Quick Image Modal */}
+      <QuickImageModal
+        open={isQuickImageOpen}
+        onOpenChange={setIsQuickImageOpen}
       />
     </>
   );
