@@ -114,6 +114,9 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
   const handleDirectResume = useCallback(() => {
     setResumeCountdown(3);
   }, []);
+  // Get the latest English text for the bottom bar
+  const latestEntry = conversation[conversation.length - 1];
+  const latestEnglishText = latestEntry?.englishText || '';
 
   return (
     <div
@@ -142,7 +145,7 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
       />
 
       {/* Main content area with turn indicator */}
-      <div className="flex-1 relative overflow-hidden mt-20">
+      <div className="flex-1 relative overflow-hidden mt-20 mb-16">
         {/* Turn indicator overlay */}
         <TurnIndicator
           turnState={turnState}
@@ -165,6 +168,17 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
         />
       </div>
 
+      {/* Minimal English bar at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 px-6 py-4 bg-muted/50 border-t">
+        <div className="flex items-center gap-3 max-w-4xl mx-auto">
+          <span className="text-sm font-medium text-muted-foreground">
+            🇬🇧 English:
+          </span>
+          <span className="text-sm text-foreground/80 truncate">
+            {latestEnglishText || 'Waiting for conversation...'}
+          </span>
+        </div>
+      </div>
     </div>
   );
 };
