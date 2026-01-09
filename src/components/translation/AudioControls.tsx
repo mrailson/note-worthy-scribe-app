@@ -55,17 +55,6 @@ export const AudioControls: React.FC<AudioControlsProps> = ({
       <div className="text-xs text-center text-muted-foreground">
         {isMuted ? 'Muted' : `${Math.round(volume * 100)}%`}
       </div>
-
-      {isSpeaking && (
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={onStopAudio}
-        >
-          <Square className="h-4 w-4 mr-2" />
-          Stop Audio
-        </Button>
-      )}
     </div>
   );
 };
