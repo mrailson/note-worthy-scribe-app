@@ -19,6 +19,7 @@ import { FloatingMobileInput, FloatingMobileInputRef } from '@/components/ai4gp/
 import MessageRenderer from '@/components/MessageRenderer';
 import { QuickActionsPanel } from '@/components/ai4gp/QuickActionsPanel';
 import { PMHomeScreen } from '@/components/ai4gp/PMHomeScreen';
+import { GPHomeScreen } from '@/components/ai4gp/GPHomeScreen';
 import { SettingsModal } from '@/components/ai4gp/SettingsModal';
 import { SearchHistorySidebar } from '@/components/ai4gp/SearchHistorySidebar';
 import { MicroBanner, ShortCard, CollapsibleShortCard, FullModal, getAuditLine } from '@/components/ai4gp/DisclaimerComponents';
@@ -779,21 +780,16 @@ const AI4GPService = () => {
                               </div>
                             )}
                             
-                            {/* Show PMHomeScreen for Practice Managers, QuickActionsPanel for GP */}
+                            {/* Show PMHomeScreen for Practice Managers, GPHomeScreen for GP */}
                             {selectedRole === 'practice-manager' ? (
                               <PMHomeScreen
                                 setInput={setInput}
                                 focusInput={() => inputRef.current?.focus()}
                               />
                             ) : (
-                              <QuickActionsPanel
-                                showAllQuickActions={showAllQuickActions}
-                                setShowAllQuickActions={setShowAllQuickActions}
+                              <GPHomeScreen
                                 setInput={setInput}
-                                selectedRole={selectedRole}
-                                onInsertIntoChat={setInput}
-                                onQuickResponse={(response) => handleQuickResponse(response, practiceContext, selectedModel)}
-                                onOpenDocumentTranslate={() => setShowDocumentTranslate(true)}
+                                focusInput={() => inputRef.current?.focus()}
                               />
                             )}
                             
