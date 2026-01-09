@@ -257,7 +257,7 @@ const AI4GPService = () => {
     searchHistory,
     clearAllHistory,
     deleteSearch,
-    loadPreviousSearch,
+    loadFullSearch,
     toggleSearchFlag,
     toggleSearchProtection
   } = useSearchHistory();
@@ -269,8 +269,12 @@ const AI4GPService = () => {
     handleSend(practiceContext, selectedModel, messageOverride);
   };
 
-  const handleLoadPreviousSearch = (search: any) => {
-    loadPreviousSearch(search, setMessages);
+  const handleLoadPreviousSearch = async (search: any) => {
+    // Load full messages from database (metadata-only list doesn't include messages)
+    const messages = await loadFullSearch(search.id);
+    if (messages) {
+      setMessages(messages);
+    }
     setShowSearchHistory(false);
   };
 
