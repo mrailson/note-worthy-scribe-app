@@ -839,17 +839,29 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                           className="h-7 text-xs"
                           onClick={async () => {
                             try {
-                              // Fetch the image as a blob first to ensure proper download
-                              const response = await fetch(image.url);
-                              const blob = await response.blob();
-                              const url = URL.createObjectURL(blob);
+                              let blobUrl: string;
+                              
+                              // Handle data URLs directly (e.g., QR codes)
+                              if (image.url.startsWith('data:')) {
+                                blobUrl = image.url;
+                              } else {
+                                // Fetch remote images as blob
+                                const response = await fetch(image.url);
+                                const blob = await response.blob();
+                                blobUrl = URL.createObjectURL(blob);
+                              }
+                              
                               const link = document.createElement('a');
-                              link.href = url;
+                              link.href = blobUrl;
                               link.download = `ai4gp-image-${Date.now()}.png`;
                               document.body.appendChild(link);
                               link.click();
                               document.body.removeChild(link);
-                              URL.revokeObjectURL(url);
+                              
+                              // Only revoke if it was a blob URL
+                              if (!image.url.startsWith('data:')) {
+                                URL.revokeObjectURL(blobUrl);
+                              }
                               toast.success('Image downloaded');
                             } catch (error) {
                               console.error('Download failed:', error);
