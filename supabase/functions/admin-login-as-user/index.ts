@@ -1,4 +1,4 @@
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'npm:@supabase/supabase-js@2.57.4';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -13,49 +13,67 @@ Deno.serve(async (req) => {
 
   try {
     // Get the authorization header
-    const authHeader = req.headers.get('Authorization');
+    const authHeader = req.headers.get('authorization') ?? req.headers.get('Authorization');
     console.log('Auth header present:', !!authHeader);
-    
-    if (!authHeader) {
-      console.log('No authorization header found');
+
+    if (!authHeader || !authHeader.toLowerCase().startsWith('bearer ')) {
+      console.log('Missing or invalid authorization header');
       return new Response(
-        JSON.stringify({ error: 'Missing authorization header' }),
+        JSON.stringify({ error: 'Unauthorized', details: 'Missing bearer token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Create Supabase client with user's token to verify they're an admin
+    const token = authHeader.split(' ')[1]?.trim();
+
+    if (!token) {
+      console.log('Bearer token missing after parsing header');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized', details: 'Bearer token missing' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
-    // Use service role client to verify the JWT token
-    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+    // Validate the JWT using signing keys and extract claims
+    const authClient = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         autoRefreshToken: false,
-        persistSession: false
-      }
+        persistSession: false,
+      },
     });
 
-    // Extract the token from the header
-    const token = authHeader.replace('Bearer ', '');
-    
-    // Verify the token and get user
-    const { data: { user: currentUser }, error: userError } = await adminClient.auth.getUser(token);
-    
-    console.log('User lookup result:', { 
-      hasUser: !!currentUser, 
-      userId: currentUser?.id,
-      error: userError?.message 
+    const { data: claimsData, error: claimsError } = await authClient.auth.getClaims(token);
+
+    console.log('Claims result:', {
+      hasClaims: !!claimsData?.claims,
+      sub: (claimsData as any)?.claims?.sub,
+      email: (claimsData as any)?.claims?.email,
+      error: claimsError?.message,
     });
-    
-    if (userError || !currentUser) {
-      console.log('User verification failed:', userError?.message);
+
+    const userId = (claimsData as any)?.claims?.sub as string | undefined;
+    const userEmail = (claimsData as any)?.claims?.email as string | undefined;
+
+    if (claimsError || !userId) {
       return new Response(
-        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
+        JSON.stringify({ error: 'Unauthorized', details: claimsError?.message ?? 'Invalid token' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    const currentUser = { id: userId, email: userEmail };
+
+    // Service role client for admin actions
+    const adminClient = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    });
 
     // Check if current user is a system admin using the admin client
     const { data: adminCheck, error: adminError } = await adminClient.rpc('has_role', {
