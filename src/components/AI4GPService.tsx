@@ -37,7 +37,7 @@ import { DocumentTranslateModal } from '@/components/ai4gp/DocumentTranslateModa
 import { AI4GPUserGuide } from '@/components/ai4gp/AI4GPUserGuide';
 import { TranslationToolInterface } from '@/components/TranslationToolInterface';
 import { MeetingPreviewDrawer } from '@/components/ai4gp/MeetingPreviewDrawer';
-
+import { PowerPointGenerationOverlay } from '@/components/PowerPointGenerationOverlay';
 
   // Hook imports
 import { useIsMobile, useDeviceInfo } from '@/hooks/use-mobile';
@@ -67,7 +67,7 @@ const AI4GPService = () => {
   const deviceInfo = useDeviceInfo();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { generateWithGamma } = useGammaPowerPoint();
+  const { generateWithGamma, isGenerating: isPowerPointGenerating } = useGammaPowerPoint();
   
   // Disclaimer management
   const { showDisclaimer, disclaimerCollapsed, updateCollapsedPreference, loading: disclaimerLoading, hideDisclaimer } = useAI4GPDisclaimer();
@@ -985,6 +985,9 @@ const AI4GPService = () => {
         open={showMeetingPreview}
         onOpenChange={setShowMeetingPreview}
       />
+
+      {/* PowerPoint Generation Overlay */}
+      <PowerPointGenerationOverlay isVisible={isPowerPointGenerating} />
 
     </>
   );
