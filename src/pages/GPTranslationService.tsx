@@ -1,21 +1,20 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
-import { ArrowLeft, Mic, MicOff, Volume2, VolumeX, Play, Square, RotateCcw, FileDown, Settings2 } from 'lucide-react';
+import { Square, FileDown } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/Header';
-import { LanguageSelector } from '@/components/translation/LanguageSelector';
 import { SpeakerModeToggle } from '@/components/translation/SpeakerModeToggle';
 import { ConversationPanel, ViewMode } from '@/components/translation/ConversationPanel';
 import { AudioControls } from '@/components/translation/AudioControls';
 import { PatientFocusedView } from '@/components/translation/PatientFocusedView';
-import { useGPTranslation, ConversationEntry } from '@/hooks/useGPTranslation';
+import { ConsentScreen } from '@/components/translation/ConsentScreen';
+import { useGPTranslation } from '@/hooks/useGPTranslation';
 import { ELEVENLABS_LANGUAGES } from '@/constants/elevenLabsLanguages';
 
 const GPTranslationService: React.FC = () => {
@@ -28,8 +27,9 @@ const GPTranslationService: React.FC = () => {
   const [autoDetect, setAutoDetect] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.8);
-  const [silenceThreshold, setSilenceThreshold] = useState(2000); // 2 seconds default
+  const [silenceThreshold, setSilenceThreshold] = useState(2000);
   const [viewMode, setViewMode] = useState<ViewMode>('standard');
+  const [consentConfirmed, setConsentConfirmed] = useState(false);
   
   const {
     isListening,
@@ -75,6 +75,15 @@ const GPTranslationService: React.FC = () => {
       return;
     }
 
+    if (!consentConfirmed) {
+      toast({
+        title: 'Consent Required',
+        description: 'Please confirm patient consent before starting.',
+        variant: 'destructive'
+      });
+      return;
+    }
+
     try {
       await startListening();
       setIsSessionActive(true);
@@ -85,7 +94,7 @@ const GPTranslationService: React.FC = () => {
         variant: 'destructive'
       });
     }
-  }, [selectedLanguage, startListening, toast]);
+  }, [selectedLanguage, consentConfirmed, startListening, toast]);
 
   const handleEndSession = useCallback(() => {
     stopListening();
@@ -97,6 +106,8 @@ const GPTranslationService: React.FC = () => {
     clearConversation();
     setSelectedLanguage('');
     setSpeakerMode('gp');
+    setConsentConfirmed(false);
+    setIsSessionActive(false);
   }, [clearConversation]);
 
   const handleExport = useCallback(async () => {
@@ -111,13 +122,11 @@ const GPTranslationService: React.FC = () => {
     }
   }, [exportConversation, toast]);
 
-  // Handle pause for patient view
   const handlePatientViewPause = useCallback(() => {
     stopListening();
     stopAudio();
   }, [stopListening, stopAudio]);
 
-  // Handle resume for patient view
   const handlePatientViewResume = useCallback(async () => {
     if (isSessionActive) {
       try {
@@ -132,12 +141,10 @@ const GPTranslationService: React.FC = () => {
     }
   }, [isSessionActive, startListening, toast]);
 
-  // Handle close patient view
   const handleClosePatientView = useCallback(() => {
     setViewMode('standard');
   }, []);
 
-  // Handle end session from patient view (clears everything and returns to home)
   const handlePatientViewEndSession = useCallback(() => {
     stopListening();
     stopAudio();
@@ -146,9 +153,29 @@ const GPTranslationService: React.FC = () => {
     setSelectedLanguage('');
     setSpeakerMode('gp');
     setViewMode('standard');
+    setConsentConfirmed(false);
   }, [stopListening, stopAudio, clearConversation]);
 
   const selectedLangData = ELEVENLABS_LANGUAGES.find(l => l.code === selectedLanguage);
+
+  // Show consent screen as default when session is not active
+  if (!isSessionActive) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Header />
+        <ConsentScreen
+          selectedLanguage={selectedLanguage}
+          onLanguageChange={setSelectedLanguage}
+          consentConfirmed={consentConfirmed}
+          onConsentChange={setConsentConfirmed}
+          onStartSession={handleStartSession}
+          onNewSession={handleNewSession}
+          hasExistingConversation={conversation.length > 0}
+          isStartDisabled={!selectedLanguage || !consentConfirmed}
+        />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -184,18 +211,11 @@ const GPTranslationService: React.FC = () => {
 
       <div className="min-h-screen bg-background">
         <Header />
-        {/* Header */}
+        {/* Header bar */}
         <div className="border-b bg-card">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4">
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={() => navigate('/ai4gp')}
-                >
-                  <ArrowLeft className="h-5 w-5" />
-                </Button>
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">GP-Patient Translation</h1>
                   <p className="text-sm text-muted-foreground">Real-time two-way translation service</p>
@@ -203,26 +223,17 @@ const GPTranslationService: React.FC = () => {
               </div>
               
               <div className="flex items-center gap-3">
-                {isSessionActive && (
-                  <Badge 
-                    variant={isListening ? 'default' : 'secondary'}
-                    className="animate-pulse"
-                  >
-                    {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Ready'}
-                  </Badge>
-                )}
+                <Badge 
+                  variant={isListening ? 'default' : 'secondary'}
+                  className="animate-pulse"
+                >
+                  {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Ready'}
+                </Badge>
                 
-                {!isSessionActive ? (
-                  <Button onClick={handleStartSession} disabled={!selectedLanguage}>
-                    <Play className="h-4 w-4 mr-2" />
-                    Start Session
-                  </Button>
-                ) : (
-                  <Button onClick={handleEndSession} variant="destructive">
-                    <Square className="h-4 w-4 mr-2" />
-                    End Session
-                  </Button>
-                )}
+                <Button onClick={handleEndSession} variant="destructive">
+                  <Square className="h-4 w-4 mr-2" />
+                  End Session
+                </Button>
               </div>
             </div>
           </div>
@@ -233,20 +244,6 @@ const GPTranslationService: React.FC = () => {
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             {/* Left Panel - Controls */}
             <div className="lg:col-span-3 space-y-4">
-              {/* Language Selection */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Patient Language</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <LanguageSelector
-                    value={selectedLanguage}
-                    onChange={setSelectedLanguage}
-                    disabled={isSessionActive}
-                  />
-                </CardContent>
-              </Card>
-
               {/* Speaker Mode */}
               <Card>
                 <CardHeader className="pb-3">
@@ -256,7 +253,7 @@ const GPTranslationService: React.FC = () => {
                   <SpeakerModeToggle
                     mode={speakerMode}
                     onModeChange={setSpeakerMode}
-                    disabled={!isSessionActive}
+                    disabled={false}
                     isListening={isListening}
                   />
                   
@@ -299,15 +296,6 @@ const GPTranslationService: React.FC = () => {
               {/* Session Actions */}
               <Card>
                 <CardContent className="pt-4 space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleNewSession}
-                    disabled={isSessionActive}
-                  >
-                    <RotateCcw className="h-4 w-4 mr-2" />
-                    New Session
-                  </Button>
                   <Button
                     variant="outline"
                     className="w-full"
