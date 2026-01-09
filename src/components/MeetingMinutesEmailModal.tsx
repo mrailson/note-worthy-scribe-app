@@ -6,7 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Mail, Send, X, Users, List, ChevronDown } from "lucide-react";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import { supabase } from "@/integrations/supabase/client";
 import { useDistributionLists } from "@/hooks/useDistributionLists";
 import {
@@ -57,7 +57,7 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
   const handleSelectDistributionList = async (listId: string, listName: string) => {
     const emails = getEmailsFromList(listId);
     if (emails.length === 0) {
-      toast.error("No members with email addresses in this distribution list");
+      showToast.error("No members with email addresses in this distribution list", { section: 'meeting_manager' });
       return;
     }
     
@@ -66,13 +66,13 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
     const newEmails = emails.filter(e => !existingEmails.includes(e.toLowerCase()) && e.toLowerCase() !== toEmail.toLowerCase());
     
     if (newEmails.length === 0) {
-      toast.info("All members from this list are already added");
+      showToast.info("All members from this list are already added", { section: 'meeting_manager' });
       return;
     }
     
     const updatedCc = ccRaw ? `${ccRaw}, ${newEmails.join(', ')}` : newEmails.join(', ');
     setCcRaw(updatedCc);
-    toast.success(`Added ${newEmails.length} recipients from "${listName}"`);
+    showToast.success(`Added ${newEmails.length} recipients from "${listName}"`, { section: 'meeting_manager' });
   };
 
   // Fetch fresh notes from database when modal opens to ensure we have the latest tone-audited version
@@ -128,7 +128,7 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
 
   const handleSend = async () => {
     if (!toEmail) {
-      toast.error("Recipient email is required");
+      showToast.error("Recipient email is required", { section: 'meeting_manager' });
       return;
     }
     setSending(true);
@@ -188,11 +188,11 @@ export const MeetingMinutesEmailModal: React.FC<MeetingMinutesEmailModalProps> =
 
       if (error) throw error;
 
-      toast.success("Meeting summary email sent");
+      showToast.success("Meeting summary email sent", { section: 'meeting_manager' });
       onOpenChange(false);
     } catch (err) {
       console.error("Failed to send meeting summary:", err);
-      toast.error("Failed to send email");
+      showToast.error("Failed to send email", { section: 'meeting_manager' });
     } finally {
       setSending(false);
     }

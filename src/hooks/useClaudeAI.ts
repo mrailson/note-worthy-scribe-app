@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { MeetingData } from "@/types/meetingTypes";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 
 export const useClaudeAI = (meetingData: MeetingData | null) => {
   const [claudeDetailLevel, setClaudeDetailLevel] = useState("standard");
@@ -39,10 +39,10 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
   const generateClaudeMeetingNotes = async (forceRegenerate = false, enhancedContext = null) => {
     if (!meetingData?.transcript || (!forceRegenerate && claudeNotes && claudeNotes.length > 0)) {
       if (claudeNotes && claudeNotes.length > 0) {
-        toast.info("Meeting notes already generated");
+        showToast.info("Meeting notes already generated", { section: 'meeting_manager' });
         return;
       }
-      toast.error("No transcript available");
+      showToast.error("No transcript available", { section: 'meeting_manager' });
       return;
     }
 
@@ -87,13 +87,13 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
           }).eq('id', meetingData.id);
         }
         
-        toast.success("Enhanced meeting notes generated successfully!");
+        showToast.success("Enhanced meeting notes generated successfully!", { section: 'meeting_manager' });
       } else {
         throw new Error("No meeting notes returned from API");
       }
     } catch (error) {
       console.error('Error generating Claude notes:', error);
-      toast.error("Failed to generate meeting notes");
+      showToast.error("Failed to generate meeting notes", { section: 'meeting_manager' });
     } finally {
       setIsClaudeGenerating(false);
     }
@@ -135,7 +135,7 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
 
   const handleCustomInstructionSubmit = async () => {
     if (!customInstruction.trim() || !meetingData?.transcript) {
-      toast.error("Please enter custom instructions");
+      showToast.error("Please enter custom instructions", { section: 'meeting_manager' });
       return;
     }
 
@@ -160,11 +160,11 @@ export const useClaudeAI = (meetingData: MeetingData | null) => {
         }
         setCustomInstruction("");
         setShowCustomInstruction(false);
-        toast.success("Meeting notes enhanced with custom instructions!");
+        showToast.success("Meeting notes enhanced with custom instructions!", { section: 'meeting_manager' });
       }
     } catch (error) {
       console.error('Error applying custom instructions:', error);
-      toast.error("Failed to apply custom instructions");
+      showToast.error("Failed to apply custom instructions", { section: 'meeting_manager' });
     } finally {
       setIsClaudeGenerating(false);
     }

@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Share2, Eye, Download, Trash2, Calendar, Clock, Mail, MessageSquare } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { format } from 'date-fns';
 
 interface SharedMeeting {
@@ -75,7 +75,7 @@ export function SharedMeetingsManager() {
       setSharedMeetings(transformedData);
     } catch (error: any) {
       console.error('Error loading shared meetings:', error);
-      toast.error('Failed to load shared meetings');
+      showToast.error('Failed to load shared meetings', { section: 'meeting_manager' });
     } finally {
       setLoading(false);
     }
@@ -90,11 +90,11 @@ export function SharedMeetingsManager() {
 
       if (error) throw error;
 
-      toast.success(`Revoked access to "${meetingTitle}" for ${email}`);
+      showToast.success(`Revoked access to "${meetingTitle}" for ${email}`, { section: 'meeting_manager' });
       loadSharedMeetings(); // Reload the list
     } catch (error: any) {
       console.error('Error revoking share:', error);
-      toast.error('Failed to revoke access');
+      showToast.error('Failed to revoke access', { section: 'meeting_manager' });
     }
   };
 
