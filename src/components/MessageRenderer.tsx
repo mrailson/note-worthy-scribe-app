@@ -837,15 +837,24 @@ const MessageRenderer: React.FC<MessageRendererProps> = ({
                           variant="outline"
                           size="sm"
                           className="h-7 text-xs"
-                          onClick={() => {
-                            // Download image
-                            const link = document.createElement('a');
-                            link.href = image.url;
-                            link.download = `ai4gp-image-${Date.now()}.png`;
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                            toast.success('Image downloaded');
+                          onClick={async () => {
+                            try {
+                              // Fetch the image as a blob first to ensure proper download
+                              const response = await fetch(image.url);
+                              const blob = await response.blob();
+                              const url = URL.createObjectURL(blob);
+                              const link = document.createElement('a');
+                              link.href = url;
+                              link.download = `ai4gp-image-${Date.now()}.png`;
+                              document.body.appendChild(link);
+                              link.click();
+                              document.body.removeChild(link);
+                              URL.revokeObjectURL(url);
+                              toast.success('Image downloaded');
+                            } catch (error) {
+                              console.error('Download failed:', error);
+                              toast.error('Failed to download image');
+                            }
                           }}
                         >
                           <Download className="h-3 w-3 mr-1" />
