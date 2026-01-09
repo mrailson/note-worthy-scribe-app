@@ -550,10 +550,32 @@ VARY your opening style using approaches like:
   const handleSend = async () => {
     if ((!input.trim() && uploadedFiles.length === 0) || isLoading) return;
 
+    // Auto-generate prompt when files are uploaded without text
+    let messageContent = input.trim();
+    if (!messageContent && uploadedFiles.length > 0) {
+      const fileNames = uploadedFiles.map(f => f.name).join(', ');
+      const hasAudio = uploadedFiles.some(f => f.type?.startsWith('audio/') || f.name.match(/\.(mp3|wav|m4a|ogg)$/i));
+      const hasImage = uploadedFiles.some(f => f.type?.startsWith('image/') || f.name.match(/\.(jpg|jpeg|png|gif|webp)$/i));
+      const hasPdf = uploadedFiles.some(f => f.type?.includes('pdf') || f.name.endsWith('.pdf'));
+      const hasSpreadsheet = uploadedFiles.some(f => f.name.match(/\.(xlsx?|csv)$/i));
+      
+      if (hasAudio) {
+        messageContent = `Please transcribe and summarise this audio file: ${fileNames}`;
+      } else if (hasImage) {
+        messageContent = `Please analyse this image and extract any relevant information: ${fileNames}`;
+      } else if (hasSpreadsheet) {
+        messageContent = `Please analyse this spreadsheet and summarise the key data: ${fileNames}`;
+      } else if (hasPdf) {
+        messageContent = `Please summarise this document and highlight the key points: ${fileNames}`;
+      } else {
+        messageContent = `Please summarise and analyse this document: ${fileNames}`;
+      }
+    }
+
     const userMessage: Message = {
       id: Date.now().toString(),
       role: 'user',
-      content: input,
+      content: messageContent,
       timestamp: new Date(),
       files: uploadedFiles.length > 0 ? [...uploadedFiles] : undefined
     };
