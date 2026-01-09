@@ -53,7 +53,7 @@ export const PauseOverlay: React.FC<PauseOverlayProps> = ({
             {phrases.paused}
           </h2>
           <p className="text-xl text-white/60 mb-8 max-w-md">
-            The system is on standby. Tap to resume.
+            {phrases.standbyMessage}
           </p>
           <Button
             size="lg"
@@ -61,7 +61,7 @@ export const PauseOverlay: React.FC<PauseOverlayProps> = ({
             className="gap-3 text-xl px-8 py-6 h-auto"
           >
             <Play className="h-6 w-6" />
-            Resume
+            {phrases.resume}
           </Button>
         </div>
       )}

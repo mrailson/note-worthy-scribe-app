@@ -10,6 +10,8 @@ export interface PatientViewPhrases {
   processing: string;
   translationWillAppear: string;
   consentMessage: string;
+  standbyMessage: string;
+  resume: string;
 }
 
 export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
@@ -22,6 +24,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'Processing',
     translationWillAppear: 'The translation will appear here in English',
     consentMessage: 'Please give a thumbs up or nod if you agree to use this translation service',
+    standbyMessage: 'The system is on standby. Tap to resume.',
+    resume: 'Resume',
   },
   pl: {
     speakNow: 'Mów teraz',
@@ -32,6 +36,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'Przetwarzanie',
     translationWillAppear: 'Tłumaczenie pojawi się tutaj po polsku',
     consentMessage: 'Proszę unieść kciuk lub skinąć głową, jeśli zgadzasz się na korzystanie z usługi tłumaczeniowej',
+    standbyMessage: 'System jest w trybie gotowości. Dotknij, aby wznowić.',
+    resume: 'Wznów',
   },
   ro: {
     speakNow: 'Vorbiți acum',
@@ -42,6 +48,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'Procesare',
     translationWillAppear: 'Traducerea va apărea aici în română',
     consentMessage: 'Vă rugăm să ridicați degetul mare sau să încuviințați dacă sunteți de acord să folosiți acest serviciu de traducere',
+    standbyMessage: 'Sistemul este în așteptare. Atingeți pentru a relua.',
+    resume: 'Reluare',
   },
   ar: {
     speakNow: 'تحدث الآن',
@@ -52,6 +60,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'جارٍ المعالجة',
     translationWillAppear: 'ستظهر الترجمة هنا بالعربية',
     consentMessage: 'يرجى رفع الإبهام أو الإيماء بالموافقة إذا وافقت على استخدام خدمة الترجمة هذه',
+    standbyMessage: 'النظام في وضع الاستعداد. اضغط للاستئناف.',
+    resume: 'استئناف',
   },
   hi: {
     speakNow: 'अभी बोलें',
@@ -62,6 +72,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'प्रोसेसिंग',
     translationWillAppear: 'अनुवाद यहाँ हिंदी में दिखाई देगा',
     consentMessage: 'कृपया अंगूठा दिखाएं या सिर हिलाएं अगर आप इस अनुवाद सेवा का उपयोग करने के लिए सहमत हैं',
+    standbyMessage: 'सिस्टम स्टैंडबाय पर है। फिर से शुरू करने के लिए टैप करें।',
+    resume: 'फिर से शुरू करें',
   },
   ur: {
     speakNow: 'اب بولیں',
@@ -72,6 +84,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'پروسیسنگ',
     translationWillAppear: 'ترجمہ یہاں اردو میں ظاہر ہوگا',
     consentMessage: 'براہ کرم انگوٹھا دکھائیں یا سر ہلائیں اگر آپ اس ترجمے کی خدمت استعمال کرنے پر راضی ہیں',
+    standbyMessage: 'سسٹم اسٹینڈ بائی پر ہے۔ دوبارہ شروع کرنے کے لیے ٹیپ کریں۔',
+    resume: 'دوبارہ شروع کریں',
   },
   pa: {
     speakNow: 'ਹੁਣੇ ਬੋਲੋ',
@@ -82,6 +96,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'ਪ੍ਰੋਸੈਸਿੰਗ',
     translationWillAppear: 'ਅਨੁਵਾਦ ਇੱਥੇ ਪੰਜਾਬੀ ਵਿੱਚ ਦਿਖਾਈ ਦੇਵੇਗਾ',
     consentMessage: 'ਕਿਰਪਾ ਕਰਕੇ ਅੰਗੂਠਾ ਦਿਖਾਓ ਜਾਂ ਸਿਰ ਹਿਲਾਓ ਜੇ ਤੁਸੀਂ ਇਸ ਅਨੁਵਾਦ ਸੇਵਾ ਦੀ ਵਰਤੋਂ ਕਰਨ ਲਈ ਸਹਿਮਤ ਹੋ',
+    standbyMessage: 'ਸਿਸਟਮ ਸਟੈਂਡਬਾਈ ਤੇ ਹੈ। ਦੁਬਾਰਾ ਸ਼ੁਰੂ ਕਰਨ ਲਈ ਟੈਪ ਕਰੋ।',
+    resume: 'ਦੁਬਾਰਾ ਸ਼ੁਰੂ ਕਰੋ',
   },
   bn: {
     speakNow: 'এখন বলুন',
@@ -92,6 +108,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'প্রক্রিয়াকরণ',
     translationWillAppear: 'অনুবাদ এখানে বাংলায় প্রদর্শিত হবে',
     consentMessage: 'আপনি যদি এই অনুবাদ পরিষেবা ব্যবহার করতে সম্মত হন তাহলে অনুগ্রহ করে থাম্বস আপ দিন বা মাথা নাড়ুন',
+    standbyMessage: 'সিস্টেম স্ট্যান্ডবাইতে আছে। পুনরায় শুরু করতে ট্যাপ করুন।',
+    resume: 'পুনরায় শুরু করুন',
   },
   es: {
     speakNow: 'Hable ahora',
@@ -102,6 +120,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'Procesando',
     translationWillAppear: 'La traducción aparecerá aquí en español',
     consentMessage: 'Por favor, levante el pulgar o asienta con la cabeza si está de acuerdo en usar este servicio de traducción',
+    standbyMessage: 'El sistema está en espera. Toque para reanudar.',
+    resume: 'Reanudar',
   },
   pt: {
     speakNow: 'Fale agora',
@@ -112,6 +132,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'Processando',
     translationWillAppear: 'A tradução aparecerá aqui em português',
     consentMessage: 'Por favor, levante o polegar ou acene com a cabeça se concordar em usar este serviço de tradução',
+    standbyMessage: 'O sistema está em espera. Toque para retomar.',
+    resume: 'Retomar',
   },
   fr: {
     speakNow: 'Parlez maintenant',
@@ -121,7 +143,9 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     listening: 'Écoute',
     processing: 'Traitement',
     translationWillAppear: 'La traduction apparaîtra ici en français',
-    consentMessage: 'Veuillez lever le pouce ou hocher la tête si vous acceptez d\'utiliser ce service de traduction',
+    consentMessage: "Veuillez lever le pouce ou hocher la tête si vous acceptez d'utiliser ce service de traduction",
+    standbyMessage: 'Le système est en veille. Appuyez pour reprendre.',
+    resume: 'Reprendre',
   },
   de: {
     speakNow: 'Sprechen Sie jetzt',
@@ -132,6 +156,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'Verarbeitung',
     translationWillAppear: 'Die Übersetzung erscheint hier auf Deutsch',
     consentMessage: 'Bitte heben Sie den Daumen oder nicken Sie, wenn Sie der Nutzung dieses Übersetzungsdienstes zustimmen',
+    standbyMessage: 'Das System ist im Standby. Tippen Sie, um fortzufahren.',
+    resume: 'Fortfahren',
   },
   it: {
     speakNow: 'Parla ora',
@@ -142,6 +168,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'Elaborazione',
     translationWillAppear: 'La traduzione apparirà qui in italiano',
     consentMessage: 'Per favore, alza il pollice o annuisci se accetti di usare questo servizio di traduzione',
+    standbyMessage: 'Il sistema è in standby. Tocca per riprendere.',
+    resume: 'Riprendi',
   },
   tr: {
     speakNow: 'Şimdi konuşun',
@@ -152,6 +180,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'İşleniyor',
     translationWillAppear: 'Çeviri burada Türkçe olarak görünecek',
     consentMessage: 'Bu çeviri hizmetini kullanmayı kabul ediyorsanız lütfen başparmağınızı kaldırın veya başınızı sallayın',
+    standbyMessage: 'Sistem bekleme modunda. Devam etmek için dokunun.',
+    resume: 'Devam et',
   },
   fa: {
     speakNow: 'اکنون صحبت کنید',
@@ -162,6 +192,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'در حال پردازش',
     translationWillAppear: 'ترجمه اینجا به فارسی نمایش داده می‌شود',
     consentMessage: 'لطفاً شست خود را بالا ببرید یا سر تکان دهید اگر با استفاده از این سرویس ترجمه موافق هستید',
+    standbyMessage: 'سیستم در حالت آماده به کار است. برای ادامه ضربه بزنید.',
+    resume: 'ادامه',
   },
   so: {
     speakNow: 'Hadda hadal',
@@ -172,6 +204,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'Waa la habeynayaa',
     translationWillAppear: 'Turjumaadda ayaa halkan ka muuqan doonta Soomaali',
     consentMessage: 'Fadlan kor u qaad suulkaaga ama madaxa luli haddii aad ogolaato isticmaalka adeeggan turjumaadda',
+    standbyMessage: 'Nidaamku wuu sugayaa. Taabo si aad u sii wadato.',
+    resume: 'Sii wad',
   },
   zh: {
     speakNow: '请现在说话',
@@ -182,6 +216,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: '处理中',
     translationWillAppear: '翻译将在此处以中文显示',
     consentMessage: '如果您同意使用此翻译服务，请竖起大拇指或点头',
+    standbyMessage: '系统处于待机状态。点击继续。',
+    resume: '继续',
   },
   vi: {
     speakNow: 'Hãy nói ngay',
@@ -192,6 +228,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'Đang xử lý',
     translationWillAppear: 'Bản dịch sẽ xuất hiện ở đây bằng tiếng Việt',
     consentMessage: 'Vui lòng giơ ngón tay cái lên hoặc gật đầu nếu bạn đồng ý sử dụng dịch vụ dịch thuật này',
+    standbyMessage: 'Hệ thống đang ở chế độ chờ. Chạm để tiếp tục.',
+    resume: 'Tiếp tục',
   },
   ru: {
     speakNow: 'Говорите сейчас',
@@ -202,6 +240,8 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     processing: 'Обработка',
     translationWillAppear: 'Перевод появится здесь на русском языке',
     consentMessage: 'Пожалуйста, поднимите большой палец или кивните, если вы согласны использовать этот сервис перевода',
+    standbyMessage: 'Система находится в режиме ожидания. Нажмите для продолжения.',
+    resume: 'Продолжить',
   },
   uk: {
     speakNow: 'Говоріть зараз',
@@ -210,8 +250,10 @@ export const PATIENT_VIEW_TRANSLATIONS: Record<string, PatientViewPhrases> = {
     resumingIn: 'Відновлення через',
     listening: 'Слухаю',
     processing: 'Обробка',
-    translationWillAppear: 'Переклад з\'явиться тут українською мовою',
+    translationWillAppear: "Переклад з'явиться тут українською мовою",
     consentMessage: 'Будь ласка, підніміть великий палець або кивніть, якщо ви погоджуєтесь використовувати цю послугу перекладу',
+    standbyMessage: 'Система в режимі очікування. Торкніться, щоб продовжити.',
+    resume: 'Продовжити',
   },
 };
 
