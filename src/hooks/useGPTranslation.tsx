@@ -91,6 +91,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const isMutedRef = useRef(isMuted);
   const isPlayingRef = useRef(false);
   const isListeningRef = useRef(false);
+  const startListeningRef = useRef<() => Promise<void>>();
 
   // Keep refs in sync with values
   useEffect(() => {
@@ -436,6 +437,11 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     }
   }, [initSpeechRecognition, processCompletedSpeech, onError]);
 
+  // Keep ref in sync so the effect below can call the latest version without re-running
+  useEffect(() => {
+    startListeningRef.current = startListening;
+  }, [startListening]);
+
   // Restart recognition when speakerMode or selectedLanguage changes during an active session
   useEffect(() => {
     if (isListeningRef.current && recognitionRef.current) {
@@ -445,8 +451,9 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
       recognitionRef.current.stop();
       recognitionRef.current = null;
       // Start new recognition with updated language
-      startListening();
+      startListeningRef.current?.();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [speakerMode, selectedLanguage]);
 
   // Stop listening
