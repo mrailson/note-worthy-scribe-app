@@ -62,14 +62,6 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
         className
       )}
     >
-      {/* English original - small text at top for clinician verification */}
-      {latestEntry && (
-        <div className="mb-4 w-full max-w-4xl text-center">
-          <p className="text-sm text-muted-foreground/50">
-            🇬🇧 {latestEntry.originalText}
-          </p>
-        </div>
-      )}
 
       {/* Previous entry - almost invisible */}
       {previousEntry && (
