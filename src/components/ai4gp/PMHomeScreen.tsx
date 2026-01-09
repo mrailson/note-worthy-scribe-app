@@ -152,20 +152,15 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
   };
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Header */}
-        <div className="text-center space-y-2">
-          <h2 className="text-xl sm:text-2xl font-bold text-foreground">
-            What would you like to do today?
-          </h2>
-          <p className="text-sm text-muted-foreground">
-            Select an option below or type your own question
-          </p>
-        </div>
+    <div className="p-3 sm:p-4">
+      <div className="space-y-3">
+        {/* Compact Header */}
+        <p className="text-center text-sm text-muted-foreground">
+          What would you like to do today?
+        </p>
 
-        {/* Use Case Cards Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+        {/* Compact Cards Grid - Full Width */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
           {useCases.map((useCase) => {
             const Icon = useCase.icon;
             return (
@@ -173,45 +168,30 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
                 key={useCase.id}
                 onClick={() => handleCardClick(useCase)}
                 className={cn(
-                  "group relative flex flex-col items-start p-4 sm:p-5",
-                  "bg-card border border-border rounded-xl",
-                  "hover:border-primary/50 hover:shadow-lg hover:shadow-primary/5",
-                  "transition-all duration-200 ease-out",
-                  "hover:scale-[1.02] active:scale-[0.98]",
+                  "group flex items-center gap-2 p-2.5",
+                  "bg-card border border-border rounded-lg",
+                  "hover:border-primary/50 hover:bg-accent/50",
+                  "transition-all duration-150",
                   "text-left"
                 )}
               >
-                {/* Icon Container */}
+                {/* Compact Icon */}
                 <div className={cn(
-                  "w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center mb-3",
-                  "bg-gradient-to-br shadow-sm",
+                  "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0",
+                  "bg-gradient-to-br",
                   useCase.gradient
                 )}>
-                  <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
+                  <Icon className="w-4 h-4 text-white" />
                 </div>
 
-                {/* Text Content */}
-                <h3 className="font-semibold text-foreground text-sm sm:text-base mb-1 group-hover:text-primary transition-colors">
+                {/* Text - Title only for compact view */}
+                <span className="text-xs font-medium text-foreground truncate group-hover:text-primary transition-colors">
                   {useCase.title}
-                </h3>
-                <p className="text-xs sm:text-sm text-muted-foreground line-clamp-2">
-                  {useCase.description}
-                </p>
-
-                {/* Subtle hover indicator */}
-                <div className={cn(
-                  "absolute inset-0 rounded-xl border-2 border-primary opacity-0",
-                  "group-hover:opacity-100 transition-opacity pointer-events-none"
-                )} />
+                </span>
               </button>
             );
           })}
         </div>
-
-        {/* Tip Footer */}
-        <p className="text-center text-xs text-muted-foreground">
-          💡 Tip: You can also upload documents, images, or audio files to analyse
-        </p>
       </div>
     </div>
   );
