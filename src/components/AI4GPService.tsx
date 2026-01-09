@@ -315,12 +315,16 @@ const AI4GPService = () => {
     setShowNews(false);
   }, []);
 
-  // Force Practice Manager role when GP/Clinical is hidden
+  // Determine if GP/Clinical should be hidden (either by setting or ICB member status)
+  const isIcbMember = profile?.northamptonshire_icb_active === true;
+  const shouldHideGPClinical = hideGPClinical || isIcbMember;
+
+  // Force Practice Manager role when GP/Clinical is hidden or user is ICB member
   React.useEffect(() => {
-    if (hideGPClinical && selectedRole === 'gp') {
+    if (shouldHideGPClinical && selectedRole === 'gp') {
       setSelectedRole('practice-manager');
     }
-  }, [hideGPClinical, selectedRole]);
+  }, [shouldHideGPClinical, selectedRole]);
 
   const handleDisclaimerAccept = () => {
     setShowDisclaimerModal(false);
@@ -751,7 +755,7 @@ const AI4GPService = () => {
                             </p>
                             
                             {/* Role Selection - Desktop only */}
-                            {!hideGPClinical && (
+                            {!shouldHideGPClinical && (
                               <div className="flex justify-center">
                                 <div className="flex bg-muted rounded-lg p-1">
                                   <button
