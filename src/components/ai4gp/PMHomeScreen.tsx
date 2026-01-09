@@ -50,7 +50,7 @@ const useCases: UseCase[] = [
     id: 'image',
     title: 'Create an image',
     shortTitle: 'Image',
-    description: 'Generate posters, social graphics, and patient notices',
+    description: 'Generate images just by asking... I am quite the artist!',
     icon: ImageIcon,
     gradient: 'from-purple-500 to-purple-600',
     prompt: 'Create a professional NHS-style image for my practice. I want:',
