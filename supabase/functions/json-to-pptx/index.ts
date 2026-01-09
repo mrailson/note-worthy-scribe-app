@@ -256,7 +256,9 @@ serve(async (req) => {
     return new Response(pptxBuffer, {
       headers: {
         ...corsHeaders,
-        'Content-Type': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        // IMPORTANT: Supabase functions-js client only treats "application/octet-stream" as a Blob.
+        // If we return the real PPTX MIME type, the client will fall back to response.text(), corrupting the binary.
+        'Content-Type': 'application/octet-stream',
         'Content-Disposition': 'attachment; filename="presentation.pptx"',
       },
     });
