@@ -484,20 +484,31 @@ Always provide evidence-based, clinically appropriate advice that follows curren
       const startTime = Date.now();
       
       // Check if this is an image generation request
-      // IMPORTANT: Skip image generation if document files are attached - user wants to analyse documents
-      // But ALLOW image generation if only image files are attached (for editing images)
       // Pass previous messages for context-aware detection (e.g., "can you do it" follow-ups)
       const previousMessagesForDetection = messages.map(m => ({ role: m.role, content: m.content }));
       const imageDetection = detectImageRequest(messageToUse, previousMessagesForDetection);
       
-      if (imageDetection.isImageRequest && imageDetection.confidence !== 'low' && !hasDocumentFiles) {
-        console.log('🎨 Image request detected:', imageDetection);
+      // Allow image generation for visual types (infographic, chart, diagram, poster) even with document files
+      // These types explicitly want to CREATE visuals FROM the document content
+      const visualTypesAllowedWithDocs = ['infographic', 'chart', 'diagram', 'poster'];
+      const isVisualFromDocRequest = hasDocumentFiles && visualTypesAllowedWithDocs.includes(imageDetection.requestType);
+      const shouldGenerateImage = imageDetection.isImageRequest && 
+                                   imageDetection.confidence !== 'low' && 
+                                   (!hasDocumentFiles || isVisualFromDocRequest);
+      
+      if (shouldGenerateImage) {
+        console.log('🎨 Image request detected:', imageDetection, { isVisualFromDocRequest, hasDocumentFiles });
         
         // Extract context from previous messages - always include for better image generation
         const conversationContext = extractImageContext(
           imageDetection.imagePrompt || messageToUse,
           messages.map(m => ({ role: m.role, content: m.content }))
         );
+        
+        // For visual types with document files, extract document content
+        const documentContent = isVisualFromDocRequest && uploadedFiles.length > 0
+          ? uploadedFiles.map(f => `## ${f.name}\n${f.content.substring(0, 8000)}`).join('\n\n')
+          : undefined;
         
         // Update message to show image generation in progress
         setMessages(prev => prev.map(msg => 
@@ -511,6 +522,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             body: {
               prompt: messageToUse,
               conversationContext,
+              documentContent,
               practiceContext: {
                 practiceName: practiceContext?.practiceName,
                 pcnName: practiceContext?.pcnName,

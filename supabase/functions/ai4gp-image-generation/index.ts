@@ -9,6 +9,7 @@ const corsHeaders = {
 interface ImageGenerationRequest {
   prompt: string;
   conversationContext: string;
+  documentContent?: string;  // Content from attached files for visual generation
   practiceContext?: {
     practiceName?: string;
     pcnName?: string;
@@ -54,12 +55,13 @@ serve(async (req) => {
       throw new Error('LOVABLE_API_KEY is not configured');
     }
 
-    const { prompt, conversationContext, practiceContext, requestType } = await req.json() as ImageGenerationRequest;
+    const { prompt, conversationContext, documentContent, practiceContext, requestType } = await req.json() as ImageGenerationRequest;
 
     console.log('🎨 AI4GP Image Generation request:', { 
       prompt: prompt.substring(0, 100), 
       requestType,
-      contextLength: conversationContext?.length || 0
+      contextLength: conversationContext?.length || 0,
+      hasDocumentContent: !!documentContent
     });
 
     // Handle QR code generation separately using the qrcode library
@@ -135,6 +137,45 @@ Logo Design Requirements:
 - Modern, trustworthy aesthetic
 - Use simple shapes and clean lines
 - Maximum 2-3 colours
+
+Content guidelines:
+- Keep all content professional and workplace-appropriate
+- No explicit, offensive, or inappropriate imagery`;
+    } else if (requestType === 'infographic' && documentContent) {
+      // Infographic with document content - generate visual FROM the document
+      imagePrompt = `Create a professional single-page infographic that visualises the following content.
+
+SOURCE CONTENT TO VISUALISE:
+${documentContent.substring(0, 6000)}
+
+INFOGRAPHIC DESIGN REQUIREMENTS:
+- Create an ACTUAL visual infographic image, NOT a text description
+- Extract and display the 5-8 most important key points as visual elements
+- Use icons, simple charts, and visual hierarchy to represent data
+- Professional colour scheme (blues, teals, clean modern palette)
+- Clear headings and logical section organisation
+- Make it scannable at a glance - use bullet points and short phrases
+- Include any statistics or numbers prominently
+- Use arrows, connectors, or visual flow to show relationships
+- High contrast for accessibility and readability
+
+Content guidelines:
+- Keep all content professional and workplace-appropriate
+- No explicit, offensive, or inappropriate imagery`;
+    } else if (requestType === 'infographic') {
+      // Infographic without document content - use prompt directly
+      imagePrompt = `Create a professional single-page infographic.
+
+${prompt}
+
+INFOGRAPHIC DESIGN REQUIREMENTS:
+- Create an ACTUAL visual infographic image, NOT a text description
+- Display 5-8 key points as visual elements with icons
+- Professional colour scheme (blues, teals, clean modern palette)
+- Clear headings and logical section organisation
+- Make it scannable at a glance
+- Use visual hierarchy to emphasise important information
+- High contrast for accessibility
 
 Content guidelines:
 - Keep all content professional and workplace-appropriate
