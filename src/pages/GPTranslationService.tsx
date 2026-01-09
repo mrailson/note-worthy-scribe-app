@@ -177,158 +177,34 @@ const GPTranslationService: React.FC = () => {
     );
   }
 
+  // When session is active, always show the patient-focused fullscreen view
   return (
-    <>
-      {/* Patient Focused View (fullscreen overlay) */}
-      {viewMode === 'patient' && (
-        <PatientFocusedView
-          conversation={conversation}
-          speakerMode={speakerMode}
-          onSpeakerModeChange={setSpeakerMode}
-          selectedLanguage={selectedLanguage}
-          onLanguageChange={setSelectedLanguage}
-          selectedLanguageName={selectedLangData?.name || ''}
-          selectedLanguageFlag={selectedLangData?.flag || ''}
-          isListening={isListening}
-          isProcessing={isProcessing}
-          isSpeaking={isSpeaking}
-          currentTranscript={currentTranscript}
-          isMuted={isMuted}
-          volume={volume}
-          onMuteToggle={() => setIsMuted(!isMuted)}
-          onVolumeChange={setVolume}
-          onPlayAudio={playAudio}
-          onPause={handlePatientViewPause}
-          onResume={handlePatientViewResume}
-          onClose={handleClosePatientView}
-          onEndSession={handlePatientViewEndSession}
-          onExport={handleExport}
-          silenceThreshold={silenceThreshold}
-          onSilenceThresholdChange={setSilenceThreshold}
-          onManualSend={manualSend}
-        />
-      )}
-
-      <div className="min-h-screen bg-background">
-        <Header />
-        {/* Header bar */}
-        <div className="border-b bg-card">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div>
-                  <h1 className="text-2xl font-bold text-foreground">GP-Patient Translation</h1>
-                  <p className="text-sm text-muted-foreground">Real-time two-way translation service</p>
-                </div>
-              </div>
-              
-              <div className="flex items-center gap-3">
-                <Badge 
-                  variant={isListening ? 'default' : 'secondary'}
-                  className="animate-pulse"
-                >
-                  {isListening ? 'Listening...' : isProcessing ? 'Processing...' : 'Ready'}
-                </Badge>
-                
-                <Button onClick={handleEndSession} variant="destructive">
-                  <Square className="h-4 w-4 mr-2" />
-                  End Session
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="container mx-auto px-4 py-6">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Left Panel - Controls */}
-            <div className="lg:col-span-3 space-y-4">
-              {/* Speaker Mode */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Speaker Mode</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <SpeakerModeToggle
-                    mode={speakerMode}
-                    onModeChange={setSpeakerMode}
-                    disabled={false}
-                    isListening={isListening}
-                  />
-                  
-                  <Separator />
-                  
-                  <div className="flex items-center justify-between">
-                    <Label htmlFor="auto-detect" className="text-sm">
-                      Auto-detect speaker
-                    </Label>
-                    <Switch
-                      id="auto-detect"
-                      checked={autoDetect}
-                      onCheckedChange={setAutoDetect}
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Audio Controls */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-lg">Audio Settings</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <AudioControls
-                    volume={volume}
-                    onVolumeChange={setVolume}
-                    isMuted={isMuted}
-                    onMuteToggle={() => setIsMuted(!isMuted)}
-                    isSpeaking={isSpeaking}
-                    onStopAudio={stopAudio}
-                    silenceThreshold={silenceThreshold}
-                    onSilenceThresholdChange={setSilenceThreshold}
-                    onManualSend={manualSend}
-                    isListening={isListening}
-                  />
-                </CardContent>
-              </Card>
-
-              {/* Session Actions */}
-              <Card>
-                <CardContent className="pt-4 space-y-2">
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={handleExport}
-                    disabled={conversation.length === 0}
-                  >
-                    <FileDown className="h-4 w-4 mr-2" />
-                    Export Conversation
-                  </Button>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Right Panel - Conversation */}
-            <div className="lg:col-span-9">
-              <ConversationPanel
-                conversation={conversation}
-                currentTranscript={currentTranscript}
-                speakerMode={speakerMode}
-                selectedLanguage={selectedLanguage}
-                selectedLanguageName={selectedLangData?.name || ''}
-                selectedLanguageFlag={selectedLangData?.flag || ''}
-                onPlayAudio={playAudio}
-                isProcessing={isProcessing}
-                isSpeaking={isSpeaking}
-                viewMode={viewMode}
-                onViewModeChange={setViewMode}
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-    </>
+    <PatientFocusedView
+      conversation={conversation}
+      speakerMode={speakerMode}
+      onSpeakerModeChange={setSpeakerMode}
+      selectedLanguage={selectedLanguage}
+      onLanguageChange={setSelectedLanguage}
+      selectedLanguageName={selectedLangData?.name || ''}
+      selectedLanguageFlag={selectedLangData?.flag || ''}
+      isListening={isListening}
+      isProcessing={isProcessing}
+      isSpeaking={isSpeaking}
+      currentTranscript={currentTranscript}
+      isMuted={isMuted}
+      volume={volume}
+      onMuteToggle={() => setIsMuted(!isMuted)}
+      onVolumeChange={setVolume}
+      onPlayAudio={playAudio}
+      onPause={handlePatientViewPause}
+      onResume={handlePatientViewResume}
+      onClose={() => setIsSessionActive(false)}
+      onEndSession={handlePatientViewEndSession}
+      onExport={handleExport}
+      silenceThreshold={silenceThreshold}
+      onSilenceThresholdChange={setSilenceThreshold}
+      onManualSend={manualSend}
+    />
   );
 };
 
