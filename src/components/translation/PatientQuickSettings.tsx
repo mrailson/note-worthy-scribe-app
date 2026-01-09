@@ -21,10 +21,13 @@ import {
   User,
   Users,
   Mic,
+  Send,
+  Clock,
 } from 'lucide-react';
 import { TextSize } from './TeleprompterDisplay';
 import { getSortedLanguages } from '@/constants/elevenLabsLanguages';
 import { VoiceWaveform } from './VoiceWaveform';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PatientQuickSettingsProps {
   isPaused: boolean;
@@ -43,6 +46,10 @@ interface PatientQuickSettingsProps {
   selectedLanguage: string;
   onLanguageChange: (language: string) => void;
   isVoiceActive: boolean;
+  silenceThreshold: number;
+  onSilenceThresholdChange: (threshold: number) => void;
+  onManualSend: () => void;
+  isListening: boolean;
   className?: string;
 }
 
@@ -65,6 +72,10 @@ export const PatientQuickSettings: React.FC<PatientQuickSettingsProps> = ({
   selectedLanguage,
   onLanguageChange,
   isVoiceActive,
+  silenceThreshold,
+  onSilenceThresholdChange,
+  onManualSend,
+  isListening,
   className,
 }) => {
   const currentSizeIndex = TEXT_SIZE_ORDER.indexOf(textSize);
@@ -119,7 +130,7 @@ export const PatientQuickSettings: React.FC<PatientQuickSettingsProps> = ({
         </Select>
       </div>
 
-      {/* Centre: Pause and Speaker mode controls */}
+      {/* Centre: Pause, Speaker mode, and Wait time controls */}
       <div className="flex items-center gap-3">
         {/* Speaker mode toggle */}
         <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/50">
@@ -173,6 +184,53 @@ export const PatientQuickSettings: React.FC<PatientQuickSettingsProps> = ({
             </>
           )}
         </Button>
+
+        {/* Divider */}
+        <div className="w-px h-8 bg-border mx-1" />
+
+        {/* Wait time slider */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-muted-foreground shrink-0" />
+              <div className="w-20">
+                <Slider
+                  value={[silenceThreshold]}
+                  onValueChange={(value) => onSilenceThresholdChange(value[0])}
+                  min={1000}
+                  max={5000}
+                  step={500}
+                  className="cursor-pointer"
+                />
+              </div>
+              <span className="text-xs text-muted-foreground w-8">
+                {(silenceThreshold / 1000).toFixed(1)}s
+              </span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Wait time before processing speech</p>
+          </TooltipContent>
+        </Tooltip>
+
+        {/* Manual send button */}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="outline"
+              size="icon"
+              onClick={onManualSend}
+              disabled={!isListening}
+              className="h-10 w-10"
+              aria-label="Send now"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Send now (skip wait time)</p>
+          </TooltipContent>
+        </Tooltip>
       </div>
 
       {/* Right: Audio and text controls */}

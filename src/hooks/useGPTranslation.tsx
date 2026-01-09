@@ -62,6 +62,7 @@ interface UseGPTranslationOptions {
   autoDetect: boolean;
   volume: number;
   isMuted: boolean;
+  silenceThreshold?: number; // milliseconds before processing speech (default: 2000)
   onSpeakerDetected?: (speaker: 'gp' | 'patient') => void;
   onError?: (error: string) => void;
 }
@@ -73,6 +74,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     autoDetect,
     volume,
     isMuted,
+    silenceThreshold = 2000,
     onSpeakerDetected,
     onError
   } = options;
@@ -89,15 +91,19 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const audioQueueRef = useRef<{ text: string; languageCode: string }[]>([]);
   const volumeRef = useRef(volume);
   const isMutedRef = useRef(isMuted);
+  const silenceThresholdRef = useRef(silenceThreshold);
   const isPlayingRef = useRef(false);
   const isListeningRef = useRef(false);
   const startListeningRef = useRef<() => Promise<void>>();
+  const pendingTranscriptRef = useRef<string>('');
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Keep refs in sync with values
   useEffect(() => {
     volumeRef.current = volume;
     isMutedRef.current = isMuted;
-  }, [volume, isMuted]);
+    silenceThresholdRef.current = silenceThreshold;
+  }, [volume, isMuted, silenceThreshold]);
 
   // Initialize speech recognition
   const initSpeechRecognition = useCallback((): WebSpeechRecognition | null => {
@@ -358,9 +364,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
 
       // Use a ref to avoid stale-closure issues inside recognition callbacks
       isListeningRef.current = true;
-
-      let finalTranscript = '';
-      let silenceTimer: ReturnType<typeof setTimeout> | null = null;
+      pendingTranscriptRef.current = '';
 
       recognition.onstart = () => {
         isListeningRef.current = true;
@@ -374,7 +378,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
         for (let i = event.resultIndex; i < event.results.length; i++) {
           const transcript = event.results[i][0].transcript;
           if (event.results[i].isFinal) {
-            finalTranscript += transcript + ' ';
+            pendingTranscriptRef.current += transcript + ' ';
           } else {
             interimTranscript += transcript;
           }
@@ -384,17 +388,17 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
         setCurrentTranscript(interimTranscript);
 
         // Reset silence timer
-        if (silenceTimer) clearTimeout(silenceTimer);
+        if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
 
         // If we have final results, wait for silence then process
-        if (finalTranscript.trim()) {
-          silenceTimer = setTimeout(() => {
-            if (finalTranscript.trim()) {
-              processCompletedSpeech(finalTranscript.trim());
-              finalTranscript = '';
+        if (pendingTranscriptRef.current.trim()) {
+          silenceTimerRef.current = setTimeout(() => {
+            if (pendingTranscriptRef.current.trim()) {
+              processCompletedSpeech(pendingTranscriptRef.current.trim());
+              pendingTranscriptRef.current = '';
               setCurrentTranscript(''); // Clear after processing
             }
-          }, 1500); // 1.5 second silence threshold
+          }, silenceThresholdRef.current);
         }
       };
 
@@ -462,13 +466,33 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
   const stopListening = useCallback(() => {
     isListeningRef.current = false;
 
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    
     if (recognitionRef.current) {
       recognitionRef.current.stop();
       recognitionRef.current = null;
     }
     setIsListening(false);
     setCurrentTranscript('');
+    pendingTranscriptRef.current = '';
   }, []);
+
+  // Manual send - immediately process any pending transcript
+  const manualSend = useCallback(() => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    
+    if (pendingTranscriptRef.current.trim()) {
+      processCompletedSpeech(pendingTranscriptRef.current.trim());
+      pendingTranscriptRef.current = '';
+      setCurrentTranscript('');
+    }
+  }, [processCompletedSpeech]);
 
   // Play audio for a specific text
   const playAudio = useCallback(async (text: string, languageCode: string) => {
@@ -573,6 +597,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
     currentTranscript,
     startListening,
     stopListening,
+    manualSend,
     playAudio,
     stopAudio,
     clearConversation,
