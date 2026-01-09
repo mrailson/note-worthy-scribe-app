@@ -12,6 +12,7 @@ interface MessagesListProps {
   setExpandedMessage: (message: Message | null) => void;
   onExportWord?: (content: string, title?: string) => void;
   onExportPowerPoint?: (content: string, title?: string) => void;
+  onExportPowerPointWithVoiceover?: (content: string, title?: string) => void;
   showResponseMetrics?: boolean;
   showRenderTimes?: boolean;
   showAIService?: boolean;
@@ -27,6 +28,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
   setExpandedMessage,
   onExportWord,
   onExportPowerPoint,
+  onExportPowerPointWithVoiceover,
   showResponseMetrics = false,
   showRenderTimes = false,
   showAIService = false,
@@ -160,6 +162,7 @@ export const MessagesList: React.FC<MessagesListProps> = ({
                 onExpandMessage={setExpandedMessage}
                 onExportWord={onExportWord}
                 onExportPowerPoint={onExportPowerPoint}
+                onExportPowerPointWithVoiceover={onExportPowerPointWithVoiceover}
                 showResponseMetrics={showResponseMetrics}
                 showRenderTimes={showRenderTimes}
                 showAIService={showAIService}

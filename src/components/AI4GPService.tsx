@@ -52,6 +52,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { generateWordDocument } from '@/utils/documentGenerators';
 import { useGammaPowerPoint } from '@/hooks/useGammaPowerPoint';
+import { useGammaPowerPointWithVoiceover } from '@/hooks/useGammaPowerPointWithVoiceover';
 import { Message } from '@/types/ai4gp';
 import { useQueryClient } from '@tanstack/react-query';
 import { MeetingData } from '@/types/meetingTypes';
@@ -68,6 +69,7 @@ const AI4GPService = () => {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { generateWithGamma, isGenerating: isPowerPointGenerating } = useGammaPowerPoint();
+  const { generateFullPresentation, isGenerating: isFullPowerPointGenerating, currentPhase } = useGammaPowerPointWithVoiceover();
   
   // Disclaimer management
   const { showDisclaimer, disclaimerCollapsed, updateCollapsedPreference, loading: disclaimerLoading, hideDisclaimer } = useAI4GPDisclaimer();
@@ -776,6 +778,7 @@ const AI4GPService = () => {
                         setExpandedMessage={setExpandedMessage}
                         onExportWord={generateWordDocument}
                         onExportPowerPoint={generateWithGamma}
+                        onExportPowerPointWithVoiceover={generateFullPresentation}
                         showResponseMetrics={showResponseMetrics}
                         showRenderTimes={showRenderTimes}
                         showAIService={showAIService}
@@ -855,6 +858,7 @@ const AI4GPService = () => {
                   onExpandMessage={() => {}}
                   onExportWord={generateWordDocument}
                   onExportPowerPoint={generateWithGamma}
+                  onExportPowerPointWithVoiceover={generateFullPresentation}
                   isModal={true} // Hide avatar and scroll arrow in modal
                   onCloseModal={() => setExpandedMessage(null)} // Close modal function
                   showResponseMetrics={showResponseMetrics}
@@ -987,7 +991,11 @@ const AI4GPService = () => {
       />
 
       {/* PowerPoint Generation Overlay */}
-      <PowerPointGenerationOverlay isVisible={isPowerPointGenerating} />
+      <PowerPointGenerationOverlay 
+        isVisible={isPowerPointGenerating || isFullPowerPointGenerating} 
+        currentPhase={currentPhase}
+        isFullVersion={isFullPowerPointGenerating}
+      />
 
     </>
   );
