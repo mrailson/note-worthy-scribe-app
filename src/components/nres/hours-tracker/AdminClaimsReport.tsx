@@ -175,15 +175,22 @@ export function AdminClaimsReport() {
       `Period: ${format(parseISO(startDate), 'dd/MM/yyyy')} to ${format(parseISO(endDate), 'dd/MM/yyyy')}`,
       `Generated: ${format(new Date(), 'dd/MM/yyyy HH:mm')}`,
       '',
-      'User Name,Practice,Entries,Total Hours,Total Amount'
+      'User Name,Practice,Date,Start Time,End Time,Hours,Activity Type,Description,Amount'
     ];
 
     userClaims.forEach(claim => {
-      lines.push(`"${claim.user_name}","${claim.practice_name}",${claim.entry_count},${claim.total_hours.toFixed(2)},£${claim.total_amount.toFixed(2)}`);
+      const hourlyRate = userSettings[claim.user_id] || 50;
+      claim.entries
+        .sort((a, b) => a.work_date.localeCompare(b.work_date))
+        .forEach(entry => {
+          const amount = Number(entry.duration_hours) * hourlyRate;
+          const description = entry.description ? `"${entry.description.replace(/"/g, '""')}"` : '';
+          lines.push(`"${claim.user_name}","${claim.practice_name}",${format(parseISO(entry.work_date), 'dd/MM/yyyy')},${entry.start_time.substring(0, 5)},${entry.end_time.substring(0, 5)},${Number(entry.duration_hours).toFixed(2)},"${entry.activity_type || ''}",${description},£${amount.toFixed(2)}`);
+        });
     });
 
     lines.push('');
-    lines.push(`GRAND TOTAL,${userClaims.reduce((s, u) => s + u.entry_count, 0)},${grandTotalHours.toFixed(2)},£${grandTotalAmount.toFixed(2)}`);
+    lines.push(`GRAND TOTAL,,,,,${grandTotalHours.toFixed(2)},,,£${grandTotalAmount.toFixed(2)}`);
 
     const blob = new Blob([BOM + lines.join('\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
@@ -339,7 +346,7 @@ export function AdminClaimsReport() {
                                             <div className="text-muted-foreground">{entry.activity_type}</div>
                                           )}
                                           {entry.description && (
-                                            <div className="text-muted-foreground italic truncate">{entry.description}</div>
+                                            <div className="text-muted-foreground italic">{entry.description}</div>
                                           )}
                                         </div>
                                         <span className="font-medium whitespace-nowrap">{Number(entry.duration_hours).toFixed(2)} hrs</span>
