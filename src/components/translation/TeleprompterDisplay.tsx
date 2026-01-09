@@ -63,20 +63,6 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
       )}
     >
 
-      {/* Previous entry - almost invisible */}
-      {previousEntry && (
-        <div className="mb-8 w-full max-w-4xl text-center">
-          <p
-            className={cn(
-              sizeClasses.previous,
-              'leading-relaxed text-muted-foreground/30 italic'
-            )}
-          >
-            {getDisplayText(previousEntry)}
-          </p>
-        </div>
-      )}
-
       {/* Latest entry - prominent */}
       {latestEntry && (
         <div className="w-full max-w-4xl text-center animate-fade-in">
