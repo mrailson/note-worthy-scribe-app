@@ -152,9 +152,13 @@ export const useGammaPowerPointWithVoiceover = () => {
       console.log('[Voiceover] Phase 3: Generating British English voiceover...');
 
       const audioFiles: SlideAudio[] = [];
+      let successCount = 0;
+      let failCount = 0;
       
       for (const script of scripts) {
         try {
+          console.log(`[Voiceover] Generating audio for slide ${script.slideNumber}/${scripts.length}...`);
+          
           const { data: audioData, error: audioError } = await supabase.functions.invoke('generate-slide-narration', {
             body: {
               slideNumber: script.slideNumber,
@@ -165,7 +169,15 @@ export const useGammaPowerPointWithVoiceover = () => {
           });
 
           if (audioError) {
-            console.error(`Audio generation error for slide ${script.slideNumber}:`, audioError);
+            console.error(`[Voiceover] Audio generation error for slide ${script.slideNumber}:`, audioError);
+            failCount++;
+            toast.error(`Failed to generate audio for slide ${script.slideNumber}`);
+            continue;
+          }
+
+          if (audioData?.error) {
+            console.error(`[Voiceover] Audio error response for slide ${script.slideNumber}:`, audioData.error);
+            failCount++;
             continue;
           }
 
@@ -175,11 +187,19 @@ export const useGammaPowerPointWithVoiceover = () => {
               audioBase64: audioData.audioBase64,
               duration: audioData.duration || 30
             });
+            successCount++;
+            console.log(`[Voiceover] Audio generated for slide ${script.slideNumber} (${successCount}/${scripts.length})`);
+          } else {
+            console.warn(`[Voiceover] No audio data for slide ${script.slideNumber}:`, audioData);
+            failCount++;
           }
         } catch (err) {
-          console.error(`Failed to generate audio for slide ${script.slideNumber}:`, err);
+          console.error(`[Voiceover] Failed to generate audio for slide ${script.slideNumber}:`, err);
+          failCount++;
         }
       }
+      
+      console.log(`[Voiceover] Audio generation complete: ${successCount} success, ${failCount} failed`);
 
       // Phase 4: Package and download
       setCurrentPhase('packaging');
