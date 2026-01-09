@@ -32,6 +32,9 @@ interface PatientFocusedViewProps {
   onClose: () => void;
   onEndSession: () => void;
   onExport: () => void;
+  silenceThreshold: number;
+  onSilenceThresholdChange: (threshold: number) => void;
+  onManualSend: () => void;
   className?: string;
 }
 
@@ -57,6 +60,9 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
   onClose,
   onEndSession,
   onExport,
+  silenceThreshold,
+  onSilenceThresholdChange,
+  onManualSend,
   className,
 }) => {
   const [isPaused, setIsPaused] = useState(false);
@@ -156,6 +162,10 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
         selectedLanguage={selectedLanguage}
         onLanguageChange={onLanguageChange}
         isVoiceActive={isListening && !!currentTranscript && !isProcessing && !isSpeaking}
+        silenceThreshold={silenceThreshold}
+        onSilenceThresholdChange={onSilenceThresholdChange}
+        onManualSend={onManualSend}
+        isListening={isListening}
       />
 
       {/* Main content area with turn indicator */}

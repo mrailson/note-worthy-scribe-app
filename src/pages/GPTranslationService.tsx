@@ -27,6 +27,7 @@ const GPTranslationService: React.FC = () => {
   const [autoDetect, setAutoDetect] = useState(true);
   const [isMuted, setIsMuted] = useState(false);
   const [volume, setVolume] = useState(0.8);
+  const [silenceThreshold, setSilenceThreshold] = useState(2000); // 2 seconds default
   const [viewMode, setViewMode] = useState<ViewMode>('standard');
   
   const {
@@ -37,6 +38,7 @@ const GPTranslationService: React.FC = () => {
     currentTranscript,
     startListening,
     stopListening,
+    manualSend,
     playAudio,
     stopAudio,
     clearConversation,
@@ -47,6 +49,7 @@ const GPTranslationService: React.FC = () => {
     autoDetect,
     volume,
     isMuted,
+    silenceThreshold,
     onSpeakerDetected: (detected) => {
       if (autoDetect && detected !== speakerMode) {
         setSpeakerMode(detected);
@@ -172,6 +175,9 @@ const GPTranslationService: React.FC = () => {
           onClose={handleClosePatientView}
           onEndSession={handlePatientViewEndSession}
           onExport={handleExport}
+          silenceThreshold={silenceThreshold}
+          onSilenceThresholdChange={setSilenceThreshold}
+          onManualSend={manualSend}
         />
       )}
 
@@ -280,6 +286,10 @@ const GPTranslationService: React.FC = () => {
                     onMuteToggle={() => setIsMuted(!isMuted)}
                     isSpeaking={isSpeaking}
                     onStopAudio={stopAudio}
+                    silenceThreshold={silenceThreshold}
+                    onSilenceThresholdChange={setSilenceThreshold}
+                    onManualSend={manualSend}
+                    isListening={isListening}
                   />
                 </CardContent>
               </Card>
