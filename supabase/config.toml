@@ -362,3 +362,6 @@ verify_jwt = true
 
 [functions.generate-presentation-scripts]
 verify_jwt = true
+
+[functions.generate-pptx-with-audio]
+verify_jwt = true
