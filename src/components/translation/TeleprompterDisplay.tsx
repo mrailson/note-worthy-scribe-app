@@ -11,8 +11,6 @@ interface TeleprompterDisplayProps {
   textSize: TextSize;
   speakerMode: 'gp' | 'patient';
   languageCode: string;
-  consentConfirmed: boolean;
-  onConsentChange: (confirmed: boolean) => void;
   className?: string;
 }
 
@@ -30,8 +28,6 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
   textSize,
   speakerMode,
   languageCode,
-  consentConfirmed,
-  onConsentChange,
   className,
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -65,25 +61,10 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
           {phrases.translationWillAppear}
         </p>
         
-        {/* Consent message in patient's language */}
-        <div className="flex items-center gap-3 text-muted-foreground text-lg md:text-xl text-center mb-8 max-w-2xl">
+        {/* Consent acknowledgement in patient's language */}
+        <div className="flex items-center gap-3 text-muted-foreground text-lg md:text-xl text-center max-w-2xl">
           <ThumbsUp className="h-8 w-8 flex-shrink-0 text-primary" />
           <p>{phrases.consentMessage}</p>
-        </div>
-
-        {/* Clinician consent checkbox */}
-        <div className="mt-6 p-4 bg-muted/50 rounded-lg border">
-          <label className="flex items-center gap-3 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={consentConfirmed}
-              onChange={(e) => onConsentChange(e.target.checked)}
-              className="w-5 h-5 rounded border-2 border-primary text-primary focus:ring-primary"
-            />
-            <span className="text-sm text-muted-foreground">
-              GP Practice: I confirm the patient has given consent
-            </span>
-          </label>
         </div>
       </div>
     );

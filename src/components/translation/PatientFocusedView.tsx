@@ -68,7 +68,6 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
   const [isPaused, setIsPaused] = useState(false);
   const [textSize, setTextSize] = useState<TextSize>('large');
   const [resumeCountdown, setResumeCountdown] = useState<number | null>(null);
-  const [consentConfirmed, setConsentConfirmed] = useState(false);
 
   const phrases = getPatientViewPhrases(selectedLanguage);
 
@@ -182,8 +181,6 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
           textSize={textSize}
           speakerMode={speakerMode}
           languageCode={selectedLanguage}
-          consentConfirmed={consentConfirmed}
-          onConsentChange={setConsentConfirmed}
         />
 
         {/* Pause overlay */}
