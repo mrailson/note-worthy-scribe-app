@@ -12,9 +12,9 @@ interface TeleprompterDisplayProps {
 }
 
 const TEXT_SIZE_CLASSES: Record<TextSize, { latest: string; previous: string }> = {
-  normal: { latest: 'text-3xl', previous: 'text-xl' },
-  large: { latest: 'text-5xl', previous: 'text-2xl' },
-  xlarge: { latest: 'text-7xl', previous: 'text-3xl' },
+  normal: { latest: 'text-3xl', previous: 'text-lg' },
+  large: { latest: 'text-5xl', previous: 'text-xl' },
+  xlarge: { latest: 'text-7xl', previous: 'text-2xl' },
 };
 
 export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
@@ -25,10 +25,9 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
 }) => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Get recent entries for patient language (translated text for patient)
-  const recentEntries = conversation.slice(-4);
-  const latestEntry = recentEntries[recentEntries.length - 1];
-  const previousEntries = recentEntries.slice(0, -1);
+  // Get latest and previous entry only
+  const latestEntry = conversation[conversation.length - 1];
+  const previousEntry = conversation.length > 1 ? conversation[conversation.length - 2] : null;
 
   // Auto-scroll to latest
   useEffect(() => {
@@ -63,32 +62,19 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
         className
       )}
     >
-      {/* Previous entries - faded and smaller */}
-      <div className="space-y-6 mb-8 w-full max-w-4xl text-center">
-        {previousEntries.map((entry, idx) => {
-          // Calculate opacity: older = more faded
-          const opacity = 0.2 + (idx * 0.15);
-          // Calculate scale: older = smaller
-          const scale = 0.7 + (idx * 0.1);
-          
-          return (
-            <p
-              key={entry.id}
-              className={cn(
-                sizeClasses.previous,
-                'leading-relaxed transition-all duration-300',
-                entry.speaker === 'gp' ? 'text-primary/70' : 'text-foreground'
-              )}
-              style={{
-                opacity,
-                transform: `scale(${scale})`,
-              }}
-            >
-              {getDisplayText(entry)}
-            </p>
-          );
-        })}
-      </div>
+      {/* Previous entry - almost invisible */}
+      {previousEntry && (
+        <div className="mb-8 w-full max-w-4xl text-center">
+          <p
+            className={cn(
+              sizeClasses.previous,
+              'leading-relaxed text-muted-foreground/30 italic'
+            )}
+          >
+            {getDisplayText(previousEntry)}
+          </p>
+        </div>
+      )}
 
       {/* Latest entry - prominent */}
       {latestEntry && (

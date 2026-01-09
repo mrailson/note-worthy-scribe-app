@@ -3,6 +3,13 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
   X,
   Pause,
   Play,
@@ -11,8 +18,11 @@ import {
   AArrowUp,
   AArrowDown,
   RotateCcw,
+  User,
+  Users,
 } from 'lucide-react';
 import { TextSize } from './TeleprompterDisplay';
+import { getSortedLanguages } from '@/constants/elevenLabsLanguages';
 
 interface PatientQuickSettingsProps {
   isPaused: boolean;
@@ -26,6 +36,10 @@ interface PatientQuickSettingsProps {
   onReplayLast: () => void;
   onClose: () => void;
   canReplay: boolean;
+  speakerMode: 'gp' | 'patient';
+  onSpeakerModeChange: (mode: 'gp' | 'patient') => void;
+  selectedLanguage: string;
+  onLanguageChange: (language: string) => void;
   className?: string;
 }
 
@@ -43,9 +57,14 @@ export const PatientQuickSettings: React.FC<PatientQuickSettingsProps> = ({
   onReplayLast,
   onClose,
   canReplay,
+  speakerMode,
+  onSpeakerModeChange,
+  selectedLanguage,
+  onLanguageChange,
   className,
 }) => {
   const currentSizeIndex = TEXT_SIZE_ORDER.indexOf(textSize);
+  const languages = getSortedLanguages().filter(l => l.code !== 'en');
 
   const handleTextSizeUp = () => {
     if (currentSizeIndex < TEXT_SIZE_ORDER.length - 1) {
@@ -66,19 +85,60 @@ export const PatientQuickSettings: React.FC<PatientQuickSettingsProps> = ({
         className
       )}
     >
-      {/* Left: Close button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        onClick={onClose}
-        className="h-12 w-12"
-        aria-label="Close patient view"
-      >
-        <X className="h-6 w-6" />
-      </Button>
+      {/* Left: Close button and language selector */}
+      <div className="flex items-center gap-3">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="h-12 w-12"
+          aria-label="Close patient view"
+        >
+          <X className="h-6 w-6" />
+        </Button>
 
-      {/* Centre: Main controls */}
-      <div className="flex items-center gap-2">
+        {/* Language selector */}
+        <Select value={selectedLanguage} onValueChange={onLanguageChange}>
+          <SelectTrigger className="w-[180px] h-10">
+            <SelectValue placeholder="Select language" />
+          </SelectTrigger>
+          <SelectContent>
+            {languages.map((lang) => (
+              <SelectItem key={lang.code} value={lang.code}>
+                <span className="flex items-center gap-2">
+                  <span>{lang.flag}</span>
+                  <span>{lang.name}</span>
+                </span>
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Centre: Pause and Speaker mode controls */}
+      <div className="flex items-center gap-3">
+        {/* Speaker mode toggle */}
+        <div className="flex items-center gap-1 border rounded-lg p-1 bg-muted/50">
+          <Button
+            variant={speakerMode === 'gp' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => onSpeakerModeChange('gp')}
+            className="gap-2"
+          >
+            <User className="h-4 w-4" />
+            GP
+          </Button>
+          <Button
+            variant={speakerMode === 'patient' ? 'default' : 'ghost'}
+            size="sm"
+            onClick={() => onSpeakerModeChange('patient')}
+            className="gap-2"
+          >
+            <Users className="h-4 w-4" />
+            Patient
+          </Button>
+        </div>
+
         {/* Pause/Resume - prominent */}
         <Button
           variant={isPaused ? 'default' : 'outline'}

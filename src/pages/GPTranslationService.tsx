@@ -142,7 +142,9 @@ const GPTranslationService: React.FC = () => {
         <PatientFocusedView
           conversation={conversation}
           speakerMode={speakerMode}
+          onSpeakerModeChange={setSpeakerMode}
           selectedLanguage={selectedLanguage}
+          onLanguageChange={setSelectedLanguage}
           selectedLanguageName={selectedLangData?.name || ''}
           selectedLanguageFlag={selectedLangData?.flag || ''}
           isListening={isListening}
