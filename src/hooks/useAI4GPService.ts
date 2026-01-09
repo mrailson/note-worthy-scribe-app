@@ -695,7 +695,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
         // Update message to show generation in progress
         setMessages(prev => prev.map(msg => 
           msg.id === assistantMessageId 
-            ? { ...msg, content: '📊 Generating professional presentation with Gamma AI...\n\nThis may take 30-60 seconds for best quality.', isStreaming: true }
+            ? { ...msg, content: '📊 Generating professional presentation with Notewell AI...\n\nThis may take 30-60 seconds for best quality.', isStreaming: true }
             : msg
         ));
         
