@@ -179,7 +179,7 @@ const App = () => {
                   <SharedDrive />
                 </ProtectedRoute>
               } />
-              <Route path="/gp-translation" element={<TranslationTool />} />
+              <Route path="/gp-translation" element={<GPTranslationService />} />
               <Route path="/translation-tool" element={<Navigate to="/gp-translation" replace />} />
               <Route path="/mobile-translate" element={<MobileTranslation />} />
               <Route path="/patient-language" element={<PatientLanguageSelection />} />
@@ -291,7 +291,6 @@ const App = () => {
               <Route path="/lg-capture/bulk" element={<LGUploadQueueProvider><LGCaptureBulk /></LGUploadQueueProvider>} />
               <Route path="/bp-calculator" element={<BPCalculator />} />
               <Route path="/public/bp-calculator" element={<PublicBPCalculator />} />
-              <Route path="/gp-translation" element={<GPTranslationService />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
