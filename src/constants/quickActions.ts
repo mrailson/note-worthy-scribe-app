@@ -101,11 +101,19 @@ export const quickActions: QuickAction[] = [
       }
     ]
   },
-  { 
-    label: 'Complaint Response Helper', 
-    icon: MessageSquare, 
-    prompt: nhsSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps.\n\nCRITICAL INSTRUCTION: You have access to my practice details in your system context. DO NOT use placeholder text like "[Your Practice Address]" or "[Phone Number]". Instead, use the ACTUAL practice information provided to you in the CONTEXT ABOUT THE USER AND PRACTICE section of your system prompt. If specific details are not available in the context, simply omit those fields rather than using placeholders.\n\nFormat the response with proper letterhead using the actual practice name, address, phone, and email from your context. The response should be fully personalized to my specific practice.',
-    requiresFile: true 
+  {
+    label: 'PowerPoint Generator',
+    icon: Presentation,
+    prompt: nhsSafetyPreamble + '\n\nGenerate professional PowerPoint presentations for NHS meetings, training, and communications.',
+    requiresFile: false,
+    action: 'open-powerpoint-generator'
+  },
+  {
+    label: 'Quick Image Generator',
+    icon: FileHeart,
+    prompt: nhsSafetyPreamble + '\n\nGenerate professional images for NHS practice communications, patient education, and presentations.',
+    requiresFile: false,
+    action: 'open-quick-image-modal'
   },
   { 
     label: 'QOF Indicator Quick Check', 
@@ -157,7 +165,7 @@ export const practiceManagerQuickActions: QuickAction[] = [
     action: 'open-audio-upload'
   },
   {
-    label: 'Complaint Response Helper (PM)',
+    label: 'Complaint Response Helper',
     icon: MessageSquare,
     prompt: pmSafetyPreamble + '\n\nHelp me draft a professional NHS complaint response that acknowledges concerns, explains our position, and outlines next steps.\n\nCRITICAL INSTRUCTION: You have access to my practice details in your system context. DO NOT use placeholder text like "[Your Practice Address]" or "[Phone Number]". Instead, use the ACTUAL practice information provided to you in the CONTEXT ABOUT THE USER AND PRACTICE section of your system prompt. If specific details are not available in the context, simply omit those fields rather than using placeholders.\n\nFormat the response with proper letterhead using the actual practice name, address, phone, and email from your context. The response should be fully personalized to my specific practice.',
     requiresFile: true
