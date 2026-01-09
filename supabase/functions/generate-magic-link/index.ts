@@ -41,21 +41,24 @@ const handler = async (req: Request): Promise<Response> => {
     const { data, error } = await supabaseAdmin.auth.admin.generateLink({
       type: "magiclink",
       email: email,
-      options: {
-        redirectTo: "https://gpnotewell.co.uk/",
-      },
     });
+
+    // NOTE: We don't use redirectTo here because we'll build our own confirmation URL
 
     if (error) {
       console.error("Error generating magic link:", error);
       throw new Error(error.message);
     }
 
-    if (!data?.properties?.action_link) {
-      throw new Error("Failed to generate magic link - no action link returned");
+    if (!data?.properties?.hashed_token) {
+      throw new Error("Failed to generate magic link - no hashed token returned");
     }
 
-    const magicLink = data.properties.action_link;
+    // Build a confirmation URL that goes to our auth-confirm page first
+    // This prevents email security scanners from consuming the one-time token
+    const tokenHash = data.properties.hashed_token;
+    const confirmUrl = `https://gpnotewell.co.uk/auth-confirm?token_hash=${tokenHash}&type=magiclink&redirect_to=${encodeURIComponent('https://gpnotewell.co.uk/')}`;
+    
     const userName = email.split("@")[0];
 
     console.log("Magic link generated successfully, sending via EmailJS");
@@ -71,7 +74,7 @@ const handler = async (req: Request): Promise<Response> => {
         },
         body: JSON.stringify({
           email: email,
-          magic_link: magicLink,
+          magic_link: confirmUrl,
           user_name: userName,
         }),
       }
