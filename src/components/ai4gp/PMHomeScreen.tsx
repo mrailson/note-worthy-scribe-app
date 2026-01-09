@@ -204,7 +204,7 @@ export const PMHomeScreen: React.FC<PMHomeScreenProps> = ({ setInput, focusInput
                       </div>
 
                       {/* Short Title */}
-                      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors">
+                      <span className="text-xs font-medium text-foreground group-hover:text-primary transition-colors truncate min-w-0">
                         {useCase.shortTitle}
                       </span>
                     </button>
