@@ -22,6 +22,7 @@ interface GammaCompletedResponse {
   generationId: string;
   status: 'pending' | 'completed' | 'failed';
   gammaUrl?: string;
+  exportUrl?: string; // Gamma returns exportUrl for the PPTX file
   pptxUrl?: string;
   pdfUrl?: string;
   error?: string;
@@ -168,20 +169,24 @@ serve(async (req) => {
     
     console.log(`[Gamma] Generation completed:`, completedGeneration);
 
-    // Step 3: Download the PPTX file if URL provided
+    // Step 3: Download the PPTX file if URL provided (Gamma uses exportUrl)
     let pptxBase64 = '';
+    const downloadUrl = completedGeneration.exportUrl || completedGeneration.pptxUrl;
     
-    if (completedGeneration.pptxUrl) {
-      console.log(`[Gamma] Downloading PPTX from: ${completedGeneration.pptxUrl}`);
+    if (downloadUrl) {
+      console.log(`[Gamma] Downloading PPTX from: ${downloadUrl}`);
       
-      const pptxResponse = await fetch(completedGeneration.pptxUrl);
+      const pptxResponse = await fetch(downloadUrl);
       
       if (!pptxResponse.ok) {
+        console.error(`[Gamma] PPTX download failed: ${pptxResponse.status}`);
         throw new Error(`Failed to download PPTX: ${pptxResponse.status}`);
       }
 
       const pptxBuffer = await pptxResponse.arrayBuffer();
       const pptxBytes = new Uint8Array(pptxBuffer);
+      
+      console.log(`[Gamma] Downloaded ${pptxBytes.length} bytes`);
       
       // Convert to base64 in chunks to avoid memory issues
       const chunkSize = 8192;
@@ -192,7 +197,10 @@ serve(async (req) => {
       }
       pptxBase64 = btoa(base64Str);
 
-      console.log(`[Gamma] PPTX downloaded and converted to base64 (${pptxBase64.length} chars)`);
+      console.log(`[Gamma] PPTX converted to base64 (${pptxBase64.length} chars)`);
+    } else {
+      console.error('[Gamma] No download URL in response:', completedGeneration);
+      throw new Error('No PPTX download URL received from Gamma');
     }
 
     return new Response(
