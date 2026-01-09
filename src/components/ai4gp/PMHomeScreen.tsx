@@ -86,7 +86,7 @@ const useCases: UseCase[] = [
     id: 'presentation',
     title: 'Create a Presentation',
     shortTitle: 'Slides',
-    description: 'Build PowerPoint slides for meetings',
+    description: 'Build PowerPoint slides for meetings (just add your files and let AI do all the work!)',
     icon: Presentation,
     gradient: 'from-amber-500 to-amber-600',
     prompt: 'Create a PowerPoint presentation on the following topic for my practice:',
