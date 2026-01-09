@@ -544,40 +544,6 @@ const AI4GPService = () => {
                            <GenieIcon className="w-4 h-4 mr-2" />
                            GP Genie
                          </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => setShowNews(!showNews)}>
-                           <Newspaper className="w-4 h-4 mr-2" />
-                           GP News
-                         </DropdownMenuItem>
-                         <DropdownMenuItem onClick={() => {
-                           // Check if mobile and redirect accordingly
-                           const isMobileScreen = window.innerWidth < 768;
-                           const isMobileUserAgent = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-                           
-                           if (isMobileScreen || isMobileUserAgent) {
-                             navigate('/mobile-translate');
-                           } else {
-                             navigate('/translation-tool');
-                           }
-                         }}>
-                           <Languages className="w-4 h-4 mr-2" />
-                           Translation Service
-                         </DropdownMenuItem>
-                         <DropdownMenuSub>
-                           <DropdownMenuSubTrigger>
-                             <Palette className="w-4 h-4 mr-2" />
-                             Image Service
-                           </DropdownMenuSubTrigger>
-                           <DropdownMenuSubContent>
-                             <DropdownMenuItem onClick={() => setShowQuickImageModal(true)}>
-                               <Zap className="w-4 h-4 mr-2" />
-                               Quick Image
-                             </DropdownMenuItem>
-                             <DropdownMenuItem onClick={() => setShowImageService(!showImageService)}>
-                               <Palette className="w-4 h-4 mr-2" />
-                               Practice Image Maker
-                             </DropdownMenuItem>
-                           </DropdownMenuSubContent>
-                         </DropdownMenuSub>
                          <DropdownMenuItem onClick={() => setShowUserGuide(true)}>
                            <BookOpen className="w-4 h-4 mr-2" />
                            User Guide & Help
