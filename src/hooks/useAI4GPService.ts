@@ -722,9 +722,15 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           ));
           
           // Step 2: Convert JSON content to PPTX file
+          // The json-to-pptx function expects jsonData as a JSON string with { meta: { title }, slides: [...] }
+          const pptxPayload = {
+            meta: { title: presentationContent.title },
+            slides: presentationContent.slides
+          };
+          
           const { data: pptxData, error: pptxError } = await supabase.functions.invoke('json-to-pptx', {
             body: {
-              presentationContent: presentationContent
+              jsonData: JSON.stringify(pptxPayload)
             }
           });
           
@@ -733,7 +739,36 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             throw new Error(pptxError.message || 'Failed to create PowerPoint file');
           }
           
-          if (!pptxData?.pptxBase64) {
+          // The json-to-pptx function returns binary data (ArrayBuffer)
+          // We need to convert it to base64 for storage in the message
+          let pptxBase64: string;
+          
+          if (pptxData instanceof ArrayBuffer) {
+            // Direct ArrayBuffer response
+            const bytes = new Uint8Array(pptxData);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            pptxBase64 = btoa(binary);
+          } else if (pptxData instanceof Blob) {
+            // Blob response
+            const arrayBuffer = await pptxData.arrayBuffer();
+            const bytes = new Uint8Array(arrayBuffer);
+            let binary = '';
+            for (let i = 0; i < bytes.byteLength; i++) {
+              binary += String.fromCharCode(bytes[i]);
+            }
+            pptxBase64 = btoa(binary);
+          } else if (typeof pptxData === 'string') {
+            // Already base64 string
+            pptxBase64 = pptxData;
+          } else {
+            console.error('Unexpected pptxData type:', typeof pptxData, pptxData);
+            throw new Error('Unexpected response format from PowerPoint generator');
+          }
+          
+          if (!pptxBase64) {
             throw new Error('No PowerPoint file generated');
           }
           
@@ -742,7 +777,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
           
           // Create the presentation object
           const generatedPresentation: GeneratedPresentation = {
-            pptxBase64: pptxData.pptxBase64,
+            pptxBase64,
             title: presentationContent.title || pptDetection.topic,
             slideCount: presentationContent.slides.length,
             presentationType: getPresentationTypeDisplayName(pptDetection.presentationType),
