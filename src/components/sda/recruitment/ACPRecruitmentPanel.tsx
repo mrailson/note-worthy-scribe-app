@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { useUserProfile } from '@/hooks/useUserProfile';
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -237,6 +238,10 @@ export const ACPRecruitmentPanel = () => {
   const [showAllCandidates, setShowAllCandidates] = useState(false);
   const [feedbackModalOpen, setFeedbackModalOpen] = useState(false);
   const [selectedCandidate, setSelectedCandidate] = useState<ACPCandidate | null>(null);
+  const { profile } = useUserProfile();
+  
+  // ICB members can view feedback but cannot submit
+  const canSubmitFeedback = !profile?.northamptonshire_icb_active;
   
   const shortlisted = getShortlistedCandidates();
   const toConsider = getCandidatesToConsider();
@@ -580,6 +585,7 @@ export const ACPRecruitmentPanel = () => {
           isSubmitting={isSubmitting}
           onSubmit={handleSubmitFeedback}
           onDelete={handleDeleteFeedback}
+          canSubmitFeedback={canSubmitFeedback}
         />
       )}
     </div>
