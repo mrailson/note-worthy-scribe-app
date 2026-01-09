@@ -6,7 +6,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Textarea } from '@/components/ui/textarea';
 import { ChevronDown, ChevronRight, CheckCircle, XCircle, Edit3, Volume2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface LowConfidenceChunk {
   id: string;
@@ -58,7 +58,7 @@ export function LowConfidenceReview({ meetingId, sessionId, userId }: LowConfide
       setChunks(data || []);
     } catch (error) {
       console.error('Error fetching low-confidence chunks:', error);
-      toast.error('Failed to load low-confidence chunks');
+      showToast.error('Failed to load low-confidence chunks', { section: 'meeting_manager' });
     } finally {
       setLoading(false);
     }
@@ -77,11 +77,11 @@ export function LowConfidenceReview({ meetingId, sessionId, userId }: LowConfide
 
       if (error) throw error;
 
-      toast.success(`AI processed ${data.processedCount} chunks, auto-restored ${data.restoredCount} chunks`);
+      showToast.success(`AI processed ${data.processedCount} chunks, auto-restored ${data.restoredCount} chunks`, { section: 'meeting_manager' });
       await fetchLowConfidenceChunks(); // Refresh the list
     } catch (error) {
       console.error('Error triggering AI processing:', error);
-      toast.error('Failed to process chunks with AI');
+      showToast.error('Failed to process chunks with AI', { section: 'meeting_manager' });
     } finally {
       setProcessingAI(false);
     }
@@ -121,11 +121,11 @@ export function LowConfidenceReview({ meetingId, sessionId, userId }: LowConfide
 
       if (updateError) throw updateError;
 
-      toast.success(`Chunk ${action.replace('_', ' ')}`);
+      showToast.success(`Chunk ${action.replace('_', ' ')}`, { section: 'meeting_manager' });
       await fetchLowConfidenceChunks();
     } catch (error) {
       console.error('Error handling chunk action:', error);
-      toast.error('Failed to update chunk');
+      showToast.error('Failed to update chunk', { section: 'meeting_manager' });
     }
   };
 

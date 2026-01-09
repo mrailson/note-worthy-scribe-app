@@ -9,6 +9,7 @@ import { Switch } from "@/components/ui/switch";
 import { Building, Plus, Edit, Trash2, Check, X, Globe, Search, Database, Upload, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 
 
 interface PracticeDetail {

@@ -32,7 +32,7 @@ import { ImageTranslationCard } from './ImageTranslationCard';
 import { TEST_PATIENT_REQUESTS } from '@/constants/testPatients';
 import { HEALTHCARE_LANGUAGES } from '@/constants/healthcareLanguages';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { downloadEmailTranslationProof } from '@/utils/emailTranslationWordExport';
 
 interface EmailTranslation {
@@ -85,7 +85,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
 
   const translateIncomingEmail = async () => {
     if (!incomingEmail.trim()) {
-      toast.error('Please enter the email content');
+      showToast.error('Please enter the email content', { section: 'translation' });
       return;
     }
 
@@ -108,11 +108,11 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
         confidence: data.confidence || 85
       });
 
-      toast.success('Email translated successfully');
+      showToast.success('Email translated successfully', { section: 'translation' });
       setActiveTab('compose');
     } catch (error) {
       console.error('Translation error:', error);
-      toast.error('Failed to translate email');
+      showToast.error('Failed to translate email', { section: 'translation' });
     } finally {
       setIsTranslating(false);
     }
@@ -125,7 +125,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
 
   const assessTranslationQuality = async () => {
     if (!emailReply || !emailTranslation) {
-      toast.error('Missing required data for quality assessment');
+      showToast.error('Missing required data for quality assessment', { section: 'translation' });
       return;
     }
 
@@ -145,10 +145,10 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
       if (error) throw error;
 
       setQualityAssessment(data);
-      toast.success('Quality assessment completed');
+      showToast.success('Quality assessment completed', { section: 'translation' });
     } catch (error) {
       console.error('Quality assessment error:', error);
-      toast.error('Failed to assess translation quality');
+      showToast.error('Failed to assess translation quality', { section: 'translation' });
     } finally {
       setIsAssessing(false);
     }
@@ -250,21 +250,21 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
       });
 
       if (error) throw error;
-      toast.success('Saved to Translation History');
+      showToast.success('Saved to Translation History', { section: 'translation' });
     } catch (err: any) {
       console.error('Failed to save translation history session:', err);
-      toast.error('Failed to save to Translation History');
+      showToast.error('Failed to save to Translation History', { section: 'translation' });
     }
   };
 
   const handleSendEmail = async () => {
     if (!emailReply || !qualityAssessment || !emailTranslation) {
-      toast.error('Complete quality assessment before sending');
+      showToast.error('Complete quality assessment before sending', { section: 'translation' });
       return;
     }
 
     if (qualityAssessment.overallSafety === 'unsafe') {
-      toast.error('Cannot send email - quality assessment flagged as unsafe');
+      showToast.error('Cannot send email - quality assessment flagged as unsafe', { section: 'translation' });
       return;
     }
 
@@ -274,7 +274,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
     try {
       // First download the proof document
       await downloadEmailTranslationProof(emailTranslation, emailReply, qualityAssessment);
-      toast.success('Translation proof document downloaded successfully');
+      showToast.success('Translation proof document downloaded successfully', { section: 'translation' });
       setIsDownloadingProof(false);
 
       // Save to Translation History so it appears in the sidebar/history tab
@@ -303,7 +303,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
         throw new Error(data?.error || 'Failed to send email via EmailJS');
       }
 
-      toast.success(`Email sent successfully to ${userEmail}`);
+      showToast.success(`Email sent successfully to ${userEmail}`, { section: 'translation' });
       
       // Reset form
       setIncomingEmail('');
@@ -314,10 +314,10 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
     } catch (error) {
       console.error('Send email error:', error);
       if (error.message?.includes('download')) {
-        toast.error('Failed to download proof document');
+        showToast.error('Failed to download proof document', { section: 'translation' });
         setIsDownloadingProof(false);
       } else {
-        toast.error('Failed to send email');
+        showToast.error('Failed to send email', { section: 'translation' });
       }
     } finally {
       setIsSending(false);
@@ -327,20 +327,20 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
 
   const handleDownloadProof = async () => {
     if (!emailReply || !qualityAssessment || !emailTranslation) {
-      toast.error('Complete quality assessment before downloading');
+      showToast.error('Complete quality assessment before downloading', { section: 'translation' });
       return;
     }
 
     setIsDownloadingProof(true);
     try {
       await downloadEmailTranslationProof(emailTranslation, emailReply, qualityAssessment);
-      toast.success('Translation proof document downloaded successfully');
+      showToast.success('Translation proof document downloaded successfully', { section: 'translation' });
 
       // Also save this interaction to Translation History
       await saveEmailSessionToHistory();
     } catch (error) {
       console.error('Download proof document error:', error);
-      toast.error('Failed to download proof document');
+      showToast.error('Failed to download proof document', { section: 'translation' });
     } finally {
       setIsDownloadingProof(false);
     }
@@ -351,7 +351,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
     if (patient) {
       setIncomingEmail(patient.request);
       setSelectedTestPatient(patientId);
-      toast.success(`Loaded test request from ${patient.name} (${patient.language})`);
+      showToast.success(`Loaded test request from ${patient.name} (${patient.language})`, { section: 'translation' });
     }
   };
 
@@ -362,7 +362,7 @@ export const EmailHandler = ({ resetTrigger }: EmailHandlerProps = {}) => {
     setEmailReply(null);
     setQualityAssessment(null);
     setActiveTab('receive');
-    toast.success('Email translation cleared');
+    showToast.success('Email translation cleared', { section: 'translation' });
   };
 
   // Handle external reset trigger

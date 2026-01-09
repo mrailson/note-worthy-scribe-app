@@ -6,7 +6,7 @@ import { renderNHSMarkdown } from '@/lib/nhsMarkdownRenderer';
 import { Copy, Sparkles, Maximize2, X, Download, Printer, Mail } from 'lucide-react';
 import { Document, Packer, Paragraph, TextRun } from "docx";
 import { saveAs } from "file-saver";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useAutoEmail } from '@/hooks/useAutoEmail';
 
@@ -63,10 +63,10 @@ export const AIResponsePanel: React.FC<AIResponsePanelProps> = ({
 
       const blob = await Packer.toBlob(doc);
       saveAs(blob, `AI-Response-${Date.now()}.docx`);
-      toast.success("Word document downloaded successfully");
+      showToast.success("Word document downloaded successfully", { section: 'ai4gp' });
     } catch (error) {
       console.error('Error exporting to Word:', error);
-      toast.error("Failed to export Word document");
+      showToast.error("Failed to export Word document", { section: 'ai4gp' });
     }
   };
 

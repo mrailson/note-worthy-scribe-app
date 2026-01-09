@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Mic, MicOff, Loader2 } from "lucide-react";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import { supabase } from "@/integrations/supabase/client";
 
 interface VoiceRecorderProps {
@@ -52,10 +52,10 @@ export const VoiceRecorder = ({ onTranscription, disabled }: VoiceRecorderProps)
 
       mediaRecorder.start();
       setIsRecording(true);
-      toast.success("Recording started. Speak now!");
+      showToast.success("Recording started. Speak now!", { section: 'gpscribe' });
     } catch (error) {
       console.error('Error starting recording:', error);
-      toast.error("Failed to access microphone");
+      showToast.error("Failed to access microphone", { section: 'gpscribe' });
     }
   };
 
@@ -86,23 +86,23 @@ export const VoiceRecorder = ({ onTranscription, disabled }: VoiceRecorderProps)
 
         if (error) {
           console.error('Transcription error:', error);
-          toast.error("Failed to transcribe audio");
+          showToast.error("Failed to transcribe audio", { section: 'gpscribe' });
           return;
         }
 
         const text = data.text?.trim();
         if (text && text.length > 0) {
           onTranscription(text);
-          toast.success("Voice transcribed successfully!");
+          showToast.success("Voice transcribed successfully!", { section: 'gpscribe' });
         } else {
-          toast.warning("No speech detected. Please try again.");
+          showToast.warning("No speech detected. Please try again.", { section: 'gpscribe' });
         }
       };
 
       reader.readAsDataURL(audioBlob);
     } catch (error) {
       console.error('Error processing audio:', error);
-      toast.error("Failed to process audio");
+      showToast.error("Failed to process audio", { section: 'gpscribe' });
     } finally {
       setIsProcessing(false);
     }

@@ -8,6 +8,7 @@ import { Smartphone, Copy, RefreshCw, QrCode, Check, ChevronDown, Trash2 } from 
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/contexts/AuthContext';
 import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import QRCode from 'qrcode';
 
 interface TokenRecord {

@@ -7,7 +7,7 @@ import { Separator } from '@/components/ui/separator';
 import { Sparkles, Send } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { SpeechToText } from '@/components/SpeechToText';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 
 interface CustomAIPromptModalProps {
   open: boolean;
@@ -52,7 +52,7 @@ export const CustomAIPromptModal: React.FC<CustomAIPromptModalProps> = ({
 
   const handleSpeechInput = (text: string) => {
     setCustomPrompt(prev => prev ? `${prev} ${text}` : text);
-    toast.success("Speech added to prompt");
+    showToast.success("Speech added to prompt", { section: 'ai4gp' });
   };
 
   const textPreview = currentText.length > 150 

@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Brain, Clock, Save, Loader2, MapPin, Type, Layout, Monitor, Eye, BookOpen, Minimize2, Settings, Volume2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { VoicePreviewDemo } from './VoicePreviewDemo';
 
 interface SettingsModalProps {

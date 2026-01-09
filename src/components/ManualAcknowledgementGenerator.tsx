@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { FileText, Loader2, CheckCircle, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { supabase } from '@/integrations/supabase/client';
 
 interface ManualAcknowledgementGeneratorProps {
@@ -48,18 +48,18 @@ export const ManualAcknowledgementGenerator: React.FC<ManualAcknowledgementGener
         
         if (statusError) throw statusError;
         
-        toast.success(`Status fixed for ${complaintReference}`);
+        showToast.success(`Status fixed for ${complaintReference}`, { section: 'complaints' });
         onSuccess?.();
       } else if (!acknowledgement) {
-        toast.info('No acknowledgement found. Use "Generate Acknowledgement" instead.');
+        showToast.info('No acknowledgement found. Use "Generate Acknowledgement" instead.', { section: 'complaints' });
       } else {
-        toast.success('Status is already correct.');
+        showToast.success('Status is already correct.', { section: 'complaints' });
         onSuccess?.();
       }
       
     } catch (error) {
       console.error('Error checking/fixing status:', error);
-      toast.error(`Failed to fix status: ${error.message || 'Unknown error'}`);
+      showToast.error(`Failed to fix status: ${error.message || 'Unknown error'}`, { section: 'complaints' });
     } finally {
       setChecking(false);
     }
@@ -77,17 +77,17 @@ export const ManualAcknowledgementGenerator: React.FC<ManualAcknowledgementGener
       
       if (ackError) {
         console.error('Failed to generate acknowledgement:', ackError);
-        toast.error(`Failed to generate acknowledgement: ${ackError.message || 'Unknown error'}`);
+        showToast.error(`Failed to generate acknowledgement: ${ackError.message || 'Unknown error'}`, { section: 'complaints' });
         throw new Error(ackError.message || 'Failed to generate acknowledgement');
       }
       
       console.log('Acknowledgement generated successfully:', ackData);
-      toast.success(`Acknowledgement letter generated successfully for ${complaintReference}`);
+      showToast.success(`Acknowledgement letter generated successfully for ${complaintReference}`, { section: 'complaints' });
       onSuccess?.();
       
     } catch (error) {
       console.error('Error generating acknowledgement:', error);
-      toast.error(`Failed to generate acknowledgement: ${error.message || 'Unknown error'}`);
+      showToast.error(`Failed to generate acknowledgement: ${error.message || 'Unknown error'}`, { section: 'complaints' });
     } finally {
       setGenerating(false);
     }
