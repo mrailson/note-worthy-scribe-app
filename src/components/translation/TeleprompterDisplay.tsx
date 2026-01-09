@@ -90,7 +90,7 @@ export const TeleprompterDisplay: React.FC<TeleprompterDisplayProps> = ({
     <div
       ref={scrollRef}
       className={cn(
-        'flex flex-col justify-center items-center h-full px-8 py-16 overflow-hidden',
+        'flex flex-col justify-start items-center h-full px-8 pt-16 pb-40 overflow-y-auto',
         className
       )}
     >
