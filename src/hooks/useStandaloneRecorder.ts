@@ -1,12 +1,11 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
-import { useToast } from '@/hooks/use-toast';
+import { showShadcnToast } from '@/utils/toastWrapper';
 import { StandaloneTranscriber } from '@/utils/StandaloneTranscriber';
 import { BrowserSpeechFallback } from '@/utils/BrowserSpeechFallback';
 import { cleanTranscript } from '@/lib/transcriptCleaner';
 import { NHS_DEFAULT_RULES } from '@/lib/nhsDefaultRules';
 
 export const useStandaloneRecorder = () => {
-  const { toast } = useToast();
   const [isRecording, setIsRecording] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
@@ -85,10 +84,11 @@ export const useStandaloneRecorder = () => {
           setIsTranscribing(transcribing);
         },
         onError: (error: string) => {
-          toast({
+          showShadcnToast({
             title: "Transcription Error",
             description: error,
-            variant: "destructive"
+            variant: "destructive",
+            section: 'meeting_manager'
           });
         },
         onVolumeChange: (vol: number) => {
@@ -105,19 +105,21 @@ export const useStandaloneRecorder = () => {
         setDuration(prev => prev + 1);
       }, 1000);
 
-      toast({
+      showShadcnToast({
         title: "Recording Started",
-        description: `Using ${transcriptionService.charAt(0).toUpperCase() + transcriptionService.slice(1)} with browser speech fallback`
+        description: `Using ${transcriptionService.charAt(0).toUpperCase() + transcriptionService.slice(1)} with browser speech fallback`,
+        section: 'meeting_manager'
       });
 
     } catch (error) {
-      toast({
+      showShadcnToast({
         title: "Recording Failed",
         description: error instanceof Error ? error.message : "Failed to start recording",
-        variant: "destructive"
+        variant: "destructive",
+        section: 'meeting_manager'
       });
     }
-  }, [transcriptionService, cleaningEnabled, toast]);
+  }, [transcriptionService, cleaningEnabled]);
 
   const stopRecording = useCallback(async () => {
     if (transcriberRef.current) {
@@ -139,11 +141,12 @@ export const useStandaloneRecorder = () => {
     setIsTranscribing(false);
     setVolume(0);
 
-    toast({
+    showShadcnToast({
       title: "Recording Stopped",
-      description: "Transcription completed"
+      description: "Transcription completed",
+      section: 'meeting_manager'
     });
-  }, [toast]);
+  }, []);
 
   const pauseRecording = useCallback(async () => {
     if (transcriberRef.current) {
@@ -202,10 +205,11 @@ export const useStandaloneRecorder = () => {
     const textToExport = showCleaned && cleaningEnabled ? cleanedTranscript : transcript;
     
     if (!textToExport.trim()) {
-      toast({
+      showShadcnToast({
         title: "No Content",
         description: "No transcript available to export",
-        variant: "destructive"
+        variant: "destructive",
+        section: 'meeting_manager'
       });
       return;
     }
@@ -220,11 +224,12 @@ export const useStandaloneRecorder = () => {
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
-    toast({
+    showShadcnToast({
       title: "Transcript Exported",
-      description: "File saved to downloads"
+      description: "File saved to downloads",
+      section: 'meeting_manager'
     });
-  }, [transcript, cleanedTranscript, showCleaned, cleaningEnabled, toast]);
+  }, [transcript, cleanedTranscript, showCleaned, cleaningEnabled]);
 
   const clearTranscript = useCallback(() => {
     setTranscript('');
@@ -233,11 +238,12 @@ export const useStandaloneRecorder = () => {
     setBrowserFallbackWordCount(0);
     setUseWhisperCount(false);
     
-    toast({
+    showShadcnToast({
       title: "Transcript Cleared",
-      description: "All content has been cleared"
+      description: "All content has been cleared",
+      section: 'meeting_manager'
     });
-  }, [toast]);
+  }, []);
 
   return {
     isRecording,

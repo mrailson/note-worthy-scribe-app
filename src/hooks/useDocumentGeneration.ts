@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import { EditStates, EditContent } from "@/types/gpscribe";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import jsPDF from 'jspdf';
 import { generateWordDocument, generatePowerPoint } from "@/utils/documentGenerators";
 
@@ -41,7 +41,7 @@ export const useDocumentGeneration = () => {
     patientLanguage?: string
   ) => {
     if (!transcript.trim()) {
-      toast.error("No transcript available for summary generation");
+      showToast.error("No transcript available for summary generation", { section: 'gpscribe' });
       return;
     }
 
@@ -67,11 +67,11 @@ export const useDocumentGeneration = () => {
       setPatientCopy(data.patientCopy || "");
       setTraineeFeedback(data.traineeFeedback || "");
 
-      toast.success("Consultation notes generated successfully");
+      showToast.success("Consultation notes generated successfully", { section: 'gpscribe' });
       return data;
     } catch (error) {
       console.error('Summary generation error:', error);
-      toast.error('Failed to generate consultation notes');
+      showToast.error('Failed to generate consultation notes', { section: 'gpscribe' });
       return null;
     } finally {
       setIsGenerating(false);
@@ -80,7 +80,7 @@ export const useDocumentGeneration = () => {
 
   const generateReferralLetter = useCallback(async (transcript: string, consultationType?: string) => {
     if (!transcript.trim()) {
-      toast.error("No transcript available for referral letter generation");
+      showToast.error("No transcript available for referral letter generation", { section: 'gpscribe' });
       return;
     }
 
@@ -97,11 +97,11 @@ export const useDocumentGeneration = () => {
       if (error) throw error;
 
       setReferralLetter(data.referralLetter || "");
-      toast.success("Referral letter generated successfully");
+      showToast.success("Referral letter generated successfully", { section: 'gpscribe' });
       return data;
     } catch (error) {
       console.error('Referral letter generation error:', error);
-      toast.error('Failed to generate referral letter');
+      showToast.error('Failed to generate referral letter', { section: 'gpscribe' });
       return null;
     } finally {
       setIsGenerating(false);
@@ -138,20 +138,20 @@ export const useDocumentGeneration = () => {
       });
 
       pdf.save(`${title.toLowerCase().replace(/\s+/g, '-')}.pdf`);
-      toast.success("PDF exported successfully");
+      showToast.success("PDF exported successfully", { section: 'gpscribe' });
     } catch (error) {
       console.error('PDF export error:', error);
-      toast.error('Failed to export PDF');
+      showToast.error('Failed to export PDF', { section: 'gpscribe' });
     }
   }, []);
 
   const exportToWord = useCallback(async (content: string, title: string) => {
     try {
       await generateWordDocument(content, title);
-      toast.success("Word document exported successfully");
+      showToast.success("Word document exported successfully", { section: 'gpscribe' });
     } catch (error) {
       console.error('Word export error:', error);
-      toast.error('Failed to export Word document');
+      showToast.error('Failed to export Word document', { section: 'gpscribe' });
     }
   }, []);
 
@@ -185,10 +185,10 @@ export const useDocumentGeneration = () => {
         URL.revokeObjectURL(url);
       }
       
-      toast.success("PowerPoint presentation exported successfully");
+      showToast.success("PowerPoint presentation exported successfully", { section: 'gpscribe' });
     } catch (error) {
       console.error('PowerPoint export error:', error);
-      toast.error('Failed to export PowerPoint presentation');
+      showToast.error('Failed to export PowerPoint presentation', { section: 'gpscribe' });
     }
   }, []);
 
@@ -235,7 +235,7 @@ export const useDocumentGeneration = () => {
 
     setEditStates(prev => ({ ...prev, [field]: false }));
     setEditContent(prev => ({ ...prev, [field]: "" }));
-    toast.success("Changes saved successfully");
+    showToast.success("Changes saved successfully", { section: 'gpscribe' });
   }, [editContent]);
 
   const clearAllContent = useCallback(() => {

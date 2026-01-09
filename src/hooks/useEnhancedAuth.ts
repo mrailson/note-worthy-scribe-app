@@ -4,7 +4,7 @@
 
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { showShadcnToast } from '@/utils/toastWrapper';
 import { 
   diagnoseLoginIssue, 
   generateVpnFriendlyErrorMessage, 
@@ -32,7 +32,6 @@ interface RetryConfig {
 export function useEnhancedAuth() {
   const [isAuthenticating, setIsAuthenticating] = useState(false);
   const [attemptCount, setAttemptCount] = useState(0);
-  const { toast } = useToast();
 
   const defaultRetryConfig: RetryConfig = {
     maxRetries: 3,
@@ -85,10 +84,10 @@ export function useEnhancedAuth() {
 
     // Show VPN warning if detected
     if (authValidation.isVpnLikely) {
-      toast({
+      showShadcnToast({
         title: "Corporate VPN Detected",
         description: "We've detected you may be using a corporate VPN. If login fails, try disconnecting temporarily or contact your IT support.",
-        variant: "default"
+        section: 'security'
       });
     }
 
@@ -159,10 +158,10 @@ export function useEnhancedAuth() {
         if (shouldRetry) {
           const retryDelay = calculateRetryDelay(attempt, retryConfig);
           
-          toast({
+          showShadcnToast({
             title: "Connection Issue",
             description: `Login failed (attempt ${attempt + 1}/${retryConfig.maxRetries + 1}). Retrying in ${Math.round(retryDelay / 1000)} seconds...`,
-            variant: "default"
+            section: 'security'
           });
 
           await new Promise(resolve => setTimeout(resolve, retryDelay));
@@ -185,7 +184,7 @@ export function useEnhancedAuth() {
       needsRetry: false,
       userFriendlyMessage
     };
-  }, [toast]);
+  }, []);
 
   /**
    * Network-aware password reset

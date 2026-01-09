@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
+import { showShadcnToast } from '@/utils/toastWrapper';
 
 export interface UserProfile {
   id: string;
@@ -25,7 +25,6 @@ export function useUserProfile() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { toast } = useToast();
 
   const fetchProfile = async () => {
     try {
@@ -90,10 +89,11 @@ export function useUserProfile() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        toast({
+        showShadcnToast({
           title: "Not authenticated",
           description: "Please log in to update your profile.",
-          variant: "destructive"
+          variant: "destructive",
+          section: 'security'
         });
         return false;
       }
@@ -108,10 +108,11 @@ export function useUserProfile() {
 
       if (error) {
         console.error('Error updating profile:', error);
-        toast({
+        showShadcnToast({
           title: "Update failed",
           description: error.message,
-          variant: "destructive"
+          variant: "destructive",
+          section: 'system'
         });
         return false;
       }
@@ -119,18 +120,20 @@ export function useUserProfile() {
       // Refresh profile data
       await fetchProfile();
       
-      toast({
+      showShadcnToast({
         title: "Profile updated",
-        description: "Your profile has been successfully updated."
+        description: "Your profile has been successfully updated.",
+        section: 'system'
       });
       
       return true;
     } catch (err: any) {
       console.error('Profile update error:', err);
-      toast({
+      showShadcnToast({
         title: "Update failed",
         description: err.message,
-        variant: "destructive"
+        variant: "destructive",
+        section: 'system'
       });
       return false;
     }

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { MeetingData, MeetingSettingsState } from "@/types/meetingTypes";
 import jsPDF from "jspdf";
-import { toast } from "sonner";
+import { showToast } from "@/utils/toastWrapper";
 import { copyPlainTextToClipboard } from '@/utils/stripMarkdown';
 import { useAuth } from '@/contexts/AuthContext';
 
@@ -89,10 +89,10 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
         filename: `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${getMeetingDate()}.docx`,
       });
       
-      toast.success('Word document generated successfully!');
+      showToast.success('Word document generated successfully!', { section: 'meeting_manager' });
     } catch (error) {
       console.error('Word generation error:', error);
-      toast.error('Failed to generate Word document');
+      showToast.error('Failed to generate Word document', { section: 'meeting_manager' });
     } finally {
       setIsExporting(false);
     }
@@ -246,10 +246,10 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
       }
       
       doc.save(`${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}-${getMeetingDate()}.pdf`);
-      toast.success('PDF generated successfully!');
+      showToast.success('PDF generated successfully!', { section: 'meeting_manager' });
     } catch (error) {
       console.error('PDF generation error:', error);
-      toast.error('Failed to generate PDF');
+      showToast.error('Failed to generate PDF', { section: 'meeting_manager' });
     } finally {
       setIsExporting(false);
     }
@@ -258,15 +258,15 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
   const copyToClipboard = async (content: string) => {
     const success = await copyPlainTextToClipboard(content);
     if (success) {
-      toast.success('Content copied to clipboard!');
+      showToast.success('Content copied to clipboard!', { section: 'meeting_manager' });
     } else {
-      toast.error('Failed to copy to clipboard');
+      showToast.error('Failed to copy to clipboard', { section: 'meeting_manager' });
     }
   };
 
   const downloadTranscript = () => {
     if (!meetingData?.transcript) {
-      toast.error('No transcript available');
+      showToast.error('No transcript available', { section: 'meeting_manager' });
       return;
     }
     
@@ -277,7 +277,7 @@ export const useMeetingExport = (meetingData: MeetingData | null, meetingSetting
     document.body.appendChild(element);
     element.click();
     document.body.removeChild(element);
-    toast.success("Transcript downloaded successfully!");
+    showToast.success("Transcript downloaded successfully!", { section: 'meeting_manager' });
   };
 
   return {

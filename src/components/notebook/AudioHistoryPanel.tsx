@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { useAudioOverviewHistory, type AudioSession } from '@/hooks/useAudioOverviewHistory';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { format } from 'date-fns';
 import {
   AlertDialog,
@@ -216,7 +216,7 @@ export const AudioHistoryPanel = ({ onLoadSession }: AudioHistoryPanelProps) => 
                             variant="outline"
                             onClick={() => {
                               onLoadSession(session);
-                              toast.success('Session loaded into Audio Overview. Use the main player to listen.');
+                              showToast.success('Session loaded into Audio Overview. Use the main player to listen.', { section: 'ai4gp' });
                             }}
                             className="w-32"
                           >

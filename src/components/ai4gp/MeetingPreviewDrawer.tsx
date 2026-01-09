@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
+import { showToast } from '@/utils/toastWrapper';
 import { TextOverviewEditor } from '@/components/meeting-details/TextOverviewEditor';
 import { MeetingQAPanel } from '@/components/meeting-details/MeetingQAPanel';
 import { MeetingDocumentsList } from '@/components/MeetingDocumentsList';
@@ -82,7 +82,7 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
       setDocumentCount(count || 0);
     } catch (error: any) {
       console.error('Error fetching meeting data:', error);
-      toast.error('Failed to load meeting details');
+      showToast.error('Failed to load meeting details', { section: 'meeting_manager' });
     } finally {
       setLoading(false);
     }
@@ -102,7 +102,7 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
     const fullNotes = meeting?.notes_style_3 || meeting?.notes_style_2 || meeting?.notes_style_4 || meeting?.notes_style_5 || '';
     
     if (!fullNotes && !overview) {
-      toast.error('No notes available to download');
+      showToast.error('No notes available to download', { section: 'meeting_manager' });
       return;
     }
     
@@ -130,7 +130,7 @@ export const MeetingPreviewDrawer = ({ meetingId, open, onOpenChange }: MeetingP
     }
     
     await generateWordDocument(content, `${meeting?.title || 'Meeting Notes'} - ${format(new Date(), 'dd-MM-yyyy')}`);
-    toast.success('Meeting notes downloaded');
+    showToast.success('Meeting notes downloaded', { section: 'meeting_manager' });
   };
 
   const formatDuration = (minutes: number | null) => {
