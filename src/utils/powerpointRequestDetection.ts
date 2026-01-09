@@ -174,12 +174,25 @@ export function detectPowerPointRequest(
  * Extracts the topic from a PowerPoint request
  */
 function extractTopic(message: string): string {
-  // Patterns to extract topic
+  // Patterns to extract topic - ordered from most specific to least specific
   const topicPatterns = [
-    /(?:presentation|power\s*point|slides?)\s+(?:about|on|regarding|covering)\s+(.+?)(?:\.|$|,\s*(?:using|from|with))/i,
-    /(?:presentation|power\s*point|slides?)\s+for\s+(.+?)(?:\.|$|,\s*(?:using|from|with))/i,
-    /(?:create|generate|make)\s+(?:a\s+)?(?:\d+\s*-?\s*slide\s+)?(?:presentation|power\s*point)\s+(?:about|on)\s+(.+?)(?:\.|$)/i,
-    /(?:about|on|regarding|covering)\s+(.+?)(?:\s+using|\s+from|\s+with|\.|$)/i,
+    // Explicit "about/on/regarding X" after presentation keyword
+    /(?:presentation|power\s*point|pptx?|slides?)\s+(?:about|on|regarding|covering|for)\s+(.+?)(?:\.|$|,\s*(?:using|from|with))/i,
+    
+    // "ppt on X" or "pptx about X" patterns
+    /(?:pptx?)\s+(?:about|on|regarding|for)\s+(.+?)(?:\.|$|,)/i,
+    
+    // "create/make/generate presentation on/about X"
+    /(?:create|generate|make|build|give\s+me)\s+(?:a\s+)?(?:\d+\s*-?\s*slide\s+)?(?:presentation|power\s*point|pptx?|slides?)\s+(?:on|about|for|regarding)\s+(.+?)(?:\.|$)/i,
+    
+    // "X presentation" pattern - topic before the keyword
+    /(?:^|need\s+(?:a\s+)?|want\s+(?:a\s+)?|give\s+me\s+(?:a\s+)?)([A-Z][a-zA-Z0-9\s\-]+?)\s+(?:presentation|power\s*point|pptx?|slides?)(?:\s|$|\.)/i,
+    
+    // "about/on X" standalone with presentation context nearby
+    /(?:about|on|for|regarding)\s+(.+?)(?:\s+presentation|\s+power\s*point|\s+pptx?|\s+slides?|\.|$)/i,
+    
+    // Direct object after action verb - "create ppt Metformin" or "ppt Metformin"
+    /(?:create|generate|make|build|give\s+me)\s+(?:a\s+)?(?:presentation|power\s*point|pptx?|slides?)\s+([A-Z][a-zA-Z0-9\s\-]+?)(?:\.|$|,)/i,
   ];
   
   for (const pattern of topicPatterns) {
@@ -189,10 +202,28 @@ function extractTopic(message: string): string {
       let topic = match[1].trim();
       // Remove trailing phrases
       topic = topic.replace(/\s+(?:using|from|with|based)\s+.*$/i, '').trim();
-      if (topic.length > 3 && topic.length < 200) {
+      // Remove common filler words at the start
+      topic = topic.replace(/^(?:the|a|an)\s+/i, '').trim();
+      if (topic.length > 2 && topic.length < 200) {
         return topic;
       }
     }
+  }
+  
+  // Fallback: Clean the message and extract the likely topic
+  let cleanedMessage = message
+    .replace(/(?:please\s+)?(?:create|generate|make|build|give\s+me)\s+(?:a\s+)?/gi, '')
+    .replace(/(?:power\s*point|pptx?|presentation|slides?)/gi, '')
+    .replace(/(?:please|can\s+you|could\s+you|i\s+need|i\s+want)/gi, '')
+    .replace(/(?:about|on|for|regarding)/gi, '')
+    .replace(/\s+/g, ' ')
+    .trim();
+  
+  // Remove leading/trailing punctuation
+  cleanedMessage = cleanedMessage.replace(/^[,.\s]+|[,.\s]+$/g, '').trim();
+  
+  if (cleanedMessage.length > 2 && cleanedMessage.length < 150) {
+    return cleanedMessage;
   }
   
   return '';

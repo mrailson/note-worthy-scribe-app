@@ -116,9 +116,28 @@ serve(async (req) => {
 
     console.log(`[Gamma] Starting generation for topic: "${topic}"`);
     console.log(`[Gamma] Type: ${presentationType}, Slides: ${slideCount}`);
+    console.log(`[Gamma] Supporting content length: ${supportingContent?.length || 0} chars`);
 
     // Build the input text with context
-    let inputText = `Create a ${presentationType} about: ${topic}`;
+    // If topic is generic but we have supporting content, extract a better topic
+    let effectiveTopic = topic;
+    if ((!topic || topic === 'General presentation' || topic === 'Content from uploaded files') && supportingContent) {
+      // Try to extract first meaningful line from supporting content
+      const contentLines = supportingContent.split('\n').filter(line => 
+        line.trim().length > 5 && 
+        !line.startsWith('#') && 
+        !line.startsWith('---')
+      );
+      if (contentLines.length > 0) {
+        const firstLine = contentLines[0].substring(0, 100).trim();
+        if (firstLine.length > 5) {
+          effectiveTopic = firstLine;
+          console.log(`[Gamma] Extracted topic from content: "${effectiveTopic}"`);
+        }
+      }
+    }
+    
+    let inputText = `Create a ${presentationType} about: ${effectiveTopic}`;
     
     if (supportingContent) {
       inputText += `\n\nKey content to include:\n${supportingContent}`;
