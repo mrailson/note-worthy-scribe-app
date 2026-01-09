@@ -364,6 +364,7 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
       recognition.onstart = () => {
         isListeningRef.current = true;
         setIsListening(true);
+        console.log('Speech recognition started with language:', recognition.lang);
       };
 
       recognition.onresult = (event: any) => {
@@ -434,6 +435,19 @@ export const useGPTranslation = (options: UseGPTranslationOptions) => {
       throw err;
     }
   }, [initSpeechRecognition, processCompletedSpeech, onError]);
+
+  // Restart recognition when speakerMode or selectedLanguage changes during an active session
+  useEffect(() => {
+    if (isListeningRef.current && recognitionRef.current) {
+      console.log('Speaker mode or language changed, restarting recognition...');
+      // Stop current recognition
+      recognitionRef.current.onend = null; // prevent auto-restart loop
+      recognitionRef.current.stop();
+      recognitionRef.current = null;
+      // Start new recognition with updated language
+      startListening();
+    }
+  }, [speakerMode, selectedLanguage]);
 
   // Stop listening
   const stopListening = useCallback(() => {
