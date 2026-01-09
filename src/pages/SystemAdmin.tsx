@@ -1268,22 +1268,37 @@ const openPasswordModal = (u: User) => {
 
 const handleLoginAsUser = async (targetUser: User) => {
   if (!targetUser.user_id) return;
-  
+
   setLoggingInAsUser(targetUser.user_id);
   try {
+    const {
+      data: { session },
+      error: sessionError,
+    } = await supabase.auth.getSession();
+
+    if (sessionError) throw sessionError;
+
+    const accessToken = session?.access_token;
+    if (!accessToken) {
+      throw new Error('You must be signed in to use “Login as user”.');
+    }
+
     const { data, error } = await supabase.functions.invoke('admin-login-as-user', {
-      body: { 
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: {
         targetUserId: targetUser.user_id,
-        redirectTo: window.location.origin + '/'
-      }
+        redirectTo: window.location.origin + '/',
+      },
     });
-    
+
     if (error) throw error;
-    
+
     if (!data?.loginUrl) {
       throw new Error(data?.error || 'Failed to generate login link');
     }
-    
+
     // Open in new tab so admin stays logged in
     window.open(data.loginUrl, '_blank');
     toast.success(`Opening login as ${targetUser.full_name} in new tab`);
