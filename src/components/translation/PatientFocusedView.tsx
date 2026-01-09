@@ -9,7 +9,9 @@ import { PauseOverlay } from './PauseOverlay';
 interface PatientFocusedViewProps {
   conversation: ConversationEntry[];
   speakerMode: 'gp' | 'patient';
+  onSpeakerModeChange: (mode: 'gp' | 'patient') => void;
   selectedLanguage: string;
+  onLanguageChange: (language: string) => void;
   selectedLanguageName: string;
   selectedLanguageFlag: string;
   isListening: boolean;
@@ -29,7 +31,9 @@ interface PatientFocusedViewProps {
 export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
   conversation,
   speakerMode,
+  onSpeakerModeChange,
   selectedLanguage,
+  onLanguageChange,
   selectedLanguageName,
   selectedLanguageFlag,
   isListening,
@@ -135,6 +139,10 @@ export const PatientFocusedView: React.FC<PatientFocusedViewProps> = ({
         onReplayLast={handleReplayLast}
         onClose={onClose}
         canReplay={!!lastEntry}
+        speakerMode={speakerMode}
+        onSpeakerModeChange={onSpeakerModeChange}
+        selectedLanguage={selectedLanguage}
+        onLanguageChange={onLanguageChange}
       />
 
       {/* Main content area with turn indicator */}
