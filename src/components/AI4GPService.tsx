@@ -132,6 +132,39 @@ const AI4GPService = () => {
     });
   };
 
+  // Helper to close all sidebar panels
+  const closeAllPanels = () => {
+    setShowNews(false);
+    setShowBPCalculator(false);
+    setShowTranslation(false);
+    setShowSearchHistory(false);
+  };
+
+  // Panel toggle handlers that close other panels first
+  const handleShowNews = () => {
+    const wasOpen = showNews;
+    closeAllPanels();
+    if (!wasOpen) setShowNews(true);
+  };
+
+  const handleShowBPCalculator = () => {
+    const wasOpen = showBPCalculator;
+    closeAllPanels();
+    if (!wasOpen) setShowBPCalculator(true);
+  };
+
+  const handleShowTranslation = () => {
+    const wasOpen = showTranslation;
+    closeAllPanels();
+    if (!wasOpen) setShowTranslation(true);
+  };
+
+  const handleShowSearchHistory = () => {
+    const wasOpen = showSearchHistory;
+    closeAllPanels();
+    if (!wasOpen) setShowSearchHistory(true);
+  };
+
 
   // Local policy state - remove from component since it's now in the hook
   // const [northamptonshireICB, setNorthamptonshireICB] = useState(false);
@@ -368,11 +401,11 @@ const AI4GPService = () => {
           onToggleCollapse={handleToggleSidebar}
           selectedRole={selectedRole}
           onNewSearch={handleNewSearch}
-          onShowHistory={() => setShowSearchHistory(!showSearchHistory)}
+          onShowHistory={handleShowSearchHistory}
           onShowSettings={() => setShowSettings(true)}
-          onShowNews={() => setShowNews(!showNews)}
-          onShowBPCalculator={() => setShowBPCalculator(!showBPCalculator)}
-          onShowTranslation={() => setShowTranslation(!showTranslation)}
+          onShowNews={handleShowNews}
+          onShowBPCalculator={handleShowBPCalculator}
+          onShowTranslation={handleShowTranslation}
           onShowQuickImageModal={() => setShowQuickImageModal(true)}
           onShowImageService={() => setShowImageService(!showImageService)}
           onShowDocumentTranslate={() => setShowDocumentTranslate(true)}
