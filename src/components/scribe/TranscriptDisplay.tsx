@@ -136,10 +136,7 @@ export function TranscriptDisplay({ transcript, isLoading }: TranscriptDisplayPr
           {formattedContent.map((paragraph, index) => (
             <p 
               key={index} 
-              className={`
-                mb-6 last:mb-0
-                ${index === 0 ? 'first-letter:text-2xl first-letter:font-bold first-letter:text-primary first-letter:mr-0.5' : ''}
-              `}
+              className="mb-6 last:mb-0"
             >
               {formatParagraph(paragraph)}
             </p>
