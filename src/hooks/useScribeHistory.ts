@@ -7,17 +7,41 @@ import { format, isToday, isYesterday, startOfWeek, isAfter } from "date-fns";
 export type DateFilter = 'all' | 'today' | 'yesterday' | 'this_week';
 export type CategoryFilter = 'all' | 'general' | 'agewell' | 'social_prescriber';
 
-// Generate a quick summary from SOAP notes or overview
-const generateQuickSummary = (soapNotes: unknown, overview: string | null): string => {
-  // Try to extract from SOAP Assessment first
+// Calculate word count from transcript text
+const calculateWordCount = (transcript: string | null): number => {
+  if (!transcript) return 0;
+  return transcript.split(/\s+/).filter(word => word.length > 0).length;
+};
+
+// Generate a quick summary from SOAP Subjective section or overview
+// IMPORTANT: This is a SCRIBE summary - describes what was discussed, NOT clinical impressions
+const generateQuickSummary = (soapNotes: unknown, overview: string | null, transcript: string | null): string => {
+  // Priority 1: Extract from Subjective (S) - what the patient discussed
   if (soapNotes) {
     try {
       const soap = typeof soapNotes === 'string' ? JSON.parse(soapNotes) : soapNotes;
-      if (soap?.A) {
-        // Take first sentence or first 100 chars
-        const assessment = soap.A.split('.')[0]?.trim();
-        if (assessment && assessment.length > 10) {
-          return assessment.length > 100 ? assessment.substring(0, 97) + '...' : assessment;
+      
+      // Use Subjective section - describes what patient discussed (NOT Assessment which has clinical impressions)
+      if (soap?.S) {
+        // Remove common prefixes and extract the key discussion points
+        const subjectiveText = soap.S
+          .replace(/^(Patient presents with|Pt presents with|Patient reports|Pt reports|Patient discussed|Discussed)[:\s]*/i, '')
+          .trim();
+        
+        const firstSentence = subjectiveText.split('.')[0]?.trim();
+        
+        if (firstSentence && firstSentence.length > 10) {
+          // Add plan summary if available (e.g., "F/U 2 weeks")
+          let planSuffix = '';
+          if (soap?.P) {
+            const followUp = soap.P.match(/(?:F\/U|Follow[-\s]?up)[:\s]*(\d+\s*(?:weeks?|days?|months?))/i);
+            if (followUp) planSuffix = ` F/U ${followUp[1]}.`;
+          }
+          
+          const summary = firstSentence.length > 85 
+            ? firstSentence.substring(0, 82) + '...' 
+            : firstSentence;
+          return summary + planSuffix;
         }
       }
     } catch {
@@ -25,11 +49,25 @@ const generateQuickSummary = (soapNotes: unknown, overview: string | null): stri
     }
   }
   
-  // Fallback to overview
+  // Priority 2: Use overview (but sanitise any clinical impression language)
   if (overview) {
-    const firstSentence = overview.split('.')[0]?.trim();
+    const sanitised = overview
+      .replace(/clinical impression[:\s]*/gi, '')
+      .replace(/working diagnosis[:\s]*/gi, '')
+      .replace(/differential diagnos[ie]s[:\s]*/gi, '')
+      .replace(/impression[:\s]*/gi, '')
+      .trim();
+    const firstSentence = sanitised.split('.')[0]?.trim();
     if (firstSentence && firstSentence.length > 10) {
       return firstSentence.length > 100 ? firstSentence.substring(0, 97) + '...' : firstSentence;
+    }
+  }
+  
+  // Priority 3: First meaningful line of transcript
+  if (transcript) {
+    const firstLine = transcript.split(/[.!?]/)[0]?.trim();
+    if (firstLine && firstLine.length > 10) {
+      return firstLine.length > 100 ? firstLine.substring(0, 97) + '...' : firstLine;
     }
   }
   
@@ -62,23 +100,26 @@ export const useScribeHistory = () => {
 
       if (error) throw error;
 
-      const formattedSessions: ScribeSession[] = (data || []).map(item => ({
-        id: item.id,
-        title: item.title || 'Untitled Session',
-        transcript: item.live_transcript_text || item.whisper_transcript_text || '',
-        summary: item.overview || '',
-        actionItems: item.notes_style_2 || '',
-        keyPoints: item.notes_style_3 || '',
-        quickSummary: generateQuickSummary(item.soap_notes, item.overview),
-        duration: item.duration_minutes || 0,
-        wordCount: item.word_count || 0,
-        createdAt: item.created_at,
-        updatedAt: item.updated_at,
-        status: item.status as 'recording' | 'completed' | 'archived' || 'completed',
-        sessionType: item.meeting_type,
-        // consultation_category might not exist in DB yet, default to 'general'
-        consultationCategory: 'general' as ConsultationCategory,
-      }));
+      const formattedSessions: ScribeSession[] = (data || []).map(item => {
+        const transcript = item.live_transcript_text || item.whisper_transcript_text || '';
+        return {
+          id: item.id,
+          title: item.title || 'Untitled Session',
+          transcript,
+          summary: item.overview || '',
+          actionItems: item.notes_style_2 || '',
+          keyPoints: item.notes_style_3 || '',
+          quickSummary: generateQuickSummary(item.soap_notes, item.overview, transcript),
+          duration: item.duration_minutes || 0,
+          wordCount: item.word_count || calculateWordCount(transcript),
+          createdAt: item.created_at,
+          updatedAt: item.updated_at,
+          status: item.status as 'recording' | 'completed' | 'archived' || 'completed',
+          sessionType: item.meeting_type,
+          // consultation_category might not exist in DB yet, default to 'general'
+          consultationCategory: 'general' as ConsultationCategory,
+        };
+      });
 
       setSessions(formattedSessions);
     } catch (error) {
