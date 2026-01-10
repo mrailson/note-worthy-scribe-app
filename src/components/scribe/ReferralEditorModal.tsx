@@ -271,10 +271,10 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
                         <img 
                           src={practiceDetails.logoUrl} 
                           alt={practiceDetails?.name || "Practice Logo"} 
-                          className="h-16 w-auto max-w-[200px] object-contain"
+                          className="h-40 w-auto max-w-[500px] object-contain"
                         />
                       ) : (
-                        <div className="h-16 w-32 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
+                        <div className="h-40 w-80 bg-muted rounded flex items-center justify-center text-xs text-muted-foreground">
                           No Logo
                         </div>
                       )}
