@@ -269,10 +269,7 @@ ${letterContent}
 Kind regards,
 
 ${gpName}
-${gpTitle}
-
----
-This letter is a summary of your consultation. If you have any questions or concerns, please contact the surgery.`;
+${gpTitle}`;
   };
 
   const getFormattedLetterHTML = () => {
@@ -300,9 +297,6 @@ ${letterContent}</div>
         Kind regards,<br/><br/>
         <span class="gp-name">${gpName}</span><br/>
         ${gpTitle}
-      </div>
-      <div class="footer">
-        This letter is a summary of your consultation. If you have any questions or concerns, please contact the surgery.
       </div>
     `;
   };
@@ -354,10 +348,9 @@ ${letterContent}</div>
                   alt={`${practiceDetails.name} logo`} 
                   loading="lazy"
                   onError={(e) => {
-                    // Hide broken logos rather than leaving a broken image icon
                     e.currentTarget.style.display = 'none';
                   }}
-                  className="h-12 mx-auto mb-2 object-contain"
+                  className="h-24 mx-auto mb-3 object-contain"
                 />
               )}
               <h2 className="text-xl font-bold text-primary">
@@ -388,11 +381,6 @@ ${letterContent}</div>
                 <p className="font-bold mt-4">{gpDetails?.name || 'Your GP'}</p>
                 <p className="text-sm text-muted-foreground">{gpDetails?.title || 'General Practitioner'}</p>
               </div>
-            </div>
-
-            {/* Footer */}
-            <div className="mt-8 pt-4 border-t border-dashed text-xs text-muted-foreground text-center">
-              This letter is a summary of your consultation. If you have any questions or concerns, please contact the surgery.
             </div>
           </div>
         </ScrollArea>
