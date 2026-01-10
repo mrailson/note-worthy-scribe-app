@@ -223,7 +223,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                      )}
                     {hasModuleAccess('gp_scribe') && isServiceVisible('gp_scribe') && (
                       <DropdownMenuItem 
-                        onClick={() => navigate('/gp-scribe')}
+                        onClick={() => navigate('/scribe')}
                         className="cursor-pointer py-3"
                       >
                         <Stethoscope className="h-4 w-4 mr-2" />
@@ -597,7 +597,7 @@ export const Header = ({ onNewMeeting }: HeaderProps) => {
                               )}
                               {hasModuleAccess('gp_scribe') && (
                                 <DrawerClose asChild>
-                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/gp-scribe')}>
+                                  <Button variant="ghost" size="sm" className="justify-start w-full" onClick={() => navigate('/scribe')}>
                                     <Stethoscope className="h-4 w-4 mr-2" />
                                     GP Scribe
                                   </Button>
