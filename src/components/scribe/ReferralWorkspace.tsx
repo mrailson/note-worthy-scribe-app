@@ -108,26 +108,8 @@ export function ReferralWorkspace({
           practiceData = anyPractice;
         }
 
-        // Use clinician signature from GP Scribe settings ("My Profile"), not the practice letter signature
-        const { data: gpSignature } = await supabase
-          .from('gp_signature_settings')
-          .select('gp_name, job_title, gmc_number, practice_name')
-          .eq('user_id', userId)
-          .eq('is_default', true)
-          .maybeSingle();
-
-        const signatureHtml = gpSignature
-          ? [
-              gpSignature.gp_name ? `<p><strong>${gpSignature.gp_name}</strong></p>` : '',
-              gpSignature.job_title ? `<p>${gpSignature.job_title}</p>` : '',
-              gpSignature.gmc_number ? `<p>GMC: ${gpSignature.gmc_number}</p>` : '',
-              gpSignature.practice_name || practiceData?.practice_name
-                ? `<p>${gpSignature.practice_name || practiceData?.practice_name}</p>`
-                : '',
-            ]
-              .filter(Boolean)
-              .join('')
-          : (practiceData?.letter_signature || '');
+        // Use Digital Signature from practice_details.letter_signature (My Profile > Digital Signature)
+        const signatureHtml = practiceData?.letter_signature || '';
 
         if (practiceData) {
           setPracticeDetails({
