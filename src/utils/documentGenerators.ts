@@ -431,6 +431,229 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
   }
 };
 
+// Generate a formatted patient letter Word document matching the on-screen layout
+export interface PatientLetterDetails {
+  letterContent: string;
+  practiceName?: string;
+  practiceAddress?: string;
+  practicePhone?: string;
+  practiceEmail?: string;
+  practiceLogoUrl?: string;
+  gpName?: string;
+  gpTitle?: string;
+  date?: string;
+}
+
+export const generatePatientLetterDocument = async (details: PatientLetterDetails): Promise<Blob> => {
+  try {
+    const {
+      letterContent,
+      practiceName = 'GP Surgery',
+      practiceAddress = '',
+      practicePhone = '',
+      practiceEmail = '',
+      gpName = 'Your GP',
+      gpTitle = '',
+      date = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+    } = details;
+
+    const fullSignatureName = gpTitle ? `${gpTitle} ${gpName}` : gpName;
+
+    // Build document elements
+    const documentElements: any[] = [];
+
+    // Letterhead - Practice Name (centred, bold, primary colour)
+    documentElements.push(new Paragraph({
+      children: [new TextRun({
+        text: practiceName,
+        size: 32,
+        bold: true,
+        color: '005EB8', // NHS Blue
+        font: defaultRunFont
+      })],
+      alignment: 'center' as any,
+      spacing: { after: 60 }
+    }));
+
+    // Practice Address (centred, smaller)
+    if (practiceAddress) {
+      documentElements.push(new Paragraph({
+        children: [new TextRun({
+          text: practiceAddress,
+          size: 20,
+          color: '666666',
+          font: defaultRunFont
+        })],
+        alignment: 'center' as any,
+        spacing: { after: 40 }
+      }));
+    }
+
+    // Practice Phone & Email (centred, smaller)
+    const contactParts: string[] = [];
+    if (practicePhone) contactParts.push(`Tel: ${practicePhone}`);
+    if (practiceEmail) contactParts.push(practiceEmail);
+    if (contactParts.length > 0) {
+      documentElements.push(new Paragraph({
+        children: [new TextRun({
+          text: contactParts.join(' | '),
+          size: 20,
+          color: '666666',
+          font: defaultRunFont
+        })],
+        alignment: 'center' as any,
+        spacing: { after: 120 }
+      }));
+    }
+
+    // Horizontal line separator
+    documentElements.push(new Paragraph({
+      children: [new TextRun({
+        text: '─'.repeat(80),
+        size: 16,
+        color: '005EB8'
+      })],
+      alignment: 'center' as any,
+      spacing: { after: 240 }
+    }));
+
+    // Date (right aligned)
+    documentElements.push(new Paragraph({
+      children: [new TextRun({
+        text: date,
+        size: 22,
+        color: '666666',
+        font: defaultRunFont
+      })],
+      alignment: 'right' as any,
+      spacing: { after: 360 }
+    }));
+
+    // Dear Patient greeting
+    documentElements.push(new Paragraph({
+      children: [new TextRun({
+        text: 'Dear Patient,',
+        size: 24,
+        font: { ascii: 'Georgia', hAnsi: 'Georgia', eastAsia: 'Georgia', cs: 'Georgia' }
+      })],
+      spacing: { after: 240 }
+    }));
+
+    // Letter body - split by paragraphs
+    const paragraphs = letterContent.split('\n\n').filter(p => p.trim());
+    for (const para of paragraphs) {
+      const lines = para.split('\n');
+      for (const line of lines) {
+        if (line.trim()) {
+          documentElements.push(new Paragraph({
+            children: [new TextRun({
+              text: line.trim(),
+              size: 24,
+              font: { ascii: 'Georgia', hAnsi: 'Georgia', eastAsia: 'Georgia', cs: 'Georgia' }
+            })],
+            spacing: { after: 200 }
+          }));
+        }
+      }
+      // Add extra space between paragraphs
+      documentElements.push(new Paragraph({
+        children: [],
+        spacing: { after: 120 }
+      }));
+    }
+
+    // Kind regards
+    documentElements.push(new Paragraph({
+      children: [new TextRun({
+        text: 'Kind regards,',
+        size: 24,
+        font: { ascii: 'Georgia', hAnsi: 'Georgia', eastAsia: 'Georgia', cs: 'Georgia' }
+      })],
+      spacing: { before: 360, after: 0 }
+    }));
+
+    // Empty lines before signature (matching on-screen)
+    documentElements.push(new Paragraph({ children: [], spacing: { after: 120 } }));
+    documentElements.push(new Paragraph({ children: [], spacing: { after: 120 } }));
+
+    // GP Name (bold)
+    documentElements.push(new Paragraph({
+      children: [new TextRun({
+        text: fullSignatureName,
+        size: 24,
+        bold: true,
+        font: { ascii: 'Georgia', hAnsi: 'Georgia', eastAsia: 'Georgia', cs: 'Georgia' }
+      })],
+      spacing: { after: 60 }
+    }));
+
+    // Practice name under signature
+    documentElements.push(new Paragraph({
+      children: [new TextRun({
+        text: practiceName,
+        size: 22,
+        color: '666666',
+        font: { ascii: 'Georgia', hAnsi: 'Georgia', eastAsia: 'Georgia', cs: 'Georgia' }
+      })],
+      spacing: { after: 40 }
+    }));
+
+    // Practice phone under signature
+    if (practicePhone) {
+      documentElements.push(new Paragraph({
+        children: [new TextRun({
+          text: `Tel: ${practicePhone}`,
+          size: 22,
+          color: '666666',
+          font: { ascii: 'Georgia', hAnsi: 'Georgia', eastAsia: 'Georgia', cs: 'Georgia' }
+        })],
+        spacing: { after: 40 }
+      }));
+    }
+
+    // Practice email under signature
+    if (practiceEmail) {
+      documentElements.push(new Paragraph({
+        children: [new TextRun({
+          text: `Email: ${practiceEmail}`,
+          size: 22,
+          color: '666666',
+          font: { ascii: 'Georgia', hAnsi: 'Georgia', eastAsia: 'Georgia', cs: 'Georgia' }
+        })],
+        spacing: { after: 0 }
+      }));
+    }
+
+    // Create document
+    const doc = new Document({
+      creator: 'AI4GP',
+      title: 'Patient Consultation Summary',
+      description: 'Patient letter generated by AI4GP',
+      sections: [{
+        properties: {
+          page: {
+            margin: {
+              top: 720,  // 0.5 inch
+              right: 1440, // 1 inch
+              bottom: 720,
+              left: 1440,
+            }
+          }
+        },
+        children: documentElements
+      }]
+    });
+
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, 'patient_consultation_summary.docx');
+    return blob;
+
+  } catch (error: any) {
+    console.error('Error generating patient letter document:', error);
+    throw new Error(`Failed to generate patient letter: ${error.message}`);
+  }
+}
+
 // Layout configuration for PowerPoint generation - INCREASED spacing to prevent overlap
 const PPTX_LAYOUT = {
   SLIDE_WIDTH: 10,
