@@ -17,9 +17,10 @@ import { ConsultationGeneratingState } from "@/components/scribe/ConsultationGen
 import { ConsultationNoteState } from "@/components/scribe/ConsultationNoteState";
 import { ScribeSettingsPanel } from "@/components/scribe/ScribeSettingsPanel";
 import { ScribeHistoryPanel } from "@/components/scribe/ScribeHistoryPanel";
+import { ScribeImportPanel } from "@/components/scribe/ScribeImportPanel";
 
-import { ScribeTab, SOAPNote } from "@/types/scribe";
-import { Stethoscope, History, Settings } from "lucide-react";
+import { ScribeTab, SOAPNote, ConsultationNote } from "@/types/scribe";
+import { Stethoscope, History, Settings, Upload } from "lucide-react";
 import jsPDF from 'jspdf';
 import { generateScribeWordDocument } from "@/utils/documentGenerators";
 import { showToast } from "@/utils/toastWrapper";
@@ -180,12 +181,16 @@ const Scribe = () => {
         {/* Show tabs only when in ready or review state */}
         {showMainTabs ? (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ScribeTab)} className="w-full">
-            <TabsList className={`grid w-full max-w-md mx-auto grid-cols-3 mb-6 ${isMobile ? 'h-14' : ''}`}>
+            <TabsList className={`grid w-full max-w-lg mx-auto grid-cols-4 mb-6 ${isMobile ? 'h-14' : ''}`}>
               <TabsTrigger value="consultation" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <Stethoscope className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
                 <span className={isMobile ? "text-xs" : "hidden sm:inline"}>
                   {isMobile ? "Consult" : "Consultation"}
                 </span>
+              </TabsTrigger>
+              <TabsTrigger value="import" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
+                <Upload className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Import</span>
               </TabsTrigger>
               <TabsTrigger value="history" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
                 <History className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
@@ -247,6 +252,16 @@ const Scribe = () => {
                   isSaved={consultation.isSaved}
                 />
               )}
+            </TabsContent>
+
+            <TabsContent value="import">
+              <ScribeImportPanel
+                settings={settingsHook.settings}
+                onNotesGenerated={(notes: ConsultationNote, transcript: string) => {
+                  consultation.setImportedConsultation(notes, transcript);
+                  setActiveTab('consultation');
+                }}
+              />
             </TabsContent>
 
             <TabsContent value="history">

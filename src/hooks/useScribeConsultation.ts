@@ -34,6 +34,7 @@ export const useScribeConsultation = () => {
   const [settings, setSettings] = useState<ScribeSettings>(DEFAULT_SCRIBE_SETTINGS);
   const [patientContext, setPatientContext] = useState<PatientContext | null>(null);
   const [contextFiles, setContextFiles] = useState<ConsultationContextFile[]>([]);
+  const [importedTranscript, setImportedTranscript] = useState<string>('');
   
   // Edit states for SOAP sections (legacy)
   const [editStates, setEditStates] = useState({
@@ -191,7 +192,7 @@ export const useScribeConsultation = () => {
 
   // Regenerate notes from existing transcript
   const regenerateNotes = useCallback(async () => {
-    const transcript = recording.transcript;
+    const transcript = recording.transcript || importedTranscript;
     
     if (!transcript?.trim()) {
       showToast.error("No transcript available to regenerate notes", { section: 'gpscribe' });
@@ -261,7 +262,7 @@ export const useScribeConsultation = () => {
     } finally {
       setIsGenerating(false);
     }
-  }, [recording.transcript, consultationType, settings.noteFormat, settings.consultationDetailLevel]);
+  }, [recording.transcript, importedTranscript, consultationType, settings.noteFormat, settings.consultationDetailLevel]);
 
   // Cancel consultation
   const cancelConsultation = useCallback(async () => {
@@ -314,6 +315,34 @@ export const useScribeConsultation = () => {
   // Clear patient context
   const clearPatientContext = useCallback(() => {
     setPatientContext(null);
+  }, []);
+
+  // Set imported consultation from external source (Import tab)
+  const setImportedConsultation = useCallback((notes: ConsultationNote, transcript: string) => {
+    setImportedTranscript(transcript);
+    setConsultationNote(notes);
+    
+    // Set edit content for SOAP
+    setEditContent({
+      S: notes.soapNote.S,
+      O: notes.soapNote.O,
+      A: notes.soapNote.A,
+      P: notes.soapNote.P
+    });
+
+    // Set edit content for Heidi if available
+    if (notes.heidiNote) {
+      setHeidiEditContent({
+        consultationHeader: notes.heidiNote.consultationHeader,
+        history: notes.heidiNote.history,
+        examination: notes.heidiNote.examination,
+        impression: notes.heidiNote.impression,
+        plan: notes.heidiNote.plan
+      });
+    }
+    
+    setConsultationState('review');
+    setIsSaved(false);
   }, []);
 
   // Copy to clipboard with EMR formatting
@@ -626,5 +655,7 @@ export const useScribeConsultation = () => {
     // Context files
     addContextFile,
     removeContextFile,
+    // Import
+    setImportedConsultation,
   };
 };
