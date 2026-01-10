@@ -179,20 +179,20 @@ export const ConsultationRecordingState = ({
       {/* Tabbed Content Area */}
       <div className="flex-1 min-h-0">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="flex flex-col h-full">
-          <TabsList className="grid w-full grid-cols-3 mb-3">
-            <TabsTrigger value="transcript" className="gap-2">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Transcript</span>
+          <TabsList className={`grid w-full grid-cols-3 mb-3 ${isMobile ? 'h-12' : ''}`}>
+            <TabsTrigger value="transcript" className={`touch-manipulation ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
+              <FileText className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
+              <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Transcript</span>
             </TabsTrigger>
-            <TabsTrigger value="sofar" className="gap-2">
-              <Brain className="h-4 w-4" />
-              <span className="hidden sm:inline">So Far</span>
+            <TabsTrigger value="sofar" className={`touch-manipulation ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
+              <Brain className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
+              <span className={isMobile ? "text-xs" : "hidden sm:inline"}>So Far</span>
             </TabsTrigger>
-            <TabsTrigger value="context" className="gap-2">
-              <Paperclip className="h-4 w-4" />
-              <span className="hidden sm:inline">Context</span>
+            <TabsTrigger value="context" className={`touch-manipulation ${isMobile ? 'flex-col py-1.5 gap-0.5' : 'gap-2'}`}>
+              <Paperclip className={isMobile ? "h-4 w-4" : "h-4 w-4"} />
+              <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Context</span>
               {contextFiles.length > 0 && (
-                <Badge variant="secondary" className="ml-1 h-5 px-1.5 text-xs">
+                <Badge variant="secondary" className={`h-5 px-1.5 text-xs ${isMobile ? 'absolute -top-1 -right-1' : 'ml-1'}`}>
                   {contextFiles.length}
                 </Badge>
               )}

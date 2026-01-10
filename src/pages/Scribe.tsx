@@ -180,18 +180,20 @@ const Scribe = () => {
         {/* Show tabs only when in ready or review state */}
         {showMainTabs ? (
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ScribeTab)} className="w-full">
-            <TabsList className="grid w-full max-w-md mx-auto grid-cols-3 mb-6">
-              <TabsTrigger value="consultation" className="gap-2">
-                <Stethoscope className="h-4 w-4" />
-                <span className="hidden sm:inline">Consultation</span>
+            <TabsList className={`grid w-full max-w-md mx-auto grid-cols-3 mb-6 ${isMobile ? 'h-14' : ''}`}>
+              <TabsTrigger value="consultation" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
+                <Stethoscope className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>
+                  {isMobile ? "Consult" : "Consultation"}
+                </span>
               </TabsTrigger>
-              <TabsTrigger value="history" className="gap-2">
-                <History className="h-4 w-4" />
-                <span className="hidden sm:inline">History</span>
+              <TabsTrigger value="history" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
+                <History className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>History</span>
               </TabsTrigger>
-              <TabsTrigger value="settings" className="gap-2">
-                <Settings className="h-4 w-4" />
-                <span className="hidden sm:inline">Settings</span>
+              <TabsTrigger value="settings" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
+                <Settings className={isMobile ? "h-5 w-5" : "h-4 w-4"} />
+                <span className={isMobile ? "text-xs" : "hidden sm:inline"}>Settings</span>
               </TabsTrigger>
             </TabsList>
 

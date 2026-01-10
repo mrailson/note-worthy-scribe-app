@@ -40,18 +40,18 @@ export const ConsultationReadyState = ({
   const canStart = !settings.showConsentReminder || patientConsent;
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-[60vh] px-4 gap-4">
+    <div className={`flex flex-col items-center justify-center min-h-[60vh] gap-4 ${isMobile ? 'px-2' : 'px-4'}`}>
       {/* Development Disclaimer */}
       <ScribeDevDisclaimer className="w-full max-w-xl" />
       
       <Card className="w-full max-w-xl">
-        <CardContent className="pt-6 space-y-6">
+        <CardContent className={`space-y-5 ${isMobile ? 'pt-4 px-3' : 'pt-6 space-y-6'}`}>
           {/* Header */}
           <div className="text-center space-y-2">
-            <h2 className="text-2xl font-semibold text-foreground">
+            <h2 className={`font-semibold text-foreground ${isMobile ? 'text-xl' : 'text-2xl'}`}>
               Ready for Consultation
             </h2>
-            <p className="text-muted-foreground text-sm">
+            <p className={`text-muted-foreground ${isMobile ? 'text-xs' : 'text-sm'}`}>
               Select consultation type and confirm consent to begin
             </p>
           </div>
@@ -85,14 +85,15 @@ export const ConsultationReadyState = ({
             disabled={!canStart}
             size="lg"
             className={`
-              w-full h-14 text-lg font-medium gap-3
+              w-full font-medium gap-3 touch-manipulation
+              ${isMobile ? 'h-16 text-lg' : 'h-14 text-lg'}
               ${canStart 
                 ? 'bg-primary hover:bg-primary/90 shadow-lg hover:shadow-xl transition-all' 
                 : 'opacity-50 cursor-not-allowed'
               }
             `}
           >
-            <Mic className="h-5 w-5" />
+            <Mic className={isMobile ? "h-6 w-6" : "h-5 w-5"} />
             Start Consultation
           </Button>
 
