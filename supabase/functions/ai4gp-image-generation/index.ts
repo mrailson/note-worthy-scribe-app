@@ -14,8 +14,14 @@ interface ImageGenerationRequest {
     practiceName?: string;
     pcnName?: string;
     organisationType?: string;
+    practiceAddress?: string;
+    practicePhone?: string;
+    practiceEmail?: string;
+    practiceWebsite?: string;
+    logoUrl?: string;
   };
-  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'general';
+  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'general';
+  includeBranding?: boolean;  // Option to include practice branding
 }
 
 // Extract URL or text content from QR code request
@@ -90,6 +96,34 @@ MANDATORY SPELLING - COPY THESE EXACTLY:
 - "Forum" (NOT Fonum/Fourm)
 `;
 
+// Build practice branding section for prompts
+function buildBrandingSection(practiceContext: ImageGenerationRequest['practiceContext'], requestType: string): string {
+  if (!practiceContext?.practiceName) return '';
+  
+  // Determine if branding should be included based on request type
+  const brandingTypes = ['leaflet', 'newsletter', 'waiting-room', 'form-header', 'campaign', 'poster'];
+  if (!brandingTypes.includes(requestType)) return '';
+  
+  let branding = `\nPRACTICE BRANDING TO INCLUDE:\n`;
+  branding += `- Practice/Organisation Name: ${practiceContext.practiceName}\n`;
+  
+  if (practiceContext.practicePhone) {
+    branding += `- Phone: ${practiceContext.practicePhone}\n`;
+  }
+  if (practiceContext.practiceWebsite) {
+    branding += `- Website: ${practiceContext.practiceWebsite}\n`;
+  }
+  if (practiceContext.practiceAddress) {
+    branding += `- Address: ${practiceContext.practiceAddress}\n`;
+  }
+  if (practiceContext.pcnName) {
+    branding += `- PCN: ${practiceContext.pcnName}\n`;
+  }
+  
+  branding += `\nInclude this branding information in an appropriate position on the visual (e.g., header, footer, or corner).`;
+  
+  return branding;
+}
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -163,6 +197,13 @@ serve(async (req) => {
       calendar: 'calendar or schedule grid layout',
       poster: 'professional notice or poster',
       logo: 'professional logo or brand mark',
+      // New practice communication types
+      leaflet: 'patient information leaflet with clear sections, headings and NHS-style design',
+      newsletter: 'practice newsletter header or section with welcoming, professional design',
+      social: 'social media post graphic optimised for Facebook/Instagram (square format)',
+      'waiting-room': 'waiting room display poster with large, clear text readable from distance',
+      'form-header': 'professional document header or letterhead with clean, formal design',
+      campaign: 'health campaign promotional material with clear call-to-action',
       general: 'image or visual'
     };
 
@@ -243,6 +284,7 @@ Content guidelines:
       const keywordReference = extractedKeywords.length > 0 
         ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
         : '';
+      const brandingSection = buildBrandingSection(practiceContext, requestType);
 
       imagePrompt = `Create a professional ${typeDescriptions[requestType]} that visualises the following content.
 
@@ -251,6 +293,7 @@ ${documentContent.substring(0, 5000)}
 
 USER REQUEST:
 ${prompt}
+${brandingSection}
 
 TEXT GUIDELINES:
 - Text should be clear and readable with professional typography
@@ -267,9 +310,165 @@ DESIGN REQUIREMENTS:
 Content guidelines:
 - Keep all content professional and workplace-appropriate
 - No explicit, offensive, or inappropriate imagery`;
+    } else if (requestType === 'leaflet') {
+      // Patient information leaflet
+      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const extractedKeywords = documentContent ? extractCleanKeywords(documentContent) : [];
+      const keywordReference = extractedKeywords.length > 0 
+        ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
+        : '';
+      
+      imagePrompt = `Create a professional patient information leaflet.
+
+${prompt}
+${documentContent ? `\nSOURCE CONTENT:\n${documentContent.substring(0, 5000)}` : ''}
+${brandingSection}
+
+LEAFLET DESIGN REQUIREMENTS:
+- A4 portrait format, suitable for printing
+- Clear sections with headings and subheadings
+- NHS-style colour palette (blues, teals, white backgrounds)
+- Patient-friendly, accessible design
+- Large, readable text (minimum 12pt equivalent)
+- Clear visual hierarchy
+- Include relevant icons or simple illustrations
+- Space for key information, contact details
+
+${SPELLING_REFERENCE}
+${keywordReference}
+
+Content guidelines:
+- Keep all content professional and patient-appropriate
+- Use plain English, avoid medical jargon
+- Include clear action points or next steps if relevant`;
+    } else if (requestType === 'newsletter') {
+      // Practice newsletter header/section
+      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      
+      imagePrompt = `Create a professional practice newsletter header or section.
+
+${prompt}
+${brandingSection}
+
+NEWSLETTER DESIGN REQUIREMENTS:
+- Modern, welcoming design
+- Professional but friendly aesthetic
+- Suitable for digital or print newsletters
+- Include space for practice name/logo
+- Seasonal or themed elements if appropriate
+- Clear typography for headlines
+- NHS-appropriate colour scheme (blues, teals, warm accents)
+
+${SPELLING_REFERENCE}
+
+Content guidelines:
+- Keep all content professional and welcoming
+- Suitable for patients and staff alike`;
+    } else if (requestType === 'social') {
+      // Social media post image
+      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      
+      imagePrompt = `Create a social media post image.
+
+${prompt}
+${brandingSection}
+
+SOCIAL MEDIA DESIGN REQUIREMENTS:
+- Square format (1080x1080 pixels / 1:1 aspect ratio)
+- Bold, eye-catching design
+- Large, readable text that works at small sizes
+- Engagement-focused with clear message
+- NHS-appropriate colour scheme
+- Simple, uncluttered layout
+- Include call-to-action if relevant (e.g., "Book Now", "Learn More")
+
+${SPELLING_REFERENCE}
+
+Content guidelines:
+- Keep all content professional and social media appropriate
+- Suitable for Facebook, Instagram, or Twitter/X`;
+    } else if (requestType === 'waiting-room') {
+      // Waiting room display poster
+      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      
+      imagePrompt = `Create a waiting room display poster.
+
+${prompt}
+${brandingSection}
+
+WAITING ROOM DISPLAY REQUIREMENTS:
+- Large, clear text readable from 2-3 metres distance
+- Landscape format (suitable for TV screens or notice boards)
+- High contrast colours for visibility
+- Simple, uncluttered design
+- Key message immediately visible
+- NHS-style professional appearance
+- Include relevant icons or simple graphics
+
+${SPELLING_REFERENCE}
+
+Content guidelines:
+- Keep all content professional and patient-appropriate
+- Clear, actionable information`;
+    } else if (requestType === 'form-header') {
+      // Document header/letterhead
+      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      
+      imagePrompt = `Create a professional document header or letterhead.
+
+${prompt}
+${brandingSection}
+
+LETTERHEAD DESIGN REQUIREMENTS:
+- Clean, formal design
+- Professional appearance suitable for official documents
+- Space for practice name, logo, and contact details
+- Works well on A4 paper
+- Minimal but elegant design
+- NHS-appropriate colour scheme
+- Clear typography
+
+${SPELLING_REFERENCE}
+
+Content guidelines:
+- Keep all content professional and formal
+- Suitable for official correspondence and documents`;
+    } else if (requestType === 'campaign') {
+      // Health campaign promotional material
+      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      const extractedKeywords = documentContent ? extractCleanKeywords(documentContent) : [];
+      const keywordReference = extractedKeywords.length > 0 
+        ? `\nEXACT TERMS FROM SOURCE (use these spellings exactly):\n${extractedKeywords.map(k => `- "${k}"`).join('\n')}`
+        : '';
+      
+      imagePrompt = `Create a health campaign promotional poster.
+
+${prompt}
+${documentContent ? `\nCAMPAIGN INFORMATION:\n${documentContent.substring(0, 3000)}` : ''}
+${brandingSection}
+
+CAMPAIGN DESIGN REQUIREMENTS:
+- Action-oriented, motivating design
+- Clear call-to-action (e.g., "Book Your Appointment", "Get Checked")
+- Prominent date/time information if relevant
+- NHS-style colour scheme with emphasis colours for urgency
+- Professional but engaging design
+- Clear key message visible at a glance
+- Include relevant health icons or imagery
+
+${SPELLING_REFERENCE}
+${keywordReference}
+
+Content guidelines:
+- Keep all content professional and health-appropriate
+- Encourage positive health behaviours
+- Include relevant booking or contact information`;
     } else {
       // Standard prompt for other request types without document content
+      const brandingSection = buildBrandingSection(practiceContext, requestType);
+      
       imagePrompt = `${prompt}
+${brandingSection}
 
 Style: ${typeDescriptions[requestType] || 'visual'}
 
@@ -354,6 +553,13 @@ Content guidelines:
       calendar: 'Schedule or calendar visualisation',
       poster: 'Professional poster or notice',
       logo: 'Professional logo',
+      // New practice communication types
+      leaflet: 'Patient information leaflet',
+      newsletter: 'Practice newsletter visual',
+      social: 'Social media post image',
+      'waiting-room': 'Waiting room display',
+      'form-header': 'Document header/letterhead',
+      campaign: 'Health campaign poster',
       general: 'Visual representation'
     };
 
@@ -363,7 +569,8 @@ Content guidelines:
     let responseText = textContent || `I've created a ${description.toLowerCase()} based on your request. You can download it using the button below the image.`;
     
     // Add spelling disclaimer for visual types that contain text
-    if (['infographic', 'chart', 'diagram', 'poster'].includes(requestType)) {
+    const textHeavyTypes = ['infographic', 'chart', 'diagram', 'poster', 'leaflet', 'newsletter', 'waiting-room', 'form-header', 'campaign'];
+    if (textHeavyTypes.includes(requestType)) {
       responseText += `\n\n**Note:** AI-generated images may occasionally contain minor text variations. For documents requiring precise text, consider using the **PowerPoint generator** instead (just ask "create a presentation from this document") where all text is fully editable.`;
     }
 

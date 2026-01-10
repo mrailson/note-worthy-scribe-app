@@ -533,7 +533,12 @@ Always provide evidence-based, clinically appropriate advice that follows curren
               practiceContext: {
                 practiceName: practiceContext?.practiceName,
                 pcnName: practiceContext?.pcnName,
-                organisationType: practiceContext?.organisationType
+                organisationType: practiceContext?.organisationType,
+                practiceAddress: practiceContext?.practiceAddress,
+                practicePhone: practiceContext?.practicePhone,
+                practiceEmail: practiceContext?.practiceEmail,
+                practiceWebsite: practiceContext?.practiceWebsite,
+                logoUrl: practiceContext?.logoUrl
               },
               requestType: imageDetection.requestType
             }
@@ -557,7 +562,7 @@ Always provide evidence-based, clinically appropriate advice that follows curren
             content: data.textResponse,
             isStreaming: false,
             responseTime,
-            model: 'DALL-E 3',
+            model: 'Gemini 3',
             generatedImages: [data.image as GeneratedImage]
           };
           

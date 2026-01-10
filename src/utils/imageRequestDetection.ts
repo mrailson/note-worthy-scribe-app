@@ -6,7 +6,7 @@
 export interface ImageRequestDetection {
   isImageRequest: boolean;
   imagePrompt: string;
-  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'general';
+  requestType: 'chart' | 'diagram' | 'infographic' | 'calendar' | 'poster' | 'logo' | 'qrcode' | 'leaflet' | 'newsletter' | 'social' | 'waiting-room' | 'form-header' | 'campaign' | 'general';
   confidence: 'high' | 'medium' | 'low';
 }
 
@@ -61,6 +61,13 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
   const posterKeywords = ['poster', 'flyer', 'banner', 'sign', 'notice', 'announcement'];
   const logoKeywords = ['logo', 'brand mark', 'emblem', 'badge', 'practice symbol', 'company logo'];
   const qrcodeKeywords = ['qr code', 'qrcode', 'qr-code', 'quick response code', 'scan code', 'scannable code'];
+  // New practice communication types
+  const leafletKeywords = ['leaflet', 'patient leaflet', 'information leaflet', 'patient information sheet', 'handout', 'patient handout', 'information sheet', 'patient guide'];
+  const newsletterKeywords = ['newsletter', 'newsletter header', 'practice newsletter', 'monthly update', 'quarterly update', 'practice update', 'staff newsletter'];
+  const socialKeywords = ['social media', 'facebook post', 'instagram', 'twitter post', 'social post', 'facebook image', 'instagram post', 'social graphic', 'post image'];
+  const waitingRoomKeywords = ['waiting room', 'waiting area', 'reception display', 'tv screen', 'digital display', 'waiting room poster', 'reception poster', 'surgery display'];
+  const formHeaderKeywords = ['letterhead', 'form header', 'document header', 'headed paper', 'letter header', 'practice letterhead', 'compliment slip'];
+  const campaignKeywords = ['campaign', 'health campaign', 'awareness', 'flu campaign', 'screening campaign', 'vaccination campaign', 'health promotion', 'awareness poster', 'campaign poster'];
   
   // Check for high-confidence matches
   const isHighConfidence = highConfidenceKeywords.some(keyword => lowerMessage.includes(keyword));
@@ -138,12 +145,32 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
   const hasExplicitCalendar = calendarKeywords.some(k => lowerMessage.includes(k));
   const hasExplicitDiagram = diagramKeywords.some(k => lowerMessage.includes(k));
   const hasExplicitChart = chartKeywords.some(k => lowerMessage.includes(k));
+  // New practice communication types
+  const hasExplicitLeaflet = leafletKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitNewsletter = newsletterKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitSocial = socialKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitWaitingRoom = waitingRoomKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitFormHeader = formHeaderKeywords.some(k => lowerMessage.includes(k));
+  const hasExplicitCampaign = campaignKeywords.some(k => lowerMessage.includes(k));
   
   // Prioritise explicit type mentions in the current message
+  // New practice communication types first (more specific), then existing types
   if (hasExplicitQRCode) {
     requestType = 'qrcode';
   } else if (hasExplicitLogo) {
     requestType = 'logo';
+  } else if (hasExplicitLeaflet) {
+    requestType = 'leaflet';
+  } else if (hasExplicitNewsletter) {
+    requestType = 'newsletter';
+  } else if (hasExplicitSocial) {
+    requestType = 'social';
+  } else if (hasExplicitWaitingRoom) {
+    requestType = 'waiting-room';
+  } else if (hasExplicitFormHeader) {
+    requestType = 'form-header';
+  } else if (hasExplicitCampaign) {
+    requestType = 'campaign';
   } else if (hasExplicitInfographic) {
     requestType = 'infographic';
   } else if (hasExplicitPoster) {
@@ -162,6 +189,18 @@ export function detectImageRequest(message: string, previousMessages?: { role: s
       requestType = 'qrcode';
     } else if (logoKeywords.some(k => recentContext.includes(k))) {
       requestType = 'logo';
+    } else if (leafletKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'leaflet';
+    } else if (newsletterKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'newsletter';
+    } else if (socialKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'social';
+    } else if (waitingRoomKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'waiting-room';
+    } else if (formHeaderKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'form-header';
+    } else if (campaignKeywords.some(k => recentContext.includes(k))) {
+      requestType = 'campaign';
     } else if (infographicKeywords.some(k => recentContext.includes(k))) {
       requestType = 'infographic';
     } else if (posterKeywords.some(k => recentContext.includes(k))) {
