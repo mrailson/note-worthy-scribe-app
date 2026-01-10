@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useReferralWorkspace } from '@/hooks/useReferralWorkspace';
 import { ReferralSuggestionCard } from './ReferralSuggestionCard';
 import { ReferralEditorModal } from './ReferralEditorModal';
@@ -16,6 +16,14 @@ import {
   Check
 } from 'lucide-react';
 import { ReferralSuggestion, PRIORITY_LABELS, PRIORITY_COLOURS, ReferralPriority } from '@/types/referral';
+import { supabase } from '@/integrations/supabase/client';
+
+interface PracticeDetails {
+  name?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+}
 
 interface ReferralWorkspaceProps {
   transcript?: string;
@@ -64,6 +72,56 @@ export function ReferralWorkspace({
 
   const [selectedSuggestionId, setSelectedSuggestionId] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
+
+  // Fetch practice details for letterhead
+  useEffect(() => {
+    const fetchPracticeDetails = async () => {
+      if (!userId) return;
+      
+      try {
+        // First try to get the default practice
+        const { data: defaultPractice } = await supabase
+          .from('practice_details')
+          .select('practice_name, address, phone, email')
+          .eq('user_id', userId)
+          .eq('is_default', true)
+          .maybeSingle();
+        
+        if (defaultPractice) {
+          setPracticeDetails({
+            name: defaultPractice.practice_name,
+            address: defaultPractice.address || undefined,
+            phone: defaultPractice.phone || undefined,
+            email: defaultPractice.email || undefined,
+          });
+          return;
+        }
+
+        // Fallback to most recent practice
+        const { data: anyPractice } = await supabase
+          .from('practice_details')
+          .select('practice_name, address, phone, email')
+          .eq('user_id', userId)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+        
+        if (anyPractice) {
+          setPracticeDetails({
+            name: anyPractice.practice_name,
+            address: anyPractice.address || undefined,
+            phone: anyPractice.phone || undefined,
+            email: anyPractice.email || undefined,
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching practice details:', error);
+      }
+    };
+
+    fetchPracticeDetails();
+  }, [userId]);
 
   const handleGenerateDraft = async (suggestion: ReferralSuggestion) => {
     setSelectedSuggestionId(suggestion.id);
@@ -141,6 +199,7 @@ export function ReferralWorkspace({
           onConfirm={confirmDraft}
           onUnconfirm={unconfirmDraft}
           isRewriting={isRewriting}
+          practiceDetails={practiceDetails || undefined}
         />
       )}
 
