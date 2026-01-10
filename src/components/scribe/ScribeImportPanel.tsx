@@ -96,16 +96,26 @@ export const ScribeImportPanel = ({ settings, onNotesGenerated }: ScribeImportPa
     setStatusMessage('Uploading audio file...');
     
     try {
-      // Create form data for upload
-      const formData = new FormData();
-      formData.append('file', file);
+      // Convert file to base64
+      const arrayBuffer = await file.arrayBuffer();
+      const bytes = new Uint8Array(arrayBuffer);
+      let binary = '';
+      const chunkSize = 8192;
+      for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.slice(i, i + chunkSize);
+        binary += String.fromCharCode(...chunk);
+      }
+      const base64Audio = btoa(binary);
       
       setProgress(30);
       setStatusMessage('Transcribing audio...');
       
-      // Call the transcription edge function
+      // Call the transcription edge function with JSON body
       const { data, error } = await supabase.functions.invoke('mp3-transcription', {
-        body: formData
+        body: { 
+          audio: base64Audio, 
+          filename: file.name 
+        }
       });
       
       if (error) throw error;
