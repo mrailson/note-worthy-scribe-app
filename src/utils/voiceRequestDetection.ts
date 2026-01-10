@@ -44,6 +44,16 @@ const HIGH_CONFIDENCE_PATTERNS = [
   /generate\s+an?\s+audio\s+file\s+from\s+the\s+following/i,
   // Catch "Use a ... voice:" pattern which indicates inline script
   /use\s+a\s+(?:clear|professional|british)[\s,]+(?:voice|accent)/i,
+  // File-based voice generation patterns
+  /voice\s+file\s+from\s+(?:this|the)\s+(?:uploaded\s+)?file/i,
+  /audio\s+file\s+from\s+(?:this|the)\s+(?:uploaded\s+)?file/i,
+  /(?:create|generate|make)\s+(?:a\s+)?voice\s+(?:file\s+)?from\s+(?:this|the)\s+transcript/i,
+  /(?:create|generate|make)\s+(?:a\s+)?audio\s+(?:file\s+)?from\s+(?:this|the)\s+transcript/i,
+  /read\s+(?:this|the)\s+transcript/i,
+  /narrate\s+(?:this|the)\s+(?:uploaded\s+)?file/i,
+  /convert\s+(?:this|the)\s+(?:uploaded\s+)?file\s+to\s+(?:speech|audio|voice)/i,
+  /voice\s+file\s+from\s+this/i,
+  /audio\s+from\s+this/i,
 ];
 
 // Medium-confidence keywords that might indicate voice generation
@@ -61,21 +71,60 @@ const MEDIUM_CONFIDENCE_PATTERNS = [
 ];
 
 /**
+ * Extracts text content from uploaded files for voice generation
+ */
+function extractTextFromUploadedFiles(
+  files: { name: string; content: string; type: string }[]
+): string {
+  // Prioritise text-based files (transcripts, scripts, .txt files)
+  const textFiles = files.filter(f => 
+    f.type.startsWith('text/') || 
+    f.name.endsWith('.txt') ||
+    f.name.toLowerCase().includes('transcript') ||
+    f.name.toLowerCase().includes('script')
+  );
+  
+  if (textFiles.length > 0) {
+    const content = textFiles[0].content.trim();
+    if (content.length > 50) {
+      console.log('🎤 Extracted text from prioritised file:', textFiles[0].name, '- length:', content.length);
+      return content;
+    }
+  }
+  
+  // Fallback: use any file with substantial text content
+  for (const file of files) {
+    if (file.content && file.content.trim().length > 50) {
+      console.log('🎤 Extracted text from file:', file.name, '- length:', file.content.trim().length);
+      return file.content.trim();
+    }
+  }
+  
+  return '';
+}
+
+/**
  * Detects if the user message is requesting voice/audio file generation
  */
 export function detectVoiceRequest(
   message: string,
-  previousMessages: { role: string; content: string }[] = []
+  previousMessages: { role: string; content: string }[] = [],
+  uploadedFiles?: { name: string; content: string; type: string }[]
 ): VoiceRequestDetection {
   console.log('🎤 Checking voice request for message:', message);
+  console.log('🎤 Uploaded files count:', uploadedFiles?.length || 0);
   
   // Check high confidence patterns
   for (const pattern of HIGH_CONFIDENCE_PATTERNS) {
     if (pattern.test(message)) {
       console.log('🎤 HIGH confidence voice match:', pattern.toString());
-      // First try to extract inline text from the current message
+      // Priority order: inline text > uploaded files > previous assistant messages
       let textToSpeak = extractInlineTextForVoice(message);
-      // If no inline text found, fall back to previous assistant messages
+      
+      if (!textToSpeak && uploadedFiles && uploadedFiles.length > 0) {
+        textToSpeak = extractTextFromUploadedFiles(uploadedFiles);
+      }
+      
       if (!textToSpeak) {
         textToSpeak = extractTextForVoice(previousMessages);
       }
@@ -92,9 +141,13 @@ export function detectVoiceRequest(
   for (const pattern of MEDIUM_CONFIDENCE_PATTERNS) {
     if (pattern.test(message)) {
       console.log('🎤 MEDIUM confidence voice match:', pattern.toString());
-      // First try to extract inline text from the current message
+      // Priority order: inline text > uploaded files > previous assistant messages
       let textToSpeak = extractInlineTextForVoice(message);
-      // If no inline text found, fall back to previous assistant messages
+      
+      if (!textToSpeak && uploadedFiles && uploadedFiles.length > 0) {
+        textToSpeak = extractTextFromUploadedFiles(uploadedFiles);
+      }
+      
       if (!textToSpeak) {
         textToSpeak = extractTextForVoice(previousMessages);
       }
