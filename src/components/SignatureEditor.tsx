@@ -123,6 +123,19 @@ const SignatureEditor: React.FC<SignatureEditorProps> = ({
     editorRef.current = editor;
   }, [editor]);
 
+  // Sync editor content when `content` prop changes (e.g. after async fetch)
+  useEffect(() => {
+    if (!editor) return;
+
+    const currentHtml = editor.getHTML();
+    const nextHtml = content || '';
+
+    if (currentHtml !== nextHtml) {
+      // Do not emit an update event (prevents loops)
+      editor.commands.setContent(nextHtml, { emitUpdate: false });
+    }
+  }, [content, editor]);
+
   const handleImageUpload = () => {
     fileInputRef.current?.click();
   };
