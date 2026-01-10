@@ -51,7 +51,7 @@ export const useScribeConsultation = () => {
     plan: ''
   });
 
-  // View mode state
+  // View mode state for toggling between SOAP/Narrative/Summary
   const [viewMode, setViewMode] = useState<ConsultationViewMode>('soap');
   
   const consultationIdRef = useRef<string | null>(null);
