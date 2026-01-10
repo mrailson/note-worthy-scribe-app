@@ -292,6 +292,7 @@ const App = () => {
               <Route path="/lg-capture/bulk" element={<LGUploadQueueProvider><LGCaptureBulk /></LGUploadQueueProvider>} />
               <Route path="/bp-calculator" element={<BPCalculator />} />
               <Route path="/public/bp-calculator" element={<PublicBPCalculator />} />
+              <Route path="/scribe" element={<Scribe />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>
