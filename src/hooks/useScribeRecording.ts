@@ -191,22 +191,29 @@ export const useScribeRecording = () => {
 
   const stopRecording = useCallback(async () => {
     try {
-      // Stop timer
+      // Stop timer first
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
 
-      // Stop transcribers
+      // Show processing status to user
+      setConnectionStatus("Processing final transcript...");
+      
+      // Stop transcribers and wait for final processing
+      // The transcribers now handle the "Processing final transcript..." status internally
       if (iPhoneTranscriberRef.current) {
+        console.log('🔄 Stopping iPhone transcriber...');
         await iPhoneTranscriberRef.current.stopTranscription();
         iPhoneTranscriberRef.current = null;
       }
       if (desktopTranscriberRef.current) {
+        console.log('🔄 Stopping Desktop transcriber...');
         await desktopTranscriberRef.current.stopTranscription();
         desktopTranscriberRef.current = null;
       }
       if (chromiumTranscriberRef.current) {
+        console.log('🔄 Stopping Chromium transcriber...');
         await chromiumTranscriberRef.current.stopTranscription();
         chromiumTranscriberRef.current = null;
       }
@@ -216,7 +223,7 @@ export const useScribeRecording = () => {
       setIsRecording(false);
       setIsPaused(false);
       setConnectionStatus("Disconnected");
-      toast.success("Recording stopped");
+      toast.success("Recording stopped - transcript complete");
 
       return {
         transcript,
@@ -228,6 +235,7 @@ export const useScribeRecording = () => {
       console.error("Error stopping recording:", error);
       toast.error("Error stopping recording");
       setIsRecording(false);
+      setConnectionStatus("Error");
       return null;
     }
   }, [transcript, duration, wordCount]);

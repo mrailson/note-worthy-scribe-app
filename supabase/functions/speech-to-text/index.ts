@@ -102,8 +102,26 @@ serve(async (req) => {
     formData.append('response_format', 'verbose_json');
     // Anti-hallucination parameters
     formData.append('temperature', '0');
-    // NHS-specific terminology prompt for accurate transcription of UK healthcare meetings
-    formData.append('prompt', 'NHS, PCN, ICB, TUPE, NHFT, Statutory Maternity Pay, Agenda for Change, AfC, TeamNet, Enhanced Access, Bugbrooke, Mandy, Claire, Malcolm, Anya, Blue PCN, MMC');
+    
+    // Comprehensive UK GP/NHS clinical terminology prompt for accurate medical transcription
+    // This prevents misheard words and ensures proper UK medical spelling
+    const ukMedicalPrompt = `UK GP consultation. NHS primary care.
+
+Clinical terms: SNOMED, NICE guidelines, BNF, QoF, QOF, DES, ICS, PCN, hypertension, hyperlipidaemia, hypothyroidism, diabetes mellitus, type 2 diabetes, ischaemic heart disease, IHD, COPD, chronic obstructive pulmonary disease, asthma, chronic kidney disease, CKD, atrial fibrillation, AF, angina, myocardial infarction, heart failure, osteoarthritis, rheumatoid arthritis, fibromyalgia, depression, anxiety, insomnia.
+
+Medications: metformin, gliclazide, ramipril, lisinopril, amlodipine, atorvastatin, simvastatin, omeprazole, lansoprazole, levothyroxine, bisoprolol, doxazosin, bendroflumethiazide, amoxicillin, flucloxacillin, co-amoxiclav, clarithromycin, doxycycline, prednisolone, salbutamol, Ventolin, Seretide, tiotropium, apixaban, rivaroxaban, warfarin, clopidogrel, aspirin.
+
+Tests: FBC, full blood count, U&Es, urea and electrolytes, LFTs, liver function tests, TFTs, thyroid function tests, HbA1c, eGFR, lipid profile, cholesterol, PSA, urine dipstick, MSU, ECG, electrocardiogram, spirometry, peak flow, blood pressure, BP.
+
+GP systems: SystmOne, EMIS, EMIS Web, eConsult, AccuRx, Docman, TeamNet, Ardens.
+
+UK spellings: haemoglobin, haematology, paediatric, paediatrics, orthopaedic, oedema, coeliac, diarrhoea, anaemia, oesophagus, faeces, colour, favour, organise, practise, centre, litre, metre, behaviour, favour.
+
+Abbreviations: F2F, face to face, T/C, telephone consultation, DNA, did not attend, DNW, FU, follow up, follow-up, Rx, prescription, Hx, history, PMH, past medical history, DH, drug history, SH, social history, FH, family history, O/E, on examination, SOAP, NAD, nothing abnormal detected, TBC, to be confirmed, TCI, to come in, OOH, out of hours, A&E, GP, HCA, healthcare assistant, ANP, advanced nurse practitioner.
+
+Examination terms: auscultation, palpation, percussion, bilateral, unilateral, tenderness, guarding, rebound, crepitations, crackles, wheeze, rhonchi, oedema, erythema, pallor, cyanosis, jaundice, clubbing.`;
+
+    formData.append('prompt', ukMedicalPrompt);
 
     console.log('📡 SPEECH-TO-TEXT: Sending request to OpenAI Whisper API...');
     

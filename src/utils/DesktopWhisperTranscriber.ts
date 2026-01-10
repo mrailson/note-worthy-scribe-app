@@ -635,6 +635,11 @@ export class DesktopWhisperTranscriber {
   async stopTranscription(): Promise<void> {
     console.log('🛑 Stopping desktop Whisper transcription...');
     
+    // CRITICAL: Set isRecording to false FIRST to prevent race conditions
+    // This ensures no new chunks are started while we process the final one
+    this.isRecording = false;
+    this.onStatusChange('Processing final transcript...');
+    
     // Stop audio activity monitoring
     this.stopActivityMonitoring();
     
@@ -643,27 +648,45 @@ export class DesktopWhisperTranscriber {
       this.transcriptionTimeout = null;
     }
 
-    // Stop recording and wait for final data
+    // Stop recording and wait for final ondataavailable event using promise
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
       console.log('🔄 Stopping final recording chunk...');
+      
+      // Create a promise that resolves when onstop fires
+      const stopPromise = new Promise<void>((resolve) => {
+        const originalOnStop = this.mediaRecorder!.onstop;
+        this.mediaRecorder!.onstop = async (event) => {
+          // Call original handler first (processes the chunks)
+          if (originalOnStop && typeof originalOnStop === 'function') {
+            await (originalOnStop as (ev: Event) => Promise<void>)(event);
+          }
+          resolve();
+        };
+      });
+      
       this.mediaRecorder.stop();
-      // Wait longer for the final ondataavailable event
-      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Wait for onstop to complete (with timeout safety)
+      await Promise.race([
+        stopPromise,
+        new Promise(resolve => setTimeout(resolve, 5000)) // 5 second timeout
+      ]);
+      
+      // Additional wait for final ondataavailable processing
+      await new Promise(resolve => setTimeout(resolve, 1000));
     }
-
-    // Now stop the recording flag
-    this.isRecording = false;
 
     // Force process any remaining audio chunks and wait for completion
     console.log(`🔍 DEBUG: Checking for remaining chunks - audioChunks.length: ${this.audioChunks.length}`);
     if (this.audioChunks.length > 0) {
       // Increment chunk count BEFORE processing to ensure unique numbering
       const finalChunk = this.chunkCount++;
-      console.log(`🔄 Processing final audio chunk ${finalChunk} (${this.audioChunks.length} audio chunks)... Next chunk would be: ${this.chunkCount}`);
+      console.log(`🔄 Processing final audio chunk ${finalChunk} (${this.audioChunks.length} audio chunks)...`);
+      this.onStatusChange('Processing final transcript...');
       await this.processAudioChunks(finalChunk);
       console.log(`🔍 DEBUG: Final chunk ${finalChunk} processed and stored`);
-      // Additional wait to ensure transcription callback is processed
-      await new Promise(resolve => setTimeout(resolve, 3000)); // Wait for database save
+      // Wait for transcription callback and database save
+      await new Promise(resolve => setTimeout(resolve, 3000));
     } else {
       console.log('🔍 DEBUG: No remaining audio chunks to process');
     }
