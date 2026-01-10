@@ -431,6 +431,221 @@ export const generateWordDocument = async (content: string, title: string = 'AI 
   }
 };
 
+// Interface for Scribe consultation export
+export interface ScribeExportDetails {
+  content: string;
+  title?: string;
+  practiceName?: string;
+  practiceAddress?: string;
+  practicePhone?: string;
+  practiceEmail?: string;
+  practiceLogoUrl?: string;
+}
+
+// Generate a formatted Scribe consultation Word document with smaller fonts and practice logo
+export const generateScribeWordDocument = async (details: ScribeExportDetails): Promise<Blob> => {
+  const { ImageRun } = await import('docx');
+  
+  try {
+    const {
+      content,
+      title = 'Consultation Notes',
+      practiceName = '',
+      practiceAddress = '',
+      practicePhone = '',
+      practiceEmail = '',
+      practiceLogoUrl = ''
+    } = details;
+
+    const documentElements: any[] = [];
+
+    // Add logo at the top if available
+    if (practiceLogoUrl) {
+      try {
+        const imageResponse = await fetch(practiceLogoUrl);
+        if (imageResponse.ok) {
+          const imageBlob = await imageResponse.blob();
+          const arrayBuffer = await imageBlob.arrayBuffer();
+          const uint8Array = new Uint8Array(arrayBuffer);
+
+          documentElements.push(new Paragraph({
+            children: [
+              new ImageRun({
+                data: uint8Array,
+                transformation: { width: 120, height: 60 },
+                type: practiceLogoUrl.toLowerCase().includes('.png') ? 'png' : 'jpg'
+              })
+            ],
+            alignment: 'center' as any,
+            spacing: { after: 120 }
+          }));
+        }
+      } catch (logoError) {
+        console.warn('Failed to fetch logo for Word export:', logoError);
+      }
+    }
+
+    // Add practice name header
+    if (practiceName) {
+      documentElements.push(new Paragraph({
+        children: [new TextRun({
+          text: practiceName,
+          size: 22, // 11pt
+          bold: true,
+          color: '005EB8',
+          font: defaultRunFont
+        })],
+        alignment: 'center' as any,
+        spacing: { after: 60 }
+      }));
+    }
+
+    // Add practice address
+    if (practiceAddress) {
+      documentElements.push(new Paragraph({
+        children: [new TextRun({
+          text: practiceAddress,
+          size: 16, // 8pt
+          color: '666666',
+          font: defaultRunFont
+        })],
+        alignment: 'center' as any,
+        spacing: { after: 40 }
+      }));
+    }
+
+    // Add practice contact details
+    const contactParts: string[] = [];
+    if (practicePhone) contactParts.push(`Tel: ${practicePhone}`);
+    if (practiceEmail) contactParts.push(practiceEmail);
+    if (contactParts.length > 0) {
+      documentElements.push(new Paragraph({
+        children: [new TextRun({
+          text: contactParts.join(' | '),
+          size: 16, // 8pt
+          color: '666666',
+          font: defaultRunFont
+        })],
+        alignment: 'center' as any,
+        spacing: { after: 200 }
+      }));
+    }
+
+    // Add separator line if we have practice details
+    if (practiceName || practiceLogoUrl) {
+      documentElements.push(new Paragraph({
+        children: [new TextRun({ text: '' })],
+        border: { bottom: { style: BorderStyle.SINGLE, size: 6, color: '005EB8' } },
+        spacing: { after: 240 }
+      }));
+    }
+
+    // Add document title
+    documentElements.push(new Paragraph({
+      children: [new TextRun({
+        text: title,
+        size: 22, // 11pt
+        bold: true,
+        color: '2E5C8A',
+        font: defaultRunFont
+      })],
+      spacing: { before: 0, after: 120 }
+    }));
+
+    // Add generated date
+    documentElements.push(new Paragraph({
+      children: [new TextRun({
+        text: `Generated on ${new Date().toLocaleDateString('en-GB')} at ${new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`,
+        size: 16, // 8pt
+        color: '666666',
+        font: defaultRunFont
+      })],
+      spacing: { before: 0, after: 240 }
+    }));
+
+    // Process content - split into sections and paragraphs
+    const sections = content.split('\n\n');
+    
+    for (const section of sections) {
+      const trimmedSection = section.trim();
+      if (!trimmedSection) continue;
+
+      const lines = trimmedSection.split('\n');
+      
+      for (const line of lines) {
+        if (!line.trim()) continue;
+        
+        // Check if it's a section header (all caps or ends with colon)
+        const isHeader = /^[A-Z\s()]+$/.test(line.trim()) || line.trim().endsWith(':');
+        
+        if (isHeader) {
+          documentElements.push(new Paragraph({
+            children: [new TextRun({
+              text: line.trim(),
+              size: 18, // 9pt
+              bold: true,
+              color: '2E5C8A',
+              font: defaultRunFont
+            })],
+            spacing: { before: 180, after: 60 }
+          }));
+        } else {
+          // Regular paragraph with smaller font
+          documentElements.push(new Paragraph({
+            children: [new TextRun({
+              text: line.trim(),
+              size: 18, // 9pt - smaller than default
+              font: defaultRunFont
+            })],
+            spacing: { before: 40, after: 40 }
+          }));
+        }
+      }
+    }
+
+    // Create document with smaller default fonts
+    const doc = new Document({
+      creator: 'GP Scribe',
+      title: title,
+      description: 'Generated by GP Scribe',
+      styles: {
+        default: {
+          document: {
+            run: {
+              size: 18, // 9pt default
+              font: 'Arial'
+            }
+          }
+        }
+      },
+      sections: [{
+        properties: {
+          page: {
+            margin: {
+              top: 1000,
+              right: 1000,
+              bottom: 1000,
+              left: 1000,
+            }
+          }
+        },
+        children: documentElements
+      }]
+    });
+
+    // Generate and save the document
+    const fileName = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.docx`;
+    const blob = await Packer.toBlob(doc);
+    saveAs(blob, fileName);
+    
+    return blob;
+    
+  } catch (error: any) {
+    console.error('Error generating Scribe Word document:', error);
+    throw new Error(`Failed to generate Word document: ${error.message}`);
+  }
+}
+
 // Generate a formatted patient letter Word document matching the on-screen layout
 export interface PatientLetterDetails {
   letterContent: string;

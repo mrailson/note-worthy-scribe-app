@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SEO } from "@/components/SEO";
 import { Header } from "@/components/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
-import { useEffect } from "react";
 
 import { useScribeConsultation } from "@/hooks/useScribeConsultation";
 import { useScribeHistory } from "@/hooks/useScribeHistory";
@@ -22,8 +21,9 @@ import { ScribeHistoryPanel } from "@/components/scribe/ScribeHistoryPanel";
 import { ScribeTab, SOAPNote } from "@/types/scribe";
 import { Stethoscope, History, Settings } from "lucide-react";
 import jsPDF from 'jspdf';
-import { generateWordDocument } from "@/utils/documentGenerators";
-import { toast } from "sonner";
+import { generateScribeWordDocument } from "@/utils/documentGenerators";
+import { showToast } from "@/utils/toastWrapper";
+import { supabase } from "@/integrations/supabase/client";
 
 const Scribe = () => {
   const { user, loading } = useAuth();
@@ -35,6 +35,13 @@ const Scribe = () => {
   const settingsHook = useScribeSettings();
   
   const [activeTab, setActiveTab] = useState<ScribeTab>("consultation");
+  const [practiceDetails, setPracticeDetails] = useState<{
+    name?: string;
+    address?: string;
+    phone?: string;
+    email?: string;
+    logoUrl?: string;
+  } | null>(null);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -43,12 +50,41 @@ const Scribe = () => {
     }
   }, [user, loading, navigate]);
 
+  // Fetch practice details for exports
+  useEffect(() => {
+    const fetchPracticeDetails = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: practice } = await supabase
+          .from('practice_details')
+          .select('practice_name, address, phone, email, practice_logo_url, logo_url')
+          .eq('user_id', user.id)
+          .order('is_default', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (practice) {
+          setPracticeDetails({
+            name: practice.practice_name || undefined,
+            address: practice.address || undefined,
+            phone: practice.phone || undefined,
+            email: practice.email || undefined,
+            logoUrl: practice.practice_logo_url || practice.logo_url || undefined
+          });
+        }
+      } catch (error) {
+        console.error('Failed to fetch practice details:', error);
+      }
+    };
+
+    fetchPracticeDetails();
+  }, [user]);
+
   // Handle loading session from history
   const handleLoadSession = async (sessionId: string) => {
     const session = await history.loadSession(sessionId);
     if (session) {
-      // For now, just show toast - sessions from history are view-only
-      toast.info("Session loaded from history");
       setActiveTab("consultation");
     }
   };
@@ -86,10 +122,10 @@ const Scribe = () => {
       });
 
       pdf.save('consultation-notes.pdf');
-      toast.success("PDF exported successfully");
+      showToast.success("PDF exported successfully", { section: 'gpscribe' });
     } catch (error) {
       console.error('PDF export error:', error);
-      toast.error('Failed to export PDF');
+      showToast.error('Failed to export PDF', { section: 'gpscribe' });
     }
   };
 
@@ -100,11 +136,19 @@ const Scribe = () => {
     const content = `SUBJECTIVE (History)\n${soap.S}\n\nOBJECTIVE (Examination)\n${soap.O}\n\nASSESSMENT\n${soap.A}\n\nPLAN\n${soap.P}`;
     
     try {
-      await generateWordDocument(content, 'Consultation Notes');
-      toast.success("Word document exported successfully");
+      await generateScribeWordDocument({
+        content,
+        title: 'Consultation Notes',
+        practiceName: practiceDetails?.name,
+        practiceAddress: practiceDetails?.address,
+        practicePhone: practiceDetails?.phone,
+        practiceEmail: practiceDetails?.email,
+        practiceLogoUrl: practiceDetails?.logoUrl
+      });
+      showToast.success("Word document exported successfully", { section: 'gpscribe' });
     } catch (error) {
       console.error('Word export error:', error);
-      toast.error('Failed to export Word document');
+      showToast.error('Failed to export Word document', { section: 'gpscribe' });
     }
   };
 
