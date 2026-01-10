@@ -595,7 +595,10 @@ export class iPhoneWhisperTranscriber {
 
   async stopTranscription() {
     console.log('🛑 Stopping iPhone transcription...');
+    
+    // CRITICAL: Set isRecording to false FIRST to prevent race conditions
     this.isRecording = false;
+    this.onStatusChange('Processing final transcript...');
     
     // Stop audio activity monitoring
     this.stopActivityMonitoring();
@@ -612,15 +615,38 @@ export class iPhoneWhisperTranscriber {
 
     // Stop the recorder - this triggers final ondataavailable
     if (this.mediaRecorder && this.mediaRecorder.state === 'recording') {
+      console.log('🔄 Stopping MediaRecorder and waiting for final data...');
+      
+      // Create a promise that resolves when onstop fires
+      const stopPromise = new Promise<void>((resolve) => {
+        const recorder = this.mediaRecorder!;
+        const originalOnStop = recorder.onstop;
+        recorder.onstop = (event) => {
+          if (originalOnStop && typeof originalOnStop === 'function') {
+            originalOnStop.call(recorder, event);
+          }
+          resolve();
+        };
+      });
+      
       this.mediaRecorder.stop();
       
-      // Wait for final ondataavailable to fire
-      await new Promise(resolve => setTimeout(resolve, 500));
+      // Wait for onstop with timeout safety
+      await Promise.race([
+        stopPromise,
+        new Promise(resolve => setTimeout(resolve, 3000))
+      ]);
+      
+      // Wait longer for final ondataavailable to fire
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Process any remaining new audio chunks
       if (this.fullRecordingChunks.length > this.lastProcessedChunkIndex) {
         console.log('🔄 Processing final new audio chunks...');
+        this.onStatusChange('Processing final transcript...');
         await this.processNewAudioChunks();
+        // Wait for database operations
+        await new Promise(resolve => setTimeout(resolve, 2000));
       }
     }
 
