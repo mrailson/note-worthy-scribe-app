@@ -51,16 +51,26 @@ export const PatientLetterView = ({
     const fetchDetails = async () => {
       try {
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
+        if (!user) {
+          console.log('PatientLetterView: No user found');
+          return;
+        }
+
+        console.log('PatientLetterView: Fetching details for user:', user.id);
 
         // Fetch GP profile
-        const { data: profile } = await supabase
+        const { data: profile, error: profileError } = await supabase
           .from('profiles')
           .select('full_name, title, email')
           .eq('id', user.id)
           .maybeSingle();
 
+        if (profileError) {
+          console.error('PatientLetterView: Error fetching profile:', profileError);
+        }
+
         if (profile) {
+          console.log('PatientLetterView: Profile found:', profile);
           setGpDetails({
             name: profile.full_name || 'Your GP',
             title: profile.title || 'General Practitioner',
@@ -69,23 +79,31 @@ export const PatientLetterView = ({
         }
 
         // Fetch practice details
-        const { data: practice } = await supabase
+        const { data: practice, error: practiceError } = await supabase
           .from('practice_details')
           .select('practice_name, address, phone, email, practice_logo_url, logo_url')
           .eq('user_id', user.id)
           .maybeSingle();
 
+        if (practiceError) {
+          console.error('PatientLetterView: Error fetching practice:', practiceError);
+        }
+
         if (practice) {
+          console.log('PatientLetterView: Practice found:', practice);
+          const logoUrl = practice.practice_logo_url || practice.logo_url || null;
           setPracticeDetails({
             name: practice.practice_name || 'GP Surgery',
             address: practice.address || '',
             phone: practice.phone || '',
             email: practice.email || '',
-            logoUrl: practice.practice_logo_url || practice.logo_url
+            logoUrl: logoUrl
           });
+        } else {
+          console.log('PatientLetterView: No practice details found for user');
         }
       } catch (error) {
-        console.error('Error fetching details:', error);
+        console.error('PatientLetterView: Error fetching details:', error);
       }
     };
 
