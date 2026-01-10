@@ -281,69 +281,69 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                     {settings.consultationViewMode === 'soap' && (
                       <Accordion type="multiple" defaultValue={['S', 'O', 'A', 'P']} className="space-y-2">
                         <AccordionItem value="S" className="border rounded-lg px-4">
-                          <AccordionTrigger className="hover:no-underline py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold flex items-center justify-center">S</span>
-                              <span className="font-medium">Subjective (History)</span>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-4">
-                            <div className="flex justify-end mb-2">
-                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSoapNote.S, 'Subjective')}>
-                                <Copy className="h-3 w-3 mr-1" /> Copy
-                              </Button>
-                            </div>
+                          <div className="flex items-center justify-between">
+                            <AccordionTrigger className="hover:no-underline py-3 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 text-xs font-bold flex items-center justify-center">S</span>
+                                <span className="font-medium">Subjective (History)</span>
+                              </div>
+                            </AccordionTrigger>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => copyToClipboard(currentSoapNote.S, 'Subjective')}>
+                              <Copy className="h-3 w-3 mr-1" /> Copy
+                            </Button>
+                          </div>
+                          <AccordionContent className="pt-0 pb-3">
                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.S}</p>
                           </AccordionContent>
                         </AccordionItem>
                         
                         <AccordionItem value="O" className="border rounded-lg px-4">
-                          <AccordionTrigger className="hover:no-underline py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center justify-center">O</span>
-                              <span className="font-medium">Objective (Examination)</span>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-4">
-                            <div className="flex justify-end mb-2">
-                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSoapNote.O, 'Objective')}>
-                                <Copy className="h-3 w-3 mr-1" /> Copy
-                              </Button>
-                            </div>
+                          <div className="flex items-center justify-between">
+                            <AccordionTrigger className="hover:no-underline py-3 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-bold flex items-center justify-center">O</span>
+                                <span className="font-medium">Objective (Examination)</span>
+                              </div>
+                            </AccordionTrigger>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => copyToClipboard(currentSoapNote.O, 'Objective')}>
+                              <Copy className="h-3 w-3 mr-1" /> Copy
+                            </Button>
+                          </div>
+                          <AccordionContent className="pt-0 pb-3">
                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.O}</p>
                           </AccordionContent>
                         </AccordionItem>
                         
                         <AccordionItem value="A" className="border rounded-lg px-4">
-                          <AccordionTrigger className="hover:no-underline py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold flex items-center justify-center">A</span>
-                              <span className="font-medium">Assessment</span>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-4">
-                            <div className="flex justify-end mb-2">
-                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSoapNote.A, 'Assessment')}>
-                                <Copy className="h-3 w-3 mr-1" /> Copy
-                              </Button>
-                            </div>
+                          <div className="flex items-center justify-between">
+                            <AccordionTrigger className="hover:no-underline py-3 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-bold flex items-center justify-center">A</span>
+                                <span className="font-medium">Assessment</span>
+                              </div>
+                            </AccordionTrigger>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => copyToClipboard(currentSoapNote.A, 'Assessment')}>
+                              <Copy className="h-3 w-3 mr-1" /> Copy
+                            </Button>
+                          </div>
+                          <AccordionContent className="pt-0 pb-3">
                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.A}</p>
                           </AccordionContent>
                         </AccordionItem>
                         
                         <AccordionItem value="P" className="border rounded-lg px-4">
-                          <AccordionTrigger className="hover:no-underline py-3">
-                            <div className="flex items-center gap-2">
-                              <span className="w-6 h-6 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-bold flex items-center justify-center">P</span>
-                              <span className="font-medium">Plan</span>
-                            </div>
-                          </AccordionTrigger>
-                          <AccordionContent className="pb-4">
-                            <div className="flex justify-end mb-2">
-                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSoapNote.P, 'Plan')}>
-                                <Copy className="h-3 w-3 mr-1" /> Copy
-                              </Button>
-                            </div>
+                          <div className="flex items-center justify-between">
+                            <AccordionTrigger className="hover:no-underline py-3 flex-1">
+                              <div className="flex items-center gap-2">
+                                <span className="w-6 h-6 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400 text-xs font-bold flex items-center justify-center">P</span>
+                                <span className="font-medium">Plan</span>
+                              </div>
+                            </AccordionTrigger>
+                            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => copyToClipboard(currentSoapNote.P, 'Plan')}>
+                              <Copy className="h-3 w-3 mr-1" /> Copy
+                            </Button>
+                          </div>
+                          <AccordionContent className="pt-0 pb-3">
                             <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.P}</p>
                           </AccordionContent>
                         </AccordionItem>
