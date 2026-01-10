@@ -57,10 +57,43 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
   const [editedContent, setEditedContent] = useState(draft.letterContent);
   const [confirmed, setConfirmed] = useState(false);
 
+  // Extract date from letter content (format: "10 January 2026" etc)
+  const extractDate = (content: string): string | null => {
+    const datePattern = /\b(\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4})\b/i;
+    const match = content.match(datePattern);
+    return match ? match[1] : null;
+  };
+
+  // Remove date line and practice header from letter content for display
+  const cleanLetterContent = (content: string): string => {
+    let cleaned = content.replace(/\*\*/g, ''); // Remove markdown
+    
+    // Remove the date line (standalone date on its own line)
+    cleaned = cleaned.replace(/^\s*\d{1,2}\s+(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{4}\s*$/gim, '');
+    
+    // Remove practice name/address block at the start (before "Dear" or recipient)
+    // This removes lines like "Oak Lane Medical Practice", address lines, tel, email before the main letter
+    const dearIndex = cleaned.search(/\bDear\b/i);
+    if (dearIndex > 0) {
+      // Check if there's a recipient section before "Dear"
+      const beforeDear = cleaned.substring(0, dearIndex);
+      const recipientMatch = beforeDear.match(/\[?(?:Recipient|Department|Service)[^\]]*\]?/i);
+      if (recipientMatch) {
+        // Keep from recipient onwards
+        const recipientIndex = beforeDear.indexOf(recipientMatch[0]);
+        cleaned = cleaned.substring(recipientIndex);
+      }
+    }
+    
+    // Clean up multiple blank lines
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n').trim();
+    
+    return cleaned;
+  };
+
   // Render letter content with missing fields highlighted in yellow - ONLY square brackets
   const renderLetterWithHighlights = (content: string) => {
-    // Remove markdown ** formatting
-    const cleanedContent = content.replace(/\*\*/g, '');
+    const cleanedContent = cleanLetterContent(content);
     
     // Only match [text] patterns (square brackets with content)
     const parts: React.ReactNode[] = [];
@@ -95,6 +128,8 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
     
     return parts.length > 0 ? parts : cleanedContent;
   };
+
+  const letterDate = extractDate(draft.letterContent);
 
   const handleSaveEdit = () => {
     onContentChange(editedContent);
@@ -227,7 +262,7 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
                 </div>
               ) : (
                 <div className="p-6 max-h-[50vh] overflow-y-auto">
-                  {/* Letterhead */}
+                  {/* Letterhead - Logo left, Practice details right */}
                   <div className="flex items-start justify-between mb-6 pb-4 border-b">
                     {/* Practice logo on left */}
                     <div className="flex-shrink-0">
@@ -260,6 +295,13 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
                       )}
                     </div>
                   </div>
+
+                  {/* Date - right aligned */}
+                  {letterDate && (
+                    <div className="text-right text-sm text-foreground mb-4">
+                      {letterDate}
+                    </div>
+                  )}
 
                   {/* Formatted letter view with highlighted missing fields */}
                   <div className="prose prose-sm max-w-none">
