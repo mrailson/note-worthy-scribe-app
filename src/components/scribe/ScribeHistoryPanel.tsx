@@ -8,6 +8,7 @@ import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
+import { TranscriptDisplay } from "./TranscriptDisplay";
 
 interface ScribeHistoryPanelProps {
   sessions: ScribeSession[];
@@ -159,21 +160,27 @@ export const ScribeHistoryPanel = ({
               </div>
             )}
 
-            {/* Transcript */}
+            {/* Full Transcript - Beautifully Formatted */}
             {currentSession.transcript && (
-              <div className="space-y-3 pt-4 border-t">
+              <div className="space-y-4 pt-6 border-t">
                 <div className="flex items-center justify-between">
-                  <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">
-                    Full Transcript
-                  </h3>
-                  <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSession.transcript, 'Transcript')}>
-                    <Copy className="h-3 w-3 mr-1" /> Copy
+                  <div>
+                    <h3 className="font-semibold text-lg">Full Transcript</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Recorded on {format(new Date(currentSession.createdAt), "EEEE, d MMMM yyyy 'at' HH:mm")}
+                    </p>
+                  </div>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => copyToClipboard(currentSession.transcript, 'Transcript')}
+                  >
+                    <Copy className="h-4 w-4 mr-1" />
+                    Copy
                   </Button>
                 </div>
-                <ScrollArea className="h-64 border rounded-lg">
-                  <div className="p-4">
-                    <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSession.transcript}</p>
-                  </div>
+                <ScrollArea className="h-[400px] rounded-xl border bg-gradient-to-b from-amber-50/50 to-white dark:from-slate-900/50 dark:to-slate-950 shadow-inner">
+                  <TranscriptDisplay transcript={currentSession.transcript} />
                 </ScrollArea>
               </div>
             )}
