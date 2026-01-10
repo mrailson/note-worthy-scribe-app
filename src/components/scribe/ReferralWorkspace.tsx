@@ -1,20 +1,21 @@
-import React, { useEffect } from 'react';
+import React, { useState } from 'react';
 import { useReferralWorkspace } from '@/hooks/useReferralWorkspace';
 import { ReferralSuggestionCard } from './ReferralSuggestionCard';
-import { ReferralDraftEditor } from './ReferralDraftEditor';
-import { ReferralConfirmationGate } from './ReferralConfirmationGate';
+import { ReferralEditorModal } from './ReferralEditorModal';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { 
   Search, 
   Loader2, 
   FileText,
-  ArrowLeft,
   AlertCircle,
-  Send
+  Send,
+  ExternalLink,
+  Check
 } from 'lucide-react';
-import { ReferralSuggestion } from '@/types/referral';
+import { ReferralSuggestion, PRIORITY_LABELS, PRIORITY_COLOURS, ReferralPriority } from '@/types/referral';
 
 interface ReferralWorkspaceProps {
   transcript?: string;
@@ -61,24 +62,28 @@ export function ReferralWorkspace({
     patientContext
   });
 
-  const [selectedSuggestionId, setSelectedSuggestionId] = React.useState<string | null>(null);
+  const [selectedSuggestionId, setSelectedSuggestionId] = useState<string | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleGenerateDraft = async (suggestion: ReferralSuggestion) => {
     setSelectedSuggestionId(suggestion.id);
     await generateDraft(suggestion);
+    setIsModalOpen(true);
   };
 
-  const handleBackToSuggestions = () => {
+  const handleOpenModal = () => {
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+  const handleClearDraft = () => {
     clearDraft();
     setSelectedSuggestionId(null);
+    setIsModalOpen(false);
   };
-
-  // Auto-analyse on mount if we have data
-  useEffect(() => {
-    if ((transcript || notes) && suggestions.length === 0 && !isAnalysing) {
-      // Don't auto-analyse, let user trigger it
-    }
-  }, []);
 
   const hasConsultationData = Boolean(transcript || notes);
 
@@ -91,7 +96,7 @@ export function ReferralWorkspace({
           <h2 className="font-semibold">Referral Workspace</h2>
         </div>
         
-        {!currentDraft && hasConsultationData && (
+        {hasConsultationData && !currentDraft && (
           <Button
             onClick={analyseSuggestions}
             disabled={isAnalysing}
@@ -112,16 +117,32 @@ export function ReferralWorkspace({
         )}
 
         {currentDraft && (
-          <Button
-            onClick={handleBackToSuggestions}
-            variant="ghost"
-            size="sm"
-          >
-            <ArrowLeft className="h-4 w-4 mr-2" />
-            Back to Suggestions
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={handleClearDraft}
+              variant="ghost"
+              size="sm"
+            >
+              New Referral
+            </Button>
+          </div>
         )}
       </div>
+
+      {/* Referral Editor Modal */}
+      {currentDraft && (
+        <ReferralEditorModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          draft={currentDraft}
+          onContentChange={updateDraftContent}
+          onToneRewrite={rewriteTone}
+          onSafetyNettingChange={setSafetyNetting}
+          onConfirm={confirmDraft}
+          onUnconfirm={unconfirmDraft}
+          isRewriting={isRewriting}
+        />
+      )}
 
       {/* Content */}
       <div className="flex-1 min-h-0 pt-4">
@@ -151,26 +172,37 @@ export function ReferralWorkspace({
             </CardContent>
           </Card>
         ) : currentDraft ? (
-          // Draft editor view
-          <div className="h-full flex flex-col lg:flex-row gap-4">
-            <div className="flex-1 min-h-0">
-              <ReferralDraftEditor
-                draft={currentDraft}
-                onContentChange={updateDraftContent}
-                onToneRewrite={rewriteTone}
-                onSafetyNettingChange={setSafetyNetting}
-                isRewriting={isRewriting}
-              />
-            </div>
-            <div className="lg:w-80 shrink-0">
-              <ReferralConfirmationGate
-                draft={currentDraft}
-                onConfirm={confirmDraft}
-                onUnconfirm={unconfirmDraft}
-                onCopy={copyToClipboard}
-              />
-            </div>
-          </div>
+          // Draft ready - show summary card with option to open modal
+          <Card className="h-full">
+            <CardContent className="pt-6">
+              <div className="flex flex-col items-center justify-center text-center py-8 space-y-4">
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
+                  {currentDraft.clinicianConfirmed ? (
+                    <Check className="h-8 w-8 text-green-600" />
+                  ) : (
+                    <FileText className="h-8 w-8 text-primary" />
+                  )}
+                </div>
+                <div className="space-y-2">
+                  <h3 className="font-semibold text-lg">{currentDraft.recipientService}</h3>
+                  <p className="text-sm text-muted-foreground">{currentDraft.specialty}</p>
+                  <Badge className={PRIORITY_COLOURS[currentDraft.urgency as ReferralPriority] || 'bg-muted'}>
+                    {PRIORITY_LABELS[currentDraft.urgency as ReferralPriority] || currentDraft.urgency}
+                  </Badge>
+                </div>
+                {currentDraft.clinicianConfirmed && (
+                  <Badge variant="outline" className="text-green-600 border-green-600">
+                    <Check className="h-3 w-3 mr-1" />
+                    Confirmed
+                  </Badge>
+                )}
+                <Button onClick={handleOpenModal} className="mt-4">
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Open Referral Letter
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         ) : suggestions.length > 0 ? (
           // Suggestions list
           <ScrollArea className="h-full">

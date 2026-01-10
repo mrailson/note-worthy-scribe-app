@@ -33,32 +33,51 @@ serve(async (req) => {
       );
     }
 
-    // Fetch GP signature and practice details if userId provided
+    // Fetch GP signature, profile, and practice details if userId provided
     let gpDetails = null;
     let practiceDetails = null;
+    let profileDetails = null;
 
     if (userId) {
       const supabase = createClient(supabaseUrl, supabaseServiceKey);
       
-      const { data: signature } = await supabase
-        .from('gp_signatures')
+      // Fetch user profile
+      const { data: profile } = await supabase
+        .from('profiles')
         .select('*')
         .eq('user_id', userId)
-        .eq('is_default', true)
         .maybeSingle();
       
-      if (signature) {
-        gpDetails = signature;
-        
-        if (signature.practice_id) {
-          const { data: practice } = await supabase
-            .from('practice_details')
-            .select('*')
-            .eq('id', signature.practice_id)
-            .maybeSingle();
-          
-          practiceDetails = practice;
-        }
+      if (profile) {
+        profileDetails = profile;
+      }
+      
+      // Fetch GP signature settings
+      const { data: gpSignature } = await supabase
+        .from('gp_signature_settings')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (gpSignature) {
+        gpDetails = {
+          full_name: gpSignature.gp_name,
+          gmc_number: gpSignature.gmc_number,
+          qualifications: gpSignature.qualifications,
+          job_title: gpSignature.job_title,
+          practice_name: gpSignature.practice_name,
+        };
+      }
+      
+      // Fetch practice details - try practice_id from profile or get first practice for user
+      const { data: practice } = await supabase
+        .from('practice_details')
+        .select('*')
+        .eq('user_id', userId)
+        .maybeSingle();
+      
+      if (practice) {
+        practiceDetails = practice;
       }
     }
 
@@ -94,16 +113,29 @@ URGENCY WORDING:
 
 Keep the letter concise and professional. UK NHS style.`;
 
-    const practiceInfo = practiceDetails ? `
-Practice: ${practiceDetails.practice_name || 'Not specified'}
-Address: ${practiceDetails.address || 'Not specified'}
-Phone: ${practiceDetails.phone || 'Not specified'}
-Email: ${practiceDetails.email || 'Not specified'}` : '';
+    // Build practice info - prefer practice_details, fall back to GP signature settings
+    const practiceName = practiceDetails?.practice_name || gpDetails?.practice_name || '';
+    const practiceAddress = practiceDetails?.address || '';
+    const practicePhone = practiceDetails?.phone || '';
+    const practiceEmail = practiceDetails?.email || '';
+    
+    // Build GP info - prefer GP signature settings, fall back to profile
+    const gpName = gpDetails?.full_name || profileDetails?.full_name || '';
+    const gpJobTitle = gpDetails?.job_title || profileDetails?.role || profileDetails?.title || '';
+    const gpGmc = gpDetails?.gmc_number || '';
+    const gpQualifications = gpDetails?.qualifications || '';
 
-    const gpInfo = gpDetails ? `
-GP Name: ${gpDetails.full_name || 'Not specified'}
-GMC: ${gpDetails.gmc_number || 'Not specified'}
-Qualifications: ${gpDetails.qualifications || ''}` : '';
+    const practiceInfo = `
+Practice: ${practiceName || '[Practice Name - please update in Settings]'}
+Address: ${practiceAddress || '[Practice Address - please update in Settings]'}
+Phone: ${practicePhone || '[Phone - please update in Settings]'}
+Email: ${practiceEmail || '[Email - please update in Settings]'}`;
+
+    const gpInfo = `
+GP Name: ${gpName || '[Your Name - please update in Settings]'}
+Job Title: ${gpJobTitle || '[Job Title - please update in Settings]'}
+GMC: ${gpGmc || '[GMC Number - please update in Settings]'}
+Qualifications: ${gpQualifications || ''}`;
 
     const patientInfo = patientContext ? `
 Patient Name: ${patientContext.name || '[Patient Name]'}
