@@ -74,27 +74,12 @@ serve(async (req) => {
 
 ⚠️ OPTIONAL SECTIONS - OMISSION RULES:
 17. For OPTIONAL sections (SH, FH, Allergies, PSH): If NOT explicitly discussed in the transcript, OMIT THE ENTIRE LINE from output. Do not write the heading. Do not write "not discussed". Simply EXCLUDE it completely.
-
-⚠️ SOCIAL HISTORY - STRICT PER-ELEMENT RULES (HIGH-RISK SECTION):
-18. Each SH element is INDEPENDENT - only include elements that were EXPLICITLY stated:
-    - Living situation: ONLY include if words like "lives alone", "lives with", "partner", "wife", "husband", "family" were LITERALLY SAID in the transcript
-    - Occupation: ONLY include if job/work/occupation was EXPLICITLY discussed
-    - Smoking: ONLY include if smoking was EXPLICITLY asked AND the patient answered
-    - Alcohol: ONLY include if alcohol was EXPLICITLY asked AND the patient answered
-    - DO NOT combine stated elements with assumed elements
-    - If smoking was discussed but living situation wasn't, write ONLY "SH: [smoking status]" - NOTHING about living arrangements
-    - NEVER add "lives alone" unless those EXACT words (or clear equivalent like "I live by myself") were stated
-    - This section is frequently scrutinised in complaints and safeguarding reviews - fabrication here destroys GP trust
-
-⚠️ MEDICATION-TO-DIAGNOSIS INFERENCE (ALLOWED):
-19. When a medication strongly implies a diagnosis and the diagnosis was NOT explicitly stated, you MAY infer and document it in PMH with attribution:
-    - Ramipril, Amlodipine, Lisinopril → "Hypertension (on [medication])"
-    - Metformin → "Type 2 diabetes (on metformin)"
-    - Salbutamol inhaler → "Asthma (on salbutamol)"
-    - Levothyroxine → "Hypothyroidism (on levothyroxine)"
-    - Statins → "Hyperlipidaemia (on [statin name])"
-    - Format: "[Condition] (on [medication])" to clearly show the inference source
-    - This is CLINICAL INFERENCE from stated medication, NOT fabrication - it prevents PMH/medication mismatch
+18. SOCIAL HISTORY IS HIGH-RISK FOR FABRICATION:
+    - "Lives alone" must ONLY appear if the patient or clinician EXPLICITLY stated this
+    - Occupation must ONLY appear if EXPLICITLY discussed
+    - Smoking/alcohol/drug status must ONLY appear if EXPLICITLY asked AND answered
+    - If SH was NOT discussed at all, the ENTIRE SH line must be OMITTED from output
+    - This section is frequently scrutinised in complaints and safeguarding reviews - DO NOT FABRICATE
 
 This is a ${consultationTypeLabel} consultation.
 
@@ -110,26 +95,20 @@ Generate a JSON response with exactly these fields:
 - ICE: [Patient's Ideas, Concerns and Expectations - ONLY if patient explicitly stated these, otherwise OMIT this line]
 - Red flags: [ONLY red flags that were EXPLICITLY asked about AND the patient's response - otherwise OMIT this line]
 - Risk factors: [ONLY if explicitly mentioned - otherwise OMIT this line]
-- PMH: [Past medical history if explicitly mentioned, OR inferred from medications. If Ramipril/ACE inhibitor mentioned but no PMH, include 'Hypertension (on ramipril)'. If Metformin mentioned, include 'Type 2 diabetes (on metformin)'. Format: 'Condition (on medication)'. If no PMH discussed AND no medications mentioned, OMIT this line entirely]
+- PMH: [ONLY if past medical history was explicitly mentioned - otherwise OMIT this line entirely]
 - PSH: [ONLY if past surgical history was explicitly mentioned - otherwise OMIT this line entirely]
 - DH: [ONLY if current medications were explicitly discussed - otherwise OMIT this line]
 - Allergies: [ONLY if allergies were explicitly asked/stated - otherwise OMIT this line entirely]
 - FH: [ONLY if family history was explicitly discussed - otherwise OMIT this line entirely]
-- SH: [STRICT PER-ELEMENT RULES - each element is INDEPENDENT:
-  • Smoking: ONLY if explicitly asked AND answered (e.g., 'Ex-smoker, stopped 5 years ago')
-  • Alcohol: ONLY if explicitly asked AND answered
-  • Occupation: ONLY if explicitly discussed (e.g., 'Work described as intense')
-  • Living situation: ONLY if words like 'lives alone', 'lives with partner/family' were LITERALLY SAID
-  ⚠️ DO NOT fabricate ANY element. If only smoking was discussed, write ONLY 'SH: Ex-smoker (5 years)' - NOTHING about living arrangements. OMIT entire line if nothing discussed.]
+- SH: [ONLY if social history was EXPLICITLY discussed - otherwise OMIT this ENTIRE line. DO NOT fabricate living situation, occupation, or substance use. This is a HIGH-RISK section for complaints.]
 
 ⚠️ CRITICAL: If a section heading has NO explicit content from the transcript, DO NOT include that heading at all. Empty sections = no line, NOT 'not mentioned'",
 
   "examination": "Format as bullet points:
 - Vitals: [T, Sats %, HR, BP, RR - only those mentioned]
 - O/E: [Physical or mental state examination findings - only what was examined and stated]
-- Results: [Investigation RESULTS already available and discussed - bloods, imaging results, test results. NOT planned investigations]
-(For telephone/video consultations, note 'Remote consultation - limited examination' if no examination was possible, but include any patient-reported observations)
-NOTE: PLANNED investigations go in the Plan section under 'Ix:', not here. This section is for RESULTS only.",
+- Investigations: [Any results mentioned - bloods, imaging, etc.]
+(For telephone/video consultations, note 'Remote consultation - limited examination' if no examination was possible, but include any patient-reported observations)",
 
   "problemsDiscussed": "[1. Problem/issue raised by patient or discussed]
 [2. Second problem/issue if applicable]
@@ -137,9 +116,9 @@ NOTE: PLANNED investigations go in the Plan section under 'Ix:', not here. This 
 (ONLY list the problems, complaints, or issues that the patient mentioned or that were discussed in the consultation. DO NOT generate diagnoses, clinical impressions, differentials, or assessments. If the clinician explicitly stated a diagnosis, you may include it, but NEVER generate one yourself.)",
 
   "plan": "Format as bullet points:
-- Ix: [Investigations PLANNED for today or future - bloods, imaging, tests to be done. Do NOT duplicate results already listed in examination]
+- Ix: [Investigations planned - bloods, imaging, referrals for tests]
 - Rx: [Treatment - medications prescribed with dose/duration if stated]
-- Referral: [Use INTENT language, not completion language. Write 'Clinician advised [referral type]' or '[Referral type] discussed and agreed' rather than '[Referral] made'. Examples: 'Clinician advised urgent cardiology referral (chest pain pathway)', '2WW referral discussed and agreed', 'Physio referral to be arranged'. This protects the clinician if referral is delayed or modified.]
+- Referral: [Any referrals made]
 - F/U: [Follow-up arrangements with timeframe if stated]
 - Safety netting: [ONLY include the actual safety netting advice given - e.g., 'Return if fever persists >3 days, worsening SOB, or new symptoms. Attend A&E/call 999 if severe breathing difficulty.' - NEVER invent safety netting advice]",
 
