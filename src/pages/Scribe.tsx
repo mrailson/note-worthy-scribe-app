@@ -193,9 +193,11 @@ const Scribe = () => {
               <ScribeHistoryPanel
                 sessions={history.sessions}
                 isLoading={history.isLoading}
+                currentSession={history.currentSession}
                 onLoadSession={handleLoadSession}
                 onDeleteSession={history.deleteSession}
                 onRefresh={history.fetchSessions}
+                onClearCurrentSession={history.clearCurrentSession}
               />
             </TabsContent>
 

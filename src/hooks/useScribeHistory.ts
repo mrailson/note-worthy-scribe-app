@@ -126,6 +126,20 @@ export const useScribeHistory = () => {
 
       if (error) throw error;
 
+      // Parse SOAP notes if they exist
+      let soapNote: { S: string; O: string; A: string; P: string } | undefined;
+      if (data.soap_notes) {
+        const soapData = typeof data.soap_notes === 'string' 
+          ? JSON.parse(data.soap_notes) 
+          : data.soap_notes;
+        soapNote = {
+          S: soapData.S || '',
+          O: soapData.O || '',
+          A: soapData.A || '',
+          P: soapData.P || ''
+        };
+      }
+
       const session: ScribeSession = {
         id: data.id,
         title: data.title,
@@ -133,11 +147,14 @@ export const useScribeHistory = () => {
         summary: data.overview || '',
         actionItems: data.notes_style_2 || '',
         keyPoints: data.notes_style_3 || '',
+        soapNote,
         duration: data.duration_minutes || 0,
         wordCount: data.word_count || 0,
         createdAt: data.created_at,
         updatedAt: data.updated_at,
         status: data.status as 'recording' | 'completed' | 'archived' || 'completed',
+        sessionType: data.meeting_type,
+        consultationType: data.meeting_type === 'consultation' ? 'f2f' : undefined,
       };
 
       setCurrentSession(session);
