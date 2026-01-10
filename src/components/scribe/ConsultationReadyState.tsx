@@ -96,19 +96,6 @@ export const ConsultationReadyState = ({
             <Mic className={isMobile ? "h-6 w-6" : "h-5 w-5"} />
             Start Consultation
           </Button>
-
-          {/* Settings Link */}
-          <div className="flex justify-center">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onOpenSettings}
-              className="text-muted-foreground hover:text-foreground gap-2"
-            >
-              <Settings2 className="h-4 w-4" />
-              <span>Settings</span>
-            </Button>
-          </div>
         </CardContent>
       </Card>
 
