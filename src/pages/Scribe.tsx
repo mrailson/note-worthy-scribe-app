@@ -204,9 +204,11 @@ const Scribe = () => {
                   consultationCategory={consultation.consultationCategory}
                   patientConsent={consultation.patientConsent}
                   settings={consultation.settings}
+                  patientContext={consultation.patientContext}
                   onTypeChange={consultation.setConsultationType}
                   onCategoryChange={consultation.setConsultationCategory}
                   onConsentChange={consultation.setPatientConsent}
+                  onPatientContextChange={consultation.setPatientContext}
                   onStart={consultation.startConsultation}
                   onOpenSettings={() => setActiveTab('settings')}
                 />
@@ -288,11 +290,14 @@ const Scribe = () => {
                 transcript={consultation.transcript}
                 realtimeTranscripts={consultation.realtimeTranscripts}
                 showLiveTranscript={consultation.settings.showLiveTranscript}
+                patientContext={consultation.patientContext}
+                showPatientBanner={consultation.settings.showPatientBannerDuringRecording}
                 formatDuration={consultation.formatDuration}
                 onPause={consultation.pauseRecording}
                 onResume={consultation.resumeRecording}
                 onFinish={consultation.finishConsultation}
                 onCancel={consultation.cancelConsultation}
+                onClearPatientContext={consultation.clearPatientContext}
               />
             )}
             

@@ -76,6 +76,16 @@ export type ConsultationViewMode = 'soap' | 'narrative' | 'summary' | 'patient';
 
 export type NoteStyle = 'shorthand' | 'standard';
 
+// Patient context extracted from clinical system screenshot
+export interface PatientContext {
+  name: string;
+  nhsNumber: string;      // Validated and formatted (XXX XXX XXXX)
+  dateOfBirth: string;    // UK format (DD/MM/YYYY)
+  extractedAt: string;    // ISO timestamp
+  confidence?: number;    // AI confidence score (0-1)
+  rawExtract?: string;    // Original text extracted for debugging
+}
+
 export interface ScribeSettings {
   outputFormat: 'soap' | 'summary' | 'notes' | 'detailed';
   noteFormat: NoteFormat; // Which note format to use
@@ -90,6 +100,7 @@ export interface ScribeSettings {
   consultationViewMode: ConsultationViewMode;
   consultationDetailLevel: number;
   showNotMentioned: boolean; // Show lines containing "None mentioned", "N/A", etc.
+  showPatientBannerDuringRecording: boolean; // Show patient details during recording
 }
 
 export interface ScribeTranscriptData {
@@ -163,5 +174,6 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   showConsentReminder: true,
   consultationViewMode: 'soap',
   consultationDetailLevel: 3,
-  showNotMentioned: false // Default to hiding "None mentioned" lines
+  showNotMentioned: false, // Default to hiding "None mentioned" lines
+  showPatientBannerDuringRecording: true // Default to showing patient banner
 };
