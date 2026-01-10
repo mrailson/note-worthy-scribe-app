@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote } from "@/types/scribe";
+import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote, NoteStyle } from "@/types/scribe";
 import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight, List, Zap } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
@@ -52,6 +52,12 @@ export const ScribeHistoryPanel = ({
 
   const handleViewModeChange = useCallback((mode: ConsultationViewMode) => {
     onUpdateSetting('consultationViewMode', mode);
+  }, [onUpdateSetting]);
+
+  const handleNoteStyleChange = useCallback((style: NoteStyle) => {
+    onUpdateSetting('noteStyle', style);
+    // Also update detail level for consistency
+    onUpdateSetting('consultationDetailLevel', style === 'shorthand' ? 1 : 3);
   }, [onUpdateSetting]);
 
   const handleDetailLevelChange = useCallback(async (newLevel: number) => {
@@ -104,7 +110,31 @@ export const ScribeHistoryPanel = ({
   const getSummaryText = () => {
     if (!currentSoapNote) return '';
     const { S, O, A, P } = currentSoapNote;
-    // Extract first sentence or first 100 chars from each section
+    const isShorthand = settings.noteStyle === 'shorthand';
+    
+    if (isShorthand) {
+      // GP Shorthand format - ultra-concise, <100 words
+      const extractKey = (text: string, maxWords: number = 8) => {
+        const cleaned = text.replace(/[-•]/g, '').trim();
+        const words = cleaned.split(/\s+/).slice(0, maxWords);
+        return words.join(' ') || '-';
+      };
+      
+      // Parse sections for key info
+      const hpc = S.match(/HPC[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(S);
+      const oeFinding = O.match(/O\/E[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(O);
+      const dx = A.match(/\d+\.\s*([^•\n]+)/)?.[1]?.trim() || extractKey(A);
+      const rx = P.match(/(?:Rx|Treatment)[:\s]*([^•\n-]+)/i)?.[1]?.trim() || '';
+      const fu = P.match(/(?:F\/U|Follow)[:\s-]*([^•\n]+)/i)?.[1]?.trim() || '';
+      
+      return `Hx: ${extractKey(hpc, 12)}
+O/E: ${extractKey(oeFinding, 8)}
+Dx: ${extractKey(dx, 6)}
+${rx ? `Rx: ${extractKey(rx, 8)}` : ''}
+${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
+    }
+    
+    // Standard format - more detailed
     const getFirstPart = (text: string) => {
       const firstSentence = text.split(/[.!?]/)[0];
       return firstSentence.length > 100 ? firstSentence.substring(0, 100) + '...' : firstSentence;
@@ -159,8 +189,8 @@ export const ScribeHistoryPanel = ({
                 </span>
                 <span className="text-muted-foreground/40">|</span>
                 <NoteStyleToggle
-                  style={settings.consultationDetailLevel === 1 ? 'shorthand' : 'standard'}
-                  onStyleChange={(style) => handleDetailLevelChange(style === 'shorthand' ? 1 : 3)}
+                  style={settings.noteStyle || 'standard'}
+                  onStyleChange={handleNoteStyleChange}
                 />
                 <span className="text-muted-foreground/40">|</span>
                 <div className="flex items-center gap-0.5">
@@ -336,17 +366,38 @@ export const ScribeHistoryPanel = ({
 
                     {/* Summary View Mode */}
                     {settings.consultationViewMode === 'summary' && (
-                      <Card className="border-2 bg-gradient-to-br from-primary/5 to-transparent">
+                      <Card className={cn(
+                        "border-2 bg-gradient-to-br to-transparent",
+                        settings.noteStyle === 'shorthand' 
+                          ? "from-amber-500/10 border-amber-500/30" 
+                          : "from-primary/5"
+                      )}>
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
-                            <CardTitle className="text-base">Quick Summary</CardTitle>
+                            <div className="flex items-center gap-2">
+                              <CardTitle className="text-base">
+                                {settings.noteStyle === 'shorthand' ? 'GP Shorthand' : 'Quick Summary'}
+                              </CardTitle>
+                              {settings.noteStyle === 'shorthand' && (
+                                <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30">
+                                  &lt;100 words
+                                </Badge>
+                              )}
+                            </div>
                             <Button variant="ghost" size="sm" onClick={() => copyToClipboard(getSummaryText(), 'Summary')}>
                               <Copy className="h-3 w-3 mr-1" /> Copy
                             </Button>
                           </div>
                         </CardHeader>
                         <CardContent>
-                          <pre className="whitespace-pre-wrap font-sans text-sm leading-relaxed">{getSummaryText()}</pre>
+                          <pre className={cn(
+                            "whitespace-pre-wrap font-sans leading-relaxed",
+                            settings.noteStyle === 'shorthand' 
+                              ? "text-base font-medium tracking-tight" 
+                              : "text-sm"
+                          )}>
+                            {getSummaryText()}
+                          </pre>
                         </CardContent>
                       </Card>
                     )}
