@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Edit, Save, Copy, Download, Sparkles, ChevronDown, Check, AlertCircle, Loader2 } from "lucide-react";
+import { Edit, Save, Copy, Download, Sparkles, ChevronDown, Check, Loader2 } from "lucide-react";
 import { ReferralDraft, ReferralPriority, PRIORITY_LABELS, PRIORITY_COLOURS } from "@/types/referral";
 import { useToast } from "@/hooks/use-toast";
 import { Document, Packer, Paragraph, TextRun, HeadingLevel } from 'docx';
@@ -44,41 +44,45 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
   const { toast } = useToast();
   const [isEditing, setIsEditing] = useState(false);
   const [editedContent, setEditedContent] = useState(draft.letterContent);
-  const [clinicallyAppropriate, setClinicallyAppropriate] = useState(false);
-  const [factsAccurate, setFactsAccurate] = useState(false);
+  const [confirmed, setConfirmed] = useState(false);
 
-  // Render letter content with missing fields highlighted in yellow
+  // Render letter content with missing fields highlighted in yellow - ONLY square brackets
   const renderLetterWithHighlights = (content: string) => {
-    // Match [[MISSING: ...]] or [MISSING: ...] or common placeholder patterns
-    const missingPattern = /\[\[MISSING:\s*([^\]]+)\]\]|\[MISSING:\s*([^\]]+)\]|\[([^\]]*(?:please update|Patient Name|Date of Birth|NHS Number|Practice|Phone|Email|GMC|Name|Address|DOB)[^\]]*)\]/gi;
+    // Remove markdown ** formatting
+    const cleanedContent = content.replace(/\*\*/g, '');
     
-    const parts = content.split(missingPattern);
+    // Only match [text] patterns (square brackets with content)
+    const parts: React.ReactNode[] = [];
+    const regex = /\[([^\]]+)\]/g;
+    let lastIndex = 0;
+    let match;
     
-    return parts.map((part, index) => {
-      if (part === undefined || part === '') return null;
-      
-      // Check if this part matches a missing field pattern
-      const isMissingField = missingPattern.test(`[[MISSING: ${part}]]`) || 
-                            missingPattern.test(`[${part}]`) ||
-                            /please update|Patient Name|Date of Birth|NHS Number|GMC|MISSING/i.test(part);
-      
-      // Reset the regex lastIndex
-      missingPattern.lastIndex = 0;
-      
-      if (isMissingField && part.trim()) {
-        return (
-          <span 
-            key={index} 
-            className="bg-yellow-200 text-yellow-900 px-1 rounded font-medium"
-            title="Missing information - please complete"
-          >
-            [{part.replace(/MISSING:\s*/i, '')}]
-          </span>
-        );
+    while ((match = regex.exec(cleanedContent)) !== null) {
+      // Add text before the match
+      if (match.index > lastIndex) {
+        parts.push(<span key={`text-${lastIndex}`}>{cleanedContent.slice(lastIndex, match.index)}</span>);
       }
       
-      return <span key={index}>{part}</span>;
-    });
+      // Add the highlighted bracket content
+      parts.push(
+        <span 
+          key={`missing-${match.index}`} 
+          className="bg-yellow-200 text-yellow-900 px-1 rounded font-medium"
+          title="Missing information - please complete"
+        >
+          [{match[1]}]
+        </span>
+      );
+      
+      lastIndex = regex.lastIndex;
+    }
+    
+    // Add remaining text
+    if (lastIndex < cleanedContent.length) {
+      parts.push(<span key={`text-${lastIndex}`}>{cleanedContent.slice(lastIndex)}</span>);
+    }
+    
+    return parts.length > 0 ? parts : cleanedContent;
   };
 
   const handleSaveEdit = () => {
@@ -146,11 +150,11 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
   };
 
   const handleConfirm = () => {
-    if (!clinicallyAppropriate || !factsAccurate) {
+    if (!confirmed) {
       toast({ 
         variant: "destructive", 
         title: "Confirmation required", 
-        description: "Please confirm both checkboxes before confirming the referral." 
+        description: "Please confirm the checkbox before confirming the referral." 
       });
       return;
     }
@@ -226,47 +230,20 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
 
         {/* Footer - fixed at bottom */}
         <div className="border-t p-4 space-y-3 shrink-0 bg-background">
-          {/* Safety netting */}
-          <div className="flex items-center space-x-2">
-            <Checkbox
-              id="safety-netting"
-              checked={draft.safetyNettingGiven}
-              onCheckedChange={(checked) => onSafetyNettingChange(checked as boolean)}
-            />
-            <Label htmlFor="safety-netting" className="text-sm cursor-pointer">
-              Safety-netting advice given to patient
-            </Label>
-          </div>
-
-          {/* Confirmation checkboxes */}
+          {/* Combined confirmation checkbox */}
           {!draft.clinicianConfirmed && (
-            <div className="p-4 border rounded-lg bg-muted/30 space-y-3">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <AlertCircle className="h-4 w-4 text-amber-500" />
-                Clinician Confirmation Required
-              </div>
-              <div className="space-y-2 ml-6">
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="clinically-appropriate"
-                    checked={clinicallyAppropriate}
-                    onCheckedChange={(checked) => setClinicallyAppropriate(checked as boolean)}
-                  />
-                  <Label htmlFor="clinically-appropriate" className="text-sm cursor-pointer">
-                    I confirm this referral is clinically appropriate
-                  </Label>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <Checkbox
-                    id="facts-accurate"
-                    checked={factsAccurate}
-                    onCheckedChange={(checked) => setFactsAccurate(checked as boolean)}
-                  />
-                  <Label htmlFor="facts-accurate" className="text-sm cursor-pointer">
-                    I confirm the clinical facts are accurate
-                  </Label>
-                </div>
-              </div>
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="clinician-confirmation"
+                checked={confirmed}
+                onCheckedChange={(checked) => {
+                  setConfirmed(checked as boolean);
+                  onSafetyNettingChange(checked as boolean);
+                }}
+              />
+              <Label htmlFor="clinician-confirmation" className="text-sm cursor-pointer">
+                I confirm this referral is clinically appropriate, the clinical facts are accurate, and safety-netting advice has been given
+              </Label>
             </div>
           )}
 
@@ -336,7 +313,7 @@ export const ReferralEditorModal: React.FC<ReferralEditorModalProps> = ({
                 <Button 
                   size="sm"
                   onClick={handleConfirm}
-                  disabled={!clinicallyAppropriate || !factsAccurate}
+                  disabled={!confirmed}
                 >
                   <Check className="h-4 w-4 mr-2" />
                   Confirm
