@@ -589,7 +589,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                             <div className="flex items-center gap-2">
                               <CardTitle className="text-base flex items-center gap-2">
                                 <FileText className="h-4 w-4" />
-                                {settings.noteStyle === 'shorthand' ? 'GP Shorthand' : 'Clinical Note'}
+                                {settings.noteStyle === 'shorthand' ? 'GP Shorthand' : 'Clinical Note (AI-assisted, clinician reviewed)'}
                               </CardTitle>
                               {settings.noteStyle === 'shorthand' && (
                                 <Badge variant="outline" className="text-xs bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30">
