@@ -329,7 +329,10 @@ Kind regards,
 
 
 ${fullSignatureName}
-${practiceContactLines}`;
+${practiceContactLines}
+
+---
+Draft patient summary – clinician review required before sending.`;
   };
 
   const getFormattedLetterHTML = () => {
@@ -361,6 +364,9 @@ ${letterContent}</div>
         <span class="gp-name">${fullSignatureName}</span><br/>
         ${practiceName}<br/>
         ${practicePhone ? `Tel: ${practicePhone}` : ''}${practiceEmail ? `<br/>Email: ${practiceEmail}` : ''}
+      </div>
+      <div class="footer">
+        Draft patient summary – clinician review required before sending.
       </div>
     `;
   };
@@ -430,6 +436,13 @@ ${letterContent}</div>
             <p className="text-right text-sm text-muted-foreground mb-6">
               {currentDate}
             </p>
+
+            {/* Draft Status Banner */}
+            <div className="bg-amber-100 dark:bg-amber-900/30 border border-amber-300 dark:border-amber-700 rounded-lg px-4 py-2 mb-4 text-center">
+              <p className="text-sm font-medium text-amber-800 dark:text-amber-200">
+                Draft patient summary – clinician review required before sending
+              </p>
+            </div>
 
             {/* Letter Body */}
             <div className="font-serif space-y-4">
