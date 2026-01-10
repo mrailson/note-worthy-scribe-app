@@ -4,7 +4,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScribeSettings, ConsultationType, CONSULTATION_TYPE_LABELS, HistoryRetention, HISTORY_RETENTION_LABELS } from "@/types/scribe";
-import { Settings, Save, RotateCcw, Stethoscope, Mic, Shield, Clock } from "lucide-react";
+import { Settings, Save, RotateCcw, Stethoscope, Mic, Shield, Clock, AlertTriangle } from "lucide-react";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Phone, Video, Users } from "lucide-react";
 
@@ -211,6 +211,31 @@ export const ScribeSettingsPanel = ({
             <p className="text-xs text-muted-foreground">
               Consultations older than this will be automatically removed
             </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Development Settings */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5" />
+            Development
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="showDevDisclaimer">Show Development Disclaimer</Label>
+              <p className="text-sm text-muted-foreground">
+                Display the development system warning banner
+              </p>
+            </div>
+            <Switch
+              id="showDevDisclaimer"
+              checked={settings.showDevDisclaimer}
+              onCheckedChange={(checked) => onUpdateSetting('showDevDisclaimer', checked)}
+            />
           </div>
         </CardContent>
       </Card>
