@@ -183,7 +183,7 @@ const Scribe = () => {
           <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as ScribeTab)} className="w-full">
             <TabsList className={`grid w-full max-w-lg mx-auto grid-cols-4 mb-6 ${isMobile ? 'h-14' : ''}`}>
               <TabsTrigger value="consultation" className={`gap-1.5 touch-manipulation ${isMobile ? 'flex-col py-2' : 'gap-2'}`}>
-                <Stethoscope className={isMobile ? "h-5 w-5" : "h-5 w-5"} strokeWidth={2} />
+                <Stethoscope className={isMobile ? "h-5 w-5 shrink-0" : "h-5 w-5 shrink-0"} strokeWidth={2} />
                 <span className={isMobile ? "text-xs" : "hidden sm:inline"}>
                   {isMobile ? "Consult" : "Consultation"}
                 </span>
