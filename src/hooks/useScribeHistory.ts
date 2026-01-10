@@ -1,13 +1,50 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { showToast } from "@/utils/toastWrapper";
-import { ScribeSession } from "@/types/scribe";
-import { format } from "date-fns";
+import { ScribeSession, ConsultationCategory } from "@/types/scribe";
+import { format, isToday, isYesterday, startOfWeek, isAfter } from "date-fns";
+
+export type DateFilter = 'all' | 'today' | 'yesterday' | 'this_week';
+export type CategoryFilter = 'all' | 'general' | 'agewell' | 'social_prescriber';
+
+// Generate a quick summary from SOAP notes or overview
+const generateQuickSummary = (soapNotes: unknown, overview: string | null): string => {
+  // Try to extract from SOAP Assessment first
+  if (soapNotes) {
+    try {
+      const soap = typeof soapNotes === 'string' ? JSON.parse(soapNotes) : soapNotes;
+      if (soap?.A) {
+        // Take first sentence or first 100 chars
+        const assessment = soap.A.split('.')[0]?.trim();
+        if (assessment && assessment.length > 10) {
+          return assessment.length > 100 ? assessment.substring(0, 97) + '...' : assessment;
+        }
+      }
+    } catch {
+      // Fallback to overview
+    }
+  }
+  
+  // Fallback to overview
+  if (overview) {
+    const firstSentence = overview.split('.')[0]?.trim();
+    if (firstSentence && firstSentence.length > 10) {
+      return firstSentence.length > 100 ? firstSentence.substring(0, 97) + '...' : firstSentence;
+    }
+  }
+  
+  return '';
+};
 
 export const useScribeHistory = () => {
   const [sessions, setSessions] = useState<ScribeSession[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [currentSession, setCurrentSession] = useState<ScribeSession | null>(null);
+  
+  // Search and filter state
+  const [searchTerm, setSearchTerm] = useState('');
+  const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
 
   const fetchSessions = useCallback(async () => {
     try {
@@ -32,12 +69,15 @@ export const useScribeHistory = () => {
         summary: item.overview || '',
         actionItems: item.notes_style_2 || '',
         keyPoints: item.notes_style_3 || '',
+        quickSummary: generateQuickSummary(item.soap_notes, item.overview),
         duration: item.duration_minutes || 0,
         wordCount: item.word_count || 0,
         createdAt: item.created_at,
         updatedAt: item.updated_at,
         status: item.status as 'recording' | 'completed' | 'archived' || 'completed',
         sessionType: item.meeting_type,
+        // consultation_category might not exist in DB yet, default to 'general'
+        consultationCategory: 'general' as ConsultationCategory,
       }));
 
       setSessions(formattedSessions);
@@ -48,6 +88,40 @@ export const useScribeHistory = () => {
       setIsLoading(false);
     }
   }, []);
+
+  // Filtered sessions based on search and filters
+  const filteredSessions = useMemo(() => {
+    return sessions.filter(session => {
+      // Search filter
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase();
+        const matchesSearch = 
+          session.title.toLowerCase().includes(search) ||
+          session.transcript.toLowerCase().includes(search) ||
+          session.summary?.toLowerCase().includes(search) ||
+          session.quickSummary?.toLowerCase().includes(search);
+        if (!matchesSearch) return false;
+      }
+      
+      // Date filter
+      if (dateFilter !== 'all') {
+        const sessionDate = new Date(session.createdAt);
+        if (dateFilter === 'today' && !isToday(sessionDate)) return false;
+        if (dateFilter === 'yesterday' && !isYesterday(sessionDate)) return false;
+        if (dateFilter === 'this_week') {
+          const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+          if (!isAfter(sessionDate, weekStart)) return false;
+        }
+      }
+      
+      // Category filter
+      if (categoryFilter !== 'all') {
+        if (session.consultationCategory !== categoryFilter) return false;
+      }
+      
+      return true;
+    });
+  }, [sessions, searchTerm, dateFilter, categoryFilter]);
 
   useEffect(() => {
     fetchSessions();
@@ -195,6 +269,7 @@ export const useScribeHistory = () => {
 
   return {
     sessions,
+    filteredSessions,
     isLoading,
     currentSession,
     fetchSessions,
@@ -203,5 +278,12 @@ export const useScribeHistory = () => {
     deleteSession,
     clearCurrentSession,
     setCurrentSession,
+    // Search and filter
+    searchTerm,
+    setSearchTerm,
+    dateFilter,
+    setDateFilter,
+    categoryFilter,
+    setCategoryFilter,
   };
 };
