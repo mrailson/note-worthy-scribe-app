@@ -198,6 +198,8 @@ const Scribe = () => {
                 onDeleteSession={history.deleteSession}
                 onRefresh={history.fetchSessions}
                 onClearCurrentSession={history.clearCurrentSession}
+                settings={settingsHook.settings}
+                onUpdateSetting={settingsHook.updateSetting}
               />
             </TabsContent>
 

@@ -48,6 +48,8 @@ export interface ScribeSession {
   consultationType?: ConsultationType;
 }
 
+export type ConsultationViewMode = 'soap' | 'narrative' | 'summary';
+
 export interface ScribeSettings {
   outputFormat: 'soap' | 'summary' | 'notes' | 'detailed';
   emrFormat: 'emis' | 'systmone';
@@ -57,6 +59,8 @@ export interface ScribeSettings {
   tickerEnabled: boolean;
   defaultConsultationType: ConsultationType;
   showConsentReminder: boolean;
+  consultationViewMode: ConsultationViewMode;
+  consultationDetailLevel: number;
 }
 
 export interface ScribeTranscriptData {
@@ -97,5 +101,7 @@ export const DEFAULT_SCRIBE_SETTINGS: ScribeSettings = {
   showLiveTranscript: true,
   tickerEnabled: false,
   defaultConsultationType: 'f2f',
-  showConsentReminder: true
+  showConsentReminder: true,
+  consultationViewMode: 'soap',
+  consultationDetailLevel: 3
 };
