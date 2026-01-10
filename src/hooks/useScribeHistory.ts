@@ -38,8 +38,8 @@ const generateQuickSummary = (soapNotes: unknown, overview: string | null, trans
             if (followUp) planSuffix = ` F/U ${followUp[1]}.`;
           }
           
-          const summary = firstSentence.length > 85 
-            ? firstSentence.substring(0, 82) + '...' 
+          const summary = firstSentence.length > 110 
+            ? firstSentence.substring(0, 107) + '...' 
             : firstSentence;
           return summary + planSuffix;
         }
@@ -59,7 +59,7 @@ const generateQuickSummary = (soapNotes: unknown, overview: string | null, trans
       .trim();
     const firstSentence = sanitised.split('.')[0]?.trim();
     if (firstSentence && firstSentence.length > 10) {
-      return firstSentence.length > 100 ? firstSentence.substring(0, 97) + '...' : firstSentence;
+      return firstSentence.length > 125 ? firstSentence.substring(0, 122) + '...' : firstSentence;
     }
   }
   
@@ -67,7 +67,7 @@ const generateQuickSummary = (soapNotes: unknown, overview: string | null, trans
   if (transcript) {
     const firstLine = transcript.split(/[.!?]/)[0]?.trim();
     if (firstLine && firstLine.length > 10) {
-      return firstLine.length > 100 ? firstLine.substring(0, 97) + '...' : firstLine;
+      return firstLine.length > 125 ? firstLine.substring(0, 122) + '...' : firstLine;
     }
   }
   
