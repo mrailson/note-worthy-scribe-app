@@ -90,17 +90,6 @@ MANDATORY SPELLING - COPY THESE EXACTLY:
 - "Forum" (NOT Fonum/Fourm)
 `;
 
-// Instructions to minimise text and maximise visuals
-const TEXT_MINIMISATION_INSTRUCTIONS = `
-TEXT MINIMISATION - CRITICAL RULES:
-- Use ICONS, SYMBOLS, and VISUAL ELEMENTS instead of words wherever possible
-- Maximum 3-4 words per label or heading
-- Use arrows, connectors, and visual flow instead of explanatory text
-- Numbers and statistics can be shown - but keep labels short
-- If text is absolutely essential, COPY EXACTLY from the source - never paraphrase
-- Use visual metaphors (icons, charts, symbols, colours) to convey meaning
-- PREFER showing relationships visually rather than describing them in text
-`;
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -212,19 +201,17 @@ Content guidelines:
 SOURCE CONTENT TO VISUALISE:
 ${documentContent.substring(0, 5000)}
 
-${TEXT_MINIMISATION_INSTRUCTIONS}
+TEXT GUIDELINES:
+- Text should be clear and readable with professional typography
+- Use proper spelling - refer to the spelling reference below
+- Good visual hierarchy with headings, subheadings and body text
 
 ${SPELLING_REFERENCE}
 ${keywordReference}
 
 INFOGRAPHIC DESIGN REQUIREMENTS:
 - Create an ACTUAL visual infographic image, NOT a text description
-- PRIORITISE icons, symbols, and graphics over text
-- Extract only 4-6 most important points - show them VISUALLY with icons
-- Use colour-coding and visual hierarchy instead of lengthy labels
 - Professional colour scheme (blues, teals, clean modern palette)
-- If you must use text: maximum 3 words per element, copied exactly from source
-- Use arrows, connectors, or visual flow to show relationships
 - High contrast for accessibility and readability
 
 Content guidelines:
@@ -236,17 +223,15 @@ Content guidelines:
 
 ${prompt}
 
-${TEXT_MINIMISATION_INSTRUCTIONS}
+TEXT GUIDELINES:
+- Text should be clear and readable with professional typography
+- Use proper spelling - refer to the spelling reference below
 
 ${SPELLING_REFERENCE}
 
 INFOGRAPHIC DESIGN REQUIREMENTS:
 - Create an ACTUAL visual infographic image, NOT a text description
-- PRIORITISE icons, symbols, and graphics over text
-- Display 4-6 key points as visual elements with icons
 - Professional colour scheme (blues, teals, clean modern palette)
-- Use visual hierarchy and colour-coding to emphasise information
-- If text is needed: maximum 3 words per element
 - High contrast for accessibility
 
 Content guidelines:
@@ -267,17 +252,16 @@ ${documentContent.substring(0, 5000)}
 USER REQUEST:
 ${prompt}
 
-${TEXT_MINIMISATION_INSTRUCTIONS}
+TEXT GUIDELINES:
+- Text should be clear and readable with professional typography
+- Use proper spelling - refer to the spelling reference below
 
 ${SPELLING_REFERENCE}
 ${keywordReference}
 
 DESIGN REQUIREMENTS:
 - Create an ACTUAL visual ${requestType} image, NOT a text description
-- PRIORITISE visual elements (icons, shapes, arrows) over text
-- Extract key information and show it VISUALLY
 - Professional colour scheme (blues, teals, clean modern palette)
-- If text is needed: maximum 3-4 words per element, copied exactly from source
 - High contrast for accessibility and readability
 
 Content guidelines:
@@ -313,7 +297,7 @@ Content guidelines:
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        model: 'google/gemini-2.5-flash-image-preview',
+        model: 'google/gemini-3-pro-image-preview',
         messages: [
           { role: 'user', content: imagePrompt }
         ],
