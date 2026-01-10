@@ -147,6 +147,9 @@ CRITICAL INSTRUCTIONS:
 - DO NOT include any header with practice details, patient details, or dates
 - Start directly with the consultation type and presenting complaint
 - Only include section headers (like "- FH:", "- SH:", "- Vital signs:") if there is actual content to put under them
+- DH (Drug History) MUST ALWAYS appear in the History section as the FINAL item - NEVER in Examination
+- Do NOT infer diagnoses from medications (e.g., seeing Ramipril does NOT mean adding "hypertension" to PMH)
+- Transcribe medication content exactly as stated - do not summarise or modify
 
 TEMPLATE STRUCTURE TO FOLLOW:
 
@@ -157,10 +160,11 @@ ${formattedConsultationType} [specify whether anyone else is present e.g. "seen 
 - [ICE: Patient's Ideas, Concerns and Expectations]
 - [Presence or absence of red flag symptoms relevant to the presenting complaint]
 - [Relevant risk factors]
-- [PMH: / PSH: - include the past medical history or surgical history (if applicable)]
-- [DH: Drug history/medications (if mentioned)]. [Allergies: (only include if explicitly mentioned in the transcript, otherwise leave blank)]
+- [PMH: / PSH: - include the past medical history or surgical history (if applicable). Do NOT infer diagnoses from medications]
+- [Allergies: (only include if explicitly mentioned in the transcript, otherwise leave blank)]
 - [FH: Relevant family history (if applicable)]
 - [SH: Social history i.e. lives with, occupation, smoking/alcohol/drugs, recent travel, carers/package of care (if applicable)]
+- [DH: FINAL ITEM - Drug history/medications exactly as stated. Do NOT infer diagnoses from medications. Do NOT summarise or modify]
 
 **Examination:**
 - [Vital signs listed, eg. T, Sats %, HR, BP, RR, (as applicable)]
@@ -223,6 +227,9 @@ CRITICAL INSTRUCTIONS:
 - DO NOT include any header with practice details, patient details, or dates
 - Start directly with the consultation type and presenting complaint
 - Only include section headers (like "- FH:", "- SH:", "- Vital signs:") if there is actual content to put under them
+- DH (Drug History) MUST ALWAYS appear in the History section as the FINAL item - NEVER in Examination
+- Do NOT infer diagnoses from medications (e.g., seeing Ramipril does NOT mean adding "hypertension" to PMH)
+- Transcribe medication content exactly as stated - do not summarise or modify
 
 Generate a detailed consultation note following the EXACT HeidiHealth template:
 
@@ -233,10 +240,11 @@ ${formattedConsultationType} [specify whether anyone else is present e.g. "seen 
 - [ICE: Patient's Ideas, Concerns and Expectations]
 - [Presence or absence of red flag symptoms relevant to the presenting complaint]
 - [Relevant risk factors]
-- [PMH: / PSH: - include the past medical history or surgical history (if applicable)]
-- [DH: Drug history/medications (if mentioned)]. [Allergies: (only include if explicitly mentioned in the transcript, otherwise leave blank)]
+- [PMH: / PSH: - include the past medical history or surgical history (if applicable). Do NOT infer diagnoses from medications]
+- [Allergies: (only include if explicitly mentioned in the transcript, otherwise leave blank)]
 - [FH: Relevant family history (if applicable)]
 - [SH: Social history i.e. lives with, occupation, smoking/alcohol/drugs, recent travel, carers/package of care (if applicable)]
+- [DH: FINAL ITEM - Drug history/medications exactly as stated. Do NOT infer diagnoses from medications. Do NOT summarise or modify]
 
 **Examination:**
 - [Vital signs listed, eg. T, Sats %, HR, BP, RR, (as applicable)]
