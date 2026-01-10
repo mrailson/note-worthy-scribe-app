@@ -69,6 +69,28 @@ export const ScribeHistoryPanel = ({
     onUpdateSetting('consultationDetailLevel', style === 'shorthand' ? 1 : 3);
   }, [onUpdateSetting]);
 
+  const handleShowNotMentionedChange = useCallback((show: boolean) => {
+    onUpdateSetting('showNotMentioned', show);
+  }, [onUpdateSetting]);
+
+  // Filter out "None mentioned", "N/A", "Nil", etc. lines when toggle is off
+  const filterNotMentioned = useCallback((text: string): string => {
+    if (settings.showNotMentioned) return text;
+    
+    const notMentionedPatterns = /\b(none\s*mentioned|not\s*mentioned|n\/a|nil|not\s*applicable|no\s*significant|not\s*recorded|not\s*documented)\b/i;
+    
+    return text
+      .split('\n')
+      .filter(line => {
+        const trimmed = line.trim();
+        // Keep empty lines and lines that don't match the patterns
+        if (!trimmed) return true;
+        return !notMentionedPatterns.test(trimmed);
+      })
+      .join('\n')
+      .replace(/\n{3,}/g, '\n\n'); // Clean up multiple empty lines
+  }, [settings.showNotMentioned]);
+
   const handleDetailLevelChange = useCallback(async (newLevel: number) => {
     onUpdateSetting('consultationDetailLevel', newLevel);
     
@@ -110,10 +132,16 @@ export const ScribeHistoryPanel = ({
     onClearCurrentSession();
   }, [onClearCurrentSession]);
 
-  const getNarrativeText = () => {
+  const getNarrativeText = useCallback(() => {
     if (!currentSoapNote) return '';
     const { S, O, A, P } = currentSoapNote;
     const isShorthand = settings.noteStyle === 'shorthand';
+    
+    // Apply filter to each section first
+    const filteredS = filterNotMentioned(S);
+    const filteredO = filterNotMentioned(O);
+    const filteredA = filterNotMentioned(A);
+    const filteredP = filterNotMentioned(P);
     
     if (isShorthand) {
       // GP Shorthand narrative - concise clinical note
@@ -123,25 +151,31 @@ export const ScribeHistoryPanel = ({
         return words.join(' ') || '-';
       };
       
-      const hpc = S.match(/HPC[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(S, 20);
-      const oeFinding = O.match(/O\/E[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(O, 12);
-      const dx = A.match(/\d+\.\s*([^•\n]+)/)?.[1]?.trim() || extractKey(A, 10);
-      const rx = P.match(/(?:Rx|Treatment)[:\s]*([^•\n-]+)/i)?.[1]?.trim() || '';
-      const fu = P.match(/(?:F\/U|Follow)[:\s-]*([^•\n]+)/i)?.[1]?.trim() || '';
-      const safety = P.match(/(?:Safety|S\/N)[:\s-]*([^•\n]+)/i)?.[1]?.trim() || '';
+      const hpc = filteredS.match(/HPC[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(filteredS, 20);
+      const oeFinding = filteredO.match(/O\/E[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(filteredO, 12);
+      const dx = filteredA.match(/\d+\.\s*([^•\n]+)/)?.[1]?.trim() || extractKey(filteredA, 10);
+      const rx = filteredP.match(/(?:Rx|Treatment)[:\s]*([^•\n-]+)/i)?.[1]?.trim() || '';
+      const fu = filteredP.match(/(?:F\/U|Follow)[:\s-]*([^•\n]+)/i)?.[1]?.trim() || '';
+      const safety = filteredP.match(/(?:Safety|S\/N)[:\s-]*([^•\n]+)/i)?.[1]?.trim() || '';
       
       return `Hx: ${extractKey(hpc, 20)}
 O/E: ${extractKey(oeFinding, 12)}
 Dx: ${extractKey(dx, 10)}${rx ? `\nRx: ${extractKey(rx, 12)}` : ''}${fu ? `\nF/U: ${extractKey(fu, 8)}` : ''}${safety ? `\nS/N: ${extractKey(safety, 10)}` : ''}`.trim();
     }
     
-    return `${S}\n\n${O}\n\n${A}\n\n${P}`;
-  };
+    return `${filteredS}\n\n${filteredO}\n\n${filteredA}\n\n${filteredP}`;
+  }, [currentSoapNote, settings.noteStyle, filterNotMentioned]);
 
-  const getSummaryText = () => {
+  const getSummaryText = useCallback(() => {
     if (!currentSoapNote) return '';
     const { S, O, A, P } = currentSoapNote;
     const isShorthand = settings.noteStyle === 'shorthand';
+    
+    // Apply filter to each section first
+    const filteredS = filterNotMentioned(S);
+    const filteredO = filterNotMentioned(O);
+    const filteredA = filterNotMentioned(A);
+    const filteredP = filterNotMentioned(P);
     
     if (isShorthand) {
       // GP Shorthand format - ultra-concise, <100 words
@@ -152,11 +186,11 @@ Dx: ${extractKey(dx, 10)}${rx ? `\nRx: ${extractKey(rx, 12)}` : ''}${fu ? `\nF/U
       };
       
       // Parse sections for key info
-      const hpc = S.match(/HPC[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(S);
-      const oeFinding = O.match(/O\/E[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(O);
-      const dx = A.match(/\d+\.\s*([^•\n]+)/)?.[1]?.trim() || extractKey(A);
-      const rx = P.match(/(?:Rx|Treatment)[:\s]*([^•\n-]+)/i)?.[1]?.trim() || '';
-      const fu = P.match(/(?:F\/U|Follow)[:\s-]*([^•\n]+)/i)?.[1]?.trim() || '';
+      const hpc = filteredS.match(/HPC[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(filteredS);
+      const oeFinding = filteredO.match(/O\/E[:\s]*([^•\n-]+)/i)?.[1]?.trim() || extractKey(filteredO);
+      const dx = filteredA.match(/\d+\.\s*([^•\n]+)/)?.[1]?.trim() || extractKey(filteredA);
+      const rx = filteredP.match(/(?:Rx|Treatment)[:\s]*([^•\n-]+)/i)?.[1]?.trim() || '';
+      const fu = filteredP.match(/(?:F\/U|Follow)[:\s-]*([^•\n]+)/i)?.[1]?.trim() || '';
       
       return `Hx: ${extractKey(hpc, 12)}
 O/E: ${extractKey(oeFinding, 8)}
@@ -170,8 +204,8 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
       const firstSentence = text.split(/[.!?]/)[0];
       return firstSentence.length > 100 ? firstSentence.substring(0, 100) + '...' : firstSentence;
     };
-    return `• Hx: ${getFirstPart(S)}\n• Ex: ${getFirstPart(O)}\n• Dx: ${getFirstPart(A)}\n• Rx: ${getFirstPart(P)}`;
-  };
+    return `• Hx: ${getFirstPart(filteredS)}\n• Ex: ${getFirstPart(filteredO)}\n• Dx: ${getFirstPart(filteredA)}\n• Rx: ${getFirstPart(filteredP)}`;
+  }, [currentSoapNote, settings.noteStyle, filterNotMentioned]);
 
   if (isLoading) {
     return (
@@ -307,9 +341,11 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                   onOpenChange={setDisplaySettingsOpen}
                   viewMode={settings.consultationViewMode}
                   detailLevel={settings.consultationDetailLevel}
+                  showNotMentioned={settings.showNotMentioned}
                   isRegenerating={isRegenerating}
                   onViewModeChange={handleViewModeChange}
                   onDetailLevelChange={handleDetailLevelChange}
+                  onShowNotMentionedChange={handleShowNotMentionedChange}
                 />
 
                 {/* SOAP Notes */}
@@ -331,7 +367,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                             </Button>
                           </div>
                           <AccordionContent className="pt-0 pb-3">
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.S}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{filterNotMentioned(currentSoapNote.S)}</p>
                           </AccordionContent>
                         </AccordionItem>
                         
@@ -348,7 +384,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                             </Button>
                           </div>
                           <AccordionContent className="pt-0 pb-3">
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.O}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{filterNotMentioned(currentSoapNote.O)}</p>
                           </AccordionContent>
                         </AccordionItem>
                         
@@ -365,7 +401,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                             </Button>
                           </div>
                           <AccordionContent className="pt-0 pb-3">
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.A}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{filterNotMentioned(currentSoapNote.A)}</p>
                           </AccordionContent>
                         </AccordionItem>
                         
@@ -382,7 +418,7 @@ ${fu ? `F/U: ${extractKey(fu, 6)}` : ''}`.trim().replace(/\n{2,}/g, '\n');
                             </Button>
                           </div>
                           <AccordionContent className="pt-0 pb-3">
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.P}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{filterNotMentioned(currentSoapNote.P)}</p>
                           </AccordionContent>
                         </AccordionItem>
                       </Accordion>
