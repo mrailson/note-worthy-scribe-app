@@ -97,6 +97,7 @@ import PublicBPCalculator from "./pages/PublicBPCalculator";
 import QuickRecord from "./pages/QuickRecord";
 import GPTranslationService from "./pages/GPTranslationService";
 import AuthConfirm from "./pages/AuthConfirm";
+import Scribe from "./pages/Scribe";
 import { LGUploadQueueProvider } from "./contexts/LGUploadQueueContext";
 
 const App = () => {
