@@ -34,6 +34,47 @@ interface PatientLetterViewProps {
   onLetterGenerated?: (letter: string) => void;
 }
 
+const normaliseNewlines = (text: string) =>
+  text.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
+
+/**
+ * The edge function returns a full email-style output (greeting + body + closing + disclaimers).
+ * For the patient letter view we only want the main body; we add our own header/signature.
+ */
+const extractPatientLetterBody = (raw: string): string => {
+  let working = normaliseNewlines(String(raw ?? "")).trim();
+  if (!working) return "";
+
+  // Strip a leading subject line if present
+  working = working.replace(/^Subject:.*(\n+|$)/i, "").trim();
+
+  // Start after greeting if present (we render our own “Dear Patient,”)
+  const greetingMatch = working.match(/^Dear\b.*$/im);
+  if (greetingMatch?.index !== undefined) {
+    const start = greetingMatch.index + greetingMatch[0].length;
+    working = working.slice(start).trim();
+  }
+
+  // Cut anything from the first “closing/footer” marker onwards
+  const cutMarkers: RegExp[] = [
+    /^Kind regards,\s*$/im,
+    /^Yours sincerely,\s*$/im,
+    /^Yours faithfully,\s*$/im,
+    /^Practice Contact Details:\s*$/im,
+    /^This email was generated on .*$/im,
+    /^---\s*$/m,
+    /^Please note:\s*This email contains confidential medical information.*$/im,
+  ];
+
+  let cutIndex = working.length;
+  for (const re of cutMarkers) {
+    const match = re.exec(working);
+    if (match?.index !== undefined) cutIndex = Math.min(cutIndex, match.index);
+  }
+
+  return working.slice(0, cutIndex).trim();
+};
+
 export const PatientLetterView = ({
   transcript,
   consultationType = 'f2f',
@@ -41,7 +82,7 @@ export const PatientLetterView = ({
   letterContent: initialLetterContent,
   onLetterGenerated
 }: PatientLetterViewProps) => {
-  const [letterContent, setLetterContent] = useState(initialLetterContent || '');
+  const [letterContent, setLetterContent] = useState(() => extractPatientLetterBody(initialLetterContent || ''));
   const [isLoading, setIsLoading] = useState(false);
   const [gpDetails, setGpDetails] = useState<GPDetails | null>(null);
   const [practiceDetails, setPracticeDetails] = useState<PracticeDetails | null>(null);
@@ -138,10 +179,11 @@ export const PatientLetterView = ({
       if (error) throw error;
 
       if (data?.emailContent) {
-        // Extract just the body content (between salutation and closing)
-        const content = data.emailContent;
-        setLetterContent(content);
-        onLetterGenerated?.(content);
+        const raw = String(data.emailContent ?? '');
+        const cleaned = extractPatientLetterBody(raw) || raw.trim();
+
+        setLetterContent(cleaned);
+        onLetterGenerated?.(cleaned);
         toast.success('Patient letter generated');
       }
     } catch (error) {
