@@ -81,12 +81,10 @@ const Scribe = () => {
     fetchPracticeDetails();
   }, [user]);
 
-  // Handle loading session from history
+  // Handle loading session from history - stays on history tab to view session details
   const handleLoadSession = async (sessionId: string) => {
-    const session = await history.loadSession(sessionId);
-    if (session) {
-      setActiveTab("consultation");
-    }
+    await history.loadSession(sessionId);
+    // Session is viewed within the history panel itself, no tab switch needed
   };
 
   // Export functions
