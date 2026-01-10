@@ -329,17 +329,19 @@ export class iPhoneWhisperTranscriber {
     if (newChunks.length === 0) return;
 
     try {
-      // Build valid M4A: always prepend header + new chunks
-      // This ensures all audio blobs sent to Whisper have proper container structure
+      // Build valid M4A: always prepend header + ALL accumulated chunks
+      // iOS M4A format requires the header for proper decoding
+      // We'll extract only the NEW text by comparing with previously transcribed content
+      const allChunks = this.fullRecordingChunks;
       const chunksToProcess = this.headerChunk 
-        ? [this.headerChunk, ...newChunks.filter(c => c !== this.headerChunk)]
-        : newChunks;
+        ? [this.headerChunk, ...allChunks.filter(c => c !== this.headerChunk)]
+        : allChunks;
       
       const audioBlob = new Blob(chunksToProcess, { 
         type: this.selectedMimeType || 'audio/mp4' 
       });
       
-      console.log(`📏 New audio blob: ${audioBlob.size} bytes from ${newChunks.length} new chunks`);
+      console.log(`📏 Full audio blob: ${audioBlob.size} bytes from ${allChunks.length} total chunks (${newChunks.length} new)`);
 
       // Convert to base64
       const arrayBuffer = await audioBlob.arrayBuffer();
@@ -358,7 +360,7 @@ export class iPhoneWhisperTranscriber {
       }
       const base64Audio = btoa(binary);
 
-      console.log('📡 Sending NEW audio segment to Whisper API...');
+      console.log('📡 Sending audio to Whisper API...');
 
       // Send to Whisper
       const { data, error } = await supabase.functions.invoke('speech-to-text', {
@@ -378,21 +380,28 @@ export class iPhoneWhisperTranscriber {
         return;
       }
 
-      const transcribedText = data.text.trim();
+      const fullTranscribedText = data.text.trim();
       
       // Check for hallucination
-      if (this.isHallucination(transcribedText)) {
-        console.warn('⚠️ Hallucination detected, skipping chunk:', transcribedText.substring(0, 100));
+      if (this.isHallucination(fullTranscribedText)) {
+        console.warn('⚠️ Hallucination detected, skipping chunk:', fullTranscribedText.substring(0, 100));
         this.lastProcessedChunkIndex = this.fullRecordingChunks.length;
         return;
       }
       
-      if (transcribedText) {
-        console.log(`📝 Transcription (${transcribedText.split(/\s+/).length} words): "${transcribedText.substring(0, 80)}..."`);
+      // Extract only NEW text by removing what we've already transcribed
+      const newText = this.extractNewText(fullTranscribedText, this.finalTranscript);
+      
+      if (newText) {
+        console.log(`📝 NEW text (${newText.split(/\s+/).length} words): "${newText.substring(0, 80)}${newText.length > 80 ? '...' : ''}"`);
+        console.log(`📝 Full transcript now: ${fullTranscribedText.split(/\s+/).length} words`);
         
-        // Emit to UI
+        // Update our running transcript
+        this.finalTranscript = fullTranscribedText;
+        
+        // Emit ONLY the new text to UI
         const transcriptData: TranscriptData = {
-          text: transcribedText,
+          text: newText,
           is_final: true,
           confidence: data.confidence || 0.9,
           speaker: 'Speaker'
@@ -400,8 +409,8 @@ export class iPhoneWhisperTranscriber {
         
         this.onTranscription(transcriptData);
         
-        // Update word count
-        const newWordCount = transcribedText.split(/\s+/).filter(Boolean).length;
+        // Update word count (only for new words)
+        const newWordCount = newText.split(/\s+/).filter(Boolean).length;
         this.totalWordCount += newWordCount;
         console.log(`📊 Word count: +${newWordCount} words (total: ${this.totalWordCount})`);
         
@@ -412,59 +421,34 @@ export class iPhoneWhisperTranscriber {
           const user = (await supabase.auth.getUser()).data.user?.id;
           
           if (this.meetingId && this.sessionId && user) {
-            // Create synthetic segment if missing
-            if (!data.segments || data.segments.length === 0) {
-              console.log('⚠️ No segments from API, creating synthetic segment');
-              data.segments = [{
-                start: this.lastSegmentEndTime,
-                end: this.lastSegmentEndTime + 1,
-                text: transcribedText
-              }];
-            }
+            // Create synthetic segment for the new text only
+            const newSegments = [{
+              start: this.lastSegmentEndTime,
+              end: this.lastSegmentEndTime + (newChunks.length * 5), // Approximate based on chunks
+              text: newText
+            }];
             
-            console.log(`📦 Received ${data.segments.length} segments from API`);
+            console.log(`📦 Storing new segment: ${newText.length} chars`);
             
-            // Calculate time offset
-            const timeOffset = this.totalProcessedDuration;
-            console.log(`⏰ Applying time offset: ${timeOffset.toFixed(2)}s to ${data.segments.length} segments`);
+            const { error: dbError } = await supabase
+              .from('meeting_transcription_chunks')
+              .insert({
+                meeting_id: this.meetingId,
+                session_id: this.sessionId,
+                chunk_number: currentChunkNumber,
+                transcription_text: JSON.stringify(newSegments),
+                confidence: transcriptData.confidence,
+                is_final: true,
+                user_id: user,
+                merge_rejection_reason: null
+              });
             
-            // Apply time offset to all segments
-            const offsetSegments = data.segments.map((seg: any) => ({
-              start: seg.start + timeOffset,
-              end: seg.end + timeOffset,
-              text: seg.text.trim()
-            }));
-            
-            // Filter segments that are after our last stored end time
-            const newSegments = offsetSegments
-              .filter((seg: any) => this.lastSegmentEndTime === 0 || seg.end > this.lastSegmentEndTime);
-            
-            console.log(`⏱️ Chunk ${currentChunkNumber} - offset: ${timeOffset.toFixed(2)}s, lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s, filtered segments: ${newSegments.length}/${data.segments.length}`);
-            
-            if (newSegments.length > 0) {
-              const { error: dbError } = await supabase
-                .from('meeting_transcription_chunks')
-                .insert({
-                  meeting_id: this.meetingId,
-                  session_id: this.sessionId,
-                  chunk_number: currentChunkNumber,
-                  transcription_text: JSON.stringify(newSegments),
-                  confidence: transcriptData.confidence,
-                  is_final: true,
-                  user_id: user,
-                  merge_rejection_reason: null
-                });
-              
-              if (dbError) {
-                console.warn('⚠️ Failed to store segments:', dbError);
-              } else {
-                // Update last end time to the latest segment
-                this.lastSegmentEndTime = Math.max(...newSegments.map((s: any) => s.end));
-                // Update total processed duration
-                const chunkDuration = Math.max(...offsetSegments.map((s: any) => s.end)) - timeOffset;
-                this.totalProcessedDuration += chunkDuration;
-                console.log(`💾 Stored ${newSegments.length} segments in chunk #${currentChunkNumber}, lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s, totalDuration: ${this.totalProcessedDuration.toFixed(2)}s`);
-              }
+            if (dbError) {
+              console.warn('⚠️ Failed to store segments:', dbError);
+            } else {
+              // Update last end time
+              this.lastSegmentEndTime += newChunks.length * 5;
+              console.log(`💾 Stored segment in chunk #${currentChunkNumber}, lastEndTime: ${this.lastSegmentEndTime.toFixed(2)}s`);
             }
           } else {
             console.warn('ℹ️ Skipping DB store: missing meetingId/sessionId/user');
@@ -472,24 +456,88 @@ export class iPhoneWhisperTranscriber {
         } catch (e) {
           console.warn('⚠️ Error while saving segments to DB:', e);
         }
+      } else {
+        console.log('ℹ️ No new text detected in this chunk');
       }
       
-      // Mark these chunks as processed
-      const processedChunks = this.fullRecordingChunks.slice(0, this.fullRecordingChunks.length);
+      // Mark these chunks as processed (but don't clear - we need them for subsequent full transcriptions)
       this.lastProcessedChunkIndex = this.fullRecordingChunks.length;
       
-      // Upload and clear processed chunks to free memory
-      await this.uploadAndClearProcessedChunks(processedChunks);
-      const clearedCount = this.fullRecordingChunks.length;
-      this.fullRecordingChunks = []; // Clear memory (header preserved separately)
-      this.lastProcessedChunkIndex = 0; // Reset index since array is now empty
+      // Upload backup periodically
+      if (this.fullRecordingChunks.length > 0 && this.chunkCounter % 3 === 0) {
+        await this.uploadAndClearProcessedChunks([...this.fullRecordingChunks]);
+      }
       
-      console.log(`✅ Processed ${newChunks.length} chunks, cleared ${clearedCount} from memory (header preserved)`);
+      console.log(`✅ Processed ${newChunks.length} new chunks, total accumulated: ${this.fullRecordingChunks.length}`);
       
     } catch (error) {
       console.error('❌ processNewAudioChunks error:', error);
       this.onError('Failed to process audio');
     }
+  }
+  
+  /**
+   * Extract only the NEW text from the full transcription by comparing with previous transcript
+   * This handles iOS M4A format where we must send the full audio each time
+   */
+  private extractNewText(fullText: string, previousText: string): string {
+    if (!previousText) return fullText;
+    if (!fullText) return '';
+    
+    const normalise = (s: string) => s.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+    
+    const fullNorm = normalise(fullText);
+    const prevNorm = normalise(previousText);
+    
+    // If the full text starts with the previous text, extract the delta
+    if (fullNorm.startsWith(prevNorm)) {
+      // Find where the new content starts in the original (non-normalised) text
+      const prevWords = previousText.split(/\s+/).filter(Boolean);
+      const fullWords = fullText.split(/\s+/).filter(Boolean);
+      
+      // Find the point where new content begins
+      let matchEnd = 0;
+      for (let i = 0; i < Math.min(prevWords.length, fullWords.length); i++) {
+        if (normalise(prevWords[i]) === normalise(fullWords[i])) {
+          matchEnd = i + 1;
+        } else {
+          break;
+        }
+      }
+      
+      if (matchEnd > 0 && matchEnd < fullWords.length) {
+        return fullWords.slice(matchEnd).join(' ');
+      }
+    }
+    
+    // Fuzzy matching: find the longest suffix of previous that appears in full
+    const prevWords = previousText.split(/\s+/).filter(Boolean);
+    const fullWords = fullText.split(/\s+/).filter(Boolean);
+    
+    // Look for overlap point (where previous text ends in full text)
+    for (let overlapLen = Math.min(prevWords.length, 20); overlapLen >= 3; overlapLen--) {
+      const suffix = prevWords.slice(-overlapLen).map(w => normalise(w)).join(' ');
+      
+      for (let i = 0; i <= fullWords.length - overlapLen; i++) {
+        const segment = fullWords.slice(i, i + overlapLen).map(w => normalise(w)).join(' ');
+        if (segment === suffix) {
+          // Found the overlap point - return everything after
+          const newContent = fullWords.slice(i + overlapLen).join(' ');
+          if (newContent) {
+            console.log(`🔍 Found overlap at word ${i + overlapLen}, extracting ${fullWords.length - i - overlapLen} new words`);
+            return newContent;
+          }
+        }
+      }
+    }
+    
+    // Fallback: if full text is longer, assume it's all new (edge case)
+    if (fullWords.length > prevWords.length + 3) {
+      console.log('⚠️ Could not find overlap, returning excess words as new');
+      return fullWords.slice(prevWords.length).join(' ');
+    }
+    
+    return '';
   }
 
   private isHallucination(text: string): boolean {
@@ -659,6 +707,8 @@ export class iPhoneWhisperTranscriber {
     this.audioChunks = [];
     this.fullRecordingChunks = []; // Clear any remaining chunks
     this.headerChunk = null; // Clear header reference
+    this.finalTranscript = ''; // Reset for next session
+    this.lastProcessedChunkIndex = 0;
 
     console.log(`✅ iPhone transcription stopped. ${this.backupChunkCounter} backup chunks uploaded during recording.`);
     this.onStatusChange('Stopped');
