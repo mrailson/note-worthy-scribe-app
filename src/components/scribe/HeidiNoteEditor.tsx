@@ -52,8 +52,8 @@ const sections: SectionConfig[] = [
   },
   { 
     key: 'impression', 
-    title: 'Impression', 
-    subtitle: 'Assessment & Differentials',
+    title: 'Problems Discussed', 
+    subtitle: 'Issues raised by patient',
     icon: Brain,
     color: 'border-l-amber-500',
     bgColor: 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'

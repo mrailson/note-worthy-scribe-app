@@ -15,7 +15,7 @@ export interface HeidiNote {
   consultationHeader: string; // [F2F/T/C/Video] [Seen alone/with...] [Reason for visit]
   history: string;            // HPC, ICE, red flags, risk factors, PMH, DH, allergies, FH, SH
   examination: string;        // Vitals, physical/mental exam, investigations
-  impression: string;         // Issues with assessments and differentials
+  impression: string;         // Problems/issues discussed (NOT diagnoses - transcription only)
   plan: string;               // Investigations, treatment, referrals, follow-up, safety netting
 }
 
