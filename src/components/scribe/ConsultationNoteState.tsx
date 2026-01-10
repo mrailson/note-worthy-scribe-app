@@ -42,6 +42,9 @@ interface ConsultationNoteStateProps {
   // View mode
   viewMode?: ConsultationViewMode;
   onViewModeChange?: (mode: ConsultationViewMode) => void;
+  // Save state
+  isSaving?: boolean;
+  isSaved?: boolean;
 }
 
 export const ConsultationNoteState = ({
@@ -71,7 +74,9 @@ export const ConsultationNoteState = ({
   onExportPDF,
   onExportWord,
   viewMode = 'soap',
-  onViewModeChange
+  onViewModeChange,
+  isSaving = false,
+  isSaved = false
 }: ConsultationNoteStateProps) => {
   const isMobile = useIsMobile();
 
@@ -195,6 +200,8 @@ export const ConsultationNoteState = ({
             onRegenerate={onRegenerate}
             onExportPDF={onExportPDF}
             onExportWord={onExportWord}
+            isSaving={isSaving}
+            isSaved={isSaved}
           />
         </CardContent>
       </Card>
