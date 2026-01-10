@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ConsultationTypeSelector } from "./ConsultationTypeSelector";
 import { PatientConsentBanner } from "./PatientConsentBanner";
 import { ScribeDevDisclaimer } from "./ScribeDevDisclaimer";
-import { ConsultationType, ConsultationCategory, ScribeSettings } from "@/types/scribe";
+import { PatientContextCapture } from "./PatientContextCapture";
+import { ConsultationType, ConsultationCategory, ScribeSettings, PatientContext } from "@/types/scribe";
 import { Mic, Settings2 } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -12,9 +13,11 @@ interface ConsultationReadyStateProps {
   consultationCategory: ConsultationCategory;
   patientConsent: boolean;
   settings: ScribeSettings;
+  patientContext: PatientContext | null;
   onTypeChange: (type: ConsultationType) => void;
   onCategoryChange: (category: ConsultationCategory) => void;
   onConsentChange: (consent: boolean) => void;
+  onPatientContextChange: (context: PatientContext | null) => void;
   onStart: () => void;
   onOpenSettings: () => void;
 }
@@ -24,9 +27,11 @@ export const ConsultationReadyState = ({
   consultationCategory,
   patientConsent,
   settings,
+  patientContext,
   onTypeChange,
   onCategoryChange,
   onConsentChange,
+  onPatientContextChange,
   onStart,
   onOpenSettings
 }: ConsultationReadyStateProps) => {
@@ -50,6 +55,13 @@ export const ConsultationReadyState = ({
               Select consultation type and confirm consent to begin
             </p>
           </div>
+
+          {/* Patient Context Capture */}
+          <PatientContextCapture
+            patientContext={patientContext}
+            onPatientContextChange={onPatientContextChange}
+            emrFormat={settings.emrFormat}
+          />
 
           {/* Consultation Type */}
           <ConsultationTypeSelector

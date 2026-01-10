@@ -163,6 +163,20 @@ export const ScribeSettingsPanel = ({
               onCheckedChange={(checked) => onUpdateSetting('showConsentReminder', checked)}
             />
           </div>
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="showPatientBanner">Show Patient Banner During Recording</Label>
+              <p className="text-sm text-muted-foreground">
+                Display captured patient details during recording
+              </p>
+            </div>
+            <Switch
+              id="showPatientBanner"
+              checked={settings.showPatientBannerDuringRecording}
+              onCheckedChange={(checked) => onUpdateSetting('showPatientBannerDuringRecording', checked)}
+            />
+          </div>
         </CardContent>
       </Card>
 

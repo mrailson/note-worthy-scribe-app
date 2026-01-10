@@ -1,7 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ConsultationType, CONSULTATION_TYPE_LABELS, ScribeTranscriptData } from "@/types/scribe";
+import { ConsultationType, CONSULTATION_TYPE_LABELS, ScribeTranscriptData, PatientContext } from "@/types/scribe";
+import { PatientContextBanner } from "./PatientContextBanner";
 import { Mic, Pause, Play, Square, Eye, EyeOff, Clock } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -16,11 +17,14 @@ interface ConsultationRecordingStateProps {
   transcript: string;
   realtimeTranscripts: ScribeTranscriptData[];
   showLiveTranscript: boolean;
+  patientContext: PatientContext | null;
+  showPatientBanner: boolean;
   formatDuration: (seconds: number) => string;
   onPause: () => void;
   onResume: () => void;
   onFinish: () => void;
   onCancel: () => void;
+  onClearPatientContext?: () => void;
 }
 
 interface TimestampedSegment {
@@ -39,11 +43,14 @@ export const ConsultationRecordingState = ({
   transcript,
   realtimeTranscripts,
   showLiveTranscript: initialShowTranscript,
+  patientContext,
+  showPatientBanner,
   formatDuration,
   onPause,
   onResume,
   onFinish,
-  onCancel
+  onCancel,
+  onClearPatientContext
 }: ConsultationRecordingStateProps) => {
   const isMobile = useIsMobile();
   const [showTranscript, setShowTranscript] = useState(initialShowTranscript);
@@ -95,6 +102,17 @@ export const ConsultationRecordingState = ({
 
   return (
     <div className="flex flex-col h-[calc(100vh-180px)] px-2 sm:px-4">
+      {/* Patient Context Banner */}
+      {patientContext && showPatientBanner && (
+        <div className="mb-3">
+          <PatientContextBanner 
+            patientContext={patientContext} 
+            onClear={onClearPatientContext}
+            compact 
+          />
+        </div>
+      )}
+
       {/* Header with Recording Status */}
       <div className="flex items-center justify-between py-4">
         <div className="flex items-center gap-3">

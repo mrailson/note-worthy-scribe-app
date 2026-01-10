@@ -12,7 +12,8 @@ import {
   DEFAULT_SCRIBE_SETTINGS,
   CONSULTATION_TYPE_LABELS,
   HeidiEditStates,
-  HeidiEditContent
+  HeidiEditContent,
+  PatientContext
 } from "@/types/scribe";
 import { useScribeRecording } from "./useScribeRecording";
 import { supabase } from "@/integrations/supabase/client";
@@ -28,6 +29,7 @@ export const useScribeConsultation = () => {
   const [consultationNote, setConsultationNote] = useState<ConsultationNote | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [settings, setSettings] = useState<ScribeSettings>(DEFAULT_SCRIBE_SETTINGS);
+  const [patientContext, setPatientContext] = useState<PatientContext | null>(null);
   
   // Edit states for SOAP sections (legacy)
   const [editStates, setEditStates] = useState({
@@ -268,6 +270,7 @@ export const useScribeConsultation = () => {
     setConsultationNote(null);
     setPatientConsent(false);
     setConsentTimestamp(undefined);
+    setPatientContext(null);
     setEditStates({ S: false, O: false, A: false, P: false });
     setEditContent({ S: '', O: '', A: '', P: '' });
     setHeidiEditStates({
@@ -285,6 +288,11 @@ export const useScribeConsultation = () => {
       plan: ''
     });
   }, [recording]);
+
+  // Clear patient context
+  const clearPatientContext = useCallback(() => {
+    setPatientContext(null);
+  }, []);
 
   // Copy to clipboard with EMR formatting
   const copyToClipboard = useCallback(async (section?: keyof SOAPNote) => {
@@ -479,6 +487,7 @@ export const useScribeConsultation = () => {
     heidiEditContent,
     consultationCategory,
     viewMode,
+    patientContext,
     
     // Recording passthrough
     isRecording: recording.isRecording,
@@ -516,5 +525,8 @@ export const useScribeConsultation = () => {
     copyHeidiSection,
     // View mode
     setViewMode,
+    // Patient context
+    setPatientContext,
+    clearPatientContext,
   };
 };

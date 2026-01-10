@@ -368,3 +368,6 @@ verify_jwt = true
 
 [functions.fetch-gamma-themes]
 verify_jwt = true
+
+[functions.extract-patient-context]
+verify_jwt = true
