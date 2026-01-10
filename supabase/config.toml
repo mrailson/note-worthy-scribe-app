@@ -371,3 +371,9 @@ verify_jwt = true
 
 [functions.extract-patient-context]
 verify_jwt = true
+
+[functions.analyse-consultation-so-far]
+verify_jwt = true
+
+[functions.generate-scribe-notes]
+verify_jwt = true

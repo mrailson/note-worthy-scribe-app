@@ -13,7 +13,8 @@ import {
   CONSULTATION_TYPE_LABELS,
   HeidiEditStates,
   HeidiEditContent,
-  PatientContext
+  PatientContext,
+  ConsultationContextFile
 } from "@/types/scribe";
 import { useScribeRecording } from "./useScribeRecording";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,6 +31,7 @@ export const useScribeConsultation = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [settings, setSettings] = useState<ScribeSettings>(DEFAULT_SCRIBE_SETTINGS);
   const [patientContext, setPatientContext] = useState<PatientContext | null>(null);
+  const [contextFiles, setContextFiles] = useState<ConsultationContextFile[]>([]);
   
   // Edit states for SOAP sections (legacy)
   const [editStates, setEditStates] = useState({
@@ -115,13 +117,20 @@ export const useScribeConsultation = () => {
 
       console.log('Generating notes for consultation using Heidi format...');
 
+      // Prepare context content from files
+      const contextContent = contextFiles
+        .filter(f => !f.isProcessing && !f.error && f.content)
+        .map(f => `[${f.name}]:\n${f.content}`)
+        .join('\n\n');
+
       const { data, error } = await supabase.functions.invoke('generate-scribe-notes', {
         body: { 
           transcript: result.transcript,
           consultationType,
           outputFormat: 'heidi',
           noteFormat: settings.noteFormat,
-          detailLevel: settings.consultationDetailLevel
+          detailLevel: settings.consultationDetailLevel,
+          contextContent: contextContent || undefined
         }
       });
 
@@ -271,6 +280,7 @@ export const useScribeConsultation = () => {
     setPatientConsent(false);
     setConsentTimestamp(undefined);
     setPatientContext(null);
+    setContextFiles([]);
     setEditStates({ S: false, O: false, A: false, P: false });
     setEditContent({ S: '', O: '', A: '', P: '' });
     setHeidiEditStates({
@@ -288,6 +298,15 @@ export const useScribeConsultation = () => {
       plan: ''
     });
   }, [recording]);
+
+  // Context file management
+  const addContextFile = useCallback((file: ConsultationContextFile) => {
+    setContextFiles(prev => [...prev, file]);
+  }, []);
+
+  const removeContextFile = useCallback((fileId: string) => {
+    setContextFiles(prev => prev.filter(f => f.id !== fileId));
+  }, []);
 
   // Clear patient context
   const clearPatientContext = useCallback(() => {
@@ -488,6 +507,7 @@ export const useScribeConsultation = () => {
     consultationCategory,
     viewMode,
     patientContext,
+    contextFiles,
     
     // Recording passthrough
     isRecording: recording.isRecording,
@@ -528,5 +548,8 @@ export const useScribeConsultation = () => {
     // Patient context
     setPatientContext,
     clearPatientContext,
+    // Context files
+    addContextFile,
+    removeContextFile,
   };
 };
