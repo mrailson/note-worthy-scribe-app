@@ -233,17 +233,16 @@ export const useScribeConsultation = () => {
       const soapNote = consultationNote.soapNote;
       const summaryText = `${soapNote.S}\n\n${soapNote.O}\n\n${soapNote.A}\n\n${soapNote.P}`;
 
-      const { error } = await supabase.from('meetings').insert({
+      const { error } = await supabase.from('meetings').insert([{
         user_id: userData.user.id,
-        consultation_type: CONSULTATION_TYPE_LABELS[consultationType],
+        title: `${CONSULTATION_TYPE_LABELS[consultationType]} Consultation`,
+        meeting_type: 'consultation',
         live_transcript_text: recording.transcript,
-        summary: summaryText,
+        soap_notes: JSON.parse(JSON.stringify(consultationNote.soapNote)),
         overview: `${soapNote.S.substring(0, 100)}...`,
-        notes_style_2: soapNote.A,
-        notes_style_3: soapNote.P,
         status: 'completed',
-        duration_seconds: recording.duration
-      });
+        duration_minutes: Math.ceil(recording.duration / 60)
+      }]);
 
       if (error) throw error;
       toast.success('Consultation saved');
