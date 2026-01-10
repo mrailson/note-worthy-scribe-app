@@ -14,7 +14,7 @@ serve(async (req) => {
   }
 
   try {
-    const { transcript, consultationType = 'f2f', outputFormat = 'soap' } = await req.json();
+    const { transcript, consultationType = 'f2f', outputFormat = 'soap', detailLevel = 3 } = await req.json();
 
     if (!transcript || typeof transcript !== 'string') {
       return new Response(
@@ -23,7 +23,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Generating SOAP notes for ${consultationType} consultation, transcript length: ${transcript.length} chars`);
+    console.log(`Generating SOAP notes for ${consultationType} consultation, detail level: ${detailLevel}, transcript length: ${transcript.length} chars`);
 
     const consultationTypeLabel = {
       'f2f': 'face to face',
@@ -31,9 +31,22 @@ serve(async (req) => {
       'video': 'video'
     }[consultationType] || 'face to face';
 
+    // Detail level instructions
+    const detailLevelInstructions: Record<number, string> = {
+      1: "Use GP shorthand and medical codes only. Maximum brevity. Example: 'URTI, 2/7, no red flags. Rx: supportive. Safety-netted.'",
+      2: "Be extremely concise. Key points only in bullet format. No full sentences needed.",
+      3: "Standard complete clinical note with appropriate detail for EMR documentation.",
+      4: "Include comprehensive examination findings, detailed clinical reasoning, and thorough differential diagnosis discussion.",
+      5: "Include patient quotes where relevant, full contextual details, comprehensive history, and detailed clinical narrative."
+    };
+
+    const detailInstruction = detailLevelInstructions[detailLevel] || detailLevelInstructions[3];
+
     const systemPrompt = `You are an expert NHS GP clinical documentation assistant. Your task is to analyse a consultation transcript and generate structured SOAP notes suitable for UK primary care EMR systems (EMIS Web, SystmOne).
 
 This is a ${consultationTypeLabel} consultation.
+
+DETAIL LEVEL INSTRUCTION: ${detailInstruction}
 
 Generate a JSON response with exactly these fields:
 {
@@ -46,7 +59,7 @@ Generate a JSON response with exactly these fields:
 
 Guidelines:
 - Use British English spelling and NHS terminology
-- Be concise but clinically complete
+- Adjust verbosity according to the detail level instruction above
 - Use standard medical abbreviations (PMH, DH, SH, FH, O/E, Ix, Rx, F/U)
 - Include all clinically relevant information from the transcript
 - If information is not mentioned, do not invent it - leave that aspect out or note "not documented"

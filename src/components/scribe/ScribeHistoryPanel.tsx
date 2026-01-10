@@ -1,18 +1,18 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ScribeSession } from "@/types/scribe";
+import { ScribeSession, ScribeSettings, ConsultationViewMode, SOAPNote } from "@/types/scribe";
 import { History, Trash2, FileText, Clock, Loader2, ArrowLeft, Copy, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { TranscriptDisplay } from "./TranscriptDisplay";
-import { ConsultationViewModeSelector, ViewMode } from "./ConsultationViewModeSelector";
-import { DetailLevelSlider } from "./DetailLevelSlider";
+import { ConsultationViewControls } from "./ConsultationViewControls";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ScribeHistoryPanelProps {
   sessions: ScribeSession[];
@@ -22,6 +22,8 @@ interface ScribeHistoryPanelProps {
   onDeleteSession: (sessionId: string) => void;
   onRefresh: () => void;
   onClearCurrentSession: () => void;
+  settings: ScribeSettings;
+  onUpdateSetting: <K extends keyof ScribeSettings>(key: K, value: ScribeSettings[K]) => void;
 }
 
 export const ScribeHistoryPanel = ({
@@ -32,24 +34,73 @@ export const ScribeHistoryPanel = ({
   onDeleteSession,
   onRefresh,
   onClearCurrentSession,
+  settings,
+  onUpdateSetting,
 }: ScribeHistoryPanelProps) => {
-  const [viewMode, setViewMode] = useState<ViewMode>('soap');
-  const [detailLevel, setDetailLevel] = useState(3);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [regeneratedNotes, setRegeneratedNotes] = useState<SOAPNote | null>(null);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast.success(`${label} copied to clipboard`);
   };
 
+  const currentSoapNote = regeneratedNotes || currentSession?.soapNote;
+
+  const handleViewModeChange = useCallback((mode: ConsultationViewMode) => {
+    onUpdateSetting('consultationViewMode', mode);
+  }, [onUpdateSetting]);
+
+  const handleDetailLevelChange = useCallback(async (newLevel: number) => {
+    onUpdateSetting('consultationDetailLevel', newLevel);
+    
+    // Regenerate notes if we have a transcript
+    if (currentSession?.transcript) {
+      setIsRegenerating(true);
+      try {
+        const { data, error } = await supabase.functions.invoke('generate-scribe-notes', {
+          body: { 
+            transcript: currentSession.transcript,
+            detailLevel: newLevel,
+            consultationType: currentSession.consultationType || 'f2f'
+          }
+        });
+        
+        if (error) throw error;
+        
+        if (data && data.S && data.O && data.A && data.P) {
+          setRegeneratedNotes({
+            S: data.S,
+            O: data.O,
+            A: data.A,
+            P: data.P
+          });
+          toast.success(`Notes regenerated at ${newLevel === 1 ? 'Code' : newLevel === 2 ? 'Brief' : newLevel === 3 ? 'Standard' : newLevel === 4 ? 'Detailed' : 'Full'} detail`);
+        }
+      } catch (error) {
+        console.error('Failed to regenerate notes:', error);
+        toast.error('Failed to regenerate notes');
+      } finally {
+        setIsRegenerating(false);
+      }
+    }
+  }, [currentSession, onUpdateSetting]);
+
+  // Clear regenerated notes when session changes
+  const handleClearCurrentSession = useCallback(() => {
+    setRegeneratedNotes(null);
+    onClearCurrentSession();
+  }, [onClearCurrentSession]);
+
   const getNarrativeText = () => {
-    if (!currentSession?.soapNote) return '';
-    const { S, O, A, P } = currentSession.soapNote;
+    if (!currentSoapNote) return '';
+    const { S, O, A, P } = currentSoapNote;
     return `${S}\n\n${O}\n\n${A}\n\n${P}`;
   };
 
   const getSummaryText = () => {
-    if (!currentSession?.soapNote) return '';
-    const { S, O, A, P } = currentSession.soapNote;
+    if (!currentSoapNote) return '';
+    const { S, O, A, P } = currentSoapNote;
     // Extract first sentence or first 100 chars from each section
     const getFirstPart = (text: string) => {
       const firstSentence = text.split(/[.!?]/)[0];
@@ -76,7 +127,7 @@ export const ScribeHistoryPanel = ({
     return (
       <div className="space-y-4">
         <div className="flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onClearCurrentSession}>
+          <Button variant="ghost" size="sm" onClick={handleClearCurrentSession}>
             <ArrowLeft className="h-4 w-4 mr-2" />
             Back to History
           </Button>
@@ -113,16 +164,19 @@ export const ScribeHistoryPanel = ({
               
               <TabsContent value="consultation" className="mt-4 space-y-6">
                 {/* View Controls */}
-                <div className="space-y-4 p-4 rounded-lg bg-muted/30 border">
-                  <ConsultationViewModeSelector value={viewMode} onChange={setViewMode} />
-                  <DetailLevelSlider value={detailLevel} onChange={setDetailLevel} />
-                </div>
+                <ConsultationViewControls
+                  viewMode={settings.consultationViewMode}
+                  detailLevel={settings.consultationDetailLevel}
+                  isRegenerating={isRegenerating}
+                  onViewModeChange={handleViewModeChange}
+                  onDetailLevelChange={handleDetailLevelChange}
+                />
 
                 {/* SOAP Notes */}
-                {currentSession.soapNote ? (
+                {currentSoapNote ? (
                   <div className="space-y-3">
                     {/* SOAP View Mode */}
-                    {viewMode === 'soap' && (
+                    {settings.consultationViewMode === 'soap' && (
                       <Accordion type="multiple" defaultValue={['S', 'O', 'A', 'P']} className="space-y-2">
                         <AccordionItem value="S" className="border rounded-lg px-4">
                           <AccordionTrigger className="hover:no-underline py-3">
@@ -133,11 +187,11 @@ export const ScribeHistoryPanel = ({
                           </AccordionTrigger>
                           <AccordionContent className="pb-4">
                             <div className="flex justify-end mb-2">
-                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSession.soapNote!.S, 'Subjective')}>
+                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSoapNote.S, 'Subjective')}>
                                 <Copy className="h-3 w-3 mr-1" /> Copy
                               </Button>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSession.soapNote.S}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.S}</p>
                           </AccordionContent>
                         </AccordionItem>
                         
@@ -150,11 +204,11 @@ export const ScribeHistoryPanel = ({
                           </AccordionTrigger>
                           <AccordionContent className="pb-4">
                             <div className="flex justify-end mb-2">
-                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSession.soapNote!.O, 'Objective')}>
+                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSoapNote.O, 'Objective')}>
                                 <Copy className="h-3 w-3 mr-1" /> Copy
                               </Button>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSession.soapNote.O}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.O}</p>
                           </AccordionContent>
                         </AccordionItem>
                         
@@ -167,11 +221,11 @@ export const ScribeHistoryPanel = ({
                           </AccordionTrigger>
                           <AccordionContent className="pb-4">
                             <div className="flex justify-end mb-2">
-                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSession.soapNote!.A, 'Assessment')}>
+                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSoapNote.A, 'Assessment')}>
                                 <Copy className="h-3 w-3 mr-1" /> Copy
                               </Button>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSession.soapNote.A}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.A}</p>
                           </AccordionContent>
                         </AccordionItem>
                         
@@ -184,18 +238,18 @@ export const ScribeHistoryPanel = ({
                           </AccordionTrigger>
                           <AccordionContent className="pb-4">
                             <div className="flex justify-end mb-2">
-                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSession.soapNote!.P, 'Plan')}>
+                              <Button variant="ghost" size="sm" onClick={() => copyToClipboard(currentSoapNote.P, 'Plan')}>
                                 <Copy className="h-3 w-3 mr-1" /> Copy
                               </Button>
                             </div>
-                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSession.soapNote.P}</p>
+                            <p className="text-sm whitespace-pre-wrap leading-relaxed">{currentSoapNote.P}</p>
                           </AccordionContent>
                         </AccordionItem>
                       </Accordion>
                     )}
 
                     {/* Narrative View Mode */}
-                    {viewMode === 'narrative' && (
+                    {settings.consultationViewMode === 'narrative' && (
                       <Card className="border-2">
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
@@ -217,7 +271,7 @@ export const ScribeHistoryPanel = ({
                     )}
 
                     {/* Summary View Mode */}
-                    {viewMode === 'summary' && (
+                    {settings.consultationViewMode === 'summary' && (
                       <Card className="border-2 bg-gradient-to-br from-primary/5 to-transparent">
                         <CardHeader className="pb-2">
                           <div className="flex items-center justify-between">
